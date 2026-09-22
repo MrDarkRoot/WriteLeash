@@ -21,6 +21,7 @@ CREATE ROLE commitcap_writer
     PASSWORD 'commitcap_writer_experiment_only';
 
 REVOKE CONNECT ON DATABASE commitcap FROM PUBLIC;
+REVOKE TEMPORARY ON DATABASE commitcap FROM PUBLIC;
 GRANT CONNECT ON DATABASE commitcap TO commitcap_writer;
 
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
@@ -64,7 +65,6 @@ $function$;
 
 ALTER FUNCTION commitcap.enforce_update_budget() OWNER TO commitcap_owner;
 REVOKE ALL ON FUNCTION commitcap.enforce_update_budget() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION commitcap.enforce_update_budget() TO commitcap_writer;
 
 CREATE TABLE public.subscriptions (
     id bigint PRIMARY KEY,
