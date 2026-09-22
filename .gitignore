@@ -1,0 +1,48 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Private local material
+secrets/
+private/
+.local/
+
+# Keys / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
+# Local database artifacts
+*.dump
+*.sql.dump
+*.backup
+
+# Logs / temporary data
+*.log
+tmp/
+temp/
+.cache/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Node, if tooling is added later
+node_modules/
+
+# Coverage / build artifacts
+coverage/
+htmlcov/
+dist/
+build/

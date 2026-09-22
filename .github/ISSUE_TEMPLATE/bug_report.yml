@@ -1,0 +1,86 @@
+name: Bug report
+description: Report reproducible behavior that conflicts with the documented CommitCap contract
+title: "bug: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        CommitCap is security-sensitive. If this may be a vulnerability, do not disclose exploit details here. Follow `SECURITY.md` and use the private reporting channel described there.
+
+  - type: input
+    id: version
+    attributes:
+      label: CommitCap commit or version
+      placeholder: Commit hash, tag, or version
+    validations:
+      required: true
+
+  - type: input
+    id: postgres-version
+    attributes:
+      label: PostgreSQL version
+      placeholder: Output of SELECT version()
+    validations:
+      required: true
+
+  - type: textarea
+    id: operation
+    attributes:
+      label: Operation attempted
+      description: Describe the SQL operation and transaction context without including credentials or sensitive data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the smallest safe reproduction and remove secrets, credentials, and production data.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: areas
+    attributes:
+      label: Relevant PostgreSQL areas
+      description: Select every area involved, or Unknown / none.
+      multiple: true
+      options:
+        - Transaction boundaries
+        - Savepoints or subtransactions
+        - Triggers
+        - Procedures or functions
+        - Partitions
+        - Concurrency
+        - Connection pooling
+        - Role or privilege configuration
+        - Unknown / none
+    validations:
+      required: true
+
+  - type: dropdown
+    id: security-sensitive
+    attributes:
+      label: Could this be security-sensitive?
+      description: If Yes or Unsure, review SECURITY.md before submitting publicly.
+      options:
+        - "No"
+        - "Unsure"
+        - "Yes - I will use the private reporting process instead"
+    validations:
+      required: true

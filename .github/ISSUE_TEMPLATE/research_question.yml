@@ -1,0 +1,76 @@
+name: PostgreSQL research question
+description: Record a falsifiable question about unresolved PostgreSQL semantics
+title: "research: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for focused Phase 0 experiments. A result must not expand CommitCap's support claims until the specification, tests, and limitations are updated.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question being investigated
+      description: State one narrow, falsifiable PostgreSQL question.
+    validations:
+      required: true
+
+  - type: input
+    id: invariant
+    attributes:
+      label: Relevant invariant or CC-* test ID
+      placeholder: Security invariant, specification section, or CC-008
+    validations:
+      required: true
+
+  - type: input
+    id: postgres-version
+    attributes:
+      label: PostgreSQL version
+      placeholder: Exact server version used or proposed
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest safe experiment, without credentials or production data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: Include exact transaction and error behavior. Do not infer beyond the observation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Cite SPEC.md when the expectation is normative.
+    validations:
+      required: true
+
+  - type: textarea
+    id: consequence
+    attributes:
+      label: Security consequence
+      description: Explain whether durable mutation authority, fail-closed behavior, or the support envelope is affected.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Hypothesis outcome
+      options:
+        - Supports the hypothesis
+        - Falsifies the hypothesis
+        - Leaves the hypothesis unresolved
+    validations:
+      required: true
