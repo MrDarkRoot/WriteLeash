@@ -84,3 +84,13 @@ bypass paths.
 
 When implementation evidence changes a row in this table, update `SPEC.md`, the
 threat model, and release claims in the same change.
+
+## Phase 0 Experiment Evidence
+
+The `experiment/cc001-cc003` branch contains a test-only SQL and PL/pgSQL experiment run against PostgreSQL 16.4 using the pinned `postgres:16.4-alpine` image and the constrained schema described in `SPEC.md`. Observed results:
+
+- `CC-001`: PASS; five protected row-update events committed and remained durable.
+- `CC-002`: PASS; the sixth event in one `UPDATE` raised the temporary budget-denial message and no protected mutation became durable.
+- `CC-003`: PASS; six separate `UPDATE` statements shared one transaction-wide count and no protected mutation became durable after denial.
+
+This is experimental evidence for one tested PostgreSQL version, schema, role model, and trigger mechanism. It is not a supported V0 release claim. Savepoint poisoning, PL/pgSQL exception recovery, concurrency, pooling, partitions, cascades, and cross-transaction authority remain untested or unsupported. The accounting state is ordinary transactional database state and therefore appears potentially sensitive to savepoint rollback and exception recovery; `CC-008` and `CC-024` remain required falsification tests.
