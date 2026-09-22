@@ -46,8 +46,8 @@ Status terms:
 | Trigger disabling or replication-role changes | **UNSUPPORTED** | Accounting may be skipped entirely | Protected writer must lack all such privileges and settings |
 | `SET ROLE` and privileged role membership | **UNSUPPORTED** | The writer could assume ownership or enforcement-changing authority | Remove bypass-capable memberships and verify with `CC-028` |
 | Direct policy or accounting-state writes | **UNSUPPORTED** | Writer could increase or restore its own authority | Keep state under a separate trusted owner with no direct writer grants |
-| Savepoint before an over-budget mutation | **UNKNOWN; REQUIRED TEST** | `ROLLBACK TO` might recover from denial and permit partial commit | A detected excess must poison the top-level transaction; `CC-008` |
-| PL/pgSQL catches the denial error | **UNKNOWN; REQUIRED TEST** | Exception blocks use subtransactions and may make errors recoverable | Top-level transaction must remain denied; `CC-024` |
+| Savepoint before an over-budget mutation | **FAIL** on PostgreSQL 16.4 experiment | `ROLLBACK TO` reverted the denial and event-six accounting, then the top-level transaction committed | Current transactional PL/pgSQL mechanism does not satisfy `CC-008` |
+| PL/pgSQL catches the denial error | **FAIL** on PostgreSQL 16.4 experiment | Exception recovery reverted the denial and event-six accounting, then the top-level transaction committed | Current transactional PL/pgSQL mechanism does not satisfy `CC-024` |
 | Mixed protected and unprotected writes before denial | **V0 TARGET; NOT IMPLEMENTED** | Rolling back only protected state would violate whole-transaction abort semantics | No transactional effect may become durable; `CC-032` |
 | Rollback of allowed work to a savepoint | **UNKNOWN; REQUIRED TEST** | Counter may remain stale or may reset too much | Restore only rolled-back allowed consumption without creating fresh authority; `CC-009` |
 | Top-level rollback | **V0 TARGET; NOT IMPLEMENTED** | Stale state could contaminate later transactions | Discard relational and accounting state; verify backend reuse |
@@ -99,9 +99,36 @@ the constrained schema described in `SPEC.md`. Observed results:
   count and no protected mutation became durable after denial.
 
 This is experimental evidence for one tested PostgreSQL version, schema, role
-model, and trigger mechanism. It is not a supported V0 release claim. Savepoint
-poisoning, PL/pgSQL exception recovery, concurrency, pooling, partitions,
-cascades, and cross-transaction authority remain untested or unsupported. The
-accounting state is ordinary transactional database state and therefore appears
-potentially sensitive to savepoint rollback and exception recovery; `CC-008`
-and `CC-024` remain required falsification tests.
+model, and trigger mechanism. It is not a supported V0 release claim.
+Concurrency, pooling, partitions, cascades, and cross-transaction authority
+remain untested or unsupported.
+
+## Irreversible Denial Falsification Evidence
+
+The unchanged Phase 0 trigger and transactional-accounting mechanism was tested
+on PostgreSQL 16.4 using `tests/cc008.sh` and `tests/cc024.sh`:
+
+- `CC-008`: **FAIL**. Event six raised the CommitCap denial inside a savepoint.
+  `ROLLBACK TO SAVEPOINT` restored the transaction, later SQL executed, and
+  `COMMIT` succeeded. Five protected mutations became durable. The failed
+  event-six counter increment rolled back, leaving a durable count of five.
+- `CC-024`: **FAIL**. An anonymous PL/pgSQL exception block caught the event-six
+  denial under the existing protected-writer privileges. Later SQL executed and
+  `COMMIT` succeeded. Five protected mutations became durable. The event-six
+  counter increment again rolled back, leaving a durable count of five.
+
+No unprotected relation was mutated in either experiment. Fresh trusted-admin
+connections verified protected and accounting state after each commit.
+
+The denial exception and accounting increment occur in ordinary transactional
+state inside a recoverable PostgreSQL subtransaction. Subtransaction rollback
+therefore removes the event-six accounting change and leaves no denial marker
+that can irrevocably poison the top-level transaction. The current SQL and
+PL/pgSQL architecture does not satisfy CommitCap's required irreversible
+top-level denial semantics.
+
+This falsifies the current mechanism, not the invariant. A later design
+investigation may need to evaluate mechanism classes with state outside
+recoverable subtransactions, such as backend-local non-transactional state or
+top-level transaction callbacks and hooks. No replacement mechanism is
+implemented or selected by this experiment.
