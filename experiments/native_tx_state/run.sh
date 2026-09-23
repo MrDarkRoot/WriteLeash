@@ -7,6 +7,11 @@ ADMIN_PASSWORD='commitcap_native_admin_experiment_only'
 WRITER_PASSWORD='commitcap_writer_experiment_only'
 CC_SESSION_DIR=""
 
+# Optional complete transcript for a pinned tested-commit evidence run.
+if [[ -n "${COMMITCAP_LOG:-}" ]]; then
+    exec > >(tee "$COMMITCAP_LOG") 2>&1
+fi
+
 admin_psql() {
     "${COMPOSE[@]}" exec -T \
         -e "PGPASSWORD=$ADMIN_PASSWORD" \
@@ -235,7 +240,7 @@ assert_privilege_audit() {
         "commitcap_native_admin"
     assert_scalar "extension-owned functions" \
         "SELECT count(*) FROM pg_depend AS d JOIN pg_extension AS e ON e.oid = d.refobjid WHERE e.extname = 'commitcap_native_tx_state' AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e';" \
-        "2"
+        "3"
     assert_scalar "trusted schema owners" \
         "SELECT count(*) FROM pg_namespace WHERE nspname IN ('commitcap_native', 'commitcap_probe') AND pg_get_userbyid(nspowner) <> 'commitcap_owner';" \
         "0"
@@ -495,13 +500,17 @@ cleanup() {
     "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
 }
 
-trap cleanup EXIT
+trap 'status=$?; cleanup; printf "Native suite exit status: %s\n" "$status"' EXIT
 cleanup
 "${COMPOSE[@]}" up -d --build --wait
 admin_psql -v ON_ERROR_STOP=1 < "$EXPERIMENT_DIR/setup.sql" >/dev/null
 
 printf 'Classification: TEST FIRST\n'
+printf 'Command: ./experiments/native_tx_state/run.sh\n'
+printf 'Tested commit: %s\n' "$(git -C "$EXPERIMENT_DIR/../.." rev-parse HEAD)"
+printf 'Base image: %s\n' "$(docker image inspect postgres:16.4-alpine --format '{{index .RepoDigests 0}}')"
 printf 'PostgreSQL: %s\n' "$(admin_psql -At -v ON_ERROR_STOP=1 -c 'SHOW server_version;')"
+printf 'Outside this suite: capability-wide CC-034/035, managed deployment, ungranted INSERT/DELETE/COPY/TRUNCATE accounting, other PostgreSQL majors and poolers.\n'
 assert_privilege_envelope
 assert_privilege_audit
 
@@ -1986,6 +1995,11 @@ assert_scalar "state-transition cleanup durable state" \
     "2:4"
 printf 'state-transition lifecycle cleanup after ABORT: PASS\n'
 printf 'CC-020 / CC-021 / CC-022 state-transition tests: PASS\n'
+
+# Canonical numeric cases and independent-policy counter tests are in a
+# separate sourced script so the historical legacy CC-* namespace above stays
+# unchanged. The script uses the same writer/admin sessions and assertions.
+source "$EXPERIMENT_DIR/numeric_cases.sh"
 
 lifecycle_logs="$("${COMPOSE[@]}" logs --no-color postgres 2>&1 | grep 'commitcap_native_tx_state lifecycle' || true)"
 for required_event in \
