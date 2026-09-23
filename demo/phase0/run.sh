@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 FIXTURE="$ROOT/experiments/native_tx_state"
+PINNED_IMAGE='postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c'
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-commitcap_demo}"
 COMPOSE=(docker compose -f "$FIXTURE/docker-compose.yml")
 started=false
@@ -62,6 +63,13 @@ command -v docker >/dev/null || fail 'Docker is required'
 docker compose version >/dev/null || fail 'Docker Compose is required'
 docker info >/dev/null || fail 'Docker daemon unavailable'
 [[ -z "$("${COMPOSE[@]}" ps -a -q)" ]] || fail "Compose project $COMPOSE_PROJECT_NAME already has a container; choose an unused COMPOSE_PROJECT_NAME"
+# Dockerfile uses the tag; bind that local tag to the exact pulled digest first.
+docker pull "$PINNED_IMAGE" >/dev/null || fail "could not pull $PINNED_IMAGE"
+docker tag "$PINNED_IMAGE" postgres:16.4-alpine || fail 'could not tag pinned PostgreSQL image'
+pinned_id="$(docker image inspect "$PINNED_IMAGE" --format '{{.Id}}')" || fail 'pinned image missing after pull'
+tagged_id="$(docker image inspect postgres:16.4-alpine --format '{{.Id}}')" || fail 'local PostgreSQL tag missing'
+[[ -n "$pinned_id" && "$tagged_id" == "$pinned_id" ]] || fail "local postgres:16.4-alpine image ID $tagged_id differs from pinned image ID $pinned_id"
+printf 'Pinned image preflight: %s; local tag image ID: %s\n' "$PINNED_IMAGE" "$tagged_id"
 trap cleanup EXIT
 started=true
 "${COMPOSE[@]}" up -d --build --wait >/dev/null
@@ -69,7 +77,7 @@ admin_psql < "$FIXTURE/setup.sql" >/dev/null
 
 printf 'Phase 0 local research demo; project=%s\n' "$COMPOSE_PROJECT_NAME"
 printf 'Command: ./demo/phase0/run.sh\nImplementation commit: %s\n' "$(git -C "$ROOT" rev-parse HEAD)"
-printf 'Base image: %s\n' "$(docker image inspect postgres:16.4-alpine --format '{{index .RepoDigests 0}}')"
+printf 'Base image: %s (verified local image ID: %s)\n' "$PINNED_IMAGE" "$tagged_id"
 printf 'PostgreSQL: %s\n' "$(admin_psql -c 'SHOW server_version;')"
 privileges="$(admin_psql -c "SELECT (NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolbypassrls AND NOT pg_has_role('commitcap_writer','commitcap_owner','MEMBER') AND has_column_privilege('commitcap_writer','public.subscriptions','status','UPDATE') AND has_column_privilege('commitcap_writer','public.users','role','UPDATE') AND has_column_privilege('commitcap_writer','public.refunds','amount','UPDATE') AND has_column_privilege('commitcap_writer','public.unprotected_audit','message','INSERT') AND NOT has_table_privilege('commitcap_writer','public.refunds','INSERT') AND NOT has_table_privilege('commitcap_writer','public.subscriptions','DELETE') AND NOT has_schema_privilege('commitcap_writer','commitcap_native','USAGE')) FROM pg_roles WHERE rolname='commitcap_writer';")"
 [[ "$privileges" == t ]] || fail 'restricted writer privilege envelope differs from setup.sql'

@@ -24,14 +24,21 @@ of a transferred or settled payment.
 ## Quickstart
 
 Prerequisites: a clean checkout with Docker Engine running and Docker Compose
-v2 (`docker compose`), permission to run Docker, Bash, and the ability to pull
-the pinned `postgres:16.4-alpine` base image and build its native extension.
+v2 (`docker compose`), permission to run Docker, Bash, and network access to
+pull the pinned PostgreSQL base image and build its native extension.
 No local PostgreSQL installation or host port is needed. The existing
 [`Dockerfile`](../../experiments/native_tx_state/Dockerfile) and
 [`Compose fixture`](../../experiments/native_tx_state/docker-compose.yml) use
-`postgres:16.4-alpine` at the tested digest
-`postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c`;
-confirm the digest printed by the demo for the image pulled in your environment.
+the `postgres:16.4-alpine` tag. Before Compose builds anything, the demo pulls
+the exact tested manifest digest
+`postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c`,
+tags that pulled image locally as `postgres:16.4-alpine`, and compares the
+tag's Docker image ID to the pulled digest reference's image ID. A pull or ID
+mismatch fails before `docker compose up`. The manifest digest and Docker image
+ID are different identifiers; comparing their literal hex strings is not a
+valid equality check. This preflight changes the **host-wide local tag** and
+does not restore its previous target on teardown; avoid running concurrent
+builds that rely on a different target for `postgres:16.4-alpine`.
 From a fresh checkout of this branch (or a commit containing `demo/phase0/`):
 
 ```bash
@@ -83,16 +90,20 @@ COMPOSE_PROJECT_NAME=commitcap_demo docker compose -f experiments/native_tx_stat
 ```
 
 If `docker info` fails, start Docker / fix access to the daemon; if Compose is
-missing, install its v2 plugin. If image pulling fails, restore registry/network
-access and confirm the printed image digest. A running project-name collision
+missing, install its v2 plugin. If the digest pull fails, restore
+registry/network access; if the ID comparison fails, inspect the local tag
+before retrying. A running project-name collision
 must be resolved by choosing an unused `COMPOSE_PROJECT_NAME` or explicitly
 tearing down *your own* prior demo project before retrying.
 
 ## Evidence and boundary
 
-The [complete sanitized demo transcript](evidence/2026-09-23-demo.txt) records
-the publicly reachable implementation commit, PostgreSQL version, pinned base
-image digest, SQL outcomes, all fresh-admin durable snapshots, and exit code.
+The [current complete sanitized demo transcript](evidence/2026-09-23-pinned-demo.txt)
+records the publicly reachable implementation commit, PostgreSQL version, pinned base
+image digest and verified ID, SQL outcomes, all fresh-admin durable snapshots,
+and exit code. The [previous transcript](evidence/2026-09-23-demo.txt) is
+historical evidence for implementation `7a01f59698c70258b050fe78b3b8a49016d09382`;
+that run printed the image digest but did not enforce the pin.
 The demo script contains the exact SQL and assertions; it is not a simulated
 output file or a policy-definition interface.
 
