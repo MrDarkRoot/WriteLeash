@@ -69,15 +69,16 @@ subscriptions:
 ```
 
 The count is transaction-wide. Rewriting one broad update as several smaller
-updates in the same transaction must not recover budget. Updating the same row
-multiple times consumes one unit for each row-update event; row counts follow
-events, not distinct row identities.
+updates in the same transaction must not recover budget.
 
 Status: narrow row-event mechanics were demonstrated by research experiments on
 PostgreSQL 16.4, including statement decomposition, savepoint and exception
 recovery, data-modifying CTEs, prepared statements, `MERGE` update actions, and
-backend reuse within the tested envelope. This is research evidence, not a
-supported release claim.
+backend reuse within the tested envelope. Those experiments also observed that
+repeated updates of the same row were counted as separate row-update events.
+That observation is not promoted to canonical current semantics beyond what
+[docs/spec.md](docs/spec.md) defines, and none of this is a supported release
+claim.
 
 ### State-transition authority
 
