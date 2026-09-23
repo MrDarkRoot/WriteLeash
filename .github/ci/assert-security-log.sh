@@ -16,7 +16,7 @@ for marker in \
     'independence subscriptions→users→refunds: PASS' \
     'independence refunds→users→subscriptions: PASS' \
     'independent-policy individual violation: PASS' \
-    'canonical CC-030: PASS' \
+    'canonical CC-030: FAIL (intentional CI assertion check)' \
     'canonical CC-031: PASS' \
     'canonical CC-032 single: PASS' \
     'canonical CC-032 decomposed: PASS' \
