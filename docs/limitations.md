@@ -1,10 +1,11 @@
 # Limitations And Support Matrix
 
 > **Historical evidence notice:** Most of this file preserves the original
-> row-budget Phase 0 matrix and experiment record. Every `CC-*` identifier in
-> this file is a **legacy experiment ID**, not a same-number test from the
-> canonical current plan in [test-plan.md](test-plan.md). Do not infer current
-> test coverage from these historical results.
+> row-budget Phase 0 matrix and experiment record. The historical `CC-*`
+> identifiers in it are **legacy experiment IDs**, not same-number tests from
+> the canonical current plan in [test-plan.md](test-plan.md); do not infer
+> current test coverage from those historical results. The state-transition
+> evidence section at the end is separately marked as canonical.
 
 ## Current Status
 
@@ -317,3 +318,46 @@ This was not a managed-PostgreSQL feasibility test. The use of extension
 installation, `shared_preload_libraries`, trusted setup privileges, and native
 server interfaces must be evaluated separately against at least one realistic
 managed environment before drawing any deployment conclusion.
+
+## State-Transition Authority Evidence (CC-020 / CC-021 / CC-022)
+
+These are canonical [test-plan.md](test-plan.md) IDs, not legacy experiment
+labels. They were added after the historical row-budget matrix above.
+
+The native transaction-state mechanism was extended with a second trigger
+function, `commitcap_native.enforce_role_transition`, attached to a `users`
+fixture (`id`, `tenant_id`, `role`). The test-only rule denies any `UPDATE`
+whose new text `role` value is `admin` (`* -> admin`). Allowed transitions
+share the same transaction-wide row-update accounting.
+
+Observed on PostgreSQL 16.4:
+
+- `CC-020`: **PASS**. `member -> moderator` committed; the probe read
+  `consumed=1, denied=false`; a fresh trusted-admin connection observed the
+  moderator role and unchanged sibling rows.
+- `CC-021`: **PASS**. `member -> admin` was denied with
+  `CommitCap forbidden state transition (* -> admin)`. The denial was sticky:
+  savepoint `ROLLBACK TO` and a PL/pgSQL exception handler both preserved
+  `denied=true`, a later protected event was rejected as already denied, and
+  `COMMIT` was rejected at `XACT_EVENT_PRE_COMMIT` with
+  `CommitCap top-level transaction denied after mutation authority violation`.
+  A fresh trusted-admin connection observed the baseline roles.
+- `CC-022`: **PASS**. A three-row `UPDATE` (`CASE WHEN id = 3 THEN 'admin'
+  ELSE 'moderator' END`, within the row-count budget of five) was denied by
+  transition authority, not volume. No allowed sibling transition became
+  durable.
+- Composition: an allowed transition consumed exactly one row-update event and
+  shared the transaction-wide budget (five allowed transitions consumed the
+  budget and a sixth event was denied, aborting the whole transaction); a
+  forbidden transition was denied with the full budget remaining; after a
+  denial the next top-level transaction started at
+  `active=false, consumed=0, denied=false`.
+- Privilege envelope unchanged: the writer received only `SELECT(id)` and
+  `UPDATE(role)` on `users`, had no `EXECUTE` on the transition function, and
+  could not drop or disable the trigger or replace the function.
+
+This is research evidence for one PostgreSQL 16.4 environment, schema, role
+topology, and test-only rule. It does not select a production architecture,
+make state-transition authority a supported feature, or generalize beyond the
+`* -> admin` rule on the tested fixture. [spec.md](spec.md) remains the current
+semantic source of truth.

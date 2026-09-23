@@ -56,6 +56,20 @@ assert_baseline() {
         "10:0"
 }
 
+# Resets the users fixture without UPDATE statements so the state-transition
+# trigger is never fired by trusted-admin setup work.
+reset_users_fixture() {
+    admin_psql -v ON_ERROR_STOP=1 -c \
+        "TRUNCATE TABLE public.users; INSERT INTO public.users (id, tenant_id, role) SELECT id, 10, 'member' FROM generate_series(1, 6) AS ids(id);" \
+        >/dev/null
+}
+
+assert_users_baseline() {
+    assert_scalar "durable users baseline" \
+        "SELECT count(*) FILTER (WHERE role = 'member') || ':' || count(*) FILTER (WHERE role <> 'member') FROM public.users;" \
+        "6:0"
+}
+
 assert_five_updated() {
     local label="$1"
     local status="$2"
@@ -96,9 +110,24 @@ assert_privilege_envelope() {
     assert_scalar "protected relation owner" \
         "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'subscriptions';" \
         "commitcap_owner"
+    assert_scalar "users relation owner" \
+        "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'users';" \
+        "commitcap_owner"
+    assert_scalar "writer users required column privileges" \
+        "SELECT has_column_privilege('commitcap_writer', 'public.users', 'id', 'SELECT') AND has_column_privilege('commitcap_writer', 'public.users', 'role', 'UPDATE');" \
+        "t"
+    assert_scalar "writer users table-wide or unsupported DML privileges" \
+        "SELECT has_table_privilege('commitcap_writer', 'public.users', 'SELECT') OR has_table_privilege('commitcap_writer', 'public.users', 'UPDATE') OR has_table_privilege('commitcap_writer', 'public.users', 'INSERT') OR has_table_privilege('commitcap_writer', 'public.users', 'DELETE') OR has_table_privilege('commitcap_writer', 'public.users', 'TRUNCATE') OR has_table_privilege('commitcap_writer', 'public.users', 'TRIGGER');" \
+        "f"
     assert_scalar "enforcement function owner" \
         "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_native' AND p.proname = 'enforce_update_budget';" \
         "commitcap_owner"
+    assert_scalar "transition function owner" \
+        "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_native' AND p.proname = 'enforce_role_transition';" \
+        "commitcap_owner"
+    assert_scalar "writer direct transition-function EXECUTE" \
+        "SELECT has_function_privilege('commitcap_writer', 'commitcap_native.enforce_role_transition()', 'EXECUTE');" \
+        "f"
     assert_scalar "writer read-only probe EXECUTE" \
         "SELECT has_function_privilege('commitcap_writer', 'commitcap_probe.cc_native_probe()', 'EXECUTE');" \
         "t"
@@ -206,7 +235,7 @@ assert_privilege_audit() {
         "commitcap_native_admin"
     assert_scalar "extension-owned functions" \
         "SELECT count(*) FROM pg_depend AS d JOIN pg_extension AS e ON e.oid = d.refobjid WHERE e.extname = 'commitcap_native_tx_state' AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e';" \
-        "1"
+        "2"
     assert_scalar "trusted schema owners" \
         "SELECT count(*) FROM pg_namespace WHERE nspname IN ('commitcap_native', 'commitcap_probe') AND pg_get_userbyid(nspowner) <> 'commitcap_owner';" \
         "0"
@@ -218,6 +247,9 @@ assert_privilege_audit() {
         "0"
     assert_scalar "enforcement trigger enabled" \
         "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'subscriptions_update_budget';" \
+        "O"
+    assert_scalar "users transition trigger enabled" \
+        "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'users_role_transition';" \
         "O"
     assert_scalar "test budget GUC context" \
         "SELECT context FROM pg_settings WHERE name = 'commitcap_native.test_budget';" \
@@ -504,6 +536,10 @@ cc_denied_attempt drop_extension 42501 "DROP EXTENSION commitcap_native_tx_state
 cc_denied_attempt create_extension_pgcrypto 42501 "CREATE EXTENSION pgcrypto"
 cc_denied_attempt create_extension_existing 42710 "CREATE EXTENSION commitcap_native_tx_state WITH SCHEMA public"
 cc_denied_attempt insert_accounting_state 42501 "INSERT INTO commitcap_native.update_budget_state (transaction_id, row_updates) VALUES (1, 1)"
+cc_denied_attempt drop_users_trigger 42501 "DROP TRIGGER users_role_transition ON public.users"
+cc_denied_attempt alter_users_disable_trigger 42501 "ALTER TABLE public.users DISABLE TRIGGER ALL"
+cc_denied_attempt drop_transition_function 42501 "DROP FUNCTION commitcap_native.enforce_role_transition()"
+cc_denied_attempt replace_transition_function 42501 "CREATE OR REPLACE FUNCTION commitcap_native.enforce_role_transition() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'"
 
 assert_scalar "CC-027 protected relation owner after attempts" \
     "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'subscriptions';" \
@@ -511,8 +547,14 @@ assert_scalar "CC-027 protected relation owner after attempts" \
 assert_scalar "CC-027 trigger state after attempts" \
     "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'subscriptions_update_budget';" \
     "O"
+assert_scalar "CC-027 users trigger state after attempts" \
+    "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'users_role_transition';" \
+    "O"
 assert_scalar "CC-027 enforcement function after attempts" \
     "SELECT pg_get_userbyid(p.proowner) || ':' || l.lanname FROM pg_proc AS p JOIN pg_language AS l ON l.oid = p.prolang JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_native' AND p.proname = 'enforce_update_budget';" \
+    "commitcap_owner:c"
+assert_scalar "CC-027 transition function after attempts" \
+    "SELECT pg_get_userbyid(p.proowner) || ':' || l.lanname FROM pg_proc AS p JOIN pg_language AS l ON l.oid = p.prolang JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_native' AND p.proname = 'enforce_role_transition';" \
     "commitcap_owner:c"
 assert_scalar "CC-027 extension after attempts" \
     "SELECT count(*) FROM pg_extension WHERE extname = 'commitcap_native_tx_state';" \
@@ -529,6 +571,17 @@ set -e
 [[ "$cc027_regression_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-027 post-attack enforcement regression did not deny event six"
 assert_baseline
+set +e
+cc027_transition_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.users SET role = 'admin' WHERE id = 1;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc027_transition_output" == *"CommitCap forbidden state transition (* -> admin)"* ]] || \
+    fail "CC-027 post-attack transition enforcement did not deny the admin transition"
+assert_users_baseline
 printf 'CC-027: PASS (all attempts denied; trusted objects unchanged; enforcement intact)\n'
 
 printf '\nCC-028 role transition attempts:\n'
@@ -994,7 +1047,7 @@ set -e
     fail "CC-008 did not report event-six denial"
 [[ "$cc008_output" == *"cc008_after_recovery"* ]] || \
     fail "CC-008 did not recover execution after ROLLBACK TO"
-[[ "$cc008_output" == *"CommitCap top-level transaction denied after mutation budget violation"* ]] || \
+[[ "$cc008_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-008 final COMMIT was not rejected"
 cc008_commit_count="$(printf '%s\n' "$cc008_output" | grep -c '^COMMIT$' || true)"
 [[ "$cc008_commit_count" == "0" ]] || fail "CC-008 emitted a COMMIT command tag"
@@ -1050,7 +1103,7 @@ set -e
     fail "CC-024 handler did not catch event-six denial"
 [[ "$cc024_output" == *"cc024_after_recovery"* ]] || \
     fail "CC-024 did not continue after exception recovery"
-[[ "$cc024_output" == *"CommitCap top-level transaction denied after mutation budget violation"* ]] || \
+[[ "$cc024_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-024 final COMMIT was not rejected"
 cc024_commit_count="$(printf '%s\n' "$cc024_output" | grep -c '^COMMIT$' || true)"
 [[ "$cc024_commit_count" == "0" ]] || fail "CC-024 emitted a COMMIT command tag"
@@ -1078,7 +1131,7 @@ set -e
     fail "CC-032 did not report event-six denial"
 [[ "$cc032_output" == *"cc032_after_recovery"* ]] || \
     fail "CC-032 did not recover execution after ROLLBACK TO"
-[[ "$cc032_output" == *"CommitCap top-level transaction denied after mutation budget violation"* ]] || \
+[[ "$cc032_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-032 final COMMIT was not rejected"
 cc032_commit_count="$(printf '%s\n' "$cc032_output" | grep -c '^COMMIT$' || true)"
 [[ "$cc032_commit_count" == "0" ]] || fail "CC-032 emitted a COMMIT command tag"
@@ -1323,7 +1376,7 @@ cc_send b "COMMIT;"
 cc_sync b CCP19D_B_COMMIT
 cc_probe_assert b CCP19D_B3 f 0 f
 cc_send a "COMMIT;"
-cc_wait_output a "denied after mutation budget violation" "session A commit rejection"
+cc_wait_output a "denied after mutation authority violation" "session A commit rejection"
 cc_probe_assert a CCP19D_A2 f 0 f
 assert_scalar "CC-019 case 2 durable" \
     "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
@@ -1348,7 +1401,7 @@ cc_send a "COMMIT;"
 cc_sync a CCP19R_A_COMMIT
 cc_probe_assert a CCP19R_A2 f 0 f
 cc_send b "COMMIT;"
-cc_wait_output b "denied after mutation budget violation" "session B commit rejection"
+cc_wait_output b "denied after mutation authority violation" "session B commit rejection"
 cc_probe_assert b CCP19R_B2 f 0 f
 assert_scalar "CC-019 case 3 durable" \
     "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
@@ -1588,10 +1641,10 @@ cc_send a "ROLLBACK TO SAVEPOINT before_denial;"
 cc_probe_assert a CC21_D_TX1_RECOVERED t 5 t "$cc21_pid"
 [[ "$(( $(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true) - cc21_denials_before ))" == "1" ]] || \
     fail "CC-021 scenario D did not report the event-six denial"
-cc21_rejections_before="$(grep -cF 'denied after mutation budget violation' "$CC_SESSION_DIR/a.out" || true)"
+cc21_rejections_before="$(grep -cF 'denied after mutation authority violation' "$CC_SESSION_DIR/a.out" || true)"
 cc_send a "COMMIT;"
 cc_sync a CC21_D_TX1_END
-[[ "$(( $(grep -cF 'denied after mutation budget violation' "$CC_SESSION_DIR/a.out" || true) - cc21_rejections_before ))" == "1" ]] || \
+[[ "$(( $(grep -cF 'denied after mutation authority violation' "$CC_SESSION_DIR/a.out" || true) - cc21_rejections_before ))" == "1" ]] || \
     fail "CC-021 scenario D COMMIT was not rejected at PRE_COMMIT"
 cc_probe_assert a CC21_D_TX2_START f 0 f "$cc21_pid"
 cc_send a "BEGIN;"
@@ -1622,10 +1675,10 @@ cc_send a "UPDATE public.subscriptions SET status = 'cc021_e_denied' WHERE id BE
 cc_send a "DO \$cc21\$ BEGIN BEGIN UPDATE public.subscriptions SET status = 'cc021_e_denied' WHERE id = 6; RAISE EXCEPTION 'expected CommitCap denial'; EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE 'CommitCap mutation budget exceeded%' THEN RAISE; END IF; RAISE NOTICE 'CC21_E_CAUGHT: %', SQLERRM; END; END \$cc21\$;"
 cc_wait_output a "CC21_E_CAUGHT: CommitCap mutation budget exceeded" "CC-021 scenario E caught denial"
 cc_probe_assert a CC21_E_TX1 t 5 t "$cc21_pid"
-cc21_rejections_before="$(grep -cF 'denied after mutation budget violation' "$CC_SESSION_DIR/a.out" || true)"
+cc21_rejections_before="$(grep -cF 'denied after mutation authority violation' "$CC_SESSION_DIR/a.out" || true)"
 cc_send a "COMMIT;"
 cc_sync a CC21_E_TX1_END
-[[ "$(( $(grep -cF 'denied after mutation budget violation' "$CC_SESSION_DIR/a.out" || true) - cc21_rejections_before ))" == "1" ]] || \
+[[ "$(( $(grep -cF 'denied after mutation authority violation' "$CC_SESSION_DIR/a.out" || true) - cc21_rejections_before ))" == "1" ]] || \
     fail "CC-021 scenario E COMMIT was not rejected at PRE_COMMIT"
 cc_probe_assert a CC21_E_TX2_START f 0 f "$cc21_pid"
 cc_send a "BEGIN;"
@@ -1733,6 +1786,206 @@ ROLLBACK;
 SQL
 assert_baseline
 printf 'SAVEPOINT RELEASE lifecycle probe: PASS\n'
+
+printf '\n--- CC-020 / CC-021 / CC-022: state-transition authority ---\n'
+printf 'These use the canonical docs/test-plan.md IDs, not legacy experiment labels.\n'
+
+printf '\nCC-020 allowed role transition:\n'
+reset_users_fixture
+set +e
+ccst020_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.users SET role = 'moderator' WHERE id = 1;
+SELECT 'CCST020_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+COMMIT;
+SQL
+)"
+set -e
+[[ "$ccst020_output" == *"UPDATE 1"* ]] || \
+    fail "CC-020 allowed transition did not update one row"
+[[ "$ccst020_output" == *"CCST020_STATE:t|1|f"* ]] || \
+    fail "CC-020 allowed transition did not consume exactly one row-update event (output: $ccst020_output)"
+[[ "$ccst020_output" == *"COMMIT"* ]] || \
+    fail "CC-020 allowed transition did not commit"
+assert_scalar "CC-020 durable role" \
+    "SELECT role FROM public.users WHERE id = 1;" \
+    "moderator"
+assert_scalar "CC-020 untouched sibling roles" \
+    "SELECT count(*) FROM public.users WHERE id <> 1 AND role = 'member';" \
+    "5"
+printf 'CC-020: PASS (member -> moderator committed; one row-update event consumed)\n'
+
+printf '\nCC-021 forbidden admin promotion:\n'
+reset_users_fixture
+set +e
+ccst021_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.users SET role = 'admin' WHERE id = 1;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$ccst021_output" == *"CommitCap forbidden state transition (* -> admin)"* ]] || \
+    fail "CC-021 did not deny the admin transition"
+[[ "$ccst021_output" == *"ROLLBACK"* ]] || \
+    fail "CC-021 did not abort the top-level transaction"
+assert_users_baseline
+printf 'CC-021 denial: PASS (forbidden transition denied; no durable change)\n'
+
+printf 'CC-021 savepoint recovery keeps denial sticky:\n'
+reset_users_fixture
+set +e
+ccst021_recovery_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+SAVEPOINT ccst021_sp;
+UPDATE public.users SET role = 'admin' WHERE id = 1;
+ROLLBACK TO SAVEPOINT ccst021_sp;
+SELECT 'CCST021_RECOVERY_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+COMMIT;
+SQL
+)"
+set -e
+[[ "$ccst021_recovery_output" == *"CommitCap forbidden state transition (* -> admin)"* ]] || \
+    fail "CC-021 recovery case did not report the forbidden transition denial"
+[[ "$ccst021_recovery_output" == *"CCST021_RECOVERY_STATE:t|0|t"* ]] || \
+    fail "CC-021 recovery case did not keep denied=true with no consumption (output: $ccst021_recovery_output)"
+[[ "$ccst021_recovery_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+    fail "CC-021 recovery case did not reject COMMIT at pre-commit"
+assert_users_baseline
+printf 'CC-021 savepoint recovery: PASS (denial sticky; COMMIT rejected; no durable change)\n'
+
+printf 'CC-021 later protected event is rejected while denied:\n'
+reset_users_fixture
+set +e
+ccst021_later_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+SAVEPOINT ccst021_later_sp;
+UPDATE public.users SET role = 'admin' WHERE id = 1;
+ROLLBACK TO SAVEPOINT ccst021_later_sp;
+UPDATE public.users SET role = 'moderator' WHERE id = 2;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$ccst021_later_output" == *"CommitCap forbidden state transition (* -> admin)"* ]] || \
+    fail "CC-021 later-event case did not report the forbidden transition denial"
+[[ "$ccst021_later_output" == *"CommitCap top-level transaction already denied"* ]] || \
+    fail "CC-021 later-event case did not reject the following protected event"
+assert_users_baseline
+printf 'CC-021 later event: PASS (sticky denial rejects further protected mutation)\n'
+
+printf 'CC-021 PL/pgSQL caught denial keeps denial sticky:\n'
+reset_users_fixture
+set +e
+ccst021_caught_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+DO $ccst021$
+BEGIN
+    BEGIN
+        UPDATE public.users SET role = 'admin' WHERE id = 1;
+        RAISE EXCEPTION 'expected CommitCap denial';
+    EXCEPTION WHEN OTHERS THEN
+        IF SQLERRM NOT LIKE 'CommitCap forbidden state transition%' THEN
+            RAISE;
+        END IF;
+        RAISE NOTICE 'CCST021_CAUGHT: %', SQLERRM;
+    END;
+END
+$ccst021$;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$ccst021_caught_output" == *"CCST021_CAUGHT: CommitCap forbidden state transition (* -> admin)"* ]] || \
+    fail "CC-021 caught-exception case did not observe the forbidden transition denial"
+[[ "$ccst021_caught_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+    fail "CC-021 caught-exception case did not reject COMMIT at pre-commit"
+assert_users_baseline
+printf 'CC-021 PL/pgSQL caught denial: PASS (denial sticky; COMMIT rejected; no durable change)\n'
+printf 'CC-021: PASS (forbidden admin promotion denied; recovery cannot restore commit authority)\n'
+
+printf '\nCC-022 bulk forbidden transition within row-count budget:\n'
+reset_users_fixture
+set +e
+ccst022_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.users
+SET role = CASE WHEN id = 3 THEN 'admin' ELSE 'moderator' END
+WHERE id BETWEEN 1 AND 3;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$ccst022_output" == *"CommitCap forbidden state transition (* -> admin)"* ]] || \
+    fail "CC-022 bulk transition did not deny the admin row"
+if [[ "$ccst022_output" == *"CommitCap mutation budget exceeded"* ]]; then
+    fail "CC-022 denial was caused by row-count budget, not transition authority"
+fi
+[[ "$ccst022_output" == *"ROLLBACK"* ]] || \
+    fail "CC-022 did not abort the top-level transaction"
+assert_users_baseline
+printf 'CC-022: PASS (three-row update denied by transition authority; all rows rolled back)\n'
+
+printf 'CC-022 allowed siblings consume accounting then roll back with the denial:\n'
+reset_users_fixture
+set +e
+ccst022_recovery_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.users SET role = 'moderator' WHERE id IN (1, 2);
+SAVEPOINT ccst022_sp;
+UPDATE public.users SET role = 'admin' WHERE id = 3;
+ROLLBACK TO SAVEPOINT ccst022_sp;
+SELECT 'CCST022_RECOVERY_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+COMMIT;
+SQL
+)"
+set -e
+[[ "$ccst022_recovery_output" == *"CCST022_RECOVERY_STATE:t|2|t"* ]] || \
+    fail "CC-022 recovery case did not preserve consumed=2 denied=true (output: $ccst022_recovery_output)"
+[[ "$ccst022_recovery_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+    fail "CC-022 recovery case did not reject COMMIT"
+assert_users_baseline
+printf 'CC-022 sibling rollback: PASS (allowed events consumed; forbidden row denied; all rolled back)\n'
+
+printf '\nState-transition / row-count composition:\n'
+reset_users_fixture
+set +e
+ccst_budget_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.users SET role = 'moderator' WHERE id = 1;
+UPDATE public.users SET role = 'moderator' WHERE id = 2;
+UPDATE public.users SET role = 'moderator' WHERE id = 3;
+UPDATE public.users SET role = 'moderator' WHERE id = 4;
+UPDATE public.users SET role = 'moderator' WHERE id = 5;
+UPDATE public.users SET role = 'moderator' WHERE id = 6;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$ccst_budget_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "row-count composition did not deny the sixth allowed transition event"
+assert_users_baseline
+printf 'allowed transitions consume the shared transaction-wide budget: PASS\n'
+
+set +e
+ccst_cleanup_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.users SET role = 'admin' WHERE id = 1;
+COMMIT;
+BEGIN;
+SELECT 'CCST_CLEANUP_START:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+UPDATE public.users SET role = 'moderator' WHERE id BETWEEN 1 AND 2;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$ccst_cleanup_output" == *"CCST_CLEANUP_START:f|0|f"* ]] || \
+    fail "state-transition denial did not clean up before the next transaction"
+assert_scalar "state-transition cleanup durable state" \
+    "SELECT count(*) FILTER (WHERE role = 'moderator') || ':' || count(*) FILTER (WHERE role = 'member') FROM public.users;" \
+    "2:4"
+printf 'state-transition lifecycle cleanup after ABORT: PASS\n'
+printf 'CC-020 / CC-021 / CC-022 state-transition tests: PASS\n'
 
 lifecycle_logs="$("${COMPOSE[@]}" logs --no-color postgres 2>&1 | grep 'commitcap_native_tx_state lifecycle' || true)"
 for required_event in \

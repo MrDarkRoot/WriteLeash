@@ -1,10 +1,11 @@
 # Native Transaction-State Experiment
 
-> **Legacy test-ID notice:** Every `CC-*` identifier in this experiment is a
-> **legacy experiment ID**. The current canonical namespace is defined in
-> [`docs/test-plan.md`](../../docs/test-plan.md), where same-number IDs may mean
-> different tests. Preserve these labels as historical evidence; do not map
-> their PASS results onto the current test plan.
+> **Test-ID notice:** The historical row-event results in this file use
+> **legacy experiment IDs**, which are not equivalent to the canonical current
+> IDs in [`docs/test-plan.md`](../../docs/test-plan.md). The canonical
+> state-transition section added later (`CC-020`–`CC-022`) is explicitly marked
+> and is distinct from the legacy `CC-020`/`CC-021` concurrency and
+> backend-reuse labels recorded elsewhere in this historical file.
 
 ## Classification
 
@@ -25,6 +26,10 @@ at least one realistic managed environment.
 The experiment answers one question on PostgreSQL 16.4: can backend-local
 state and transaction callbacks provide rollback-aware allowed consumption and
 sticky top-level denial at the same time?
+
+A later addition to the same mechanism answers a second question: can a
+state-transition denial share the same sticky top-level denial while allowed
+transitions still consume the transaction-wide row-update budget?
 
 ## Reproduce
 
@@ -63,9 +68,18 @@ immediate CommitCap error. No subtransaction callback clears `denied`.
 
 `XACT_EVENT_PRE_COMMIT` runs while PostgreSQL can still abort the transaction.
 If `denied` is true, the callback raises
-`CommitCap top-level transaction denied after mutation budget violation`.
+`CommitCap top-level transaction denied after mutation authority violation`.
 PostgreSQL then takes the top-level abort path. `XACT_EVENT_COMMIT` and
 `XACT_EVENT_ABORT` perform backend-local cleanup.
+
+A second trigger function, `enforce_role_transition`, enforces one test-only
+state-transition rule on the `users` table: an `UPDATE` whose new value for the
+text `role` column is `admin` is denied (`* -> admin`). The denied event sets
+the same sticky `denied` flag and raises
+`CommitCap forbidden state transition (* -> admin)` before consuming
+row-update authority. Allowed transitions fall through to the shared
+`record_protected_event` accounting, so they consume the normal
+transaction-wide row-update budget and are not double-counted.
 
 The experiment environment preloads the extension
 (`shared_preload_libraries` in the compose service) so its callbacks and
@@ -76,8 +90,9 @@ the transaction has no protected events yet.
 
 ## Results
 
-All `CC-*` labels in this section are **legacy experiment IDs**; see the notice
-at the top of this file. They are not canonical test-plan IDs.
+All `CC-*` labels in the legacy row-event table below are **legacy experiment
+IDs**; see the notice at the top of this file. The separately marked canonical
+state-transition tests use current `docs/test-plan.md` IDs.
 
 Observed on PostgreSQL 16.4:
 
@@ -106,6 +121,29 @@ Observed on PostgreSQL 16.4:
 | `CC-031` | **PASS** | Negative, max+1, huge, and non-numeric inputs rejected with `22023`; maximum accepted; near-maximum counter denied at `attempted 2147483648` without wrap |
 | `CC-032` | **PASS** | An unprotected insert before denial was rolled back with the protected changes; a fresh connection observed zero audit rows |
 | `CC-033` | **PASS** | `EXPLAIN (ANALYZE, COSTS OFF)` executed the protected update, the plan reported `calls=5` on the enforcement trigger, and the six-row form was denied |
+
+### Canonical state-transition tests (`CC-020`–`CC-022`)
+
+These three labels are canonical [`docs/test-plan.md`](../../docs/test-plan.md)
+IDs, not legacy labels. They are distinct from the legacy `CC-020`/`CC-021`
+concurrency and backend-reuse results in the table above.
+
+| Test | Result | Evidence |
+| --- | --- | --- |
+| `CC-020` | **PASS** | `member -> moderator` committed; one row-update event consumed; sibling rows stayed `member` |
+| `CC-021` | **PASS** | `member -> admin` denied; savepoint and PL/pgSQL exception recovery kept `denied=true`; `COMMIT` was rejected at `XACT_EVENT_PRE_COMMIT`; no durable change |
+| `CC-022` | **PASS** | A three-row `UPDATE` with one `admin` row was denied by transition authority while within the row-count budget; allowed sibling rows did not become durable |
+
+Composition checks also passed on PostgreSQL 16.4:
+
+- An allowed transition consumed exactly one row-update event and shared the
+  transaction-wide budget: five allowed transitions consumed the budget and a
+  sixth event was denied with the budget message, aborting the whole
+  transaction with no durable change.
+- A forbidden transition was denied with the full budget remaining, and a later
+  protected event after recovery was rejected as already denied.
+- After a transition denial, the next top-level transaction started at
+  `active=false, consumed=0, denied=false`.
 
 The same-backend cleanup probes also passed:
 
@@ -526,11 +564,13 @@ revalidated for every proposed supported major version.
 ## Privilege Model
 
 The protected writer remains a non-superuser, non-owner role. It receives
-database `CONNECT`, `public` schema `USAGE`, `SELECT(id)`, and `UPDATE(status)`.
-It has no trusted-schema access, direct trigger-function `EXECUTE`, table-wide
-`SELECT` or `UPDATE`, unsupported DML, DDL, trigger, owner-role membership, or
-mutable accounting object. The protected relation and trigger function are
-owned by the separate `NOLOGIN` `commitcap_owner` role.
+database `CONNECT`, `public` schema `USAGE`, `SELECT(id)` and `UPDATE(status)`
+on `subscriptions`, and `SELECT(id)` and `UPDATE(role)` on `users`. It has no
+trusted-schema access, direct trigger-function `EXECUTE` for either enforcement
+function, table-wide `SELECT` or `UPDATE`, unsupported DML, DDL, trigger,
+owner-role membership, or mutable accounting object. Both protected relations
+and both trigger functions are owned by the separate `NOLOGIN`
+`commitcap_owner` role.
 
 The concurrency experiments added one instrumentation grant: `USAGE` on the
 `commitcap_probe` schema and `EXECUTE` on the read-only
@@ -540,9 +580,18 @@ enforcement schema, or bypass the trigger.
 
 ## Known Risks And Unknowns
 
-- Only the twenty-three requested tests, lifecycle cleanup, savepoint-release,
-  and concurrency lifecycle probes were run. This is not the complete Gate 1
-  matrix.
+- Only the twenty-three legacy requested tests, the canonical state-transition
+  tests, lifecycle cleanup, savepoint-release, and concurrency lifecycle probes
+  were run. This is not the complete Gate 1 matrix.
+- The state-transition rule is a single test-only comparison: any new `admin`
+  value in a text/varchar `role` column of the `users` fixture is denied. It is
+  not a policy language, and other columns, roles, transition sources, and
+  wildcard or multi-rule policies remain untested.
+- State-transition denial was tested only on PostgreSQL 16.4, only with the
+  `member -> moderator` allowed path and the `* -> admin` denied path, only on
+  a single-row and a three-row `UPDATE`, and only with the tested role grants.
+  Concurrent state-transition sessions and `admin -> admin` or `admin -> *`
+  paths were not tested.
 - Privilege results are specific to the tested role topology and extension
   control. Deployments with different memberships, ownership, helper roles, or
   a different `max_prepared_transactions` setting remain `UNKNOWN`.
