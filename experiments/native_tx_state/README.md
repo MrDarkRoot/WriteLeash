@@ -66,6 +66,7 @@ Observed on PostgreSQL 16.4:
 | `CC-008` | **PASS** | `ROLLBACK TO` recovered statement execution but not commit authority; final `COMMIT` errored and a fresh connection observed the baseline |
 | `CC-009` | **PASS** | Aborting three allowed savepoint events changed live consumption from three to zero; five replacements committed |
 | `CC-024` | **PASS** | PL/pgSQL caught event-six error, but final `COMMIT` errored and a fresh connection observed the baseline |
+| `CC-032` | **PASS** | An unprotected insert before denial was rolled back with the protected changes; a fresh connection observed zero audit rows |
 
 The same-backend cleanup probes also passed:
 
@@ -195,7 +196,7 @@ privilege was required for the native experiment.
 
 ## Known Risks And Unknowns
 
-- Only the six requested tests, lifecycle cleanup, and one savepoint-release
+- Only the seven requested tests, lifecycle cleanup, and one savepoint-release
   probe were run. This is not the complete Gate 1 matrix.
 - Nested savepoint accounting beyond the tested paths remains uncharacterized.
 - Interactions with other transaction callbacks, callback ordering between

@@ -36,6 +36,12 @@ CREATE TABLE public.subscriptions (
 );
 ALTER TABLE public.subscriptions OWNER TO commitcap_owner;
 
+CREATE TABLE public.unprotected_audit (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    message text NOT NULL
+);
+ALTER TABLE public.unprotected_audit OWNER TO commitcap_owner;
+
 CREATE TRIGGER subscriptions_update_budget
 BEFORE UPDATE ON public.subscriptions
 FOR EACH ROW
@@ -43,6 +49,9 @@ EXECUTE FUNCTION commitcap_native.enforce_update_budget();
 
 REVOKE ALL ON TABLE public.subscriptions FROM PUBLIC;
 GRANT SELECT (id), UPDATE (status) ON TABLE public.subscriptions TO commitcap_writer;
+
+REVOKE ALL ON TABLE public.unprotected_audit FROM PUBLIC;
+GRANT INSERT (message) ON TABLE public.unprotected_audit TO commitcap_writer;
 
 INSERT INTO public.subscriptions (id, status)
 SELECT id, 'baseline'

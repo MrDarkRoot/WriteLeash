@@ -36,7 +36,7 @@ assert_scalar() {
 
 reset_fixture() {
     admin_psql -v ON_ERROR_STOP=1 -c \
-        "TRUNCATE TABLE public.subscriptions; INSERT INTO public.subscriptions (id, status) SELECT id, 'baseline' FROM generate_series(1, 10) AS ids(id);" \
+        "TRUNCATE TABLE public.unprotected_audit, public.subscriptions RESTART IDENTITY; INSERT INTO public.subscriptions (id, status) SELECT id, 'baseline' FROM generate_series(1, 10) AS ids(id);" \
         >/dev/null
 }
 
@@ -73,6 +73,15 @@ assert_privilege_envelope() {
         "t"
     assert_scalar "writer table-wide or unsupported DML privileges" \
         "SELECT has_table_privilege('commitcap_writer', 'public.subscriptions', 'SELECT') OR has_table_privilege('commitcap_writer', 'public.subscriptions', 'UPDATE') OR has_table_privilege('commitcap_writer', 'public.subscriptions', 'INSERT') OR has_table_privilege('commitcap_writer', 'public.subscriptions', 'DELETE') OR has_table_privilege('commitcap_writer', 'public.subscriptions', 'TRUNCATE') OR has_table_privilege('commitcap_writer', 'public.subscriptions', 'TRIGGER');" \
+        "f"
+    assert_scalar "writer unprotected-audit INSERT column privilege" \
+        "SELECT has_column_privilege('commitcap_writer', 'public.unprotected_audit', 'message', 'INSERT');" \
+        "t"
+    assert_scalar "writer unprotected-audit SELECT privilege" \
+        "SELECT has_any_column_privilege('commitcap_writer', 'public.unprotected_audit', 'SELECT');" \
+        "f"
+    assert_scalar "writer unprotected-audit extra table privileges" \
+        "SELECT has_table_privilege('commitcap_writer', 'public.unprotected_audit', 'UPDATE') OR has_table_privilege('commitcap_writer', 'public.unprotected_audit', 'DELETE') OR has_table_privilege('commitcap_writer', 'public.unprotected_audit', 'TRUNCATE') OR has_table_privilege('commitcap_writer', 'public.unprotected_audit', 'REFERENCES') OR has_table_privilege('commitcap_writer', 'public.unprotected_audit', 'TRIGGER');" \
         "f"
     assert_scalar "protected relation owner" \
         "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'subscriptions';" \
@@ -220,6 +229,64 @@ cc024_commit_count="$(printf '%s\n' "$cc024_output" | grep -c '^COMMIT$' || true
 [[ "$cc024_commit_count" == "0" ]] || fail "CC-024 emitted a COMMIT command tag"
 assert_baseline
 printf 'CC-024: PASS\n'
+
+reset_fixture
+set +e
+cc032_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+INSERT INTO public.unprotected_audit (message)
+VALUES ('cc032_before_denial');
+UPDATE public.subscriptions SET status = 'cc032_allowed' WHERE id BETWEEN 1 AND 5;
+SAVEPOINT before_denial;
+UPDATE public.subscriptions SET status = 'cc032_excess' WHERE id = 6;
+ROLLBACK TO SAVEPOINT before_denial;
+SELECT 'cc032_after_recovery' AS recovery_marker;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc032_output" == *"INSERT 0 1"* ]] || \
+    fail "CC-032 did not execute the unprotected mutation before denial"
+[[ "$cc032_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-032 did not report event-six denial"
+[[ "$cc032_output" == *"cc032_after_recovery"* ]] || \
+    fail "CC-032 did not recover execution after ROLLBACK TO"
+[[ "$cc032_output" == *"CommitCap top-level transaction denied after mutation budget violation"* ]] || \
+    fail "CC-032 final COMMIT was not rejected"
+cc032_commit_count="$(printf '%s\n' "$cc032_output" | grep -c '^COMMIT$' || true)"
+[[ "$cc032_commit_count" == "0" ]] || fail "CC-032 emitted a COMMIT command tag"
+assert_baseline
+assert_scalar "CC-032 unprotected durable state" \
+    "SELECT count(*) FROM public.unprotected_audit WHERE message = 'cc032_before_denial';" \
+    "0"
+printf 'CC-032: PASS (protected and unprotected effects rolled back)\n'
+
+reset_fixture
+set +e
+cc032_cleanup_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc032_denied_before_cleanup' WHERE id = 1;
+UPDATE public.subscriptions SET status = 'cc032_denied_before_cleanup' WHERE id = 2;
+UPDATE public.subscriptions SET status = 'cc032_denied_before_cleanup' WHERE id = 3;
+UPDATE public.subscriptions SET status = 'cc032_denied_before_cleanup' WHERE id = 4;
+UPDATE public.subscriptions SET status = 'cc032_denied_before_cleanup' WHERE id = 5;
+UPDATE public.subscriptions SET status = 'cc032_denied_before_cleanup' WHERE id = 6;
+COMMIT;
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc032_after_abort_cleanup' WHERE id BETWEEN 6 AND 10;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc032_cleanup_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-032 cleanup probe did not report denial"
+cc032_cleanup_commit_count="$(printf '%s\n' "$cc032_cleanup_output" | grep -c '^COMMIT$' || true)"
+[[ "$cc032_cleanup_commit_count" == "1" ]] || \
+    fail "CC-032 cleanup probe did not commit exactly one replacement transaction"
+assert_scalar "CC-032 next-transaction cleanup state" \
+    "SELECT count(*) FILTER (WHERE status = 'baseline') || ':' || count(*) FILTER (WHERE status = 'cc032_after_abort_cleanup') FROM public.subscriptions;" \
+    "5:5"
+printf 'CC-032 next-transaction cleanup: PASS\n'
 
 reset_fixture
 writer_psql -v ON_ERROR_STOP=1 <<'SQL' >/dev/null

@@ -152,6 +152,10 @@ backend-local top-level state, per-subtransaction allowed-consumption deltas,
 - `CC-024`: **PASS**. PL/pgSQL exception recovery aborted its internal
   subtransaction without clearing the denied flag. The final commit was
   rejected and a fresh connection observed no durable protected mutation.
+- `CC-032`: **PASS**. An insert into an unprotected relation executed before
+  event six was rolled back with the protected changes when
+  `XACT_EVENT_PRE_COMMIT` rejected the poisoned transaction. A fresh
+  connection observed baseline protected rows and zero audit rows.
 - Same-backend probes after top-level commit and top-level abort both began the
   next transaction with fresh state and allowed five events.
 
