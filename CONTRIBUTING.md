@@ -89,12 +89,14 @@ privilege escalation.
 ## Scope During Phase 0
 
 Phase 0 implementation work starts with the smallest PostgreSQL experiments
-needed to prove or falsify mutation-authority semantics. Parallel market
-falsification and an early managed-PostgreSQL feasibility investigation are
-also Phase 0 evidence tracks, but must not expand implementation scope
-prematurely. Do not add dashboards, frontend code, billing, AI features, MCP
-controls, queues, microservices, Kubernetes, multi-database support, or a
-generic proxy.
+needed to prove or falsify mutation-authority semantics. The Phase 0 proof
+surface covers row-count, state-transition, and numeric-delta effect classes;
+see [docs/spec.md](docs/spec.md) and [docs/roadmap.md](docs/roadmap.md).
+Parallel market falsification and an early managed-PostgreSQL feasibility
+investigation are also Phase 0 evidence tracks, but must not expand
+implementation scope prematurely. Do not add dashboards, frontend code,
+billing, AI features, MCP controls, queues, microservices, Kubernetes,
+multi-database support, or a generic proxy.
 
 Follow the scope discipline in [docs/role.md](docs/role.md#9-scope-discipline):
 

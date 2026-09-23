@@ -16,7 +16,7 @@ Without an effective bound, a missing predicate can become:
 UPDATE 182417
 ```
 
-The first CommitCap proof target is:
+Under a mutation budget, the intended enforcement response is:
 
 ```text
 CommitCap:
@@ -34,14 +34,18 @@ authority.
 
 ## Project Status
 
-CommitCap is in **Phase 0: security proof / falsification**.
+CommitCap is in **Phase 0: security proof + parallel falsification**.
 
 - This repository contains specifications, research implementations, and
   experiment harnesses, but no released or supported implementation.
 - No PostgreSQL operation is currently claimed to be protected.
-- The initial database target is PostgreSQL only.
-- The initial proof is a transaction-wide row-update budget on one protected
-  relation.
+- The database target is PostgreSQL only.
+- The current Phase 0 proof surface covers three effect classes: row-count,
+  state-transition, and numeric-delta authority. See
+  [Phase 0 Proof Surface](#phase-0-proof-surface).
+- Only narrow row-event mechanics have been demonstrated so far, in research
+  experiments. State-transition and numeric-delta enforcement are current
+  Phase 0 targets, not implemented features.
 - Security claims will be limited to operations covered by adversarial
   regression tests.
 - Market falsification runs in parallel against concrete broad-but-bounded
@@ -52,39 +56,101 @@ CommitCap is in **Phase 0: security proof / falsification**.
 Do not deploy CommitCap as a security control until a supported implementation
 is released and its documented support envelope has passed the required tests.
 
-## Initial Proof
+## Phase 0 Proof Surface
 
-An illustrative policy is:
+Phase 0 targets three effect classes. The examples below are illustrative
+policy shapes; the policy format is not stable.
 
-```yaml
-subscriptions:
-  max_rows_updated_per_transaction: 5
-```
-
-The intended V0 behavior is:
+### Row-count authority
 
 ```text
-UPDATE touching 1-5 protected rows
+subscriptions:
+  UPDATE <= 5 rows per transaction
+```
+
+The count is transaction-wide. Rewriting one broad update as several smaller
+updates in the same transaction must not recover budget.
+
+Status: narrow row-event mechanics were demonstrated by research experiments on
+PostgreSQL 16.4, including statement decomposition, savepoint and exception
+recovery, data-modifying CTEs, prepared statements, `MERGE` update actions, and
+backend reuse within the tested envelope. Those experiments also observed that
+repeated updates of the same row were counted as separate row-update events.
+That observation is not promoted to canonical current semantics beyond what
+[docs/spec.md](docs/spec.md) defines, and none of this is a supported release
+claim.
+
+### State-transition authority
+
+```text
+users.role:
+  * -> admin = DENY
+```
+
+A one-row mutation can still exceed authority when its semantic state
+transition is forbidden.
+
+Status: current Phase 0 target. Not implemented.
+
+### Quantitative effect authority
+
+```text
+refunds.amount:
+  total positive delta <= 100
+```
+
+A transaction proposing `+30`, `+20`, and `+40` may pass. Adding `+25` must
+exceed the declared budget and abort the transaction.
+
+Status: current Phase 0 target. Not implemented.
+
+These are declared PostgreSQL relational metrics. A
+`refunds.amount positive_delta = 100` measurement does not by itself prove that
+a payment processor transferred $100, a customer received $100, a ledger
+settled, or an external workflow succeeded. The policy issuer owns that
+mapping.
+
+### Required demo outcomes
+
+```text
+safe mutation
 => COMMIT
 
-UPDATE touching 6 or more protected rows
+unsafe broad mutation
 => ABORT the entire transaction
 
-6 statements each updating 1 protected row in one transaction
+many small statements exceeding the same transaction budget
+=> ABORT the entire transaction
+
+forbidden state transition
+=> ABORT the entire transaction
+
+numeric delta above budget
 => ABORT the entire transaction
 
 any denied transaction
 => no protected mutation from that transaction becomes durable
 ```
 
-The count is transaction-wide. Rewriting one broad update as several smaller
-updates in the same transaction must not recover budget. Updating the same row
-multiple times consumes one unit for each row-update event; V0 does not count
-distinct row identities.
-
 Savepoints, exception handling, cascades, nested triggers, partitions, and
-other PostgreSQL execution paths are security-relevant test cases. They are
-not silently assumed to work. See [the limitations](docs/limitations.md).
+other PostgreSQL execution paths are security-relevant test cases. They are not
+silently assumed to work. See the historical evidence in
+[limitations](docs/limitations.md) and the canonical
+[test plan](docs/test-plan.md).
+
+## Research Evidence
+
+The original SQL/PLpgSQL experiment was falsified for irreversible top-level
+denial: savepoint and caught-exception recovery rolled back the denial marker
+and allowed commit. A later, research-scoped native experiment on PostgreSQL
+16.4 kept backend-local transaction state outside recoverable subtransactions
+and was viable for further testing as a mechanism class. Neither result selects
+a production architecture or makes any database operation supported. See
+[experiments/native_tx_state](experiments/native_tx_state/README.md).
+
+Historical `CC-*` identifiers in `SPEC.md`, `docs/limitations.md`, and the
+experiment harnesses are **legacy experiment IDs**. They are not equivalent to
+the canonical current test IDs in [docs/test-plan.md](docs/test-plan.md).
 
 ## What CommitCap Is
 
@@ -121,23 +187,19 @@ be bounded independently of upstream correctness.
 The target middle ground is useful write flexibility plus bounded durable
 mutation authority.
 
-CommitCap measures declared relational effects, not complete business
-consequences. A `refunds.amount positive_delta = 100` measurement does not by
-itself prove that a processor transferred $100, a customer received $100, a
-ledger settled, or an external workflow succeeded. The policy issuer owns that
-mapping.
-
 ## Intended Evolution
 
-This sequence is conceptual. Existing experiments cover only narrow
-transaction row-event mechanics. State-transition and numeric-delta budgets
-are current Phase 0 targets but are not implemented; capability layers remain
-future work.
+The product model separates three stages:
 
 ```text
-transaction mutation budgets
--> semantic transition budgets
--> quantitative effect budgets
+demonstrated research mechanics
+-> transaction-wide row-event accounting on one relation (PostgreSQL 16.4)
+
+current Phase 0 targets
+-> state-transition authority
+-> quantitative effect authority
+
+future capability model
 -> task-scoped mutation capabilities
 -> cross-transaction consumable authority
 ```

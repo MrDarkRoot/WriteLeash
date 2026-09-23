@@ -18,10 +18,12 @@ The long-term principle is:
 Authority must be measurable, enforced at the database durability boundary,
 and exhausted rather than advisory. A denied mutation must not become durable.
 
-## V0: Row-Count Budgets
+## Phase 0: Row-Count Budgets
 
-The initial proof limits row-update events for one protected relation in one
-top-level PostgreSQL transaction.
+Row-count authority was the first proof mechanism: it limits row-update events
+for one protected relation in one top-level PostgreSQL transaction. State
+transitions and numeric deltas are the other two Phase 0 effect classes; they
+are current targets, not implemented features.
 
 ```yaml
 subscriptions:
