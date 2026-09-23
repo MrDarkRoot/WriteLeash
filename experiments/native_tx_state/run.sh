@@ -1987,6 +1987,96 @@ assert_scalar "state-transition cleanup durable state" \
 printf 'state-transition lifecycle cleanup after ABORT: PASS\n'
 printf 'CC-020 / CC-021 / CC-022 state-transition tests: PASS\n'
 
+# Canonical CC-012 boundary: release an inner allowed subtransaction into its
+# parent, then roll back the parent. Both allowed deltas must unwind; denial
+# inside the nested frame must instead poison the top-level transaction.
+printf '\n--- CC-012 nested savepoints (coverage audit) ---\n'
+reset_fixture
+writer_psql -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
+BEGIN;
+SAVEPOINT outer_allowed;
+UPDATE public.subscriptions SET status = 'cc012_rolled' WHERE id BETWEEN 1 AND 2;
+SAVEPOINT inner_allowed;
+UPDATE public.subscriptions SET status = 'cc012_rolled' WHERE id BETWEEN 3 AND 4;
+RELEASE SAVEPOINT inner_allowed;
+ROLLBACK TO SAVEPOINT outer_allowed;
+UPDATE public.subscriptions SET status = 'cc012_durable' WHERE id BETWEEN 6 AND 10;
+COMMIT;
+SQL
+assert_scalar "CC-012 nested allowed rollback durable rows" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=cc012_durable,7=cc012_durable,8=cc012_durable,9=cc012_durable,10=cc012_durable"
+printf 'CC-012 nested allowed rollback: PASS (inner RELEASE + outer ROLLBACK restored all four events; five replacement updates committed)\n'
+
+reset_fixture
+set +e
+cc012_denial_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc012_denied' WHERE id BETWEEN 1 AND 5;
+SAVEPOINT outer_denial;
+SAVEPOINT inner_denial;
+UPDATE public.subscriptions SET status = 'cc012_denied' WHERE id = 6;
+ROLLBACK TO SAVEPOINT inner_denial;
+ROLLBACK TO SAVEPOINT outer_denial;
+SELECT 'CC012_DENIED:' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+INSERT INTO public.unprotected_audit (message) VALUES ('cc012_sibling');
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc012_denial_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-012 nested denial did not reject sixth event"
+[[ "$cc012_denial_output" == *"CC012_DENIED:5|t"* ]] || \
+    fail "CC-012 inner and outer rollback erased sticky denial"
+[[ "$cc012_denial_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+    fail "CC-012 nested denial was not rejected at COMMIT"
+assert_baseline
+assert_scalar "CC-012 nested denied sibling audit" \
+    "SELECT count(*) FROM public.unprotected_audit WHERE message = 'cc012_sibling';" "0"
+printf 'CC-012 nested denial: PASS (inner and outer recovery kept denied=true; COMMIT rejected; admin saw baseline and audit=0)\n'
+
+# Security-coverage probe (#11): the current C ExperimentState has one global
+# row-event counter, although the canonical policy model budgets rows per
+# protected table. Keep this as an explicit known-failure reproduction, not a
+# PASS for independent policies. Both durable-state checks use fresh admin
+# connections; a future per-table implementation must replace this expectation.
+printf '\n--- multi-table policy-isolation reproduction (known FAIL) ---\n'
+reset_fixture
+reset_users_fixture
+printf 'Additional unsupported-path privilege probes:\n'
+cc_denied_attempt coverage_copy_from 42501 "COPY public.subscriptions (id, status) FROM STDIN"
+cc_denied_attempt coverage_delete_returning 42501 "DELETE FROM public.subscriptions WHERE id = 1 RETURNING id"
+cc_denied_attempt coverage_upsert 42501 "INSERT INTO public.subscriptions (id, status) VALUES (1, 'bad') ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status"
+assert_baseline
+set +e
+cc_multi_table_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc_multi_table' WHERE id BETWEEN 1 AND 5;
+SAVEPOINT before_other_table;
+UPDATE public.users SET role = 'moderator' WHERE id = 1;
+ROLLBACK TO SAVEPOINT before_other_table;
+SELECT 'CC_MULTI_TABLE_STATE:' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc_multi_table_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "multi-table known-failure reproduction changed: inspect output $cc_multi_table_output"
+[[ "$cc_multi_table_output" == *"CC_MULTI_TABLE_STATE:5|t"* ]] || \
+    fail "multi-table denial was not sticky after savepoint recovery"
+[[ "$cc_multi_table_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+    fail "multi-table poisoned COMMIT was not rejected"
+printf '  writer state: %s\n' \
+    "$(printf '%s\n' "$cc_multi_table_output" | grep -F 'CC_MULTI_TABLE_STATE:' | head -n 1)"
+printf '  writer final COMMIT: %s\n' \
+    "$(printf '%s\n' "$cc_multi_table_output" | grep -F 'denied after mutation authority violation' | head -n 1)"
+assert_baseline
+assert_users_baseline
+printf '  fresh admin durable: subscriptions=%s; users=%s\n' \
+    "$(admin_psql -At -v ON_ERROR_STOP=1 -c "SELECT count(*) FILTER (WHERE status = 'baseline') || ':' || count(*) FILTER (WHERE status <> 'baseline') FROM public.subscriptions;")" \
+    "$(admin_psql -At -v ON_ERROR_STOP=1 -c "SELECT count(*) FILTER (WHERE role = 'member') || ':' || count(*) FILTER (WHERE role <> 'member') FROM public.users;")"
+printf 'multi-table per-policy isolation: FAIL against spec (5 subscriptions + 1 allowed users transition denied; both tables unchanged after rejected COMMIT)\n'
+
 lifecycle_logs="$("${COMPOSE[@]}" logs --no-color postgres 2>&1 | grep 'commitcap_native_tx_state lifecycle' || true)"
 for required_event in \
     XACT_PRE_COMMIT XACT_COMMIT XACT_ABORT \
@@ -1999,4 +2089,4 @@ done
 printf '%s\n' '--- callback lifecycle trace ---'
 printf '%s\n' "$lifecycle_logs"
 printf '%s\n' '--- end callback lifecycle trace ---'
-printf 'native transaction-state experiment: all required tests PASS\n'
+printf 'native transaction-state experiment: existing required tests PASS; multi-table per-policy isolation KNOWN FAIL\n'
