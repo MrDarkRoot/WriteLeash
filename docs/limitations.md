@@ -180,6 +180,23 @@ backend-local top-level state, per-subtransaction allowed-consumption deltas,
   sixth execution in the same transaction raised the denial and no protected
   mutation became durable. Preparation and repeated execution did not create
   fresh authority.
+- `CC-027`: **PASS** on PostgreSQL 16.4 native experiment under the tested role
+  topology. Twenty-seven writer attempts to disable or drop enforcement, alter
+  or replace the trusted function, create or drop objects in trusted schemas,
+  transfer ownership, shadow objects, change `session_replication_role`, or
+  alter/drop the extension were denied (`42501`, except the duplicate-extension
+  attempt `42710`). Trusted ownership, trigger state, and enforcement behavior
+  were unchanged, and a post-attack over-budget update was still denied.
+- `CC-028`: **PASS**. The protected writer had no role memberships and no
+  reachable roles. `SET ROLE` was denied for every other role in the cluster
+  (trusted owner, setup admin, and all predefined `pg_*` roles), and
+  `SET SESSION AUTHORIZATION` was denied. `SET ROLE NONE` left the writer
+  identity unchanged.
+- `CC-029`: **PASS**. The tested environment had
+  `max_prepared_transactions = 0`. `PREPARE TRANSACTION` from the protected
+  writer failed with `55000 object_not_in_prerequisite_state`
+  (`prepared transactions are disabled`), `pg_prepared_xacts` remained empty,
+  and no protected mutation became durable.
 - `CC-032`: **PASS**. An insert into an unprotected relation executed before
   event six was rolled back with the protected changes when
   `XACT_EVENT_PRE_COMMIT` rejected the poisoned transaction. A fresh
@@ -214,6 +231,12 @@ and deadlock-producing workloads remain untested. The reuse runs covered
 same-backend transaction reuse without disconnect or manual reset only; real
 pooler modes, session reset queries, disconnect/reconnect behavior, multi-user
 mappings, and role switching on one backend remain `UNKNOWN`.
+
+The native enforcement and probe functions are `SECURITY INVOKER` C functions
+with no SQL bodies or `search_path` dependence; no `SECURITY DEFINER` function
+exists in the trusted schemas. The privilege results above are limited to the
+tested role topology, extension control, and `max_prepared_transactions = 0`;
+other deployment topologies remain `UNKNOWN`.
 
 This result makes backend-local callback state **viable for further testing as
 a mechanism class only**. It does not replace the falsified PL/pgSQL evidence,

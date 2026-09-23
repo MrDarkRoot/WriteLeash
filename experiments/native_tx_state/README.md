@@ -71,6 +71,9 @@ Observed on PostgreSQL 16.4:
 | `CC-021` | **PASS** | One persistent backend started every next top-level transaction at `consumed=0, denied=false` after commit, rollback, denial abort, savepoint-recovered denial, caught denial, and autocommit transactions; no reset function or disconnect |
 | `CC-024` | **PASS** | PL/pgSQL caught event-six error, but final `COMMIT` errored and a fresh connection observed the baseline |
 | `CC-025` | **PASS** | One prepared `UPDATE` executed five times committed; the sixth execution in one transaction was denied and no protected mutation became durable |
+| `CC-027` | **PASS** | All 27 writer bypass attempts were denied; trusted object ownership, trigger state, and enforcement behavior were unchanged |
+| `CC-028` | **PASS** | Zero memberships and zero reachable roles; `SET ROLE` denied for every other role and `SET SESSION AUTHORIZATION` denied |
+| `CC-029` | **PASS** | `max_prepared_transactions=0`; `PREPARE TRANSACTION` rejected with `55000`; no prepared transaction and no durable mutation |
 | `CC-032` | **PASS** | An unprotected insert before denial was rolled back with the protected changes; a fresh connection observed zero audit rows |
 | `CC-033` | **PASS** | `EXPLAIN (ANALYZE, COSTS OFF)` executed the protected update, the plan reported `calls=5` on the enforcement trigger, and the six-row form was denied |
 
@@ -203,6 +206,57 @@ role memberships, and adding one solely to exercise `SET ROLE` would alter the
 tested privilege envelope. Real pooler behavior (PgBouncer modes, application
 poolers, session reset queries, disconnect/reconnect, multi-user mappings)
 also remains untested; `CC-021` emulates only the same-backend reuse property.
+
+## Privilege Boundary
+
+`CC-027`, `CC-028`, and `CC-029` tested whether the protected writer can escape
+enforcement through DDL, role escalation, or two-phase commit. The runs also
+audited effective privileges instead of relying only on explicit grants.
+
+Role topology observed in the experiment environment:
+
+```text
+commitcap_native_admin   LOGIN, SUPERUSER (trusted setup administrator)
+commitcap_owner          NOLOGIN, no elevated attributes; owns the protected
+                         table, trusted schemas, enforcement function, and probe
+commitcap_writer         LOGIN, no elevated attributes, no role memberships
+```
+
+- `CC-027`: 27 bypass attempts were denied. Trigger disable, trigger drop,
+  ownership transfer, table drop/truncate/column drop, function drop/alter/
+  replace, trusted-schema create/drop/alter, shadow object creation,
+  `session_replication_role` changes, and extension update/set-schema/drop all
+  returned `42501 insufficient_privilege`. `CREATE EXTENSION pgcrypto` was
+  denied the same way. `CREATE EXTENSION commitcap_native_tx_state` returned
+  `42710 duplicate_object` because the extension already exists. An insert
+  attempt against trusted accounting state returned `42501` (schema access
+  denied). After the attempts, catalog checks showed the protected table owner,
+  extension owner, trusted schema owners, trigger state, and enforcement
+  function unchanged, and a six-event over-budget update was still denied.
+- `CC-028`: the writer had zero direct memberships and zero reachable roles.
+  `SET ROLE` was attempted for all 16 other roles in the cluster (trusted
+  owner, setup admin, and the predefined `pg_*` roles) and returned `42501`
+  each time. `SET SESSION AUTHORIZATION commitcap_owner` returned `42501`.
+  `SET ROLE NONE` succeeded and left `session_user` and `current_user` as
+  `commitcap_writer`.
+- `CC-029`: `max_prepared_transactions` was `0`. A writer transaction that
+  updated one protected row and then attempted
+  `PREPARE TRANSACTION 'cc029_test'` failed with
+  `55000 object_not_in_prerequisite_state` and the server message
+  `prepared transactions are disabled`. `pg_prepared_xacts` stayed empty and
+  the protected table stayed at baseline.
+
+The default/public privilege audit found: writer has database `CONNECT` but
+not `CREATE` or `TEMPORARY`; no `USAGE` on trusted schemas; no memberships or
+reachable roles; extension owned by the trusted setup admin; trusted schemas
+owned by `commitcap_owner`; no relational accounting or policy state exists in
+the trusted schemas (native state is backend-local); and no `SECURITY DEFINER`
+functions exist in the trusted schemas. The native enforcement and probe
+functions are `SECURITY INVOKER` C functions with no SQL bodies and no
+`search_path` dependence, so there is no unqualified-name or definer-owner
+surface in the native path. The baseline PL/pgSQL falsification experiment
+outside this directory still uses a `SECURITY DEFINER` trigger function, but
+it is separate from the native path and was not modified here.
 
 ## Instrumentation
 
@@ -338,9 +392,12 @@ enforcement schema, or bypass the trigger.
 
 ## Known Risks And Unknowns
 
-- Only the thirteen requested tests, lifecycle cleanup, savepoint-release, and
+- Only the sixteen requested tests, lifecycle cleanup, savepoint-release, and
   concurrency lifecycle probes were run. This is not the complete Gate 1
   matrix.
+- Privilege results are specific to the tested role topology and extension
+  control. Deployments with different memberships, ownership, helper roles, or
+  a different `max_prepared_transactions` setting remain `UNKNOWN`.
 - Nested savepoint accounting beyond the tested paths remains uncharacterized.
 - Interactions with other transaction callbacks, callback ordering between
   extensions, and errors from later pre-commit work remain uncharacterized.

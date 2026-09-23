@@ -106,6 +106,77 @@ assert_privilege_envelope() {
     printf 'privilege-envelope checks: PASS\n'
 }
 
+cc_sqlstate_class() {
+    case "$1" in
+        42501) printf 'insufficient_privilege' ;;
+        42710) printf 'duplicate_object' ;;
+        55000) printf 'object_not_in_prerequisite_state' ;;
+        00000) printf 'success' ;;
+        *) printf 'unclassified' ;;
+    esac
+}
+
+cc_denied_attempt() {
+    local label="$1"
+    local expected_sqlstate="$2"
+    local sql="$3"
+    local marker
+    local output
+    local sqlstate
+
+    marker="CCATTEMPT_$(printf '%s' "$label" | tr -c 'A-Za-z0-9' '_')"
+    set +e
+    output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<SQL
+$sql;
+\echo $marker :SQLSTATE
+SQL
+)"
+    set -e
+    sqlstate="$(printf '%s\n' "$output" | grep -F "$marker " | head -n 1 | awk '{print $2}')"
+    [[ -n "$sqlstate" ]] || fail "$label: no SQLSTATE observed (output: $output)"
+    [[ "$sqlstate" == "$expected_sqlstate" ]] || \
+        fail "$label: SQLSTATE $sqlstate ($(cc_sqlstate_class "$sqlstate")), expected $expected_sqlstate"
+    printf '  %-44s SQLSTATE %s %s\n' "$label" "$sqlstate" "$(cc_sqlstate_class "$sqlstate")"
+}
+
+assert_privilege_audit() {
+    assert_scalar "writer database CONNECT" \
+        "SELECT has_database_privilege('commitcap_writer', current_database(), 'CONNECT');" \
+        "t"
+    assert_scalar "writer database CREATE" \
+        "SELECT has_database_privilege('commitcap_writer', current_database(), 'CREATE');" \
+        "f"
+    assert_scalar "writer database TEMPORARY" \
+        "SELECT has_database_privilege('commitcap_writer', current_database(), 'TEMPORARY');" \
+        "f"
+    assert_scalar "writer direct memberships" \
+        "SELECT count(*) FROM pg_auth_members AS m JOIN pg_roles AS r ON r.oid = m.member WHERE r.rolname = 'commitcap_writer';" \
+        "0"
+    assert_scalar "writer reachable roles" \
+        "SELECT count(*) FROM pg_roles WHERE rolname <> 'commitcap_writer' AND pg_has_role('commitcap_writer', oid, 'USAGE');" \
+        "0"
+    assert_scalar "extension owner" \
+        "SELECT pg_get_userbyid(extowner) FROM pg_extension WHERE extname = 'commitcap_native_tx_state';" \
+        "commitcap_native_admin"
+    assert_scalar "extension-owned functions" \
+        "SELECT count(*) FROM pg_depend AS d JOIN pg_extension AS e ON e.oid = d.refobjid WHERE e.extname = 'commitcap_native_tx_state' AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e';" \
+        "1"
+    assert_scalar "trusted schema owners" \
+        "SELECT count(*) FROM pg_namespace WHERE nspname IN ('commitcap_native', 'commitcap_probe') AND pg_get_userbyid(nspowner) <> 'commitcap_owner';" \
+        "0"
+    assert_scalar "trusted relational state" \
+        "SELECT count(*) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname IN ('commitcap_native', 'commitcap_probe') AND c.relkind IN ('r', 'p', 'S');" \
+        "0"
+    assert_scalar "trusted SECURITY DEFINER functions" \
+        "SELECT count(*) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname IN ('commitcap_native', 'commitcap_probe') AND p.prosecdef;" \
+        "0"
+    assert_scalar "enforcement trigger enabled" \
+        "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'subscriptions_update_budget';" \
+        "O"
+
+    printf 'privilege-audit checks: PASS\n'
+}
+
 # --- Two-session concurrency harness -----------------------------------------
 # Uses host named pipes and background psql processes. The sessions are
 # synchronized by output markers and pg_stat_activity, not by sleeps that
@@ -323,6 +394,113 @@ admin_psql -v ON_ERROR_STOP=1 < "$EXPERIMENT_DIR/setup.sql" >/dev/null
 printf 'Classification: TEST FIRST\n'
 printf 'PostgreSQL: %s\n' "$(admin_psql -At -v ON_ERROR_STOP=1 -c 'SHOW server_version;')"
 assert_privilege_envelope
+assert_privilege_audit
+
+printf '\n--- CC-027 / CC-028 / CC-029: privilege boundary ---\n'
+reset_fixture
+
+printf '\nCC-027 privilege bypass attempts:\n'
+cc_denied_attempt alter_disable_trigger_all 42501 "ALTER TABLE public.subscriptions DISABLE TRIGGER ALL"
+cc_denied_attempt alter_disable_trigger_user 42501 "ALTER TABLE public.subscriptions DISABLE TRIGGER USER"
+cc_denied_attempt alter_enable_replica_trigger 42501 "ALTER TABLE public.subscriptions ENABLE REPLICA TRIGGER subscriptions_update_budget"
+cc_denied_attempt drop_trigger 42501 "DROP TRIGGER subscriptions_update_budget ON public.subscriptions"
+cc_denied_attempt alter_table_owner 42501 "ALTER TABLE public.subscriptions OWNER TO commitcap_writer"
+cc_denied_attempt drop_table 42501 "DROP TABLE public.subscriptions"
+cc_denied_attempt alter_drop_column 42501 "ALTER TABLE public.subscriptions DROP COLUMN status"
+cc_denied_attempt truncate_table 42501 "TRUNCATE public.subscriptions"
+cc_denied_attempt insert_row 42501 "INSERT INTO public.subscriptions (id, status) VALUES (99, 'x')"
+cc_denied_attempt drop_function 42501 "DROP FUNCTION commitcap_native.enforce_update_budget()"
+cc_denied_attempt alter_function 42501 "ALTER FUNCTION commitcap_native.enforce_update_budget() SET search_path = public"
+cc_denied_attempt replace_function 42501 "CREATE OR REPLACE FUNCTION commitcap_native.enforce_update_budget() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'"
+cc_denied_attempt create_in_trusted_schema 42501 "CREATE TABLE commitcap_native.steal (x int)"
+cc_denied_attempt drop_trusted_schema 42501 "DROP SCHEMA commitcap_native"
+cc_denied_attempt alter_schema_owner 42501 "ALTER SCHEMA commitcap_native OWNER TO commitcap_writer"
+cc_denied_attempt drop_probe_schema 42501 "DROP SCHEMA commitcap_probe"
+cc_denied_attempt alter_probe_function 42501 "ALTER FUNCTION commitcap_probe.cc_native_probe() SET search_path = public"
+cc_denied_attempt create_shadow_schema 42501 "CREATE SCHEMA commitcap_writer_shadow"
+cc_denied_attempt create_shadow_function 42501 "CREATE FUNCTION public.enforce_update_budget() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'"
+cc_denied_attempt create_shadow_table 42501 "CREATE TABLE public.subscriptions_shadow (id int)"
+cc_denied_attempt set_replication_role 42501 "SET session_replication_role = replica"
+cc_denied_attempt alter_extension_update 42501 "ALTER EXTENSION commitcap_native_tx_state UPDATE"
+cc_denied_attempt alter_extension_set_schema 42501 "ALTER EXTENSION commitcap_native_tx_state SET SCHEMA commitcap_probe"
+cc_denied_attempt drop_extension 42501 "DROP EXTENSION commitcap_native_tx_state"
+cc_denied_attempt create_extension_pgcrypto 42501 "CREATE EXTENSION pgcrypto"
+cc_denied_attempt create_extension_existing 42710 "CREATE EXTENSION commitcap_native_tx_state WITH SCHEMA public"
+cc_denied_attempt insert_accounting_state 42501 "INSERT INTO commitcap_native.update_budget_state (transaction_id, row_updates) VALUES (1, 1)"
+
+assert_scalar "CC-027 protected relation owner after attempts" \
+    "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'subscriptions';" \
+    "commitcap_owner"
+assert_scalar "CC-027 trigger state after attempts" \
+    "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'subscriptions_update_budget';" \
+    "O"
+assert_scalar "CC-027 enforcement function after attempts" \
+    "SELECT pg_get_userbyid(p.proowner) || ':' || l.lanname FROM pg_proc AS p JOIN pg_language AS l ON l.oid = p.prolang JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_native' AND p.proname = 'enforce_update_budget';" \
+    "commitcap_owner:c"
+assert_scalar "CC-027 extension after attempts" \
+    "SELECT count(*) FROM pg_extension WHERE extname = 'commitcap_native_tx_state';" \
+    "1"
+assert_baseline
+set +e
+cc027_regression_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc027_regression' WHERE id BETWEEN 1 AND 6;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc027_regression_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-027 post-attack enforcement regression did not deny event six"
+assert_baseline
+printf 'CC-027: PASS (all attempts denied; trusted objects unchanged; enforcement intact)\n'
+
+printf '\nCC-028 role transition attempts:\n'
+cc028_roles="$(admin_psql -At -v ON_ERROR_STOP=1 -c \
+    "SELECT rolname FROM pg_roles WHERE rolname <> 'commitcap_writer' ORDER BY rolname;")"
+cc028_role_count=0
+while IFS= read -r cc028_role; do
+    [[ -n "$cc028_role" ]] || continue
+    cc_denied_attempt "set_role_$cc028_role" 42501 "SET ROLE $cc028_role"
+    cc028_role_count=$((cc028_role_count + 1))
+done <<<"$cc028_roles"
+cc_denied_attempt set_session_authorization 42501 "SET SESSION AUTHORIZATION commitcap_owner"
+set +e
+cc028_identity="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+SET ROLE NONE;
+SELECT 'CC028_IDENTITY:' || session_user || ':' || current_user;
+SQL
+)"
+set -e
+[[ "$cc028_identity" == *"CC028_IDENTITY:commitcap_writer:commitcap_writer"* ]] || \
+    fail "CC-028 writer identity changed unexpectedly: $cc028_identity"
+printf '  %-44s %s\n' "set_role_none" "identity unchanged (commitcap_writer:commitcap_writer)"
+printf 'CC-028: PASS (no reachable role; %s other roles attempted)\n' "$cc028_role_count"
+
+printf '\nCC-029 two-phase commit exclusion:\n'
+assert_scalar "max_prepared_transactions" "SHOW max_prepared_transactions;" "0"
+set +e
+cc029_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc029' WHERE id = 1;
+PREPARE TRANSACTION 'cc029_test';
+\echo CC029_SQLSTATE :SQLSTATE
+ROLLBACK;
+SQL
+)"
+set -e
+cc029_sqlstate="$(printf '%s\n' "$cc029_output" | grep -F 'CC029_SQLSTATE ' | head -n 1 | awk '{print $2}')"
+[[ "$cc029_sqlstate" == "55000" ]] || \
+    fail "CC-029 PREPARE TRANSACTION returned $cc029_sqlstate ($(cc_sqlstate_class "$cc029_sqlstate")), expected 55000"
+cc029_message="$(printf '%s\n' "$cc029_output" | grep -F 'prepared transactions are disabled' | head -n 1 | sed 's/^ERROR:  //')"
+printf '  %-44s SQLSTATE %s %s\n' "PREPARE_TRANSACTION" "$cc029_sqlstate" "$(cc_sqlstate_class "$cc029_sqlstate")"
+printf '  %-44s %s\n' "server message" "$cc029_message"
+assert_scalar "CC-029 prepared transactions" \
+    "SELECT count(*) FROM pg_prepared_xacts;" "0"
+assert_scalar "CC-029 prepared transaction by gid" \
+    "SELECT count(*) FROM pg_prepared_xacts WHERE gid = 'cc029_test';" "0"
+assert_baseline
+printf 'CC-029: PASS (two-phase commit unavailable; no prepared transaction; no durable mutation)\n'
+printf '\nRegression suite follows; all of it runs after the privilege attempts.\n'
 
 reset_fixture
 writer_psql -v ON_ERROR_STOP=1 -c \
