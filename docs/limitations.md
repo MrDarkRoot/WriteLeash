@@ -219,6 +219,23 @@ backend-local top-level state, per-subtransaction allowed-consumption deltas,
   writer failed with `55000 object_not_in_prerequisite_state`
   (`prepared transactions are disabled`), `pg_prepared_xacts` remained empty,
   and no protected mutation became durable.
+- `CC-030`: **PASS**. With the test-only budget set to 0, the first protected
+  event was denied (`limit 0, attempted 1`), the transaction did not commit,
+  and a fresh admin connection observed baseline. After restoring the default
+  budget, a new transaction consumed five events and committed, and a
+  six-event transaction was denied.
+- `CC-031`: **PASS** on PostgreSQL 16.4 native experiment with implementation
+  test maximum 2147483647. The budget is configured through a 32-bit
+  `PGC_SUSET` GUC; counters are `uint64` and the decision uses
+  check-before-increment, so no addition can overflow. Negative, maximum + 1,
+  grossly out-of-range, non-numeric, and out-of-range fractional inputs were
+  rejected with SQLSTATE `22023` before activation, leaving the prior valid
+  configuration unchanged. The maximum was accepted. With seed 2147483646 and
+  budget 2147483647, the first event consumed to the maximum and the second
+  was denied with `attempted 2147483648`; no wrap occurred. In-range fractional
+  input is rounded by PostgreSQL's integer GUC grammar (`1.5` activates as 2,
+  `-0.5` as 0). The protected writer cannot `SET`, `RESET`, `ALTER ROLE`, or
+  `ALTER DATABASE` the test parameters (all `42501`).
 - `CC-032`: **PASS**. An insert into an unprotected relation executed before
   event six was rolled back with the protected changes when
   `XACT_EVENT_PRE_COMMIT` rejected the poisoned transaction. A fresh
@@ -256,9 +273,13 @@ mappings, and role switching on one backend remain `UNKNOWN`.
 
 The native enforcement and probe functions are `SECURITY INVOKER` C functions
 with no SQL bodies or `search_path` dependence; no `SECURITY DEFINER` function
-exists in the trusted schemas. The privilege results above are limited to the
-tested role topology, extension control, and `max_prepared_transactions = 0`;
-other deployment topologies remain `UNKNOWN`.
+exists in the trusted schemas. The experiment environment preloads the
+extension (`shared_preload_libraries`) so its two test-only `PGC_SUSET`
+configuration parameters are defined and validated in every session; the
+protected writer cannot change them. The privilege results above are limited
+to the tested role topology, extension control, and
+`max_prepared_transactions = 0`; other deployment topologies remain
+`UNKNOWN`.
 
 This result makes backend-local callback state **viable for further testing as
 a mechanism class only**. It does not replace the falsified PL/pgSQL evidence,

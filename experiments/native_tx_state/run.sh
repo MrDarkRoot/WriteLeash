@@ -35,6 +35,15 @@ assert_scalar() {
         fail "$label was $actual, expected $expected"
 }
 
+assert_value() {
+    local label="$1"
+    local actual="$2"
+    local expected="$3"
+
+    [[ "$actual" == "$expected" ]] || \
+        fail "$label was $actual, expected $expected"
+}
+
 reset_fixture() {
     admin_psql -v ON_ERROR_STOP=1 -c \
         "TRUNCATE TABLE public.unprotected_audit, public.subscriptions RESTART IDENTITY; INSERT INTO public.subscriptions (id, status) SELECT id, 'baseline' FROM generate_series(1, 10) AS ids(id);" \
@@ -108,6 +117,7 @@ assert_privilege_envelope() {
 
 cc_sqlstate_class() {
     case "$1" in
+        22023) printf 'invalid_parameter_value' ;;
         42501) printf 'insufficient_privilege' ;;
         42710) printf 'duplicate_object' ;;
         55000) printf 'object_not_in_prerequisite_state' ;;
@@ -136,6 +146,42 @@ SQL
     [[ -n "$sqlstate" ]] || fail "$label: no SQLSTATE observed (output: $output)"
     [[ "$sqlstate" == "$expected_sqlstate" ]] || \
         fail "$label: SQLSTATE $sqlstate ($(cc_sqlstate_class "$sqlstate")), expected $expected_sqlstate"
+    printf '  %-44s SQLSTATE %s %s\n' "$label" "$sqlstate" "$(cc_sqlstate_class "$sqlstate")"
+}
+
+# Trusted-admin-only test configuration for CC-030/CC-031. The module is
+# preloaded, so these GUCs are defined and validated in every session.
+cc_config_set() {
+    admin_psql -v ON_ERROR_STOP=1 -c "ALTER ROLE commitcap_writer SET $1 = $2;" >/dev/null
+}
+
+cc_config_reset() {
+    admin_psql -v ON_ERROR_STOP=1 -c "ALTER ROLE commitcap_writer RESET $1;" >/dev/null
+}
+
+cc_config_stored() {
+    admin_psql -At -v ON_ERROR_STOP=1 -c \
+        "SELECT COALESCE((SELECT string_agg(s, ',' ORDER BY s) FROM unnest(rolconfig) AS s WHERE s LIKE 'commitcap_native.%'), '(none)') FROM pg_roles WHERE rolname = 'commitcap_writer';"
+}
+
+cc_config_attempt() {
+    local label="$1"
+    local sql="$2"
+    local expected_sqlstate="$3"
+    local output
+    local sqlstate
+
+    set +e
+    output="$(admin_psql -At -q -v ON_ERROR_STOP=0 2>&1 <<SQL
+$sql;
+\echo CC_CONFIG_${label} :SQLSTATE
+SQL
+)"
+    set -e
+    sqlstate="$(printf '%s\n' "$output" | grep -F "CC_CONFIG_${label} " | head -n 1 | awk '{print $2}')"
+    [[ -n "$sqlstate" ]] || fail "CC-031 $label: no SQLSTATE observed (output: $output)"
+    [[ "$sqlstate" == "$expected_sqlstate" ]] || \
+        fail "CC-031 $label: SQLSTATE $sqlstate ($(cc_sqlstate_class "$sqlstate")), expected $expected_sqlstate"
     printf '  %-44s SQLSTATE %s %s\n' "$label" "$sqlstate" "$(cc_sqlstate_class "$sqlstate")"
 }
 
@@ -173,6 +219,12 @@ assert_privilege_audit() {
     assert_scalar "enforcement trigger enabled" \
         "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'subscriptions_update_budget';" \
         "O"
+    assert_scalar "test budget GUC context" \
+        "SELECT context FROM pg_settings WHERE name = 'commitcap_native.test_budget';" \
+        "superuser"
+    assert_scalar "test seed GUC context" \
+        "SELECT context FROM pg_settings WHERE name = 'commitcap_native.test_seed_consumed';" \
+        "superuser"
 
     printf 'privilege-audit checks: PASS\n'
 }
@@ -738,7 +790,148 @@ set -e
 assert_baseline
 cc_lifecycle_probe CC007 cc007_life
 printf 'CC-007: PASS (no-op assignments consumed authority; sixth denied)\n'
-printf 'Regression suite follows; all of it runs after the privilege, MERGE, and row-event experiments.\n'
+
+printf '\nCC-030 / CC-031: budget bounds and overflow safety:\n'
+cc_config_reset commitcap_native.test_budget
+cc_config_reset commitcap_native.test_seed_consumed
+assert_value "test configuration clean start" "$(cc_config_stored)" "(none)"
+
+printf '\nCC-030 zero budget:\n'
+cc_config_set commitcap_native.test_budget 0
+assert_value "CC-030 stored budget" "$(cc_config_stored)" "commitcap_native.test_budget=0"
+reset_fixture
+set +e
+cc030_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+SELECT 'CC030_BUDGET:' || current_setting('commitcap_native.test_budget');
+SELECT 'CC030_START:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+UPDATE public.subscriptions SET status = 'cc030' WHERE id = 1;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc030_output" == *"CC030_BUDGET:0"* ]] || \
+    fail "CC-030 writer session did not see budget 0 (output: $cc030_output)"
+[[ "$cc030_output" == *"CC030_START:f|0|f"* ]] || \
+    fail "CC-030 transaction did not start at consumed=0 denied=false"
+[[ "$cc030_output" == *"CommitCap mutation budget exceeded (limit 0, attempted 1)"* ]] || \
+    fail "CC-030 first event was not denied under budget 0"
+[[ "$cc030_output" == *"ROLLBACK"* ]] || \
+    fail "CC-030 denied transaction did not abort"
+printf '  zero-budget: %s; %s\n' \
+    "$(printf '%s\n' "$cc030_output" | grep -F 'CC030_BUDGET:' | head -n 1)" \
+    "$(printf '%s\n' "$cc030_output" | grep -F 'CommitCap mutation budget exceeded' | head -n 1 | sed 's/^ERROR:  //')"
+assert_baseline
+cc_config_reset commitcap_native.test_budget
+assert_value "CC-030 restored configuration" "$(cc_config_stored)" "(none)"
+cc_lifecycle_probe CC030 cc030_life
+reset_fixture
+set +e
+cc030_restored_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc030_restored' WHERE id BETWEEN 1 AND 6;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc030_restored_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-030 restored budget did not deny the sixth event"
+assert_baseline
+printf 'CC-030: PASS (budget 0 denies the first event; default budget restored)\n'
+
+printf '\nCC-031 budget validation and overflow safety:\n'
+cc_config_set commitcap_native.test_budget 5
+assert_value "CC-031 stored valid budget" "$(cc_config_stored)" "commitcap_native.test_budget=5"
+cc_config_attempt negative "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = -1" 22023
+cc_config_attempt max_plus_one "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = 2147483648" 22023
+cc_config_attempt huge "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = 999999999999999999999999" 22023
+cc_config_attempt non_numeric "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = 'not-a-number'" 22023
+cc_config_attempt out_of_range_fraction "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = '2147483647.9'" 22023
+assert_value "CC-031 configuration after invalid attempts" "$(cc_config_stored)" "commitcap_native.test_budget=5"
+reset_fixture
+cc_lifecycle_probe CC031 cc031_life
+reset_fixture
+set +e
+cc031_unchanged_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc031_unchanged' WHERE id BETWEEN 1 AND 6;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc031_unchanged_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-031 prior valid budget was not preserved after rejected inputs"
+assert_baseline
+printf '  prior valid budget preserved and still enforced\n'
+cc_config_attempt in_range_fraction "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = '1.5'" 00000
+assert_value "CC-031 fractional stored form" "$(cc_config_stored)" "commitcap_native.test_budget=1.5"
+assert_value "CC-031 fractional activated value" \
+    "$(writer_psql -At -v ON_ERROR_STOP=1 -c "SHOW commitcap_native.test_budget;")" "2"
+cc_config_reset commitcap_native.test_budget
+cc_config_attempt negative_fraction "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = '-0.5'" 00000
+assert_value "CC-031 negative fractional stored form" "$(cc_config_stored)" "commitcap_native.test_budget=-0.5"
+assert_value "CC-031 negative fractional activated value" \
+    "$(writer_psql -At -v ON_ERROR_STOP=1 -c "SHOW commitcap_native.test_budget;")" "0"
+printf '  PostgreSQL integer GUC grammar rounds in-range fractions; activated values stay in [0, 2147483647]\n'
+cc_config_reset commitcap_native.test_budget
+cc_config_set commitcap_native.test_budget 2147483647
+assert_value "CC-031 stored maximum budget" "$(cc_config_stored)" "commitcap_native.test_budget=2147483647"
+cc_config_set commitcap_native.test_seed_consumed 2147483646
+assert_value "CC-031 stored near-maximum seed" "$(cc_config_stored)" \
+    "commitcap_native.test_budget=2147483647,commitcap_native.test_seed_consumed=2147483646"
+reset_fixture
+set +e
+cc031_max_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+SELECT 'CC031_BUDGET:' || current_setting('commitcap_native.test_budget') || ':' || current_setting('commitcap_native.test_seed_consumed');
+UPDATE public.subscriptions SET status = 'cc031_max' WHERE id = 1;
+SELECT 'CC031_AFTER1:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+UPDATE public.subscriptions SET status = 'cc031_max' WHERE id = 2;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc031_max_output" == *"CC031_BUDGET:2147483647:2147483646"* ]] || \
+    fail "CC-031 near-maximum configuration was not active in the writer session"
+[[ "$cc031_max_output" == *"CC031_AFTER1:t|2147483647|f"* ]] || \
+    fail "CC-031 first near-maximum event did not consume exactly to the maximum"
+[[ "$cc031_max_output" == *"CommitCap mutation budget exceeded (limit 2147483647, attempted 2147483648)"* ]] || \
+    fail "CC-031 second near-maximum event was not denied without wrap"
+[[ "$cc031_max_output" == *"ROLLBACK"* ]] || \
+    fail "CC-031 near-maximum denied transaction did not abort"
+printf '  near-maximum: %s; %s\n' \
+    "$(printf '%s\n' "$cc031_max_output" | grep -F 'CC031_BUDGET:' | head -n 1)" \
+    "$(printf '%s\n' "$cc031_max_output" | grep -F 'CC031_AFTER1:' | head -n 1)"
+printf '  near-maximum denial: %s\n' \
+    "$(printf '%s\n' "$cc031_max_output" | grep -F 'CommitCap mutation budget exceeded' | head -n 1 | sed 's/^ERROR:  //')"
+assert_baseline
+set +e
+cc031_commit_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc031_commit' WHERE id = 1;
+SELECT 'CC031_COMMIT:t|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc031_commit_output" == *"CC031_COMMIT:t|2147483647|f"* ]] || \
+    fail "CC-031 near-maximum commit transaction did not reach the maximum"
+printf '  near-maximum commit: %s\n' \
+    "$(printf '%s\n' "$cc031_commit_output" | grep -F 'CC031_COMMIT:' | head -n 1)"
+assert_scalar "CC-031 near-maximum commit durable" \
+    "SELECT count(*) FILTER (WHERE id = 1 AND status = 'cc031_commit') || ':' || count(*) FILTER (WHERE status <> 'baseline') FROM public.subscriptions;" \
+    "1:1"
+cc_config_reset commitcap_native.test_seed_consumed
+cc_config_reset commitcap_native.test_budget
+assert_value "CC-031 restored configuration" "$(cc_config_stored)" "(none)"
+reset_fixture
+cc_lifecycle_probe CC031R cc031_restored
+cc_denied_attempt config_writer_set 42501 "SET commitcap_native.test_budget = 100"
+cc_denied_attempt config_writer_reset 42501 "RESET commitcap_native.test_budget"
+cc_denied_attempt config_writer_alter_role 42501 "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = 100"
+cc_denied_attempt config_writer_alter_database 42501 "ALTER DATABASE commitcap_native SET commitcap_native.test_budget = 100"
+printf 'CC-031: PASS (bounds rejected before activation; near-maximum counter did not wrap)\n'
+printf 'Regression suite follows; all of it runs after the privilege, MERGE, row-event, and budget experiments.\n'
 
 reset_fixture
 writer_psql -v ON_ERROR_STOP=1 -c \

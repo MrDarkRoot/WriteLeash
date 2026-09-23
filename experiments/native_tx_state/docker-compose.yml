@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Preloaded so the experiment's test-only configuration GUCs are defined
+    # and validated in every session. This is experiment infrastructure only.
+    command: ["postgres", "-c", "shared_preload_libraries=commitcap_native_tx_state"]
     environment:
       POSTGRES_DB: commitcap_native
       POSTGRES_USER: commitcap_native_admin

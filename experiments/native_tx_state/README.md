@@ -50,9 +50,12 @@ If `denied` is true, the callback raises
 PostgreSQL then takes the top-level abort path. `XACT_EVENT_COMMIT` and
 `XACT_EVENT_ABORT` perform backend-local cleanup.
 
-The trigger lazily creates a frame when the library is first loaded inside an
-already-active subtransaction. This matters because callback registration can
-occur after that subtransaction's `SUBXACT_EVENT_START_SUB` event.
+The experiment environment preloads the extension
+(`shared_preload_libraries` in the compose service) so its callbacks and
+test-only configuration parameters are defined in every backend. A
+subtransaction frame is still created lazily on the first protected event
+inside that subtransaction, and subtransaction callbacks are not logged while
+the transaction has no protected events yet.
 
 ## Results
 
@@ -79,6 +82,8 @@ Observed on PostgreSQL 16.4:
 | `CC-027` | **PASS** | All 27 writer bypass attempts were denied; trusted object ownership, trigger state, and enforcement behavior were unchanged |
 | `CC-028` | **PASS** | Zero memberships and zero reachable roles; `SET ROLE` denied for every other role and `SET SESSION AUTHORIZATION` denied |
 | `CC-029` | **PASS** | `max_prepared_transactions=0`; `PREPARE TRANSACTION` rejected with `55000`; no prepared transaction and no durable mutation |
+| `CC-030` | **PASS** | Test-only budget 0 denied the first protected event (`limit 0, attempted 1`); the transaction aborted and the restored default budget still denied a sixth event |
+| `CC-031` | **PASS** | Negative, max+1, huge, and non-numeric inputs rejected with `22023`; maximum accepted; near-maximum counter denied at `attempted 2147483648` without wrap |
 | `CC-032` | **PASS** | An unprotected insert before denial was rolled back with the protected changes; a fresh connection observed zero audit rows |
 | `CC-033` | **PASS** | `EXPLAIN (ANALYZE, COSTS OFF)` executed the protected update, the plan reported `calls=5` on the enforcement trigger, and the six-row form was denied |
 
@@ -322,6 +327,65 @@ surface in the native path. The baseline PL/pgSQL falsification experiment
 outside this directory still uses a `SECURITY DEFINER` trigger function, but
 it is separate from the native path and was not modified here.
 
+## Budget Bounds And Overflow Safety
+
+`CC-030` and `CC-031` tested zero budgets, configuration validation, and
+counter overflow safety.
+
+Native representation observed in the extension:
+
+```text
+budget (GUC input):    int (int32), range 0 .. 2147483647
+budget (captured):     uint64
+consumed:              uint64
+subtransaction delta:  uint64
+attempted diagnostic:  uint64 consumed + 1
+```
+
+The implementation test maximum is `INT_MAX` (2147483647). It was chosen
+because PostgreSQL's custom integer GUC interface is 32-bit; counters are
+`uint64`, and the decision uses check-before-increment
+(`consumed >= budget`), so no addition can overflow. `consumed` only
+increments while it is below the captured budget, so it can never exceed the
+maximum. The attempted-count diagnostic is computed in `uint64` and is at
+most `INT_MAX + 1`.
+
+Test-only configuration is provided by two `PGC_SUSET` GUCs defined by the
+preloaded extension:
+
+- `commitcap_native.test_budget` (default 5, range 0..2147483647)
+- `commitcap_native.test_seed_consumed` (default -1, range -1..2147483647)
+
+The trusted admin stores values for the protected writer with
+`ALTER ROLE commitcap_writer SET ...`. The writer cannot `SET`, `RESET`,
+`ALTER ROLE`, or `ALTER DATABASE` them; all four attempts returned
+`42501 insufficient_privilege`. These parameters are experiment controls, not
+a product interface.
+
+Observed on PostgreSQL 16.4:
+
+- Budget 0: the first protected event was denied with
+  `limit 0, attempted 1`; the transaction did not commit and a fresh admin
+  connection observed baseline. After restoring the default budget, a new
+  transaction consumed five events and committed, and a six-event transaction
+  was denied.
+- Negative (`-1`), maximum + 1 (`2147483648`), grossly out-of-range
+  (`999999999999999999999999`), non-numeric text, and out-of-range fractional
+  input (`2147483647.9`) were all rejected with SQLSTATE
+  `22023 invalid_parameter_value`; the previously stored valid budget
+  remained unchanged and still enforced at five.
+- Maximum (`2147483647`): accepted.
+- Near maximum (`seed=2147483646`, `budget=2147483647`): the first event
+  consumed to `2147483647` and was allowed; the second event was denied with
+  `limit 2147483647, attempted 2147483648`. No wrap occurred. A separate
+  transaction committed one event at `consumed=2147483647`.
+
+PostgreSQL's integer GUC grammar rounds in-range fractional input to an
+integer (`'1.5'` activates as 2, `'1e2'` as 100, `'-0.5'` as 0), while values
+that round outside the range are rejected. The activated budget is therefore
+always an integer in `[0, 2147483647]`. This is PostgreSQL parameter grammar,
+not counter arithmetic.
+
 ## Instrumentation
 
 The trigger emits one `LOG` line per allowed event with the backend PID and
@@ -379,10 +443,10 @@ uncaught top-level denial:
     XACT_ABORT
 ```
 
-For `CC-009`, the extension library was first loaded by an update inside the
-original savepoint, so its original `SUBXACT_START` occurred before callback
-registration and was not logged. Lazy frame creation still let the observed
-`SUBXACT_ABORT` unwind all three allowed events.
+For `CC-009`, the original savepoint was created before the transaction had
+any protected events, so its `SUBXACT_START` was not logged. The frame was
+created lazily by the first event inside the savepoint, and the observed
+`SUBXACT_ABORT` unwound all three allowed events.
 
 After `CC-008`'s `ROLLBACK TO` and after `CC-024`'s exception handler, an
 ordinary `SELECT` executed successfully. The poisoned state remained and the
@@ -456,7 +520,7 @@ enforcement schema, or bypass the trigger.
 
 ## Known Risks And Unknowns
 
-- Only the twenty-one requested tests, lifecycle cleanup, savepoint-release,
+- Only the twenty-three requested tests, lifecycle cleanup, savepoint-release,
   and concurrency lifecycle probes were run. This is not the complete Gate 1
   matrix.
 - Privilege results are specific to the tested role topology and extension

@@ -6,11 +6,27 @@
 #include "fmgr.h"
 #include "funcapi.h"
 #include "miscadmin.h"
+#include "utils/guc.h"
 #include "utils/memutils.h"
 
 PG_MODULE_MAGIC;
 
-#define COMMITCAP_EXPERIMENT_BUDGET 5
+/*
+ * Test-only configuration for the Phase 0 experiment. Both parameters are
+ * PGC_SUSET, so only a superuser (or a role explicitly granted SET on the
+ * parameter) can change them, and only a superuser can store them for the
+ * protected writer with ALTER ROLE. They are not a product interface.
+ *
+ * The budget uses PostgreSQL's 32-bit custom integer GUC type. Counters are
+ * uint64, so a budget at the documented maximum cannot overflow the
+ * check-before-increment comparison or the attempted-count diagnostic
+ * (which is at most INT_MAX + 1).
+ */
+#define COMMITCAP_EXPERIMENT_DEFAULT_BUDGET 5
+#define COMMITCAP_EXPERIMENT_MAX_BUDGET INT_MAX
+
+static int  commitcap_experiment_budget = COMMITCAP_EXPERIMENT_DEFAULT_BUDGET;
+static int  commitcap_experiment_seed_consumed = -1;
 
 typedef struct ConsumptionFrame
 {
@@ -24,6 +40,7 @@ typedef struct ExperimentState
     bool        active;
     bool        denied;
     uint64      consumed;
+    uint64      budget;
     ConsumptionFrame *frames;
 } ExperimentState;
 
@@ -46,6 +63,29 @@ static void subxact_callback(SubXactEvent event, SubTransactionId mySubid,
 void
 _PG_init(void)
 {
+    DefineCustomIntVariable("commitcap_native.test_budget",
+                            "Test-only CommitCap experiment budget.",
+                            "Applies to top-level transactions in this session. "
+                            "This is an experimental control, not a product interface.",
+                            &commitcap_experiment_budget,
+                            COMMITCAP_EXPERIMENT_DEFAULT_BUDGET,
+                            0,
+                            COMMITCAP_EXPERIMENT_MAX_BUDGET,
+                            PGC_SUSET,
+                            0,
+                            NULL, NULL, NULL);
+
+    DefineCustomIntVariable("commitcap_native.test_seed_consumed",
+                            "Test-only initial consumed count for the next CommitCap experiment transaction.",
+                            "-1 disables seeding. This is an experimental control, not a product interface.",
+                            &commitcap_experiment_seed_consumed,
+                            -1,
+                            -1,
+                            COMMITCAP_EXPERIMENT_MAX_BUDGET,
+                            PGC_SUSET,
+                            0,
+                            NULL, NULL, NULL);
+
     RegisterXactCallback(xact_callback, NULL);
     RegisterSubXactCallback(subxact_callback, NULL);
 }
@@ -78,9 +118,18 @@ commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
 
     if (!state.active)
     {
+        /*
+         * The budget is captured at transaction start. The test-only seed
+         * simulates an already-partly-consumed transaction for boundary
+         * testing; -1 disables it. GUC bounds guarantee 0 <= budget <=
+         * INT_MAX and -1 <= seed <= INT_MAX, so these casts are safe.
+         */
         state.active = true;
         state.denied = false;
-        state.consumed = 0;
+        state.consumed = (commitcap_experiment_seed_consumed >= 0)
+            ? (uint64) commitcap_experiment_seed_consumed
+            : 0;
+        state.budget = (uint64) commitcap_experiment_budget;
         state.frames = NULL;
     }
 
@@ -89,17 +138,22 @@ commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
                  errmsg("CommitCap top-level transaction already denied")));
 
-    if (state.consumed >= COMMITCAP_EXPERIMENT_BUDGET)
+    /*
+     * Check before increment. This comparison cannot overflow, and consumed
+     * only increments while it is below the captured budget, so it can never
+     * exceed the documented maximum.
+     */
+    if (state.consumed >= state.budget)
     {
         state.denied = true;
         elog(LOG,
-             "commitcap_native_tx_state denial consumed=" UINT64_FORMAT
-             " attempted=" UINT64_FORMAT,
-             state.consumed, state.consumed + 1);
+             "commitcap_native_tx_state denial pid=%d consumed=" UINT64_FORMAT
+             " attempted=" UINT64_FORMAT " budget=" UINT64_FORMAT,
+             MyProcPid, state.consumed, state.consumed + 1, state.budget);
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap mutation budget exceeded (limit %d, attempted " UINT64_FORMAT ")",
-                        COMMITCAP_EXPERIMENT_BUDGET, state.consumed + 1)));
+                 errmsg("CommitCap mutation budget exceeded (limit " UINT64_FORMAT ", attempted " UINT64_FORMAT ")",
+                        state.budget, state.consumed + 1)));
     }
 
     state.consumed++;
