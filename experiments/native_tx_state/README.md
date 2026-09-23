@@ -169,8 +169,12 @@ by `run.sh` **after** the original tests. In this section alone `CC-030` through
 the same labels printed by older row-budget portions of `run.sh` remain
 **legacy experiment IDs**. The sourced script checks writer outcomes, probes
 the three independent backend-local counters, and checks committed/aborted rows
-from separate trusted-admin connections. A complete tested-commit transcript
-is stored separately under `evidence/`.
+from separate trusted-admin connections. The complete sanitized
+[tested-commit transcript](evidence/2026-09-23-cc030-cc033-7c1eb35.txt)
+records command, image digest, server version, `7c1eb35` tested SHA, skips,
+callback traces, durable results, and exit status 0. The two operation orders,
+canonical CC-030–033 and approved boundary cases passed within this fixture;
+they do not prove production support or managed deployment.
 
 Approved fixture-only semantics are documented in
 [`docs/numeric-delta-decision-proposal.md`](../../docs/numeric-delta-decision-proposal.md):
