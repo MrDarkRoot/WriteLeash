@@ -10,5 +10,11 @@ RETURNS trigger
 AS 'MODULE_PATHNAME', 'commitcap_native_enforce_role_transition'
 LANGUAGE C;
 
+CREATE FUNCTION enforce_refund_delta()
+RETURNS trigger
+AS 'MODULE_PATHNAME', 'commitcap_native_enforce_refund_delta'
+LANGUAGE C;
+
 REVOKE ALL ON FUNCTION enforce_update_budget() FROM PUBLIC;
 REVOKE ALL ON FUNCTION enforce_role_transition() FROM PUBLIC;
+REVOKE ALL ON FUNCTION enforce_refund_delta() FROM PUBLIC;
