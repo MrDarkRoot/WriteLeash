@@ -149,15 +149,33 @@ backend-local top-level state, per-subtransaction allowed-consumption deltas,
 - `CC-009`: **PASS**. Aborting three allowed savepoint events subtracted that
   subtransaction's delta from live consumption. Five replacement events then
   committed exactly at the budget.
+- `CC-011`: **PASS**. A data-modifying CTE updating five protected rows
+  committed; a six-row CTE raised the event-six denial and no protected
+  mutation became durable.
 - `CC-024`: **PASS**. PL/pgSQL exception recovery aborted its internal
   subtransaction without clearing the denied flag. The final commit was
   rejected and a fresh connection observed no durable protected mutation.
+- `CC-025`: **PASS**. One prepared `UPDATE` executed five times committed; the
+  sixth execution in the same transaction raised the denial and no protected
+  mutation became durable. Preparation and repeated execution did not create
+  fresh authority.
 - `CC-032`: **PASS**. An insert into an unprotected relation executed before
   event six was rolled back with the protected changes when
   `XACT_EVENT_PRE_COMMIT` rejected the poisoned transaction. A fresh
   connection observed baseline protected rows and zero audit rows.
+- `CC-033`: **PASS**. `EXPLAIN (ANALYZE, COSTS OFF)` executed the wrapped
+  protected update and reported five calls on the enforcement trigger; the
+  five-row form committed and the six-row form was denied with no durable
+  protected mutation.
 - Same-backend probes after top-level commit and top-level abort both began the
   next transaction with fresh state and allowed five events.
+- Each alternate-path denial (`CC-011`, `CC-025`, `CC-033`) was followed in the
+  same backend by a transaction that consumed five events and committed.
+  Because those denials were not recovered with a savepoint or exception
+  handler, PostgreSQL put the top-level transaction in aborted state, so the
+  client's `COMMIT` returned `ROLLBACK` rather than reaching
+  `XACT_EVENT_PRE_COMMIT`. Pre-commit rejection after recovery remains covered
+  by `CC-008`, `CC-024`, and `CC-032`.
 
 The experiment allocated subtransaction frames in `TopMemoryContext`, outside
 the automatically deleted subtransaction context. `SUBXACT_EVENT_ABORT_SUB`

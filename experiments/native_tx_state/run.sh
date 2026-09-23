@@ -289,6 +289,144 @@ assert_scalar "CC-032 next-transaction cleanup state" \
 printf 'CC-032 next-transaction cleanup: PASS\n'
 
 reset_fixture
+cc025_allowed_output="$(writer_psql -v ON_ERROR_STOP=1 2>&1 <<'SQL'
+BEGIN;
+PREPARE cc025_allowed(bigint, text) AS
+UPDATE public.subscriptions SET status = $2 WHERE id = $1;
+EXECUTE cc025_allowed(1, 'cc025_allowed');
+EXECUTE cc025_allowed(2, 'cc025_allowed');
+EXECUTE cc025_allowed(3, 'cc025_allowed');
+EXECUTE cc025_allowed(4, 'cc025_allowed');
+EXECUTE cc025_allowed(5, 'cc025_allowed');
+COMMIT;
+SQL
+)"
+cc025_allowed_executions="$(printf '%s\n' "$cc025_allowed_output" | grep -c '^UPDATE 1$' || true)"
+[[ "$cc025_allowed_executions" == "5" ]] || \
+    fail "CC-025 allowed run executed $cc025_allowed_executions prepared updates, expected 5"
+assert_five_updated "CC-025 allowed" "cc025_allowed"
+printf 'CC-025 allowed prepared executions: PASS\n'
+
+reset_fixture
+set +e
+cc025_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+PREPARE cc025(bigint, text) AS
+UPDATE public.subscriptions SET status = $2 WHERE id = $1;
+EXECUTE cc025(1, 'cc025');
+EXECUTE cc025(2, 'cc025');
+EXECUTE cc025(3, 'cc025');
+EXECUTE cc025(4, 'cc025');
+EXECUTE cc025(5, 'cc025');
+EXECUTE cc025(6, 'cc025');
+COMMIT;
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc025_cleanup' WHERE id BETWEEN 1 AND 5;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc025_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-025 did not report event-six denial"
+cc025_pre_denial_updates="$(printf '%s\n' "$cc025_output" | sed -n '1,/^ERROR:/p' | grep -c '^UPDATE 1$' || true)"
+[[ "$cc025_pre_denial_updates" == "5" ]] || \
+    fail "CC-025 allowed $cc025_pre_denial_updates prepared executions before denial, expected 5"
+cc025_commit_count="$(printf '%s\n' "$cc025_output" | grep -c '^COMMIT$' || true)"
+[[ "$cc025_commit_count" == "1" ]] || \
+    fail "CC-025 cleanup transaction did not produce exactly one COMMIT"
+assert_scalar "CC-025 durable state" \
+    "SELECT count(*) FILTER (WHERE status = 'baseline') || ':' || count(*) FILTER (WHERE status = 'cc025_cleanup') || ':' || count(*) FILTER (WHERE status = 'cc025') FROM public.subscriptions;" \
+    "5:5:0"
+printf 'CC-025: PASS (prepared executions shared one budget; denial rolled back at COMMIT)\n'
+
+reset_fixture
+cc011_allowed_output="$(writer_psql -v ON_ERROR_STOP=1 2>&1 <<'SQL'
+BEGIN;
+WITH updated AS (
+    UPDATE public.subscriptions
+    SET status = 'cc011_allowed'
+    WHERE id BETWEEN 1 AND 5
+    RETURNING id
+)
+SELECT count(*) FROM updated;
+COMMIT;
+SQL
+)"
+cc011_allowed_count="$(printf '%s\n' "$cc011_allowed_output" | grep -c '^ *5$' || true)"
+[[ "$cc011_allowed_count" == "1" ]] || \
+    fail "CC-011 allowed CTE did not report five returned row-update events"
+assert_five_updated "CC-011 allowed" "cc011_allowed"
+printf 'CC-011 allowed data-modifying CTE: PASS\n'
+
+reset_fixture
+set +e
+cc011_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+WITH updated AS (
+    UPDATE public.subscriptions
+    SET status = 'cc011'
+    WHERE id BETWEEN 1 AND 6
+    RETURNING id
+)
+SELECT count(*) FROM updated;
+COMMIT;
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc011_cleanup' WHERE id BETWEEN 1 AND 5;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc011_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-011 did not report event-six denial"
+cc011_commit_count="$(printf '%s\n' "$cc011_output" | grep -c '^COMMIT$' || true)"
+[[ "$cc011_commit_count" == "1" ]] || \
+    fail "CC-011 cleanup transaction did not produce exactly one COMMIT"
+assert_scalar "CC-011 durable state" \
+    "SELECT count(*) FILTER (WHERE status = 'baseline') || ':' || count(*) FILTER (WHERE status = 'cc011_cleanup') || ':' || count(*) FILTER (WHERE status = 'cc011') FROM public.subscriptions;" \
+    "5:5:0"
+printf 'CC-011: PASS (data-modifying CTE shared one budget; denial rolled back at COMMIT)\n'
+
+reset_fixture
+cc033_allowed_output="$(writer_psql -v ON_ERROR_STOP=1 2>&1 <<'SQL'
+BEGIN;
+EXPLAIN (ANALYZE, COSTS OFF)
+UPDATE public.subscriptions
+SET status = 'cc033_allowed'
+WHERE id BETWEEN 1 AND 5;
+COMMIT;
+SQL
+)"
+[[ "$cc033_allowed_output" == *"subscriptions_update_budget"*"calls=5"* ]] || \
+    fail "CC-033 allowed EXPLAIN (ANALYZE) did not invoke the protected update trigger five times"
+assert_five_updated "CC-033 allowed" "cc033_allowed"
+printf 'CC-033 allowed EXPLAIN (ANALYZE): PASS\n'
+
+reset_fixture
+set +e
+cc033_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+EXPLAIN (ANALYZE, COSTS OFF)
+UPDATE public.subscriptions
+SET status = 'cc033'
+WHERE id BETWEEN 1 AND 6;
+COMMIT;
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc033_cleanup' WHERE id BETWEEN 1 AND 5;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc033_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-033 did not report event-six denial"
+cc033_commit_count="$(printf '%s\n' "$cc033_output" | grep -c '^COMMIT$' || true)"
+[[ "$cc033_commit_count" == "1" ]] || \
+    fail "CC-033 cleanup transaction did not produce exactly one COMMIT"
+assert_scalar "CC-033 durable state" \
+    "SELECT count(*) FILTER (WHERE status = 'baseline') || ':' || count(*) FILTER (WHERE status = 'cc033_cleanup') || ':' || count(*) FILTER (WHERE status = 'cc033') || ':' || count(*) FILTER (WHERE status = 'cc033_allowed') FROM public.subscriptions;" \
+    "5:5:0:0"
+printf 'CC-033: PASS (EXPLAIN ANALYZE shared one budget; denial rolled back at COMMIT)\n'
+
+reset_fixture
 writer_psql -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
 BEGIN;
 UPDATE public.subscriptions SET status = 'cleanup_tx1_commit' WHERE id BETWEEN 1 AND 3;

@@ -65,8 +65,11 @@ Observed on PostgreSQL 16.4:
 | `CC-003` | **PASS** | Five statements consumed one shared budget; statement six denied and nothing became durable |
 | `CC-008` | **PASS** | `ROLLBACK TO` recovered statement execution but not commit authority; final `COMMIT` errored and a fresh connection observed the baseline |
 | `CC-009` | **PASS** | Aborting three allowed savepoint events changed live consumption from three to zero; five replacements committed |
+| `CC-011` | **PASS** | A five-row data-modifying CTE committed; a six-row CTE was denied and no protected mutation became durable |
 | `CC-024` | **PASS** | PL/pgSQL caught event-six error, but final `COMMIT` errored and a fresh connection observed the baseline |
+| `CC-025` | **PASS** | One prepared `UPDATE` executed five times committed; the sixth execution in one transaction was denied and no protected mutation became durable |
 | `CC-032` | **PASS** | An unprotected insert before denial was rolled back with the protected changes; a fresh connection observed zero audit rows |
+| `CC-033` | **PASS** | `EXPLAIN (ANALYZE, COSTS OFF)` executed the protected update, the plan reported `calls=5` on the enforcement trigger, and the six-row form was denied |
 
 The same-backend cleanup probes also passed:
 
@@ -77,6 +80,37 @@ The same-backend cleanup probes also passed:
 
 These results make this mechanism class **VIABLE FOR FURTHER TESTING**. They do
 not make the experiment production-ready or any operation supported.
+
+## Alternate Update Paths
+
+`CC-011`, `CC-025`, and `CC-033` tested whether SQL shape can create fresh
+authority or reach the protected relation outside native accounting. No test
+required a privilege beyond the writer's existing column grants.
+
+- `CC-025` executed one prepared `UPDATE` six times inside one transaction.
+  Executions one through five succeeded, execution six raised the CommitCap
+  denial, and the transaction did not commit. A separate five-execution
+  prepared transaction committed.
+- `CC-011` used a data-modifying CTE. The five-row CTE committed; the six-row
+  CTE raised the denial and did not commit.
+- `CC-033` wrapped `UPDATE` in `EXPLAIN (ANALYZE, COSTS OFF)`. The five-row
+  form committed and its plan output showed
+  `Trigger subscriptions_update_budget: ... calls=5`, proving the executor ran
+  the protected update and the trigger observed every row event. The six-row
+  form raised the denial and did not commit.
+
+Every denied transaction was followed by a same-backend transaction that
+consumed five events and committed. The lifecycle trace shows the denied
+transactions ending in `XACT_ABORT ... denied=true`, followed by
+`XACT_PRE_COMMIT ... denied=false` and `XACT_COMMIT` for the cleanup
+transaction.
+
+Because these alternate-path denials were not recovered by a savepoint or
+exception block, PostgreSQL placed the top-level transaction in aborted state.
+The client's following `COMMIT` therefore returned a `ROLLBACK` command tag
+instead of reaching `XACT_EVENT_PRE_COMMIT`. Commit rejection at the pre-commit
+callback when execution recovers after a denial remains covered by `CC-008`,
+`CC-024`, and `CC-032`.
 
 ## Observed Lifecycle
 
@@ -196,15 +230,16 @@ privilege was required for the native experiment.
 
 ## Known Risks And Unknowns
 
-- Only the seven requested tests, lifecycle cleanup, and one savepoint-release
+- Only the ten requested tests, lifecycle cleanup, and one savepoint-release
   probe were run. This is not the complete Gate 1 matrix.
 - Nested savepoint accounting beyond the tested paths remains uncharacterized.
 - Interactions with other transaction callbacks, callback ordering between
   extensions, and errors from later pre-commit work remain uncharacterized.
 - PostgreSQL majors other than 16.4 remain untested.
-- Parallel execution, prepared transactions, connection-pool role reuse,
-  concurrency, triggers beyond the one generated trigger, cascades,
-  partitions, and alternate mutation forms remain untested or out of scope.
+- Parallel execution, two-phase commit (`PREPARE TRANSACTION`), connection-pool
+  role reuse, concurrency, triggers beyond the one generated trigger,
+  cascades, partitions, and `MERGE` or `INSERT ... ON CONFLICT` mutation forms
+  remain untested or out of scope.
 - Backend termination and out-of-memory behavior were not fault-injected.
 - The experiment hard-codes one relation's update budget of five and contains
   no policy, configuration, shared authority, or production installation
