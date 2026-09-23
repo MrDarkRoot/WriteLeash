@@ -5,25 +5,35 @@ Mutation budgets for PostgreSQL.
 Give automation write access.\
 Cap the blast radius.
 
-```sql
-UPDATE subscriptions
-SET status = 'refunded';
-```
+Production repair, remediation, and DBRE/operator automation often need
+flexible SQL that cannot be fully predeclared: a backfill, a set of corrective
+updates, an operator-driven fix during an incident. The exact statements may
+depend on what the incident or the data turns out to be, so a fixed catalog of
+narrow operations does not always fit. At the same time, the credential those
+jobs run under can usually modify far more than the task intends.
 
-Without an effective bound, a missing predicate can become:
-
-```text
-UPDATE 182417
-```
-
-Under a mutation budget, the intended enforcement response is:
+CommitCap proposes to separate those two things:
 
 ```text
-CommitCap:
-182417 > budget 5
+PostgreSQL privileges
+-> what the credential may modify
 
-TRANSACTION ABORTED
+declared mutation budget
+-> what this task may make durable
 ```
+
+A task receives a finite, declared relational mutation budget, for example:
+
+```text
+budget:
+  subscriptions.rows_updated: 25
+```
+
+Supported effects consume that budget as the task runs. If a supported effect
+would exceed the remaining budget, the transaction is denied before the excess
+becomes durable. This is intended behavior; the repository currently contains
+specifications and research experiments, not a released or supported
+implementation.
 
 CommitCap gives flexible production automation a finite loss envelope by
 turning database `WRITE` permission into measurable, consumable mutation
@@ -45,7 +55,8 @@ CommitCap is in **Phase 0: security proof + parallel falsification**.
   [Phase 0 Proof Surface](#phase-0-proof-surface).
 - Only narrow row-event mechanics have been demonstrated so far, in research
   experiments. State-transition and numeric-delta enforcement are current
-  Phase 0 targets, not implemented features.
+  Phase 0 targets, not implemented features. Capability-wide consumable
+  authority is future work.
 - Security claims will be limited to operations covered by adversarial
   regression tests.
 - Market falsification runs in parallel against concrete broad-but-bounded
@@ -59,9 +70,32 @@ is released and its documented support envelope has passed the required tests.
 ## Phase 0 Proof Surface
 
 Phase 0 targets three effect classes. The examples below are illustrative
-policy shapes; the policy format is not stable.
+policy shapes and intended behavior; the policy format is not stable.
 
 ### Row-count authority
+
+The narrowest illustration is a broad statement that would otherwise touch
+every row:
+
+```sql
+UPDATE subscriptions
+SET status = 'refunded';
+```
+
+Without an effective bound, a missing predicate can become:
+
+```text
+UPDATE 182417
+```
+
+Under a row-count budget, the intended response is:
+
+```text
+CommitCap:
+182417 > budget 5
+
+TRANSACTION ABORTED
+```
 
 ```text
 subscriptions:
@@ -176,16 +210,19 @@ CommitCap is not primarily an AI firewall, SQL linter, SQL-generation
 assistant, approval workflow, IAM replacement, RLS replacement, database
 proxy, MCP firewall, dashboard product, or Bytebase competitor.
 
+## Selection Boundary
+
 For a known stable operation such as
 `refund_customer(customer_id, amount)` or
 `cancel_subscription(subscription_id)`, prefer a narrow application API or
-stored procedure. CommitCap becomes relevant when legitimate mutation shape is
-broad or evolving, a fixed operation catalog is impractical, multiple upstream
-paths need the same database-level backstop, or actual relational effects must
-be bounded independently of upstream correctness.
+stored procedure. That is the better architecture when the legitimate
+operation is known and stable.
 
-The target middle ground is useful write flexibility plus bounded durable
-mutation authority.
+CommitCap targets the remaining middle ground: broad-but-bounded write
+authority. It becomes relevant when the legitimate mutation shape is broad or
+evolving, a fixed operation catalog is impractical, multiple upstream paths
+need the same database-level backstop, or actual relational effects must be
+bounded independently of upstream correctness.
 
 ## Intended Evolution
 
