@@ -1,0 +1,122 @@
+Pinned image preflight: postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c; local tag image ID: sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
+ Image commitcap_demo-postgres Building
+ Image commitcap_demo-postgres Built
+ Network commitcap_demo_default Creating
+ Network commitcap_demo_default Created
+ Container commitcap_demo-postgres-1 Creating
+ Container commitcap_demo-postgres-1 Created
+ Container commitcap_demo-postgres-1 Starting
+ Container commitcap_demo-postgres-1 Started
+ Container commitcap_demo-postgres-1 Waiting
+ Container commitcap_demo-postgres-1 Healthy
+Phase 0 local research demo; project=commitcap_demo
+Command: ./demo/phase0/run.sh
+Implementation commit: a51c2c794e5aad7f8a22e3b6d5785132a805a61e
+Base image: postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c (verified local image ID: sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c)
+PostgreSQL: 16.4
+Restricted writer: commitcap_writer|5|100.00 (fixture privilege check=t)
+
+1. Safe subscriptions + allowed role transition
+writer SQL result:
+BEGIN
+UPDATE 2
+UPDATE 1
+policy=2|1|0.00|false
+COMMIT
+fresh trusted-admin durable state:
+subscriptions=1=repaired,2=repaired,3=baseline,4=baseline,5=baseline,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline
+users=1=moderator,2=member,3=member,4=member,5=member,6=member
+refunds=1=0.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00
+audit=0
+
+2. Six small subscriptions statements; savepoint cannot clear denial
+writer SQL result:
+BEGIN
+INSERT 0 1
+UPDATE 1
+UPDATE 1
+UPDATE 1
+UPDATE 1
+UPDATE 1
+UPDATE 1
+UPDATE 1
+SAVEPOINT
+ERROR:  CommitCap mutation budget exceeded (limit 5, attempted 6)
+sixth_SQLSTATE 54000
+ROLLBACK
+policy=5|1|20.00|true
+ERROR:  CommitCap top-level transaction denied after mutation authority violation
+commit_SQLSTATE 54000
+fresh trusted-admin durable state:
+subscriptions=1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline
+users=1=member,2=member,3=member,4=member,5=member,6=member
+refunds=1=0.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00
+audit=0
+
+3. Forbidden member -> admin; recovered SQL still cannot COMMIT
+writer SQL result:
+BEGIN
+UPDATE 1
+INSERT 0 1
+SAVEPOINT
+ERROR:  CommitCap forbidden state transition (* -> admin)
+transition_SQLSTATE 54000
+ROLLBACK
+policy=1|0|0.00|true
+ERROR:  CommitCap top-level transaction denied after mutation authority violation
+commit_SQLSTATE 54000
+fresh trusted-admin durable state:
+subscriptions=1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline
+users=1=member,2=member,3=member,4=member,5=member,6=member
+refunds=1=0.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00
+audit=0
+
+4. Exact positive refund delta 30.00 + 70.00 = 100.00
+writer SQL result:
+BEGIN
+UPDATE 1
+UPDATE 1
+policy=0|0|100.00|false
+COMMIT
+fresh trusted-admin durable state:
+subscriptions=1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline
+users=1=member,2=member,3=member,4=member,5=member,6=member
+refunds=1=30.00,2=70.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00
+audit=0
+
+5. Excess positive refund delta 80.00 + 21.00 = 101.00
+writer SQL result:
+BEGIN
+UPDATE 1
+UPDATE 1
+INSERT 0 1
+UPDATE 1
+SAVEPOINT
+ERROR:  CommitCap numeric delta budget exceeded
+delta_SQLSTATE 54000
+ROLLBACK
+policy=1|1|80.00|true
+ERROR:  CommitCap top-level transaction denied after mutation authority violation
+commit_SQLSTATE 54000
+fresh trusted-admin durable state:
+subscriptions=1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline
+users=1=member,2=member,3=member,4=member,5=member,6=member
+refunds=1=0.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00
+audit=0
+
+6. Three independent policy limits in one top-level transaction
+writer SQL result:
+BEGIN
+UPDATE 5
+UPDATE 5
+UPDATE 1
+policy=5|5|100.00|false
+COMMIT
+fresh trusted-admin durable state:
+subscriptions=1=independent,2=independent,3=independent,4=independent,5=independent,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline
+users=1=moderator,2=moderator,3=moderator,4=moderator,5=moderator,6=member
+refunds=1=100.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00
+audit=0
+
+Demo: PASS (six real writer transactions, fresh-admin exact durable oracles)
+Demo exit status: 0
