@@ -1,0 +1,612 @@
+# CommitCap native transaction-state experiment — runtime evidence
+#
+# PR:         #8 (branch experiment/state-transition-authority)
+# Commit:     a996eedcf531045c5648d3e8af98143b5bfa60fb
+# Date (UTC): 2026-09-23T08:33:47Z
+# Command:    ./experiments/native_tx_state/run.sh
+# Image:      postgres:16.4-alpine
+#             sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
+# Server:     PostgreSQL 16.4
+# Exit code:  0
+#
+# Scope: research evidence for one PostgreSQL 16.4 environment only.
+# This is not a production extension and not a support claim.
+#
+# Canonical results in this run:
+#   CC-020  PASS  member -> moderator committed; exactly one row-update event
+#                 consumed; sibling rows unchanged
+#   CC-021  PASS  member -> admin denied; savepoint and PL/pgSQL exception
+#                 recovery kept sticky denial; COMMIT rejected at
+#                 XACT_EVENT_PRE_COMMIT; fresh trusted-admin connection
+#                 observed unchanged durable state
+#   CC-022  PASS  three-row update with one admin row denied by transition
+#                 authority while within the row-count budget; no sibling
+#                 change became durable
+#   Composition: allowed transitions share the transaction-wide budget;
+#                lifecycle cleanup after denial PASS
+#   Regression:  privilege-envelope, privilege-audit, CC-027, row-event,
+#                transaction, alternate-path, concurrency, backend reuse,
+#                lifecycle cleanup: PASS
+#
+# The complete terminal output follows.
+#
+ Image native_tx_state-postgres Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 592B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 542B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/postgres:16.4-alpine
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 DONE 0.0s
+
+#6 [build 1/5] FROM docker.io/library/postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
+#6 resolve docker.io/library/postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c 0.0s done
+#6 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 16.20kB done
+#5 DONE 0.0s
+
+#7 [build 3/5] WORKDIR /build
+#7 CACHED
+
+#8 [build 4/5] COPY Makefile commitcap_native_tx_state.c commitcap_native_tx_state.control commitcap_native_tx_state--0.0.1.sql ./
+#8 CACHED
+
+#9 [stage-1 2/3] COPY --from=build /usr/local/lib/postgresql/commitcap_native_tx_state.so /usr/local/lib/postgresql/
+#9 CACHED
+
+#10 [build 5/5] RUN make with_llvm=no && make with_llvm=no install
+#10 CACHED
+
+#11 [build 2/5] RUN apk add --no-cache build-base
+#11 CACHED
+
+#12 [stage-1 3/3] COPY --from=build /usr/local/share/postgresql/extension/commitcap_native_tx_state* /usr/local/share/postgresql/extension/
+#12 CACHED
+
+#13 exporting to image
+#13 exporting layers 0.0s done
+#13 exporting manifest sha256:eca0fa90b61f3defa06a88b6a9fd23a8c4514734c736c2940cd87f547dd193e1 done
+#13 exporting config sha256:e102e36780ba686722955908646c57466c9de5ffaebeb22b8ecad225c6e33e79 done
+#13 exporting attestation manifest sha256:c3b12e09750a23d9d86c29a501f14f8624506dd21fd74f5fa65b8774052481a5 0.0s done
+#13 exporting manifest list sha256:4b629f98246bcc7cd71931aeb9ce6531e885c823cbebcb11b70b486404f10a58 done
+#13 naming to docker.io/library/native_tx_state-postgres:latest
+#13 naming to docker.io/library/native_tx_state-postgres:latest done
+#13 unpacking to docker.io/library/native_tx_state-postgres:latest 0.0s done
+#13 DONE 0.1s
+
+#14 resolving provenance for metadata file
+#14 DONE 0.0s
+ Image native_tx_state-postgres Built 
+ Network native_tx_state_default Creating 
+ Network native_tx_state_default Created 
+ Container native_tx_state-postgres-1 Creating 
+ Container native_tx_state-postgres-1 Created 
+ Container native_tx_state-postgres-1 Starting 
+ Container native_tx_state-postgres-1 Started 
+ Container native_tx_state-postgres-1 Waiting 
+ Container native_tx_state-postgres-1 Healthy 
+Classification: TEST FIRST
+PostgreSQL: 16.4
+privilege-envelope checks: PASS
+privilege-audit checks: PASS
+
+--- CC-027 / CC-028 / CC-029: privilege boundary ---
+
+CC-027 privilege bypass attempts:
+  alter_disable_trigger_all                    SQLSTATE 42501 insufficient_privilege
+  alter_disable_trigger_user                   SQLSTATE 42501 insufficient_privilege
+  alter_enable_replica_trigger                 SQLSTATE 42501 insufficient_privilege
+  drop_trigger                                 SQLSTATE 42501 insufficient_privilege
+  alter_table_owner                            SQLSTATE 42501 insufficient_privilege
+  drop_table                                   SQLSTATE 42501 insufficient_privilege
+  alter_drop_column                            SQLSTATE 42501 insufficient_privilege
+  truncate_table                               SQLSTATE 42501 insufficient_privilege
+  insert_row                                   SQLSTATE 42501 insufficient_privilege
+  drop_function                                SQLSTATE 42501 insufficient_privilege
+  alter_function                               SQLSTATE 42501 insufficient_privilege
+  replace_function                             SQLSTATE 42501 insufficient_privilege
+  create_in_trusted_schema                     SQLSTATE 42501 insufficient_privilege
+  drop_trusted_schema                          SQLSTATE 42501 insufficient_privilege
+  alter_schema_owner                           SQLSTATE 42501 insufficient_privilege
+  drop_probe_schema                            SQLSTATE 42501 insufficient_privilege
+  alter_probe_function                         SQLSTATE 42501 insufficient_privilege
+  create_shadow_schema                         SQLSTATE 42501 insufficient_privilege
+  create_shadow_function                       SQLSTATE 42501 insufficient_privilege
+  create_shadow_table                          SQLSTATE 42501 insufficient_privilege
+  set_replication_role                         SQLSTATE 42501 insufficient_privilege
+  alter_extension_update                       SQLSTATE 42501 insufficient_privilege
+  alter_extension_set_schema                   SQLSTATE 42501 insufficient_privilege
+  drop_extension                               SQLSTATE 42501 insufficient_privilege
+  create_extension_pgcrypto                    SQLSTATE 42501 insufficient_privilege
+  create_extension_existing                    SQLSTATE 42710 duplicate_object
+  insert_accounting_state                      SQLSTATE 42501 insufficient_privilege
+  drop_users_trigger                           SQLSTATE 42501 insufficient_privilege
+  alter_users_disable_trigger                  SQLSTATE 42501 insufficient_privilege
+  drop_transition_function                     SQLSTATE 42501 insufficient_privilege
+  replace_transition_function                  SQLSTATE 42501 insufficient_privilege
+CC-027: PASS (all attempts denied; trusted objects unchanged; enforcement intact)
+
+CC-028 role transition attempts:
+  set_role_commitcap_native_admin              SQLSTATE 42501 insufficient_privilege
+  set_role_commitcap_owner                     SQLSTATE 42501 insufficient_privilege
+  set_role_pg_checkpoint                       SQLSTATE 42501 insufficient_privilege
+  set_role_pg_create_subscription              SQLSTATE 42501 insufficient_privilege
+  set_role_pg_database_owner                   SQLSTATE 42501 insufficient_privilege
+  set_role_pg_execute_server_program           SQLSTATE 42501 insufficient_privilege
+  set_role_pg_monitor                          SQLSTATE 42501 insufficient_privilege
+  set_role_pg_read_all_data                    SQLSTATE 42501 insufficient_privilege
+  set_role_pg_read_all_settings                SQLSTATE 42501 insufficient_privilege
+  set_role_pg_read_all_stats                   SQLSTATE 42501 insufficient_privilege
+  set_role_pg_read_server_files                SQLSTATE 42501 insufficient_privilege
+  set_role_pg_signal_backend                   SQLSTATE 42501 insufficient_privilege
+  set_role_pg_stat_scan_tables                 SQLSTATE 42501 insufficient_privilege
+  set_role_pg_use_reserved_connections         SQLSTATE 42501 insufficient_privilege
+  set_role_pg_write_all_data                   SQLSTATE 42501 insufficient_privilege
+  set_role_pg_write_server_files               SQLSTATE 42501 insufficient_privilege
+  set_session_authorization                    SQLSTATE 42501 insufficient_privilege
+  set_role_none                                identity unchanged (commitcap_writer:commitcap_writer)
+CC-028: PASS (no reachable role; 16 other roles attempted)
+
+CC-029 two-phase commit exclusion:
+  PREPARE_TRANSACTION                          SQLSTATE 55000 object_not_in_prerequisite_state
+  server message                               prepared transactions are disabled
+CC-029: PASS (two-phase commit unavailable; no prepared transaction; no durable mutation)
+
+CC-026 MERGE WHEN MATCHED UPDATE accounting:
+  row-event instrumentation: 5 MERGE update actions invoked the enforcement trigger 5 times
+CC-026 five-event MERGE: PASS
+CC-026 six-event MERGE: PASS
+CC-026 mixed UPDATE + MERGE: PASS
+CC-026 multiple MERGE statements: PASS
+CC-026: PASS (MERGE WHEN MATCHED UPDATE shares transaction-wide accounting)
+
+CC-004 / CC-005 / CC-006 / CC-007: row-update event definition:
+  CC004 lifecycle: PASS (fresh start; five events committed)
+CC-004: PASS (fresh admin observed no durable mutation from the denied transaction)
+CC-005: PASS (zero-row UPDATE produced zero events; five events then committed)
+  CC006 lifecycle: PASS (fresh start; five events committed)
+CC-006: PASS (same-row events counted individually; sixth denied)
+  CC007 lifecycle: PASS (fresh start; five events committed)
+CC-007: PASS (no-op assignments consumed authority; sixth denied)
+
+CC-030 / CC-031: budget bounds and overflow safety:
+
+CC-030 zero budget:
+  zero-budget:  CC030_BUDGET:0; CommitCap mutation budget exceeded (limit 0, attempted 1)
+  CC030 lifecycle: PASS (fresh start; five events committed)
+CC-030: PASS (budget 0 denies the first event; default budget restored)
+
+CC-031 budget validation and overflow safety:
+  negative                                     SQLSTATE 22023 invalid_parameter_value
+  max_plus_one                                 SQLSTATE 22023 invalid_parameter_value
+  huge                                         SQLSTATE 22023 invalid_parameter_value
+  non_numeric                                  SQLSTATE 22023 invalid_parameter_value
+  out_of_range_fraction                        SQLSTATE 22023 invalid_parameter_value
+  CC031 lifecycle: PASS (fresh start; five events committed)
+  prior valid budget preserved and still enforced
+  in_range_fraction                            SQLSTATE 00000 success
+  negative_fraction                            SQLSTATE 00000 success
+  PostgreSQL integer GUC grammar rounds in-range fractions; activated values stay in [0, 2147483647]
+  near-maximum:  CC031_BUDGET:2147483647:2147483646;  CC031_AFTER1:t|2147483647|f
+  near-maximum denial: CommitCap mutation budget exceeded (limit 2147483647, attempted 2147483648)
+  near-maximum commit:  CC031_COMMIT:t|2147483647|f
+  CC031R lifecycle: PASS (fresh start; five events committed)
+  config_writer_set                            SQLSTATE 42501 insufficient_privilege
+  config_writer_reset                          SQLSTATE 42501 insufficient_privilege
+  config_writer_alter_role                     SQLSTATE 42501 insufficient_privilege
+  config_writer_alter_database                 SQLSTATE 42501 insufficient_privilege
+CC-031: PASS (bounds rejected before activation; near-maximum counter did not wrap)
+Regression suite follows; all of it runs after the privilege, MERGE, row-event, and budget experiments.
+CC-001: PASS
+CC-002: PASS
+CC-003: PASS
+CC-008: PASS
+CC-009: PASS
+CC-024: PASS
+CC-032: PASS (protected and unprotected effects rolled back)
+CC-032 next-transaction cleanup: PASS
+CC-025 allowed prepared executions: PASS
+CC-025: PASS (prepared executions shared one budget; denial rolled back at COMMIT)
+CC-011 allowed data-modifying CTE: PASS
+CC-011: PASS (data-modifying CTE shared one budget; denial rolled back at COMMIT)
+CC-033 allowed EXPLAIN (ANALYZE): PASS
+CC-033: PASS (EXPLAIN ANALYZE shared one budget; denial rolled back at COMMIT)
+
+--- CC-019 / CC-020: concurrent sessions ---
+  CCPID_A: active=f consumed=0 denied=f backend_pid=1953
+  CCPID_B: active=f consumed=0 denied=f backend_pid=1954
+CC-019 backend A pid: 1953
+CC-019 backend B pid: 1954
+
+CC-019 case 1: independent concurrent budgets
+CC-019 isolation level: A=read committed B=read committed
+  CCP19_A1: active=t consumed=4 denied=f backend_pid=1953
+  CCP19_B1: active=t consumed=4 denied=f backend_pid=1954
+  CCP19_A2: active=t consumed=4 denied=f backend_pid=1953
+  CCP19_B2: active=t consumed=4 denied=f backend_pid=1954
+  CCP19_A3: active=t consumed=5 denied=f backend_pid=1953
+  CCP19_A4: active=f consumed=0 denied=f backend_pid=1953
+  CCP19_B3: active=t consumed=5 denied=f backend_pid=1954
+  CCP19_B4: active=f consumed=0 denied=f backend_pid=1954
+  lifecycle cc019a: PASS
+CC-019 independent budgets: PASS
+
+CC-019 case 2: session A denied, session B commits
+  CCP19D_A1: active=t consumed=5 denied=t backend_pid=1953
+  CCP19D_B1: active=t consumed=4 denied=f backend_pid=1954
+  CCP19D_B2: active=t consumed=5 denied=f backend_pid=1954
+  CCP19D_B3: active=f consumed=0 denied=f backend_pid=1954
+  CCP19D_A2: active=f consumed=0 denied=f backend_pid=1953
+  lifecycle cc019d: PASS
+CC-019 denial isolation A to B: PASS
+
+CC-019 case 3: session B denied, session A commits
+  CCP19R_B1: active=t consumed=5 denied=t backend_pid=1954
+  CCP19R_A1: active=t consumed=5 denied=f backend_pid=1953
+  CCP19R_A2: active=f consumed=0 denied=f backend_pid=1953
+  CCP19R_B2: active=f consumed=0 denied=f backend_pid=1954
+  lifecycle cc019r: PASS
+CC-019 denial isolation B to A: PASS
+
+CC-020 scenario A: session A commits while session B waits on its row lock
+  CCP20A_A1: active=t consumed=1 denied=f backend_pid=1953
+  CC-020 scenario A: pid 1954 wait=transactionid:1953 blocked_by=1953
+CC-020 scenario A: B trigger events while blocked=0
+  CCP20A_A2: active=t consumed=1 denied=f backend_pid=1953
+  CCP20A_A3: active=f consumed=0 denied=f backend_pid=1953
+CC-020 scenario A: B trigger events after resume=1
+CC-020 scenario A: B consumed=1 for the contended row event
+  CCP20A_B2: active=t consumed=5 denied=f backend_pid=1954
+  CCP20A_B3: active=f consumed=0 denied=f backend_pid=1954
+CC-020 scenario A: deadlock count 0 -> 0
+  lifecycle cc020a: PASS
+CC-020 row-lock contention with A commit: PASS
+
+CC-020 scenario B: session A denied while session B waits on its row lock
+  CCP20B_A1: active=t consumed=5 denied=f backend_pid=1953
+  CC-020 scenario B: pid 1954 wait=transactionid:1953 blocked_by=1953
+CC-020 scenario B: B trigger events while blocked=0
+  CCP20B_A2: active=f consumed=0 denied=f backend_pid=1953
+CC-020 scenario B: B trigger events after resume=1
+CC-020 scenario B: B consumed=1 for the contended row event
+  CCP20B_B2: active=t consumed=5 denied=f backend_pid=1954
+  CCP20B_B3: active=f consumed=0 denied=f backend_pid=1954
+CC-020 scenario B: deadlock count 0 -> 0
+  lifecycle cc020b: PASS
+CC-020 denial under contention: PASS
+CC-019 / CC-020 concurrent sessions: all requested cases PASS
+
+--- CC-021: backend reuse across top-level transactions ---
+CC-021 reused backend pid: 2185
+  CC21_PID: active=f consumed=0 denied=f backend_pid=2185
+
+CC-021 scenario A: COMMIT then reuse
+  CC21_A_TX1: active=t consumed=5 denied=f backend_pid=2185
+  CC21_A_TX2_START: active=f consumed=0 denied=f backend_pid=2185
+  CC21_A_TX2: active=t consumed=5 denied=f backend_pid=2185
+  CC21_A_AFTER: active=f consumed=0 denied=f backend_pid=2185
+  callback sequence:
+    postgres-1  | 2026-09-23 08:34:34.005 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:34.005 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:34.017 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:34.017 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+CC-021 scenario A: PASS
+
+CC-021 scenario B: ROLLBACK then reuse
+  CC21_B_TX1: active=t consumed=4 denied=f backend_pid=2185
+  CC21_B_TX2_START: active=f consumed=0 denied=f backend_pid=2185
+  CC21_B_TX2: active=t consumed=5 denied=f backend_pid=2185
+  CC21_B_AFTER: active=f consumed=0 denied=f backend_pid=2185
+  callback sequence:
+    postgres-1  | 2026-09-23 08:34:34.517 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2185 consumed=4 denied=false
+    postgres-1  | 2026-09-23 08:34:34.531 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:34.531 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+CC-021 scenario B: PASS
+
+CC-021 scenario C: denied ABORT then reuse
+  CC21_C_TX1: active=t consumed=5 denied=f backend_pid=2185
+  CC21_C_TX2_START: active=f consumed=0 denied=f backend_pid=2185
+  CC21_C_TX2: active=t consumed=5 denied=f backend_pid=2185
+  CC21_C_AFTER: active=f consumed=0 denied=f backend_pid=2185
+  callback sequence:
+    postgres-1  | 2026-09-23 08:34:35.061 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2185 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:35.078 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:35.083 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+CC-021 scenario C: PASS
+
+CC-021 scenario D: savepoint sticky denial then reuse
+  CC21_D_TX1_RECOVERED: active=t consumed=5 denied=t backend_pid=2185
+  CC21_D_TX2_START: active=f consumed=0 denied=f backend_pid=2185
+  CC21_D_TX2: active=t consumed=5 denied=f backend_pid=2185
+  CC21_D_AFTER: active=f consumed=0 denied=f backend_pid=2185
+  callback sequence:
+    postgres-1  | 2026-09-23 08:34:35.696 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2185 subid=2 parent=1 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:35.698 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=2185 subid=2 parent=1 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:35.698 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2185 subid=3 parent=1 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:35.708 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=2185 subid=3 parent=1 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:35.708 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=2185 subid=3 parent=1 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:35.708 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:35.708 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2185 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:35.722 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:35.728 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+CC-021 scenario D: PASS
+
+CC-021 scenario E: PL/pgSQL caught denial then reuse
+  CC21_E_TX1: active=t consumed=5 denied=t backend_pid=2185
+  CC21_E_TX2_START: active=f consumed=0 denied=f backend_pid=2185
+  CC21_E_TX2: active=t consumed=5 denied=f backend_pid=2185
+  CC21_E_AFTER: active=f consumed=0 denied=f backend_pid=2185
+  callback sequence:
+    postgres-1  | 2026-09-23 08:34:36.350 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2185 subid=2 parent=1 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:36.350 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=2185 subid=2 parent=1 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:36.467 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:36.467 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2185 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:36.488 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:36.488 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+CC-021 scenario E: PASS
+
+CC-021 autocommit reuse
+  CC21_F_START: active=f consumed=0 denied=f backend_pid=2185
+  CC21_F_AFTER1: active=f consumed=0 denied=f backend_pid=2185
+  CC21_F_AFTER2: active=f consumed=0 denied=f backend_pid=2185
+  CC21_F_AFTER_DENIAL: active=f consumed=0 denied=f backend_pid=2185
+  CC21_F_AFTER4: active=f consumed=0 denied=f backend_pid=2185
+  callback sequence:
+    postgres-1  | 2026-09-23 08:34:37.185 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:37.186 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:37.295 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:37.296 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+    postgres-1  | 2026-09-23 08:34:37.430 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2185 consumed=5 denied=true
+    postgres-1  | 2026-09-23 08:34:37.572 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=1 denied=false
+    postgres-1  | 2026-09-23 08:34:37.574 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=1 denied=false
+CC-021 autocommit reuse: PASS
+  CC21_FINAL: active=f consumed=0 denied=f backend_pid=2185
+CC-021: PASS (same backend 2185 reused; every scenario started at consumed=0 denied=false)
+lifecycle cleanup after top-level COMMIT: PASS
+lifecycle cleanup after top-level ABORT: PASS
+SAVEPOINT RELEASE lifecycle probe: PASS
+
+--- CC-020 / CC-021 / CC-022: state-transition authority ---
+These use the canonical docs/test-plan.md IDs, not legacy experiment labels.
+
+CC-020 allowed role transition:
+CC-020: PASS (member -> moderator committed; one row-update event consumed)
+
+CC-021 forbidden admin promotion:
+CC-021 denial: PASS (forbidden transition denied; no durable change)
+CC-021 savepoint recovery keeps denial sticky:
+CC-021 savepoint recovery: PASS (denial sticky; COMMIT rejected; no durable change)
+CC-021 later protected event is rejected while denied:
+CC-021 later event: PASS (sticky denial rejects further protected mutation)
+CC-021 PL/pgSQL caught denial keeps denial sticky:
+CC-021 PL/pgSQL caught denial: PASS (denial sticky; COMMIT rejected; no durable change)
+CC-021: PASS (forbidden admin promotion denied; recovery cannot restore commit authority)
+
+CC-022 bulk forbidden transition within row-count budget:
+CC-022: PASS (three-row update denied by transition authority; all rows rolled back)
+CC-022 allowed siblings consume accounting then roll back with the denial:
+CC-022 sibling rollback: PASS (allowed events consumed; forbidden row denied; all rolled back)
+
+State-transition / row-count composition:
+allowed transitions consume the shared transaction-wide budget: PASS
+state-transition lifecycle cleanup after ABORT: PASS
+CC-020 / CC-021 / CC-022 state-transition tests: PASS
+--- callback lifecycle trace ---
+postgres-1  | 2026-09-23 08:34:05.575 UTC [674] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=674 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:05.836 UTC [688] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=688 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:08.824 UTC [864] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=864 consumed=1 denied=false
+postgres-1  | 2026-09-23 08:34:09.558 UTC [906] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=906 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:10.056 UTC [927] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=927 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:10.056 UTC [927] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=927 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:10.521 UTC [955] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=955 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:10.930 UTC [976] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=976 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:11.382 UTC [1004] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1004 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:11.756 UTC [1025] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1025 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:12.000 UTC [1039] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1039 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:12.001 UTC [1039] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1039 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:12.370 UTC [1060] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1060 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:12.375 UTC [1060] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1060 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:12.750 UTC [1089] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1089 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:12.992 UTC [1102] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1102 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:12.992 UTC [1102] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1102 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:13.393 UTC [1121] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1121 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:13.651 UTC [1142] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1142 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:13.652 UTC [1142] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1142 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:14.640 UTC [1205] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1205 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:15.141 UTC [1233] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1233 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:15.146 UTC [1233] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1233 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:15.529 UTC [1260] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1260 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:17.008 UTC [1345] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1345 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:17.014 UTC [1345] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1345 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:17.451 UTC [1366] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1366 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:19.378 UTC [1484] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1484 consumed=2147483647 denied=true
+postgres-1  | 2026-09-23 08:34:19.628 UTC [1498] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1498 consumed=2147483647 denied=false
+postgres-1  | 2026-09-23 08:34:19.633 UTC [1498] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1498 consumed=2147483647 denied=false
+postgres-1  | 2026-09-23 08:34:20.358 UTC [1548] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1548 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:20.363 UTC [1548] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1548 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:21.250 UTC [1604] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1604 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:21.256 UTC [1604] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1604 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:21.620 UTC [1625] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1625 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:22.000 UTC [1653] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1653 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:22.374 UTC [1674] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=1674 subid=2 parent=1 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:22.374 UTC [1674] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=1674 subid=2 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:22.374 UTC [1674] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=1674 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:22.374 UTC [1674] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=1674 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:22.374 UTC [1674] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=1674 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:22.374 UTC [1674] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1674 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:22.374 UTC [1674] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1674 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:22.750 UTC [1695] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=1695 subid=2 parent=1 consumed=0 denied=false
+postgres-1  | 2026-09-23 08:34:22.750 UTC [1695] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=1695 subid=3 parent=1 consumed=0 denied=false
+postgres-1  | 2026-09-23 08:34:22.751 UTC [1695] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=1695 subid=3 parent=1 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:22.751 UTC [1695] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=1695 subid=3 parent=1 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:22.751 UTC [1695] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1695 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:22.757 UTC [1695] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1695 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:23.285 UTC [1730] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=1730 subid=2 parent=1 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:23.285 UTC [1730] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=1730 subid=2 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:23.286 UTC [1730] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1730 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:23.286 UTC [1730] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1730 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:23.672 UTC [1751] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=1751 subid=2 parent=1 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:23.672 UTC [1751] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=1751 subid=2 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:23.672 UTC [1751] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=1751 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:23.672 UTC [1751] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=1751 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:23.672 UTC [1751] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=1751 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:23.673 UTC [1751] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1751 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:23.673 UTC [1751] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1751 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:24.170 UTC [1786] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1786 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:24.171 UTC [1786] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1786 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:24.177 UTC [1786] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1786 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:24.541 UTC [1807] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1807 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:24.546 UTC [1807] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1807 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:24.930 UTC [1828] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1828 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:24.931 UTC [1828] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1828 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:24.936 UTC [1828] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1828 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:25.316 UTC [1856] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1856 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:25.322 UTC [1856] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1856 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:25.699 UTC [1877] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1877 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:25.700 UTC [1877] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1877 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:25.705 UTC [1877] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1877 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:26.102 UTC [1905] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1905 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:26.108 UTC [1905] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1905 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:26.488 UTC [1926] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1926 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:26.488 UTC [1926] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1926 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:26.493 UTC [1926] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1926 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:27.252 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:27.257 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:27.366 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:27.372 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:27.600 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:27.606 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:27.706 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:27.707 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.187 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=1953 subid=2 parent=1 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.188 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=1953 subid=2 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.189 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=1953 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.203 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.203 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.209 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=1953 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.209 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=1953 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.209 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1953 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.209 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1953 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.329 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.335 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.435 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.436 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.906 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=1954 subid=2 parent=1 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.906 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=1954 subid=2 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.907 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=1954 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.916 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.916 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:28.922 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=1954 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.922 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=1954 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.922 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1954 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:28.922 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1954 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:29.040 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:29.040 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:29.145 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:29.151 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:30.556 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1953 consumed=1 denied=false
+postgres-1  | 2026-09-23 08:34:30.562 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1953 consumed=1 denied=false
+postgres-1  | 2026-09-23 08:34:30.765 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:30.770 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:31.117 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:31.122 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:31.222 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:31.224 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:32.500 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=1953 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:32.605 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:32.611 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:32.963 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:32.969 UTC [1953] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1953 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:33.069 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:33.070 UTC [1954] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=1954 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:34.005 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:34.005 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:34.017 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:34.017 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:34.517 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2185 consumed=4 denied=false
+postgres-1  | 2026-09-23 08:34:34.531 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:34.531 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:35.061 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2185 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:35.078 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:35.083 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:35.696 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2185 subid=2 parent=1 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:35.698 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=2185 subid=2 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:35.698 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2185 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:35.708 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=2185 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:35.708 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=2185 subid=3 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:35.708 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:35.708 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2185 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:35.722 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:35.728 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:36.350 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2185 subid=2 parent=1 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:36.350 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=2185 subid=2 parent=1 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:36.467 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:36.467 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2185 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:36.488 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:36.488 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:37.185 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:37.186 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:37.295 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:37.296 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:37.430 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2185 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:37.572 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2185 consumed=1 denied=false
+postgres-1  | 2026-09-23 08:34:37.574 UTC [2185] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2185 consumed=1 denied=false
+postgres-1  | 2026-09-23 08:34:38.264 UTC [2325] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2325 consumed=3 denied=false
+postgres-1  | 2026-09-23 08:34:38.270 UTC [2325] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2325 consumed=3 denied=false
+postgres-1  | 2026-09-23 08:34:38.270 UTC [2325] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2325 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:38.271 UTC [2325] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2325 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:38.667 UTC [2353] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2353 consumed=3 denied=false
+postgres-1  | 2026-09-23 08:34:38.668 UTC [2353] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2353 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:38.673 UTC [2353] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2353 consumed=5 denied=false
+postgres-1  | 2026-09-23 08:34:39.068 UTC [2374] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2374 subid=2 parent=1 consumed=1 denied=false
+postgres-1  | 2026-09-23 08:34:39.069 UTC [2374] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=2374 subid=2 parent=1 consumed=2 denied=false
+postgres-1  | 2026-09-23 08:34:39.069 UTC [2374] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=2374 subid=2 parent=1 consumed=2 denied=false
+postgres-1  | 2026-09-23 08:34:39.069 UTC [2374] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2374 consumed=2 denied=false
+postgres-1  | 2026-09-23 08:34:39.437 UTC [2395] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2395 consumed=1 denied=false
+postgres-1  | 2026-09-23 08:34:39.443 UTC [2395] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2395 consumed=1 denied=false
+postgres-1  | 2026-09-23 08:34:39.963 UTC [2430] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2430 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:40.371 UTC [2451] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=2451 subid=2 parent=1 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:40.371 UTC [2451] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2451 subid=3 parent=1 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:40.372 UTC [2451] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=2451 subid=3 parent=1 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:40.372 UTC [2451] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=2451 subid=3 parent=1 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:40.372 UTC [2451] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2451 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:40.372 UTC [2451] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2451 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:40.757 UTC [2479] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=2479 subid=2 parent=1 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:40.757 UTC [2479] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2479 subid=3 parent=1 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:40.758 UTC [2479] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=2479 subid=3 parent=1 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:40.758 UTC [2479] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2479 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:41.133 UTC [2500] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=2500 subid=2 parent=1 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:41.133 UTC [2500] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2500 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:41.133 UTC [2500] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2500 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:41.504 UTC [2521] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2521 consumed=2 denied=true
+postgres-1  | 2026-09-23 08:34:41.884 UTC [2549] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2549 subid=2 parent=1 consumed=2 denied=false
+postgres-1  | 2026-09-23 08:34:41.885 UTC [2549] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=2549 subid=2 parent=1 consumed=2 denied=true
+postgres-1  | 2026-09-23 08:34:41.885 UTC [2549] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_START pid=2549 subid=3 parent=1 consumed=2 denied=true
+postgres-1  | 2026-09-23 08:34:41.886 UTC [2549] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=2549 subid=3 parent=1 consumed=2 denied=true
+postgres-1  | 2026-09-23 08:34:41.886 UTC [2549] LOG:  commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=2549 subid=3 parent=1 consumed=2 denied=true
+postgres-1  | 2026-09-23 08:34:41.886 UTC [2549] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2549 consumed=2 denied=true
+postgres-1  | 2026-09-23 08:34:41.886 UTC [2549] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2549 consumed=2 denied=true
+postgres-1  | 2026-09-23 08:34:42.283 UTC [2570] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2570 consumed=5 denied=true
+postgres-1  | 2026-09-23 08:34:42.550 UTC [2584] LOG:  commitcap_native_tx_state lifecycle event=XACT_ABORT pid=2584 consumed=0 denied=true
+postgres-1  | 2026-09-23 08:34:42.552 UTC [2584] LOG:  commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=2584 consumed=2 denied=false
+postgres-1  | 2026-09-23 08:34:42.558 UTC [2584] LOG:  commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=2584 consumed=2 denied=false
+--- end callback lifecycle trace ---
+native transaction-state experiment: all required tests PASS
+
+#
+# --- end of complete terminal output ---
+# Exit code: 0
+# FAIL lines: 0
+# Final marker: native transaction-state experiment: all required tests PASS

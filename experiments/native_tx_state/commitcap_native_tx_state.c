@@ -2,10 +2,12 @@
 
 #include "access/htup_details.h"
 #include "access/xact.h"
+#include "catalog/pg_type.h"
 #include "commands/trigger.h"
 #include "fmgr.h"
 #include "funcapi.h"
 #include "miscadmin.h"
+#include "utils/builtins.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
 
@@ -24,6 +26,14 @@ PG_MODULE_MAGIC;
  */
 #define COMMITCAP_EXPERIMENT_DEFAULT_BUDGET 5
 #define COMMITCAP_EXPERIMENT_MAX_BUDGET INT_MAX
+
+/*
+ * Test-only state-transition rule. Any UPDATE of a text/varchar column named
+ * "role" whose new value is this role is denied. This is the smallest
+ * representation needed to prove the CC-020/CC-021/CC-022 semantics; it is
+ * not a policy language and it is not a product interface.
+ */
+#define COMMITCAP_EXPERIMENT_DENIED_ROLE "admin"
 
 static int  commitcap_experiment_budget = COMMITCAP_EXPERIMENT_DEFAULT_BUDGET;
 static int  commitcap_experiment_seed_consumed = -1;
@@ -50,12 +60,16 @@ void        _PG_init(void);
 void        _PG_fini(void);
 
 PG_FUNCTION_INFO_V1(commitcap_native_enforce_update_budget);
+PG_FUNCTION_INFO_V1(commitcap_native_enforce_role_transition);
 PG_FUNCTION_INFO_V1(commitcap_native_probe);
 
 static ConsumptionFrame *find_frame(SubTransactionId subid);
 static ConsumptionFrame *ensure_frame(SubTransactionId subid);
 static void remove_frame(SubTransactionId subid);
 static void reset_state(void);
+static void activate_state(void);
+static void record_protected_event(void);
+static bool forbidden_role_transition(TriggerData *trigger_data, char **new_role);
 static void xact_callback(XactEvent event, void *arg);
 static void subxact_callback(SubXactEvent event, SubTransactionId mySubid,
                              SubTransactionId parentSubid, void *arg);
@@ -101,7 +115,6 @@ Datum
 commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
 {
     TriggerData *trigger_data;
-    ConsumptionFrame *frame;
 
     if (!CALLED_AS_TRIGGER(fcinfo))
         ereport(ERROR,
@@ -116,6 +129,60 @@ commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
                 (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
                  errmsg("CommitCap native experiment requires a BEFORE UPDATE row trigger")));
 
+    activate_state();
+    record_protected_event();
+
+    PG_RETURN_POINTER(trigger_data->tg_newtuple);
+}
+
+/*
+ * Test-only state-transition enforcement. The trigger fires on the
+ * experiment's users table and rejects any row whose new "role" value is the
+ * denied role before that row consumes row-update authority. The denial is
+ * sticky: it is recorded in backend-local top-level state, survives
+ * subtransaction recovery, and rejects commit at XACT_EVENT_PRE_COMMIT.
+ */
+Datum
+commitcap_native_enforce_role_transition(PG_FUNCTION_ARGS)
+{
+    TriggerData *trigger_data;
+    char       *new_role = NULL;
+
+    if (!CALLED_AS_TRIGGER(fcinfo))
+        ereport(ERROR,
+                (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
+                 errmsg("CommitCap native experiment must be called as a trigger")));
+
+    trigger_data = (TriggerData *) fcinfo->context;
+    if (!TRIGGER_FIRED_BEFORE(trigger_data->tg_event) ||
+        !TRIGGER_FIRED_FOR_ROW(trigger_data->tg_event) ||
+        !TRIGGER_FIRED_BY_UPDATE(trigger_data->tg_event))
+        ereport(ERROR,
+                (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
+                 errmsg("CommitCap native experiment requires a BEFORE UPDATE row trigger")));
+
+    activate_state();
+
+    if (forbidden_role_transition(trigger_data, &new_role))
+    {
+        state.denied = true;
+        elog(LOG,
+             "commitcap_native_tx_state transition_denial pid=%d to=%s",
+             MyProcPid, new_role);
+        ereport(ERROR,
+                (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+                 errmsg("CommitCap forbidden state transition (* -> %s)",
+                        COMMITCAP_EXPERIMENT_DENIED_ROLE)));
+    }
+
+    record_protected_event();
+
+    PG_RETURN_POINTER(trigger_data->tg_newtuple);
+}
+
+static void
+activate_state(void)
+{
     if (!state.active)
     {
         /*
@@ -132,6 +199,12 @@ commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
         state.budget = (uint64) commitcap_experiment_budget;
         state.frames = NULL;
     }
+}
+
+static void
+record_protected_event(void)
+{
+    ConsumptionFrame *frame;
 
     if (state.denied)
         ereport(ERROR,
@@ -167,8 +240,45 @@ commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
          "commitcap_native_tx_state event pid=%d consumed=" UINT64_FORMAT
          " denied=%s",
          MyProcPid, state.consumed, state.denied ? "true" : "false");
+}
 
-    PG_RETURN_POINTER(trigger_data->tg_newtuple);
+/*
+ * Locate the text/varchar "role" attribute and report whether the new tuple
+ * sets it to the denied role. Tables without such a column are outside this
+ * test-only rule and are not rejected here.
+ */
+static bool
+forbidden_role_transition(TriggerData *trigger_data, char **new_role)
+{
+    TupleDesc   tupdesc = trigger_data->tg_relation->rd_att;
+    int         attnum = -1;
+    Datum       new_datum;
+    bool        new_isnull;
+    int         i;
+
+    for (i = 0; i < tupdesc->natts; i++)
+    {
+        Form_pg_attribute attr = TupleDescAttr(tupdesc, i);
+
+        if (!attr->attisdropped &&
+            (attr->atttypid == TEXTOID || attr->atttypid == VARCHAROID) &&
+            strcmp(NameStr(attr->attname), "role") == 0)
+        {
+            attnum = attr->attnum;
+            break;
+        }
+    }
+
+    if (attnum < 0)
+        return false;
+
+    new_datum = heap_getattr(trigger_data->tg_newtuple, attnum, tupdesc,
+                             &new_isnull);
+    if (new_isnull)
+        return false;
+
+    *new_role = TextDatumGetCString(new_datum);
+    return strcmp(*new_role, COMMITCAP_EXPERIMENT_DENIED_ROLE) == 0;
 }
 
 /*
@@ -287,7 +397,7 @@ xact_callback(XactEvent event, void *arg)
             if (state.denied)
                 ereport(ERROR,
                         (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                         errmsg("CommitCap top-level transaction denied after mutation budget violation")));
+                         errmsg("CommitCap top-level transaction denied after mutation authority violation")));
             break;
 
         case XACT_EVENT_COMMIT:
