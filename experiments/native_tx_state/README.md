@@ -31,6 +31,12 @@ A later addition to the same mechanism answers a second question: can a
 state-transition denial share the same sticky top-level denial while allowed
 transitions still consume the transaction-wide row-update budget?
 
+The issue #9 addition tests independent subscriptions/users row counters and
+one fixed-rule `refunds.amount` positive-delta budget, in the **same research
+mechanism**. The two row policies each have a test-only limit of five; refunds
+has a separate test-only numeric limit of 100.00. Only the sticky-denied bit is
+shared. A passing local run does not establish supported production behavior.
+
 ## Reproduce
 
 From the repository root:
@@ -154,6 +160,39 @@ The same-backend cleanup probes also passed:
 
 These results make this mechanism class **VIABLE FOR FURTHER TESTING**. They do
 not make the experiment production-ready or any operation supported.
+
+### Canonical numeric-delta suite and independent policies (issue #9)
+
+The regression and canonical numeric cases live in `numeric_cases.sh`, sourced
+by `run.sh` **after** the original tests. In this section alone `CC-030` through
+`CC-033` mean the canonical [test-plan](../../docs/test-plan.md) numeric cases;
+the same labels printed by older row-budget portions of `run.sh` remain
+**legacy experiment IDs**. The sourced script checks writer outcomes, probes
+the three independent backend-local counters, and checks committed/aborted rows
+from separate trusted-admin connections. A complete tested-commit transcript
+is stored separately under `evidence/`.
+
+Approved fixture-only semantics are documented in
+[`docs/numeric-delta-decision-proposal.md`](../../docs/numeric-delta-decision-proposal.md):
+`delta = NEW.amount - OLD.amount` per UPDATE row effect, cumulative positive
+part without netting; no numeric authority spent on negative/no-op effects;
+allowed subtransaction rollback unwinds only provisional consumption; any
+violation makes denial sticky through `XACT_EVENT_PRE_COMMIT`. The amount column
+is unconstrained `numeric` **without typmod rounding**. The BEFORE UPDATE C
+trigger rejects NULL, NaN, ±Infinity, negative, >16 integer digits or >2
+fractional digits before accounting. The test-only `PGC_SUSET` numeric budget
+GUC requires a nonnegative decimal spelling with exactly two fractional digits
+and at most 16 integer digits (max `9999999999999999.99`). The writer cannot
+change it. It is a PostgreSQL relational measurement, not proof of any funds
+transfer. The experiment has no numeric INSERT/DELETE policy: the writer lacks
+those privileges on `refunds`.
+
+The original `cc_native_probe().consumed` remains a **legacy aggregate
+instrumentation value**, not a budget. `cc_native_policy_probe()` reports
+`subscriptions_consumed`, `users_consumed`, `refunds_positive_delta`, and
+`denied` for independent accounting checks. Allowed effects from separate
+policies are counted separately even when written in one transaction; the
+same sticky-denied bit invalidates all of them on an over-budget attempt.
 
 ## Row-Event Definition
 
@@ -572,6 +611,13 @@ owner-role membership, or mutable accounting object. Both protected relations
 and both trigger functions are owned by the separate `NOLOGIN`
 `commitcap_owner` role.
 
+For the numeric test fixture, `commitcap_writer` additionally receives
+`SELECT(id, amount), UPDATE(amount)` on `refunds`, not INSERT/DELETE/TRUNCATE,
+DDL, trusted-schema access, enforcement-function EXECUTE, or access to change
+the superuser-only numeric-budget parameter. The trusted owner owns the
+`refunds` table and native trigger function. A second read-only probe reports
+the caller's own three counters and denied flag.
+
 The concurrency experiments added one instrumentation grant: `USAGE` on the
 `commitcap_probe` schema and `EXECUTE` on the read-only
 `commitcap_probe.cc_native_probe()` function. The function reports only the
@@ -616,6 +662,8 @@ enforcement schema, or bypass the trigger.
   `WHEN MATCHED THEN UPDATE` forms; other MERGE actions and source shapes
   remain untested.
 - Backend termination and out-of-memory behavior were not fault-injected.
-- The experiment hard-codes one relation's update budget of five and contains
-  no policy, configuration, shared authority, or production installation
-  design.
+- This fixture implements only two fixed row-policy keys (subscriptions and
+  users), one fixed numeric key (refunds.amount), and test-only configuration.
+  There is no general policy engine, shared capability authority, or production
+  installation design. Alternate schema/trigger graphs and numeric INSERT or
+  DELETE remain untested/unsupported; do not infer safety from this fixture.
