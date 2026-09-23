@@ -30,6 +30,26 @@ REVOKE ALL ON SCHEMA commitcap_native FROM PUBLIC;
 CREATE EXTENSION commitcap_native_tx_state WITH SCHEMA commitcap_native;
 ALTER FUNCTION commitcap_native.enforce_update_budget() OWNER TO commitcap_owner;
 
+-- Read-only instrumentation for the Phase 0 experiment. It reports only the
+-- calling backend's own counters and grants no mutation authority.
+CREATE SCHEMA commitcap_probe AUTHORIZATION commitcap_owner;
+REVOKE ALL ON SCHEMA commitcap_probe FROM PUBLIC;
+GRANT USAGE ON SCHEMA commitcap_probe TO commitcap_writer;
+
+CREATE FUNCTION commitcap_probe.cc_native_probe(
+    OUT active boolean,
+    OUT consumed bigint,
+    OUT denied boolean,
+    OUT backend_pid integer
+)
+RETURNS record
+AS '$libdir/commitcap_native_tx_state', 'commitcap_native_probe'
+LANGUAGE C;
+
+ALTER FUNCTION commitcap_probe.cc_native_probe() OWNER TO commitcap_owner;
+REVOKE ALL ON FUNCTION commitcap_probe.cc_native_probe() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION commitcap_probe.cc_native_probe() TO commitcap_writer;
+
 CREATE TABLE public.subscriptions (
     id bigint PRIMARY KEY,
     status text NOT NULL

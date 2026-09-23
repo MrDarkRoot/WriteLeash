@@ -5,6 +5,7 @@ EXPERIMENT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE=(docker compose -f "$EXPERIMENT_DIR/docker-compose.yml")
 ADMIN_PASSWORD='commitcap_native_admin_experiment_only'
 WRITER_PASSWORD='commitcap_writer_experiment_only'
+CC_SESSION_DIR=""
 
 admin_psql() {
     "${COMPOSE[@]}" exec -T \
@@ -89,11 +90,203 @@ assert_privilege_envelope() {
     assert_scalar "enforcement function owner" \
         "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_native' AND p.proname = 'enforce_update_budget';" \
         "commitcap_owner"
+    assert_scalar "writer read-only probe EXECUTE" \
+        "SELECT has_function_privilege('commitcap_writer', 'commitcap_probe.cc_native_probe()', 'EXECUTE');" \
+        "t"
+    assert_scalar "writer probe schema CREATE" \
+        "SELECT has_schema_privilege('commitcap_writer', 'commitcap_probe', 'CREATE');" \
+        "f"
+    assert_scalar "probe function SECURITY DEFINER" \
+        "SELECT prosecdef FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_probe' AND p.proname = 'cc_native_probe';" \
+        "f"
+    assert_scalar "probe function owner" \
+        "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_probe' AND p.proname = 'cc_native_probe';" \
+        "commitcap_owner"
 
     printf 'privilege-envelope checks: PASS\n'
 }
 
+# --- Two-session concurrency harness -----------------------------------------
+# Uses host named pipes and background psql processes. The sessions are
+# synchronized by output markers and pg_stat_activity, not by sleeps that
+# assume database state. An admin connection observes lock waits.
+
+cc_session_start() {
+    local name="$1"
+
+    mkfifo "$CC_SESSION_DIR/$name.in"
+    : > "$CC_SESSION_DIR/$name.out"
+    "${COMPOSE[@]}" exec -T \
+        -e "PGPASSWORD=$WRITER_PASSWORD" \
+        postgres psql -X -A -t -h 127.0.0.1 -U commitcap_writer -d commitcap_native -v ON_ERROR_STOP=0 \
+        < "$CC_SESSION_DIR/$name.in" > "$CC_SESSION_DIR/$name.out" 2>&1 &
+}
+
+cc_session_attach() {
+    case "$1" in
+        a) exec 8>"$CC_SESSION_DIR/a.in" ;;
+        b) exec 9>"$CC_SESSION_DIR/b.in" ;;
+        *) fail "unknown session $1" ;;
+    esac
+}
+
+cc_session_stop() {
+    case "$1" in
+        a) printf '\\q\n' >&8 2>/dev/null || true; exec 8>&- ;;
+        b) printf '\\q\n' >&9 2>/dev/null || true; exec 9>&- ;;
+        *) fail "unknown session $1" ;;
+    esac
+}
+
+cc_send() {
+    local name="$1"
+    local sql="$2"
+
+    case "$name" in
+        a) printf '%s\n' "$sql" >&8 ;;
+        b) printf '%s\n' "$sql" >&9 ;;
+        *) fail "unknown session $name" ;;
+    esac
+}
+
+cc_wait_output() {
+    local name="$1"
+    local pattern="$2"
+    local label="$3"
+    local waited=0
+
+    while ! grep -qF -- "$pattern" "$CC_SESSION_DIR/$name.out" 2>/dev/null; do
+        if (( waited >= 300 )); then
+            printf 'session %s output:\n' "$name"
+            cat "$CC_SESSION_DIR/$name.out" || true
+            fail "timed out waiting for $label"
+        fi
+        sleep 0.1
+        waited=$((waited + 1))
+    done
+}
+
+cc_sync() {
+    local name="$1"
+    local marker="$2"
+
+    cc_send "$name" "SELECT '$marker';"
+    cc_wait_output "$name" "$marker" "sync marker $marker"
+}
+
+cc_probe_line() {
+    local name="$1"
+    local marker="$2"
+
+    cc_send "$name" "SELECT '$marker:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END || '|' || backend_pid FROM commitcap_probe.cc_native_probe();"
+    cc_wait_output "$name" "$marker:" "probe $marker"
+    grep -F "$marker:" "$CC_SESSION_DIR/$name.out" | tail -n 1
+}
+
+cc_probe_field() {
+    local name="$1"
+    local marker="$2"
+    local field="$3"
+    local line
+    local value
+
+    line="$(cc_probe_line "$name" "$marker")"
+    value="${line##*"$marker:"}"
+    case "$field" in
+        active)   printf '%s' "${value%%|*}" ;;
+        consumed) printf '%s' "$(printf '%s' "$value" | cut -d'|' -f2)" ;;
+        denied)   printf '%s' "$(printf '%s' "$value" | cut -d'|' -f3)" ;;
+        pid)      printf '%s' "$(printf '%s' "$value" | cut -d'|' -f4)" ;;
+        *) fail "unknown probe field $field" ;;
+    esac
+}
+
+cc_probe_assert() {
+    local name="$1"
+    local marker="$2"
+    local expected_active="$3"
+    local expected_consumed="$4"
+    local expected_denied="$5"
+    local line
+    local value
+    local active
+    local consumed
+    local denied
+    local pid
+
+    line="$(cc_probe_line "$name" "$marker")"
+    value="${line##*"$marker:"}"
+    IFS='|' read -r active consumed denied pid <<<"$value"
+    [[ "$active" == "$expected_active" && "$consumed" == "$expected_consumed" && "$denied" == "$expected_denied" ]] || \
+        fail "$marker was active=$active consumed=$consumed denied=$denied pid=$pid, expected $expected_active/$expected_consumed/$expected_denied"
+    printf '  %s: active=%s consumed=%s denied=%s backend_pid=%s\n' \
+        "$marker" "$active" "$consumed" "$denied" "$pid"
+}
+
+cc_event_count() {
+    local pid="$1"
+
+    "${COMPOSE[@]}" logs --no-color postgres 2>&1 | \
+        grep -c "commitcap_native_tx_state event pid=$pid " || true
+}
+
+cc_count_tag() {
+    local name="$1"
+    local tag="$2"
+
+    grep -cxF -- "$tag" "$CC_SESSION_DIR/$name.out" || true
+}
+
+cc_wait_blocked() {
+    local blocked_pid="$1"
+    local blocker_pid="$2"
+    local label="$3"
+    local waited=0
+    local line
+
+    while true; do
+        line="$(admin_psql -At -v ON_ERROR_STOP=1 -c \
+            "SELECT COALESCE(wait_event_type, '') || ':' || COALESCE(wait_event, '') || ':' || COALESCE(array_to_string(pg_blocking_pids(pid), ','), '') FROM pg_stat_activity WHERE pid = $blocked_pid;")"
+        if [[ "$line" == Lock:* ]]; then
+            local blockers="${line##*:}"
+            if [[ ",$blockers," == *",$blocker_pid,"* ]]; then
+                printf '  %s: pid %s wait=%s blocked_by=%s\n' \
+                    "$label" "$blocked_pid" "${line#Lock:}" "$blockers"
+                return 0
+            fi
+        fi
+        if (( waited >= 300 )); then
+            fail "$label: timed out waiting for pid $blocked_pid to block on pid $blocker_pid (last: $line)"
+        fi
+        sleep 0.1
+        waited=$((waited + 1))
+    done
+}
+
+cc_lifecycle_check() {
+    local label="$1"
+
+    cc_send a "BEGIN;"
+    cc_send a "UPDATE public.subscriptions SET status = '${label}_life_a' WHERE id BETWEEN 1 AND 5;"
+    cc_send a "COMMIT;"
+    cc_sync a "CCLIFE_A_${label}"
+    cc_send b "BEGIN;"
+    cc_send b "UPDATE public.subscriptions SET status = '${label}_life_b' WHERE id BETWEEN 6 AND 10;"
+    cc_send b "COMMIT;"
+    cc_sync b "CCLIFE_B_${label}"
+    assert_scalar "CC life $label A rows" \
+        "SELECT count(*) FILTER (WHERE id BETWEEN 1 AND 5 AND status = '${label}_life_a') || ':' || count(*) FILTER (WHERE status NOT IN ('${label}_life_a', '${label}_life_b')) FROM public.subscriptions;" \
+        "5:0"
+    assert_scalar "CC life $label B rows" \
+        "SELECT count(*) FILTER (WHERE id BETWEEN 6 AND 10 AND status = '${label}_life_b') FROM public.subscriptions;" \
+        "5"
+    printf '  lifecycle %s: PASS\n' "$label"
+}
+
 cleanup() {
+    if [[ -n "${CC_SESSION_DIR:-}" && -d "$CC_SESSION_DIR" ]]; then
+        rm -rf "$CC_SESSION_DIR"
+    fi
     "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
 }
 
@@ -425,6 +618,229 @@ assert_scalar "CC-033 durable state" \
     "SELECT count(*) FILTER (WHERE status = 'baseline') || ':' || count(*) FILTER (WHERE status = 'cc033_cleanup') || ':' || count(*) FILTER (WHERE status = 'cc033') || ':' || count(*) FILTER (WHERE status = 'cc033_allowed') FROM public.subscriptions;" \
     "5:5:0:0"
 printf 'CC-033: PASS (EXPLAIN ANALYZE shared one budget; denial rolled back at COMMIT)\n'
+
+printf '\n--- CC-019 / CC-020: concurrent sessions ---\n'
+reset_fixture
+CC_SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/commitcap_native_sessions.XXXXXX")"
+cc_session_start a
+cc_session_start b
+cc_session_attach a
+cc_session_attach b
+
+cc_probe_assert a CCPID_A f 0 f
+cc_probe_assert b CCPID_B f 0 f
+cc_a_pid="$(cc_probe_field a CCPID_A2 pid)"
+cc_b_pid="$(cc_probe_field b CCPID_B2 pid)"
+[[ "$cc_a_pid" != "$cc_b_pid" ]] || fail "CC-019 sessions shared backend pid $cc_a_pid"
+printf 'CC-019 backend A pid: %s\n' "$cc_a_pid"
+printf 'CC-019 backend B pid: %s\n' "$cc_b_pid"
+
+printf '\nCC-019 case 1: independent concurrent budgets\n'
+cc_send a "BEGIN;"
+cc_send a "SELECT 'CCISO_A:' || current_setting('transaction_isolation');"
+cc_wait_output a "CCISO_A:" "isolation level for session A"
+cc_a_iso="$(grep -F 'CCISO_A:' "$CC_SESSION_DIR/a.out" | tail -n 1 | cut -d: -f2)"
+cc_send b "BEGIN;"
+cc_send b "SELECT 'CCISO_B:' || current_setting('transaction_isolation');"
+cc_wait_output b "CCISO_B:" "isolation level for session B"
+cc_b_iso="$(grep -F 'CCISO_B:' "$CC_SESSION_DIR/b.out" | tail -n 1 | cut -d: -f2)"
+[[ "$cc_a_iso" == "read committed" && "$cc_b_iso" == "read committed" ]] || \
+    fail "unexpected isolation level A=$cc_a_iso B=$cc_b_iso"
+printf 'CC-019 isolation level: A=%s B=%s\n' "$cc_a_iso" "$cc_b_iso"
+
+cc_send a "UPDATE public.subscriptions SET status = 'cc019_a' WHERE id BETWEEN 1 AND 4;"
+cc_probe_assert a CCP19_A1 t 4 f
+cc_send b "UPDATE public.subscriptions SET status = 'cc019_b' WHERE id BETWEEN 6 AND 9;"
+cc_probe_assert b CCP19_B1 t 4 f
+cc_probe_assert a CCP19_A2 t 4 f
+cc_probe_assert b CCP19_B2 t 4 f
+cc_send a "UPDATE public.subscriptions SET status = 'cc019_a' WHERE id = 5;"
+cc_probe_assert a CCP19_A3 t 5 f
+cc_send a "COMMIT;"
+cc_sync a CCP19_A_COMMIT
+cc_probe_assert a CCP19_A4 f 0 f
+cc_send b "UPDATE public.subscriptions SET status = 'cc019_b' WHERE id = 10;"
+cc_probe_assert b CCP19_B3 t 5 f
+cc_send b "COMMIT;"
+cc_sync b CCP19_B_COMMIT
+cc_probe_assert b CCP19_B4 f 0 f
+assert_scalar "CC-019 case 1 durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=cc019_a,2=cc019_a,3=cc019_a,4=cc019_a,5=cc019_a,6=cc019_b,7=cc019_b,8=cc019_b,9=cc019_b,10=cc019_b"
+cc_lifecycle_check cc019a
+printf 'CC-019 independent budgets: PASS\n'
+
+printf '\nCC-019 case 2: session A denied, session B commits\n'
+reset_fixture
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc019_deny_a' WHERE id BETWEEN 1 AND 4;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc019_deny_a' WHERE id = 5;"
+cc_send a "SAVEPOINT before_denial;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc019_deny_a' WHERE id = 6;"
+cc_wait_output a "CommitCap mutation budget exceeded" "session A event-six denial"
+cc_send a "ROLLBACK TO SAVEPOINT before_denial;"
+cc_probe_assert a CCP19D_A1 t 5 t
+cc_send b "BEGIN;"
+cc_send b "UPDATE public.subscriptions SET status = 'cc019_ok_b' WHERE id BETWEEN 7 AND 10;"
+cc_probe_assert b CCP19D_B1 t 4 f
+cc_send b "UPDATE public.subscriptions SET status = 'cc019_ok_b' WHERE id = 7;"
+cc_probe_assert b CCP19D_B2 t 5 f
+cc_send b "COMMIT;"
+cc_sync b CCP19D_B_COMMIT
+cc_probe_assert b CCP19D_B3 f 0 f
+cc_send a "COMMIT;"
+cc_wait_output a "denied after mutation budget violation" "session A commit rejection"
+cc_probe_assert a CCP19D_A2 f 0 f
+assert_scalar "CC-019 case 2 durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=baseline,7=cc019_ok_b,8=cc019_ok_b,9=cc019_ok_b,10=cc019_ok_b"
+cc_lifecycle_check cc019d
+printf 'CC-019 denial isolation A to B: PASS\n'
+
+printf '\nCC-019 case 3: session B denied, session A commits\n'
+reset_fixture
+cc_send b "BEGIN;"
+cc_send b "UPDATE public.subscriptions SET status = 'cc019_rev_b' WHERE id BETWEEN 1 AND 5;"
+cc_send b "SAVEPOINT before_denial;"
+cc_send b "UPDATE public.subscriptions SET status = 'cc019_rev_b' WHERE id = 6;"
+cc_wait_output b "CommitCap mutation budget exceeded" "session B event-six denial"
+cc_send b "ROLLBACK TO SAVEPOINT before_denial;"
+cc_probe_assert b CCP19R_B1 t 5 t
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc019_rev_a' WHERE id BETWEEN 7 AND 10;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc019_rev_a' WHERE id = 7;"
+cc_probe_assert a CCP19R_A1 t 5 f
+cc_send a "COMMIT;"
+cc_sync a CCP19R_A_COMMIT
+cc_probe_assert a CCP19R_A2 f 0 f
+cc_send b "COMMIT;"
+cc_wait_output b "denied after mutation budget violation" "session B commit rejection"
+cc_probe_assert b CCP19R_B2 f 0 f
+assert_scalar "CC-019 case 3 durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=baseline,7=cc019_rev_a,8=cc019_rev_a,9=cc019_rev_a,10=cc019_rev_a"
+cc_lifecycle_check cc019r
+printf 'CC-019 denial isolation B to A: PASS\n'
+
+printf '\nCC-020 scenario A: session A commits while session B waits on its row lock\n'
+reset_fixture
+cc_deadlocks_before="$(admin_psql -At -v ON_ERROR_STOP=1 -c \
+    "SELECT deadlocks FROM pg_stat_database WHERE datname = current_database();")"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc020a_a' WHERE id = 1;"
+cc_probe_assert a CCP20A_A1 t 1 f
+cc_b_events_before="$(cc_event_count "$cc_b_pid")"
+cc_send b "BEGIN;"
+cc_send b "UPDATE public.subscriptions SET status = 'cc020a_b' WHERE id = 1;"
+cc_wait_blocked "$cc_b_pid" "$cc_a_pid" "CC-020 scenario A"
+# Only lets the server log absorb any event written before the wait; the
+# blocked state itself is verified in pg_stat_activity.
+sleep 0.5
+cc_b_events_blocked="$(cc_event_count "$cc_b_pid")"
+printf 'CC-020 scenario A: B trigger events while blocked=%s\n' \
+    "$((cc_b_events_blocked - cc_b_events_before))"
+cc_probe_assert a CCP20A_A2 t 1 f
+cc_a_commits_before="$(cc_count_tag a COMMIT)"
+cc_send a "COMMIT;"
+cc_sync a CCP20A_A_COMMIT
+[[ "$(( $(cc_count_tag a COMMIT) - cc_a_commits_before ))" == "1" ]] || \
+    fail "CC-020 scenario A: session A did not commit"
+cc_probe_assert a CCP20A_A3 f 0 f
+cc_sync b CCP20A_B_RESUMED
+cc_b_events_resumed="$(cc_event_count "$cc_b_pid")"
+printf 'CC-020 scenario A: B trigger events after resume=%s\n' \
+    "$((cc_b_events_resumed - cc_b_events_blocked))"
+cc_b_consumed="$(cc_probe_field b CCP20A_B1 consumed)"
+printf 'CC-020 scenario A: B consumed=%s for the contended row event\n' "$cc_b_consumed"
+[[ "$cc_b_consumed" == "1" || "$cc_b_consumed" == "2" ]] || \
+    fail "CC-020 scenario A: B consumed $cc_b_consumed for one contended update"
+cc_b_remaining=$((5 - cc_b_consumed))
+cc_i=2
+while (( cc_i <= 1 + cc_b_remaining )); do
+    cc_send b "UPDATE public.subscriptions SET status = 'cc020a_b' WHERE id = $cc_i;"
+    cc_i=$((cc_i + 1))
+done
+cc_probe_assert b CCP20A_B2 t 5 f
+cc_send b "COMMIT;"
+cc_sync b CCP20A_B_COMMIT
+cc_probe_assert b CCP20A_B3 f 0 f
+cc_expected=""
+cc_i=1
+while (( cc_i <= 10 )); do
+    if (( cc_i <= 1 + cc_b_remaining )); then cc_status='cc020a_b'; else cc_status='baseline'; fi
+    cc_expected="${cc_expected}${cc_expected:+,}$cc_i=$cc_status"
+    cc_i=$((cc_i + 1))
+done
+assert_scalar "CC-020 scenario A durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "$cc_expected"
+cc_deadlocks_after="$(admin_psql -At -v ON_ERROR_STOP=1 -c \
+    "SELECT deadlocks FROM pg_stat_database WHERE datname = current_database();")"
+printf 'CC-020 scenario A: deadlock count %s -> %s\n' "$cc_deadlocks_before" "$cc_deadlocks_after"
+cc_lifecycle_check cc020a
+printf 'CC-020 row-lock contention with A commit: PASS\n'
+
+printf '\nCC-020 scenario B: session A denied while session B waits on its row lock\n'
+reset_fixture
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc020b_a' WHERE id BETWEEN 1 AND 4;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc020b_a' WHERE id = 5;"
+cc_probe_assert a CCP20B_A1 t 5 f
+cc_b_events_before="$(cc_event_count "$cc_b_pid")"
+cc_send b "BEGIN;"
+cc_send b "UPDATE public.subscriptions SET status = 'cc020b_b' WHERE id = 5;"
+cc_wait_blocked "$cc_b_pid" "$cc_a_pid" "CC-020 scenario B"
+# Only lets the server log absorb any event written before the wait; the
+# blocked state itself is verified in pg_stat_activity.
+sleep 0.5
+cc_b_events_blocked="$(cc_event_count "$cc_b_pid")"
+printf 'CC-020 scenario B: B trigger events while blocked=%s\n' \
+    "$((cc_b_events_blocked - cc_b_events_before))"
+cc_send a "UPDATE public.subscriptions SET status = 'cc020b_a' WHERE id = 6;"
+cc_wait_output a "CommitCap mutation budget exceeded" "session A event-six denial under contention"
+cc_a_rollbacks_before="$(cc_count_tag a ROLLBACK)"
+cc_send a "COMMIT;"
+cc_sync a CCP20B_A_ENDED
+[[ "$(( $(cc_count_tag a ROLLBACK) - cc_a_rollbacks_before ))" == "1" ]] || \
+    fail "CC-020 scenario B: session A COMMIT was not rejected as ROLLBACK"
+cc_probe_assert a CCP20B_A2 f 0 f
+cc_sync b CCP20B_B_RESUMED
+cc_b_events_resumed="$(cc_event_count "$cc_b_pid")"
+printf 'CC-020 scenario B: B trigger events after resume=%s\n' \
+    "$((cc_b_events_resumed - cc_b_events_blocked))"
+cc_b_consumed="$(cc_probe_field b CCP20B_B1 consumed)"
+printf 'CC-020 scenario B: B consumed=%s for the contended row event\n' "$cc_b_consumed"
+[[ "$cc_b_consumed" == "1" || "$cc_b_consumed" == "2" ]] || \
+    fail "CC-020 scenario B: B consumed $cc_b_consumed for one contended update"
+cc_b_remaining=$((5 - cc_b_consumed))
+cc_i=6
+while (( cc_i <= 5 + cc_b_remaining )); do
+    cc_send b "UPDATE public.subscriptions SET status = 'cc020b_b' WHERE id = $cc_i;"
+    cc_i=$((cc_i + 1))
+done
+cc_probe_assert b CCP20B_B2 t 5 f
+cc_send b "COMMIT;"
+cc_sync b CCP20B_B_COMMIT
+cc_probe_assert b CCP20B_B3 f 0 f
+cc_expected=""
+cc_i=1
+while (( cc_i <= 10 )); do
+    if (( cc_i >= 5 && cc_i <= 5 + cc_b_remaining )); then cc_status='cc020b_b'; else cc_status='baseline'; fi
+    cc_expected="${cc_expected}${cc_expected:+,}$cc_i=$cc_status"
+    cc_i=$((cc_i + 1))
+done
+assert_scalar "CC-020 scenario B durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "$cc_expected"
+cc_deadlocks_after="$(admin_psql -At -v ON_ERROR_STOP=1 -c \
+    "SELECT deadlocks FROM pg_stat_database WHERE datname = current_database();")"
+printf 'CC-020 scenario B: deadlock count %s -> %s\n' "$cc_deadlocks_before" "$cc_deadlocks_after"
+cc_lifecycle_check cc020b
+printf 'CC-020 denial under contention: PASS\n'
+
+cc_session_stop a
+cc_session_stop b
+printf 'CC-019 / CC-020 concurrent sessions: all requested cases PASS\n'
 
 reset_fixture
 writer_psql -v ON_ERROR_STOP=1 <<'SQL' >/dev/null

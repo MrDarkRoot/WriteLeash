@@ -66,6 +66,8 @@ Observed on PostgreSQL 16.4:
 | `CC-008` | **PASS** | `ROLLBACK TO` recovered statement execution but not commit authority; final `COMMIT` errored and a fresh connection observed the baseline |
 | `CC-009` | **PASS** | Aborting three allowed savepoint events changed live consumption from three to zero; five replacements committed |
 | `CC-011` | **PASS** | A five-row data-modifying CTE committed; a six-row CTE was denied and no protected mutation became durable |
+| `CC-019` | **PASS** | Two distinct backends each consumed four events independently; denial in either backend did not affect the other; both committed within budget |
+| `CC-020` | **PASS** | Waiting backends counted no event while blocked, consumed one unit for the contended event after resuming, and neither transaction exceeded its budget; no deadlock |
 | `CC-024` | **PASS** | PL/pgSQL caught event-six error, but final `COMMIT` errored and a fresh connection observed the baseline |
 | `CC-025` | **PASS** | One prepared `UPDATE` executed five times committed; the sixth execution in one transaction was denied and no protected mutation became durable |
 | `CC-032` | **PASS** | An unprotected insert before denial was rolled back with the protected changes; a fresh connection observed zero audit rows |
@@ -111,6 +113,66 @@ The client's following `COMMIT` therefore returned a `ROLLBACK` command tag
 instead of reaching `XACT_EVENT_PRE_COMMIT`. Commit rejection at the pre-commit
 callback when execution recovers after a denial remains covered by `CC-008`,
 `CC-024`, and `CC-032`.
+
+## Concurrent Sessions
+
+`CC-019` and `CC-020` ran two simultaneous `commitcap_writer` sessions against
+the same protected relation. Each session was a distinct PostgreSQL backend
+with a recorded `pg_backend_pid()`, driven through a host named pipe and
+synchronized by PostgreSQL-confirmed output markers. Lock waits were confirmed
+from a separate admin connection using `pg_stat_activity` and
+`pg_blocking_pids()`; no advisory locks were used. All runs used the default
+`READ COMMITTED` isolation level.
+
+`CC-019` observed:
+
+- Two open transactions each counted four events at the same time; neither
+  backend's consumption changed the other's count.
+- Each backend then consumed a fifth event and committed. A fresh admin
+  connection verified both five-row changes by row.
+- With session A denied (`consumed=5, denied=true`) and its transaction still
+  open after `ROLLBACK TO SAVEPOINT`, session B remained
+  `consumed=4, denied=false`, consumed a fifth event, and committed. A's
+  following `COMMIT` was rejected.
+- The reverse direction (B denied, A committing) produced the same result.
+- After every case, a new transaction in each backend started at
+  `consumed=0, denied=false` and committed five events.
+
+`CC-020` intentionally overlapped row `id = 1` (scenario A) and row `id = 5`
+(scenario B). Observed behavior:
+
+- In both scenarios the waiting backend reported `wait_event_type=Lock`,
+  `wait_event=transactionid`, and `pg_blocking_pids()` named the other backend.
+- While the waiting backend was confirmed blocked, no trigger event was
+  attributed to it. Exactly one event was counted when it resumed, and that
+  contended row-update event consumed exactly one unit.
+- PostgreSQL 16.4's `ExecBRUpdateTriggers` locks the target tuple and runs
+  EvalPlanQual before firing the BEFORE ROW trigger, so the trigger observed
+  the latest row version once. No double-counting from an EvalPlanQual
+  re-fire was observed in these scenarios.
+- Scenario A: A committed, B then applied its contended update, consumed its
+  remaining budget, and committed.
+- Scenario B: A exceeded its own budget under contention, its `COMMIT` was
+  rejected as `ROLLBACK`, and B then applied its update, consumed its remaining
+  budget, and committed without inheriting A's accounting or denial.
+- `pg_stat_database.deadlocks` was unchanged (0 before and after each
+  scenario); no deadlock occurred.
+- After each scenario, durable protected state matched the expected rows
+  exactly, verified from a fresh admin connection, and new transactions in both
+  backends committed five events.
+
+These results are specific to PostgreSQL 16.4, `READ COMMITTED`, two sessions,
+and the tested statement shapes. Other isolation levels, deadlock-producing
+workloads, and more than two sessions remain untested.
+
+## Instrumentation
+
+The trigger emits one `LOG` line per allowed event with the backend PID and
+consumed count so that lock-wait ordering can be reconstructed from server
+logs. A read-only SQL probe reports the calling backend's own `active`,
+`consumed`, `denied`, and `backend_pid` values. Neither is part of the
+candidate mechanism; both exist only to make the experiment observable. The
+probe exposes no writable accounting state and grants no mutation authority.
 
 ## Observed Lifecycle
 
@@ -220,26 +282,35 @@ revalidated for every proposed supported major version.
 
 ## Privilege Model
 
-The protected writer remains a non-superuser, non-owner role. It receives only
+The protected writer remains a non-superuser, non-owner role. It receives
 database `CONNECT`, `public` schema `USAGE`, `SELECT(id)`, and `UPDATE(status)`.
 It has no trusted-schema access, direct trigger-function `EXECUTE`, table-wide
 `SELECT` or `UPDATE`, unsupported DML, DDL, trigger, owner-role membership, or
 mutable accounting object. The protected relation and trigger function are
-owned by the separate `NOLOGIN` `commitcap_owner` role. No additional writer
-privilege was required for the native experiment.
+owned by the separate `NOLOGIN` `commitcap_owner` role.
+
+The concurrency experiments added one instrumentation grant: `USAGE` on the
+`commitcap_probe` schema and `EXECUTE` on the read-only
+`commitcap_probe.cc_native_probe()` function. The function reports only the
+calling backend's own state. It cannot write accounting state, reach the
+enforcement schema, or bypass the trigger.
 
 ## Known Risks And Unknowns
 
-- Only the ten requested tests, lifecycle cleanup, and one savepoint-release
-  probe were run. This is not the complete Gate 1 matrix.
+- Only the twelve requested tests, lifecycle cleanup, savepoint-release, and
+  concurrency lifecycle probes were run. This is not the complete Gate 1
+  matrix.
 - Nested savepoint accounting beyond the tested paths remains uncharacterized.
 - Interactions with other transaction callbacks, callback ordering between
   extensions, and errors from later pre-commit work remain uncharacterized.
 - PostgreSQL majors other than 16.4 remain untested.
+- Isolation levels other than `READ COMMITTED`, more than two concurrent
+  sessions, deadlock-producing workloads, and other row-event plan shapes
+  remain uncharacterized.
 - Parallel execution, two-phase commit (`PREPARE TRANSACTION`), connection-pool
-  role reuse, concurrency, triggers beyond the one generated trigger,
-  cascades, partitions, and `MERGE` or `INSERT ... ON CONFLICT` mutation forms
-  remain untested or out of scope.
+  role reuse, triggers beyond the one generated trigger, cascades, partitions,
+  and `MERGE` or `INSERT ... ON CONFLICT` mutation forms remain untested or out
+  of scope.
 - Backend termination and out-of-memory behavior were not fault-injected.
 - The experiment hard-codes one relation's update budget of five and contains
   no policy, configuration, shared authority, or production installation

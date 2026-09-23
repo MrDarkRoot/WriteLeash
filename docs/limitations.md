@@ -152,6 +152,19 @@ backend-local top-level state, per-subtransaction allowed-consumption deltas,
 - `CC-011`: **PASS**. A data-modifying CTE updating five protected rows
   committed; a six-row CTE raised the event-six denial and no protected
   mutation became durable.
+- `CC-019`: **PASS** on PostgreSQL 16.4 with two distinct backends at
+  `READ COMMITTED`. Each open transaction counted four events independently;
+  neither backend's consumption, commit, abort, or denial changed the other's
+  accounting. Both committed after their fifth event, and a denial in one
+  backend left the other able to commit in both directions. New transactions
+  in both backends started fresh afterward.
+- `CC-020`: **PASS** on PostgreSQL 16.4 under row-lock contention. Waiting
+  backends were confirmed blocked on the other transaction's lock, counted no
+  event while blocked, and consumed exactly one unit for the contended
+  row-update event once they resumed. A backend denied under contention could
+  not commit, and the other backend kept its own accounting and committed.
+  `pg_stat_database.deadlocks` stayed unchanged. Only two-session scenarios at
+  `READ COMMITTED` were tested.
 - `CC-024`: **PASS**. PL/pgSQL exception recovery aborted its internal
   subtransaction without clearing the denied flag. The final commit was
   rejected and a fresh connection observed no durable protected mutation.
@@ -183,6 +196,13 @@ unwound only allowed consumption; denial remained sticky.
 `XACT_EVENT_PRE_COMMIT` ran before PostgreSQL's commit decision and raised the
 error that forced the top-level abort. Observed `XACT_EVENT_COMMIT` and
 `XACT_EVENT_ABORT` callbacks cleared all experiment state.
+
+The concurrency runs used a read-only probe function, granted to the protected
+writer, that reports the calling backend's own counters. It exposes no writable
+authority. The runs also showed that PostgreSQL 16.4 locks a contended row and
+applies EvalPlanQual before firing the BEFORE ROW trigger, so one contended
+row-update event consumed one unit. Other isolation levels, other plan shapes,
+and deadlock-producing workloads remain untested.
 
 This result makes backend-local callback state **viable for further testing as
 a mechanism class only**. It does not replace the falsified PL/pgSQL evidence,

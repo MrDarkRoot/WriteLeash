@@ -1,8 +1,11 @@
 #include "postgres.h"
 
+#include "access/htup_details.h"
 #include "access/xact.h"
 #include "commands/trigger.h"
 #include "fmgr.h"
+#include "funcapi.h"
+#include "miscadmin.h"
 #include "utils/memutils.h"
 
 PG_MODULE_MAGIC;
@@ -30,6 +33,7 @@ void        _PG_init(void);
 void        _PG_fini(void);
 
 PG_FUNCTION_INFO_V1(commitcap_native_enforce_update_budget);
+PG_FUNCTION_INFO_V1(commitcap_native_probe);
 
 static ConsumptionFrame *find_frame(SubTransactionId subid);
 static ConsumptionFrame *ensure_frame(SubTransactionId subid);
@@ -105,7 +109,39 @@ commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
         frame->delta++;
     }
 
+    elog(LOG,
+         "commitcap_native_tx_state event pid=%d consumed=" UINT64_FORMAT
+         " denied=%s",
+         MyProcPid, state.consumed, state.denied ? "true" : "false");
+
     PG_RETURN_POINTER(trigger_data->tg_newtuple);
+}
+
+/*
+ * Read-only experiment instrumentation. This exposes only backend-local
+ * counters to the caller's own session; it cannot modify enforcement state.
+ */
+Datum
+commitcap_native_probe(PG_FUNCTION_ARGS)
+{
+    TupleDesc   tupdesc;
+    Datum       values[4];
+    bool        nulls[4] = {false, false, false, false};
+    HeapTuple   tuple;
+
+    if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
+        ereport(ERROR,
+                (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                 errmsg("function returning record called in context that cannot accept type record")));
+
+    values[0] = BoolGetDatum(state.active);
+    values[1] = Int64GetDatum((int64) state.consumed);
+    values[2] = BoolGetDatum(state.denied);
+    values[3] = Int32GetDatum((int32) MyProcPid);
+
+    tuple = heap_form_tuple(tupdesc, values, nulls);
+
+    PG_RETURN_DATUM(HeapTupleGetDatum(tuple));
 }
 
 static ConsumptionFrame *
