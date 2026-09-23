@@ -165,6 +165,14 @@ backend-local top-level state, per-subtransaction allowed-consumption deltas,
   not commit, and the other backend kept its own accounting and committed.
   `pg_stat_database.deadlocks` stayed unchanged. Only two-session scenarios at
   `READ COMMITTED` were tested.
+- `CC-021`: **PASS** on PostgreSQL 16.4 for the tested same-backend reuse
+  paths. One persistent backend, with the same `pg_backend_pid()` before and
+  after, served independent transactions following a commit, a rollback, a
+  denial abort, a savepoint-recovered sticky denial, a PL/pgSQL caught denial,
+  and autocommit statements. Every next top-level transaction began at
+  `consumed=0, denied=false`. No reset function and no client disconnect were
+  required. Real pooler behavior and role switching on one backend remain
+  untested.
 - `CC-024`: **PASS**. PL/pgSQL exception recovery aborted its internal
   subtransaction without clearing the denied flag. The final commit was
   rejected and a fresh connection observed no durable protected mutation.
@@ -202,7 +210,10 @@ writer, that reports the calling backend's own counters. It exposes no writable
 authority. The runs also showed that PostgreSQL 16.4 locks a contended row and
 applies EvalPlanQual before firing the BEFORE ROW trigger, so one contended
 row-update event consumed one unit. Other isolation levels, other plan shapes,
-and deadlock-producing workloads remain untested.
+and deadlock-producing workloads remain untested. The reuse runs covered
+same-backend transaction reuse without disconnect or manual reset only; real
+pooler modes, session reset queries, disconnect/reconnect behavior, multi-user
+mappings, and role switching on one backend remain `UNKNOWN`.
 
 This result makes backend-local callback state **viable for further testing as
 a mechanism class only**. It does not replace the falsified PL/pgSQL evidence,

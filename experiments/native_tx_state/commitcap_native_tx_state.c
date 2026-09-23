@@ -227,9 +227,9 @@ xact_callback(XactEvent event, void *arg)
     {
         case XACT_EVENT_PRE_COMMIT:
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT consumed=" UINT64_FORMAT
+                 "commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=%d consumed=" UINT64_FORMAT
                  " denied=%s",
-                 state.consumed, state.denied ? "true" : "false");
+                 MyProcPid, state.consumed, state.denied ? "true" : "false");
             if (state.denied)
                 ereport(ERROR,
                         (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
@@ -238,17 +238,17 @@ xact_callback(XactEvent event, void *arg)
 
         case XACT_EVENT_COMMIT:
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=XACT_COMMIT consumed=" UINT64_FORMAT
+                 "commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=%d consumed=" UINT64_FORMAT
                  " denied=%s",
-                 state.consumed, state.denied ? "true" : "false");
+                 MyProcPid, state.consumed, state.denied ? "true" : "false");
             reset_state();
             break;
 
         case XACT_EVENT_ABORT:
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=XACT_ABORT consumed=" UINT64_FORMAT
+                 "commitcap_native_tx_state lifecycle event=XACT_ABORT pid=%d consumed=" UINT64_FORMAT
                  " denied=%s",
-                 state.consumed, state.denied ? "true" : "false");
+                 MyProcPid, state.consumed, state.denied ? "true" : "false");
             reset_state();
             break;
 
@@ -273,17 +273,17 @@ subxact_callback(SubXactEvent event, SubTransactionId mySubid,
         case SUBXACT_EVENT_START_SUB:
             ensure_frame(mySubid);
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=SUBXACT_START subid=%u parent=%u consumed=" UINT64_FORMAT
+                 "commitcap_native_tx_state lifecycle event=SUBXACT_START pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
                  " denied=%s",
-                 mySubid, parentSubid, state.consumed,
+                 MyProcPid, mySubid, parentSubid, state.consumed,
                  state.denied ? "true" : "false");
             break;
 
         case SUBXACT_EVENT_PRE_COMMIT_SUB:
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT subid=%u parent=%u consumed=" UINT64_FORMAT
+                 "commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
                  " denied=%s",
-                 mySubid, parentSubid, state.consumed,
+                 MyProcPid, mySubid, parentSubid, state.consumed,
                  state.denied ? "true" : "false");
             break;
 
@@ -293,9 +293,9 @@ subxact_callback(SubXactEvent event, SubTransactionId mySubid,
                 ensure_frame(parentSubid)->delta += frame->delta;
             remove_frame(mySubid);
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT subid=%u parent=%u consumed=" UINT64_FORMAT
+                 "commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
                  " denied=%s",
-                 mySubid, parentSubid, state.consumed,
+                 MyProcPid, mySubid, parentSubid, state.consumed,
                  state.denied ? "true" : "false");
             break;
 
@@ -308,9 +308,9 @@ subxact_callback(SubXactEvent event, SubTransactionId mySubid,
                 remove_frame(mySubid);
             }
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=SUBXACT_ABORT subid=%u parent=%u consumed=" UINT64_FORMAT
+                 "commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
                  " denied=%s",
-                 mySubid, parentSubid, state.consumed,
+                 MyProcPid, mySubid, parentSubid, state.consumed,
                  state.denied ? "true" : "false");
             break;
     }

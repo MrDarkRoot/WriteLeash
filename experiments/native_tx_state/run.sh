@@ -207,6 +207,7 @@ cc_probe_assert() {
     local expected_active="$3"
     local expected_consumed="$4"
     local expected_denied="$5"
+    local expected_pid="${6:-}"
     local line
     local value
     local active
@@ -219,6 +220,10 @@ cc_probe_assert() {
     IFS='|' read -r active consumed denied pid <<<"$value"
     [[ "$active" == "$expected_active" && "$consumed" == "$expected_consumed" && "$denied" == "$expected_denied" ]] || \
         fail "$marker was active=$active consumed=$consumed denied=$denied pid=$pid, expected $expected_active/$expected_consumed/$expected_denied"
+    if [[ -n "$expected_pid" ]]; then
+        [[ "$pid" == "$expected_pid" ]] || \
+            fail "$marker used backend pid $pid, expected reused backend $expected_pid"
+    fi
     printf '  %s: active=%s consumed=%s denied=%s backend_pid=%s\n' \
         "$marker" "$active" "$consumed" "$denied" "$pid"
 }
@@ -228,6 +233,26 @@ cc_event_count() {
 
     "${COMPOSE[@]}" logs --no-color postgres 2>&1 | \
         grep -c "commitcap_native_tx_state event pid=$pid " || true
+}
+
+cc_lifecycle_count() {
+    local pid="$1"
+
+    "${COMPOSE[@]}" logs --no-color postgres 2>&1 | \
+        grep -c "commitcap_native_tx_state lifecycle event=.* pid=$pid " || true
+}
+
+cc_lifecycle_since() {
+    local pid="$1"
+    local before="$2"
+    local after
+    local new_count
+
+    after="$(cc_lifecycle_count "$pid")"
+    new_count=$((after - before))
+    [[ "$new_count" -gt 0 ]] || fail "no lifecycle callbacks recorded for pid $pid"
+    "${COMPOSE[@]}" logs --no-color postgres 2>&1 | \
+        grep "commitcap_native_tx_state lifecycle event=.* pid=$pid " | tail -n "$new_count"
 }
 
 cc_count_tag() {
@@ -841,6 +866,224 @@ printf 'CC-020 denial under contention: PASS\n'
 cc_session_stop a
 cc_session_stop b
 printf 'CC-019 / CC-020 concurrent sessions: all requested cases PASS\n'
+
+printf '\n--- CC-021: backend reuse across top-level transactions ---\n'
+rm -rf "$CC_SESSION_DIR"
+CC_SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/commitcap_native_reuse.XXXXXX")"
+reset_fixture
+cc_session_start a
+cc_session_attach a
+cc_send a "SELECT 'CC21_BACKEND_PID:' || pg_backend_pid();"
+cc_wait_output a "CC21_BACKEND_PID:" "CC-021 backend pid"
+cc21_pid="$(grep -F 'CC21_BACKEND_PID:' "$CC_SESSION_DIR/a.out" | tail -n 1 | cut -d: -f2)"
+printf 'CC-021 reused backend pid: %s\n' "$cc21_pid"
+cc_probe_assert a CC21_PID f 0 f "$cc21_pid"
+
+printf '\nCC-021 scenario A: COMMIT then reuse\n'
+reset_fixture
+cc_life_before="$(cc_lifecycle_count "$cc21_pid")"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_a1' WHERE id BETWEEN 1 AND 5;"
+cc_probe_assert a CC21_A_TX1 t 5 f "$cc21_pid"
+cc_send a "COMMIT;"
+cc_sync a CC21_A_TX1_END
+cc_probe_assert a CC21_A_TX2_START f 0 f "$cc21_pid"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_a2' WHERE id BETWEEN 6 AND 10;"
+cc_probe_assert a CC21_A_TX2 t 5 f "$cc21_pid"
+cc_send a "COMMIT;"
+cc_sync a CC21_A_TX2_END
+cc_probe_assert a CC21_A_AFTER f 0 f "$cc21_pid"
+assert_scalar "CC-021 scenario A durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=cc021_a1,2=cc021_a1,3=cc021_a1,4=cc021_a1,5=cc021_a1,6=cc021_a2,7=cc021_a2,8=cc021_a2,9=cc021_a2,10=cc021_a2"
+cc21_life="$(cc_lifecycle_since "$cc21_pid" "$cc_life_before")"
+printf '  callback sequence:\n'
+printf '%s\n' "$cc21_life" | sed 's/^/    /'
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_PRE_COMMIT .*denied=false' || \
+    fail "CC-021 scenario A did not log an allowed PRE_COMMIT"
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_COMMIT .*denied=false' || \
+    fail "CC-021 scenario A did not log a top-level COMMIT"
+printf 'CC-021 scenario A: PASS\n'
+
+printf '\nCC-021 scenario B: ROLLBACK then reuse\n'
+reset_fixture
+cc_life_before="$(cc_lifecycle_count "$cc21_pid")"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_b_aborted' WHERE id BETWEEN 1 AND 4;"
+cc_probe_assert a CC21_B_TX1 t 4 f "$cc21_pid"
+cc_send a "ROLLBACK;"
+cc_sync a CC21_B_TX1_END
+cc_probe_assert a CC21_B_TX2_START f 0 f "$cc21_pid"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_b' WHERE id BETWEEN 1 AND 5;"
+cc_probe_assert a CC21_B_TX2 t 5 f "$cc21_pid"
+cc_send a "COMMIT;"
+cc_sync a CC21_B_TX2_END
+cc_probe_assert a CC21_B_AFTER f 0 f "$cc21_pid"
+assert_scalar "CC-021 scenario B durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=cc021_b,2=cc021_b,3=cc021_b,4=cc021_b,5=cc021_b,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline"
+cc21_life="$(cc_lifecycle_since "$cc21_pid" "$cc_life_before")"
+printf '  callback sequence:\n'
+printf '%s\n' "$cc21_life" | sed 's/^/    /'
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_ABORT .*denied=false' || \
+    fail "CC-021 scenario B did not log the TX1 abort"
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_COMMIT .*denied=false' || \
+    fail "CC-021 scenario B did not log the TX2 commit"
+printf 'CC-021 scenario B: PASS\n'
+
+printf '\nCC-021 scenario C: denied ABORT then reuse\n'
+reset_fixture
+cc_life_before="$(cc_lifecycle_count "$cc21_pid")"
+cc21_rollbacks_before="$(cc_count_tag a ROLLBACK)"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_c_denied' WHERE id BETWEEN 1 AND 5;"
+cc_probe_assert a CC21_C_TX1 t 5 f "$cc21_pid"
+cc21_denials_before="$(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true)"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_c_denied' WHERE id = 6;"
+cc_send a "COMMIT;"
+cc_sync a CC21_C_TX1_END
+[[ "$(( $(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true) - cc21_denials_before ))" == "1" ]] || \
+    fail "CC-021 scenario C did not report the event-six denial"
+[[ "$(( $(cc_count_tag a ROLLBACK) - cc21_rollbacks_before ))" == "1" ]] || \
+    fail "CC-021 scenario C COMMIT was not converted to ROLLBACK"
+cc_probe_assert a CC21_C_TX2_START f 0 f "$cc21_pid"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_c' WHERE id BETWEEN 6 AND 10;"
+cc_probe_assert a CC21_C_TX2 t 5 f "$cc21_pid"
+cc_send a "COMMIT;"
+cc_sync a CC21_C_TX2_END
+cc_probe_assert a CC21_C_AFTER f 0 f "$cc21_pid"
+assert_scalar "CC-021 scenario C durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=cc021_c,7=cc021_c,8=cc021_c,9=cc021_c,10=cc021_c"
+cc21_life="$(cc_lifecycle_since "$cc21_pid" "$cc_life_before")"
+printf '  callback sequence:\n'
+printf '%s\n' "$cc21_life" | sed 's/^/    /'
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_ABORT .*denied=true' || \
+    fail "CC-021 scenario C did not log the denied TX1 abort"
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_COMMIT .*denied=false' || \
+    fail "CC-021 scenario C did not log the TX2 commit"
+printf 'CC-021 scenario C: PASS\n'
+
+printf '\nCC-021 scenario D: savepoint sticky denial then reuse\n'
+reset_fixture
+cc_life_before="$(cc_lifecycle_count "$cc21_pid")"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_d_denied' WHERE id BETWEEN 1 AND 5;"
+cc_send a "SAVEPOINT before_denial;"
+cc21_denials_before="$(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true)"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_d_denied' WHERE id = 6;"
+cc_send a "ROLLBACK TO SAVEPOINT before_denial;"
+cc_probe_assert a CC21_D_TX1_RECOVERED t 5 t "$cc21_pid"
+[[ "$(( $(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true) - cc21_denials_before ))" == "1" ]] || \
+    fail "CC-021 scenario D did not report the event-six denial"
+cc21_rejections_before="$(grep -cF 'denied after mutation budget violation' "$CC_SESSION_DIR/a.out" || true)"
+cc_send a "COMMIT;"
+cc_sync a CC21_D_TX1_END
+[[ "$(( $(grep -cF 'denied after mutation budget violation' "$CC_SESSION_DIR/a.out" || true) - cc21_rejections_before ))" == "1" ]] || \
+    fail "CC-021 scenario D COMMIT was not rejected at PRE_COMMIT"
+cc_probe_assert a CC21_D_TX2_START f 0 f "$cc21_pid"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_d' WHERE id BETWEEN 6 AND 10;"
+cc_probe_assert a CC21_D_TX2 t 5 f "$cc21_pid"
+cc_send a "COMMIT;"
+cc_sync a CC21_D_TX2_END
+cc_probe_assert a CC21_D_AFTER f 0 f "$cc21_pid"
+assert_scalar "CC-021 scenario D durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=cc021_d,7=cc021_d,8=cc021_d,9=cc021_d,10=cc021_d"
+cc21_life="$(cc_lifecycle_since "$cc21_pid" "$cc_life_before")"
+printf '  callback sequence:\n'
+printf '%s\n' "$cc21_life" | sed 's/^/    /'
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_PRE_COMMIT .*denied=true' || \
+    fail "CC-021 scenario D did not log denied=true at PRE_COMMIT"
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_ABORT .*denied=true' || \
+    fail "CC-021 scenario D did not log the denied abort"
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_COMMIT .*denied=false' || \
+    fail "CC-021 scenario D did not log the TX2 commit"
+printf 'CC-021 scenario D: PASS\n'
+
+printf '\nCC-021 scenario E: PL/pgSQL caught denial then reuse\n'
+reset_fixture
+cc_life_before="$(cc_lifecycle_count "$cc21_pid")"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_e_denied' WHERE id BETWEEN 1 AND 5;"
+cc_send a "DO \$cc21\$ BEGIN BEGIN UPDATE public.subscriptions SET status = 'cc021_e_denied' WHERE id = 6; RAISE EXCEPTION 'expected CommitCap denial'; EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE 'CommitCap mutation budget exceeded%' THEN RAISE; END IF; RAISE NOTICE 'CC21_E_CAUGHT: %', SQLERRM; END; END \$cc21\$;"
+cc_wait_output a "CC21_E_CAUGHT: CommitCap mutation budget exceeded" "CC-021 scenario E caught denial"
+cc_probe_assert a CC21_E_TX1 t 5 t "$cc21_pid"
+cc21_rejections_before="$(grep -cF 'denied after mutation budget violation' "$CC_SESSION_DIR/a.out" || true)"
+cc_send a "COMMIT;"
+cc_sync a CC21_E_TX1_END
+[[ "$(( $(grep -cF 'denied after mutation budget violation' "$CC_SESSION_DIR/a.out" || true) - cc21_rejections_before ))" == "1" ]] || \
+    fail "CC-021 scenario E COMMIT was not rejected at PRE_COMMIT"
+cc_probe_assert a CC21_E_TX2_START f 0 f "$cc21_pid"
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_e' WHERE id BETWEEN 6 AND 10;"
+cc_probe_assert a CC21_E_TX2 t 5 f "$cc21_pid"
+cc_send a "COMMIT;"
+cc_sync a CC21_E_TX2_END
+cc_probe_assert a CC21_E_AFTER f 0 f "$cc21_pid"
+assert_scalar "CC-021 scenario E durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=cc021_e,7=cc021_e,8=cc021_e,9=cc021_e,10=cc021_e"
+cc21_life="$(cc_lifecycle_since "$cc21_pid" "$cc_life_before")"
+printf '  callback sequence:\n'
+printf '%s\n' "$cc21_life" | sed 's/^/    /'
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_PRE_COMMIT .*denied=true' || \
+    fail "CC-021 scenario E did not log denied=true at PRE_COMMIT"
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_ABORT .*denied=true' || \
+    fail "CC-021 scenario E did not log the denied abort"
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_COMMIT .*denied=false' || \
+    fail "CC-021 scenario E did not log the TX2 commit"
+printf 'CC-021 scenario E: PASS\n'
+
+printf '\nCC-021 autocommit reuse\n'
+reset_fixture
+cc_life_before="$(cc_lifecycle_count "$cc21_pid")"
+cc_probe_assert a CC21_F_START f 0 f "$cc21_pid"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_f1' WHERE id BETWEEN 1 AND 5;"
+cc_sync a CC21_F_TX1
+cc_probe_assert a CC21_F_AFTER1 f 0 f "$cc21_pid"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_f2' WHERE id BETWEEN 6 AND 10;"
+cc_sync a CC21_F_TX2
+cc_probe_assert a CC21_F_AFTER2 f 0 f "$cc21_pid"
+assert_scalar "CC-021 autocommit two transactions durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=cc021_f1,2=cc021_f1,3=cc021_f1,4=cc021_f1,5=cc021_f1,6=cc021_f2,7=cc021_f2,8=cc021_f2,9=cc021_f2,10=cc021_f2"
+cc21_denials_before="$(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true)"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_f3' WHERE id BETWEEN 1 AND 6;"
+cc_sync a CC21_F_TX3_DENIED
+[[ "$(( $(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true) - cc21_denials_before ))" == "1" ]] || \
+    fail "CC-021 autocommit six-event statement was not denied"
+cc_probe_assert a CC21_F_AFTER_DENIAL f 0 f "$cc21_pid"
+assert_scalar "CC-021 autocommit denial durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=cc021_f1,2=cc021_f1,3=cc021_f1,4=cc021_f1,5=cc021_f1,6=cc021_f2,7=cc021_f2,8=cc021_f2,9=cc021_f2,10=cc021_f2"
+cc_send a "UPDATE public.subscriptions SET status = 'cc021_f4' WHERE id = 1;"
+cc_sync a CC21_F_TX4
+cc_probe_assert a CC21_F_AFTER4 f 0 f "$cc21_pid"
+assert_scalar "CC-021 autocommit recovery durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=cc021_f4,2=cc021_f1,3=cc021_f1,4=cc021_f1,5=cc021_f1,6=cc021_f2,7=cc021_f2,8=cc021_f2,9=cc021_f2,10=cc021_f2"
+cc21_life="$(cc_lifecycle_since "$cc21_pid" "$cc_life_before")"
+printf '  callback sequence:\n'
+printf '%s\n' "$cc21_life" | sed 's/^/    /'
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_COMMIT .*denied=false' || \
+    fail "CC-021 autocommit did not log a committed transaction"
+printf '%s\n' "$cc21_life" | grep -q 'event=XACT_ABORT .*denied=true' || \
+    fail "CC-021 autocommit did not log the denied abort"
+printf 'CC-021 autocommit reuse: PASS\n'
+
+cc_send a "SELECT 'CC21_FINAL_PID:' || pg_backend_pid();"
+cc_wait_output a "CC21_FINAL_PID:" "CC-021 final backend pid"
+cc21_final_pid="$(grep -F 'CC21_FINAL_PID:' "$CC_SESSION_DIR/a.out" | tail -n 1 | cut -d: -f2)"
+[[ "$cc21_final_pid" == "$cc21_pid" ]] || \
+    fail "CC-021 backend changed from $cc21_pid to $cc21_final_pid"
+cc_probe_assert a CC21_FINAL f 0 f "$cc21_pid"
+cc_session_stop a
+printf 'CC-021: PASS (same backend %s reused; every scenario started at consumed=0 denied=false)\n' "$cc21_pid"
 
 reset_fixture
 writer_psql -v ON_ERROR_STOP=1 <<'SQL' >/dev/null

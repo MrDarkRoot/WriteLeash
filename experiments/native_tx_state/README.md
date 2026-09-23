@@ -68,6 +68,7 @@ Observed on PostgreSQL 16.4:
 | `CC-011` | **PASS** | A five-row data-modifying CTE committed; a six-row CTE was denied and no protected mutation became durable |
 | `CC-019` | **PASS** | Two distinct backends each consumed four events independently; denial in either backend did not affect the other; both committed within budget |
 | `CC-020` | **PASS** | Waiting backends counted no event while blocked, consumed one unit for the contended event after resuming, and neither transaction exceeded its budget; no deadlock |
+| `CC-021` | **PASS** | One persistent backend started every next top-level transaction at `consumed=0, denied=false` after commit, rollback, denial abort, savepoint-recovered denial, caught denial, and autocommit transactions; no reset function or disconnect |
 | `CC-024` | **PASS** | PL/pgSQL caught event-six error, but final `COMMIT` errored and a fresh connection observed the baseline |
 | `CC-025` | **PASS** | One prepared `UPDATE` executed five times committed; the sixth execution in one transaction was denied and no protected mutation became durable |
 | `CC-032` | **PASS** | An unprotected insert before denial was rolled back with the protected changes; a fresh connection observed zero audit rows |
@@ -165,14 +166,54 @@ These results are specific to PostgreSQL 16.4, `READ COMMITTED`, two sessions,
 and the tested statement shapes. Other isolation levels, deadlock-producing
 workloads, and more than two sessions remain untested.
 
+## Backend Reuse
+
+`CC-021` reused one persistent protected-writer backend across independent
+top-level transactions. `pg_backend_pid()` was recorded before and after the
+sequence and stayed the same. No reset function was called between
+transactions, and the connection was never closed. Every scenario was followed
+by a probe read and a durable-state check from a fresh admin connection.
+
+Observed on PostgreSQL 16.4:
+
+- **Scenario A (COMMIT then reuse):** TX1 committed five events. TX2 started at
+  `consumed=0, denied=false`, consumed five events, and committed. Callbacks
+  for both transactions were `XACT_PRE_COMMIT` then `XACT_COMMIT`.
+- **Scenario B (ROLLBACK then reuse):** TX1 consumed four events and rolled
+  back (`XACT_ABORT consumed=4 denied=false`). TX2 started fresh and committed
+  five events.
+- **Scenario C (denied abort then reuse):** TX1 consumed five events; event six
+  set `denied=true` and aborted (`XACT_ABORT consumed=5 denied=true`). TX2
+  started fresh and committed five events.
+- **Scenario D (savepoint sticky denial then reuse):** TX1 recovered with
+  `ROLLBACK TO SAVEPOINT` while `denied=true`, then
+  `XACT_EVENT_PRE_COMMIT` rejected its `COMMIT` and `XACT_ABORT` cleaned up.
+  TX2 started fresh and committed five events.
+- **Scenario E (PL/pgSQL caught denial then reuse):** Same lifecycle as D
+  through a PL/pgSQL exception block.
+- **Autocommit reuse:** Two consecutive five-event autocommit statements each
+  received a full budget and committed. A six-event autocommit statement was
+  denied and left no durable change. The next autocommit statement received a
+  fresh budget.
+- The backend PID was identical from the first probe to the final probe. No
+  manual reset and no disconnect were required.
+
+Actor-switch-on-same-backend: **NOT TESTED**. The protected writer holds no
+role memberships, and adding one solely to exercise `SET ROLE` would alter the
+tested privilege envelope. Real pooler behavior (PgBouncer modes, application
+poolers, session reset queries, disconnect/reconnect, multi-user mappings)
+also remains untested; `CC-021` emulates only the same-backend reuse property.
+
 ## Instrumentation
 
 The trigger emits one `LOG` line per allowed event with the backend PID and
 consumed count so that lock-wait ordering can be reconstructed from server
-logs. A read-only SQL probe reports the calling backend's own `active`,
-`consumed`, `denied`, and `backend_pid` values. Neither is part of the
-candidate mechanism; both exist only to make the experiment observable. The
-probe exposes no writable accounting state and grants no mutation authority.
+logs. Lifecycle callback lines also include the backend PID so callback
+sequences can be attributed to one reused backend. A read-only SQL probe
+reports the calling backend's own `active`, `consumed`, `denied`, and
+`backend_pid` values. Neither is part of the candidate mechanism; both exist
+only to make the experiment observable. The probe exposes no writable
+accounting state and grants no mutation authority.
 
 ## Observed Lifecycle
 
@@ -297,7 +338,7 @@ enforcement schema, or bypass the trigger.
 
 ## Known Risks And Unknowns
 
-- Only the twelve requested tests, lifecycle cleanup, savepoint-release, and
+- Only the thirteen requested tests, lifecycle cleanup, savepoint-release, and
   concurrency lifecycle probes were run. This is not the complete Gate 1
   matrix.
 - Nested savepoint accounting beyond the tested paths remains uncharacterized.
@@ -307,10 +348,15 @@ enforcement schema, or bypass the trigger.
 - Isolation levels other than `READ COMMITTED`, more than two concurrent
   sessions, deadlock-producing workloads, and other row-event plan shapes
   remain uncharacterized.
-- Parallel execution, two-phase commit (`PREPARE TRANSACTION`), connection-pool
-  role reuse, triggers beyond the one generated trigger, cascades, partitions,
-  and `MERGE` or `INSERT ... ON CONFLICT` mutation forms remain untested or out
-  of scope.
+- Real pooler behavior is `UNKNOWN`: PgBouncer session and transaction modes,
+  application poolers, session reset queries, pooler disconnect/reconnect
+  behavior, and multi-user mappings were not tested. `CC-021` covers only
+  same-backend reuse without disconnect or manual reset.
+- Role switching on one backend was not tested; the protected writer has no
+  role memberships and adding one would alter the tested envelope.
+- Parallel execution, two-phase commit (`PREPARE TRANSACTION`), triggers beyond
+  the one generated trigger, cascades, partitions, and `MERGE` or
+  `INSERT ... ON CONFLICT` mutation forms remain untested or out of scope.
 - Backend termination and out-of-memory behavior were not fault-injected.
 - The experiment hard-codes one relation's update budget of five and contains
   no policy, configuration, shared authority, or production installation
