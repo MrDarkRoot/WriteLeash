@@ -13,7 +13,7 @@ non-16.4 server. It builds the **unchanged** `experiments/native_tx_state/`
 source against the image digest in `Dockerfile`, reuses its `setup.sql` verbatim,
 and destroys only its own disposable Compose project/volume on exit. Do not
 run concurrent Docker benchmarks on the same host. Output contains `raw.csv`,
-`summary.json`, and `metadata.json`; copy them into `evidence/<tested-SHA>/`
+`summary.json`, and `metadata.json`; archive them under `evidence/`
 only after checking that the output records that exact published implementation
 SHA. All SQL and random seeds are in `run.py`.
 
@@ -38,7 +38,8 @@ one UPDATE of 1/5/100 subscriptions rows, a separate one-row users transition,
 a separate one-row refunds +0.01, or three subscriptions, two users
 (`member`→`moderator` initially), and two refunds (+0.01 each) in one mixed
 transaction. IDs are chosen in the valid 1..10000 range with seeded pgbench
-`random()` (same seed per arm/round), and all writes are inside BEGIN/COMMIT.
+`random()` (measured seed 20260923 per arm/round; separate warmup seed 20260922),
+and all writes are inside BEGIN/COMMIT.
 Each cell starts with trusted-admin TRUNCATE/reseed and ANALYZE on both tables;
 those operations and warmup are excluded from the measured interval. The
 runner checks row counts, trigger graph, writer grants, durable changed
@@ -57,10 +58,10 @@ rows. Percentiles use sorted nearest-rank observations; repeated-run variability
 is sample standard deviation of per-round TPS plus per-round values.
 
 Denied: separate protected-only `psql` persistent connection with `\timing`,
-30 trials per denial class. Each trial begins, saves a point, attempts six row
+30 trials per denial class. Each trial begins, saves a point, attempts 101 row
 effects / forbidden admin transition / +101.00 refund delta, checks SQLSTATE,
 rolls back to the savepoint and attempts COMMIT; an error at COMMIT verifies
-sticky denial. Server-side psql timings of the denied UPDATE and poisoned
+sticky denial. Client-observed psql timings of the denied UPDATE and poisoned
 COMMIT are recorded separately, never combined with accepted TPS. Fresh-admin
 baseline and audit checks follow each batch. There is no unprotected denial
 equivalent or relative denied-overhead figure.

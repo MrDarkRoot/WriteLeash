@@ -164,7 +164,8 @@ def bench(arm, case, round_no, phase, count, outdir):
     argv = ["exec", "-e", "PGPASSWORD=" + PASSWORDS[WRITER], CONTAINER,
             "pgbench", "-h", "127.0.0.1", "-U", WRITER, "-d", "commitcap_native",
             "-n", "-M", "prepared", "-c", "1", "-j", "1", "-t", str(count),
-            "--random-seed=20260923", "-f", "/tmp/workload.sql"]
+            "--random-seed=" + ("20260922" if phase == "warmup" else "20260923"),
+            "-f", "/tmp/workload.sql"]
     if phase == "measured":
         argv += ["-l", "--log-prefix=/tmp/" + name]
     result = docker(*argv)
@@ -331,7 +332,8 @@ def main():
                 "rows_per_table": ROWS, "warmup_tx_per_cell": WARMUP,
                 "measured_tx_per_cell": TX, "rounds": ROUNDS,
                 "denied_trials_per_case": DENIED, "clients": 1, "jobs": 1,
-                "query_mode": "prepared", "seed": 20260923, "isolation": "read committed",
+                "query_mode": "prepared", "measured_seed": 20260923,
+                "warmup_seed": 20260922, "isolation": "read committed",
                 "fixture_source": "experiments/native_tx_state/setup.sql (verbatim) + benchmarks/phase0/fixture.sql",
                 "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
         raw = []
