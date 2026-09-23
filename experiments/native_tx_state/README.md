@@ -1,9 +1,26 @@
 # Native Transaction-State Experiment
 
+> **Legacy test-ID notice:** Every `CC-*` identifier in this experiment is a
+> **legacy experiment ID**. The current canonical namespace is defined in
+> [`docs/test-plan.md`](../../docs/test-plan.md), where same-number IDs may mean
+> different tests. Preserve these labels as historical evidence; do not map
+> their PASS results onto the current test plan.
+
 ## Classification
 
 `TEST FIRST`. This is a Phase 0 feasibility spike, not a production extension
 and not a V0 support claim.
+
+This experiment follows ADR-006's SQL/PLpgSQL-first sequence. Ordinary
+transactional PL/pgSQL denial state was tested first and failed the savepoint
+and caught-exception falsification cases because subtransaction rollback erased
+the denial marker. Native callbacks were investigated only after that evidence.
+This work does not select a production extension architecture.
+
+It is also not managed-PostgreSQL feasibility evidence. Extension installation,
+trusted privileges, `shared_preload_libraries`, native module availability,
+deployment, upgrades, and operational constraints require a separate check in
+at least one realistic managed environment.
 
 The experiment answers one question on PostgreSQL 16.4: can backend-local
 state and transaction callbacks provide rollback-aware allowed consumption and
@@ -539,9 +556,11 @@ enforcement schema, or bypass the trigger.
   same-backend reuse without disconnect or manual reset.
 - Role switching on one backend was not tested; the protected writer has no
   role memberships and adding one would alter the tested envelope.
-- Parallel execution, two-phase commit (`PREPARE TRANSACTION`), triggers beyond
-  the one generated trigger, cascades, partitions, and `INSERT ... ON CONFLICT`
-  remain untested or out of scope. MERGE is covered only for the tested
+- Parallel execution, actual two-phase commit with prepared transactions
+  enabled, triggers beyond the one generated trigger, cascades, partitions,
+  and `INSERT ... ON CONFLICT` remain untested or out of scope. The fail-closed
+  exclusion of `PREPARE TRANSACTION` was tested only with
+  `max_prepared_transactions = 0`. MERGE is covered only for the tested
   `WHEN MATCHED THEN UPDATE` forms; other MERGE actions and source shapes
   remain untested.
 - Backend termination and out-of-memory behavior were not fault-injected.

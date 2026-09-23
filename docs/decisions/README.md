@@ -8,10 +8,12 @@ This directory is for reviewed decisions that materially change CommitCap's:
 - support envelope;
 - enforcement architecture.
 
-`SPEC.md` remains normative. A decision record must identify the affected
-specification sections, `CC-*` tests, threat-model assumptions, and limitations.
-It does not establish implementation support without regression evidence.
+`docs/spec.md` defines current intended semantics. A decision record must
+identify the affected specification sections, canonical tests from
+`docs/test-plan.md`, threat-model assumptions, and limitations. Historical
+identifiers must be labeled `legacy experiment ID`. A decision does not
+establish implementation support without regression evidence.
 
 Do not add records for routine implementation details, speculative future
-architecture, or decisions that have not been made. No decision records exist
-yet.
+architecture, or decisions that have not been made. Project-wide ADRs currently
+live in [../decisions.md](../decisions.md); no per-record files exist here yet.

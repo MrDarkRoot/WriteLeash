@@ -1,13 +1,24 @@
 # Limitations And Support Matrix
 
+> **Historical evidence notice:** Most of this file preserves the original
+> row-budget Phase 0 matrix and experiment record. Every `CC-*` identifier in
+> this file is a **legacy experiment ID**, not a same-number test from the
+> canonical current plan in [test-plan.md](test-plan.md). Do not infer current
+> test coverage from these historical results.
+
 ## Current Status
 
-CommitCap has no implementation. No database operation is currently supported
-or protected. This matrix separates the intended V0 proof from unknown,
-unsupported, and future behavior so that specifications are not mistaken for
-evidence.
+CommitCap has research implementations and experiment harnesses, but no
+released or supported implementation. No database operation is currently
+claimed to be protected. Current intended semantics live in
+[spec.md](spec.md), canonical tests live in [test-plan.md](test-plan.md), and
+accepted boundaries live in [decisions.md](decisions.md).
 
-Status terms:
+The matrix below records the narrower historical row-budget proof. It is
+preserved so its falsification and native feasibility evidence remain readable,
+not as the current product roadmap or canonical support matrix.
+
+Status terms used by the historical matrix:
 
 - **V0 TARGET:** required for the first technical proof, but not implemented.
 - **REQUIRED TEST:** a bypass-relevant behavior that must be characterized
@@ -20,7 +31,7 @@ Status terms:
 - **NOT IMPLEMENTED:** specified behavior has no implementation evidence.
 - **KNOWN V0 LIMIT:** intentional behavior that narrows V0's security claim.
 
-## Operation And Behavior Matrix
+## Historical Operation And Behavior Matrix
 
 | Operation / behavior | Current status | Security consequence | Planned handling |
 | --- | --- | --- | --- |
@@ -75,17 +86,20 @@ The supported PostgreSQL version range, policy installation interface, denial
 SQLSTATE, and performance envelope are all `UNKNOWN` until measured and
 specified.
 
-## Reading This Matrix
+## Reading The Historical Matrix
 
 An operation is not supported because it happens to fire a trigger in one
 manual test. Support requires normative semantics, documented privileges, and
 passing regression tests for allowed behavior, denial, atomicity, and relevant
 bypass paths.
 
-When implementation evidence changes a row in this table, update `SPEC.md`, the
-threat model, and release claims in the same change.
+Do not extend this legacy matrix as the current test plan. New semantics and
+coverage belong in `docs/spec.md`, `docs/test-plan.md`, and the current threat
+model. Historical observations below remain evidence only.
 
 ## Phase 0 Experiment Evidence
+
+All identifiers in this section are legacy experiment IDs.
 
 The Phase 0 `CC-001` through `CC-003` test-only SQL and PL/pgSQL experiment was
 run against PostgreSQL 16.4 using the pinned `postgres:16.4-alpine` image and
@@ -104,6 +118,8 @@ Concurrency, pooling, partitions, cascades, and cross-transaction authority
 remain untested or unsupported.
 
 ## Irreversible Denial Falsification Evidence
+
+All identifiers in this section are legacy experiment IDs.
 
 The unchanged Phase 0 trigger and transactional-accounting mechanism was tested
 on PostgreSQL 16.4 using `tests/cc008.sh` and `tests/cc024.sh`:
@@ -134,6 +150,8 @@ top-level transaction callbacks and hooks. No replacement mechanism is
 implemented or selected by this experiment.
 
 ## Native Transaction-State Feasibility Evidence
+
+All identifiers in this section are legacy experiment IDs.
 
 A separate, research-scoped C extension experiment under
 `experiments/native_tx_state/` was run on PostgreSQL 16.4. It used
@@ -288,3 +306,8 @@ establish behavior outside PostgreSQL 16.4 and the experiment's narrow test
 envelope. PostgreSQL exposes these facilities to dynamically loaded modules,
 but its server C API is not a stable cross-major ABI. Full research notes and
 remaining unknowns are recorded in the experiment README.
+
+This was not a managed-PostgreSQL feasibility test. The use of extension
+installation, `shared_preload_libraries`, trusted setup privileges, and native
+server interfaces must be evaluated separately against at least one realistic
+managed environment before drawing any deployment conclusion.

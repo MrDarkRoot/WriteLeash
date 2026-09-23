@@ -1,9 +1,9 @@
 # Security Policy
 
 CommitCap is intended to become security-sensitive PostgreSQL infrastructure.
-The repository is currently a Phase 0 specification bootstrap and contains no
-enforcement implementation. There is no current claim that installing or using
-this repository protects a database.
+The repository contains Phase 0 research implementations and experiment
+harnesses, but no released or supported enforcement implementation. There is no
+current claim that installing or using this repository protects a database.
 
 ## Reporting A Vulnerability
 
@@ -67,12 +67,17 @@ also security relevant even when they do not directly exceed a row budget.
 
 Security reports and public claims MUST be evaluated against:
 
-1. [SPEC.md](SPEC.md), which defines normative behavior.
-2. [docs/limitations.md](docs/limitations.md), which defines current support
-   and uncertainty.
+1. [docs/spec.md](docs/spec.md), which defines intended semantics.
+2. [docs/test-plan.md](docs/test-plan.md), which defines canonical current test
+   IDs and required behavior.
 3. [docs/threat-model.md](docs/threat-model.md), which defines trust
    assumptions.
-4. Regression tests shipped by the affected release.
+4. [docs/decisions.md](docs/decisions.md), which records accepted boundaries.
+5. Regression tests shipped by the affected release.
+
+Root [SPEC.md](SPEC.md), historical experiment scripts, and the experiment
+evidence in [docs/limitations.md](docs/limitations.md) use **legacy experiment
+IDs**. Same-number IDs in the current test plan may mean different tests.
 
 Specifications alone are not proof. No operation may be advertised as
 protected until its positive, negative, atomicity, and adversarial tests pass.
