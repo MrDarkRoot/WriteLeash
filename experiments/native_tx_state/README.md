@@ -339,6 +339,42 @@ These results are specific to PostgreSQL 16.4, `READ COMMITTED`, two sessions,
 and the tested statement shapes. Other isolation levels, deadlock-producing
 workloads, and more than two sessions remain untested.
 
+## Numeric-Delta Row-Lock Contention
+
+The issue #9 numeric review required a deterministic two-session refunds
+contention regression in the same harness. `numeric_cases.sh` drives the two
+`commitcap_writer` sessions through the same named pipes, asserts a real lock
+wait from a separate admin connection (`wait_event_type=Lock`,
+`pg_blocking_pids()` naming the holder), and re-verifies every durable amount
+from a fresh trusted-admin connection. Three scenarios ran on
+PostgreSQL 16.4 under `READ COMMITTED`:
+
+- Scenario A (allowed): A committed +70.00 on row 1 while B waited. B's
+  resumed `amount=120.00` observed the post-lock OLD value 70.00 and consumed
+  exactly 50.00; a stale snapshot OLD of 0.00 would have consumed 120.00 and
+  falsely denied B. Both sessions committed with independent numeric state
+  (A 70.00, B 50.00), and the fresh admin observed `1=120.00`.
+- Scenario B (denial): B pre-consumed 50.00, then A committed
+  +90.00/-60.00 (gross +90.00, final 30.00) on the contended row. B's resumed
+  `amount=100.00` computed the post-lock delta 70.00 against remaining 50.00
+  and was denied; a stale OLD of 90.00 would have computed 10.00 and falsely
+  allowed. `ROLLBACK TO SAVEPOINT` kept `denied=true`, a later subscription
+  update was rejected with `top-level transaction already denied`, the top-level
+  `COMMIT` was rejected, and the fresh admin observed A's `1=30.00` with B's
+  sibling subscription unchanged.
+- Scenario C (rollback): A raised row 1 to 80.00 and rolled back while B
+  waited. B's resumed `amount=40.00` consumed exactly 40.00 against the last
+  committed 0.00 version; the aborted 80.00 version would have produced a
+  negative delta and zero consumption.
+
+Allowed numeric effects emit no server-log event line, so exactly-once
+post-lock trigger evaluation is proven by the exact resumed
+`refunds_positive_delta`, single `UPDATE 1` command tags, unchanged
+`pg_stat_database.deadlocks`, and exact durable rows rather than log counts.
+PostgreSQL 16.4 evaluates the BEFORE ROW trigger only after the tuple lock and
+EvalPlanQual, so each contended effect measured its actual locked OLD→NEW
+exactly once.
+
 ## Backend Reuse
 
 `CC-021` reused one persistent protected-writer backend across independent

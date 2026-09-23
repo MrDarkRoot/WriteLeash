@@ -417,3 +417,210 @@ SQL
 assert_refunds 'numeric next transaction' "$refunds_100"
 printf 'numeric next-transaction cleanup: PASS (fresh admin amount=100.00)\n'
 printf 'canonical numeric CC-030/031/032/033 and approved boundary probes: PASS IN PG16.4 RESEARCH FIXTURE\n'
+
+printf '\n--- numeric-delta concurrent row-lock contention ---\n'
+# Two-session regression required by the PR #12 numeric-delta review: READ
+# COMMITTED writers contending for one protected refunds row, using the same
+# named-pipe session harness as the CC-019/CC-020 row experiments. Lock waits
+# are asserted from a separate admin connection through pg_stat_activity and
+# pg_blocking_pids(); no asserted state depends on sleeps. Allowed numeric
+# events produce no server-log event lines, so exactly-once post-lock trigger
+# evaluation is proven by the exact resumed refunds_positive_delta, the single
+# UPDATE command tag, unchanged pg_stat_database.deadlocks, and fresh-admin
+# durable rows instead of the log event counts used for row events.
+assert_value 'numeric contention default numeric budget' \
+    "$(writer_psql -At -v ON_ERROR_STOP=1 -c 'SHOW commitcap_native.test_numeric_budget;')" '100.00'
+
+nc_state_assert() {
+    local name="$1" marker="$2" expected="$3"
+    local line value
+
+    cc_send "$name" "SELECT '$marker:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_policy_probe();"
+    cc_wait_output "$name" "$marker:" "numeric policy state $marker"
+    line="$(grep -F "$marker:" "$CC_SESSION_DIR/$name.out" | tail -n 1)"
+    value="${line##*"$marker:"}"
+    [[ "$value" == "$expected" ]] || \
+        fail "$marker was $value, expected $expected"
+    printf '  %s: subscriptions|users|refunds_positive_delta|denied = %s\n' "$marker" "$value"
+}
+
+nc_deadlocks() {
+    admin_psql -At -v ON_ERROR_STOP=1 -c \
+        "SELECT deadlocks FROM pg_stat_database WHERE datname = current_database();"
+}
+
+nc_update1_delta() {
+    local name="$1" before="$2"
+    local after
+
+    after="$(grep -cFx 'UPDATE 1' "$CC_SESSION_DIR/$name.out" || true)"
+    echo $((after - before))
+}
+
+rm -rf "$CC_SESSION_DIR"
+CC_SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/commitcap_native_numeric_sessions.XXXXXX")"
+cc_session_start a
+cc_session_start b
+cc_session_attach a
+cc_session_attach b
+cc_probe_assert a NC_START_A f 0 f
+cc_probe_assert b NC_START_B f 0 f
+cc_a_pid="$(cc_probe_field a NC_PID_A pid)"
+cc_b_pid="$(cc_probe_field b NC_PID_B pid)"
+[[ "$cc_a_pid" != "$cc_b_pid" ]] || fail "numeric contention sessions shared backend pid $cc_a_pid"
+printf 'numeric contention backend A pid: %s\n' "$cc_a_pid"
+printf 'numeric contention backend B pid: %s\n' "$cc_b_pid"
+
+for nc_session in a b; do
+    cc_send "$nc_session" "SELECT 'NC_ISO_$nc_session:' || current_setting('transaction_isolation');"
+    cc_wait_output "$nc_session" "NC_ISO_$nc_session:" "isolation level for numeric session $nc_session"
+done
+nc_a_iso="$(grep -F 'NC_ISO_a:' "$CC_SESSION_DIR/a.out" | tail -n 1 | cut -d: -f2)"
+nc_b_iso="$(grep -F 'NC_ISO_b:' "$CC_SESSION_DIR/b.out" | tail -n 1 | cut -d: -f2)"
+[[ "$nc_a_iso" == "read committed" && "$nc_b_iso" == "read committed" ]] || \
+    fail "numeric contention isolation was A=$nc_a_iso B=$nc_b_iso, expected read committed for both"
+printf 'numeric contention isolation: A=%s B=%s\n' "$nc_a_iso" "$nc_b_iso"
+
+printf '\nnumeric contention scenario A: both sessions update the same refunds row; B waits on the row lock\n'
+reset_refunds
+nc_deadlocks_before="$(nc_deadlocks)"
+
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.refunds SET amount=70.00 WHERE id=1;"
+nc_state_assert a NC_A_A1 '0|0|70.00|f'
+
+nc_b_update1_before="$(grep -cFx 'UPDATE 1' "$CC_SESSION_DIR/b.out" || true)"
+cc_send b "BEGIN;"
+cc_send b "UPDATE public.refunds SET amount=120.00 WHERE id=1;"
+cc_wait_blocked "$cc_b_pid" "$cc_a_pid" "numeric contention scenario A"
+nc_state_assert a NC_A_A2 '0|0|70.00|f'
+
+nc_a_commits_before="$(cc_count_tag a COMMIT)"
+cc_send a "COMMIT;"
+cc_sync a NC_A_A_COMMIT
+[[ "$(( $(cc_count_tag a COMMIT) - nc_a_commits_before ))" == "1" ]] || \
+    fail "numeric contention scenario A: session A did not commit"
+
+cc_sync b NC_A_B_RESUMED
+[[ "$(nc_update1_delta b "$nc_b_update1_before")" == "1" ]] || \
+    fail "numeric contention scenario A: B contended update did not report exactly one UPDATE tag"
+nc_state_assert b NC_A_B1 '0|0|50.00|f'
+nc_b_commits_before="$(cc_count_tag b COMMIT)"
+cc_send b "COMMIT;"
+cc_sync b NC_A_B_COMMIT
+[[ "$(( $(cc_count_tag b COMMIT) - nc_b_commits_before ))" == "1" ]] || \
+    fail "numeric contention scenario A: session B did not commit"
+
+assert_refunds 'numeric contention scenario A durable' \
+    '1=120.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00'
+cc_probe_assert a NC_A_A_CLEAN f 0 f
+cc_probe_assert b NC_A_B_CLEAN f 0 f
+nc_deadlocks_after="$(nc_deadlocks)"
+printf 'numeric contention scenario A: deadlock count %s -> %s\n' "$nc_deadlocks_before" "$nc_deadlocks_after"
+[[ "$nc_deadlocks_after" == "$nc_deadlocks_before" ]] || \
+    fail "numeric contention scenario A: deadlock count changed"
+printf 'numeric contention scenario A: PASS (verified lock wait; B resumed on committed 70.00 and consumed 50.00; stale OLD 0.00 would have consumed 120.00 and falsely denied; independent 70.00/50.00 accounting; fresh-admin 120.00)\n'
+
+printf '\nnumeric contention scenario B: resumed update exceeds the waiting session numeric budget\n'
+reset_refunds
+nc_deadlocks_before="$(nc_deadlocks)"
+
+cc_send b "BEGIN;"
+cc_send b "UPDATE public.refunds SET amount=50.00 WHERE id=2;"
+nc_state_assert b NC_B_B1 '0|0|50.00|f'
+cc_send b "SAVEPOINT nc_b_sp;"
+
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.refunds SET amount=90.00 WHERE id=1;"
+cc_send a "UPDATE public.refunds SET amount=30.00 WHERE id=1;"
+nc_state_assert a NC_B_A1 '0|0|90.00|f'
+
+nc_b_update1_before="$(grep -cFx 'UPDATE 1' "$CC_SESSION_DIR/b.out" || true)"
+cc_send b "UPDATE public.refunds SET amount=100.00 WHERE id=1;"
+cc_wait_blocked "$cc_b_pid" "$cc_a_pid" "numeric contention scenario B"
+nc_state_assert a NC_B_A2 '0|0|90.00|f'
+
+nc_a_commits_before="$(cc_count_tag a COMMIT)"
+cc_send a "COMMIT;"
+cc_sync a NC_B_A_COMMIT
+[[ "$(( $(cc_count_tag a COMMIT) - nc_a_commits_before ))" == "1" ]] || \
+    fail "numeric contention scenario B: session A did not commit"
+
+cc_wait_output b 'CommitCap numeric delta budget exceeded' 'numeric contention scenario B over-budget denial'
+[[ "$(nc_update1_delta b "$nc_b_update1_before")" == "0" ]] || \
+    fail "numeric contention scenario B: denied contended update reported a successful UPDATE tag"
+
+cc_send b "ROLLBACK TO SAVEPOINT nc_b_sp;"
+nc_state_assert b NC_B_B2 '0|0|50.00|t'
+
+cc_send b "UPDATE public.subscriptions SET status='nc_b_sibling' WHERE id=1;"
+cc_wait_output b 'CommitCap top-level transaction already denied' 'numeric contention scenario B sibling rejection'
+
+cc_send b "ROLLBACK TO SAVEPOINT nc_b_sp;"
+# The recovered transaction is back in progress, so the sticky denial rejects
+# COMMIT at XACT_EVENT_PRE_COMMIT (no COMMIT tag is emitted; this matches the
+# CC-024/CC-032 convention) rather than converting to a top-level ROLLBACK.
+nc_b_commits_before="$(cc_count_tag b COMMIT)"
+cc_send b "COMMIT;"
+cc_wait_output b 'CommitCap top-level transaction denied after mutation authority violation' 'numeric contention scenario B COMMIT rejection'
+[[ "$(( $(cc_count_tag b COMMIT) - nc_b_commits_before ))" == "0" ]] || \
+    fail "numeric contention scenario B: denied transaction emitted a COMMIT tag"
+
+assert_refunds 'numeric contention scenario B durable' \
+    '1=30.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00'
+assert_scalar 'numeric contention scenario B sibling durable' \
+    "SELECT count(*) FROM public.subscriptions WHERE status = 'nc_b_sibling';" \
+    "0"
+cc_probe_assert a NC_B_A_CLEAN f 0 f
+cc_probe_assert b NC_B_B_CLEAN f 0 f
+nc_deadlocks_after="$(nc_deadlocks)"
+printf 'numeric contention scenario B: deadlock count %s -> %s\n' "$nc_deadlocks_before" "$nc_deadlocks_after"
+[[ "$nc_deadlocks_after" == "$nc_deadlocks_before" ]] || \
+    fail "numeric contention scenario B: deadlock count changed"
+printf 'numeric contention scenario B: PASS (post-lock delta 70.00 exceeded remaining 50.00 and was denied; stale OLD 90.00 would have computed 10.00 and falsely allowed; denial sticky through savepoint recovery, sibling rejection and COMMIT rejection; A durable 30.00)\n'
+
+printf '\nnumeric contention scenario C: lock holder rolls back while B waits\n'
+reset_refunds
+nc_deadlocks_before="$(nc_deadlocks)"
+
+cc_send a "BEGIN;"
+cc_send a "UPDATE public.refunds SET amount=80.00 WHERE id=1;"
+nc_state_assert a NC_C_A1 '0|0|80.00|f'
+
+nc_b_update1_before="$(grep -cFx 'UPDATE 1' "$CC_SESSION_DIR/b.out" || true)"
+cc_send b "BEGIN;"
+cc_send b "UPDATE public.refunds SET amount=40.00 WHERE id=1;"
+cc_wait_blocked "$cc_b_pid" "$cc_a_pid" "numeric contention scenario C"
+
+nc_a_rollbacks_before="$(cc_count_tag a ROLLBACK)"
+nc_a_commits_before="$(cc_count_tag a COMMIT)"
+cc_send a "ROLLBACK;"
+cc_sync a NC_C_A_ROLLBACK
+[[ "$(( $(cc_count_tag a ROLLBACK) - nc_a_rollbacks_before ))" == "1" ]] || \
+    fail "numeric contention scenario C: session A did not roll back"
+[[ "$(( $(cc_count_tag a COMMIT) - nc_a_commits_before ))" == "0" ]] || \
+    fail "numeric contention scenario C: session A unexpectedly emitted a COMMIT tag"
+
+cc_sync b NC_C_B_RESUMED
+[[ "$(nc_update1_delta b "$nc_b_update1_before")" == "1" ]] || \
+    fail "numeric contention scenario C: B contended update did not report exactly one UPDATE tag"
+nc_state_assert b NC_C_B1 '0|0|40.00|f'
+nc_b_commits_before="$(cc_count_tag b COMMIT)"
+cc_send b "COMMIT;"
+cc_sync b NC_C_B_COMMIT
+[[ "$(( $(cc_count_tag b COMMIT) - nc_b_commits_before ))" == "1" ]] || \
+    fail "numeric contention scenario C: session B did not commit"
+
+assert_refunds 'numeric contention scenario C durable' \
+    '1=40.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00'
+cc_probe_assert a NC_C_A_CLEAN f 0 f
+cc_probe_assert b NC_C_B_CLEAN f 0 f
+nc_deadlocks_after="$(nc_deadlocks)"
+printf 'numeric contention scenario C: deadlock count %s -> %s\n' "$nc_deadlocks_before" "$nc_deadlocks_after"
+[[ "$nc_deadlocks_after" == "$nc_deadlocks_before" ]] || \
+    fail "numeric contention scenario C: deadlock count changed"
+printf 'numeric contention scenario C: PASS (B resumed against committed 0.00 baseline and consumed 40.00; the aborted 80.00 version would have produced a -40.00 delta and zero consumption)\n'
+
+cc_session_stop a
+cc_session_stop b
+printf 'numeric-delta concurrent row-lock contention: scenarios A, B and C PASS\n'
