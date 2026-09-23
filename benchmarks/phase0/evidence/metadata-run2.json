@@ -1,5 +1,5 @@
 {
-  "tested_commit": "00f0b29696c8180e14748370cd90b745e682c8c7",
+  "tested_commit": "12375d38dd8f302593c2fcba344887fd4f58e3ee",
   "base_digest": "sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c",
   "postgres_version": "16.4",
   "pgbench_version": "pgbench (PostgreSQL) 16.4",
@@ -18,8 +18,8 @@
   "host_cpu_count": 12,
   "host_meminfo": [
     "MemTotal:       15685208 kB",
-    "MemFree:         1248816 kB",
-    "MemAvailable:    4542096 kB"
+    "MemFree:         1890360 kB",
+    "MemAvailable:    5261720 kB"
   ],
   "host_cpu_model": "model name\t: AMD Ryzen 5 5500U with Radeon Graphics",
   "container_resources": "/sys/fs/cgroup/cpu.max\nmax 100000\n/sys/fs/cgroup/memory.max\nmax\n/sys/fs/cgroup/cpuset.cpus.effective\n0-11",
@@ -31,9 +31,10 @@
   "clients": 1,
   "jobs": 1,
   "query_mode": "prepared",
-  "seed": 20260923,
+  "measured_seed": 20260923,
+  "warmup_seed": 20260922,
   "isolation": "read committed",
   "fixture_source": "experiments/native_tx_state/setup.sql (verbatim) + benchmarks/phase0/fixture.sql",
-  "started_utc": "2026-09-23T14:45:47Z",
-  "finished_utc": "2026-09-23T14:46:28Z"
+  "started_utc": "2026-09-23T14:56:05Z",
+  "finished_utc": "2026-09-23T14:57:10Z"
 }
