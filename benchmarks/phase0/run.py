@@ -26,7 +26,7 @@ WARMUP = 50
 TX = 200
 ROUNDS = 3
 DENIED = 30
-FIELDS = ["kind", "round", "arm", "phase", "case", "trial", "latency_us", "commit_us", "rows_per_tx", "elapsed_s", "tps", "durable_check"]
+FIELDS = ["kind", "round", "arm", "phase", "case", "trial", "latency_us", "commit_us", "rows_per_tx", "tps", "durable_check"]
 
 
 def call(args, *, input_text=None, check=True):
@@ -311,8 +311,9 @@ def main():
         CONTAINER = compose("ps", "-q", "postgres").stdout.strip()
         if not CONTAINER:
             raise RuntimeError("Compose postgres container missing")
-        require(docker("image", "inspect", "postgres:16.4-alpine", "--format", "{{index .RepoDigests 0}}").stdout.strip(),
-                "postgres@" + DIGEST, "pinned upstream digest")
+        digests = json.loads(docker("image", "inspect", "postgres:16.4-alpine@" + DIGEST,
+                                   "--format", "{{json .RepoDigests}}").stdout)
+        require("postgres@" + DIGEST in digests, True, "pinned upstream digest")
         install()
         host_config = json.loads(docker("inspect", CONTAINER, "--format", "{{json .HostConfig}}").stdout)
         limits = {key: host_config.get(key) for key in
