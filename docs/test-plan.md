@@ -352,6 +352,38 @@ Verify that implementation never silently switches between gross, positive-only,
 
 ---
 
+## CC-036 — Concurrent numeric-delta enforcement on one contended row
+
+Phase 0 research-fixture test (PostgreSQL 16.4, READ COMMITTED, two writer
+sessions, the existing native transaction-state harness). Two sessions modify
+the same protected `refunds` row; one must demonstrably wait on the row lock
+(`pg_stat_activity.wait_event_type = Lock` with `pg_blocking_pids()` naming
+the other backend), and the waiting session's numeric delta must be computed
+from the row version visible after the lock is released, exactly once.
+
+Scenarios:
+
+```text
+A: lock holder commits; waiter resumes and consumes the post-lock
+   positive delta only (stale OLD-value accounting would consume a
+   detectably different amount)
+B: waiter's post-lock delta exceeds its remaining transaction-local
+   numeric authority; denial is sticky through savepoint recovery and
+   top-level COMMIT is rejected; the lock holder's committed effects
+   remain durable
+C: lock holder rolls back; waiter resumes against the last committed
+   row version and consumes its actual delta
+```
+
+Expected:
+
+```text
+per-backend independent transaction-local accounting
+each committed transaction stays within its own granted authority
+fresh trusted-admin connections observe the exact expected rows
+no deadlock; denial never transfers between sessions
+```
+
 ## CC-034 — Compensating mutation must not replenish capability authority
 
 Relevant once capability-wide budgets exist.

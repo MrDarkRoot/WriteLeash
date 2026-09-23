@@ -7,6 +7,11 @@ ADMIN_PASSWORD='commitcap_native_admin_experiment_only'
 WRITER_PASSWORD='commitcap_writer_experiment_only'
 CC_SESSION_DIR=""
 
+# Optional complete transcript for a pinned tested-commit evidence run.
+if [[ -n "${COMMITCAP_LOG:-}" ]]; then
+    exec > >(tee "$COMMITCAP_LOG") 2>&1
+fi
+
 admin_psql() {
     "${COMPOSE[@]}" exec -T \
         -e "PGPASSWORD=$ADMIN_PASSWORD" \
@@ -235,7 +240,7 @@ assert_privilege_audit() {
         "commitcap_native_admin"
     assert_scalar "extension-owned functions" \
         "SELECT count(*) FROM pg_depend AS d JOIN pg_extension AS e ON e.oid = d.refobjid WHERE e.extname = 'commitcap_native_tx_state' AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e';" \
-        "2"
+        "3"
     assert_scalar "trusted schema owners" \
         "SELECT count(*) FROM pg_namespace WHERE nspname IN ('commitcap_native', 'commitcap_probe') AND pg_get_userbyid(nspowner) <> 'commitcap_owner';" \
         "0"
@@ -495,13 +500,17 @@ cleanup() {
     "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
 }
 
-trap cleanup EXIT
+trap 'status=$?; cleanup; printf "Native suite exit status: %s\n" "$status"' EXIT
 cleanup
 "${COMPOSE[@]}" up -d --build --wait
 admin_psql -v ON_ERROR_STOP=1 < "$EXPERIMENT_DIR/setup.sql" >/dev/null
 
 printf 'Classification: TEST FIRST\n'
+printf 'Command: ./experiments/native_tx_state/run.sh\n'
+printf 'Tested commit: %s\n' "$(git -C "$EXPERIMENT_DIR/../.." rev-parse HEAD)"
+printf 'Base image: %s\n' "$(docker image inspect postgres:16.4-alpine --format '{{index .RepoDigests 0}}')"
 printf 'PostgreSQL: %s\n' "$(admin_psql -At -v ON_ERROR_STOP=1 -c 'SHOW server_version;')"
+printf 'Outside this suite: capability-wide CC-034/035, managed deployment, ungranted INSERT/DELETE/COPY/TRUNCATE accounting, other PostgreSQL majors and poolers.\n'
 assert_privilege_envelope
 assert_privilege_audit
 
@@ -2035,47 +2044,63 @@ assert_scalar "CC-012 nested denied sibling audit" \
     "SELECT count(*) FROM public.unprotected_audit WHERE message = 'cc012_sibling';" "0"
 printf 'CC-012 nested denial: PASS (inner and outer recovery kept denied=true; COMMIT rejected; admin saw baseline and audit=0)\n'
 
-# Security-coverage probe (#11): the current C ExperimentState has one global
-# row-event counter, although the canonical policy model budgets rows per
-# protected table. Keep this as an explicit known-failure reproduction, not a
-# PASS for independent policies. Both durable-state checks use fresh admin
-# connections; a future per-table implementation must replace this expectation.
-printf '\n--- multi-table policy-isolation reproduction (known FAIL) ---\n'
-reset_fixture
-reset_users_fixture
 printf 'Additional unsupported-path privilege probes:\n'
 cc_denied_attempt coverage_copy_from 42501 "COPY public.subscriptions (id, status) FROM STDIN"
 cc_denied_attempt coverage_delete_returning 42501 "DELETE FROM public.subscriptions WHERE id = 1 RETURNING id"
 cc_denied_attempt coverage_upsert 42501 "INSERT INTO public.subscriptions (id, status) VALUES (1, 'bad') ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status"
 assert_baseline
+
+# Canonical numeric cases and independent-policy counter tests are in a
+# separate sourced script so the historical legacy CC-* namespace above stays
+# unchanged. The script uses the same writer/admin sessions and assertions.
+# PR #12 keyed the row counters and the numeric metric per protected table;
+# its independence cases assert positive forward- and reverse-order policy
+# independence (A and B) with exact probe values and fresh-admin oracles.
+source "$EXPERIMENT_DIR/numeric_cases.sh"
+
+# Integrated independent-policy acceptance (#11, case C): replaces the
+# historical shared-counter known FAIL, which PR #12 fixed by keying counters
+# per protected table. Perform permitted operations across all three policies,
+# exceed exactly one policy's budget inside a savepoint, recover with ROLLBACK
+# TO SAVEPOINT, and verify the denial stays sticky, poisons top-level COMMIT,
+# and leaves no durable protected or sibling transactional change. Permitted
+# consumption in the other policies must remain independently accounted
+# (3|1|40.00), not credited against the violated policy.
+printf '\n--- independent-policy individual violation with sibling audit ---\n'
+reset_fixture
+reset_users_fixture
+reset_refunds
 set +e
-cc_multi_table_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+cc_policy_violation_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
-UPDATE public.subscriptions SET status = 'cc_multi_table' WHERE id BETWEEN 1 AND 5;
-SAVEPOINT before_other_table;
+UPDATE public.subscriptions SET status = 'cc_indep_violation' WHERE id BETWEEN 1 AND 3;
 UPDATE public.users SET role = 'moderator' WHERE id = 1;
-ROLLBACK TO SAVEPOINT before_other_table;
-SELECT 'CC_MULTI_TABLE_STATE:' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+UPDATE public.refunds SET amount = 40.00 WHERE id = 1;
+SAVEPOINT exceed_row_policy;
+UPDATE public.subscriptions SET status = 'cc_indep_violation' WHERE id BETWEEN 4 AND 6;
+ROLLBACK TO SAVEPOINT exceed_row_policy;
+SELECT 'CC_POLICY_VIOLATION_STATE:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_policy_probe();
+INSERT INTO public.unprotected_audit (message) VALUES ('cc_policy_violation_sibling');
 COMMIT;
 SQL
 )"
 set -e
-[[ "$cc_multi_table_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
-    fail "multi-table known-failure reproduction changed: inspect output $cc_multi_table_output"
-[[ "$cc_multi_table_output" == *"CC_MULTI_TABLE_STATE:5|t"* ]] || \
-    fail "multi-table denial was not sticky after savepoint recovery"
-[[ "$cc_multi_table_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
-    fail "multi-table poisoned COMMIT was not rejected"
+[[ "$cc_policy_violation_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "independent-policy violation did not deny the row-policy excess: $cc_policy_violation_output"
+[[ "$cc_policy_violation_output" == *"CC_POLICY_VIOLATION_STATE:3|1|40.00|t"* ]] || \
+    fail "independent-policy violation lost independent accounting or sticky denial: $cc_policy_violation_output"
+[[ "$cc_policy_violation_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+    fail "independent-policy poisoned COMMIT was not rejected"
 printf '  writer state: %s\n' \
-    "$(printf '%s\n' "$cc_multi_table_output" | grep -F 'CC_MULTI_TABLE_STATE:' | head -n 1)"
+    "$(printf '%s\n' "$cc_policy_violation_output" | grep -F 'CC_POLICY_VIOLATION_STATE:' | head -n 1)"
 printf '  writer final COMMIT: %s\n' \
-    "$(printf '%s\n' "$cc_multi_table_output" | grep -F 'denied after mutation authority violation' | head -n 1)"
+    "$(printf '%s\n' "$cc_policy_violation_output" | grep -F 'denied after mutation authority violation' | head -n 1)"
 assert_baseline
 assert_users_baseline
-printf '  fresh admin durable: subscriptions=%s; users=%s\n' \
-    "$(admin_psql -At -v ON_ERROR_STOP=1 -c "SELECT count(*) FILTER (WHERE status = 'baseline') || ':' || count(*) FILTER (WHERE status <> 'baseline') FROM public.subscriptions;")" \
-    "$(admin_psql -At -v ON_ERROR_STOP=1 -c "SELECT count(*) FILTER (WHERE role = 'member') || ':' || count(*) FILTER (WHERE role <> 'member') FROM public.users;")"
-printf 'multi-table per-policy isolation: FAIL against spec (5 subscriptions + 1 allowed users transition denied; both tables unchanged after rejected COMMIT)\n'
+assert_refunds "independent-policy violation poisoned COMMIT" "$refunds_baseline"
+assert_scalar "independent-policy violation sibling audit" \
+    "SELECT count(*) FROM public.unprotected_audit WHERE message = 'cc_policy_violation_sibling';" "0"
+printf 'independent-policy individual violation: PASS (3|1|40.00 independently accounted; sticky denial after ROLLBACK TO; poisoned COMMIT rejected; fresh admin saw all protected baselines and sibling audit=0)\n'
 
 lifecycle_logs="$("${COMPOSE[@]}" logs --no-color postgres 2>&1 | grep 'commitcap_native_tx_state lifecycle' || true)"
 for required_event in \
@@ -2089,4 +2114,4 @@ done
 printf '%s\n' '--- callback lifecycle trace ---'
 printf '%s\n' "$lifecycle_logs"
 printf '%s\n' '--- end callback lifecycle trace ---'
-printf 'native transaction-state experiment: existing required tests PASS; multi-table per-policy isolation KNOWN FAIL\n'
+printf 'native transaction-state experiment: all required tests PASS including independent per-policy acceptance in both orders and individual-violation recovery (PG16.4 research fixture)\n'

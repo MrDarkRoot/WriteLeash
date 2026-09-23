@@ -31,6 +31,12 @@ A later addition to the same mechanism answers a second question: can a
 state-transition denial share the same sticky top-level denial while allowed
 transitions still consume the transaction-wide row-update budget?
 
+The issue #9 addition tests independent subscriptions/users row counters and
+one fixed-rule `refunds.amount` positive-delta budget, in the **same research
+mechanism**. The two row policies each have a test-only limit of five; refunds
+has a separate test-only numeric limit of 100.00. Only the sticky-denied bit is
+shared. A passing local run does not establish supported production behavior.
+
 ## Reproduce
 
 From the repository root:
@@ -154,6 +160,43 @@ The same-backend cleanup probes also passed:
 
 These results make this mechanism class **VIABLE FOR FURTHER TESTING**. They do
 not make the experiment production-ready or any operation supported.
+
+### Canonical numeric-delta suite and independent policies (issue #9)
+
+The regression and canonical numeric cases live in `numeric_cases.sh`, sourced
+by `run.sh` **after** the original tests. In this section alone `CC-030` through
+`CC-033` mean the canonical [test-plan](../../docs/test-plan.md) numeric cases;
+the same labels printed by older row-budget portions of `run.sh` remain
+**legacy experiment IDs**. The sourced script checks writer outcomes, probes
+the three independent backend-local counters, and checks committed/aborted rows
+from separate trusted-admin connections. The complete sanitized
+[tested-commit transcript](evidence/2026-09-23-cc030-cc033-7c1eb35.txt)
+records command, image digest, server version, `7c1eb35` tested SHA, skips,
+callback traces, durable results, and exit status 0. The two operation orders,
+canonical CC-030–033 and approved boundary cases passed within this fixture;
+they do not prove production support or managed deployment.
+
+Approved fixture-only semantics are documented in
+[`docs/numeric-delta-decision-proposal.md`](../../docs/numeric-delta-decision-proposal.md):
+`delta = NEW.amount - OLD.amount` per UPDATE row effect, cumulative positive
+part without netting; no numeric authority spent on negative/no-op effects;
+allowed subtransaction rollback unwinds only provisional consumption; any
+violation makes denial sticky through `XACT_EVENT_PRE_COMMIT`. The amount column
+is unconstrained `numeric` **without typmod rounding**. The BEFORE UPDATE C
+trigger rejects NULL, NaN, ±Infinity, negative, >16 integer digits or >2
+fractional digits before accounting. The test-only `PGC_SUSET` numeric budget
+GUC requires a nonnegative decimal spelling with exactly two fractional digits
+and at most 16 integer digits (max `9999999999999999.99`). The writer cannot
+change it. It is a PostgreSQL relational measurement, not proof of any funds
+transfer. The experiment has no numeric INSERT/DELETE policy: the writer lacks
+those privileges on `refunds`.
+
+The original `cc_native_probe().consumed` remains a **legacy aggregate
+instrumentation value**, not a budget. `cc_native_policy_probe()` reports
+`subscriptions_consumed`, `users_consumed`, `refunds_positive_delta`, and
+`denied` for independent accounting checks. Allowed effects from separate
+policies are counted separately even when written in one transaction; the
+same sticky-denied bit invalidates all of them on an over-budget attempt.
 
 ## Row-Event Definition
 
@@ -295,6 +338,42 @@ from a separate admin connection using `pg_stat_activity` and
 These results are specific to PostgreSQL 16.4, `READ COMMITTED`, two sessions,
 and the tested statement shapes. Other isolation levels, deadlock-producing
 workloads, and more than two sessions remain untested.
+
+## Numeric-Delta Row-Lock Contention
+
+The issue #9 numeric review required a deterministic two-session refunds
+contention regression in the same harness. `numeric_cases.sh` drives the two
+`commitcap_writer` sessions through the same named pipes, asserts a real lock
+wait from a separate admin connection (`wait_event_type=Lock`,
+`pg_blocking_pids()` naming the holder), and re-verifies every durable amount
+from a fresh trusted-admin connection. Three scenarios ran on
+PostgreSQL 16.4 under `READ COMMITTED`:
+
+- Scenario A (allowed): A committed +70.00 on row 1 while B waited. B's
+  resumed `amount=120.00` observed the post-lock OLD value 70.00 and consumed
+  exactly 50.00; a stale snapshot OLD of 0.00 would have consumed 120.00 and
+  falsely denied B. Both sessions committed with independent numeric state
+  (A 70.00, B 50.00), and the fresh admin observed `1=120.00`.
+- Scenario B (denial): B pre-consumed 50.00, then A committed
+  +90.00/-60.00 (gross +90.00, final 30.00) on the contended row. B's resumed
+  `amount=100.00` computed the post-lock delta 70.00 against remaining 50.00
+  and was denied; a stale OLD of 90.00 would have computed 10.00 and falsely
+  allowed. `ROLLBACK TO SAVEPOINT` kept `denied=true`, a later subscription
+  update was rejected with `top-level transaction already denied`, the top-level
+  `COMMIT` was rejected, and the fresh admin observed A's `1=30.00` with B's
+  sibling subscription unchanged.
+- Scenario C (rollback): A raised row 1 to 80.00 and rolled back while B
+  waited. B's resumed `amount=40.00` consumed exactly 40.00 against the last
+  committed 0.00 version; the aborted 80.00 version would have produced a
+  negative delta and zero consumption.
+
+Allowed numeric effects emit no server-log event line, so exactly-once
+post-lock trigger evaluation is proven by the exact resumed
+`refunds_positive_delta`, single `UPDATE 1` command tags, unchanged
+`pg_stat_database.deadlocks`, and exact durable rows rather than log counts.
+PostgreSQL 16.4 evaluates the BEFORE ROW trigger only after the tuple lock and
+EvalPlanQual, so each contended effect measured its actual locked OLD→NEW
+exactly once.
 
 ## Backend Reuse
 
@@ -572,6 +651,13 @@ owner-role membership, or mutable accounting object. Both protected relations
 and both trigger functions are owned by the separate `NOLOGIN`
 `commitcap_owner` role.
 
+For the numeric test fixture, `commitcap_writer` additionally receives
+`SELECT(id, amount), UPDATE(amount)` on `refunds`, not INSERT/DELETE/TRUNCATE,
+DDL, trusted-schema access, enforcement-function EXECUTE, or access to change
+the superuser-only numeric-budget parameter. The trusted owner owns the
+`refunds` table and native trigger function. A second read-only probe reports
+the caller's own three counters and denied flag.
+
 The concurrency experiments added one instrumentation grant: `USAGE` on the
 `commitcap_probe` schema and `EXECUTE` on the read-only
 `commitcap_probe.cc_native_probe()` function. The function reports only the
@@ -616,6 +702,8 @@ enforcement schema, or bypass the trigger.
   `WHEN MATCHED THEN UPDATE` forms; other MERGE actions and source shapes
   remain untested.
 - Backend termination and out-of-memory behavior were not fault-injected.
-- The experiment hard-codes one relation's update budget of five and contains
-  no policy, configuration, shared authority, or production installation
-  design.
+- This fixture implements only two fixed row-policy keys (subscriptions and
+  users), one fixed numeric key (refunds.amount), and test-only configuration.
+  There is no general policy engine, shared capability authority, or production
+  installation design. Alternate schema/trigger graphs and numeric INSERT or
+  DELETE remain untested/unsupported; do not infer safety from this fixture.
