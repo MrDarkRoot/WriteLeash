@@ -95,7 +95,7 @@ def install():
     # Explicitly verify per-statement affected rows, not just the assumed range shape.
     reset("protected")
     for n in (1, 5, 100):
-        p = db(WRITER, "", extra=("-c", f"UPDATE public.subscriptions SET status=status||'x' WHERE id BETWEEN 100 AND {99+n};"))
+        p = db(WRITER, "", extra=("-c", f"UPDATE public.subscriptions SET status='bench' WHERE id BETWEEN 100 AND {99+n};"))
         require(p.stdout.strip(), f"UPDATE {n}", f"protected {n}-row tag")
     for arm in ("protected", "baseline"):
         p = "" if arm == "protected" else "baseline_"
@@ -128,7 +128,7 @@ def script(arm, case):
     if case == "users":
         return f"""\\set id random(1,{ROWS})
 BEGIN;
-UPDATE public.{p}users SET role=CASE WHEN role='member' THEN 'moderator' ELSE 'member' END WHERE id=:id;
+UPDATE public.{p}users SET role='moderator' WHERE id=:id;
 COMMIT;
 """, 1
     if case == "refunds":
@@ -142,15 +142,15 @@ COMMIT;
 \\set uid random(1,{ROWS-1})
 \\set rid random(1,{ROWS-1})
 BEGIN;
-UPDATE public.{p}subscriptions SET status=status||'x' WHERE id BETWEEN :sid AND :sid+2;
-UPDATE public.{p}users SET role=CASE WHEN role='member' THEN 'moderator' ELSE 'member' END WHERE id BETWEEN :uid AND :uid+1;
+UPDATE public.{p}subscriptions SET status='bench' WHERE id BETWEEN :sid AND :sid+2;
+UPDATE public.{p}users SET role='moderator' WHERE id BETWEEN :uid AND :uid+1;
 UPDATE public.{p}refunds SET amount=amount+0.01 WHERE id BETWEEN :rid AND :rid+1;
 COMMIT;
 """, 7
     n = int(case)
     return f"""\\set id random(1,{ROWS-n+1})
 BEGIN;
-UPDATE public.{p}subscriptions SET status=status||'x' WHERE id BETWEEN :id AND :id+{n-1};
+UPDATE public.{p}subscriptions SET status='bench' WHERE id BETWEEN :id AND :id+{n-1};
 COMMIT;
 """, n
 
@@ -192,13 +192,15 @@ def bench(arm, case, round_no, phase, count, outdir):
 
 def durable(arm, case, transactions):
     p = "" if arm == "protected" else "baseline_"
-    n = 3 if case == "mixed" else (0 if case in ("users", "refunds") else int(case))
     require(scalar(f"SELECT count(*) FROM public.{p}subscriptions;"), ROWS, "subscription row count")
-    require(scalar(f"SELECT sum(length(status)-8) FROM public.{p}subscriptions;"),
-            n * transactions, f"{arm} {case} durable subscription effects")
+    require(scalar(f"SELECT count(*) FROM public.{p}subscriptions WHERE status NOT IN ('baseline','bench');"),
+            0, f"{arm} {case} subscription values")
+    if case not in ("users", "refunds"):
+        if int(scalar(f"SELECT count(*) FROM public.{p}subscriptions WHERE status='bench';")) == 0:
+            raise RuntimeError(f"{arm} {case}: no durable subscription changes")
     require(scalar(f"SELECT count(*) FROM public.{p}users WHERE role NOT IN ('member','moderator');"),
             0, "allowed role values")
-    if case == "users":
+    if case in ("users", "mixed"):
         if int(scalar(f"SELECT count(*) FROM public.{p}users WHERE role='moderator';")) == 0:
             raise RuntimeError(f"{arm} users: no durable allowed transitions")
     require(scalar(f"SELECT count(*) FROM public.{p}refunds;"), ROWS, "refund row count")
@@ -211,7 +213,7 @@ def durable(arm, case, transactions):
 def denied_case(case):
     if case == "row":
         # Set 100-row test budget above; denial on event 101 within the transaction.
-        sql = "UPDATE public.subscriptions SET status=status||'x' WHERE id BETWEEN 1 AND 101;"
+        sql = "UPDATE public.subscriptions SET status='bench' WHERE id BETWEEN 1 AND 101;"
         expected = "CommitCap mutation budget exceeded"
     elif case == "transition":
         sql = "UPDATE public.users SET role='admin' WHERE id=1;"
@@ -343,7 +345,7 @@ def main():
                             for i, latency in enumerate(latencies, 1):
                                 raw.append({"kind": "accepted", "round": r, "arm": arm, "phase": phase,
                                             "case": case, "trial": i, "latency_us": latency,
-                                            "rows_per_tx": per_tx, "tps": tps, "durable_check": "verified"})
+                                            "rows_per_tx": per_tx, "tps": tps, "durable_check": "state_verified"})
                     durable(arm, case, WARMUP+TX)
                     print(f"round {r} {case} {arm}: {TX} accepted; {tps:.2f} TPS; durable effects verified", flush=True)
         reset("protected")

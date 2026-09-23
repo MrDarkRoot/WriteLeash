@@ -36,14 +36,20 @@ one client/job, 50 warmup then 200 measured transactions per cell, three
 rounds, alternating first arm, `-l` per-transaction logs. Transactions contain
 one UPDATE of 1/5/100 subscriptions rows, a separate one-row users transition,
 a separate one-row refunds +0.01, or three subscriptions, two users
-(`member`/`moderator` toggle), and two refunds (+0.01 each) in one mixed
+(`member`→`moderator` initially), and two refunds (+0.01 each) in one mixed
 transaction. IDs are chosen in the valid 1..10000 range with seeded pgbench
 `random()` (same seed per arm/round), and all writes are inside BEGIN/COMMIT.
 Each cell starts with trusted-admin TRUNCATE/reseed and ANALYZE on both tables;
 those operations and warmup are excluded from the measured interval. The
-runner checks row counts, trigger graph, writer grants, warmup+measured
-expected durable subscription effect counts (via status length) and refunds
-sum, and independent fresh-admin durable oracles for denied transactions.
+runner checks row counts, trigger graph, writer grants, durable changed
+subscription/allowed users state and exact cumulative refunds sum, and
+independent fresh-admin durable oracles for denied transactions. Repeated
+subscription/role assignments may be no-ops; they still fire UPDATE row events.
+Because the fixture's restricted writer cannot SELECT `status` or `role`,
+exact *cumulative* subscription/users event totals come from the validated
+fixed-range SQL shapes and successful pgbench transaction counts, not from a
+durable length counter. Each 1/5/100-row SQL shape is first checked for its
+actual `UPDATE N` command tag; the two-row users/refunds shapes are also probed.
 Any mismatch aborts the run. Accepted latency is pgbench per-transaction
 client elapsed microseconds (including SQL, round trips and COMMIT); TPS and
 rows/sec use pgbench measured elapsed time and **effect counts**, not distinct
