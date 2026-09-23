@@ -18,22 +18,29 @@ CommitCap proposes to separate those two things:
 PostgreSQL privileges
 -> what the credential may modify
 
-declared mutation budget
--> what this task may make durable
+per-transaction mutation budget
+-> what one transaction may make durable
 ```
 
-A task receives a finite, declared relational mutation budget, for example:
+A remediation transaction receives an illustrative per-transaction relational
+mutation budget, for example:
 
 ```text
 budget:
   subscriptions.rows_updated: 25
 ```
 
-Supported effects consume that budget as the task runs. If a supported effect
-would exceed the remaining budget, the transaction is denied before the excess
-becomes durable. This is intended behavior; the repository currently contains
-specifications and research experiments, not a released or supported
-implementation.
+Supported effects consume that budget within one top-level PostgreSQL
+transaction. If a supported effect would exceed the remaining budget, the
+transaction is denied before the excess becomes durable.
+
+The current PostgreSQL 16.4 research mechanism accounts for protected effects
+per top-level transaction only. A remediation job that spans several
+transactions is not yet bounded by one shared task-wide authority; task-scoped,
+cross-transaction consumable capabilities remain future work.
+
+This is intended behavior; the repository currently contains specifications and
+research experiments, not a released or supported implementation.
 
 CommitCap gives flexible production automation a finite loss envelope by
 turning database `WRITE` permission into measurable, consumable mutation
