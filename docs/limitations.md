@@ -180,6 +180,15 @@ backend-local top-level state, per-subtransaction allowed-consumption deltas,
   sixth execution in the same transaction raised the denial and no protected
   mutation became durable. Preparation and repeated execution did not create
   fresh authority.
+- `CC-026`: **PASS** on PostgreSQL 16.4 native experiment for tested
+  `MERGE ... WHEN MATCHED THEN UPDATE` forms. The existing writer grants
+  (`UPDATE(status)`, `SELECT(id)`) were sufficient and no privilege was
+  broadened. Five MERGE update actions consumed five events and committed; six
+  were denied and nothing became durable. `EXPLAIN (ANALYZE)` reported five
+  enforcement-trigger calls for five MERGE actions. An ordinary `UPDATE` plus
+  MERGE, and multiple MERGE statements, shared one transaction budget.
+  `WHEN NOT MATCHED` actions, `DELETE` actions, conditional branches, and other
+  source shapes remain untested.
 - `CC-027`: **PASS** on PostgreSQL 16.4 native experiment under the tested role
   topology. Twenty-seven writer attempts to disable or drop enforcement, alter
   or replace the trusted function, create or drop objects in trusted schemas,

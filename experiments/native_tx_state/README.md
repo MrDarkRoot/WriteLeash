@@ -71,6 +71,7 @@ Observed on PostgreSQL 16.4:
 | `CC-021` | **PASS** | One persistent backend started every next top-level transaction at `consumed=0, denied=false` after commit, rollback, denial abort, savepoint-recovered denial, caught denial, and autocommit transactions; no reset function or disconnect |
 | `CC-024` | **PASS** | PL/pgSQL caught event-six error, but final `COMMIT` errored and a fresh connection observed the baseline |
 | `CC-025` | **PASS** | One prepared `UPDATE` executed five times committed; the sixth execution in one transaction was denied and no protected mutation became durable |
+| `CC-026` | **PASS** | Five MERGE update actions consumed five events and committed; six were denied; mixed UPDATE+MERGE and multiple MERGE statements shared one transaction budget |
 | `CC-027` | **PASS** | All 27 writer bypass attempts were denied; trusted object ownership, trigger state, and enforcement behavior were unchanged |
 | `CC-028` | **PASS** | Zero memberships and zero reachable roles; `SET ROLE` denied for every other role and `SET SESSION AUTHORIZATION` denied |
 | `CC-029` | **PASS** | `max_prepared_transactions=0`; `PREPARE TRANSACTION` rejected with `55000`; no prepared transaction and no durable mutation |
@@ -117,6 +118,40 @@ The client's following `COMMIT` therefore returned a `ROLLBACK` command tag
 instead of reaching `XACT_EVENT_PRE_COMMIT`. Commit rejection at the pre-commit
 callback when execution recovers after a denial remains covered by `CC-008`,
 `CC-024`, and `CC-032`.
+
+## MERGE Accounting
+
+`CC-026` tested whether `MERGE ... WHEN MATCHED THEN UPDATE` reaches the same
+backend-local row-event accounting as ordinary `UPDATE`. No MERGE support code
+was added; the experiment only exercised existing behavior.
+
+The writer's existing column grants were sufficient: `UPDATE(status)` on the
+target and `SELECT(id)` for the `ON target.id = source.id` join. No privilege
+was granted or broadened, and the source was an inline `VALUES` list, so no
+additional relation privileges were required.
+
+Observed on PostgreSQL 16.4:
+
+- Instrumentation: `EXPLAIN (ANALYZE, COSTS OFF)` over a five-row MERGE
+  reported `Trigger subscriptions_update_budget: ... calls=5`, proving the
+  BEFORE UPDATE trigger fired once per MERGE update action.
+- Five-event MERGE: command tag `MERGE 5`; probe read `consumed=5,
+  denied=false`; `COMMIT` succeeded and a fresh admin connection observed
+  exactly five durable changes.
+- Six-event MERGE: event six raised the CommitCap denial; `COMMIT` returned
+  `ROLLBACK`; the table remained at baseline.
+- Mixed `UPDATE` + MERGE: an ordinary three-row `UPDATE` followed by a two-row
+  MERGE read `consumed=5`; a further one-row MERGE raised the event-six denial
+  and nothing became durable.
+- Multiple MERGE statements: a three-row MERGE followed by a two-row MERGE
+  read `consumed=5`; a further one-row MERGE was denied and nothing became
+  durable.
+
+MERGE update actions therefore shared the top-level transaction budget rather
+than receiving statement-local authority. This covers only
+`WHEN MATCHED THEN UPDATE` with an inline `VALUES` source; `WHEN NOT MATCHED`
+actions, `DELETE` actions, conditional or multiple branches, and other source
+shapes remain untested.
 
 ## Concurrent Sessions
 
@@ -392,8 +427,8 @@ enforcement schema, or bypass the trigger.
 
 ## Known Risks And Unknowns
 
-- Only the sixteen requested tests, lifecycle cleanup, savepoint-release, and
-  concurrency lifecycle probes were run. This is not the complete Gate 1
+- Only the seventeen requested tests, lifecycle cleanup, savepoint-release,
+  and concurrency lifecycle probes were run. This is not the complete Gate 1
   matrix.
 - Privilege results are specific to the tested role topology and extension
   control. Deployments with different memberships, ownership, helper roles, or
@@ -412,8 +447,10 @@ enforcement schema, or bypass the trigger.
 - Role switching on one backend was not tested; the protected writer has no
   role memberships and adding one would alter the tested envelope.
 - Parallel execution, two-phase commit (`PREPARE TRANSACTION`), triggers beyond
-  the one generated trigger, cascades, partitions, and `MERGE` or
-  `INSERT ... ON CONFLICT` mutation forms remain untested or out of scope.
+  the one generated trigger, cascades, partitions, and `INSERT ... ON CONFLICT`
+  remain untested or out of scope. MERGE is covered only for the tested
+  `WHEN MATCHED THEN UPDATE` forms; other MERGE actions and source shapes
+  remain untested.
 - Backend termination and out-of-memory behavior were not fault-injected.
 - The experiment hard-codes one relation's update budget of five and contains
   no policy, configuration, shared authority, or production installation

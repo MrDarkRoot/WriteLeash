@@ -500,7 +500,124 @@ assert_scalar "CC-029 prepared transaction by gid" \
     "SELECT count(*) FROM pg_prepared_xacts WHERE gid = 'cc029_test';" "0"
 assert_baseline
 printf 'CC-029: PASS (two-phase commit unavailable; no prepared transaction; no durable mutation)\n'
-printf '\nRegression suite follows; all of it runs after the privilege attempts.\n'
+
+printf '\nCC-026 MERGE WHEN MATCHED UPDATE accounting:\n'
+
+reset_fixture
+cc026_explain_output="$(writer_psql -v ON_ERROR_STOP=1 2>&1 <<'SQL'
+BEGIN;
+EXPLAIN (ANALYZE, COSTS OFF)
+MERGE INTO public.subscriptions AS target
+USING (VALUES (1, 'cc026_explain'), (2, 'cc026_explain'), (3, 'cc026_explain'), (4, 'cc026_explain'), (5, 'cc026_explain')) AS source(id, status)
+ON target.id = source.id
+WHEN MATCHED THEN UPDATE SET status = source.status;
+ROLLBACK;
+SQL
+)"
+[[ "$cc026_explain_output" == *"subscriptions_update_budget"*"calls=5"* ]] || \
+    fail "CC-026 row-event instrumentation did not report five enforcement-trigger calls"
+printf '  row-event instrumentation: 5 MERGE update actions invoked the enforcement trigger 5 times\n'
+assert_baseline
+
+reset_fixture
+set +e
+cc026_five_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+MERGE INTO public.subscriptions AS target
+USING (VALUES (1, 'cc026_allowed'), (2, 'cc026_allowed'), (3, 'cc026_allowed'), (4, 'cc026_allowed'), (5, 'cc026_allowed')) AS source(id, status)
+ON target.id = source.id
+WHEN MATCHED THEN UPDATE SET status = source.status;
+SELECT 'CC026_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc026_five_output" == *"MERGE 5"* ]] || \
+    fail "CC-026 five-event MERGE did not report five updated rows"
+[[ "$cc026_five_output" == *"CC026_STATE:t|5|f"* ]] || \
+    fail "CC-026 five-event MERGE state was not consumed=5 denied=false (output: $cc026_five_output)"
+assert_scalar "CC-026 five-event durable" \
+    "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
+    "1=cc026_allowed,2=cc026_allowed,3=cc026_allowed,4=cc026_allowed,5=cc026_allowed,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline"
+printf 'CC-026 five-event MERGE: PASS\n'
+
+reset_fixture
+set +e
+cc026_six_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+MERGE INTO public.subscriptions AS target
+USING (VALUES (1, 'cc026_denied'), (2, 'cc026_denied'), (3, 'cc026_denied'), (4, 'cc026_denied'), (5, 'cc026_denied'), (6, 'cc026_denied')) AS source(id, status)
+ON target.id = source.id
+WHEN MATCHED THEN UPDATE SET status = source.status;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc026_six_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-026 six-event MERGE did not report event-six denial"
+[[ "$cc026_six_output" == *"ROLLBACK"* ]] || \
+    fail "CC-026 six-event MERGE did not abort the transaction"
+assert_baseline
+printf 'CC-026 six-event MERGE: PASS\n'
+
+reset_fixture
+set +e
+cc026_mixed_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc026_mixed' WHERE id BETWEEN 1 AND 3;
+MERGE INTO public.subscriptions AS target
+USING (VALUES (4, 'cc026_mixed'), (5, 'cc026_mixed')) AS source(id, status)
+ON target.id = source.id
+WHEN MATCHED THEN UPDATE SET status = source.status;
+SELECT 'CC026_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+MERGE INTO public.subscriptions AS target
+USING (VALUES (6, 'cc026_mixed')) AS source(id, status)
+ON target.id = source.id
+WHEN MATCHED THEN UPDATE SET status = source.status;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc026_mixed_output" == *"CC026_STATE:t|5|f"* ]] || \
+    fail "CC-026 mixed UPDATE+MERGE did not share the budget (output: $cc026_mixed_output)"
+[[ "$cc026_mixed_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-026 mixed UPDATE+MERGE did not deny the sixth event"
+[[ "$cc026_mixed_output" == *"ROLLBACK"* ]] || \
+    fail "CC-026 mixed UPDATE+MERGE did not abort the transaction"
+assert_baseline
+printf 'CC-026 mixed UPDATE + MERGE: PASS\n'
+
+reset_fixture
+set +e
+cc026_multi_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+MERGE INTO public.subscriptions AS target
+USING (VALUES (1, 'cc026_multi'), (2, 'cc026_multi'), (3, 'cc026_multi')) AS source(id, status)
+ON target.id = source.id
+WHEN MATCHED THEN UPDATE SET status = source.status;
+MERGE INTO public.subscriptions AS target
+USING (VALUES (4, 'cc026_multi'), (5, 'cc026_multi')) AS source(id, status)
+ON target.id = source.id
+WHEN MATCHED THEN UPDATE SET status = source.status;
+SELECT 'CC026_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+MERGE INTO public.subscriptions AS target
+USING (VALUES (6, 'cc026_multi')) AS source(id, status)
+ON target.id = source.id
+WHEN MATCHED THEN UPDATE SET status = source.status;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc026_multi_output" == *"CC026_STATE:t|5|f"* ]] || \
+    fail "CC-026 multiple MERGE statements did not share the budget (output: $cc026_multi_output)"
+[[ "$cc026_multi_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-026 multiple MERGE statements did not deny the sixth event"
+[[ "$cc026_multi_output" == *"ROLLBACK"* ]] || \
+    fail "CC-026 multiple MERGE statements did not abort the transaction"
+assert_baseline
+printf 'CC-026 multiple MERGE statements: PASS\n'
+printf 'CC-026: PASS (MERGE WHEN MATCHED UPDATE shares transaction-wide accounting)\n'
+printf '\nRegression suite follows; all of it runs after the privilege and MERGE experiments.\n'
 
 reset_fixture
 writer_psql -v ON_ERROR_STOP=1 -c \
