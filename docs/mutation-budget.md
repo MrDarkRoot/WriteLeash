@@ -20,7 +20,7 @@ and exhausted rather than advisory. A denied mutation must not become durable.
 
 ## Phase 0: Row-Count Budgets
 
-Row-count authority was the first proof mechanism: it limits row-update events
+Row-count authority was the first proof mechanism: it limits row-count effects
 for one protected relation in one top-level PostgreSQL transaction. State
 transitions and numeric deltas are the other two Phase 0 effect classes; they
 are current targets, not implemented features.
@@ -30,11 +30,20 @@ subscriptions:
   max_rows_updated_per_transaction: 5
 ```
 
-This example grants five row-update events. It does not grant permission to run
-`UPDATE`; PostgreSQL privileges remain responsible for that. The budget narrows
-already-granted permission.
+This example declares a finite row-update budget. It does not grant permission
+to run `UPDATE`; PostgreSQL privileges remain responsible for that. The budget
+narrows already-granted permission.
 
-V0 counts events, not distinct row identities:
+[spec.md](spec.md) defines cumulative transaction-wide accounting and
+rollback/denial semantics for row-count effects. It does not yet explicitly
+settle whether repeated updates of the same row count once or once per update.
+That question remains open for the canonical specification and tests; it must
+not be inferred from historical experiment behavior.
+
+### Repeated-row behavior: research evidence
+
+The historical/native PostgreSQL 16.4 row-event experiment counted repeated
+updates of the same row as separate row-update events:
 
 ```sql
 BEGIN;
@@ -44,13 +53,15 @@ UPDATE subscriptions SET status = 'active' WHERE id = 42;   -- 2
 UPDATE subscriptions SET status = 'paused' WHERE id = 42;   -- 3
 UPDATE subscriptions SET status = 'active' WHERE id = 42;   -- 4
 UPDATE subscriptions SET status = 'paused' WHERE id = 42;   -- 5
-UPDATE subscriptions SET status = 'active' WHERE id = 42;   -- 6: deny
+UPDATE subscriptions SET status = 'active' WHERE id = 42;   -- 6: denied
 
 COMMIT;
 ```
 
-The sixth event must deny the entire transaction. Counting distinct row IDs
-would permit repeated mutation to evade the declared volume bound.
+The experiment observed the sixth event denying the top-level transaction.
+This is research evidence from one PostgreSQL 16.4 environment and test
+envelope, not a current V0 requirement. Neither event counting nor distinct-row
+counting is presented here as the accepted canonical semantic.
 
 ## Why Accumulation Is Transaction-Wide
 
@@ -86,12 +97,13 @@ claim.
 
 ## One Row Across Many Transactions
 
-These are different under V0:
+A transaction-local budget does not aggregate across transactions:
 
 ```text
 one transaction:
-  update 1 row six times
-  => cumulative count 6; deny when budget is 5
+  repeated updates of one row
+  => historical/native PostgreSQL 16.4 experiment counted each update event;
+     canonical repeated-row semantics remain unsettled
 
 six separate transactions:
   update 1 row once in each transaction
