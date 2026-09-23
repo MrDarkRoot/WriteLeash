@@ -142,6 +142,19 @@ backend-local top-level state, per-subtransaction allowed-consumption deltas,
 
 - `CC-001`, `CC-002`, and `CC-003`: **PASS** with the same budget-five update
   behavior and fresh-connection durable verification.
+- `CC-004`: **PASS**. A denied transaction with five allowed updates and a
+  denied sixth event did not commit; a fresh admin connection observed ten
+  baseline rows and zero `cc004` or `cc004_excess` rows.
+- `CC-005`: **PASS**. An `UPDATE` qualifying zero rows reported `UPDATE 0`,
+  left native state at `consumed=0, denied=false`, and five later events
+  committed with zero `cc005_zero` rows durable.
+- `CC-006`: **PASS**. Five separate updates of the same row each consumed one
+  unit; the sixth same-row event was denied and nothing became durable. V0
+  counts row-update events, not distinct row identities.
+- `CC-007`: **PASS**. Five no-op assignments fired the enforcement trigger
+  five times and consumed five units; a sixth no-op assignment was denied and
+  nothing became durable. Accounting does not depend on `OLD`/`NEW` value
+  equality.
 - `CC-008`: **PASS**. Event six set a backend-local denied flag. Savepoint
   abort preserved that flag, later `SELECT` execution was possible, and
   `XACT_EVENT_PRE_COMMIT` rejected final commit. A fresh connection observed no

@@ -63,6 +63,10 @@ Observed on PostgreSQL 16.4:
 | `CC-001` | **PASS** | Five events committed and a fresh connection observed five durable changes |
 | `CC-002` | **PASS** | Event six denied one six-row statement and a fresh connection observed the baseline |
 | `CC-003` | **PASS** | Five statements consumed one shared budget; statement six denied and nothing became durable |
+| `CC-004` | **PASS** | A denied transaction with five allowed updates and a denied sixth event left a fresh admin connection ten baseline rows and zero `cc004`/`cc004_excess` rows |
+| `CC-005` | **PASS** | `UPDATE ... WHERE id = 999999` reported `UPDATE 0`, left `consumed=0, denied=false`, and five later events committed |
+| `CC-006` | **PASS** | Five updates of the same row each consumed one unit; the sixth same-row event was denied and row 1 stayed baseline |
+| `CC-007` | **PASS** | Five no-op assignments fired the trigger five times and consumed five units; a sixth no-op assignment was denied |
 | `CC-008` | **PASS** | `ROLLBACK TO` recovered statement execution but not commit authority; final `COMMIT` errored and a fresh connection observed the baseline |
 | `CC-009` | **PASS** | Aborting three allowed savepoint events changed live consumption from three to zero; five replacements committed |
 | `CC-011` | **PASS** | A five-row data-modifying CTE committed; a six-row CTE was denied and no protected mutation became durable |
@@ -87,6 +91,31 @@ The same-backend cleanup probes also passed:
 
 These results make this mechanism class **VIABLE FOR FURTHER TESTING**. They do
 not make the experiment production-ready or any operation supported.
+
+## Row-Event Definition
+
+`CC-004` through `CC-007` closed the foundational definition of a V0
+row-update event on PostgreSQL 16.4.
+
+- `CC-004`: a transaction with five allowed updates followed by a denied sixth
+  event did not commit. A fresh admin connection observed ten baseline rows and
+  zero `cc004` or `cc004_excess` rows.
+- `CC-005`: `UPDATE ... WHERE id = 999999` reported `UPDATE 0`, and the probe
+  read `consumed=0, denied=false`. Five later events consumed the full budget,
+  committed, and produced exactly five durable changes with zero `cc005_zero`
+  rows.
+- `CC-006`: five separate updates of row `id = 1` each consumed one unit
+  (probe `consumed=5`, five `UPDATE 1` command tags). The sixth same-row update
+  was denied at event six and the transaction did not commit; row 1 stayed
+  baseline.
+- `CC-007`: five no-op assignments (`SET status = 'baseline'` where the value
+  was already `baseline`) fired the enforcement trigger five times
+  (`EXPLAIN (ANALYZE)` reported `calls=5`) and consumed five units. A sixth
+  no-op assignment was denied at event six and nothing became durable.
+
+After each denied case, a fresh top-level transaction started at
+`consumed=0, denied=false` and committed five events. Accounting does not
+depend on `OLD`/`NEW` value equality or on distinct row identity.
 
 ## Alternate Update Paths
 
@@ -427,7 +456,7 @@ enforcement schema, or bypass the trigger.
 
 ## Known Risks And Unknowns
 
-- Only the seventeen requested tests, lifecycle cleanup, savepoint-release,
+- Only the twenty-one requested tests, lifecycle cleanup, savepoint-release,
   and concurrency lifecycle probes were run. This is not the complete Gate 1
   matrix.
 - Privilege results are specific to the tested role topology and extension

@@ -379,6 +379,31 @@ cc_lifecycle_check() {
     printf '  lifecycle %s: PASS\n' "$label"
 }
 
+# Verifies that a fresh top-level transaction starts at consumed=0, denied=false
+# and can still commit five protected row-update events.
+cc_lifecycle_probe() {
+    local label="$1"
+    local status="$2"
+    local output
+
+    set +e
+    output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<SQL
+BEGIN;
+SELECT '${label}_START:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+UPDATE public.subscriptions SET status = '$status' WHERE id BETWEEN 1 AND 5;
+SELECT '${label}_END:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+COMMIT;
+SQL
+)"
+    set -e
+    [[ "$output" == *"${label}_START:f|0|f"* ]] || \
+        fail "$label lifecycle start was not consumed=0 denied=false (output: $output)"
+    [[ "$output" == *"${label}_END:t|5|f"* ]] || \
+        fail "$label lifecycle transaction did not consume five events (output: $output)"
+    assert_five_updated "$label lifecycle durable" "$status"
+    printf '  %s lifecycle: PASS (fresh start; five events committed)\n' "$label"
+}
+
 cleanup() {
     if [[ -n "${CC_SESSION_DIR:-}" && -d "$CC_SESSION_DIR" ]]; then
         rm -rf "$CC_SESSION_DIR"
@@ -617,7 +642,103 @@ set -e
 assert_baseline
 printf 'CC-026 multiple MERGE statements: PASS\n'
 printf 'CC-026: PASS (MERGE WHEN MATCHED UPDATE shares transaction-wide accounting)\n'
-printf '\nRegression suite follows; all of it runs after the privilege and MERGE experiments.\n'
+
+printf '\nCC-004 / CC-005 / CC-006 / CC-007: row-update event definition:\n'
+
+reset_fixture
+set +e
+cc004_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc004' WHERE id BETWEEN 1 AND 5;
+UPDATE public.subscriptions SET status = 'cc004_excess' WHERE id = 6;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc004_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-004 did not report the event-six denial"
+[[ "$cc004_output" == *"ROLLBACK"* ]] || \
+    fail "CC-004 denied transaction did not abort"
+assert_scalar "CC-004 durable denied state" \
+    "SELECT count(*) FILTER (WHERE status = 'baseline') || ':' || count(*) FILTER (WHERE status = 'cc004') || ':' || count(*) FILTER (WHERE status = 'cc004_excess') FROM public.subscriptions;" \
+    "10:0:0"
+cc_lifecycle_probe CC004 cc004_life
+printf 'CC-004: PASS (fresh admin observed no durable mutation from the denied transaction)\n'
+
+reset_fixture
+set +e
+cc005_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc005_zero' WHERE id = 999999;
+SELECT 'CC005_ZERO:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+UPDATE public.subscriptions SET status = 'cc005_allowed' WHERE id BETWEEN 1 AND 5;
+SELECT 'CC005_FIVE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc005_output" == *"UPDATE 0"* ]] || \
+    fail "CC-005 zero-row UPDATE did not report UPDATE 0"
+[[ "$cc005_output" == *"CC005_ZERO:f|0|f"* ]] || \
+    fail "CC-005 zero-row UPDATE consumed authority (output: $cc005_output)"
+[[ "$cc005_output" == *"CC005_FIVE:t|5|f"* ]] || \
+    fail "CC-005 five-event update state was not consumed=5 denied=false (output: $cc005_output)"
+assert_scalar "CC-005 durable state" \
+    "SELECT count(*) FILTER (WHERE status = 'cc005_allowed') || ':' || count(*) FILTER (WHERE status = 'baseline') || ':' || count(*) FILTER (WHERE status = 'cc005_zero') FROM public.subscriptions;" \
+    "5:5:0"
+printf 'CC-005: PASS (zero-row UPDATE produced zero events; five events then committed)\n'
+
+reset_fixture
+set +e
+cc006_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc006_1' WHERE id = 1;
+UPDATE public.subscriptions SET status = 'cc006_2' WHERE id = 1;
+UPDATE public.subscriptions SET status = 'cc006_3' WHERE id = 1;
+UPDATE public.subscriptions SET status = 'cc006_4' WHERE id = 1;
+UPDATE public.subscriptions SET status = 'cc006_5' WHERE id = 1;
+SELECT 'CC006_FIVE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+UPDATE public.subscriptions SET status = 'cc006_6' WHERE id = 1;
+COMMIT;
+SQL
+)"
+set -e
+cc006_update_count="$(printf '%s\n' "$cc006_output" | grep -c '^UPDATE 1$' || true)"
+[[ "$cc006_update_count" == "5" ]] || \
+    fail "CC-006 completed $cc006_update_count same-row updates before denial, expected 5"
+[[ "$cc006_output" == *"CC006_FIVE:t|5|f"* ]] || \
+    fail "CC-006 five same-row events did not consume five units (output: $cc006_output)"
+[[ "$cc006_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-006 sixth same-row event was not denied"
+[[ "$cc006_output" == *"ROLLBACK"* ]] || \
+    fail "CC-006 denied transaction did not abort"
+assert_baseline
+cc_lifecycle_probe CC006 cc006_life
+printf 'CC-006: PASS (same-row events counted individually; sixth denied)\n'
+
+reset_fixture
+set +e
+cc007_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+EXPLAIN (ANALYZE, COSTS OFF) UPDATE public.subscriptions SET status = 'baseline' WHERE id BETWEEN 1 AND 5;
+SELECT 'CC007_FIVE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+UPDATE public.subscriptions SET status = 'baseline' WHERE id = 6;
+COMMIT;
+SQL
+)"
+set -e
+[[ "$cc007_output" == *"subscriptions_update_budget"*"calls=5"* ]] || \
+    fail "CC-007 no-op instrumentation did not report five enforcement-trigger calls"
+[[ "$cc007_output" == *"CC007_FIVE:t|5|f"* ]] || \
+    fail "CC-007 five no-op events did not consume five units (output: $cc007_output)"
+[[ "$cc007_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+    fail "CC-007 sixth no-op event was not denied"
+[[ "$cc007_output" == *"ROLLBACK"* ]] || \
+    fail "CC-007 denied transaction did not abort"
+assert_baseline
+cc_lifecycle_probe CC007 cc007_life
+printf 'CC-007: PASS (no-op assignments consumed authority; sixth denied)\n'
+printf 'Regression suite follows; all of it runs after the privilege, MERGE, and row-event experiments.\n'
 
 reset_fixture
 writer_psql -v ON_ERROR_STOP=1 -c \
