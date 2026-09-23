@@ -1,12 +1,21 @@
-# CommitCap Normative Specification
+# CommitCap Legacy Phase 0 Specification
 
-**Status:** Phase 0 draft\
-**Implementation status:** Not implemented\
-**Normative scope:** The V0 PostgreSQL security proof
+> **Historical document:** This file preserves the original row-budget Phase 0
+> specification and its experiment plan. It is not the current source of truth.
+> Use [docs/spec.md](docs/spec.md) for intended semantics,
+> [docs/test-plan.md](docs/test-plan.md) for canonical current test IDs, and
+> [docs/decisions.md](docs/decisions.md) for accepted decisions. Every `CC-*`
+> identifier in this file is a **legacy experiment ID** and must not be mapped
+> to a same-number current test.
 
-This document is the canonical specification for CommitCap. It defines the
-behavior an implementation must demonstrate; it does not claim that behavior
-already exists.
+**Status:** Historical Phase 0 draft\
+**Implementation status at creation:** Not implemented; research experiments
+were added later\
+**Historical scope:** The original V0 PostgreSQL row-budget proof
+
+This document was the canonical specification for the original experiment. It
+is retained as historical decision context and does not define current product
+or test-plan semantics.
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**,
 and **MAY** are to be interpreted as normative requirements.
@@ -291,10 +300,12 @@ unsupported operation could bypass the intended protection, deployment
 instructions MUST remove the protected writer's privilege to invoke it or the
 implementation MUST fail closed.
 
-## 6. Canonical Tests
+## 6. Legacy Experiment Tests
 
-The canonical test IDs are stable references for specifications, pull
-requests, and release claims. Tests do not exist yet.
+These IDs were the stable references for the original specification and
+experiments. They are now legacy experiment IDs. Existing scripts and recorded
+results preserve them as historical evidence; current work must use the
+canonical IDs in `docs/test-plan.md`.
 
 Gate 1 has two kinds of release-blocking tests:
 
@@ -390,7 +401,7 @@ compromised database host.
 
 ## 8. Unsupported And Unresolved Behavior
 
-The authoritative status matrix is [docs/limitations.md](docs/limitations.md).
+The historical status matrix is [docs/limitations.md](docs/limitations.md).
 In summary:
 
 - Only transaction-wide `UPDATE` row-event accounting is a V0 proof target.
@@ -498,12 +509,13 @@ capabilities.
 
 Gates MUST NOT be skipped or declared passed without evidence.
 
-## 12. Implementation Agent Contract
+## 12. Historical Implementation Agent Contract
 
-Every AI coding agent and human implementer working on CommitCap MUST follow
-this contract:
+This was the implementation contract for the original row-budget proof. Current
+contributors must instead begin with `docs/spec.md`, `docs/test-plan.md`, and
+`docs/decisions.md`.
 
-1. `SPEC.md` is normative.
+1. This legacy `SPEC.md` was normative for the original experiment.
 2. The security invariant takes precedence over convenience.
 3. Do not silently change semantics.
 4. Do not expand scope without an explicit issue or design decision.

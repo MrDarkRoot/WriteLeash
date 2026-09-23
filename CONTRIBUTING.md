@@ -7,12 +7,13 @@ tested changes are preferred over broad abstractions.
 
 Contributors MUST read:
 
-1. [SPEC.md](SPEC.md), the normative behavior contract.
-2. [docs/threat-model.md](docs/threat-model.md), the trust and attacker model.
-3. [docs/limitations.md](docs/limitations.md), the current support boundary.
-4. [SECURITY.md](SECURITY.md), for private vulnerability reporting.
+1. [docs/spec.md](docs/spec.md), the intended behavior contract.
+2. [docs/test-plan.md](docs/test-plan.md), the canonical current test namespace.
+3. [docs/threat-model.md](docs/threat-model.md), the trust and attacker model.
+4. [docs/decisions.md](docs/decisions.md), the accepted product and architecture boundaries.
+5. [SECURITY.md](SECURITY.md), for private vulnerability reporting.
 
-If a proposed change conflicts with `SPEC.md`, update and review the
+If a proposed change conflicts with `docs/spec.md`, update and review the
 specification explicitly before treating the new behavior as valid. Do not let
 implementation accidents redefine product semantics.
 
@@ -54,6 +55,8 @@ claim being made.
 - Do not grant a protected writer ownership or privileges that bypass
   enforcement.
 - Do not describe an operation as protected without a named regression test.
+- Use canonical IDs from `docs/test-plan.md` for current work. Preserve old IDs
+  only when citing historical evidence, and label them `legacy experiment ID`.
 - Use `UNKNOWN` when behavior has not been characterized and `UNSUPPORTED` when
   it is outside the accepted envelope.
 
@@ -69,7 +72,7 @@ If not, defer it.
 A pull request that changes enforcement, policy state, trusted SQL, roles,
 transactions, or supported operations SHOULD include:
 
-- the relevant `CC-*` test IDs;
+- the relevant canonical `CC-*` test IDs from `docs/test-plan.md`;
 - the exact support envelope before and after the change;
 - privilege assumptions;
 - positive and adversarial test output;
@@ -85,11 +88,14 @@ privilege escalation.
 
 ## Scope During Phase 0
 
-Phase 0 work is limited to the smallest PostgreSQL experiment needed to prove
-or falsify transaction-wide update accounting. Do not add dashboards, frontend
-code, billing, AI features, MCP controls, queues, microservices, Kubernetes,
-multi-database support, or a generic proxy.
+Phase 0 implementation work starts with the smallest PostgreSQL experiments
+needed to prove or falsify mutation-authority semantics. Parallel market
+falsification and an early managed-PostgreSQL feasibility investigation are
+also Phase 0 evidence tracks, but must not expand implementation scope
+prematurely. Do not add dashboards, frontend code, billing, AI features, MCP
+controls, queues, microservices, Kubernetes, multi-database support, or a
+generic proxy.
 
-Follow the [Implementation Agent Contract](SPEC.md#12-implementation-agent-contract):
+Follow the scope discipline in [docs/role.md](docs/role.md#9-scope-discipline):
 
 > Do not "finish the product." Implement only the requested invariant or test.

@@ -1,5 +1,8 @@
 # Mutation Budgets
 
+This document explains current intended semantics. The repository contains
+research experiments, but no released or supported CommitCap implementation.
+
 ## Core Model
 
 Database write permission is usually binary: a role may update a relation or it
@@ -73,8 +76,11 @@ the budget, none of its protected mutations may become durable.
 
 Savepoints do not create new top-level transactions and therefore must not
 create fresh budgets. The required behavior for rolled-back allowed work and
-irreversible denial is defined in [SPEC.md](../SPEC.md). Whether PostgreSQL can
-provide that behavior cleanly with SQL/PL/pgSQL is a core Phase 0 experiment.
+irreversible denial is defined in [spec.md](spec.md). The historical
+SQL/PLpgSQL experiment failed irreversible denial under savepoint and caught
+exception recovery; a later native experiment established only that another
+mechanism class was viable for further research, not a production support
+claim.
 
 ## One Row Across Many Transactions
 
@@ -98,7 +104,7 @@ work over multiple transactions.
 Application retries have the same boundary. A genuinely new transaction gets
 a new V0 budget. No cross-retry aggregate protection is claimed.
 
-## Future: Forbidden State Transitions
+## Phase 0 Target: Forbidden State Transitions
 
 Mutation volume is not enough. A single row can exceed authority through a
 sensitive transition:
@@ -110,10 +116,10 @@ users.role:
     - "* -> owner"
 ```
 
-This level would reason about old and new state, not only row count. It is
-future work and has no V0 semantics.
+This level reasons about old and new state, not only row count. It is a current
+Phase 0/V0 target, but is not implemented or supported.
 
-## Future: Quantitative Effect Budgets
+## Phase 0 Target: Quantitative Effect Budgets
 
 Some authority is expressed by a numeric effect:
 
@@ -123,18 +129,25 @@ refunds.amount:
 ```
 
 A transaction with increases of `30`, `20`, and `40` totals `90` and may pass.
-Adding `25` would total `115` and must deny the transaction. Questions about
-negative effects, numeric precision, currency, nulls, updates to the same row,
-and compensating writes remain unspecified. They must not be guessed from this
-illustration.
+Adding `25` would total `115` and must deny the transaction. Numeric precision,
+nulls, and repeated-row semantics still require explicit specification and
+tests. Negative effects must follow the declared aggregate metric; they must
+not silently switch a positive-only, absolute, gross, or net policy into
+another semantic.
+
+This is a declared PostgreSQL relational metric, not proof of complete business
+consequence. A `refunds.amount positive_delta = 100` measurement does not by
+itself prove that a payment processor transferred $100, a customer received
+$100, a ledger settled, or an external workflow succeeded. The policy issuer
+owns that mapping.
 
 ## Future: Mutation Capabilities
 
 The strategic model is task-scoped consumable authority:
 
 ```yaml
-capability: support-task-817
-actor: support_bot
+capability: repair-task-817
+actor: repair_worker
 expires_in: 10m
 
 authority:
@@ -164,6 +177,20 @@ Concurrent consumption, retries, expiration, identity binding, signatures,
 revocation, and durable receipts are future design problems. V0 must not
 preemptively build them.
 
+Capability-wide consumable authority is monotonic by default:
+
+```text
+initial authority = 100
+TX1: +80 COMMIT -> remaining = 20
+TX2: -80 COMMIT -> remaining = 20
+```
+
+A committed inverse or compensating mutation does not restore consumed
+authority. Rolled-back effects remain different because they never become
+durable and do not finalize consumption. Any future replenishment operation
+must be explicit and separately authorized. Allowing ordinary state oscillation
+to manufacture fresh capacity would enable **authority laundering**.
+
 ## Product Sequence
 
 ```text
@@ -184,3 +211,19 @@ licensing, and enterprise support.
 
 No Phase 0 architecture decision should be justified only by a hypothetical
 future commercial requirement.
+
+Basic row limits are useful but are not sufficient differentiation by
+themselves. If PostgreSQL or a cloud provider ships `MAX ROWS UPDATED`, possible
+strategic layers above it include state-transition authority, quantitative
+effect budgets, task-scoped capabilities, cross-transaction consumption,
+atomic concurrency, retry/idempotency semantics, and capability lifecycle.
+These layers are not current implementation claims.
+
+## Architecture Boundary
+
+For stable known operations such as `refund_customer(customer_id, amount)` or
+`cancel_subscription(subscription_id)`, prefer a narrow application API or
+stored procedure. CommitCap is relevant only when legitimate mutation shape is
+broad or evolving, a fixed operation catalog is impractical, multiple upstream
+paths need the same database-level backstop, or actual relational effects must
+be bounded independently of upstream correctness.
