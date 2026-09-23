@@ -76,6 +76,9 @@ the transaction has no protected events yet.
 
 ## Results
 
+All `CC-*` labels in this section are **legacy experiment IDs**; see the notice
+at the top of this file. They are not canonical test-plan IDs.
+
 Observed on PostgreSQL 16.4:
 
 | Test | Result | Evidence |

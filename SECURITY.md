@@ -61,7 +61,8 @@ deployment default, or a false support claim may be one.
 
 Denial of service, fail-closed errors, information disclosure, privilege
 escalation, SQL injection in trusted functions, and policy-state corruption are
-also security relevant even when they do not directly exceed a row budget.
+also security relevant even when they do not directly exceed a declared
+mutation budget.
 
 ## Support Boundaries
 

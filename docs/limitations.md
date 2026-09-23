@@ -75,6 +75,12 @@ Status terms used by the historical matrix:
 | Quantitative effect budgets | **FUTURE** | Row counts do not bound monetary or other numeric impact | Future Level 3; no current protection |
 | Cross-transaction consumable authority | **FUTURE** | Work split across transactions regenerates V0 authority | Future Level 4 capability model |
 
+This matrix was written for the original row-budget scope. Its `FUTURE` labels
+for semantic-transition and quantitative-effect budgets predate the current
+Phase 0 plan, which targets those effect classes alongside row counts. Current
+status lives in [roadmap.md](roadmap.md), [spec.md](spec.md), and
+[test-plan.md](test-plan.md); this table remains historical evidence.
+
 ## Deployment Limitations
 
 Even a future V0 implementation will not protect a relation from a writer that
