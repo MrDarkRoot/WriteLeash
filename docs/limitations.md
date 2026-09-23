@@ -132,3 +132,40 @@ investigation may need to evaluate mechanism classes with state outside
 recoverable subtransactions, such as backend-local non-transactional state or
 top-level transaction callbacks and hooks. No replacement mechanism is
 implemented or selected by this experiment.
+
+## Native Transaction-State Feasibility Evidence
+
+A separate, research-scoped C extension experiment under
+`experiments/native_tx_state/` was run on PostgreSQL 16.4. It used
+backend-local top-level state, per-subtransaction allowed-consumption deltas,
+`RegisterSubXactCallback`, and `RegisterXactCallback`. Observed results were:
+
+- `CC-001`, `CC-002`, and `CC-003`: **PASS** with the same budget-five update
+  behavior and fresh-connection durable verification.
+- `CC-008`: **PASS**. Event six set a backend-local denied flag. Savepoint
+  abort preserved that flag, later `SELECT` execution was possible, and
+  `XACT_EVENT_PRE_COMMIT` rejected final commit. A fresh connection observed no
+  durable protected mutation.
+- `CC-009`: **PASS**. Aborting three allowed savepoint events subtracted that
+  subtransaction's delta from live consumption. Five replacement events then
+  committed exactly at the budget.
+- `CC-024`: **PASS**. PL/pgSQL exception recovery aborted its internal
+  subtransaction without clearing the denied flag. The final commit was
+  rejected and a fresh connection observed no durable protected mutation.
+- Same-backend probes after top-level commit and top-level abort both began the
+  next transaction with fresh state and allowed five events.
+
+The experiment allocated subtransaction frames in `TopMemoryContext`, outside
+the automatically deleted subtransaction context. `SUBXACT_EVENT_ABORT_SUB`
+unwound only allowed consumption; denial remained sticky.
+`XACT_EVENT_PRE_COMMIT` ran before PostgreSQL's commit decision and raised the
+error that forced the top-level abort. Observed `XACT_EVENT_COMMIT` and
+`XACT_EVENT_ABORT` callbacks cleared all experiment state.
+
+This result makes backend-local callback state **viable for further testing as
+a mechanism class only**. It does not replace the falsified PL/pgSQL evidence,
+change any operation to supported, select a production architecture, or
+establish behavior outside PostgreSQL 16.4 and the experiment's narrow test
+envelope. PostgreSQL exposes these facilities to dynamically loaded modules,
+but its server C API is not a stable cross-major ABI. Full research notes and
+remaining unknowns are recorded in the experiment README.
