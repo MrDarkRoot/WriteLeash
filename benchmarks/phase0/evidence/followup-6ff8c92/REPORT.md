@@ -1,6 +1,6 @@
 # Phase 0 Issue #15 follow-up: balanced-pair PG16.4 measurements
 
-**Classification: INCONCLUSIVE PERFORMANCE RESEARCH; no performance-gate PASS.**
+**Classification: STILL UNSTABLE / INCONCLUSIVE; no performance-gate PASS.**
 Measured public implementation SHA: `6ff8c929dea52d4671067f05765855f67c377075`
 (2026-09-24 UTC), on PR #22. Historical [raw runs, summaries and limitation
 report](../REPORT.md) remain byte-for-byte unchanged. This report concerns only
