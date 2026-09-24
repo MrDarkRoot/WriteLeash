@@ -3,6 +3,8 @@
 
 import argparse
 import csv
+from datetime import datetime, timezone
+import hashlib
 import json
 import math
 import os
@@ -12,6 +14,8 @@ import statistics
 import subprocess
 import sys
 import time
+
+import telemetry
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,13 +29,46 @@ ROWS = 10000
 WARMUP = 50
 TX = 200
 ROUNDS = 3
+RUNS = 2
+PAIRS = 2
 DENIED = 30
-FIELDS = ["kind", "round", "arm", "phase", "case", "trial", "latency_us", "commit_us", "rows_per_tx", "tps", "durable_check"]
+CASES = ("1", "5", "100", "users", "refunds", "mixed")
+# Interpretation warnings only. These are not product performance PASS criteria.
+BASELINE_PAIR_SPREAD_WARNING = 0.20
+BASELINE_ROUND_CV_WARNING = 0.10
+PAIRED_CHANGE_SPREAD_WARNING_PP = 20.0
+FIELDS = ["kind", "run", "round", "pair", "order", "arm", "phase", "case", "trial",
+          "latency_us", "commit_us", "rows_per_tx", "tps", "elapsed_s", "durable_check"]
 
 
-def call(args, *, input_text=None, check=True):
+def utc():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def seed_for(run, round_no, case, pair, phase):
+    material = f"phase0:{run}:{round_no}:{case}:{pair}:{phase}".encode()
+    return int.from_bytes(hashlib.sha256(material).digest()[:8], "big") % 2147483646 + 1
+
+
+def schedule(run):
+    """A/B then B/A, or B/A then A/B, in every round/case block."""
+    plan = []
+    for round_no in range(1, ROUNDS + 1):
+        for case in CASES:
+            first = seed_for(run, round_no, case, 0, "order") % 2
+            orders = (("baseline", "protected"), ("protected", "baseline"))
+            for pair, arms in enumerate((orders[first], orders[1-first]), 1):
+                plan.append({"run": run, "round": round_no, "case": case,
+                             "pair": pair, "arms": arms,
+                             "warmup_seed": seed_for(run, round_no, case, pair, "warmup"),
+                             "measured_seed": seed_for(run, round_no, case, pair, "measured")})
+    return plan
+
+
+def call(args, *, input_text=None, check=True, timeout=None):
     p = subprocess.run(args, cwd=ROOT, input=input_text, text=True,
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       check=False, timeout=timeout)
     if check and p.returncode:
         raise RuntimeError(f"command {args} failed ({p.returncode}):\n{p.stdout}\n{p.stderr}")
     return p
@@ -55,6 +92,61 @@ def db(user, sql, *, stop=True, extra=()):
 
 def scalar(sql):
     return db(ADMIN, sql).stdout.strip()
+
+
+def admin_state():
+    """One new trusted-admin connection; no writer-session snapshot assumptions."""
+    sql = """SELECT row_to_json(t) FROM (
+    SELECT (SELECT count(*) FROM public.subscriptions) AS subscriptions_rows,
+           (SELECT count(*) FROM public.subscriptions WHERE status <> 'baseline') AS subscriptions_changed,
+           (SELECT count(*) FROM public.users) AS users_rows,
+           (SELECT count(*) FROM public.users WHERE role <> 'member') AS users_changed,
+           (SELECT count(*) FROM public.users WHERE role = 'admin') AS users_admin,
+           (SELECT count(*) FROM public.refunds) AS refunds_rows,
+           (SELECT count(*) FROM public.refunds WHERE amount <> 0.00) AS refunds_changed,
+           (SELECT sum(amount) FROM public.refunds) AS refunds_total,
+           (SELECT count(*) FROM public.unprotected_audit) AS audit_rows
+    ) AS t;"""
+    return json.loads(scalar(sql))
+
+
+def postgres_observations():
+    queries = {
+        "database": "SELECT row_to_json(t) FROM (SELECT xact_commit, xact_rollback, blks_read, "
+                    "blks_hit, temp_files, deadlocks, stats_reset FROM pg_stat_database "
+                    "WHERE datname=current_database()) AS t;",
+        "checkpoints_bgwriter": "SELECT row_to_json(t) FROM (SELECT * FROM pg_stat_bgwriter) AS t;",
+        "wal": "SELECT row_to_json(t) FROM (SELECT * FROM pg_stat_wal) AS t;",
+        "relation_maintenance": "SELECT coalesce(json_agg(row_to_json(t)), '[]'::json) FROM "
+                                "(SELECT relname, n_tup_upd, n_dead_tup, vacuum_count, "
+                                "autovacuum_count, analyze_count, autoanalyze_count "
+                                "FROM pg_stat_user_tables WHERE relname IN "
+                                "('subscriptions','users','refunds',"
+                                "'baseline_subscriptions','baseline_users','baseline_refunds') "
+                                "ORDER BY relname) AS t;",
+        "settings": "SELECT coalesce(json_agg(row_to_json(t)), '[]'::json) FROM "
+                    "(SELECT name, setting, unit FROM pg_settings WHERE name IN "
+                    "('shared_buffers','max_wal_size','checkpoint_timeout','autovacuum',"
+                    "'autovacuum_naptime','autovacuum_vacuum_scale_factor',"
+                    "'autovacuum_analyze_scale_factor','synchronous_commit','fsync',"
+                    "'full_page_writes','wal_level','track_io_timing') ORDER BY name) AS t;",
+    }
+    observed = {}
+    for name, sql in queries.items():
+        try:
+            observed[name] = json.loads(scalar(sql))
+        except (RuntimeError, ValueError) as exc:
+            observed[name] = {"unavailable": str(exc)[:500]}
+    return observed
+
+
+def snapshot(outdir, run, round_no, phase, *, case=None, pair=None, arm=None):
+    data = {"utc": utc(), "run": run, "round": round_no, "phase": phase,
+            "case": case, "pair": pair, "arm": arm, "host": telemetry.host(),
+            "containers": telemetry.container(CONTAINER),
+            "postgres": postgres_observations()}
+    with (outdir / "telemetry.jsonl").open("a") as f:
+        f.write(json.dumps(data, sort_keys=True) + "\n")
 
 
 def require(actual, expected, label):
@@ -155,16 +247,16 @@ COMMIT;
 """, n
 
 
-def bench(arm, case, round_no, phase, count, outdir):
+def bench(arm, case, round_no, pair, phase, count, seed, outdir):
     text, per_tx = script(arm, case)
     local_script = outdir / "workload.sql"
     local_script.write_text(text)
     docker("cp", str(local_script), f"{CONTAINER}:/tmp/workload.sql")
-    name = f"cc_{round_no}_{arm}_{case}_{phase}"
+    name = f"cc_{round_no}_{pair}_{arm}_{case}_{phase}"
     argv = ["exec", "-e", "PGPASSWORD=" + PASSWORDS[WRITER], CONTAINER,
             "pgbench", "-h", "127.0.0.1", "-U", WRITER, "-d", "commitcap_native",
             "-n", "-M", "prepared", "-c", "1", "-j", "1", "-t", str(count),
-            "--random-seed=" + ("20260922" if phase == "warmup" else "20260923"),
+            "--random-seed=" + str(seed),
             "-f", "/tmp/workload.sql"]
     if phase == "measured":
         argv += ["-l", "--log-prefix=/tmp/" + name]
@@ -188,7 +280,8 @@ def bench(arm, case, round_no, phase, count, outdir):
         log.unlink()
         docker("exec", CONTAINER, "rm", listing[0])
     local_script.unlink()
-    return rows, per_tx, float(tps.group(1))
+    value = float(tps.group(1))
+    return rows, per_tx, value, count / value
 
 
 def durable(arm, case, transactions):
@@ -211,7 +304,32 @@ def durable(arm, case, transactions):
             f"{arm} {case} durable numeric effects")
 
 
-def denied_case(case):
+class DurableAuthorityFailure(RuntimeError):
+    """A denied writer committed protected or sibling state: stop immediately."""
+
+
+def denial_attempt(text, marker):
+    """Return one complete combined psql transcript, or timed-out partial output."""
+    args = ["docker", "exec", "-i", "-e", "PGPASSWORD=" + PASSWORDS[WRITER],
+            CONTAINER, "psql", "-X", "-h", "127.0.0.1", "-U", WRITER,
+            "-d", "commitcap_native", "-A", "-t", "-v", "ON_ERROR_STOP=0"]
+    try:
+        p = subprocess.run(args, cwd=ROOT, input=text, text=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           timeout=30, check=False)
+        output, exit_code = p.stdout, p.returncode
+    except subprocess.TimeoutExpired as exc:
+        partial = exc.stdout or b""
+        output = (partial.decode(errors="replace") if isinstance(partial, bytes) else partial)
+        output += "\n[writer timeout]\n"
+        exit_code = None
+    except OSError as exc:
+        output = f"[writer process failed before producing output: {exc}]\n"
+        exit_code = None
+    return output, marker in output.splitlines(), exit_code
+
+
+def denied_case(case, outdir, run):
     if case == "row":
         # Set 100-row test budget above; denial on event 101 within the transaction.
         sql = "UPDATE public.subscriptions SET status='bench' WHERE id BETWEEN 1 AND 101;"
@@ -222,33 +340,67 @@ def denied_case(case):
     else:
         sql = "UPDATE public.refunds SET amount=101.00 WHERE id=1;"
         expected = "CommitCap numeric delta budget exceeded"
-    input_text = "\\timing on\n\\set VERBOSITY verbose\n"
-    for i in range(DENIED):
-        input_text += f"\\echo START_{i}\nBEGIN;\nSAVEPOINT deny;\n{sql}\n\\echo AFTER_UPDATE_{i} :SQLSTATE\nROLLBACK TO SAVEPOINT deny;\nCOMMIT;\n\\echo AFTER_COMMIT_{i} :SQLSTATE\n"
-    # Merge stdout/stderr to preserve timing and error order for each trial.
-    p = subprocess.run(["docker", "exec", "-i", "-e", "PGPASSWORD=" + PASSWORDS[WRITER],
-                        CONTAINER, "psql", "-X", "-h", "127.0.0.1", "-U", WRITER,
-                        "-d", "commitcap_native", "-A", "-t", "-v", "ON_ERROR_STOP=0"],
-                       cwd=ROOT, input=input_text, text=True, stdout=subprocess.PIPE,
-                       stderr=subprocess.STDOUT, check=True)
-    lines = p.stdout.splitlines()
+    directory = outdir / "denials" / case
+    directory.mkdir(parents=True, exist_ok=True)
     results = []
-    for i in range(DENIED):
-        start = lines.index(f"START_{i}")
-        end = lines.index(f"START_{i+1}") if i+1 < DENIED else len(lines)
-        part = lines[start:end]
-        require(any(expected in x for x in part), True, f"{case} denial message trial {i}")
-        require(any(x == f"AFTER_UPDATE_{i} 54000" for x in part), True, f"{case} UPDATE SQLSTATE trial {i}")
-        require(any(x == f"AFTER_COMMIT_{i} 54000" for x in part), True, f"{case} sticky COMMIT SQLSTATE trial {i}")
-        timings = [float(x.group(1))*1000 for line in part if (x := re.match(r"Time: ([\d.]+) ms", line))]
-        # BEGIN, SAVEPOINT, UPDATE, ROLLBACK TO, COMMIT each have a psql timing.
-        require(len(timings), 5, f"{case} timings trial {i}: {part}")
+    for trial in range(1, DENIED + 1):
+        marker = f"END_{case}_{trial}"
+        text = (f"\\timing on\n\\set VERBOSITY verbose\n"
+                f"\\echo START_{case}_{trial}\nBEGIN;\nSAVEPOINT deny;\n{sql}\n"
+                f"\\echo AFTER_UPDATE_{case}_{trial} :SQLSTATE\n"
+                f"ROLLBACK TO SAVEPOINT deny;\nCOMMIT;\n"
+                f"\\echo AFTER_COMMIT_{case}_{trial} :SQLSTATE\n\\echo {marker}\n")
+        started = utc()
+        output, completed, exit_code = denial_attempt(text, marker)
+        finished = utc()
+        update = re.findall(rf"^AFTER_UPDATE_{case}_{trial} (\S+)$", output, re.M)
+        commit = re.findall(rf"^AFTER_COMMIT_{case}_{trial} (\S+)$", output, re.M)
+        timings = [float(m.group(1))*1000 for line in output.splitlines()
+                   if (m := re.match(r"Time: ([\d.]+) ms", line))]
+        try:
+            state = admin_state()
+            state_error = None
+        except (RuntimeError, ValueError) as exc:
+            state = None
+            state_error = str(exc)[:1000]
+        try:
+            log = docker("logs", "--since", started, "--until", finished,
+                         "--timestamps", CONTAINER, check=False, timeout=15)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            log = subprocess.CompletedProcess([], -1, "", f"[server log unavailable: {exc}]")
+        durable_failure = state is not None and (
+            state["subscriptions_rows"] != ROWS or state["subscriptions_changed"] != 0 or
+            state["users_rows"] != ROWS or state["users_changed"] != 0 or
+            state["refunds_rows"] != ROWS or state["refunds_changed"] != 0 or
+            str(state.get("refunds_total")) not in ("0", "0.0", "0.00") or
+            state["audit_rows"] != 0)
+        match = (completed and expected in output and update == ["54000"] and
+                 commit == ["54000"] and len(timings) == 5 and
+                 exit_code == 0 and state_error is None and not durable_failure)
+        record = {"run": run, "case": case, "trial": trial, "started_utc": started,
+                  "finished_utc": finished, "exact_sql": sql, "psql_input": text,
+                  "combined_stdout_stderr": output, "writer_end_marker_observed": completed,
+                  "writer_process_exit_code": exit_code,
+                  "expected": {"message": expected, "update_sqlstate": "54000",
+                               "commit_sqlstate": "54000", "timing_lines": 5,
+                               "durable_protected_changes": 0},
+                  "observed": {"message_match": expected in output,
+                               "update_sqlstates": update, "commit_sqlstates": commit,
+                               "timings_us": timings, "fresh_admin_state": state,
+                               "fresh_admin_error": state_error,
+                               "server_log_since_started_utc": log.stdout + log.stderr,
+                               "server_log_exit_code": log.returncode,
+                               "durable_authority_failure": durable_failure},
+                  "all_expectations_met": match}
+        path = directory / f"trial-{trial:03}.json"
+        path.write_text(json.dumps(record, indent=2) + "\n")
+        if durable_failure:
+            raise DurableAuthorityFailure(
+                f"DURABLE OVER-AUTHORITY WRITE: stop; fresh-admin state in {path}")
+        if not match:
+            raise RuntimeError(f"{case} denial trial {trial}: first anomaly saved in {path}; "
+                               "stop without retry or further benchmark work")
         results.append((timings[2], timings[4]))
-    for table, column, value in (("subscriptions", "status", "baseline"),
-                                 ("users", "role", "member"), ("refunds", "amount", "0.00")):
-        require(scalar(f"SELECT count(*) FROM public.{table} WHERE {column} <> '{value}';"),
-                0, f"{case} denied durable {table}")
-    require(scalar("SELECT count(*) FROM public.unprotected_audit;"), 0, "denied audit baseline")
     return results
 
 
@@ -259,7 +411,7 @@ def pct(values, percent):
 
 def summarize(raw):
     cells = []
-    for case in ("1", "5", "100", "users", "refunds", "mixed"):
+    for case in CASES:
         per_arm = {}
         for arm in ("baseline", "protected"):
             entries = [x for x in raw if x["kind"] == "accepted" and x["phase"] == "measured" and x["arm"] == arm and x["case"] == case]
@@ -267,7 +419,10 @@ def summarize(raw):
             runs = []
             for r in range(1, ROUNDS+1):
                 one = [x for x in entries if x["round"] == r]
-                throughput = float(one[0]["tps"])
+                # Pool elapsed time, not the first of the two pair TPS values.
+                elapsed = sum(float(next(x for x in one if x["pair"] == pair)["elapsed_s"])
+                              for pair in range(1, PAIRS + 1))
+                throughput = len(one) / elapsed
                 runs.append({"round": r, "p50_us": pct([float(x["latency_us"]) for x in one], 50),
                              "p95_us": pct([float(x["latency_us"]) for x in one], 95),
                              "p99_us": pct([float(x["latency_us"]) for x in one], 99),
@@ -279,10 +434,35 @@ def summarize(raw):
                             "mean_rows_per_sec": statistics.mean(x["rows_per_sec"] for x in runs),
                             "rounds": runs}
         b, p = per_arm["baseline"], per_arm["protected"]
+        blocks = []
+        for round_no in range(1, ROUNDS + 1):
+            for pair in range(1, PAIRS + 1):
+                block = [x for x in raw if x["kind"] == "accepted" and x["case"] == case
+                         and x["round"] == round_no and x["pair"] == pair]
+                rates = {arm: len([x for x in block if x["arm"] == arm]) /
+                         float(next(x for x in block if x["arm"] == arm)["elapsed_s"])
+                         for arm in ("baseline", "protected")}
+                blocks.append({"round": round_no, "pair": pair,
+                               "order": next(x for x in block if x["order"] == 1)["arm"] + "_first",
+                               "baseline_tps": rates["baseline"], "protected_tps": rates["protected"],
+                               "protected_tps_change_pct": 100*(rates["protected"]/rates["baseline"]-1)})
+        baseline_pairs = [block["baseline_tps"] for block in blocks]
+        changes = [block["protected_tps_change_pct"] for block in blocks]
+        baseline_rounds = [one["tps"] for one in b["rounds"]]
+        cv = statistics.stdev(baseline_rounds) / statistics.mean(baseline_rounds)
+        warnings = []
+        if max(baseline_pairs) / min(baseline_pairs) - 1 > BASELINE_PAIR_SPREAD_WARNING:
+            warnings.append("baseline pair TPS max/min spread > 20%")
+        if cv > BASELINE_ROUND_CV_WARNING:
+            warnings.append("baseline round TPS sample CV > 10%")
+        if min(changes) < 0 < max(changes) and max(changes) - min(changes) > PAIRED_CHANGE_SPREAD_WARNING_PP:
+            warnings.append("paired overhead reverses sign with > 20 percentage-point spread")
         cells.append({"case": case, "baseline": b, "protected": p,
                       "protected_p50_latency_overhead_pct": 100*(p["p50_us"]/b["p50_us"]-1),
                       "protected_mean_tps_change_pct": 100*(p["mean_tps"]/b["mean_tps"]-1),
-                      "paired_round_tps_change_pct": [100*(p["rounds"][i]["tps"]/b["rounds"][i]["tps"]-1) for i in range(ROUNDS)]})
+                      "paired_round_tps_change_pct": [100*(p["rounds"][i]["tps"]/b["rounds"][i]["tps"]-1) for i in range(ROUNDS)],
+                      "paired_blocks": blocks, "baseline_round_tps_cv": cv,
+                      "reproducibility_warnings": warnings})
     denied = {}
     for case in ("row", "transition", "numeric"):
         entries = [x for x in raw if x["kind"] == "denied" and x["case"] == case]
@@ -291,14 +471,32 @@ def summarize(raw):
                                 "p99_us": pct([float(x[field]) for x in entries], 99)}
                         for field in ("latency_us", "commit_us")}
     return {"accepted": cells, "denied_protected_only": denied,
+            "interpretation_warning": any(cell["reproducibility_warnings"] for cell in cells),
             "percentile_method": "nearest rank across all measured transactions; per-round values retained",
-            "throughput_method": "pgbench TPS without initial connection; per-round arithmetic mean and sample SD"}
+            "throughput_method": "per-pair pgbench TPS without initial connection; per-round 200 transactions / sum of both pair elapsed times; arithmetic mean of rounds and sample SD"}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, required=True, help="new output directory outside checkout")
+    parser.add_argument("--run-id", type=int, choices=(1, 2), required=True,
+                        help="one of the two predeclared independent runs")
+    parser.add_argument("--output", type=Path, help="new output directory outside checkout")
+    parser.add_argument("--plan-only", action="store_true", help="print order/seeds; do not use Docker")
     a = parser.parse_args()
+    plan = schedule(a.run_id)
+    method = {"planned_runs": RUNS, "rounds_per_run": ROUNDS, "pairs_per_case_per_round": PAIRS,
+              "warmup_tx_per_pair_arm": WARMUP // PAIRS,
+              "measured_tx_per_pair_arm": TX // PAIRS,
+              "denied_trials_per_case": DENIED,
+              "baseline_pair_tps_max_min_spread_warning": BASELINE_PAIR_SPREAD_WARNING,
+              "baseline_round_tps_sample_cv_warning": BASELINE_ROUND_CV_WARNING,
+              "sign_reversing_paired_change_span_warning_percentage_points": PAIRED_CHANGE_SPREAD_WARNING_PP,
+              "threshold_scope": "measurement reproducibility warning; NOT product PASS or safety threshold"}
+    if a.plan_only:
+        print(json.dumps({"method": method, "schedule": plan}, indent=2))
+        return
+    if a.output is None:
+        parser.error("--output is required unless --plan-only is specified")
     require(os.environ.get("COMPOSE_PROJECT_NAME"), PROJECT, "COMPOSE_PROJECT_NAME")
     require(call(["git", "status", "--porcelain"]).stdout, "", "clean checkout")
     commit = call(["git", "rev-parse", "HEAD"]).stdout.strip()
@@ -307,6 +505,7 @@ def main():
         raise RuntimeError("--output must be a new directory outside the checkout")
     output.mkdir(parents=True)
     global CONTAINER
+    meta = None
     try:
         compose("up", "-d", "--build", "--wait")
         CONTAINER = compose("ps", "-q", "postgres").stdout.strip()
@@ -319,7 +518,8 @@ def main():
         host_config = json.loads(docker("inspect", CONTAINER, "--format", "{{json .HostConfig}}").stdout)
         limits = {key: host_config.get(key) for key in
                   ("NanoCpus", "CpuQuota", "CpuPeriod", "CpusetCpus", "Memory", "MemorySwap", "PidsLimit")}
-        meta = {"tested_commit": commit, "base_digest": DIGEST,
+        meta = {"tested_commit": commit, "status": "incomplete", "run": a.run_id,
+                "method": method, "schedule": plan, "base_digest": DIGEST,
                 "postgres_version": scalar("SHOW server_version;"),
                 "pgbench_version": docker("exec", CONTAINER, "pgbench", "--version").stdout.strip(),
                 "compose_project": PROJECT, "container_resource_limits": limits,
@@ -329,43 +529,73 @@ def main():
                 "host_meminfo": Path("/proc/meminfo").read_text().splitlines()[:3],
                 "host_cpu_model": next((s for s in Path("/proc/cpuinfo").read_text().splitlines() if s.startswith("model name")), "unknown"),
                 "container_resources": docker("exec", CONTAINER, "sh", "-c", "for f in /sys/fs/cgroup/cpu.max /sys/fs/cgroup/memory.max /sys/fs/cgroup/cpuset.cpus.effective; do test ! -r \"$f\" || { echo \"$f\"; sed -n '1p' \"$f\"; }; done").stdout.strip(),
-                "rows_per_table": ROWS, "warmup_tx_per_cell": WARMUP,
-                "measured_tx_per_cell": TX, "rounds": ROUNDS,
+                "rows_per_table": ROWS, "warmup_tx_per_round_arm": WARMUP,
+                "measured_tx_per_round_arm": TX, "rounds": ROUNDS,
                 "denied_trials_per_case": DENIED, "clients": 1, "jobs": 1,
-                "query_mode": "prepared", "measured_seed": 20260923,
-                "warmup_seed": 20260922, "isolation": "read committed",
+                "query_mode": "prepared", "isolation": "read committed",
                 "fixture_source": "experiments/native_tx_state/setup.sql (verbatim) + benchmarks/phase0/fixture.sql",
                 "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
-        raw = []
-        for r in range(1, ROUNDS+1):
-            for case in ("1", "5", "100", "users", "refunds", "mixed"):
-                arms = ("baseline", "protected") if r % 2 else ("protected", "baseline")
-                for arm in arms:
-                    reset(arm)
-                    for phase, count in (("warmup", WARMUP), ("measured", TX)):
-                        latencies, per_tx, tps = bench(arm, case, r, phase, count, output)
-                        if phase == "measured":
-                            for i, latency in enumerate(latencies, 1):
-                                raw.append({"kind": "accepted", "round": r, "arm": arm, "phase": phase,
-                                            "case": case, "trial": i, "latency_us": latency,
-                                            "rows_per_tx": per_tx, "tps": tps, "durable_check": "state_verified"})
-                    durable(arm, case, WARMUP+TX)
-                    print(f"round {r} {case} {arm}: {TX} accepted; {tps:.2f} TPS; durable effects verified", flush=True)
-        reset("protected")
-        for case in ("row", "transition", "numeric"):
-            for i, (update_us, commit_us) in enumerate(denied_case(case), 1):
-                raw.append({"kind": "denied", "round": "", "arm": "protected", "phase": "measured",
-                            "case": case, "trial": i, "latency_us": update_us, "commit_us": commit_us,
-                            "durable_check": "verified"})
-            print(f"denied {case}: {DENIED} trials, SQLSTATE and fresh-admin baseline verified", flush=True)
-        meta["finished_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        (output / "metadata.json").write_text(json.dumps(meta, indent=2) + "\n")
         with (output / "raw.csv").open("w", newline="") as f:
-            w = csv.DictWriter(f, FIELDS)
-            w.writeheader()
-            w.writerows(raw)
-        (output / "summary.json").write_text(json.dumps(summarize(raw), indent=2) + "\n")
+            csv.DictWriter(f, FIELDS).writeheader()
+        for r in range(1, ROUNDS + 1):
+            snapshot(output, a.run_id, r, "round_start")
+            for block in (item for item in plan if item["round"] == r):
+                case, pair = block["case"], block["pair"]
+                for position, arm in enumerate(block["arms"], 1):
+                    reset(arm)
+                    bench(arm, case, r, pair, "warmup", WARMUP // PAIRS,
+                          block["warmup_seed"], output)
+                    snapshot(output, a.run_id, r, "before_measured", case=case, pair=pair, arm=arm)
+                    latencies, per_tx, tps, elapsed = bench(
+                        arm, case, r, pair, "measured", TX // PAIRS,
+                        block["measured_seed"], output)
+                    snapshot(output, a.run_id, r, "after_measured", case=case, pair=pair, arm=arm)
+                    durable(arm, case, (WARMUP + TX) // PAIRS)
+                    rows = [{"kind": "accepted", "run": a.run_id, "round": r, "pair": pair,
+                             "order": position, "arm": arm, "phase": "measured", "case": case,
+                             "trial": i, "latency_us": latency, "rows_per_tx": per_tx,
+                             "tps": tps, "elapsed_s": elapsed, "durable_check": "state_verified"}
+                            for i, latency in enumerate(latencies, 1)]
+                    with (output / "raw.csv").open("a", newline="") as f:
+                        csv.DictWriter(f, FIELDS).writerows(rows)
+                    print(f"run {a.run_id} round {r} pair {pair} {case} {arm}: "
+                          f"{len(rows)} accepted; {tps:.2f} TPS; durable state verified", flush=True)
+            snapshot(output, a.run_id, r, "round_end")
+        reset("protected")
+        snapshot(output, a.run_id, ROUNDS, "denied_start")
+        for case in ("row", "transition", "numeric"):
+            rows = [{"kind": "denied", "run": a.run_id, "round": "", "pair": "", "order": "",
+                     "arm": "protected", "phase": "measured", "case": case, "trial": i,
+                     "latency_us": update_us, "commit_us": commit_us, "durable_check": "verified"}
+                    for i, (update_us, commit_us) in enumerate(denied_case(case, output, a.run_id), 1)]
+            with (output / "raw.csv").open("a", newline="") as f:
+                csv.DictWriter(f, FIELDS).writerows(rows)
+            print(f"denied {case}: {DENIED} trials, SQLSTATE and fresh-admin baseline verified", flush=True)
+        snapshot(output, a.run_id, ROUNDS, "denied_end")
+        with (output / "raw.csv").open(newline="") as f:
+            raw = list(csv.DictReader(f))
+        # CSV round/pair fields are text; summary needs numeric grouping.
+        for row in raw:
+            if row["kind"] == "accepted":
+                row["round"] = int(row["round"])
+                row["pair"] = int(row["pair"])
+                row["order"] = int(row["order"])
+        result = summarize(raw)
+        meta["finished_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        meta["status"] = "complete_with_reproducibility_warning" if result["interpretation_warning"] else "complete_without_triggered_warnings"
+        (output / "summary.json").write_text(json.dumps(result, indent=2) + "\n")
         (output / "metadata.json").write_text(json.dumps(meta, indent=2) + "\n")
         print(f"complete at {commit}: {output}")
+    except BaseException as exc:
+        (output / "failure.json").write_text(json.dumps(
+            {"utc": utc(), "implementation_sha": commit,
+             "failure_type": type(exc).__name__, "message": str(exc)}, indent=2) + "\n")
+        if meta is not None:
+            meta["status"] = "interrupted"
+            meta["failure_utc"] = utc()
+            (output / "metadata.json").write_text(json.dumps(meta, indent=2) + "\n")
+        raise
     finally:
         compose("down", "-v", "--remove-orphans")
 
