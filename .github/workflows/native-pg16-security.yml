@@ -1,0 +1,47 @@
+name: Native PG16 security research suite
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  native-pg16-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+
+      - name: Verify Docker and pin the local PostgreSQL 16.4 base image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker info --format 'Docker Engine: {{.ServerVersion}}'
+          docker compose version
+          docker pull postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
+          docker tag postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c postgres:16.4-alpine
+          test "$(docker image inspect postgres:16.4-alpine --format '{{.Id}}')" = "$(docker image inspect postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c --format '{{.Id}}')"
+
+      - name: Full integrated suite (no skips)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./experiments/native_tx_state/run.sh 2>&1 | tee "$RUNNER_TEMP/commitcap-native-suite.txt"
+          bash .github/ci/assert-security-log.sh "$RUNNER_TEMP/commitcap-native-suite.txt"
+
+      - name: Remove disposable PostgreSQL resources
+        if: always()
+        shell: bash
+        run: docker compose -f experiments/native_tx_state/docker-compose.yml down -v --remove-orphans
+
+      - name: Preserve synthetic-only suite transcript
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, pinned
+        with:
+          name: native-pg16-security-log
+          path: ${{ runner.temp }}/commitcap-native-suite.txt
+          if-no-files-found: ignore
+          retention-days: 7

@@ -60,10 +60,16 @@ CommitCap is in **Phase 0: security proof + parallel falsification**.
 - The current Phase 0 proof surface covers three effect classes: row-count,
   state-transition, and numeric-delta authority. See
   [Phase 0 Proof Surface](#phase-0-proof-surface).
-- Only narrow row-event mechanics have been demonstrated so far, in research
-  experiments. State-transition and numeric-delta enforcement are current
-  Phase 0 targets, not implemented features. Capability-wide consumable
-  authority is future work.
+- Research evidence now covers all three Phase 0 effect classes on
+  PostgreSQL 16.4: row-count, state-transition, and numeric-delta authority,
+  including independently keyed per-policy budgets within one top-level
+  transaction, in research experiments. This is **not** a supported
+  implementation; capability-wide consumable authority is future work.
+- Only the narrow per-transaction statement has research evidence: within one
+  top-level transaction, no tested durable effect exceeded its independently
+  declared per-policy authority in the precisely tested PostgreSQL 16.4
+  role/schema envelope. Cross-transaction (task-wide) authority is
+  **excluded from that evidence** and remains unproven.
 - Security claims will be limited to operations covered by adversarial
   regression tests.
 - Market falsification runs in parallel against concrete broad-but-bounded
@@ -131,7 +137,9 @@ users.role:
 A one-row mutation can still exceed authority when its semantic state
 transition is forbidden.
 
-Status: current Phase 0 target. Not implemented.
+Status: research evidence exists for allowed and forbidden role transitions,
+bulk mixed transitions, and savepoint/exception recovery of forbidden
+transitions, on PostgreSQL 16.4. Not a supported implementation.
 
 ### Quantitative effect authority
 
@@ -143,7 +151,11 @@ refunds.amount:
 A transaction proposing `+30`, `+20`, and `+40` may pass. Adding `+25` must
 exceed the declared budget and abort the transaction.
 
-Status: current Phase 0 target. Not implemented.
+Status: research evidence exists for exact-decimal positive-delta accounting,
+decomposed-statement accumulation, gross-vs-net (oscillation) accounting,
+concurrent row-lock contention, and savepoint/exception recovery, on
+PostgreSQL 16.4, including independence from row-count and state-transition
+budgets in the same transaction. Not a supported implementation.
 
 These are declared PostgreSQL relational metrics. A
 `refunds.amount positive_delta = 100` measurement does not by itself prove that
@@ -236,12 +248,11 @@ bounded independently of upstream correctness.
 The product model separates three stages:
 
 ```text
-demonstrated research mechanics
--> transaction-wide row-event accounting on one relation (PostgreSQL 16.4)
-
-current Phase 0 targets
--> state-transition authority
--> quantitative effect authority
+demonstrated research mechanics (PostgreSQL 16.4, per-transaction)
+-> row-event accounting per protected relation
+-> state-transition authority research evidence
+-> quantitative (numeric-delta) effect authority research evidence
+-> independently keyed per-policy budgets within one top-level transaction
 
 future capability model
 -> task-scoped mutation capabilities
