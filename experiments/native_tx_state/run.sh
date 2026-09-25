@@ -2236,6 +2236,9 @@ UPDATE public.subscriptions SET status = 'cc_evidence_tamper' WHERE id BETWEEN 1
 SAVEPOINT tamper_probe;
 UPDATE public.subscriptions SET status = 'cc_evidence_tamper' WHERE id = 6;
 ROLLBACK TO SAVEPOINT tamper_probe;
+SAVEPOINT tamper_other_policy;
+UPDATE public.users SET role = 'moderator' WHERE id = 1;
+ROLLBACK TO SAVEPOINT tamper_other_policy;
 SELECT 'TAMPER_STATE:' || subscriptions_consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_policy_probe();
 COMMIT;
 \echo tamper_commit_SQLSTATE :SQLSTATE
@@ -2249,14 +2252,21 @@ evidence_assert "tamper" "$cc_ev_tamper_output" \
     'granted: 5' \
     'consumed before attempt: 5' \
     'attempted effect: 6 row-update events' \
+    'CommitCap top-level transaction already denied' \
     'TAMPER_STATE:5|t' \
     'tamper_commit_SQLSTATE 54000'
+# The later users-policy event must report the original subscriptions denial,
+# not a fabricated or misattributed policy.
+cc_ev_tamper_repeat="$(printf '%s\n' "$cc_ev_tamper_output" | grep -A2 -F 'CommitCap top-level transaction already denied' | head -n 3)"
+[[ "$cc_ev_tamper_repeat" == *"policy / metric: subscriptions.rows_updated"* ]] || \
+    fail "already-denied evidence did not retain the original policy: $cc_ev_tamper_repeat"
 cc_ev_tamper_commit="$(evidence_commit_block "$cc_ev_tamper_output")"
 [[ "$cc_ev_tamper_commit" == *"policy / metric: subscriptions.rows_updated"* && \
    "$cc_ev_tamper_commit" == *"result: ABORTED"* ]] || \
     fail "tamper denied COMMIT did not carry policy-scoped ABORTED evidence: $cc_ev_tamper_commit"
 assert_baseline
-printf 'writer state-manipulation evidence: PASS (GUC change denied 42501; client_min_messages/search_path changed; same evidence and sticky denial; COMMIT 54000; fresh admin baseline)\n'
+assert_users_baseline
+printf 'writer state-manipulation evidence: PASS (GUC change denied 42501; client_min_messages/search_path changed; later other-policy event kept the original policy; same evidence and sticky denial; COMMIT 54000; fresh admin baselines)\n'
 printf 'denial evidence (issue #34): PASS\n'
 
 lifecycle_logs="$("${COMPOSE[@]}" logs --no-color postgres 2>&1 | grep 'commitcap_native_tx_state lifecycle' || true)"
