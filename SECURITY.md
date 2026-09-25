@@ -74,7 +74,9 @@ Security reports and public claims MUST be evaluated against:
 3. [docs/threat-model.md](docs/threat-model.md), which defines trust
    assumptions.
 4. [docs/decisions.md](docs/decisions.md), which records accepted boundaries.
-5. Regression tests shipped by the affected release.
+5. [docs/support-matrix.md](docs/support-matrix.md), which records the current
+   research envelope and Public Research Preview preparation status.
+6. Regression tests shipped by the affected release.
 
 Root [SPEC.md](SPEC.md), historical experiment scripts, and the experiment
 evidence in [docs/limitations.md](docs/limitations.md) use **legacy experiment
