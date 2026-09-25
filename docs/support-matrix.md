@@ -5,10 +5,10 @@ Last updated: 2026-09-25.
 This is the single public page for the current CommitCap research mechanism.
 The Public Research Preview ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31))
 is **being prepared, not released**. This document summarizes behavior present
-in its branch history and linked research evidence. Until [#34's PR
-#39](https://github.com/MrDarkRoot/CommitCap/pull/39) lands, the denial evidence
-described here depends on that branch beneath this PR; #35 must not land ahead
-of #34.
+in the reviewed code and linked research evidence. The denial-evidence row
+requires the implementation and tests from [#34's PR
+#39](https://github.com/MrDarkRoot/CommitCap/pull/39) in the base history; it
+must not be published without them.
 [README.md](../README.md) is the project overview, [docs/spec.md](spec.md)
 defines intended semantics, [docs/test-plan.md](test-plan.md) defines canonical
 test IDs, and [docs/limitations.md](limitations.md) preserves the historical
