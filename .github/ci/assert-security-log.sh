@@ -24,6 +24,7 @@ for marker in \
     'numeric contention scenario A: PASS' \
     'numeric contention scenario B: PASS' \
     'numeric contention scenario C: PASS' \
+    'denial evidence (issue #34): PASS' \
     'native transaction-state experiment: all required tests PASS' \
     'Native suite exit status: 0'
 do

@@ -70,7 +70,11 @@ probe values, and the exact fresh-admin state are printed. Expected outcomes:
 | Five subscription rows, five user rows, +`100.00` refund | `COMMIT`, `5|5|100.00|false` | Exactly five/five/one changes, independent limits |
 
 Each case prints `✓` for a committed or freshly verified outcome and `✗` for a
-denied transaction, followed by the exact fresh-admin durable snapshot. Expected
+denied transaction, followed by the exact fresh-admin durable snapshot. The
+denial block is echoed from the enforcement mechanism's own error detail: it
+names the violated policy and, where the mechanism knows them exactly, the
+configured budget, consumption before the attempt and the measured attempted
+effect, then `result: ABORTED` when the top-level `COMMIT` is rejected. Expected
 final lines: `Demo: PASS ...` and `Demo exit status: 0`. A failed
 assertion exits nonzero and prints `FAIL`; denial cases only pass when **both**
 the immediate SQL error and the final top-level COMMIT rejection occur and a

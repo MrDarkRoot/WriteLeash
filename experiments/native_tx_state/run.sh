@@ -1114,6 +1114,10 @@ set -e
     fail "CC-024 did not continue after exception recovery"
 [[ "$cc024_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-024 final COMMIT was not rejected"
+cc024_commit_evidence="$(printf '%s\n' "$cc024_output" | grep -A3 -F 'CommitCap top-level transaction denied after mutation authority violation' | head -n 4)"
+[[ "$cc024_commit_evidence" == *"policy / metric: subscriptions.rows_updated"* && \
+   "$cc024_commit_evidence" == *"result: ABORTED"* ]] || \
+    fail "CC-024 rejected COMMIT did not carry policy-scoped ABORTED evidence: $cc024_commit_evidence"
 cc024_commit_count="$(printf '%s\n' "$cc024_output" | grep -c '^COMMIT$' || true)"
 [[ "$cc024_commit_count" == "0" ]] || fail "CC-024 emitted a COMMIT command tag"
 assert_baseline
@@ -2101,6 +2105,159 @@ assert_refunds "independent-policy violation poisoned COMMIT" "$refunds_baseline
 assert_scalar "independent-policy violation sibling audit" \
     "SELECT count(*) FROM public.unprotected_audit WHERE message = 'cc_policy_violation_sibling';" "0"
 printf 'independent-policy individual violation: PASS (3|1|40.00 independently accounted; sticky denial after ROLLBACK TO; poisoned COMMIT rejected; fresh admin saw all protected baselines and sibling audit=0)\n'
+
+# Issue #34 denial evidence. Each denial shape must expose the policy key and,
+# where the mechanism knows it exactly, the captured budget, consumption before
+# the attempt and the measured attempted effect. The evidence is emitted from
+# backend-local enforcement state; the writer cannot forge it. Every shape ends
+# with savepoint recovery and a rejected top-level COMMIT carrying policy-scoped
+# ABORTED evidence, and every shape is verified from a fresh trusted-admin
+# connection. The values below are exact enforcement values, not inferred ones.
+printf '\n--- issue #34 human-readable denial evidence ---\n'
+
+evidence_commit_block() {
+    printf '%s\n' "$1" | grep -A3 -F 'CommitCap top-level transaction denied after mutation authority violation' | head -n 4
+}
+
+evidence_assert() {
+    local label="$1" output="$2" expected
+    shift 2
+    for expected in "$@"; do
+        [[ "$output" == *"$expected"* ]] || \
+            fail "$label denial evidence missing [$expected]: $output"
+    done
+}
+
+printf '\nDenial evidence: broad row-budget violation with savepoint recovery\n'
+reset_fixture
+set +e
+cc_ev_row_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc_evidence_row' WHERE id BETWEEN 1 AND 5;
+SAVEPOINT evidence_row;
+UPDATE public.subscriptions SET status = 'cc_evidence_row_excess' WHERE id = 6;
+ROLLBACK TO SAVEPOINT evidence_row;
+COMMIT;
+SQL
+)"
+set -e
+evidence_assert "row" "$cc_ev_row_output" \
+    'CommitCap mutation budget exceeded (limit 5, attempted 6)' \
+    'DETAIL:  CommitCap denied transaction' \
+    'policy / metric: subscriptions.rows_updated' \
+    'granted: 5' \
+    'consumed before attempt: 5' \
+    'attempted effect: 6 row-update events' \
+    'result: DENIED; top-level COMMIT will be rejected'
+cc_ev_row_commit="$(evidence_commit_block "$cc_ev_row_output")"
+[[ "$cc_ev_row_commit" == *"policy / metric: subscriptions.rows_updated"* && \
+   "$cc_ev_row_commit" == *"result: ABORTED"* ]] || \
+    fail "row denied COMMIT did not carry policy-scoped ABORTED evidence: $cc_ev_row_commit"
+cc_ev_row_commit_count="$(printf '%s\n' "$cc_ev_row_output" | grep -c '^COMMIT$' || true)"
+[[ "$cc_ev_row_commit_count" == "0" ]] || fail "row denial emitted a COMMIT command tag"
+assert_baseline
+assert_scalar "row denial evidence fresh-admin audit" \
+    "SELECT count(*) FROM public.unprotected_audit;" "0"
+printf 'row denial evidence: PASS (subscriptions.rows_updated, granted 5, consumed 5, attempted 6; COMMIT ABORTED; fresh admin baseline)\n'
+
+printf '\nDenial evidence: forbidden state transition with savepoint recovery\n'
+reset_fixture
+reset_users_fixture
+set +e
+cc_ev_transition_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc_evidence_sibling' WHERE id = 1;
+SAVEPOINT evidence_transition;
+UPDATE public.users SET role = 'admin' WHERE id = 1;
+ROLLBACK TO SAVEPOINT evidence_transition;
+COMMIT;
+SQL
+)"
+set -e
+evidence_assert "transition" "$cc_ev_transition_output" \
+    'CommitCap forbidden state transition (* -> admin)' \
+    'DETAIL:  CommitCap denied transaction' \
+    'policy / metric: users.role (* -> admin)' \
+    'attempted effect: 1 forbidden row transition to admin' \
+    'result: DENIED; top-level COMMIT will be rejected'
+cc_ev_transition_commit="$(evidence_commit_block "$cc_ev_transition_output")"
+[[ "$cc_ev_transition_commit" == *"policy / metric: users.role (* -> admin)"* && \
+   "$cc_ev_transition_commit" == *"result: ABORTED"* ]] || \
+    fail "transition denied COMMIT did not carry policy-scoped ABORTED evidence: $cc_ev_transition_commit"
+assert_baseline
+assert_users_baseline
+printf 'transition denial evidence: PASS (users.role * -> admin; COMMIT ABORTED; fresh admin baseline rows)\n'
+
+printf '\nDenial evidence: numeric positive-delta violation with savepoint recovery\n'
+reset_fixture
+reset_refunds
+set +e
+cc_ev_numeric_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc_evidence_numeric_sibling' WHERE id = 1;
+UPDATE public.refunds SET amount = 80.00 WHERE id = 1;
+SAVEPOINT evidence_numeric;
+UPDATE public.refunds SET amount = 21.00 WHERE id = 2;
+ROLLBACK TO SAVEPOINT evidence_numeric;
+COMMIT;
+SQL
+)"
+set -e
+evidence_assert "numeric" "$cc_ev_numeric_output" \
+    'CommitCap numeric delta budget exceeded' \
+    'DETAIL:  CommitCap denied transaction' \
+    'policy / metric: refunds.amount positive_delta' \
+    'granted: 100.00' \
+    'consumed before attempt: 80.00' \
+    'attempted effect: +21.00 positive delta' \
+    'result: DENIED; top-level COMMIT will be rejected'
+cc_ev_numeric_commit="$(evidence_commit_block "$cc_ev_numeric_output")"
+[[ "$cc_ev_numeric_commit" == *"policy / metric: refunds.amount positive_delta"* && \
+   "$cc_ev_numeric_commit" == *"result: ABORTED"* ]] || \
+    fail "numeric denied COMMIT did not carry policy-scoped ABORTED evidence: $cc_ev_numeric_commit"
+assert_baseline
+assert_refunds "numeric denial evidence poisoned COMMIT" "$refunds_baseline"
+printf 'numeric denial evidence: PASS (refunds.amount positive_delta, granted 100.00, consumed 80.00, attempted +21.00; COMMIT ABORTED; fresh admin baseline)\n'
+
+# The writer can change session-visible knobs it may legally set, read its own
+# probe state and attempt to change the experiment GUC, but it cannot alter the
+# evidence, suppress it, or reach commit. The rejected set_config is an
+# autocommit statement, so the later transaction is unaffected.
+printf '\nDenial evidence: writer session-state manipulation cannot suppress or bypass evidence\n'
+reset_fixture
+set +e
+cc_ev_tamper_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+SET client_min_messages = 'error';
+SET search_path = public;
+SELECT set_config('commitcap_native.test_budget', '100', true);
+\echo tamper_config_SQLSTATE :SQLSTATE
+BEGIN;
+UPDATE public.subscriptions SET status = 'cc_evidence_tamper' WHERE id BETWEEN 1 AND 5;
+SAVEPOINT tamper_probe;
+UPDATE public.subscriptions SET status = 'cc_evidence_tamper' WHERE id = 6;
+ROLLBACK TO SAVEPOINT tamper_probe;
+SELECT 'TAMPER_STATE:' || subscriptions_consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_policy_probe();
+COMMIT;
+\echo tamper_commit_SQLSTATE :SQLSTATE
+SQL
+)"
+set -e
+evidence_assert "tamper" "$cc_ev_tamper_output" \
+    'tamper_config_SQLSTATE 42501' \
+    'CommitCap mutation budget exceeded (limit 5, attempted 6)' \
+    'policy / metric: subscriptions.rows_updated' \
+    'granted: 5' \
+    'consumed before attempt: 5' \
+    'attempted effect: 6 row-update events' \
+    'TAMPER_STATE:5|t' \
+    'tamper_commit_SQLSTATE 54000'
+cc_ev_tamper_commit="$(evidence_commit_block "$cc_ev_tamper_output")"
+[[ "$cc_ev_tamper_commit" == *"policy / metric: subscriptions.rows_updated"* && \
+   "$cc_ev_tamper_commit" == *"result: ABORTED"* ]] || \
+    fail "tamper denied COMMIT did not carry policy-scoped ABORTED evidence: $cc_ev_tamper_commit"
+assert_baseline
+printf 'writer state-manipulation evidence: PASS (GUC change denied 42501; client_min_messages/search_path changed; same evidence and sticky denial; COMMIT 54000; fresh admin baseline)\n'
+printf 'denial evidence (issue #34): PASS\n'
 
 lifecycle_logs="$("${COMPOSE[@]}" logs --no-color postgres 2>&1 | grep 'commitcap_native_tx_state lifecycle' || true)"
 for required_event in \

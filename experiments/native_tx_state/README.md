@@ -534,6 +534,48 @@ reports the calling backend's own `active`, `consumed`, `denied`, and
 only to make the experiment observable. The probe exposes no writable
 accounting state and grants no mutation authority.
 
+## Denial Evidence
+
+Issue #34 added human-readable denial reporting without changing any enforcement
+decision. The backend-local state records the first violated policy
+(`denial_kind`); later denials never overwrite the original cause. Denial errors
+keep their existing SQLSTATE `54000` and primary message, and now carry an
+`errdetail` block:
+
+```text
+ERROR:  CommitCap mutation budget exceeded (limit 5, attempted 6)
+DETAIL:  CommitCap denied transaction
+policy / metric: subscriptions.rows_updated
+granted: 5
+consumed before attempt: 5
+attempted effect: 6 row-update events
+result: DENIED; top-level COMMIT will be rejected
+```
+
+- Row-budget denials report the independently keyed policy
+  (`subscriptions.rows_updated` or `users.rows_updated`), the captured budget,
+  consumption before the attempt and the attempted row-update event count.
+- Transition denials report `users.role (* -> admin)` and the attempted
+  forbidden transition; there is no numeric budget for that policy, so no
+  `granted` or `consumed` value is invented.
+- Numeric denials report `refunds.amount positive_delta` with the exact
+  unrounded decimal spelling of the configured budget, the positive delta
+  consumed before the attempt and the attempted event delta, produced with
+  `numeric_out`.
+- An invalid refund amount cannot be measured, so that path reports only the
+  policy and result rather than a fabricated attempted value.
+- A protected event arriving after a denial reports the original policy.
+- The `XACT_EVENT_PRE_COMMIT` rejection repeats the policy and adds
+  `result: ABORTED`.
+
+The values come only from backend-local enforcement state. No protected row
+value, table text, role string or other writer-controlled text is interpolated
+into the detail, and the writer cannot modify the state or the messages. The
+addition does not change sticky denial, the pre-commit rejection path, allowed
+consumption accounting, or any SQLSTATE; the integrated suite asserts both the
+evidence fields and the unchanged durable-state oracles for the row, transition
+and numeric policies, including savepoint and PL/pgSQL exception recovery.
+
 ## Observed Lifecycle
 
 Server `LOG` traces showed these callback orders:
