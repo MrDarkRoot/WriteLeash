@@ -228,7 +228,7 @@ commitcap_native_enforce_role_transition(PG_FUNCTION_ARGS)
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(DENIAL_TRANSITION),
                            COMMITCAP_EXPERIMENT_DENIED_ROLE),
-                 errhint("CommitCap is a research preview; see docs/limitations.md and docs/test-plan.md for the tested support envelope.")));
+                 errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
     }
 
     record_protected_event(ROW_USERS);
@@ -532,7 +532,7 @@ record_numeric_delta(TriggerData *trigger_data)
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(DENIAL_NUMERIC),
                            granted_text, consumed_text, attempted_text),
-                 errhint("CommitCap is a research preview; see docs/limitations.md and docs/test-plan.md for the tested support envelope.")));
+                 errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
     }
     pfree(remaining);
     replace_numeric(&state.positive_delta,
@@ -616,7 +616,7 @@ record_protected_event(RowPolicy policy)
                            denial_metric_text(kind),
                            state.budget[policy], state.consumed[policy],
                            state.consumed[policy] + 1),
-                 errhint("CommitCap is a research preview; see docs/limitations.md and docs/test-plan.md for the tested support envelope.")));
+                 errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
     }
 
     state.consumed[policy]++;
@@ -832,7 +832,7 @@ xact_callback(XactEvent event, void *arg)
                                    "policy / metric: %s\n"
                                    "result: ABORTED",
                                    denial_metric_text(state.denial_kind)),
-                         errhint("CommitCap is a research preview; see docs/limitations.md and docs/test-plan.md for the tested support envelope.")));
+                          errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
             break;
 
         case XACT_EVENT_COMMIT:
