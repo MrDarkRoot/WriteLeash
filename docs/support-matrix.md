@@ -1,9 +1,14 @@
-# CommitCap Research Preview — Support, Compatibility, Performance and Security Matrix
+# CommitCap Research Mechanism — Support, Compatibility, Performance and Security Matrix
 
 Last updated: 2026-09-25.
 
-This is the single public page for the current CommitCap research state. It
-records only behavior supported by merged repository evidence.
+This is the single public page for the current CommitCap research mechanism.
+The Public Research Preview ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31))
+is **being prepared, not released**. This document summarizes behavior present
+in its branch history and linked research evidence. Until [#34's PR
+#39](https://github.com/MrDarkRoot/CommitCap/pull/39) lands, the denial evidence
+described here depends on that branch beneath this PR; #35 must not land ahead
+of #34.
 [README.md](../README.md) is the project overview, [docs/spec.md](spec.md)
 defines intended semantics, [docs/test-plan.md](test-plan.md) defines canonical
 test IDs, and [docs/limitations.md](limitations.md) preserves the historical
@@ -14,14 +19,13 @@ evidence. Nothing here is a production-ready security control.
 | Status | Meaning |
 | --- | --- |
 | **TESTED** | Demonstrated by passing assertions in the pinned PostgreSQL 16.4 research fixture, within the stated topology. **Not** a release support claim. |
-| **SUPPORTED** | Reserved for a released, documented support envelope. **No entry currently qualifies.** |
 | **NOT TESTED** | No evidence exists. Do not infer behavior. |
 | **UNSUPPORTED** | Outside the current guarantee. Deployment must not imply protection. |
 | **BLOCKED** | Denied by privileges/configuration for the exact tested topology, or blocked by a documented provider model. |
 | **INCONCLUSIVE** | Evidence exists but does not support a conclusion. |
 
-The current state is a **research mechanism / Research Preview**, not a
-supported release: see [Product and release status](#e-product-and-release-status).
+The current state is **research mechanism**, not a released Research Preview or
+a supported release: see [Product and release status](#e-product-and-release-status).
 
 ## A. Enforcement envelope (TESTED only within this envelope)
 
@@ -49,7 +53,7 @@ The one-command demo is [./demo.sh](../demo.sh) plus
 | Denial evidence (issue #34) | **TESTED** | Denials carry policy-scoped `DETAIL` evidence (policy/metric and, only where exactly known, granted budget, consumed-before-attempt and attempted effect) plus `result: ABORTED` at commit rejection. Reporting only; decisions and SQLSTATEs unchanged. [behavior](../experiments/native_tx_state/README.md#denial-evidence), [limitations](limitations.md#native-transaction-state-feasibility-evidence) |
 | Restricted-writer boundary | **TESTED (this topology)** | `commitcap_writer` is a non-superuser, non-owner, membership-free login with column grants only. It cannot disable/drop triggers, replace functions, alter/own protected objects, change replication settings, `SET ROLE`, or change the test GUCs (SQLSTATE `42501`). [privilege boundary](../experiments/native_tx_state/README.md#privilege-boundary) |
 | Concurrency | **TESTED (2 sessions, READ COMMITTED)** | Two writer backends keep independent accounting; verified lock waits; no accounting transfer between sessions; no deadlock count change. Numeric contention A/B/C verified post-lock delta accounting. Other isolation levels, more sessions and deadlock-producing workloads are not tested. [contention](../experiments/native_tx_state/README.md#concurrent-sessions) |
-| Fresh trusted durable-state verification | **TESTED** | Every durable assertion opens a new trusted-admin connection and compares protected rows plus a sibling audit count; writer probes and logs are never the oracle. [suite](../experiments/native_tx_state/run.sh) |
+| Fresh trusted durable-state verification | **TESTED** | Durable-state assertions open new trusted-admin connections; the demo compares every protected row and the sibling audit count, and the suite checks case-specific durable oracles. Writer probes and logs are never the durability oracle. [suite](../experiments/native_tx_state/run.sh), [demo](../demo/phase0/run.sh) |
 | Backend reuse | **TESTED (same backend, no disconnect)** | Next top-level transaction after commit, rollback, denial abort, recovered denial and caught denial starts fresh. Real poolers and role switching are not tested. [backend reuse](../experiments/native_tx_state/README.md#backend-reuse) |
 
 **Not covered by the table above:** anything outside the precisely tested
@@ -60,17 +64,17 @@ suite run is not a claim that arbitrary SQL is protected.
 
 | Area | Status | Detail |
 | --- | --- | --- |
-| Transaction splitting | **NOT TESTED / excluded** | Two committed transactions each within budget are allowed; no task-wide bound exists. [ADR-005](decisions.md), [coverage note](phase0-security-coverage.md#transaction-splitting-conflict--route-a-selected-for-execution-original-checklist-unmet) |
+| Transaction splitting | **UNSUPPORTED (not protected)** | Two committed transactions each within budget are allowed; no task-wide bound exists. [ADR-005](decisions.md), [coverage note](phase0-security-coverage.md#transaction-splitting-conflict--route-a-selected-for-execution-original-checklist-unmet) |
 | Task-wide / cross-transaction authority | **UNSUPPORTED** | Not implemented. No capability state spans transactions. |
 | Retries across committed transactions | **NOT TESTED** | No retry or idempotency semantics exist; a retried committed transaction is a new transaction with fresh budget. |
 | Capability-wide consumption | **UNSUPPORTED** | No signed, expiring or consumable capability model exists. [docs/roadmap.md](roadmap.md) |
-| Arbitrary trigger graphs | **UNSUPPORTED** | Only the fixture's BEFORE UPDATE row triggers are installed; downstream, nested, recursive or user-added trigger effects are not accounted. |
-| Arbitrary stored procedures / `SECURITY DEFINER` helpers | **NOT TESTED / UNSUPPORTED** | The fixture has no mutating routines and the writer has no `EXECUTE`; arbitrary definer writes are outside the guarantee. |
+| Arbitrary trigger graphs | **NOT TESTED / UNSUPPORTED** | Only the fixture's BEFORE UPDATE row triggers are installed; no accounting guarantee extends to arbitrary downstream, nested, recursive or user-added graphs. |
+| Arbitrary stored procedures / `SECURITY DEFINER` helpers | **NOT TESTED / UNSUPPORTED** | The fixture has no mutating routines; writer `EXECUTE` is limited to read-only probes, not mutating helpers. Arbitrary definer writes are outside the guarantee. |
 | FDWs, extensions, external side effects | **UNSUPPORTED** | No remote, filesystem, HTTP, sequence or extension effects are measured or reversed. [threat model](threat-model.md) |
 | Arbitrary DDL | **UNSUPPORTED** | Protected writer lacks DDL; DDL effects are not accounted for trusted actors. |
 | PostgreSQL superuser | **UNSUPPORTED** | A true superuser can bypass database-local enforcement. Superuser is outside the protected-writer model. |
 | Arbitrary privilege topologies | **NOT TESTED** | Only the tested `commitcap_native_admin` / `commitcap_owner` / `commitcap_writer` separation is evidenced. |
-| Other PostgreSQL versions | **NOT TESTED / UNSUPPORTED** | PostgreSQL provides no stable cross-major C ABI; every proposed version needs its own full proof. |
+| Other PostgreSQL versions | **NOT TESTED** | PostgreSQL provides no stable cross-major C ABI; every proposed version needs its own full proof. |
 | INSERT / DELETE / COPY / TRUNCATE on protected tables | **BLOCKED (this fixture)** | The writer lacks these privileges (`42501`); no row accounting exists if they are granted. `INSERT ... ON CONFLICT` requires INSERT and is likewise blocked. |
 | Partitions, inheritance, rules, FK cascades | **NOT TESTED** | No such fixture exists; accounting placement is unproven. |
 | Other isolation levels, >2 sessions, deadlock workloads | **NOT TESTED** | Only two-session `READ COMMITTED` evidence exists. |
@@ -83,8 +87,8 @@ suite run is not a claim that arbitrary SQL is protected.
 | Environment | Status | Evidence |
 | --- | --- | --- |
 | Local / self-managed research fixture (Docker Compose, PostgreSQL 16.4) | **TESTED** | [demo](../demo/phase0/README.md), [native suite](../experiments/native_tx_state/README.md), pinned image digest. |
-| Amazon RDS for PostgreSQL 16, unchanged native mechanism | **BLOCKED by the documented service model** | RDS does not give customers filesystem/superuser access for an unlisted native module, and the experiment requires files under `$libdir` plus `shared_preload_libraries`. Documentary analysis only; no RDS instance was used. [managed feasibility](managed-postgres-feasibility.md) |
-| CloudNativePG (operator-managed PostgreSQL on GKE) | **NOT TESTED (documented mechanism)** | A customer-built image could embed the module and set preload; no cluster, image or managed reproduction exists. Docs establish mechanisms, not CommitCap behavior. [managed feasibility](managed-postgres-feasibility.md#candidate-a-cloudnativepg-128-on-google-kubernetes-engine-gke-standard) |
+| Amazon RDS for PostgreSQL 16, unchanged native mechanism | **BLOCKED via standard customer interfaces (documentary)** | The current native module requires server-installed files under `$libdir` and preload; current RDS customer interfaces do not offer installation of this unlisted module. This does not rule out a different future architecture or provider packaging. No RDS instance was used. [managed feasibility](managed-postgres-feasibility.md) |
+| CloudNativePG (operator-managed PostgreSQL on GKE, not fully managed DBaaS) | **NOT TESTED (documented mechanism)** | A customer-built image could embed the module and set preload; no cluster, image or managed reproduction exists. Docs establish mechanisms, not CommitCap behavior. [managed feasibility](managed-postgres-feasibility.md#candidate-a-cloudnativepg-128-on-google-kubernetes-engine-gke-standard) |
 | Crunchy Bridge provider-packaged module | **NOT TESTED / unverified** | Provider packaging is a research hypothesis, not a support path. [managed feasibility](managed-postgres-feasibility.md#candidate-b-crunchy-bridge-pg16-provider-packaging-request) |
 | **Actual managed PostgreSQL deployment** | **NOT TESTED** | No authorized managed instance, credentials or cloud resources were used. Issue [#10](https://github.com/MrDarkRoot/CommitCap/issues/10) remains open. Do not claim RDS or managed support. |
 
@@ -92,7 +96,7 @@ suite run is not a claim that arbitrary SQL is protected.
 
 | Result | Status | Evidence |
 | --- | --- | --- |
-| Issue [#15](https://github.com/MrDarkRoot/CommitCap/issues/15) enforcement-overhead benchmark | **INCONCLUSIVE** | PR [#22](https://github.com/MrDarkRoot/CommitCap/pull/22) contains two complete, exit-0 measured runs on PostgreSQL 16.4. Both verified durable state and 30 denial trials per denied class, but the host showed severe unexplained baseline-rate shifts (for example, baseline 1-row TPS `1346 → 379 → 101` across rounds; 100-row paired TPS changes `−37%, +66%, −49%` in run 1 and `−7%, −26%, −41%` in run 2). No stable overhead estimate, no PASS threshold and no production claim is derived. Raw data: `benchmarks/phase0/evidence/REPORT.md`, `raw-run*.csv`, `summary-run*.json`, `metadata-run*.json` on the PR branch. |
+| Issue [#15](https://github.com/MrDarkRoot/CommitCap/issues/15) enforcement-overhead benchmark | **INCONCLUSIVE** | PR [#22](https://github.com/MrDarkRoot/CommitCap/pull/22) contains two complete, exit-0 measured runs on PostgreSQL 16.4. Both verified durable state and 30 denial trials per denied class, but baseline throughput shifted sharply and paired changes reversed direction across rounds. No stable overhead estimate, no PASS threshold and no production claim is derived. Raw data: `benchmarks/phase0/evidence/REPORT.md`, `raw-run*.csv`, `summary-run*.json`, `metadata-run*.json` on the PR branch. |
 | Denied-path client timings | **INCONCLUSIVE** | PR #22 also reports protected-only client-observed denial durations. They are not comparable to accepted baseline transactions and are not an overhead claim. |
 
 Do not quote a single favorable number from these runs. A controlled-host
@@ -100,12 +104,13 @@ rerun is required before any overhead statement is published.
 
 ## E. Product and release status
 
-Exactly one of these is currently true:
+Exactly one product stage is current. A runnable research fixture is **not** a
+released Public Research Preview:
 
 | Status | Current | Reason |
 | --- | --- | --- |
-| Research mechanism | **YES** | Native backend-local transaction-state experiment exists and passes its research suite. |
-| Research Preview | **YES** | The transaction-local fixture is available for external testing and inspection. |
+| Research mechanism | **CURRENT** | Native backend-local transaction-state experiment exists and passes its research suite. |
+| Public Research Preview ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31)) | **PREPARING — NOT YET RELEASED** | The umbrella issue remains open; demo/docs/PR work prepares for it but is not a launch. |
 | Supported release | **NO** | No release, support envelope or published support interface exists. |
 | Production-ready security control | **NO** | Do not deploy CommitCap as a security control; see [README](../README.md) and [SECURITY.md](../SECURITY.md). |
 
@@ -123,7 +128,7 @@ local prototype acceptance/deployment gate
 | --- | --- | --- |
 | Protected writer is not a PostgreSQL superuser | **Required and TESTED for the fixture** | `commitcap_writer` has no elevated attributes; superuser is outside the model. [threat model](threat-model.md) |
 | Writer cannot own, alter or drop protected enforcement objects | **TESTED for the fixture** | 27 bypass attempts denied `42501`, trigger/function ownership unchanged. [privilege boundary](../experiments/native_tx_state/README.md#privilege-boundary) |
-| Writer cannot replace trusted enforcement functions | **TESTED for the fixture** | Function replacement/alter denied; no writer `EXECUTE`. |
+| Writer cannot replace trusted enforcement functions | **TESTED for the fixture** | Function replacement/alter denied; no direct writer `EXECUTE` on the enforcement functions (only read-only probes are callable). |
 | Protected tables, trigger functions and probes stay under trusted ownership | **TESTED for the fixture** | `commitcap_owner` (NOLOGIN) owns protected relations and functions; `commitcap_native_admin` is the trusted setup role. |
 | No `SECURITY DEFINER` surface in the current native path | **TESTED for the fixture** | Enforcement and probe functions are `SECURITY INVOKER` C functions with no SQL bodies or `search_path` dependence; no `SECURITY DEFINER` function exists in the trusted schemas. If one is ever added, fixed `search_path`, ownership, `EXECUTE` and shadowing must be reviewed. |
 | Trusted components | **Required** | PostgreSQL engine, trusted installer/admin role, and the policy issuer are trusted. [threat model](threat-model.md) |
