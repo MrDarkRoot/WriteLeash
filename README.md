@@ -295,6 +295,8 @@ and capability lifecycle. None of those future layers is claimed implemented.
 - [docs/spec.md](docs/spec.md) defines current intended semantics.
 - [docs/test-plan.md](docs/test-plan.md) defines canonical current test IDs.
 - [docs/threat-model.md](docs/threat-model.md) defines trust and bypass surfaces.
+- [docs/support-matrix.md](docs/support-matrix.md) is the public
+  Research Preview support/compatibility/performance/security matrix.
 
 [SPEC.md](SPEC.md) and the detailed experiment sections in
 [docs/limitations.md](docs/limitations.md) preserve the original Phase 0

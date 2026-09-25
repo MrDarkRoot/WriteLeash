@@ -12,8 +12,9 @@
 CommitCap has research implementations and experiment harnesses, but no
 released or supported implementation. No database operation is currently
 claimed to be protected. Current intended semantics live in
-[spec.md](spec.md), canonical tests live in [test-plan.md](test-plan.md), and
-accepted boundaries live in [decisions.md](decisions.md).
+[spec.md](spec.md), canonical tests live in [test-plan.md](test-plan.md),
+accepted boundaries live in [decisions.md](decisions.md), and the public
+Research Preview status matrix is [support-matrix.md](support-matrix.md).
 
 The matrix below records the narrower historical row-budget proof. It is
 preserved so its falsification and native feasibility evidence remain readable,
