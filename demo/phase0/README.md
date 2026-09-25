@@ -39,14 +39,16 @@ ID are different identifiers; comparing their literal hex strings is not a
 valid equality check. This preflight changes the **host-wide local tag** and
 does not restore its previous target on teardown; avoid running concurrent
 builds that rely on a different target for `postgres:16.4-alpine`.
-From a fresh checkout of this branch (or a commit containing `demo/phase0/`):
+From a clean checkout of the default branch:
 
 ```bash
 git clone https://github.com/MrDarkRoot/CommitCap.git
 cd CommitCap
-git switch demo/local-phase0-research
-./demo/phase0/run.sh
+./demo.sh
 ```
+
+`./demo.sh` is a thin alias for `./demo/phase0/run.sh`; both paths run the
+same fixture and assertions.
 
 The script builds and starts an isolated Compose project
 (`COMPOSE_PROJECT_NAME=commitcap_demo` by default), applies the **unchanged**
@@ -67,7 +69,9 @@ probe values, and the exact fresh-admin state are printed. Expected outcomes:
 | Refunds +`80.00` and attempted +`21.00` | Excess `54000`, denied probe `1|1|80.00|true`, final `COMMIT` raises `54000` | All baseline, including subscription, user and audit=0 |
 | Five subscription rows, five user rows, +`100.00` refund | `COMMIT`, `5|5|100.00|false` | Exactly five/five/one changes, independent limits |
 
-Expected final lines: `Demo: PASS ...` and `Demo exit status: 0`. A failed
+Each case prints `✓` for a committed or freshly verified outcome and `✗` for a
+denied transaction, followed by the exact fresh-admin durable snapshot. Expected
+final lines: `Demo: PASS ...` and `Demo exit status: 0`. A failed
 assertion exits nonzero and prints `FAIL`; denial cases only pass when **both**
 the immediate SQL error and the final top-level COMMIT rejection occur and a
 fresh admin sees no durable siblings. This demo does not replace the full
