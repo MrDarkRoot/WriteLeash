@@ -30,7 +30,9 @@ fixture, with the `postgres:16.4-alpine` image pinned to digest
 `sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c`
 ([CI pin](../.github/workflows/native-pg16-security.yml),
 [setup.sql](../experiments/native_tx_state/setup.sql)). The integrated suite is
-[run.sh](../experiments/native_tx_state/run.sh); its archived transcript is
+[run.sh](../experiments/native_tx_state/run.sh); CI runs it (and the demo) on
+every pull request, and an archived integrated transcript from the pre-#34
+suite is
 [evidence/2026-09-23-integrated-audit-e97f19b.txt](../experiments/native_tx_state/evidence/2026-09-23-integrated-audit-e97f19b.txt).
 The one-command demo is [./demo.sh](../demo.sh) plus
 [demo/phase0/README.md](../demo/phase0/README.md).
