@@ -10,7 +10,11 @@ started=false
 
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 ok() { printf '  ✓ %s\n' "$1"; }
-denied() { printf '  ✗ %s\n' "$1"; }
+# Echo the denial evidence emitted by the mechanism (never synthesized here).
+print_denial_evidence() {
+    printf '  ✗ CommitCap denied mutation\n'
+    printf '%s\n' "$1" | grep -E '^(policy / metric|granted|consumed before attempt|attempted effect|result):' | awk '!seen[$0]++' | sed 's/^/    /'
+}
 admin_psql() {
     "${COMPOSE[@]}" exec -T -e PGPASSWORD=commitcap_native_admin_experiment_only postgres \
         psql -X -A -t -h 127.0.0.1 -U commitcap_native_admin -d commitcap_native -v ON_ERROR_STOP=1 "$@"
@@ -130,8 +134,13 @@ SQL
 line "$out" 'sixth_SQLSTATE 54000'; line "$out" 'policy=5|1|20.00|true'
 line "$out" 'commit_SQLSTATE 54000'
 [[ "$out" == *'CommitCap mutation budget exceeded (limit 5, attempted 6)'* && "$out" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail 'row denial message differs'
+line "$out" 'policy / metric: subscriptions.rows_updated'
+line "$out" 'granted: 5'
+line "$out" 'consumed before attempt: 5'
+line "$out" 'attempted effect: 6 row-update events'
+line "$out" 'result: ABORTED'
 show_writer "$out"
-denied 'CommitCap denied mutation: row budget exceeded; sixth statement raised 54000 and top-level COMMIT was rejected'
+print_denial_evidence "$out"
 assert_durable "$baseline_subs" "$baseline_users" "$baseline_refunds" 0
 ok 'fresh trusted verification: no protected over-authority mutation became durable'
 
@@ -153,8 +162,11 @@ SQL
 line "$out" 'transition_SQLSTATE 54000'; line "$out" 'policy=1|0|0.00|true'
 line "$out" 'commit_SQLSTATE 54000'
 [[ "$out" == *'CommitCap forbidden state transition (* -> admin)'* && "$out" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail 'transition denial message differs'
+line "$out" 'policy / metric: users.role (* -> admin)'
+line "$out" 'attempted effect: 1 forbidden row transition to admin'
+line "$out" 'result: ABORTED'
 show_writer "$out"
-denied 'CommitCap denied mutation: forbidden state transition; top-level COMMIT was rejected'
+print_denial_evidence "$out"
 assert_durable "$baseline_subs" "$baseline_users" "$baseline_refunds" 0
 ok 'fresh trusted verification: no forbidden transition, sibling mutation or audit row became durable'
 
@@ -195,8 +207,13 @@ SQL
 line "$out" 'delta_SQLSTATE 54000'; line "$out" 'policy=1|1|80.00|true'
 line "$out" 'commit_SQLSTATE 54000'
 [[ "$out" == *'CommitCap numeric delta budget exceeded'* && "$out" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail 'numeric denial message differs'
+line "$out" 'policy / metric: refunds.amount positive_delta'
+line "$out" 'granted: 100.00'
+line "$out" 'consumed before attempt: 80.00'
+line "$out" 'attempted effect: +21.00 positive delta'
+line "$out" 'result: ABORTED'
 show_writer "$out"
-denied 'CommitCap denied mutation: numeric positive delta exceeded; top-level COMMIT was rejected'
+print_denial_evidence "$out"
 assert_durable "$baseline_subs" "$baseline_users" "$baseline_refunds" 0
 ok 'fresh trusted verification: no excess delta, sibling mutation or audit row became durable'
 

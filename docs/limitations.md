@@ -319,6 +319,19 @@ installation, `shared_preload_libraries`, trusted setup privileges, and native
 server interfaces must be evaluated separately against at least one realistic
 managed environment before drawing any deployment conclusion.
 
+Issue #34 added reporting-only denial evidence to this same research
+mechanism: denial errors keep their SQLSTATE and primary message and now carry a
+structured `DETAIL` block naming the first violated policy and, only where the
+mechanism knows them exactly, the captured budget, consumption before the
+attempt and the measured attempted effect; `XACT_EVENT_PRE_COMMIT` repeats the
+policy with `result: ABORTED`. Values that cannot be known exactly are omitted
+rather than inferred. This does not change sticky denial, allowed-consumption
+accounting, or any enforcement decision; the integrated suite asserts the
+evidence fields plus the unchanged fresh-admin durable-state oracles for row,
+transition and numeric policies, including savepoint and PL/pgSQL exception
+recovery. Exact behavior is documented in the
+[experiment README](../experiments/native_tx_state/README.md#denial-evidence).
+
 ## State-Transition Authority Evidence (CC-020 / CC-021 / CC-022)
 
 These are canonical [test-plan.md](test-plan.md) IDs, not legacy experiment

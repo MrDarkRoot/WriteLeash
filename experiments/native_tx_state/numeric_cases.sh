@@ -555,6 +555,11 @@ nc_state_assert b NC_B_B2 '0|0|50.00|t'
 
 cc_send b "UPDATE public.subscriptions SET status='nc_b_sibling' WHERE id=1;"
 cc_wait_output b 'CommitCap top-level transaction already denied' 'numeric contention scenario B sibling rejection'
+cc_send b '\echo NC_B_SIBLING_OUTPUT_COMPLETE'
+cc_wait_output b 'NC_B_SIBLING_OUTPUT_COMPLETE' 'numeric contention scenario B sibling error detail'
+nc_b_repeat="$(grep -A2 -F 'CommitCap top-level transaction already denied' "$CC_SESSION_DIR/b.out" | head -n 3)"
+[[ "$nc_b_repeat" == *'policy / metric: refunds.amount positive_delta'* ]] || \
+    fail "numeric contention scenario B: later subscriptions event lost the original numeric policy: $nc_b_repeat"
 
 cc_send b "ROLLBACK TO SAVEPOINT nc_b_sp;"
 # The recovered transaction is back in progress, so the sticky denial rejects
@@ -563,6 +568,12 @@ cc_send b "ROLLBACK TO SAVEPOINT nc_b_sp;"
 nc_b_commits_before="$(cc_count_tag b COMMIT)"
 cc_send b "COMMIT;"
 cc_wait_output b 'CommitCap top-level transaction denied after mutation authority violation' 'numeric contention scenario B COMMIT rejection'
+cc_send b '\echo NC_B_COMMIT_OUTPUT_COMPLETE'
+cc_wait_output b 'NC_B_COMMIT_OUTPUT_COMPLETE' 'numeric contention scenario B COMMIT error detail'
+nc_b_commit_evidence="$(grep -A3 -F 'CommitCap top-level transaction denied after mutation authority violation' "$CC_SESSION_DIR/b.out" | head -n 4)"
+[[ "$nc_b_commit_evidence" == *'policy / metric: refunds.amount positive_delta'* && \
+   "$nc_b_commit_evidence" == *'result: ABORTED'* ]] || \
+    fail "numeric contention scenario B: COMMIT lost original numeric denial: $nc_b_commit_evidence"
 [[ "$(( $(cc_count_tag b COMMIT) - nc_b_commits_before ))" == "0" ]] || \
     fail "numeric contention scenario B: denied transaction emitted a COMMIT tag"
 

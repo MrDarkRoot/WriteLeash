@@ -44,6 +44,21 @@ typedef enum RowPolicy
     ROW_POLICY_COUNT
 } RowPolicy;
 
+/*
+ * Why the current top-level transaction was first denied. The sticky-denied
+ * bit alone cannot explain the denial to a developer; the kind is backend-local
+ * enforcement state and is never writable by the protected writer. It is used
+ * only for human-readable error detail, never for an enforcement decision.
+ */
+typedef enum DenialKind
+{
+    DENIAL_NONE = 0,
+    DENIAL_ROW_SUBSCRIPTIONS,
+    DENIAL_ROW_USERS,
+    DENIAL_TRANSITION,
+    DENIAL_NUMERIC
+} DenialKind;
+
 static int  commitcap_experiment_budget = COMMITCAP_EXPERIMENT_DEFAULT_BUDGET;
 static int  commitcap_experiment_seed_consumed = -1;
 static char *commitcap_experiment_numeric_budget = NULL;
@@ -60,6 +75,7 @@ typedef struct ExperimentState
 {
     bool        active;
     bool        denied;
+    DenialKind  denial_kind;
     uint64      consumed[ROW_POLICY_COUNT];
     uint64      budget[ROW_POLICY_COUNT];
     Numeric     positive_delta;
@@ -83,10 +99,13 @@ static ConsumptionFrame *ensure_frame(SubTransactionId subid);
 static void remove_frame(SubTransactionId subid);
 static void reset_state(void);
 static void activate_state(void);
+static void mark_denied(DenialKind kind);
+static const char *denial_metric_text(DenialKind kind);
 static void record_protected_event(RowPolicy policy);
 static bool check_numeric_budget(char **newval, void **extra, GucSource source);
 static bool valid_refund_amount(Numeric value);
 static Numeric numeric_in_top(const char *value);
+static char *numeric_text(Numeric value);
 static Numeric numeric_operation(Numeric a, Numeric b, bool subtract);
 static void replace_numeric(Numeric *slot, Numeric replacement);
 static void record_numeric_delta(TriggerData *trigger_data);
@@ -193,16 +212,34 @@ commitcap_native_enforce_role_transition(PG_FUNCTION_ARGS)
 
     activate_state();
 
+    /* The first denial remains authoritative even if this later row would
+     * independently violate the forbidden-transition rule. */
+    if (state.denied)
+        ereport(ERROR,
+                (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+                 errmsg("CommitCap top-level transaction already denied"),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(state.denial_kind))));
+
     if (forbidden_role_transition(trigger_data, &new_role))
     {
-        state.denied = true;
+        mark_denied(DENIAL_TRANSITION);
         elog(LOG,
              "commitcap_native_tx_state transition_denial pid=%d to=%s",
              MyProcPid, new_role);
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
                  errmsg("CommitCap forbidden state transition (* -> %s)",
-                        COMMITCAP_EXPERIMENT_DENIED_ROLE)));
+                        COMMITCAP_EXPERIMENT_DENIED_ROLE),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "attempted effect: 1 forbidden row transition to %s\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(DENIAL_TRANSITION),
+                           COMMITCAP_EXPERIMENT_DENIED_ROLE),
+                 errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
     }
 
     record_protected_event(ROW_USERS);
@@ -231,6 +268,44 @@ commitcap_native_enforce_refund_delta(PG_FUNCTION_ARGS)
     activate_state();
     record_numeric_delta(trigger_data);
     PG_RETURN_POINTER(trigger_data->tg_newtuple);
+}
+
+/*
+ * Record the first denial that poisoned this top-level transaction. Later
+ * denials never overwrite the original cause: the first violated policy is the
+ * authoritative explanation. This changes when evidence is reported, not when
+ * enforcement denies.
+ */
+static void
+mark_denied(DenialKind kind)
+{
+    if (!state.denied)
+        state.denial_kind = kind;
+    state.denied = true;
+}
+
+/*
+ * Human-readable policy key for a recorded denial. These strings are static
+ * literals derived from enforcement state; no user-controlled text and no
+ * protected row values are interpolated. They are for error detail only.
+ */
+static const char *
+denial_metric_text(DenialKind kind)
+{
+    switch (kind)
+    {
+        case DENIAL_ROW_SUBSCRIPTIONS:
+            return "subscriptions.rows_updated";
+        case DENIAL_ROW_USERS:
+            return "users.rows_updated";
+        case DENIAL_TRANSITION:
+            return "users.role (* -> admin)";
+        case DENIAL_NUMERIC:
+            return "refunds.amount positive_delta";
+        case DENIAL_NONE:
+            break;
+    }
+    return "unspecified enforcement failure";
 }
 
 /* GUC input is validated before it can be captured by a writer transaction. */
@@ -315,6 +390,20 @@ numeric_in_top(const char *value)
     return result;
 }
 
+/*
+ * Exact decimal spelling of a validated budget/consumption/delta value for
+ * error detail. numeric_out preserves the value's scale; the value is not
+ * rounded or reformatted by the enforcement path. The result is palloc'd in
+ * the current context and consumed by ereport before any error longjmp.
+ */
+static char *
+numeric_text(Numeric value)
+{
+    Assert(value != NULL);
+    return DatumGetCString(DirectFunctionCall1(numeric_out,
+                                               NumericGetDatum(value)));
+}
+
 /* Always allocate persistent arithmetic results outside subtransaction-owned
  * contexts. Bounded inputs and check-before-add prevent numeric overflow. */
 static Numeric
@@ -328,10 +417,14 @@ numeric_operation(Numeric a, Numeric b, bool subtract)
     MemoryContextSwitchTo(previous);
     if (error || result == NULL)
     {
-        state.denied = true;
+        mark_denied(DENIAL_NUMERIC);
         ereport(ERROR,
                 (errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-                 errmsg("CommitCap unsafe numeric arithmetic")));
+                 errmsg("CommitCap unsafe numeric arithmetic"),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(DENIAL_NUMERIC))));
     }
     return result;
 }
@@ -363,7 +456,11 @@ record_numeric_delta(TriggerData *trigger_data)
     if (state.denied)
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap top-level transaction already denied")));
+                 errmsg("CommitCap top-level transaction already denied"),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(state.denial_kind))));
 
     for (i = 0; i < tupdesc->natts; i++)
     {
@@ -378,10 +475,14 @@ record_numeric_delta(TriggerData *trigger_data)
     }
     if (attnum < 0)
     {
-        state.denied = true;
+        mark_denied(DENIAL_NUMERIC);
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("CommitCap refund fixture requires a numeric amount column")));
+                 errmsg("CommitCap refund fixture requires a numeric amount column"),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(DENIAL_NUMERIC))));
     }
 
     old_datum = heap_getattr(trigger_data->tg_trigtuple, attnum, tupdesc,
@@ -392,10 +493,14 @@ record_numeric_delta(TriggerData *trigger_data)
         !valid_refund_amount(DatumGetNumeric(old_datum)) ||
         !valid_refund_amount(DatumGetNumeric(new_datum)))
     {
-        state.denied = true;
+        mark_denied(DENIAL_NUMERIC);
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("CommitCap invalid refund amount (finite, nonnegative, 16 integer and 2 fractional digits maximum)")));
+                 errmsg("CommitCap invalid refund amount (finite, nonnegative, 16 integer and 2 fractional digits maximum)"),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(DENIAL_NUMERIC))));
     }
 
     old_amount = DatumGetNumeric(old_datum);
@@ -420,12 +525,25 @@ record_numeric_delta(TriggerData *trigger_data)
     if (DatumGetInt32(DirectFunctionCall2(numeric_cmp, NumericGetDatum(delta),
                                           NumericGetDatum(remaining))) > 0)
     {
+        char       *granted_text = numeric_text(state.numeric_budget);
+        char       *consumed_text = numeric_text(state.positive_delta);
+        char       *attempted_text = numeric_text(delta);
+
+        mark_denied(DENIAL_NUMERIC);
         pfree(remaining);
         pfree(delta);
-        state.denied = true;
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap numeric delta budget exceeded")));
+                 errmsg("CommitCap numeric delta budget exceeded"),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "granted: %s\n"
+                           "consumed before attempt: %s\n"
+                           "attempted effect: +%s positive delta\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(DENIAL_NUMERIC),
+                           granted_text, consumed_text, attempted_text),
+                 errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
     }
     pfree(remaining);
     replace_numeric(&state.positive_delta,
@@ -454,6 +572,7 @@ activate_state(void)
          */
         state.active = true;
         state.denied = false;
+        state.denial_kind = DENIAL_NONE;
         state.consumed[ROW_SUBSCRIPTIONS] = (commitcap_experiment_seed_consumed >= 0)
             ? (uint64) commitcap_experiment_seed_consumed
             : 0;
@@ -470,11 +589,17 @@ static void
 record_protected_event(RowPolicy policy)
 {
     ConsumptionFrame *frame;
+    DenialKind  kind = (policy == ROW_SUBSCRIPTIONS) ?
+        DENIAL_ROW_SUBSCRIPTIONS : DENIAL_ROW_USERS;
 
     if (state.denied)
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap top-level transaction already denied")));
+                 errmsg("CommitCap top-level transaction already denied"),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(state.denial_kind))));
 
     /*
      * Check before increment. This comparison cannot overflow, and consumed
@@ -483,7 +608,7 @@ record_protected_event(RowPolicy policy)
      */
     if (state.consumed[policy] >= state.budget[policy])
     {
-        state.denied = true;
+        mark_denied(kind);
         elog(LOG,
              "commitcap_native_tx_state denial pid=%d consumed=" UINT64_FORMAT
              " attempted=" UINT64_FORMAT " budget=" UINT64_FORMAT,
@@ -492,7 +617,17 @@ record_protected_event(RowPolicy policy)
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
                  errmsg("CommitCap mutation budget exceeded (limit " UINT64_FORMAT ", attempted " UINT64_FORMAT ")",
-                         state.budget[policy], state.consumed[policy] + 1)));
+                         state.budget[policy], state.consumed[policy] + 1),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "granted: " UINT64_FORMAT "\n"
+                           "consumed before attempt: " UINT64_FORMAT "\n"
+                           "attempted effect: " UINT64_FORMAT " row-update events\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(kind),
+                           state.budget[policy], state.consumed[policy],
+                           state.consumed[policy] + 1),
+                 errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
     }
 
     state.consumed[policy]++;
@@ -671,6 +806,7 @@ reset_state(void)
 
     state.active = false;
     state.denied = false;
+    state.denial_kind = DENIAL_NONE;
     state.consumed[ROW_SUBSCRIPTIONS] = 0;
     state.consumed[ROW_USERS] = 0;
     state.budget[ROW_SUBSCRIPTIONS] = 0;
@@ -702,7 +838,12 @@ xact_callback(XactEvent event, void *arg)
             if (state.denied)
                 ereport(ERROR,
                         (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                         errmsg("CommitCap top-level transaction denied after mutation authority violation")));
+                         errmsg("CommitCap top-level transaction denied after mutation authority violation"),
+                         errdetail("CommitCap denied transaction\n"
+                                   "policy / metric: %s\n"
+                                   "result: ABORTED",
+                                   denial_metric_text(state.denial_kind)),
+                          errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
             break;
 
         case XACT_EVENT_COMMIT:
