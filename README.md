@@ -80,6 +80,21 @@ CommitCap is in **Phase 0: security proof + parallel falsification**.
 Do not deploy CommitCap as a security control until a supported implementation
 is released and its documented support envelope has passed the required tests.
 
+## Run The Local Research Demo
+
+A clean checkout with Docker can run the current transaction-local research
+fixture with one command:
+
+```bash
+./demo.sh
+```
+
+It builds the pinned `postgres:16.4-alpine` fixture, commits a safe mutation,
+denies an over-budget transaction, and verifies from a fresh trusted admin
+connection that no over-authority protected mutation became durable. See
+[demo/phase0/README.md](demo/phase0/README.md) for prerequisites, expected
+output, and teardown. This is research-demo behavior, not a supported release.
+
 ## Phase 0 Proof Surface
 
 Phase 0 targets three effect classes. The examples below are illustrative

@@ -32,6 +32,14 @@ jobs:
           ./experiments/native_tx_state/run.sh 2>&1 | tee "$RUNNER_TEMP/commitcap-native-suite.txt"
           bash .github/ci/assert-security-log.sh "$RUNNER_TEMP/commitcap-native-suite.txt"
 
+      - name: One-command demo path (./demo.sh)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./demo.sh 2>&1 | tee "$RUNNER_TEMP/commitcap-demo.txt"
+          grep -Fq 'Demo: PASS' "$RUNNER_TEMP/commitcap-demo.txt"
+          grep -Fq 'Demo exit status: 0' "$RUNNER_TEMP/commitcap-demo.txt"
+
       - name: Remove disposable PostgreSQL resources
         if: always()
         shell: bash
@@ -42,6 +50,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, pinned
         with:
           name: native-pg16-security-log
-          path: ${{ runner.temp }}/commitcap-native-suite.txt
+          path: |
+            ${{ runner.temp }}/commitcap-native-suite.txt
+            ${{ runner.temp }}/commitcap-demo.txt
           if-no-files-found: ignore
           retention-days: 7

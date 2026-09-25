@@ -9,6 +9,8 @@ COMPOSE=(docker compose -f "$FIXTURE/docker-compose.yml")
 started=false
 
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
+ok() { printf '  ✓ %s\n' "$1"; }
+denied() { printf '  ✗ %s\n' "$1"; }
 admin_psql() {
     "${COMPOSE[@]}" exec -T -e PGPASSWORD=commitcap_native_admin_experiment_only postgres \
         psql -X -A -t -h 127.0.0.1 -U commitcap_native_admin -d commitcap_native -v ON_ERROR_STOP=1 "$@"
@@ -75,8 +77,9 @@ started=true
 "${COMPOSE[@]}" up -d --build --wait >/dev/null
 admin_psql < "$FIXTURE/setup.sql" >/dev/null
 
-printf 'Phase 0 local research demo; project=%s\n' "$COMPOSE_PROJECT_NAME"
-printf 'Command: ./demo/phase0/run.sh\nImplementation commit: %s\n' "$(git -C "$ROOT" rev-parse HEAD)"
+printf 'CommitCap Phase 0 local research demo; project=%s\n' "$COMPOSE_PROJECT_NAME"
+printf 'Command: ./demo.sh (alias of ./demo/phase0/run.sh)\n'
+printf 'Implementation commit: %s\n' "$(git -C "$ROOT" rev-parse HEAD)"
 printf 'Base image: %s (verified local image ID: %s)\n' "$PINNED_IMAGE" "$tagged_id"
 printf 'PostgreSQL: %s\n' "$(admin_psql -c 'SHOW server_version;')"
 privileges="$(admin_psql -c "SELECT (NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolbypassrls AND NOT pg_has_role('commitcap_writer','commitcap_owner','MEMBER') AND has_column_privilege('commitcap_writer','public.subscriptions','status','UPDATE') AND has_column_privilege('commitcap_writer','public.users','role','UPDATE') AND has_column_privilege('commitcap_writer','public.refunds','amount','UPDATE') AND has_column_privilege('commitcap_writer','public.unprotected_audit','message','INSERT') AND NOT has_table_privilege('commitcap_writer','public.refunds','INSERT') AND NOT has_table_privilege('commitcap_writer','public.subscriptions','DELETE') AND NOT has_schema_privilege('commitcap_writer','commitcap_native','USAGE')) FROM pg_roles WHERE rolname='commitcap_writer';")"
@@ -84,8 +87,9 @@ privileges="$(admin_psql -c "SELECT (NOT rolsuper AND NOT rolcreatedb AND NOT ro
 settings="$(writer_psql -v ON_ERROR_STOP=1 -c "SELECT current_user || '|' || current_setting('commitcap_native.test_budget') || '|' || current_setting('commitcap_native.test_numeric_budget');")"
 [[ "$settings" == 'commitcap_writer|5|100.00' ]] || fail "writer or budget settings differ: $settings"
 printf 'Restricted writer: %s (fixture privilege check=t)\n' "$settings"
+printf 'Outcome markers: ✓ committed or verified; ✗ CommitCap denied the transaction\n'
 
-printf '\n1. Safe subscriptions + allowed role transition\n'
+printf '\n1. SAFE: subscriptions repairs + allowed role transition\n'
 reset
 out="$(writer_psql -v ON_ERROR_STOP=1 2>&1 <<'SQL'
 BEGIN;
@@ -97,10 +101,12 @@ SQL
 )"
 line "$out" 'UPDATE 2'; line "$out" 'policy=2|1|0.00|false'; line "$out" 'COMMIT'
 show_writer "$out"
+ok 'safe mutation committed'
 assert_durable '1=repaired,2=repaired,3=baseline,4=baseline,5=baseline,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline' \
     '1=moderator,2=member,3=member,4=member,5=member,6=member' "$baseline_refunds" 0
+ok 'fresh trusted verification: exact expected durable state confirmed'
 
-printf '\n2. Six small subscriptions statements; savepoint cannot clear denial\n'
+printf '\n2. DENIED: six small subscriptions statements; savepoint cannot clear denial\n'
 reset
 out="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
@@ -125,9 +131,11 @@ line "$out" 'sixth_SQLSTATE 54000'; line "$out" 'policy=5|1|20.00|true'
 line "$out" 'commit_SQLSTATE 54000'
 [[ "$out" == *'CommitCap mutation budget exceeded (limit 5, attempted 6)'* && "$out" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail 'row denial message differs'
 show_writer "$out"
+denied 'CommitCap denied mutation: row budget exceeded; sixth statement raised 54000 and top-level COMMIT was rejected'
 assert_durable "$baseline_subs" "$baseline_users" "$baseline_refunds" 0
+ok 'fresh trusted verification: no protected over-authority mutation became durable'
 
-printf '\n3. Forbidden member -> admin; recovered SQL still cannot COMMIT\n'
+printf '\n3. DENIED: forbidden member -> admin; recovered SQL still cannot COMMIT\n'
 reset
 out="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
@@ -146,9 +154,11 @@ line "$out" 'transition_SQLSTATE 54000'; line "$out" 'policy=1|0|0.00|true'
 line "$out" 'commit_SQLSTATE 54000'
 [[ "$out" == *'CommitCap forbidden state transition (* -> admin)'* && "$out" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail 'transition denial message differs'
 show_writer "$out"
+denied 'CommitCap denied mutation: forbidden state transition; top-level COMMIT was rejected'
 assert_durable "$baseline_subs" "$baseline_users" "$baseline_refunds" 0
+ok 'fresh trusted verification: no forbidden transition, sibling mutation or audit row became durable'
 
-printf '\n4. Exact positive refund delta 30.00 + 70.00 = 100.00\n'
+printf '\n4. SAFE: exact positive refund delta 30.00 + 70.00 = 100.00\n'
 reset
 out="$(writer_psql -v ON_ERROR_STOP=1 2>&1 <<'SQL'
 BEGIN;
@@ -160,10 +170,12 @@ SQL
 )"
 line "$out" 'policy=0|0|100.00|false'; line "$out" 'COMMIT'
 show_writer "$out"
+ok 'safe mutation committed at the exact numeric budget'
 assert_durable "$baseline_subs" "$baseline_users" \
     '1=30.00,2=70.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00' 0
+ok 'fresh trusted verification: exact positive-delta amounts confirmed'
 
-printf '\n5. Excess positive refund delta 80.00 + 21.00 = 101.00\n'
+printf '\n5. DENIED: excess positive refund delta 80.00 + 21.00 = 101.00\n'
 reset
 out="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
@@ -184,9 +196,11 @@ line "$out" 'delta_SQLSTATE 54000'; line "$out" 'policy=1|1|80.00|true'
 line "$out" 'commit_SQLSTATE 54000'
 [[ "$out" == *'CommitCap numeric delta budget exceeded'* && "$out" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail 'numeric denial message differs'
 show_writer "$out"
+denied 'CommitCap denied mutation: numeric positive delta exceeded; top-level COMMIT was rejected'
 assert_durable "$baseline_subs" "$baseline_users" "$baseline_refunds" 0
+ok 'fresh trusted verification: no excess delta, sibling mutation or audit row became durable'
 
-printf '\n6. Three independent policy limits in one top-level transaction\n'
+printf '\n6. SAFE: three independent policy limits in one top-level transaction\n'
 reset
 out="$(writer_psql -v ON_ERROR_STOP=1 2>&1 <<'SQL'
 BEGIN;
@@ -199,7 +213,12 @@ SQL
 )"
 line "$out" 'policy=5|5|100.00|false'; line "$out" 'COMMIT'
 show_writer "$out"
+ok 'safe mutation committed under three independent policy limits'
 assert_durable '1=independent,2=independent,3=independent,4=independent,5=independent,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline' \
     '1=moderator,2=moderator,3=moderator,4=moderator,5=moderator,6=member' \
     '1=100.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00' 0
+ok 'fresh trusted verification: independent limits and exact durable state confirmed'
+
+printf '\nSummary: 3 safe transactions committed; 3 denied transactions could not commit; every fresh trusted-admin oracle matched the expected durable state.\n'
+printf 'Boundary: transaction-local research fixture only. Task-wide/cross-transaction budgets are not implemented; see demo/phase0/README.md.\n'
 printf '\nDemo: PASS (six real writer transactions, fresh-admin exact durable oracles)\n'
