@@ -2267,6 +2267,57 @@ cc_ev_tamper_commit="$(evidence_commit_block "$cc_ev_tamper_output")"
 assert_baseline
 assert_users_baseline
 printf 'writer state-manipulation evidence: PASS (GUC change denied 42501; client_min_messages/search_path changed; later other-policy event kept the original policy; same evidence and sticky denial; COMMIT 54000; fresh admin baselines)\n'
+
+# A forbidden transition is checked before normal users row accounting. Once
+# another policy has already denied this top-level transaction, that path must
+# reject as already denied rather than report a new transition as the cause.
+printf '\nFirst-cause attribution: row denial remains authoritative across later transition\n'
+reset_fixture
+reset_users_fixture
+reset_refunds
+set +e
+cc_ev_first_cause_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
+BEGIN;
+INSERT INTO public.unprotected_audit(message) VALUES ('first_cause_sibling');
+UPDATE public.subscriptions SET status = 'first_cause_allowed' WHERE id BETWEEN 1 AND 5;
+SAVEPOINT first_denial;
+UPDATE public.subscriptions SET status = 'first_cause_excess' WHERE id = 6;
+\echo first_SQLSTATE :SQLSTATE
+ROLLBACK TO SAVEPOINT first_denial;
+SAVEPOINT later_transition;
+UPDATE public.users SET role = 'admin' WHERE id = 1;
+\echo transition_SQLSTATE :SQLSTATE
+ROLLBACK TO SAVEPOINT later_transition;
+SELECT 'FIRST_CAUSE_STATE:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_policy_probe();
+COMMIT;
+\echo commit_SQLSTATE :SQLSTATE
+SQL
+)"
+set -e
+evidence_assert "first-cause row then transition" "$cc_ev_first_cause_output" \
+    'first_SQLSTATE 54000' \
+    'CommitCap mutation budget exceeded (limit 5, attempted 6)' \
+    'transition_SQLSTATE 54000' \
+    'CommitCap top-level transaction already denied' \
+    'FIRST_CAUSE_STATE:5|0|0.00|t' \
+    'commit_SQLSTATE 54000'
+cc_ev_later_transition="$(printf '%s\n' "$cc_ev_first_cause_output" | grep -A3 -F 'CommitCap top-level transaction already denied' | head -n 4)"
+[[ "$cc_ev_later_transition" == *'policy / metric: subscriptions.rows_updated'* && \
+   "$cc_ev_later_transition" == *'result: DENIED; top-level COMMIT will be rejected'* && \
+   "$cc_ev_first_cause_output" != *'policy / metric: users.role (* -> admin)'* ]] || \
+    fail "later forbidden transition misattributed the first denial: $cc_ev_first_cause_output"
+cc_ev_first_cause_commit="$(evidence_commit_block "$cc_ev_first_cause_output")"
+[[ "$cc_ev_first_cause_commit" == *'policy / metric: subscriptions.rows_updated'* && \
+   "$cc_ev_first_cause_commit" == *'result: ABORTED'* ]] || \
+    fail "first-cause COMMIT evidence lost original row policy: $cc_ev_first_cause_commit"
+[[ "$(printf '%s\n' "$cc_ev_first_cause_output" | grep -c '^COMMIT$' || true)" == 0 ]] || \
+    fail 'first-cause denied transaction emitted a COMMIT tag'
+assert_baseline
+assert_users_baseline
+assert_refunds 'row then forbidden transition poisoned COMMIT' "$refunds_baseline"
+assert_scalar 'first-cause sibling audit durable' \
+    'SELECT count(*) FROM public.unprotected_audit;' '0'
+printf 'first-cause attribution: row denial remains authoritative across later transition: PASS (immediate and PRE_COMMIT evidence; fresh-admin protected baselines and audit=0)\n'
 printf 'denial evidence (issue #34): PASS\n'
 
 lifecycle_logs="$("${COMPOSE[@]}" logs --no-color postgres 2>&1 | grep 'commitcap_native_tx_state lifecycle' || true)"

@@ -212,6 +212,17 @@ commitcap_native_enforce_role_transition(PG_FUNCTION_ARGS)
 
     activate_state();
 
+    /* The first denial remains authoritative even if this later row would
+     * independently violate the forbidden-transition rule. */
+    if (state.denied)
+        ereport(ERROR,
+                (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+                 errmsg("CommitCap top-level transaction already denied"),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(state.denial_kind))));
+
     if (forbidden_role_transition(trigger_data, &new_role))
     {
         mark_denied(DENIAL_TRANSITION);
