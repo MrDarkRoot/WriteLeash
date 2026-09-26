@@ -103,7 +103,7 @@ the [canonical test plan](docs/test-plan.md), and the
 [native experiment evidence](experiments/native_tx_state/README.md). Research
 evidence is not a supported installation or policy interface.
 
-### Generic UPDATE row budget under V0 security review (#47)
+### Generic UPDATE row budget candidate (#47)
 
 In the pinned local PostgreSQL 16.4 environment, the trusted owner can attach
 an UPDATE row-event budget to an ordinary table **not compiled into the native
@@ -126,9 +126,58 @@ exercise two independently budgeted arbitrary tables plus same-named tables
 in different schemas. **`./demo.sh` still shows the historical hard-coded
 research fixture**; a first-run arbitrary-table product demo is tracked in
 [#48](https://github.com/MrDarkRoot/CommitCap/issues/48). This is a V0
-security-review candidate, not a released or supported installer. The fixed
-`users.role` and `refunds.amount` rules remain research-only fixtures, not
-general policy APIs. See the [configuration and support boundary](experiments/native_tx_state/README.md#v0-generic-update-row-budget-47).
+locally reviewed research candidate, not a released or supported installer.
+The fixed `users.role` and `refunds.amount` rules remain research-only
+fixtures, not general policy APIs. See the [configuration and support
+boundary](experiments/native_tx_state/README.md#v0-generic-update-row-budget-47).
+
+### Generate a V0 table-protection plan
+
+The root `./commitcap` Bash command gives the reviewed #47 SQL surface a small,
+local entry point. On the supported preview path, first check the local tools:
+
+```bash
+./commitcap doctor
+```
+
+Then generate (but do not apply) the trusted-admin SQL and catalog verification
+script for one table and budget:
+
+```bash
+./commitcap protect-update \
+  --table public.orders \
+  --budget 50 \
+  --writer-role app_writer
+```
+
+The table and writer role accept only lowercase simple unquoted PostgreSQL
+identifiers of at most 63 bytes each (quoted/mixed-case names are unsupported);
+the budget accepts only canonical decimal `0..2147483647`. Review/apply the
+printed `CREATE TRIGGER` as a trusted table owner/admin, then run the included
+verification script in `psql` using that same trusted account. The verification
+must say `OVERALL | PASS` before describing the table as protected. It checks
+the PostgreSQL 16.4 version and relation/trigger catalog shape (including no
+other direct user-defined trigger), exact reviewed budget, and the supplied
+writer's role attributes, ownership, `TRIGGER` privilege, and access to the
+trusted CommitCap schema. It does not recursively prove arbitrary
+trigger/cascade graphs. Check each actual application writer separately and
+rerun after DDL/grant changes; the query does not discover all possible writers
+or mutation paths.
+Without `--writer-role`, the trust checks intentionally fail. The command does
+not connect to a database, store credentials, replace an existing trigger, or
+apply SQL. See [the #27 CLI/catalog tests](tests/commitcap_catalog.sh) for the
+catalog cases exercised on the disposable PG16.4 fixture.
+
+This remains a **local PostgreSQL 16.4 V0 research generator**, not an
+installer or production-ready control; the Public Research Preview is still
+being prepared, not released. It describes only `UPDATE` row events per
+top-level transaction. It does not protect `INSERT`/`DELETE`, transaction
+splitting, retries across committed transactions, or task-wide work; owners and
+superusers are outside the writer threat model. Managed PostgreSQL, other
+versions, partitions, inheritance, and arbitrary trigger graphs are not
+validated. The first-run arbitrary-table safe/denied product demo remains
+tracked separately by #48; `./commitcap demo` points to that boundary while
+`./demo.sh` continues to run the historical research fixture.
 
 ## What it does not protect
 
