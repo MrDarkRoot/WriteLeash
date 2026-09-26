@@ -57,7 +57,8 @@ body:
   - type: dropdown
     id: demo-result
     attributes:
-      label: Does the local ./demo.sh work?
+      label: Does the local ./commitcap demo work?
+      description: This is the arbitrary-table first-run path. If you also tried the separate historical ./demo.sh, describe its result under the documented step and error.
       options:
         - "Yes"
         - "No"

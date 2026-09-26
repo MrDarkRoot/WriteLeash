@@ -20,30 +20,37 @@ and exhausted rather than advisory. A denied mutation must not become durable.
 
 ## Phase 0: Row-Count Budgets
 
-Row-count authority was the first proof mechanism: it limits row-count effects
-for one protected relation in one top-level PostgreSQL transaction. State
-transitions and numeric deltas are the other two Phase 0 effect classes; they
-are current targets, not implemented features.
+Row-count authority was the first proof mechanism: the local PostgreSQL 16.4
+V0 candidate attaches an `UPDATE` row-event budget **per ordinary protected
+relation, per top-level transaction**. The generic trigger and #27 plan/preflight
+are exercised on two independently budgeted, runtime-named tables by
+[`./commitcap demo`](../README.md#try-the-arbitrary-table-product-demo-locally).
+State transitions and numeric deltas are also implemented and tested as
+**fixed research-fixture rules**, not as generic product-facing policy APIs.
 
 ```yaml
 subscriptions:
   max_rows_updated_per_transaction: 5
 ```
 
-This example declares a finite row-update budget. It does not grant permission
-to run `UPDATE`; PostgreSQL privileges remain responsible for that. The budget
-narrows already-granted permission.
+This YAML illustrates a finite row-update budget; it is **not** the V0 policy
+installation syntax. The reviewed V0 surface is `./commitcap protect-update`
+and a trusted-owner `CREATE TRIGGER` with a canonical decimal budget.
+Neither representation grants `UPDATE` permission; PostgreSQL privileges remain
+responsible for that. The budget narrows already-granted permission.
 
 [spec.md](spec.md) defines cumulative transaction-wide accounting and
-rollback/denial semantics for row-count effects. It does not yet explicitly
-settle whether repeated updates of the same row count once or once per update.
-That question remains open for the canonical specification and tests; it must
-not be inferred from historical experiment behavior.
+rollback/denial expectations. The **tested PG16.4 V0 UPDATE row-event surface**
+counts each BEFORE UPDATE row trigger invocation, including repeated updates
+of the same row and no-op assignments; a zero-row UPDATE consumes none. The
+[#47 product security suite](../experiments/native_tx_state/product_update_cases.sh)
+tests this on arbitrary tables. This is an explicit local research behavior,
+not a released or cross-version guarantee for other effect classes or SQL paths.
 
-### Repeated-row behavior: research evidence
+### Repeated-row behavior: tested local UPDATE row events
 
-The historical/native PostgreSQL 16.4 row-event experiment counted repeated
-updates of the same row as separate row-update events:
+The native PostgreSQL 16.4 research fixture and generic V0 trigger count
+repeated updates of the same row as separate row-update events:
 
 ```sql
 BEGIN;
@@ -58,10 +65,10 @@ UPDATE subscriptions SET status = 'active' WHERE id = 42;   -- 6: denied
 COMMIT;
 ```
 
-The experiment observed the sixth event denying the top-level transaction.
-This is research evidence from one PostgreSQL 16.4 environment and test
-envelope, not a current V0 requirement. Neither event counting nor distinct-row
-counting is presented here as the accepted canonical semantic.
+Both fixtures observed the sixth event denying the top-level transaction under
+a budget of five. The generic product candidate uses **row events, not distinct
+row identities**, within its documented PG16.4 trust and table envelope. No
+unsupported PostgreSQL version or broader operation inherits that evidence.
 
 ## Why Accumulation Is Transaction-Wide
 
@@ -91,9 +98,9 @@ Savepoints do not create new top-level transactions and therefore must not
 create fresh budgets. The required behavior for rolled-back allowed work and
 irreversible denial is defined in [spec.md](spec.md). The historical
 SQL/PLpgSQL experiment failed irreversible denial under savepoint and caught
-exception recovery; a later native experiment established only that another
-mechanism class was viable for further research, not a production support
-claim.
+exception recovery. The later PG16.4 native fixture and the #47/#48 product
+tests demonstrate sticky denial and rejected COMMIT for the tested local
+paths; neither establishes a production or other-version support claim.
 
 ## One Row Across Many Transactions
 
@@ -102,8 +109,8 @@ A transaction-local budget does not aggregate across transactions:
 ```text
 one transaction:
   repeated updates of one row
-  => historical/native PostgreSQL 16.4 experiment counted each update event;
-     canonical repeated-row semantics remain unsettled
+  => the tested PostgreSQL 16.4 V0 row-event budget counts each UPDATE event;
+     the sixth event under budget 5 denies the transaction
 
 six separate transactions:
   update 1 row once in each transaction
@@ -118,7 +125,7 @@ work over multiple transactions.
 Application retries have the same boundary. A genuinely new transaction gets
 a new V0 budget. No cross-retry aggregate protection is claimed.
 
-## Phase 0 Target: Forbidden State Transitions
+## Phase 0 Research Fixture: Forbidden State Transitions
 
 Mutation volume is not enough. A single row can exceed authority through a
 sensitive transition:
@@ -127,13 +134,15 @@ sensitive transition:
 users.role:
   deny_transitions:
     - "* -> admin"
-    - "* -> owner"
 ```
 
-This level reasons about old and new state, not only row count. It is a current
-Phase 0/V0 target, but is not implemented or supported.
+This level reasons about old and new state, not only row count. The local
+PG16.4 research fixture tests one fixed `users.role` rule (`* -> admin` denied;
+`member -> moderator` allowed). Other rules such as `* -> owner` and a generic
+transition-policy interface are **not implemented**. No supported
+release or general state-transition protection is claimed.
 
-## Phase 0 Target: Quantitative Effect Budgets
+## Phase 0 Research Fixture: Quantitative Effect Budgets
 
 Some authority is expressed by a numeric effect:
 
@@ -143,11 +152,13 @@ refunds.amount:
 ```
 
 A transaction with increases of `30`, `20`, and `40` totals `90` and may pass.
-Adding `25` would total `115` and must deny the transaction. Numeric precision,
-nulls, and repeated-row semantics still require explicit specification and
-tests. Negative effects must follow the declared aggregate metric; they must
-not silently switch a positive-only, absolute, gross, or net policy into
-another semantic.
+Adding `25` would total `115` and must deny the transaction. The fixed
+`refunds.amount` **research fixture** tests exact positive-delta accumulation,
+repeated rows, NULL/special values and a narrow finite-decimal grammar on
+PG16.4 ([fixture-only decision](numeric-delta-decision-proposal.md)). It does
+not provide a generic numeric policy API. Other metrics must explicitly define
+precision, NULL, and negative-effect handling; a positive-only, absolute, gross
+or net metric must not silently switch semantics.
 
 This is a declared PostgreSQL relational metric, not proof of complete business
 consequence. A `refunds.amount positive_delta = 100` measurement does not by
@@ -231,7 +242,9 @@ themselves. If PostgreSQL or a cloud provider ships `MAX ROWS UPDATED`, possible
 strategic layers above it include state-transition authority, quantitative
 effect budgets, task-scoped capabilities, cross-transaction consumption,
 atomic concurrency, retry/idempotency semantics, and capability lifecycle.
-These layers are not current implementation claims.
+The later generic interfaces and task-wide layers are not current product
+implementation claims; the transition and numeric rules above are fixed local
+research fixtures only.
 
 ## Architecture Boundary
 
