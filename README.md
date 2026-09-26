@@ -1,309 +1,158 @@
 # CommitCap
 
-Mutation budgets for PostgreSQL.
+**Mutation Budgets for PostgreSQL.** Put a hard limit on how much a PostgreSQL
+write transaction can change *within the tested research fixture*.
 
-Give automation write access.\
-Cap the blast radius.
+A writer with permission to update a table may intend to repair two rows but
+accidentally update many. A **mutation budget** is a finite limit on a declared
+relational effect, such as the number of row-update events or the cumulative
+positive change to a numeric column. The current mechanism measures those
+effects across supported writes in **one top-level transaction**; an excess
+attempt denies that entire transaction, including earlier writes in it. It is
+not a limit on a whole job that uses multiple transactions.
 
-Production repair, remediation, and DBRE/operator automation often need
-flexible SQL that cannot be fully predeclared: a backfill, a set of corrective
-updates, an operator-driven fix during an incident. The exact statements may
-depend on what the incident or the data turns out to be, so a fixed catalog of
-narrow operations does not always fit. At the same time, the credential those
-jobs run under can usually modify far more than the task intends.
+## See the safe write and the denial
 
-CommitCap proposes to separate those two things:
-
-```text
-PostgreSQL privileges
--> what the credential may modify
-
-per-transaction mutation budget
--> what one transaction may make durable
-```
-
-A remediation transaction receives an illustrative per-transaction relational
-mutation budget, for example:
+These selected lines are from the **real `./demo.sh` output** on the local
+PostgreSQL 16.4 research fixture (intervening command tags, error details and
+other cases omitted; order and wording of shown lines preserved):
 
 ```text
-budget:
-  subscriptions.rows_updated: 25
+1. SAFE: subscriptions repairs + allowed role transition
+writer SQL result:
+BEGIN
+UPDATE 2
+UPDATE 1
+policy=2|1|0.00|false
+COMMIT
+  ✓ safe mutation committed
+fresh trusted-admin durable state:
+subscriptions=1=repaired,2=repaired,3=baseline,4=baseline,5=baseline,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline
+users=1=moderator,2=member,3=member,4=member,5=member,6=member
+refunds=1=0.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00
+audit=0
+  ✓ fresh trusted verification: exact expected durable state confirmed
+
+2. DENIED: six small subscriptions statements; savepoint cannot clear denial
+ERROR:  CommitCap mutation budget exceeded (limit 5, attempted 6)
+policy / metric: subscriptions.rows_updated
+granted: 5
+consumed before attempt: 5
+attempted effect: 6 row-update events
+result: DENIED; top-level COMMIT will be rejected
+sixth_SQLSTATE 54000
+ROLLBACK
+policy=5|1|20.00|true
+ERROR:  CommitCap top-level transaction denied after mutation authority violation
+result: ABORTED
+commit_SQLSTATE 54000
+fresh trusted-admin durable state:
+subscriptions=1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline
+users=1=member,2=member,3=member,4=member,5=member,6=member
+refunds=1=0.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00
+audit=0
+  ✓ fresh trusted verification: no protected over-authority mutation became durable
 ```
 
-Supported effects consume that budget within one top-level PostgreSQL
-transaction. If a supported effect would exceed the remaining budget, the
-transaction is denied before the excess becomes durable.
+The denied case first writes five subscription rows and also writes to sibling
+relations. The sixth row-update attempt fails; even after rolling back to a
+savepoint, the top-level `COMMIT` is rejected. A *new trusted-admin connection*
+checks that none of that transaction's changes became durable. See the
+[demo script](demo/phase0/run.sh) for the SQL and exact assertions; this is
+fixture evidence, not a general PostgreSQL guarantee.
 
-The current PostgreSQL 16.4 research mechanism accounts for protected effects
-per top-level transaction only. A remediation job that spans several
-transactions is not yet bounded by one shared task-wide authority; task-scoped,
-cross-transaction consumable capabilities remain future work.
+## Try it locally
 
-This is intended behavior; the repository currently contains specifications and
-research experiments, not a released or supported implementation.
-
-CommitCap gives flexible production automation a finite loss envelope by
-turning database `WRITE` permission into measurable, consumable mutation
-authority.
-
-> No supported durable relational mutation may exceed the mutation authority
-> granted to the actor or capability that caused it.
-
-## Project Status
-
-CommitCap is in **Phase 0: security proof + parallel falsification**.
-
-- This repository contains specifications, research implementations, and
-  experiment harnesses, but no released or supported implementation.
-- No PostgreSQL operation is currently claimed to be protected.
-- The database target is PostgreSQL only.
-- The current Phase 0 proof surface covers three effect classes: row-count,
-  state-transition, and numeric-delta authority. See
-  [Phase 0 Proof Surface](#phase-0-proof-surface).
-- Research evidence now covers all three Phase 0 effect classes on
-  PostgreSQL 16.4: row-count, state-transition, and numeric-delta authority,
-  including independently keyed per-policy budgets within one top-level
-  transaction, in research experiments. This is **not** a supported
-  implementation; capability-wide consumable authority is future work.
-- Only the narrow per-transaction statement has research evidence: within one
-  top-level transaction, no tested durable effect exceeded its independently
-  declared per-policy authority in the precisely tested PostgreSQL 16.4
-  role/schema envelope. Cross-transaction (task-wide) authority is
-  **excluded from that evidence** and remains unproven.
-- Security claims will be limited to operations covered by adversarial
-  regression tests.
-- Market falsification runs in parallel against concrete broad-but-bounded
-  production workflows; it must not expand build scope prematurely.
-- Managed-PostgreSQL feasibility is an early evidence gate for at least one
-  realistic environment, not a promise to support every cloud.
-
-Do not deploy CommitCap as a security control until a supported implementation
-is released and its documented support envelope has passed the required tests.
-
-## Run The Local Research Demo
-
-A clean checkout with Docker can run the current transaction-local research
-fixture with one command:
+With Docker Engine running, Docker Compose v2, Bash, and network access to pull
+the pinned image, from a checkout run:
 
 ```bash
 ./demo.sh
 ```
 
-It builds the pinned `postgres:16.4-alpine` fixture, commits a safe mutation,
-denies an over-budget transaction, and verifies from a fresh trusted admin
-connection that no over-authority protected mutation became durable. See
-[demo/phase0/README.md](demo/phase0/README.md) for prerequisites, expected
-output, and teardown. This is research-demo behavior, not a supported release.
+The script builds the pinned `postgres:16.4-alpine` native research fixture,
+runs three safe and three denied real writer transactions, verifies exact durable
+state after each from fresh trusted-admin connections, and tears down its
+disposable Compose project. Expect `Demo: PASS` and `Demo exit status: 0`.
+See [demo prerequisites, output, and cleanup](demo/phase0/README.md).
 
-## Phase 0 Proof Surface
+## Exactly what is tested today
 
-Phase 0 targets three effect classes. The examples below are illustrative
-policy shapes and intended behavior; the policy format is not stable.
+**Research mechanism: CURRENT. Public Research Preview: PREPARING — NOT YET
+RELEASED ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31)). Supported
+release: NO. Production-ready security control: NO.** Do not deploy this as a
+production security control.
 
-### Row-count authority
+The exact tested environment is a local Docker **PostgreSQL 16.4** fixture with
+a restricted, non-owner writer, trusted installer/owner roles, hard-coded test
+policies, and native backend-local transaction state. Within that envelope:
 
-The narrowest illustration is a broad statement that would otherwise touch
-every row:
+- `subscriptions` and `users` have independently counted `UPDATE` row-event
+  budgets of five per top-level transaction. Multiple statements share each
+  budget; a denied event stays denied through tested savepoint and exception
+  recovery paths and rejects the final `COMMIT`.
+- The fixture denies `users.role` updates to `admin` and measures positive
+  `refunds.amount` deltas with a per-transaction limit of `100.00`. These are
+  declared **relational** measurements, not evidence of external money movement.
+- The tested restricted writer cannot change enforcement objects or the
+  test-only budgets; separate trusted-admin connections verify durable results.
 
-```sql
-UPDATE subscriptions
-SET status = 'refunded';
-```
+For tested statement forms, concurrency/role assumptions, and untested paths,
+use the [support, compatibility, performance, and security matrix](docs/support-matrix.md),
+the [canonical test plan](docs/test-plan.md), and the
+[native experiment evidence](experiments/native_tx_state/README.md). Research
+evidence is not a supported installation or policy interface.
 
-Without an effective bound, a missing predicate can become:
+## What it does not protect
 
-```text
-UPDATE 182417
-```
+- **Transaction-local authority only.** Task-wide/cross-transaction authority
+  is **not implemented**. Each new top-level transaction gets a new budget;
+  **transaction splitting is not protected**, nor are retries across committed
+  transactions bounded as one logical job.
+- This does not cover all PostgreSQL writes or arbitrary SQL. Other versions,
+  privileges, trigger graphs, cascades, partitions, stored procedures, INSERT /
+  DELETE paths, real poolers, external side effects, and unprotected relations
+  have no general protection claim. Superusers and protected-object owners are
+  outside the protected-writer trust model. See the [support matrix](docs/support-matrix.md)
+  and [threat model](docs/threat-model.md).
+- **Actual managed PostgreSQL deployment: NOT TESTED.** Documentary feasibility
+  work is not managed-service support; the unchanged native mechanism is blocked
+  via standard Amazon RDS customer interfaces. See
+  [managed feasibility](docs/managed-postgres-feasibility.md) and
+  [#10](https://github.com/MrDarkRoot/CommitCap/issues/10).
+- **Performance: INCONCLUSIVE.** Issue [#15](https://github.com/MrDarkRoot/CommitCap/issues/15)
+  / [PR #22](https://github.com/MrDarkRoot/CommitCap/pull/22) did not establish a
+  stable overhead estimate or PASS threshold. See the
+  [performance matrix](docs/support-matrix.md#d-performance).
 
-Under a row-count budget, the intended response is:
+## Why this primitive, and where to dig deeper
 
-```text
-CommitCap:
-182417 > budget 5
+Database privileges answer *what a credential may modify*. A mutation budget
+asks *how much of a declared relational effect one transaction may make
+durable*. This is a potential backstop for flexible repair, backfill, operator,
+or background-worker writes when credentials can modify more than one intended
+operation should. AI-driven automation is only one possible writer, not the
+product definition. When a stable, narrow API or stored procedure expresses the
+workflow cleanly, prefer it.
 
-TRANSACTION ABORTED
-```
+CommitCap is not a SQL linter, IAM/RLS replacement, generic database safety
+system, or workflow engine. The [specification](docs/spec.md) defines intended
+semantics; the [product thesis](docs/product.md) and [roadmap](docs/roadmap.md)
+separate later hypotheses from current research. The first SQL/PLpgSQL
+experiment **failed** irreversible denial after savepoint/exception recovery;
+the later native transaction-state experiment passed the tested local cases.
+See [research history and limitations](docs/limitations.md) and
+[architecture decisions](docs/decisions.md). Historical `CC-*` labels there
+are legacy experiment IDs, not equivalent to the
+[canonical current test IDs](docs/test-plan.md).
 
-```text
-subscriptions:
-  UPDATE <= 5 rows per transaction
-```
+## Bring a workflow or report a problem
 
-The count is transaction-wide. Rewriting one broad update as several smaller
-updates in the same transaction must not recover budget.
-
-Status: narrow row-event mechanics were demonstrated by research experiments on
-PostgreSQL 16.4, including statement decomposition, savepoint and exception
-recovery, data-modifying CTEs, prepared statements, `MERGE` update actions, and
-backend reuse within the tested envelope. Those experiments also observed that
-repeated updates of the same row were counted as separate row-update events.
-That observation is not promoted to canonical current semantics beyond what
-[docs/spec.md](docs/spec.md) defines, and none of this is a supported release
-claim.
-
-### State-transition authority
-
-```text
-users.role:
-  * -> admin = DENY
-```
-
-A one-row mutation can still exceed authority when its semantic state
-transition is forbidden.
-
-Status: research evidence exists for allowed and forbidden role transitions,
-bulk mixed transitions, and savepoint/exception recovery of forbidden
-transitions, on PostgreSQL 16.4. Not a supported implementation.
-
-### Quantitative effect authority
-
-```text
-refunds.amount:
-  total positive delta <= 100
-```
-
-A transaction proposing `+30`, `+20`, and `+40` may pass. Adding `+25` must
-exceed the declared budget and abort the transaction.
-
-Status: research evidence exists for exact-decimal positive-delta accounting,
-decomposed-statement accumulation, gross-vs-net (oscillation) accounting,
-concurrent row-lock contention, and savepoint/exception recovery, on
-PostgreSQL 16.4, including independence from row-count and state-transition
-budgets in the same transaction. Not a supported implementation.
-
-These are declared PostgreSQL relational metrics. A
-`refunds.amount positive_delta = 100` measurement does not by itself prove that
-a payment processor transferred $100, a customer received $100, a ledger
-settled, or an external workflow succeeded. The policy issuer owns that
-mapping.
-
-### Required demo outcomes
-
-```text
-safe mutation
-=> COMMIT
-
-unsafe broad mutation
-=> ABORT the entire transaction
-
-many small statements exceeding the same transaction budget
-=> ABORT the entire transaction
-
-forbidden state transition
-=> ABORT the entire transaction
-
-numeric delta above budget
-=> ABORT the entire transaction
-
-any denied transaction
-=> no protected mutation from that transaction becomes durable
-```
-
-Savepoints, exception handling, cascades, nested triggers, partitions, and
-other PostgreSQL execution paths are security-relevant test cases. They are not
-silently assumed to work. See the historical evidence in
-[limitations](docs/limitations.md) and the canonical
-[test plan](docs/test-plan.md).
-
-## Research Evidence
-
-The original SQL/PLpgSQL experiment was falsified for irreversible top-level
-denial: savepoint and caught-exception recovery rolled back the denial marker
-and allowed commit. A later, research-scoped native experiment on PostgreSQL
-16.4 kept backend-local transaction state outside recoverable subtransactions
-and was viable for further testing as a mechanism class. Neither result selects
-a production architecture or makes any database operation supported. See
-[experiments/native_tx_state](experiments/native_tx_state/README.md).
-
-Historical `CC-*` identifiers in `SPEC.md`, `docs/limitations.md`, and the
-experiment harnesses are **legacy experiment IDs**. They are not equivalent to
-the canonical current test IDs in [docs/test-plan.md](docs/test-plan.md).
-
-## What CommitCap Is
-
-CommitCap's technical thesis is:
-
-> Writes consume authority.
-
-The broad target is semi-trusted database writers. Validation starts with:
-
-1. production repair and data-remediation jobs;
-2. incident-response and recovery automation;
-3. DBRE and operator scripts;
-4. workflow engines and internal tooling with evolving write surfaces;
-5. admin automation;
-6. AI agents only when flexible writes are genuinely required; and
-7. support bots only where narrow operations are insufficient.
-
-AI is a use case, not the product definition or market dependency. The security
-primitive is about database mutation authority, not the technology that
-generated the SQL.
-
-CommitCap is not primarily an AI firewall, SQL linter, SQL-generation
-assistant, approval workflow, IAM replacement, RLS replacement, database
-proxy, MCP firewall, dashboard product, or Bytebase competitor.
-
-## Selection Boundary
-
-For a known stable operation such as
-`refund_customer(customer_id, amount)` or
-`cancel_subscription(subscription_id)`, prefer a narrow application API or
-stored procedure. That is the better architecture when the legitimate
-operation is known and stable.
-
-CommitCap targets the remaining middle ground: broad-but-bounded write
-authority. It becomes relevant when the legitimate mutation shape is broad or
-evolving, a fixed operation catalog is impractical, multiple upstream paths
-need the same database-level backstop, or actual relational effects must be
-bounded independently of upstream correctness.
-
-## Intended Evolution
-
-The product model separates three stages:
-
-```text
-demonstrated research mechanics (PostgreSQL 16.4, per-transaction)
--> row-event accounting per protected relation
--> state-transition authority research evidence
--> quantitative (numeric-delta) effect authority research evidence
--> independently keyed per-policy budgets within one top-level transaction
-
-future capability model
--> task-scoped mutation capabilities
--> cross-transaction consumable authority
-```
-
-Capability-wide consumable authority is monotonic by default. If a capability
-starts at 100, `+80 COMMIT` leaves 20 and a later `-80 COMMIT` still leaves 20.
-Ordinary compensating mutations must not replenish authority; otherwise a
-writer could oscillate state to perform **authority laundering**. Any future
-replenishment operation must be explicit and separately authorized.
-
-Basic row limits are useful but are not the long-term moat. If PostgreSQL or a
-cloud provider ships `MAX ROWS UPDATED`, possible future layers still include
-state-transition authority, quantitative effects, task-scoped capabilities,
-cross-transaction consumption, atomic concurrency, retry/idempotency semantics,
-and capability lifecycle. None of those future layers is claimed implemented.
-
-## Source Of Truth
-
-- [docs/role.md](docs/role.md) defines maintainer scope and operating rules.
-- [docs/product.md](docs/product.md) defines the current product thesis.
-- [docs/roadmap.md](docs/roadmap.md) defines evidence gates and sequencing.
-- [docs/decisions.md](docs/decisions.md) records accepted decisions.
-- [docs/spec.md](docs/spec.md) defines current intended semantics.
-- [docs/test-plan.md](docs/test-plan.md) defines canonical current test IDs.
-- [docs/threat-model.md](docs/threat-model.md) defines trust and bypass surfaces.
-- [docs/support-matrix.md](docs/support-matrix.md) records the research
-  mechanism's tested envelope and Public Research Preview preparation status.
-
-[SPEC.md](SPEC.md) and the detailed experiment sections in
-[docs/limitations.md](docs/limitations.md) preserve the original Phase 0
-row-budget specification and evidence. Their `CC-*` labels are **legacy
-experiment IDs**, not current test-plan meanings.
-
-[docs/mutation-budget.md](docs/mutation-budget.md) explains the authority model,
-[SECURITY.md](SECURITY.md) defines vulnerability reporting, and
-[CONTRIBUTING.md](CONTRIBUTING.md) defines engineering workflow. A specification
-or passing research experiment is not a released support claim.
+If you have a real repair/backfill/worker workflow, describe what one run was
+meant to change, what the writer could change, and which simpler guardrails you
+already have. If installation fails, include the exact PostgreSQL version,
+deployment type, attempted commit, documented step, and sanitized error in an
+[issue](https://github.com/MrDarkRoot/CommitCap/issues/new/choose) when intake
+is available. For suspected security bypasses, **do not publish sensitive
+details** in an issue: follow [SECURITY.md](SECURITY.md) for private reporting
+or the non-sensitive fallback. Remove secrets and production data from examples.
