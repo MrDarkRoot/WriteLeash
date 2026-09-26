@@ -1,0 +1,67 @@
+name: Installation or compatibility problem
+description: Report an actual setup attempt or PostgreSQL environment incompatibility
+title: "install: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        CommitCap is a PostgreSQL 16.4 local research fixture, not a supported release. Other environments are not expected to work. Report an attempted step without secrets, credentials, private data or unsanitized logs; see the exact tested envelope in docs/support-matrix.md.
+  - type: input
+    id: postgres-version
+    attributes:
+      label: PostgreSQL server version
+      placeholder: "16.4 (or unknown if setup never reached the server)"
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment type
+      options:
+        - Local Docker
+        - Self-managed PostgreSQL
+        - Operator-managed PostgreSQL / Kubernetes
+        - Fully managed PostgreSQL DBaaS
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os-container
+    attributes:
+      label: OS / container environment
+      placeholder: "OS, architecture, Docker and Compose versions if applicable"
+    validations:
+      required: true
+  - type: input
+    id: commitcap-revision
+    attributes:
+      label: CommitCap commit SHA or version attempted
+      placeholder: "git rev-parse HEAD"
+    validations:
+      required: true
+  - type: textarea
+    id: documented-step-and-error
+    attributes:
+      label: Exact documented step and exact error
+      description: Link to the step, name the command, and paste the sanitized error verbatim.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproducible commands
+      description: Remove passwords, tokens, connection strings and customer data. If you cannot share a safe repro, say why.
+    validations:
+      required: true
+  - type: dropdown
+    id: demo-result
+    attributes:
+      label: Does the local ./demo.sh work?
+      options:
+        - "Yes"
+        - "No"
+        - "Not tried"
+        - "Cannot run Docker here"
+    validations:
+      required: true
