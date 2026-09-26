@@ -28,6 +28,11 @@ psql_admin() {
         psql -X -h 127.0.0.1 -U commitcap_native_admin -d commitcap_native -v ON_ERROR_STOP=1 "$@"
 }
 
+psql_writer() {
+    "${COMPOSE[@]}" exec -T -e PGPASSWORD=commitcap_writer_experiment_only postgres \
+        psql -X -h 127.0.0.1 -U commitcap_writer -d commitcap_native -v ON_ERROR_STOP=0 "$@"
+}
+
 extract_verification_script() {
     local output="$1"
     local line
@@ -102,6 +107,26 @@ check_budget_argument() {
     check_catalog "$label" cc_dx_bad_budget commitcap_writer "$expected" "$expected_check"
 }
 
+check_set_role_denied() {
+    local label="$1"
+    local role="$2"
+    local table="${3:-cc_dx_valid}"
+    local switched
+
+    psql_admin -c "GRANT $role TO commitcap_writer;" >/dev/null
+    [[ "$(psql_admin -At -c "SELECT pg_has_role('commitcap_writer', '$role', 'SET');")" == t ]] || fail "$label: role is not reachable through SET ROLE"
+    switched="$(psql_writer -A -t -v ON_ERROR_STOP=1 <<SQL
+BEGIN;
+SET ROLE $role;
+SELECT current_role;
+ROLLBACK;
+SQL
+)" || fail "$label: writer could not SET ROLE in rollback-only transaction: $switched"
+    [[ "$switched" == *"$role"* ]] || fail "$label: did not observe SET ROLE to $role: $switched"
+    check_catalog "$label" "$table" commitcap_writer FAIL 'protected writer has no SET-able role memberships'
+    psql_admin -c "REVOKE $role FROM commitcap_writer;" >/dev/null
+}
+
 trap cleanup EXIT
 [[ -z "$("${COMPOSE[@]}" ps -a -q)" ]] || fail "Compose project already in use: $COMPOSE_PROJECT_NAME"
 "${COMPOSE[@]}" up -d --build --wait >/dev/null
@@ -112,6 +137,7 @@ psql_admin < "$EXPERIMENT_DIR/setup.sql" >/dev/null
 psql_admin >/dev/null <<'SQL'
 CREATE TABLE public.cc_dx_valid (id integer PRIMARY KEY, status text NOT NULL DEFAULT 'baseline');
 CREATE TABLE public.cc_dx_generated (id integer PRIMARY KEY, status text NOT NULL DEFAULT 'baseline');
+CREATE TABLE public.cc_dx_replication (id integer PRIMARY KEY, status text NOT NULL DEFAULT 'baseline');
 CREATE TABLE public.cc_dx_disabled (id integer PRIMARY KEY, status text NOT NULL DEFAULT 'baseline');
 CREATE TABLE public.cc_dx_when (id integer PRIMARY KEY, status text NOT NULL DEFAULT 'baseline');
 CREATE TABLE public.cc_dx_update_of (id integer PRIMARY KEY, status text NOT NULL DEFAULT 'baseline');
@@ -130,9 +156,18 @@ CREATE TABLE public.cc_dx_partitioned (id integer, status text NOT NULL DEFAULT 
 CREATE TABLE public.cc_dx_partition PARTITION OF public.cc_dx_partitioned FOR VALUES FROM (0) TO (10);
 CREATE TABLE public.cc_dx_writer_owner (id integer PRIMARY KEY, status text NOT NULL DEFAULT 'baseline');
 CREATE TABLE public.cc_dx_writer_trigger (id integer PRIMARY KEY, status text NOT NULL DEFAULT 'baseline');
+CREATE TABLE public.cc_dx_settableowner (id integer PRIMARY KEY, status text NOT NULL DEFAULT 'baseline');
+CREATE ROLE cc_dx_owner_role NOLOGIN;
+CREATE ROLE cc_dx_trigger_role NOLOGIN;
+CREATE ROLE cc_dx_param_role NOLOGIN;
+CREATE ROLE cc_dx_system_role NOLOGIN;
+CREATE ROLE cc_dx_schema_role NOLOGIN;
+CREATE ROLE cc_dx_harmless NOLOGIN;
+CREATE ROLE cc_dx_chain NOLOGIN;
 
 ALTER TABLE public.cc_dx_valid OWNER TO commitcap_owner;
 ALTER TABLE public.cc_dx_generated OWNER TO commitcap_owner;
+ALTER TABLE public.cc_dx_replication OWNER TO commitcap_owner;
 ALTER TABLE public.cc_dx_disabled OWNER TO commitcap_owner;
 ALTER TABLE public.cc_dx_when OWNER TO commitcap_owner;
 ALTER TABLE public.cc_dx_update_of OWNER TO commitcap_owner;
@@ -150,9 +185,14 @@ ALTER TABLE public.cc_dx_inherit_child OWNER TO commitcap_owner;
 ALTER TABLE public.cc_dx_partitioned OWNER TO commitcap_owner;
 ALTER TABLE public.cc_dx_partition OWNER TO commitcap_owner;
 ALTER TABLE public.cc_dx_writer_trigger OWNER TO commitcap_owner;
+ALTER TABLE public.cc_dx_settableowner OWNER TO cc_dx_owner_role;
 
 CREATE TRIGGER commitcap_rows_updated BEFORE UPDATE ON public.cc_dx_valid
 FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('5');
+CREATE TRIGGER commitcap_rows_updated BEFORE UPDATE ON public.cc_dx_replication
+FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('0');
+INSERT INTO public.cc_dx_replication VALUES (1, 'baseline');
+GRANT SELECT(id), UPDATE(status) ON public.cc_dx_replication TO commitcap_writer;
 CREATE TRIGGER commitcap_rows_updated BEFORE UPDATE ON public.cc_dx_disabled
 FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('5');
 ALTER TABLE public.cc_dx_disabled DISABLE TRIGGER commitcap_rows_updated;
@@ -194,11 +234,17 @@ CREATE TRIGGER commitcap_rows_updated BEFORE UPDATE ON public.cc_dx_writer_owner
 FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('5');
 CREATE TRIGGER commitcap_rows_updated BEFORE UPDATE ON public.cc_dx_writer_trigger
 FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('5');
+CREATE TRIGGER commitcap_rows_updated BEFORE UPDATE ON public.cc_dx_settableowner
+FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('5');
 
 ALTER TABLE public.cc_dx_writer_owner OWNER TO commitcap_writer;
 GRANT TRIGGER ON public.cc_dx_writer_trigger TO commitcap_writer;
 CREATE ROLE cc_dx_superuser NOLOGIN SUPERUSER;
 CREATE ROLE cc_dx_elevated NOLOGIN CREATEDB CREATEROLE REPLICATION BYPASSRLS;
+GRANT TRIGGER ON public.cc_dx_valid TO cc_dx_trigger_role;
+GRANT SET ON PARAMETER session_replication_role TO cc_dx_param_role;
+GRANT ALTER SYSTEM ON PARAMETER session_replication_role TO cc_dx_system_role;
+GRANT CREATE ON SCHEMA commitcap_native TO cc_dx_schema_role;
 SQL
 
 printf 'Catalog preflight PostgreSQL 16.4 checks:\n'
@@ -211,6 +257,36 @@ if psql_admin -c "$generated_install" >/dev/null 2>&1; then
 fi
 printf '  %-37s FAIL (explicit name conflict)\n' 'duplicate CREATE TRIGGER'
 check_catalog 'valid #47 trigger' cc_dx_valid commitcap_writer PASS ''
+check_catalog 'zero budget origin trigger' cc_dx_replication commitcap_writer PASS '' 0
+# Demonstrate the failure mode without committing a bypassed mutation: origin
+# trigger denies the row, but a writer granted SET can skip it under replica.
+origin_result="$(psql_writer -A -t 2>&1 <<'SQL'
+BEGIN;
+UPDATE public.cc_dx_replication SET status='would_be_denied' WHERE id=1;
+ROLLBACK;
+SQL
+)"
+[[ "$origin_result" == *'CommitCap mutation budget exceeded (limit 0, attempted 1)'* ]] || fail "origin UPDATE did not deny the first row event: $origin_result"
+psql_admin -c 'GRANT SET ON PARAMETER session_replication_role TO commitcap_writer;' >/dev/null
+[[ "$(psql_admin -At -c "SELECT has_parameter_privilege('commitcap_writer', 'session_replication_role', 'SET');")" == t ]] || fail 'direct parameter SET grant was not effective'
+replica_result="$(psql_writer -A -t -v ON_ERROR_STOP=1 <<'SQL'
+BEGIN;
+SET session_replication_role = replica;
+UPDATE public.cc_dx_replication SET status='rolled_back_bypass' WHERE id=1;
+ROLLBACK;
+SQL
+)" || fail "writer could not exercise the replica-mode bypass in rollback-only transaction: $replica_result"
+[[ "$replica_result" == *'UPDATE 1'* && "$replica_result" != *'CommitCap mutation budget exceeded'* ]] || fail "replica-mode UPDATE did not skip the origin trigger: $replica_result"
+[[ "$(psql_admin -At -c 'SELECT status FROM public.cc_dx_replication WHERE id=1;')" == baseline ]] || fail 'replica-mode reproduction changed durable state'
+printf '  replica-mode bypass reproduction: origin DENIED, replica UPDATE 1 rolled back; durable baseline PASS\n'
+check_catalog 'direct session_replication_role SET' cc_dx_replication commitcap_writer FAIL 'protected writer cannot change session_replication_role' 0
+psql_admin -c 'REVOKE SET ON PARAMETER session_replication_role FROM commitcap_writer;' >/dev/null
+check_catalog 'parameter grant removed' cc_dx_replication commitcap_writer PASS '' 0
+psql_admin -c 'GRANT ALTER SYSTEM ON PARAMETER session_replication_role TO commitcap_writer;' >/dev/null
+[[ "$(psql_admin -At -c "SELECT has_parameter_privilege('commitcap_writer', 'session_replication_role', 'ALTER SYSTEM');")" == t ]] || fail 'ALTER SYSTEM parameter grant was not effective'
+check_catalog 'direct session_replication_role ALTER SYSTEM' cc_dx_valid commitcap_writer FAIL 'protected writer cannot change session_replication_role'
+psql_admin -c 'REVOKE ALTER SYSTEM ON PARAMETER session_replication_role FROM commitcap_writer;' >/dev/null
+check_catalog 'ALTER SYSTEM grant removed' cc_dx_valid commitcap_writer PASS ''
 check_catalog 'wrong installed budget' cc_dx_valid commitcap_writer FAIL 'installed budget equals reviewed plan' 50
 check_catalog 'missing relation' cc_dx_missing commitcap_writer FAIL 'relation exists'
 check_catalog 'disabled trigger' cc_dx_disabled commitcap_writer FAIL 'enabled for ordinary writes'
@@ -245,6 +321,31 @@ check_budget_argument 'negative budget argument' '-1' FAIL 'canonical budget in 
 check_budget_argument 'overflow budget argument' '2147483648' FAIL 'canonical budget in 0..2147483647'
 check_budget_argument 'huge budget argument' '999999999999999999999999999999999999' FAIL 'canonical budget in 0..2147483647'
 check_budget_argument 'non-numeric budget argument' 'garbage' FAIL 'canonical budget in 0..2147483647'
+check_set_role_denied 'SET role with parameter SET' cc_dx_param_role
+check_set_role_denied 'SET role with parameter ALTER SYSTEM' cc_dx_system_role
+check_set_role_denied 'SET role with table TRIGGER' cc_dx_trigger_role
+check_set_role_denied 'SET role with table ownership' cc_dx_owner_role cc_dx_settableowner
+check_set_role_denied 'SET role with admin attributes' cc_dx_elevated
+check_set_role_denied 'SET role with trusted schema CREATE' cc_dx_schema_role
+check_set_role_denied 'SET trusted CommitCap owner role' commitcap_owner
+check_set_role_denied 'SET harmless role (conservative V0)' cc_dx_harmless
+psql_admin -c 'GRANT cc_dx_param_role TO cc_dx_chain; GRANT cc_dx_chain TO commitcap_writer;' >/dev/null
+[[ "$(psql_admin -At -c "SELECT pg_has_role('commitcap_writer', 'cc_dx_param_role', 'SET');")" == t ]] || fail 'multi-hop SET ROLE path not reachable'
+chain_result="$(psql_writer -A -t -v ON_ERROR_STOP=1 <<'SQL'
+BEGIN;
+SET ROLE cc_dx_param_role;
+SELECT current_role, has_parameter_privilege(current_user, 'session_replication_role', 'SET');
+ROLLBACK;
+SQL
+)" || fail "writer could not traverse multi-hop SET ROLE chain: $chain_result"
+[[ "$chain_result" == *'cc_dx_param_role|t'* ]] || fail "multi-hop SET ROLE did not reach the privileged role: $chain_result"
+check_catalog 'transitive SET ROLE chain' cc_dx_valid commitcap_writer FAIL 'protected writer has no SET-able role memberships'
+psql_admin -c 'REVOKE cc_dx_chain FROM commitcap_writer;' >/dev/null
+psql_admin -c 'GRANT cc_dx_harmless TO commitcap_writer WITH SET FALSE;' >/dev/null
+[[ "$(psql_admin -At -c "SELECT pg_has_role('commitcap_writer', 'cc_dx_harmless', 'SET');")" == f ]] || fail 'SET FALSE membership was unexpectedly SET-able'
+check_catalog 'non-SET-able harmless membership' cc_dx_valid commitcap_writer PASS ''
+psql_admin -c 'REVOKE cc_dx_harmless FROM commitcap_writer;' >/dev/null
+check_catalog 'normal writer after role cases' cc_dx_valid commitcap_writer PASS ''
 missing_writer_plan="$("$REPO_DIR/commitcap" protect-update --table public.cc_dx_valid --budget 5)"
 missing_writer_script="$(extract_verification_script "$missing_writer_plan")"
 missing_writer_result="$(psql_admin -A -t -F '|' <<< "$missing_writer_script")"

@@ -285,6 +285,27 @@ checks AS (
             FROM writer AS w CROSS JOIN extension AS e
         ), false),
         'checks membership in CommitCap extension, schema and enforcement-function owner roles'
+
+    UNION ALL
+    SELECT 190, 'protected writer cannot change session_replication_role',
+        COALESCE((
+            SELECT NOT has_parameter_privilege(w.oid, 'session_replication_role', 'SET')
+                   AND NOT has_parameter_privilege(w.oid, 'session_replication_role', 'ALTER SYSTEM')
+            FROM writer AS w
+        ), false),
+        'requires no effective SET or ALTER SYSTEM parameter privilege'
+
+    UNION ALL
+    SELECT 200, 'protected writer has no SET-able role memberships',
+        COALESCE((
+            SELECT NOT EXISTS (
+                SELECT 1 FROM pg_roles AS other
+                WHERE other.oid <> w.oid
+                  AND pg_has_role(w.oid, other.oid, 'SET')
+            )
+            FROM writer AS w
+        ), false),
+        'V0 rejects any other role reachable through a SET ROLE chain'
 ),
 summary AS (
     SELECT bool_and(passed) AS all_passed FROM checks

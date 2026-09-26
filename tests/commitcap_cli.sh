@@ -35,6 +35,7 @@ contains "$help_output" './commitcap doctor'
 contains "$help_output" 'protect-update'
 contains "$("$CLI" doctor --help)" 'Docker daemon reachability'
 contains "$("$CLI" protect-update --help)" 'canonical decimal integer'
+contains "$("$CLI" protect-update --help)" 'SET ROLE'
 
 for valid_budget in 50 0 2147483647; do
     valid_output="$("$CLI" protect-update --table public.orders --budget "$valid_budget")"
@@ -42,6 +43,7 @@ for valid_budget in 50 0 2147483647; do
     contains "$valid_output" 'BEFORE UPDATE ON "public"."orders"'
     contains "$valid_output" "EXECUTE FUNCTION commitcap_native.enforce_rows_updated('$valid_budget');"
     contains "$valid_output" "\\set cc_expected_budget $valid_budget"
+    contains "$valid_output" 'V0 rejects SET or ALTER SYSTEM privilege on session_replication_role'
     contains "$valid_output" 'OVERALL'
     contains "$valid_output" 'transaction splitting'
 done

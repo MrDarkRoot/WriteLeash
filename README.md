@@ -159,10 +159,16 @@ must say `OVERALL | PASS` before describing the table as protected. It checks
 the PostgreSQL 16.4 version and relation/trigger catalog shape (including no
 other direct user-defined trigger), exact reviewed budget, and the supplied
 writer's role attributes, ownership, `TRIGGER` privilege, and access to the
-trusted CommitCap schema. It does not recursively prove arbitrary
+trusted CommitCap schema. It also checks effective `SET` and `ALTER SYSTEM`
+privileges on `session_replication_role`: setting it to `replica` skips an
+ordinary origin trigger. This conservative V0 preflight fails if the writer can
+`SET ROLE` to **any** other role, including one reached through a membership
+chain. SET-able group-role topologies are unsupported; this is not a general
+group-role privilege verifier. It does not recursively prove arbitrary
 trigger/cascade graphs. Check each actual application writer separately and
-rerun after DDL/grant changes; the query does not discover all possible writers
-or mutation paths.
+rerun after DDL/grant changes; the query does not discover all possible
+writers or mutation paths.
+
 Without `--writer-role`, the trust checks intentionally fail. The command does
 not connect to a database, store credentials, replace an existing trigger, or
 apply SQL. See [the #27 CLI/catalog tests](tests/commitcap_catalog.sh) for the

@@ -37,6 +37,7 @@ protect_usage() {
         'Prints (does not apply) a fixed-name BEFORE UPDATE FOR EACH ROW trigger and a psql catalog preflight.' \
         'Use simple lowercase unquoted identifiers (at most 63 bytes). Budget is a canonical decimal integer from 0 through 2147483647.' \
         'Pass --writer-role to verify the protected writer privilege boundary; without it, preflight is FAIL.' \
+        'V0 rejects writers that can SET ROLE to any other role or change session_replication_role.' \
         'A trusted table owner/admin must review and apply the SQL. An existing trigger is never replaced.'
 }
 
@@ -231,6 +232,7 @@ protect_update() {
     printf 'Trusted-admin catalog preflight (run in psql after installation):\n'
     printf 'It reports PASS/FAIL for each catalog and writer check; treat the table as protected only when OVERALL is PASS.\n'
     printf 'Audit each actual protected writer role separately; this is a point-in-time check, so rerun after DDL or grant changes.\n'
+    printf 'V0 rejects SET or ALTER SYSTEM privilege on session_replication_role and any SET-able role membership; SET-able group-role topologies are unsupported.\n'
     if [[ -z "$WRITER_ROLE" ]]; then
         printf 'No --writer-role was supplied, so writer trust checks will FAIL until a role is provided.\n'
     fi
