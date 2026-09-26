@@ -224,6 +224,13 @@ Splitting work across transactions MUST NOT regenerate this authority.
 
 V0 should focus on explicit protected tables.
 
+The first product-surface candidate in [#47](https://github.com/MrDarkRoot/CommitCap/issues/47)
+is deliberately narrower than the effect classes below: one transaction-local
+`UPDATE` row-event budget per ordinary, nonpartitioned PG16.4 table, installed
+by a trusted owner. State-transition and numeric-delta implementations remain
+fixed research fixtures; the other effect classes below describe intended
+semantics, **not** features of this candidate.
+
 Minimum effect classes:
 
 ## Row-count effects

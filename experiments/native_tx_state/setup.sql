@@ -29,6 +29,7 @@ REVOKE ALL ON SCHEMA commitcap_native FROM PUBLIC;
 
 CREATE EXTENSION commitcap_native_tx_state WITH SCHEMA commitcap_native;
 ALTER FUNCTION commitcap_native.enforce_update_budget() OWNER TO commitcap_owner;
+ALTER FUNCTION commitcap_native.enforce_rows_updated() OWNER TO commitcap_owner;
 ALTER FUNCTION commitcap_native.enforce_role_transition() OWNER TO commitcap_owner;
 ALTER FUNCTION commitcap_native.enforce_refund_delta() OWNER TO commitcap_owner;
 
