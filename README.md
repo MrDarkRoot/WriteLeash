@@ -11,7 +11,41 @@ effects across supported writes in **one top-level transaction**; an excess
 attempt denies that entire transaction, including earlier writes in it. It is
 not a limit on a whole job that uses multiple transactions.
 
-## See the safe write and the denial
+## Try the arbitrary-table product demo locally
+
+With Docker Engine, Docker Compose v2, Bash, and network access to pull the
+pinned PostgreSQL image, run from a checkout:
+
+```bash
+./commitcap doctor
+./commitcap demo
+```
+
+The product demo creates **two new, runtime-named ordinary tables** on a
+disposable local PostgreSQL 16.4 fixture. It uses the actual `protect-update`
+command to generate trusted-owner trigger SQL and catalog verification for
+budgets of 5 and 3 UPDATE row events per top-level transaction. It prints each
+catalog PASS, an ordinary restricted-writer safe COMMIT (5 + 3 independent
+events), an over-budget denial that stays denied after a savepoint rollback,
+a separate second-policy denial, and exact durable-state checks from fresh
+trusted-admin connections. It removes its own Compose containers, volumes,
+and network. Expect `Product Demo: PASS` and `Product Demo exit status: 0`.
+
+To inspect the trusted-owner SQL for **your own** table, next run:
+
+```bash
+./commitcap protect-update \
+  --table public.orders \
+  --budget 50 \
+  --writer-role app_writer
+```
+
+This prints a review-only installation and catalog preflight plan; it does not
+apply changes to your database. See [the #27 input and trust
+boundary](#generate-a-v0-table-protection-plan). This is local research
+evidence, not a production or managed-PostgreSQL installation path.
+
+## See the deeper research fixture's safe write and denial
 
 These selected lines are from the **real `./demo.sh` output** on the local
 PostgreSQL 16.4 research fixture (intervening command tags, error details and
@@ -61,7 +95,7 @@ checks that none of that transaction's changes became durable. See the
 [demo script](demo/phase0/run.sh) for the SQL and exact assertions; this is
 fixture evidence, not a general PostgreSQL guarantee.
 
-## Try it locally
+## Run the historical research/security demo
 
 With Docker Engine running, Docker Compose v2, Bash, and network access to pull
 the pinned image, from a checkout run:
@@ -84,8 +118,10 @@ release: NO. Production-ready security control: NO.** Do not deploy this as a
 production security control.
 
 The exact tested environment is a local Docker **PostgreSQL 16.4** fixture with
-a restricted, non-owner writer, trusted installer/owner roles, hard-coded test
-policies, and native backend-local transaction state. Within that envelope:
+a restricted, non-owner writer, trusted installer/owner roles, and native
+backend-local transaction state. The historical research demo below uses
+hard-coded test policies; the separate product demo above uses runtime-named
+tables and generated #47 UPDATE budgets. Within the historical fixture:
 
 - `subscriptions` and `users` have independently counted `UPDATE` row-event
   budgets of five per top-level transaction. Multiple statements share each
@@ -124,9 +160,10 @@ The writer must not own the table, trigger or enforcement function. The new
 [isolated product security tests](experiments/native_tx_state/product_update_run.sh)
 exercise two independently budgeted arbitrary tables plus same-named tables
 in different schemas. **`./demo.sh` still shows the historical hard-coded
-research fixture**; a first-run arbitrary-table product demo is tracked in
-[#48](https://github.com/MrDarkRoot/CommitCap/issues/48). This is a V0
-locally reviewed research candidate, not a released or supported installer.
+research fixture**; the first-run arbitrary-table acceptance path is now
+`./commitcap demo` ([#48](https://github.com/MrDarkRoot/CommitCap/issues/48)).
+This is a V0 locally reviewed research candidate, not a released or supported
+installer.
 The fixed `users.role` and `refunds.amount` rules remain research-only
 fixtures, not general policy APIs. See the [configuration and support
 boundary](experiments/native_tx_state/README.md#v0-generic-update-row-budget-47).
@@ -181,9 +218,8 @@ top-level transaction. It does not protect `INSERT`/`DELETE`, transaction
 splitting, retries across committed transactions, or task-wide work; owners and
 superusers are outside the writer threat model. Managed PostgreSQL, other
 versions, partitions, inheritance, and arbitrary trigger graphs are not
-validated. The first-run arbitrary-table safe/denied product demo remains
-tracked separately by #48; `./commitcap demo` points to that boundary while
-`./demo.sh` continues to run the historical research fixture.
+validated. The first-run arbitrary-table product demo is `./commitcap demo`;
+`./demo.sh` remains the separate historical research fixture.
 
 ## What it does not protect
 

@@ -223,10 +223,12 @@ protect_update() {
     printf 'metric:\n  UPDATE row events\n\n'
     printf 'budget:\n  %s per top-level transaction\n\n' "$budget"
     printf 'Trusted-admin SQL (review and apply as the table owner/admin):\n\n'
+    printf '%s\n' '-- BEGIN TRUSTED-ADMIN INSTALL SQL'
     printf 'CREATE TRIGGER "commitcap_rows_updated"\n'
     printf 'BEFORE UPDATE ON "%s"."%s"\n' "$TABLE_SCHEMA" "$TABLE_NAME"
     printf 'FOR EACH ROW\n'
-    printf "EXECUTE FUNCTION commitcap_native.enforce_rows_updated('%s');\n\n" "$budget"
+    printf "EXECUTE FUNCTION commitcap_native.enforce_rows_updated('%s');\n" "$budget"
+    printf '%s\n\n' '-- END TRUSTED-ADMIN INSTALL SQL'
     printf 'This is CREATE, not CREATE OR REPLACE. If the fixed trigger name already exists, PostgreSQL reports a conflict; inspect it rather than replacing it.\n'
     printf 'The generated SQL is not applied by this command. The protected writer must not apply or alter trusted policy SQL.\n\n'
     printf 'Trusted-admin catalog preflight (run in psql after installation):\n'
@@ -256,11 +258,7 @@ protect_update() {
 }
 
 demo() {
-    printf '%s\n' \
-        'CommitCap V0 demo' \
-        '' \
-        'The arbitrary-table product acceptance demo is tracked by Issue #48 and is not part of this command yet.' \
-        'The existing research-fixture demo remains available as ./demo.sh; it uses the historical fixed fixture.'
+    "$SCRIPT_DIR/demo/product_update_demo.sh"
 }
 
 main() {

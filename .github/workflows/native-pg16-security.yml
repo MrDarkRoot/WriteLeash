@@ -44,9 +44,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash -n ./commitcap ./tests/commitcap_cli.sh ./tests/commitcap_catalog.sh
+          bash -n ./commitcap ./demo/product_plan.sh ./demo/product_update_demo.sh ./tests/commitcap_cli.sh ./tests/commitcap_catalog.sh ./tests/product_demo_plan.sh
           ./tests/commitcap_cli.sh
+          ./tests/product_demo_plan.sh
           ./tests/commitcap_catalog.sh
+
+      - name: Arbitrary-table product acceptance (two clean runs)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for run in 1 2; do
+            ./commitcap demo 2>&1 | tee "$RUNNER_TEMP/product-demo-run-${run}.txt"
+            for marker in \
+              'Product demo catalog preflight: PASS' \
+              'Product demo safe transaction: PASS' \
+              'Product demo denied transaction: PASS' \
+              'Product demo sticky COMMIT rejection: PASS' \
+              'Product demo independent second policy: PASS' \
+              'Product demo fresh-admin durability: PASS' \
+              'Product demo cleanup: PASS' \
+              'Product Demo: PASS' \
+              'Product Demo exit status: 0'; do
+              grep -Fxq "$marker" "$RUNNER_TEMP/product-demo-run-${run}.txt"
+            done
+            test -z "$(docker compose -p commitcap_product_demo -f experiments/native_tx_state/docker-compose.yml ps -a -q)"
+            test -z "$(docker network ls -q --filter label=com.docker.compose.project=commitcap_product_demo)"
+            test -z "$(docker volume ls -q --filter label=com.docker.compose.project=commitcap_product_demo)"
+          done
 
       - name: Remove disposable PostgreSQL resources
         if: always()
@@ -61,5 +85,7 @@ jobs:
           path: |
             ${{ runner.temp }}/commitcap-native-suite.txt
             ${{ runner.temp }}/commitcap-demo.txt
+            ${{ runner.temp }}/product-demo-run-1.txt
+            ${{ runner.temp }}/product-demo-run-2.txt
           if-no-files-found: ignore
           retention-days: 7
