@@ -78,10 +78,10 @@ See [demo prerequisites, output, and cleanup](demo/phase0/README.md).
 
 ## Exactly what is tested today
 
-**Research mechanism: CURRENT. Public Research Preview: PREPARING — NOT YET
-RELEASED ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31)). Supported
-release: NO. Production-ready security control: NO.** Do not deploy this as a
-production security control.
+**Research mechanism: PG16.4 fixture. Public Research Preview: RELEASED —
+RESEARCH ONLY ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31)).
+Supported release: NO. Production-ready security control: NO.** Do not deploy
+this as a production security control.
 
 The exact tested environment is a local Docker **PostgreSQL 16.4** fixture with
 a restricted, non-owner writer, trusted installer/owner roles, hard-coded test
