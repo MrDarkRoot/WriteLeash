@@ -33,6 +33,7 @@ reject_command() {
 help_output="$("$CLI" --help)"
 contains "$help_output" './commitcap doctor'
 contains "$help_output" 'protect-update'
+contains "$help_output" './commitcap demo'
 contains "$("$CLI" doctor --help)" 'Docker daemon reachability'
 contains "$("$CLI" protect-update --help)" 'canonical decimal integer'
 contains "$("$CLI" protect-update --help)" 'SET ROLE'
@@ -164,8 +165,6 @@ fi
 contains "$doctor_output" '✗ Docker daemon unavailable'
 contains "$doctor_output" 'Start Docker and retry: ./commitcap doctor'
 
-demo_output="$("$CLI" demo)"
-contains "$demo_output" 'tracked by Issue #48'
-contains "$demo_output" './demo.sh'
+reject_command 'demo rejects unknown flags' demo --apply
 
 printf 'CommitCap CLI/DX tests: PASS\n'
