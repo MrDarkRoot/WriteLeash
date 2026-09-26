@@ -1,0 +1,58 @@
+name: Real write workflow
+description: Describe a real repair, backfill, or worker task and its write blast radius
+title: "workflow: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe a real or attempted workflow, not a feature wishlist. Sanitize examples: do not post production secrets, credentials, customer data, sensitive SQL dumps, or personal contact details. You do not need to know CommitCap terminology.
+  - type: dropdown
+    id: category
+    attributes:
+      label: Workflow category
+      options:
+        - Repair
+        - Remediation
+        - Backfill
+        - Reconciliation
+        - Background worker
+        - Operator automation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: task-and-intent
+    attributes:
+      label: Logical task and intended effect of one run
+      description: What was one run supposed to change? Use synthetic counts or sanitized examples.
+    validations:
+      required: true
+  - type: textarea
+    id: environment-and-writer
+    attributes:
+      label: PostgreSQL environment and writer authority
+      description: Version/deployment if known; which role or credential shape runs it (no credential values), and what could that writer theoretically modify?
+    validations:
+      required: true
+  - type: textarea
+    id: failure-and-guardrails
+    attributes:
+      label: What failed or nearly failed, and existing guardrails
+      description: What actually happened? Include current checks such as permissions, RLS, approvals, idempotency, row-count checks or staging validation. If no incident occurred, say so.
+    validations:
+      required: true
+  - type: textarea
+    id: execution-shape
+    attributes:
+      label: Transactions, batches, retries and workers
+      description: One transaction or many? Are there retries, duplicate claims, restart recovery or concurrent workers? Unknown is fine.
+    validations:
+      required: false
+  - type: textarea
+    id: alternative-controls
+    attributes:
+      label: Narrow operation and residual risk
+      description: Could a narrow API or stored procedure express this task? After simpler fixes, would a hard database-side mutation bound add value, and why? Unknown is fine.
+    validations:
+      required: false
