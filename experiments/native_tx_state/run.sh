@@ -1206,24 +1206,46 @@ cc025_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
 PREPARE cc025(bigint, text) AS
 UPDATE public.subscriptions SET status = $2 WHERE id = $1;
+SELECT 'CC025_START:' || active || ':' || consumed || ':' || denied FROM commitcap_probe.cc_native_probe();
+\echo CC025_EXEC_BEGIN
 EXECUTE cc025(1, 'cc025');
 EXECUTE cc025(2, 'cc025');
 EXECUTE cc025(3, 'cc025');
 EXECUTE cc025(4, 'cc025');
 EXECUTE cc025(5, 'cc025');
 EXECUTE cc025(6, 'cc025');
+\echo CC025_EXEC_END
 COMMIT;
 BEGIN;
+SELECT 'CC025_CLEAN_START:' || active || ':' || consumed || ':' || denied FROM commitcap_probe.cc_native_probe();
 UPDATE public.subscriptions SET status = 'cc025_cleanup' WHERE id BETWEEN 1 AND 5;
 COMMIT;
 SQL
 )"
 set -e
+[[ "$cc025_output" == *"CC025_START:false:0:false"* && \
+   "$cc025_output" == *"CC025_CLEAN_START:false:0:false"* ]] || \
+    fail "CC-025 writer did not begin both transactions with fresh authority"
 [[ "$cc025_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-025 did not report event-six denial"
-cc025_pre_denial_updates="$(printf '%s\n' "$cc025_output" | sed -n '1,/^ERROR:/p' | grep -c '^UPDATE 1$' || true)"
-[[ "$cc025_pre_denial_updates" == "5" ]] || \
-    fail "CC-025 allowed $cc025_pre_denial_updates prepared executions before denial, expected 5"
+[[ "$cc025_output" == *"policy / metric: subscriptions.rows_updated"* && \
+   "$cc025_output" == *"granted: 5"* && \
+   "$cc025_output" == *"consumed before attempt: 5"* && \
+   "$cc025_output" == *"attempted effect: 6 row-update events"* ]] || \
+    fail "CC-025 denial lacked exact event-six authority evidence"
+# psql UPDATE tags and \echo markers are stdout; server ERROR is stderr.
+# Their merged order is not a transaction chronology. Count only the stdout
+# block enclosing the six prepared EXECUTEs, independent of ERROR placement.
+cc025_begin_count="$(printf '%s\n' "$cc025_output" | grep -c '^CC025_EXEC_BEGIN$' || true)"
+cc025_end_count="$(printf '%s\n' "$cc025_output" | grep -c '^CC025_EXEC_END$' || true)"
+[[ "$cc025_begin_count" == "1" && "$cc025_end_count" == "1" ]] || \
+    fail "CC-025 prepared-execution stdout markers missing or duplicated"
+cc025_prepared_updates="$(printf '%s\n' "$cc025_output" | sed -n '/^CC025_EXEC_BEGIN$/,/^CC025_EXEC_END$/p' | grep -c '^UPDATE 1$' || true)"
+[[ "$cc025_prepared_updates" == "5" ]] || \
+    fail "CC-025 allowed $cc025_prepared_updates prepared executions, expected 5"
+cc025_rollback_count="$(printf '%s\n' "$cc025_output" | grep -c '^ROLLBACK$' || true)"
+[[ "$cc025_rollback_count" == "1" ]] || \
+    fail "CC-025 denied transaction did not produce exactly one ROLLBACK"
 cc025_commit_count="$(printf '%s\n' "$cc025_output" | grep -c '^COMMIT$' || true)"
 [[ "$cc025_commit_count" == "1" ]] || \
     fail "CC-025 cleanup transaction did not produce exactly one COMMIT"
