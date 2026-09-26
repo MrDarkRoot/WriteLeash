@@ -2,6 +2,7 @@
 
 #include "access/htup_details.h"
 #include "access/xact.h"
+#include "catalog/pg_class.h"
 #include "catalog/pg_type.h"
 #include "commands/trigger.h"
 #include "fmgr.h"
@@ -9,6 +10,7 @@
 #include "miscadmin.h"
 #include "utils/builtins.h"
 #include "utils/guc.h"
+#include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/numeric.h"
 
@@ -56,18 +58,38 @@ typedef enum DenialKind
     DENIAL_ROW_SUBSCRIPTIONS,
     DENIAL_ROW_USERS,
     DENIAL_TRANSITION,
-    DENIAL_NUMERIC
+    DENIAL_NUMERIC,
+    DENIAL_PRODUCT_ROW
 } DenialKind;
 
 static int  commitcap_experiment_budget = COMMITCAP_EXPERIMENT_DEFAULT_BUDGET;
 static int  commitcap_experiment_seed_consumed = -1;
 static char *commitcap_experiment_numeric_budget = NULL;
 
+/* The product policy identity is the relation OID, never the display name or
+ * an argument provided by the writer. All nodes live through PRE_COMMIT. */
+typedef struct ProductPolicy
+{
+    Oid         relid;
+    Oid         trigger_oid;
+    uint64      budget;
+    uint64      consumed;
+    struct ProductPolicy *next;
+} ProductPolicy;
+
+typedef struct ProductDelta
+{
+    ProductPolicy *policy;
+    uint64      consumed;
+    struct ProductDelta *next;
+} ProductDelta;
+
 typedef struct ConsumptionFrame
 {
     SubTransactionId subid;
     uint64      delta[ROW_POLICY_COUNT];
     Numeric     positive_delta;
+    ProductDelta *product_deltas;
     struct ConsumptionFrame *next;
 } ConsumptionFrame;
 
@@ -81,6 +103,11 @@ typedef struct ExperimentState
     Numeric     positive_delta;
     Numeric     numeric_budget;
     ConsumptionFrame *frames;
+    ProductPolicy *product_policies;
+    char       *product_denial_metric;
+    uint64      product_denial_budget;
+    uint64      product_denial_consumed;
+    bool        product_denial_has_counts;
 } ExperimentState;
 
 static ExperimentState state = {0};
@@ -89,6 +116,7 @@ void        _PG_init(void);
 void        _PG_fini(void);
 
 PG_FUNCTION_INFO_V1(commitcap_native_enforce_update_budget);
+PG_FUNCTION_INFO_V1(commitcap_native_enforce_rows_updated);
 PG_FUNCTION_INFO_V1(commitcap_native_enforce_role_transition);
 PG_FUNCTION_INFO_V1(commitcap_native_enforce_refund_delta);
 PG_FUNCTION_INFO_V1(commitcap_native_probe);
@@ -97,11 +125,17 @@ PG_FUNCTION_INFO_V1(commitcap_native_policy_probe);
 static ConsumptionFrame *find_frame(SubTransactionId subid);
 static ConsumptionFrame *ensure_frame(SubTransactionId subid);
 static void remove_frame(SubTransactionId subid);
+static ProductDelta *ensure_product_delta(ConsumptionFrame *frame, ProductPolicy *policy);
 static void reset_state(void);
 static void activate_state(void);
 static void mark_denied(DenialKind kind);
+static void mark_product_denied(Relation relation, bool has_counts,
+                                uint64 budget, uint64 consumed);
 static const char *denial_metric_text(DenialKind kind);
 static void record_protected_event(RowPolicy policy);
+static bool parse_product_budget(const char *text, uint64 *budget);
+static ProductPolicy *find_product_policy(Oid relid);
+static void record_product_event(TriggerData *trigger_data, Oid function_oid);
 static bool check_numeric_budget(char **newval, void **extra, GucSource source);
 static bool valid_refund_amount(Numeric value);
 static Numeric numeric_in_top(const char *value);
@@ -182,6 +216,194 @@ commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
     record_protected_event(ROW_SUBSCRIPTIONS);
 
     PG_RETURN_POINTER(trigger_data->tg_newtuple);
+}
+
+/* V0 product path: only a plain BEFORE UPDATE FOR EACH ROW trigger installed by
+ * the trusted table owner. The writer cannot change the trigger or its args. */
+Datum
+commitcap_native_enforce_rows_updated(PG_FUNCTION_ARGS)
+{
+    TriggerData *trigger_data;
+
+    if (!CALLED_AS_TRIGGER(fcinfo))
+        ereport(ERROR,
+                (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
+                 errmsg("CommitCap row budget must be called as a trigger")));
+
+    trigger_data = (TriggerData *) fcinfo->context;
+    activate_state();
+    if (!TRIGGER_FIRED_BEFORE(trigger_data->tg_event) ||
+        !TRIGGER_FIRED_FOR_ROW(trigger_data->tg_event) ||
+        !TRIGGER_FIRED_BY_UPDATE(trigger_data->tg_event))
+    {
+        mark_product_denied(trigger_data->tg_relation, false, 0, 0);
+        ereport(ERROR,
+                (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
+                 errmsg("CommitCap row budget requires a BEFORE UPDATE row trigger")));
+    }
+
+    record_product_event(trigger_data, fcinfo->flinfo->fn_oid);
+    PG_RETURN_POINTER(trigger_data->tg_newtuple);
+}
+
+/* Grammar: exactly 0 or a nonzero decimal without sign/leading zeroes, up to
+ * INT_MAX. Checking before multiplication prevents wrap even for long input. */
+static bool
+parse_product_budget(const char *text, uint64 *budget)
+{
+    uint64      result = 0;
+    const unsigned char *s = (const unsigned char *) text;
+
+    if (s == NULL || *s < '0' || *s > '9' ||
+        (*s == '0' && s[1] != '\0'))
+        return false;
+
+    for (; *s != '\0'; s++)
+    {
+        unsigned int digit;
+
+        if (*s < '0' || *s > '9')
+            return false;
+        digit = *s - '0';
+        if (result > (INT_MAX - digit) / 10)
+            return false;
+        result = result * 10 + digit;
+    }
+    *budget = result;
+    return true;
+}
+
+static ProductPolicy *
+find_product_policy(Oid relid)
+{
+    ProductPolicy *policy;
+
+    for (policy = state.product_policies; policy != NULL; policy = policy->next)
+        if (policy->relid == relid)
+            return policy;
+    return NULL;
+}
+
+static void
+record_product_event(TriggerData *trigger_data, Oid function_oid)
+{
+    Relation    relation = trigger_data->tg_relation;
+    TriggerDesc *desc = relation->trigdesc;
+    ProductPolicy *policy;
+    ProductDelta *delta = NULL;
+    Oid         relid = RelationGetRelid(relation);
+    Oid         product_namespace = get_func_namespace(function_oid);
+    uint64      budget;
+    int         matches = 0;
+    int         i;
+
+    if (state.denied)
+        ereport(ERROR,
+                (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+                 errmsg("CommitCap top-level transaction already denied"),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(state.denial_kind))));
+
+    /* An ordinary nonpartitioned heap table with one unconditional product
+     * trigger is the only supported V0 installation. The trusted installer
+     * must inspect its catalog; zero-row statements cannot invoke a row trigger. */
+    if (relation->rd_rel->relkind != RELKIND_RELATION ||
+        relation->rd_rel->relispartition || relation->rd_rel->relhassubclass ||
+        trigger_data->tg_trigger->tgnattr != 0 ||
+        trigger_data->tg_trigger->tgqual != NULL ||
+        !OidIsValid(relid))
+    {
+        mark_product_denied(relation, false, 0, 0);
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("CommitCap row budget requires an unconditional trigger on an ordinary nonpartitioned table")));
+    }
+
+    if (desc != NULL)
+        for (i = 0; i < desc->numtriggers; i++)
+        {
+            if (desc->triggers[i].tgfoid == function_oid)
+                matches++;
+            else if (get_func_namespace(desc->triggers[i].tgfoid) == product_namespace)
+            {
+                /* Never silently compose this policy with a fixed research
+                 * enforcement trigger on the same relation. */
+                mark_product_denied(relation, false, 0, 0);
+                ereport(ERROR,
+                        (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                         errmsg("CommitCap product row budget cannot share a relation with another CommitCap trigger")));
+            }
+        }
+    if (matches != 1)
+    {
+        mark_product_denied(relation, false, 0, 0);
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("CommitCap requires exactly one UPDATE row-budget trigger per relation")));
+    }
+
+    if (trigger_data->tg_trigger->tgnargs != 1)
+    {
+        mark_product_denied(relation, false, 0, 0);
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("CommitCap row budget requires exactly one decimal argument")));
+    }
+
+    if (!parse_product_budget(trigger_data->tg_trigger->tgargs[0], &budget))
+    {
+        mark_product_denied(relation, false, 0, 0);
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("CommitCap row budget must be a canonical decimal integer from 0 to %d", INT_MAX)));
+    }
+
+    policy = find_product_policy(relid);
+    if (policy == NULL)
+    {
+        MemoryContext old_context = MemoryContextSwitchTo(TopMemoryContext);
+
+        policy = palloc0(sizeof(*policy));
+        policy->relid = relid;
+        policy->trigger_oid = trigger_data->tg_trigger->tgoid;
+        policy->budget = budget;
+        MemoryContextSwitchTo(old_context);
+        policy->next = state.product_policies;
+        state.product_policies = policy;
+    }
+    else if (policy->trigger_oid != trigger_data->tg_trigger->tgoid ||
+             policy->budget != budget)
+    {
+        mark_product_denied(relation, false, 0, 0);
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("CommitCap row budget configuration changed inside a transaction")));
+    }
+
+    if (policy->consumed >= policy->budget)
+    {
+        mark_product_denied(relation, true, policy->budget, policy->consumed);
+        ereport(ERROR,
+                (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+                 errmsg("CommitCap mutation budget exceeded (limit " UINT64_FORMAT ", attempted " UINT64_FORMAT ")",
+                        policy->budget, policy->consumed + 1),
+                 errdetail("CommitCap denied transaction\n"
+                           "policy / metric: %s\n"
+                           "granted: " UINT64_FORMAT "\n"
+                           "consumed before attempt: " UINT64_FORMAT "\n"
+                           "attempted effect: " UINT64_FORMAT " row-update events\n"
+                           "result: DENIED; top-level COMMIT will be rejected",
+                           denial_metric_text(DENIAL_PRODUCT_ROW),
+                           policy->budget, policy->consumed, policy->consumed + 1)));
+    }
+
+    if (IsSubTransaction())
+        delta = ensure_product_delta(ensure_frame(GetCurrentSubTransactionId()), policy);
+    policy->consumed++;
+    if (delta != NULL)
+        delta->consumed++;
 }
 
 /*
@@ -284,6 +506,32 @@ mark_denied(DenialKind kind)
     state.denied = true;
 }
 
+/* Snapshot the first cause in TopMemoryContext: Relation/catalog pointers and
+ * subtransaction-owned strings must never be retained until PRE_COMMIT. */
+static void
+mark_product_denied(Relation relation, bool has_counts,
+                    uint64 budget, uint64 consumed)
+{
+    if (!state.denied)
+    {
+        MemoryContext old_context;
+        char       *schema;
+        char       *qualified;
+
+        mark_denied(DENIAL_PRODUCT_ROW);
+        old_context = MemoryContextSwitchTo(TopMemoryContext);
+        schema = get_namespace_name(RelationGetNamespace(relation));
+        qualified = quote_qualified_identifier(schema, RelationGetRelationName(relation));
+        state.product_denial_metric = psprintf("%s.rows_updated", qualified);
+        pfree(qualified);
+        pfree(schema);
+        MemoryContextSwitchTo(old_context);
+        state.product_denial_budget = budget;
+        state.product_denial_consumed = consumed;
+        state.product_denial_has_counts = has_counts;
+    }
+}
+
 /*
  * Human-readable policy key for a recorded denial. These strings are static
  * literals derived from enforcement state; no user-controlled text and no
@@ -302,6 +550,9 @@ denial_metric_text(DenialKind kind)
             return "users.role (* -> admin)";
         case DENIAL_NUMERIC:
             return "refunds.amount positive_delta";
+        case DENIAL_PRODUCT_ROW:
+            return state.product_denial_metric != NULL ?
+                state.product_denial_metric : "unavailable relation identity";
         case DENIAL_NONE:
             break;
     }
@@ -769,6 +1020,37 @@ ensure_frame(SubTransactionId subid)
     return frame;
 }
 
+static ProductDelta *
+ensure_product_delta(ConsumptionFrame *frame, ProductPolicy *policy)
+{
+    ProductDelta *delta;
+    MemoryContext old_context;
+
+    for (delta = frame->product_deltas; delta != NULL; delta = delta->next)
+        if (delta->policy == policy)
+            return delta;
+
+    old_context = MemoryContextSwitchTo(TopMemoryContext);
+    delta = palloc0(sizeof(*delta));
+    MemoryContextSwitchTo(old_context);
+    delta->policy = policy;
+    delta->next = frame->product_deltas;
+    frame->product_deltas = delta;
+    return delta;
+}
+
+static void
+free_product_deltas(ProductDelta *delta)
+{
+    while (delta != NULL)
+    {
+        ProductDelta *next = delta->next;
+
+        pfree(delta);
+        delta = next;
+    }
+}
+
 static void
 remove_frame(SubTransactionId subid)
 {
@@ -783,6 +1065,7 @@ remove_frame(SubTransactionId subid)
             *link = frame->next;
             if (frame->positive_delta != NULL)
                 pfree(frame->positive_delta);
+            free_product_deltas(frame->product_deltas);
             pfree(frame);
             return;
         }
@@ -793,6 +1076,7 @@ static void
 reset_state(void)
 {
     ConsumptionFrame *frame = state.frames;
+    ProductPolicy *policy = state.product_policies;
 
     while (frame != NULL)
     {
@@ -800,9 +1084,20 @@ reset_state(void)
 
         if (frame->positive_delta != NULL)
             pfree(frame->positive_delta);
+        free_product_deltas(frame->product_deltas);
         pfree(frame);
         frame = next;
     }
+
+    while (policy != NULL)
+    {
+        ProductPolicy *next = policy->next;
+
+        pfree(policy);
+        policy = next;
+    }
+    if (state.product_denial_metric != NULL)
+        pfree(state.product_denial_metric);
 
     state.active = false;
     state.denied = false;
@@ -818,6 +1113,11 @@ reset_state(void)
     state.positive_delta = NULL;
     state.numeric_budget = NULL;
     state.frames = NULL;
+    state.product_policies = NULL;
+    state.product_denial_metric = NULL;
+    state.product_denial_has_counts = false;
+    state.product_denial_budget = 0;
+    state.product_denial_consumed = 0;
 }
 
 static void
@@ -835,6 +1135,21 @@ xact_callback(XactEvent event, void *arg)
                  "commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=%d consumed=" UINT64_FORMAT
                  " denied=%s",
                   MyProcPid, state.consumed[ROW_SUBSCRIPTIONS] + state.consumed[ROW_USERS], state.denied ? "true" : "false");
+            if (state.denied && state.denial_kind == DENIAL_PRODUCT_ROW &&
+                state.product_denial_has_counts)
+                ereport(ERROR,
+                        (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+                         errmsg("CommitCap top-level transaction denied after mutation authority violation"),
+                         errdetail("CommitCap denied transaction\n"
+                                   "policy / metric: %s\n"
+                                   "granted: " UINT64_FORMAT "\n"
+                                   "consumed before attempt: " UINT64_FORMAT "\n"
+                                   "attempted effect: " UINT64_FORMAT " row-update events\n"
+                                   "result: ABORTED",
+                                   denial_metric_text(state.denial_kind),
+                                   state.product_denial_budget,
+                                   state.product_denial_consumed,
+                                   state.product_denial_consumed + 1)));
             if (state.denied)
                 ereport(ERROR,
                         (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
@@ -902,10 +1217,19 @@ subxact_callback(SubXactEvent event, SubTransactionId mySubid,
             if (frame != NULL && GetCurrentTransactionNestLevel() > 2)
             {
                 ConsumptionFrame *parent = ensure_frame(parentSubid);
+                ProductDelta *delta;
                 int i;
 
                 for (i = 0; i < ROW_POLICY_COUNT; i++)
                     parent->delta[i] += frame->delta[i];
+                for (delta = frame->product_deltas; delta != NULL; delta = delta->next)
+                {
+                    ProductDelta *parent_delta = ensure_product_delta(parent, delta->policy);
+
+                    Assert(parent_delta->consumed <= delta->policy->budget);
+                    Assert(delta->consumed <= delta->policy->budget - parent_delta->consumed);
+                    parent_delta->consumed += delta->consumed;
+                }
                 if (frame->positive_delta != NULL)
                 {
                     if (parent->positive_delta == NULL)
@@ -927,12 +1251,18 @@ subxact_callback(SubXactEvent event, SubTransactionId mySubid,
             frame = find_frame(mySubid);
             if (frame != NULL)
             {
+                ProductDelta *delta;
                 int i;
 
                 for (i = 0; i < ROW_POLICY_COUNT; i++)
                 {
                     Assert(state.consumed[i] >= frame->delta[i]);
                     state.consumed[i] -= frame->delta[i];
+                }
+                for (delta = frame->product_deltas; delta != NULL; delta = delta->next)
+                {
+                    Assert(delta->policy->consumed >= delta->consumed);
+                    delta->policy->consumed -= delta->consumed;
                 }
                 if (frame->positive_delta != NULL)
                     replace_numeric(&state.positive_delta,

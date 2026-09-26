@@ -103,6 +103,33 @@ the [canonical test plan](docs/test-plan.md), and the
 [native experiment evidence](experiments/native_tx_state/README.md). Research
 evidence is not a supported installation or policy interface.
 
+### Generic UPDATE row budget under V0 security review (#47)
+
+In the pinned local PostgreSQL 16.4 environment, the trusted owner can attach
+an UPDATE row-event budget to an ordinary table **not compiled into the native
+module**. For a trusted-owner table `public.repair_items`, the reviewed SQL
+surface is:
+
+```sql
+CREATE TRIGGER commitcap_rows_updated
+BEFORE UPDATE ON public.repair_items
+FOR EACH ROW
+EXECUTE FUNCTION commitcap_native.enforce_rows_updated('5');
+```
+
+The argument is a strict decimal integer from `0` through `2147483647`, fixed
+by the trusted installer; `0` denies the first UPDATE row event. State is keyed
+by relation OID per top-level transaction, not by this diagnostic table name.
+The writer must not own the table, trigger or enforcement function. The new
+[isolated product security tests](experiments/native_tx_state/product_update_run.sh)
+exercise two independently budgeted arbitrary tables plus same-named tables
+in different schemas. **`./demo.sh` still shows the historical hard-coded
+research fixture**; a first-run arbitrary-table product demo is tracked in
+[#48](https://github.com/MrDarkRoot/CommitCap/issues/48). This is a V0
+security-review candidate, not a released or supported installer. The fixed
+`users.role` and `refunds.amount` rules remain research-only fixtures, not
+general policy APIs. See the [configuration and support boundary](experiments/native_tx_state/README.md#v0-generic-update-row-budget-47).
+
 ## What it does not protect
 
 - **Transaction-local authority only.** Task-wide/cross-transaction authority

@@ -57,6 +57,13 @@ Definitions:
 
 # 4. V0 fixture
 
+The historical fixed-table research fixture below is distinct from the
+[#47](https://github.com/MrDarkRoot/CommitCap/issues/47) generic UPDATE-budget
+security suite on arbitrary tables. A passing fixture case alone is not a
+product-surface result; see
+[`product_update_cases.sh`](../experiments/native_tx_state/product_update_cases.sh)
+for the additional OID-isolation, configuration, denial and durability probes.
+
 Protected tables:
 
 ```text

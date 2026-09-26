@@ -50,6 +50,57 @@ the constrained role and table fixture, runs the tests, prints server-side
 callback traces, and removes the container and volume. Every durable-state
 assertion opens a fresh trusted-admin connection.
 
+## V0 generic UPDATE row budget (#47)
+
+The separate `commitcap_native.enforce_rows_updated('5')` trigger function is a
+review candidate for ordinary nonpartitioned PostgreSQL **16.4** heap tables
+not named in the C source. A trusted table owner, not the protected writer,
+installs **one unconditional enabled `BEFORE UPDATE FOR EACH ROW` trigger**:
+
+```sql
+CREATE TRIGGER commitcap_rows_updated
+BEFORE UPDATE ON public.repair_items
+FOR EACH ROW
+EXECUTE FUNCTION commitcap_native.enforce_rows_updated('5');
+```
+
+The argument is exactly one canonical unsigned base-10 integer in the range
+`0..2147483647` (no spaces, sign, leading zeroes, decimal point or exponent).
+Zero denies the first UPDATE row event. Each successful BEFORE UPDATE row
+trigger invocation consumes one event, including repeated or no-op updates;
+a zero-row UPDATE consumes none. The captured budget and count are keyed by
+relation OID, not a table-name argument or the test-only
+`commitcap_native.test_budget` GUC. An over-budget row sets backend-local
+sticky denial before raising SQLSTATE `54000`. Savepoint/PLpgSQL exception
+recovery cannot clear it; the top-level COMMIT is rejected and no writes in
+that transaction become durable. Only permitted consumption rolls back with
+a subtransaction. The first violated policy is retained as a catalog-derived,
+qualified display label in long-lived memory; it contains no row values.
+
+The trusted installer must verify the trigger is enabled, unique for that
+relation, **not combined with another CommitCap trigger on that relation**,
+unconditional (no `WHEN` or `UPDATE OF`), and that the restricted
+writer cannot own/alter the table, disable the trigger, manage the trusted
+function/schema, set replication bypass parameters or access another mutation
+path (including INSERT, DELETE and TRUNCATE). Runtime rejects malformed,
+duplicate, legacy/product mixtures or unsupported product triggers **when
+they fire**; a zero-row UPDATE
+cannot check a trigger that did not fire. Conditional/disabled triggers can
+skip rows entirely and are **not** supported configurations. Ordinary schema
+DDL by a trusted admin, partition/inheritance routing, arbitrary user trigger
+graphs, and alternate actor/grant models have no coverage claim.
+
+Run the focused tests with `bash experiments/native_tx_state/product_update_run.sh`
+(optionally `PRODUCT_REPETITIONS=20`); the full existing suite also sources
+these assertions. The tests create `cc_product_alpha`, `cc_product_beta`, and
+same-named tables in two schemas, use different limits, verify denial and
+same-backend lifecycle, and inspect denied durable state from **fresh trusted
+admin connections**. This is a security-review fixture, not the product
+first-run demo (tracked in #48). The older `enforce_update_budget()` test GUC,
+fixed `users.role` transition and `refunds.amount` numeric experiments are
+research-only; they have not become arbitrary-table product policies. No
+cross-transaction, managed-service, other-version or production claim follows.
+
 ## Candidate
 
 The C trigger function keeps two distinct kinds of backend-local state:

@@ -238,9 +238,11 @@ assert_privilege_audit() {
     assert_scalar "extension owner" \
         "SELECT pg_get_userbyid(extowner) FROM pg_extension WHERE extname = 'commitcap_native_tx_state';" \
         "commitcap_native_admin"
+    # #47 adds exactly one trusted product trigger function; assert identities,
+    # not just a lower total that could hide an unexpected extension function.
     assert_scalar "extension-owned functions" \
-        "SELECT count(*) FROM pg_depend AS d JOIN pg_extension AS e ON e.oid = d.refobjid WHERE e.extname = 'commitcap_native_tx_state' AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e';" \
-        "3"
+        "SELECT string_agg(p.proname, ',' ORDER BY p.proname) FROM pg_depend AS d JOIN pg_extension AS e ON e.oid = d.refobjid JOIN pg_proc AS p ON p.oid = d.objid WHERE e.extname = 'commitcap_native_tx_state' AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e';" \
+        "enforce_refund_delta,enforce_role_transition,enforce_rows_updated,enforce_update_budget"
     assert_scalar "trusted schema owners" \
         "SELECT count(*) FROM pg_namespace WHERE nspname IN ('commitcap_native', 'commitcap_probe') AND pg_get_userbyid(nspowner) <> 'commitcap_owner';" \
         "0"
@@ -2354,4 +2356,5 @@ done
 printf '%s\n' '--- callback lifecycle trace ---'
 printf '%s\n' "$lifecycle_logs"
 printf '%s\n' '--- end callback lifecycle trace ---'
+source "$EXPERIMENT_DIR/product_update_cases.sh"
 printf 'native transaction-state experiment: all required tests PASS including independent per-policy acceptance in both orders and individual-violation recovery (PG16.4 research fixture)\n'
