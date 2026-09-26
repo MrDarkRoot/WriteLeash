@@ -134,3 +134,125 @@ durable relational mutation than intended *even after* a validated predicate,
 staging, idempotency and a narrow-operation challenge. Seek the exact statement,
 transaction/batch boundary, affected rows and preexisting guardrails. There is
 **not enough repeated evidence to promote #24, #25 or #26** to design work.
+
+## PostgreSQL repair/backfill follow-up
+
+Research added 2026-09-26 after the initial corpus review. This section is a
+separate, narrower pass: PostgreSQL must be named by the source, and the task
+must be an operator edit, repair, backfill, migration or closely related data
+correction. Cases where the incident is not excess durable relational mutation
+remain as **falsification evidence**, not as support for CommitCap. The first
+case is the only identified example where a single intended-row edit became a
+multi-row PostgreSQL UPDATE; even there, simpler controls dominate. These
+sources are project issues or first-person engineering reports, not independently
+audited incident forensics. Unknowns remain explicit.
+
+The classification letters retain the definitions above. Every case below
+challenges the alternatives: narrow API/stored procedure (N), predicate and
+expected-row-count/dry-run validation (P), idempotency (I), atomic claiming (J),
+approval (A), and batching/transaction boundaries (BATCH). “Not relevant” means
+the source does not report that failure shape, not that the control is
+universally unnecessary.
+
+### PG-1. DBeaver table editor used a non-unique column as UPDATE key — B
+
+- **Source/date/project:** [DBeaver #367](https://github.com/dbeaver/dbeaver/issues/367), opened 2016-04-14; project maintainer confirmed a PostgreSQL-specific DBeaver 3.6.4 defect and said a hotfix would be released.
+- **SOURCE FACT — database/task/intended effect:** PostgreSQL is explicitly named in the issue/thread; the server version is not stated. An operator edited a field on one selected row in DBeaver's table-data UI; the intended durable effect was one-row editing, not a repair or backfill job.
+- **SOURCE FACT — actual effect and write shape:** The tool generated `UPDATE blah SET foo = TRUE WHERE created_by_id=123`, although `created_by_id` was an ordinary indexed foreign key, not unique or the primary key; the table's primary key was `id`. All rows sharing that creator ID were changed. The issue provides table DDL and says this happened for tables with both columns. The exact count of matching rows, transaction/autocommit boundary, production environment, and whether the reported rows were later restored are not stated.
+- **SOURCE FACT — root cause / corrective fix:** The reporter isolated the generated SQL; a DBeaver maintainer confirmed the bug: version 3.6.4 had treated the first non-unique index as the table's primary key. The issue says a hotfix was planned, but does not link its release or a restore operation.
+- **INFERENCE — alternatives:** N: edit by explicit primary key or use a narrow operation. P: DBeaver should use the declared PK and show the generated predicate / affected-row count before accepting a one-row edit. I: unrelated to repeated execution. J: no worker or concurrent-claim issue. A: confirmation may help but does not validate the key. BATCH: not a batch; a row-count guard can reject this statement if its budget is one.
+- **INFERENCE — residual / current fit / future / requirement:** **B.** This is direct evidence that a flexible operator tool can produce more row updates than one selected-row intent. A hard relation-level per-transaction cap could add independent containment if the UI/key-selection control regressed again, but the known root cause has a direct PK/predicate correction and exact-one affected-row check. The current PG16.4 fixture does not cover DBeaver or this table; the single-statement shape is only an abstract transaction-local fit. No task-wide relevance or product requirement is established.
+
+### PG-2. One-transaction 4.5-million-row schema backfill locked production — C
+
+- **Source/date/project:** [“Schema Migration Gone Wrong: Lessons From a Production Outage”](https://medium.com/@smdeepya/schema-migration-gone-wrong-lessons-from-a-production-outage-52b02b99edc0), first-person engineering writeup published 2025-08-03. It is not a formal company postmortem.
+- **SOURCE FACT — database/task/intended effect:** The author describes a Flyway migration on PostgreSQL adding `position_id` to an events table and copying `order_id` into it for existing rows. The report says there were about 3 million existing rows in staging and 4.5 million in production. The intended target was all legacy rows.
+- **SOURCE FACT — actual effect and write shape:** Staging first experienced deadlocks while automation tests queried/updated the same table during a multi-million-row update. In production, a later migration attempted the 4.5-million-row backfill in one transaction; the table was locked, API requests failed, and migration stopped before index creation. The author does not report an incorrect extra-row set or data-value corruption. Schema-version manipulation and manual recovery were used to unblock deploy; the backfill was later performed separately in the background. Exact per-row commit results and duration are not given.
+- **SOURCE FACT — root cause / corrective fix:** A very large intended update was bundled in schema migration. The writeup recommends separating and batching long-running data migration, adding the index, and running `ANALYZE`; it also describes a phased API alternative that would have deferred backfill until later.
+- **INFERENCE — alternatives:** N: a phased API/schema rollout avoids requiring an immediate full-table rewrite. P: dry-run and expected-count checks confirm the all-existing-row scope, but do not reduce lock duration. I: idempotency does not reduce lock duration for one full-table transaction. J: no competing claim is implicated. A: a maintenance approval/window can prevent unexpected user impact but is not itself a write-scope bound. BATCH: the direct corrective control is smaller committed batches or a background process with explicit progress and transaction boundaries.
+- **INFERENCE — residual / current fit / future / requirement:** **C.** The reported effect set was the intended 4.5 million rows; the demonstrated failure was locking/availability from doing it in one transaction, not mutation amplification beyond intent. A smaller cap would abort the valid migration and require the same batch orchestration to resume; once batches and scope assertions are correct, no residual ceiling value is demonstrated. Current CommitCap has neither this schema nor arbitrary UPDATE support. No task-wide hypothesis or product requirement follows.
+
+### PG-3. CourtListener migration generated a large intended update across replicated servers — C
+
+- **Source/date/project:** [Free Law Project / CourtListener #1109](https://github.com/freelawproject/courtlistener/issues/1109), project-authored “DB Migration and Replication Post-Mortem,” 2019-12-31; incident period 2019-12-27 to 2019-12-30.
+- **SOURCE FACT — database/task/intended effect:** PostgreSQL logical replication across a master, old master, AWS PostgreSQL/RDS server, and client PostgreSQL servers. The change added fields and converted nullable text values to Django's blank-string convention. The intended update touched existing values in the affected columns across the relevant tables; the source describes legal-case tables with millions of rows and hundreds of GB, not an unintended business-row scope.
+- **SOURCE FACT — actual effect and write shape:** Before PostgreSQL 11, adding defaulted columns rewrote large tables and exhausted disk on replicas. Subsequent updates over several columns formed large transactions that replication queued; the old master entered a memory boom/bust/restart cycle. The report says 300GB of swap plus 64GB RAM was needed to flush the backlog and caused front-end downtime. It does not report rows changed beyond those targeted by the schema/data migration. Per-statement row counts are not supplied.
+- **SOURCE FACT — root cause / corrective fix:** PostgreSQL pre-11 default-column rewrites plus very large logical replication transactions and the multi-hop replication topology. The author rewrote the migrations to add nullable columns without defaults, set defaults separately, schedule updates, disable subscriptions during schema coordination, and apply `NOT NULL` in a coordinated order. The report says final schema updates landed on master, old master, AWS, and clients.
+- **INFERENCE — alternatives:** N: a staged schema/API transition can avoid a single all-row cutover. P: counts and replication-lag checks verify intended scope and rollout, but do not cap the WAL/memory of a huge transaction. I: retries/duplicate execution are not reported. J: no concurrent claim race is reported. A: an operational approval gates a high-risk rollout but does not reduce transaction size. BATCH: smaller commits, PostgreSQL-version-aware migration and replication redesign directly address the reported problem.
+- **INFERENCE — residual / current fit / future / requirement:** **C.** This is high-quality PostgreSQL migration evidence, but the harm is resource/replication amplification of an intended all-row change, not excess durable mutation beyond intent. The report's corrective architecture and batching dominate; a hard cap would either abort intended migration work or need a separate resumption workflow. Actual mutation-accounting support in current CommitCap is absent for these tables and DDL. No task-wide requirement.
+
+### PG-4. FX history backfill exceeded PostgreSQL's parameter limit before commit — C
+
+- **Source/date/project:** [portfonia/portfonia #402](https://github.com/portfonia/portfonia/issues/402), project issue opened 2026-09-09, with production reproduction and a follow-up verification comment.
+- **SOURCE FACT — database/task/intended effect:** PostgreSQL `fx_rates` history backfill for 14 currency pairs over about five years of daily rates. Intended durable effect was about 17,500 historical upserts; the later report says 16,901 rows were eventually inserted across 14 pairs after the fix.
+- **SOURCE FACT — actual effect and write shape:** `_upsert_fx_history` formed one unbounded multi-row INSERT with about 87,000 bound parameters (five per row), exceeding PostgreSQL's 65,535 protocol limit. The first production run failed before `session.commit()` and wrote zero rows. The source documents one failed statement inside a script-level transaction; no partial committed rows were reported.
+- **SOURCE FACT — root cause / corrective fix:** The test used one day of history and 14 pairs (70 binds), far below the production-sized input. [PR #404](https://github.com/portfonia/portfonia/pull/404) implemented 5,000-row batches (25,000 parameters each) and changed `test_backfill_fx_rates.py`; the issue reports a successful production rerun of 16,901 rows. One pair had only a month of source history for an unrelated provider-data limitation.
+- **INFERENCE — alternatives:** N: a dedicated bulk-upsert path fits this stable operation. P: bound the expected row count and assert returned upsert count. I: `ON CONFLICT` already gives rerun semantics. J: no competing job is implicated. A: not central; deployment approval alone does not lower bind count. BATCH: the primary fix chunks statements below the parameter limit; the source reports a script-level `session.commit()`, not a separate commit for each chunk.
+- **INFERENCE — residual / current fit / future / requirement:** **C.** The failure happened before any durable write, so there was no excessive mutation to contain. Chunking is the direct correctness/operability fix. The current fixture tests neither INSERT nor this relation; no task-wide issue or product requirement.
+
+### PG-5. PostgreSQL backfill snapshot omitted future organization ownership — C
+
+- **Source/date/project:** [“Your backfill is a photograph”](https://dev.to/enderyentar/your-backfill-is-a-photograph-2kgj), first-person MailFlat engineering writeup, posted Sep 9 (the DEV page does not state a year) and cross-posted from the author's engineering site.
+- **SOURCE FACT — database/task/intended effect:** An Alembic migration created an organization for every existing user and linked it; the author explicitly reports that the initial backfill left every row present at that time correct. PostgreSQL is named in the report (the Alembic construct used in the backfill also failed locally and was caught on Postgres/staging). Later, two newly created accounts and seven API keys had no organization/owner link.
+- **SOURCE FACT — actual effect and write shape:** The later missing links arose because no signup path created an organization after the one-time migration. The source does not state transaction/batch boundaries or show excess UPDATE/INSERT rows; it describes durable rows that were missing required relationships.
+- **SOURCE FACT — root cause / corrective fix:** The historical snapshot backfill was not paired with a continuing write-path guarantee. The author reports moving the invariant to a SQLAlchemy `before_flush` hook that applies to every new user, plus a direct model-level test; production was reported clean after repair. The exact SQL/repair transaction and per-row counts are not provided.
+- **INFERENCE — alternatives:** N: a canonical organization-creation API/service can enforce the relationship if every writer uses it; a model/database constraint is stronger where semantics permit. P: post-backfill anti-join counts reveal current null links but do not keep new writes correct. I: not a retry issue. J: no concurrent claim issue. A: approval has little bearing. BATCH: batch limits help execute a repair, not prevent future orphan creation.
+- **INFERENCE — residual / current fit / future / requirement:** **C.** The incident is missing/future writes, not excessive durable effects. The guarantee belongs on the ongoing write path; a finite ceiling would neither populate ownership nor keep it valid. Current fixture has no such schema or inserts. No task-wide relevance or requirement.
+
+### PG-6. SQLite-to-PostgreSQL port left a sequence behind table state — C
+
+- **Source/date/project:** [matrix-org/synapse #9382](https://github.com/matrix-org/synapse/issues/9382), opened 2021-02-11; Synapse project maintainers and users discuss the repair.
+- **SOURCE FACT — database/task/intended effect:** `synapse_port_db` moved a homeserver database from SQLite to PostgreSQL. The migration was intended to make the migrated event-auth-chain records and the PostgreSQL-generated ID sequence usable for later room/DM creation.
+- **SOURCE FACT — actual effect and write shape:** Port completed without error, but later room creation failed with a unique-key violation because `event_auth_chain_id` lagged `event_auth_chains`; a later trace shows sequence `41232` while table max was `41233`. The transaction/batch shape of `synapse_port_db` and the full row counts are not specified. The reported harm was inability to create rooms, not extra durable table rows.
+- **SOURCE FACT — root cause / corrective fix:** A sequence-consistency check was missing from the migration/startup path. The suggested `setval(sequence, max(chain_id))` repaired the issue; maintainers confirmed sequence advancement was safe while the server was offline, and a reporter confirmed the workaround restored room creation. Later code added an explicit consistency check and error guidance.
+- **INFERENCE — alternatives:** N: a migration/helper that seeds sequence state from the destination table is the narrow fix. P: compare sequence last value to table maximum after migration. I: retrying migration without sequence repair would not help. J: no competing job claim is implicated. A: operator approval does not solve the mismatch. BATCH: reprocessing fewer rows has no relevance to sequence state.
+- **INFERENCE — residual / current fit / future / requirement:** **C.** The defect concerns sequence metadata and missing future IDs, not over-budget relational row changes; sequences are explicitly outside current CommitCap effect semantics. A mutation ceiling would not prevent or repair it. No task-wide hypothesis or product requirement.
+
+### PG-7. Rails `update_all` ignored a `DISTINCT ON` projection — D
+
+- **Source/date/project:** [rails/rails #37140](https://github.com/rails/rails/issues/37140), opened 2019-09-05; Rails project issue with a minimal reproduction repository.
+- **SOURCE FACT — database/task/intended effect:** The reporter expected `select("DISTINCT ON (something) *").update_all(...)` to update only the distinct rows. The issue's system configuration states PostgreSQL 11.4, while its embedded minimal test actually establishes an in-memory SQLite connection and creates only 20 synthetic rows.
+- **SOURCE FACT — actual effect and write shape:** The reporter's asserted result is that all table rows would be updated because `select` projections are ignored by this API. However, the embedded minimal program connects to SQLite (which does not implement PostgreSQL `DISTINCT ON`), and the reporter says dependencies prevented executing it; Rails maintainers explain that `update_all` ignores `select` and builds one UPDATE from the relation's `where`/`order`. There is no demonstrated PostgreSQL run, production incident, actual affected-row count, or transaction boundary.
+- **SOURCE FACT — root cause / corrective fix:** The intended row-set was expressed in a projection, not in a write predicate. A Rails maintainer says this is likely the expected behavior of `update_all`; using a specific SQL predicate or explicit SQL is suggested. The issue was eventually closed stale, with no recorded product fix.
+- **INFERENCE — alternatives:** N: express the distinct-row result as IDs in a specific operation. P: inspect generated SQL and assert expected affected count; correct predicate selection is primary. I: repeated execution is not the reported issue. J: no concurrent claim is implicated. A: confirmation could reduce risk but is weaker than a write-scope assertion. BATCH: batching cannot make a predicate correct.
+- **INFERENCE — residual / current fit / future / requirement:** **D — insufficient PostgreSQL evidence.** The reported scope mismatch is interesting but the shown reproduction runs SQLite, and the project thread has no real database incident or transaction detail. If confirmed against PostgreSQL, a relational cap might limit an accidental broad update, but the narrow predicate/API fixes the described mistake. No fit or requirement is asserted from this source.
+
+### Follow-up synthesis
+
+**Follow-up counts (7 cases): A 0 / B 1 / C 5 / D 1.** Direct PostgreSQL
+evidence improved the corpus by establishing one real GUI-generated multi-row
+UPDATE from a one-row edit (PG-1), plus several concrete migration/backfill
+counterexamples. It did **not** establish repeated incidents where a backfill
+committed materially more rows than its validated intended scope.
+
+- **Did any case survive the narrow-operation challenge strongly enough for A?**
+  No. PG-1 is the only positive overscope case, and the tool's wrong-key
+  selection has a direct fix (use the true PK, show the generated predicate,
+  assert one affected row). A per-transaction ceiling might be an independent
+  residual safety layer for a generic table-editing surface, so it is B, but the
+  report does not show why that layer remains valuable after those controls.
+- **Did direct PostgreSQL evidence materially improve the transaction-local
+  case?** It makes the mechanism's *shape* concrete: an unintended broad UPDATE
+  can be one statement (PG-1). The current PG16.4 fixture does not cover that
+  table, role, tool, or deployment. The other cases are expected full-table
+  mutation with availability costs (PG-2/3), a backfill that fails before
+  commit (PG-4), a missing write invariant (PG-5), sequence state (PG-6), or
+  SQLite-only reproduction (PG-7). They do not validate current enforcement.
+- **Task-wide authority?** No repeated case shows committed over-mutation
+  accumulating across committed batches after each batch's scope has been
+  validated. Large jobs span transactions for lock/resource management, but
+  these sources either describe the intended total set, missing effects, or
+  simpler batch/repair controls. Cross-transaction authority remains an
+  unsupported hypothesis, not an evidence-derived requirement.
+- **Hypotheses:** #24, #25 and #26 remain watchlist hypotheses. No design or
+  implementation work is justified by this follow-up.
+
+**Decision: continue research; insufficient evidence for design promotion.**
+The most promising observed shape is PG-1's one-statement operator edit, but the
+next search should seek an independently documented *repair/backfill* where a
+validated operation still needs flexible writes, a single transaction's actual
+durable row set substantially exceeded its known intent, and an independent
+database-side ceiling would add value beyond a narrow API, a checked predicate,
+dry-run/count assertion, approval, and safe batch boundaries. Do not promote a
+concept based on a failure caused by locks, WAL, an invalid migration, missing
+rows, or sequence state alone.
