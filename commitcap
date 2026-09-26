@@ -1,0 +1,297 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export LC_ALL=C
+
+SOURCE_PATH="${BASH_SOURCE[0]}"
+case "$SOURCE_PATH" in
+    */*) SCRIPT_DIR="${SOURCE_PATH%/*}" ;;
+    *) SCRIPT_DIR='.' ;;
+esac
+SCRIPT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR" && pwd)"
+
+usage() {
+    printf '%s\n' \
+        'CommitCap V0 Research Preview — local PostgreSQL 16.4 fixture only' \
+        '' \
+        'Usage:' \
+        '  ./commitcap doctor' \
+        '  ./commitcap protect-update --table schema.table --budget N [--writer-role ROLE]' \
+        '  ./commitcap demo' \
+        '' \
+        'protect-update prints trusted-admin SQL and a catalog preflight; it never connects or applies SQL.' \
+        'Run ./commitcap protect-update --help for identifier, budget, and trust-check details.'
+}
+
+doctor_usage() {
+    printf '%s\n' \
+        'Usage: ./commitcap doctor' \
+        '' \
+        'Checks Bash, Docker, the `docker compose` plugin, and Docker daemon reachability.' \
+        'It does not install or change anything.'
+}
+
+protect_usage() {
+    printf '%s\n' \
+        'Usage: ./commitcap protect-update --table schema.table --budget N [--writer-role ROLE]' \
+        '' \
+        'Prints (does not apply) a fixed-name BEFORE UPDATE FOR EACH ROW trigger and a psql catalog preflight.' \
+        'Use simple lowercase unquoted identifiers (at most 63 bytes). Budget is a canonical decimal integer from 0 through 2147483647.' \
+        'Pass --writer-role to verify the protected writer privilege boundary; without it, preflight is FAIL.' \
+        'V0 rejects writers that can SET ROLE to any other role or change session_replication_role.' \
+        'A trusted table owner/admin must review and apply the SQL. An existing trigger is never replaced.'
+}
+
+fail() {
+    printf 'commitcap: %s\n' "$1" >&2
+    exit "${2:-2}"
+}
+
+doctor() {
+    local failed=0
+    local compose_version=''
+
+    printf 'CommitCap doctor\n\n'
+    if [[ -n "${BASH_VERSION:-}" ]]; then
+        printf '✓ Bash %s\n' "$BASH_VERSION"
+    else
+        printf '✗ Bash unavailable\n'
+        printf 'Run this command with Bash: ./commitcap doctor\n'
+        failed=1
+    fi
+
+    if command -v docker >/dev/null 2>&1; then
+        printf '✓ Docker CLI\n'
+        if compose_version="$(docker compose version 2>/dev/null)" && [[ "$compose_version" == *'Docker Compose version'* ]]; then
+            printf '✓ Docker Compose v2 interface (%s)\n' "$compose_version"
+        else
+            printf '✗ Docker Compose v2 unavailable\n'
+            printf 'Install the Docker Compose plugin and retry: ./commitcap doctor\n'
+            failed=1
+        fi
+
+        if docker info --format '{{.ServerVersion}}' >/dev/null 2>&1; then
+            printf '✓ Docker daemon\n'
+        else
+            printf '✗ Docker daemon unavailable\n'
+            printf 'Start Docker and retry: ./commitcap doctor\n'
+            failed=1
+        fi
+    else
+        printf '✗ Docker CLI unavailable\n'
+        printf 'Install Docker Engine/Desktop and retry: ./commitcap doctor\n'
+        failed=1
+    fi
+
+    printf '\nSupported preview:\n'
+    printf 'PostgreSQL 16.4 local Docker fixture\n'
+    printf '\nNot validated:\n'
+    printf 'managed PostgreSQL\n'
+    printf 'other PostgreSQL versions\n'
+
+    if (( failed != 0 )); then
+        return 1
+    fi
+}
+
+validate_identifier() {
+    local identifier="$1"
+    local identifier_pattern='^[a-z_][a-z0-9_$]*$'
+    [[ ${#identifier} -le 63 && "$identifier" =~ $identifier_pattern ]]
+}
+
+validate_table() {
+    local input="$1"
+
+    if [[ "$input" != *.* ]]; then
+        fail 'invalid --table: use exactly schema.table with lowercase unquoted PostgreSQL identifiers (at most 63 bytes each)'
+    fi
+
+    TABLE_SCHEMA="${input%%.*}"
+    TABLE_NAME="${input#*.}"
+
+    if [[ "$TABLE_NAME" == *.* ]] || ! validate_identifier "$TABLE_SCHEMA" || ! validate_identifier "$TABLE_NAME"; then
+        fail 'invalid --table: use exactly schema.table with lowercase unquoted PostgreSQL identifiers of at most 63 bytes (no extra dots, whitespace, quotes, or SQL syntax)'
+    fi
+}
+
+validate_budget() {
+    local value="$1"
+    local budget_pattern='^(0|[1-9][0-9]*)$'
+
+    if [[ ! "$value" =~ $budget_pattern ]] || (( ${#value} > 10 )); then
+        fail 'invalid --budget: use a canonical decimal integer from 0 through 2147483647'
+    fi
+
+    if (( 10#$value > 2147483647 )); then
+        fail 'invalid --budget: use a canonical decimal integer from 0 through 2147483647'
+    fi
+}
+
+print_verification_script() {
+    local sql_line
+    local writer_value='__WRITER_ROLE_NOT_PROVIDED__'
+    local writer_supplied='false'
+
+    if [[ -n "$WRITER_ROLE" ]]; then
+        writer_value="$WRITER_ROLE"
+        writer_supplied='true'
+    fi
+
+    printf '%s\n' '-- BEGIN TRUSTED-ADMIN VERIFICATION SCRIPT'
+    printf '\\set cc_schema_name %s\n' "$TABLE_SCHEMA"
+    printf '\\set cc_table_name %s\n' "$TABLE_NAME"
+    printf '\\set cc_expected_budget %s\n' "$BUDGET"
+    printf '\\set cc_writer_role %s\n' "$writer_value"
+    printf '\\set cc_writer_role_supplied %s\n' "$writer_supplied"
+    while IFS= read -r sql_line || [[ -n "$sql_line" ]]; do
+        printf '%s\n' "$sql_line"
+    done < "$SCRIPT_DIR/sql/verify_update_protection.sql"
+    printf '%s\n' '-- END TRUSTED-ADMIN VERIFICATION SCRIPT'
+}
+
+protect_update() {
+    local -a args=("$@")
+    local count="$#"
+    local index=0
+    local flag
+    local value
+    local table=''
+    local budget=''
+    local writer_role=''
+    local seen_table=false
+    local seen_budget=false
+    local seen_writer=false
+
+    if (( count == 1 )) && [[ "${args[0]}" == '--help' || "${args[0]}" == '-h' ]]; then
+        protect_usage
+        return 0
+    fi
+
+    while (( index < count )); do
+        flag="${args[index]}"
+        case "$flag" in
+            --help|-h)
+                (( count == 1 )) || fail 'use --help by itself'
+                protect_usage
+                return 0
+                ;;
+            --table|--budget|--writer-role)
+                if (( index + 1 >= count )); then
+                    fail "missing value for $flag"
+                fi
+                index=$((index + 1))
+                value="${args[index]}"
+                case "$flag" in
+                    --table)
+                        [[ "$seen_table" == false ]] || fail 'duplicate --table flag'
+                        table="$value"
+                        seen_table=true
+                        ;;
+                    --budget)
+                        [[ "$seen_budget" == false ]] || fail 'duplicate --budget flag'
+                        budget="$value"
+                        seen_budget=true
+                        ;;
+                    --writer-role)
+                        [[ "$seen_writer" == false ]] || fail 'duplicate --writer-role flag'
+                        writer_role="$value"
+                        seen_writer=true
+                        ;;
+                esac
+                ;;
+            *)
+                fail "unknown protect-update argument: $flag"
+                ;;
+        esac
+        index=$((index + 1))
+    done
+
+    [[ "$seen_table" == true ]] || fail 'required flag missing: --table schema.table'
+    [[ "$seen_budget" == true ]] || fail 'required flag missing: --budget N'
+    validate_table "$table"
+    validate_budget "$budget"
+    if [[ "$seen_writer" == true ]]; then
+        validate_identifier "$writer_role" || fail 'invalid --writer-role: use one lowercase unquoted PostgreSQL role identifier of at most 63 bytes'
+    else
+        writer_role=''
+    fi
+    WRITER_ROLE="$writer_role"
+    BUDGET="$budget"
+
+    printf 'CommitCap V0 protection plan\n\n'
+    printf 'table:\n  %s.%s\n\n' "$TABLE_SCHEMA" "$TABLE_NAME"
+    printf 'metric:\n  UPDATE row events\n\n'
+    printf 'budget:\n  %s per top-level transaction\n\n' "$budget"
+    printf 'Trusted-admin SQL (review and apply as the table owner/admin):\n\n'
+    printf 'CREATE TRIGGER "commitcap_rows_updated"\n'
+    printf 'BEFORE UPDATE ON "%s"."%s"\n' "$TABLE_SCHEMA" "$TABLE_NAME"
+    printf 'FOR EACH ROW\n'
+    printf "EXECUTE FUNCTION commitcap_native.enforce_rows_updated('%s');\n\n" "$budget"
+    printf 'This is CREATE, not CREATE OR REPLACE. If the fixed trigger name already exists, PostgreSQL reports a conflict; inspect it rather than replacing it.\n'
+    printf 'The generated SQL is not applied by this command. The protected writer must not apply or alter trusted policy SQL.\n\n'
+    printf 'Trusted-admin catalog preflight (run in psql after installation):\n'
+    printf 'It reports PASS/FAIL for each catalog and writer check; treat the table as protected only when OVERALL is PASS.\n'
+    printf 'Audit each actual protected writer role separately; this is a point-in-time check, so rerun after DDL or grant changes.\n'
+    printf 'V0 rejects SET or ALTER SYSTEM privilege on session_replication_role and any SET-able role membership; SET-able group-role topologies are unsupported.\n'
+    if [[ -z "$WRITER_ROLE" ]]; then
+        printf 'No --writer-role was supplied, so writer trust checks will FAIL until a role is provided.\n'
+    fi
+    printf '\n'
+    print_verification_script
+    printf '\nCommitCap V0 Research Preview\n\n'
+    printf 'Protected if installed and all verification checks pass:\n'
+    printf 'UPDATE row events on %s.%s\n' "$TABLE_SCHEMA" "$TABLE_NAME"
+    printf 'budget: %s / top-level transaction\n\n' "$budget"
+    printf 'Not protected:\n'
+    printf '%s\n' \
+        '- INSERT' \
+        '- DELETE' \
+        '- transaction splitting' \
+        '- retries across committed transactions' \
+        '- task-wide/cross-transaction work' \
+        '- table owner or superuser' \
+        '- managed PostgreSQL' \
+        '- untested PostgreSQL versions' \
+        '- partitions, inheritance, or arbitrary trigger graphs'
+}
+
+demo() {
+    printf '%s\n' \
+        'CommitCap V0 demo' \
+        '' \
+        'The arbitrary-table product acceptance demo is tracked by Issue #48 and is not part of this command yet.' \
+        'The existing research-fixture demo remains available as ./demo.sh; it uses the historical fixed fixture.'
+}
+
+main() {
+    local command_name="${1:-}"
+
+    if (( $# == 0 )) || [[ "$command_name" == '--help' || "$command_name" == '-h' ]]; then
+        usage
+        return 0
+    fi
+
+    shift
+    case "$command_name" in
+        doctor)
+            if (( $# == 1 )) && [[ "$1" == '--help' || "$1" == '-h' ]]; then
+                doctor_usage
+                return 0
+            fi
+            (( $# == 0 )) || fail 'doctor accepts no flags; use ./commitcap doctor --help'
+            doctor
+            ;;
+        protect-update)
+            protect_update "$@"
+            ;;
+        demo)
+            (( $# == 0 )) || fail 'demo accepts no flags; use ./commitcap --help'
+            demo
+            ;;
+        *)
+            fail "unknown command: $command_name; use ./commitcap --help"
+            ;;
+    esac
+}
+
+main "$@"

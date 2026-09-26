@@ -40,6 +40,14 @@ jobs:
           grep -Fq 'Demo: PASS' "$RUNNER_TEMP/commitcap-demo.txt"
           grep -Fq 'Demo exit status: 0' "$RUNNER_TEMP/commitcap-demo.txt"
 
+      - name: CLI/DX input and PostgreSQL catalog preflight tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n ./commitcap ./tests/commitcap_cli.sh ./tests/commitcap_catalog.sh
+          ./tests/commitcap_cli.sh
+          ./tests/commitcap_catalog.sh
+
       - name: Remove disposable PostgreSQL resources
         if: always()
         shell: bash
