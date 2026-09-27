@@ -33,9 +33,8 @@ final class Compatibility_Doctor {
 	 */
 	public static function run( $table = null, $budget = null, ?\wpdb $db = null, ?\wpdb $installer = null ): array {
 		$doctor = new self();
-		$wp = Environment::wordpress_version();
-		$doctor->check( 'wordpress', '' !== $wp ? 'PASS' : 'UNKNOWN', true,
-			'WordPress version', '' !== $wp ? 'Loaded WordPress ' . $wp . '; no tested WordPress version range is claimed.' : 'WordPress version unavailable.' );
+		$wp = self::wordpress_status( Environment::wordpress_version() );
+		$doctor->check( 'wordpress', $wp[0], true, 'WordPress version', $wp[1] );
 		$php = Environment::php_version();
 		$doctor->check( 'php', version_compare( $php, '7.4', '>=' ) ? 'PASS' : 'FAIL', true,
 			'PHP version', 'PHP ' . $php . '; plugin minimum is 7.4.' );
@@ -54,6 +53,7 @@ final class Compatibility_Doctor {
 				'database' => 'Database identity', 'db_user' => 'Authenticated DB identity',
 				'schema' => 'Current database', 'transaction' => 'Guard transaction preconditions',
 				'connection_state' => 'Connection error state', 'runtime_grants' => 'Runtime privileges',
+				'runtime_trigger_surface' => 'Runtime opaque trigger surface',
 				'installer_connection' => 'Trusted installer evidence', 'installer_grants' => 'Trusted installation requirements',
 				'objects' => 'CommitCap infrastructure',
 			) as $id => $summary ) {
@@ -125,6 +125,8 @@ final class Compatibility_Doctor {
 		$installer_status = $install_grants ? $install_grants->installer( is_string( $table ) ? $table : null ) : array( 'UNKNOWN', 'Installer grant evidence unavailable or incomplete.' );
 		$doctor->check( 'installer_grants', $installer_status[0], true, 'Trusted installation requirements', $installer_status[1] . ' #54 requires CREATE, CREATE ROUTINE and TRIGGER; removal requires TRIGGER, not DROP.' );
 
+		$doctor->trigger_surface( $runtime_grants, is_string( $table ) ? $table : null, $installer, $trusted );
+
 		if ( ! $trusted ) {
 			$doctor->check( 'objects', 'UNKNOWN', true, 'CommitCap infrastructure', 'Cannot verify helper shape, routine bodies, signatures and trusted definers from the restricted runtime connection.' );
 		} else {
@@ -160,6 +162,74 @@ final class Compatibility_Doctor {
 			return 'FAIL';
 		}
 		return false === $multisite && false === $network ? 'PASS' : 'UNKNOWN';
+	}
+
+	/**
+	 * Only the exact integrated fixture (WordPress 6.8.3) is TESTED. Observing
+	 * a version string is not compatibility evidence: any other version stays
+	 * UNKNOWN until #62 establishes a wider matrix. Untested is not FAIL.
+	 */
+	public static function wordpress_status( string $version ): array {
+		if ( '' === $version ) {
+			return array( 'UNKNOWN', 'WordPress version unavailable; required compatibility cannot be established.' );
+		}
+		if ( '6.8.3' === $version ) {
+			return array( 'PASS', 'WordPress ' . $version . ': TESTED exact fixture.' );
+		}
+		return array( 'UNKNOWN', 'WordPress ' . $version . ': OTHER VERSION BUT UNTESTED; only 6.8.3 is a TESTED exact fixture and no wider supported range is claimed.' );
+	}
+
+	/**
+	 * Runtime write grants can fire triggers that the lexical Guard monitor
+	 * cannot see. TRIGGER authority itself is FAILed by runtime(); a
+	 * non-target writable object whose trigger graph is uninspected, or that
+	 * currently has any trigger, cannot be certified PASS.
+	 */
+	private function trigger_surface( ?Compatibility_Grants $grants, ?string $target, ?\wpdb $installer, bool $trusted ): void {
+		if ( null === $grants ) {
+			$this->check( 'runtime_trigger_surface', 'UNKNOWN', true, 'Runtime opaque trigger surface', 'Runtime grant evidence is unavailable or incomplete; unreviewed trigger surfaces cannot be ruled out.' );
+			return;
+		}
+		list( $ambiguous, $scopes ) = $grants->trigger_write_scopes( $target );
+		if ( $ambiguous ) {
+			$this->check( 'runtime_trigger_surface', 'UNKNOWN', true, 'Runtime opaque trigger surface', 'Unexpanded roles or pattern grant scopes leave runtime-writable trigger surfaces unprovable.' );
+			return;
+		}
+		if ( ! $scopes ) {
+			$this->check( 'runtime_trigger_surface', 'PASS', true, 'Runtime opaque trigger surface', 'No non-target runtime write grant can fire an unreviewed trigger.' );
+			return;
+		}
+		if ( ! $trusted || ! $installer instanceof \wpdb ) {
+			$this->check( 'runtime_trigger_surface', 'UNKNOWN', true, 'Runtime opaque trigger surface', 'Non-target runtime write grants exist and no trusted installer evidence can inspect their trigger graph.' );
+			return;
+		}
+		$found = 0;
+		foreach ( $scopes as $scope ) {
+			if ( '*' === $scope['object'] ) {
+				$count = $installer->get_var( $installer->prepare(
+					'SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = %s', $scope['database']
+				) );
+			} else {
+				$count = $installer->get_var( $installer->prepare(
+					'SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = %s AND EVENT_OBJECT_TABLE = %s',
+					$scope['database'], $scope['object']
+				) );
+			}
+			if ( null === $count || '' !== (string) $installer->last_error ) {
+				$this->check( 'runtime_trigger_surface', 'UNKNOWN', true, 'Runtime opaque trigger surface', 'Runtime-writable trigger graph could not be read; opaque server-side execution is not disproven.' );
+				return;
+			}
+			$found += (int) $count;
+		}
+		$this->check(
+			'runtime_trigger_surface',
+			$found > 0 ? 'UNKNOWN' : 'PASS',
+			true,
+			'Runtime opaque trigger surface',
+			$found > 0
+				? $found . ' unreviewed trigger(s) exist on runtime-writable objects outside the verified target; opaque server-side execution is not proven safe.'
+				: 'No triggers exist on non-target runtime-writable objects.'
+		);
 	}
 
 	/** #54 defines which server strings are admissible; this labels exact evidence. */

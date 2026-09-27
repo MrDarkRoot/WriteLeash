@@ -126,6 +126,12 @@ final class Compatibility_Grants {
 					}
 					$reviewed[ $grant['object'] ] = true;
 				}
+				// TRIGGER is code-creation authority on any schema: a trigger body
+				// executes inside the guarded connection but is invisible to the
+				// lexical Guard monitor. The runtime account never needs it.
+				if ( 'TRIGGER' === $privilege ) {
+					return array( 'FAIL', 'Runtime account holds TRIGGER authority; server-side trigger code can reset authority outside the Guard monitor.' );
+				}
 				if ( ( $this->applies( $grant ) || in_array( $privilege, array(
 					'CREATE ROUTINE', 'ALTER ROUTINE', 'SUPER', 'SYSTEM_USER', 'SET_USER_ID',
 					'SYSTEM_VARIABLES_ADMIN', 'SESSION_VARIABLES_ADMIN',
@@ -151,6 +157,49 @@ final class Compatibility_Grants {
 			return array( 'FAIL', 'Runtime account lacks explicit EXECUTE on all four reviewed procedures.' );
 		}
 		return array( 'PASS', 'Direct grants restrict EXECUTE to four reviewed procedures and exclude helper writes and enforcement DDL.' );
+	}
+
+	/**
+	 * Runtime write scopes that can fire triggers outside the verified target.
+	 *
+	 * The Guard monitor sees statement text only. A trigger fired by an ordinary
+	 * INSERT/UPDATE/DELETE on a writable object is opaque server-side execution,
+	 * so every non-target write scope must have its trigger graph inspected
+	 * before the environment can PASS. Global/schema-wide and helper writes are
+	 * already FAILed by runtime() and are not repeated here.
+	 *
+	 * @return array{0: bool, 1: array<int, array{database: string, object: string}>}
+	 *         The first element is true when incomplete or pattern grants leave
+	 *         the effective write surface unprovable.
+	 */
+	public function trigger_write_scopes( ?string $target ): array {
+		if ( ! $this->complete ) {
+			return array( true, array() );
+		}
+		$ambiguous = false;
+		$scopes    = array();
+		foreach ( $this->grants as $grant ) {
+			if ( '' !== $grant['kind'] || ! array_intersect( array( 'INSERT', 'UPDATE', 'DELETE' ), $grant['privileges'] ) ) {
+				continue;
+			}
+			$database = $grant['database'];
+			$object   = $grant['object'];
+			if ( '*' === $database || ( $this->applies( $grant ) && '*' === $object ) ) {
+				continue; // Global/schema-wide writes already FAIL runtime().
+			}
+			if ( $this->applies( $grant ) && 'commitcap_v01_state' === $object ) {
+				continue; // Helper writes already FAIL runtime().
+			}
+			if ( $this->applies( $grant ) && null !== $target && $target === $object ) {
+				continue; // The target policy is verified by target_table/target_access.
+			}
+			if ( '*' !== $database && strpbrk( $database, '%_\\' ) !== false ) {
+				$ambiguous = true; // Database grant patterns may match other schemas.
+				continue;
+			}
+			$scopes[ $database . "\0" . $object ] = array( 'database' => $database, 'object' => $object );
+		}
+		return array( $ambiguous, array_values( $scopes ) );
 	}
 
 	public function target_access( string $table ): array {
