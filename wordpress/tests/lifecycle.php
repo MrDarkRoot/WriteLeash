@@ -17,7 +17,7 @@ function cc_snapshot() {
 	);
 }
 
-$plugin = 'commitcap/commitcap.php';
+$plugin = 'commitcap-for-wordpress/commitcap.php';
 cc_assert( ! is_plugin_active( $plugin ), 'Plugin active before first activation' );
 cc_assert( false === get_option( 'commitcap_version' ), 'Metadata before first activation' );
 add_option( 'commitcap_unrelated', 'keep me' );

@@ -1,5 +1,7 @@
 # CommitCap for WordPress — V0.1 development foundation
 
+Canonical plugin directory slug: `commitcap-for-wordpress`; WordPress plugin basename: `commitcap-for-wordpress/commitcap.php`.
+
 This subtree is a WordPress plugin foundation, not a released security control.
 #55 adds a loadable plugin, baseline activation checks, conservative deactivation,
 and uninstall of one plugin-owned option (`commitcap_version`). Loading the plugin

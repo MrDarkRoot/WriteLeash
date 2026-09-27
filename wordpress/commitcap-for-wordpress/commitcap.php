@@ -1,10 +1,10 @@
 <?php
 /**
- * Plugin Name: CommitCap
+ * Plugin Name: CommitCap for WordPress
  * Description: Stop bulk database mistakes before they commit.
  * Version: 0.1.0-dev
  * Requires PHP: 7.4
- * Text Domain: commitcap
+ * Text Domain: commitcap-for-wordpress
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
