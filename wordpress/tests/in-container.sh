@@ -1,12 +1,22 @@
 #!/bin/sh
 set -eu
+case "${CC_DB_FAMILY:-}" in
+  mysql|mariadb) db="$CC_DB_FAMILY" ;;
+  *) echo 'Expected CC_DB_FAMILY=mysql or mariadb' >&2; exit 2 ;;
+esac
 site=/tmp/commitcap-site
 mkdir -p "$site/wp-content/plugins/commitcap-for-wordpress"
 cp -R /opt/wp-core/. "$site/"
 cp -R /opt/commitcap-for-wordpress/. "$site/wp-content/plugins/commitcap-for-wordpress/"
-wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost=db
+wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost="$db"
 wp --path="$site" core install --url=http://example.test --title=CommitCap-Test \
   --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
+server_version=$(wp --path="$site" eval 'global $wpdb; echo $wpdb->get_var( "SELECT VERSION()" );')
+case "$db:$server_version" in
+  mysql:8.0.44|mariadb:10.11.15-MariaDB-ubu2204) ;;
+  *) echo "Wrong database fixture: requested $db, observed $server_version" >&2; exit 1 ;;
+esac
+echo "Database fixture: $db $server_version; WordPress $(wp --path="$site" core version); PHP $(php -r 'echo PHP_VERSION;')"
 
 for file in "$site"/wp-content/plugins/commitcap-for-wordpress/*.php "$site"/wp-content/plugins/commitcap-for-wordpress/includes/*.php; do
   php -l "$file"

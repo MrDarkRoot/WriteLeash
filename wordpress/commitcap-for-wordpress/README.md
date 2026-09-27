@@ -75,12 +75,14 @@ does not protect all WordPress writes.
 From the repository root with Docker Engine and Compose:
 
 ```sh
-bash wordpress/tests/run.sh
+bash wordpress/tests/run.sh mysql
+bash wordpress/tests/run.sh mariadb
 bash wordpress/tests/engine/run.sh   # #54 engine + #56 Guard + #57 doctor on both pinned DBs
 ```
 
-The focused harness boots WordPress 6.8.3 under PHP 8.2 against disposable
-MariaDB 10.11.15, performs real activation/deactivation/uninstall calls, checks
-failure paths and database objects, runs PHP lint/direct-access checks, and
-destroys the fixture on exit. This is a foundation lifecycle test, not a
-compatibility certification or the full WordPress matrix (#62).
+Each foundation run boots WordPress 6.8.3 under PHP 8.2 against a fresh,
+disposable MySQL 8.0.44 or MariaDB 10.11.15 fixture. It performs real
+activation/deactivation/uninstall calls, checks failure paths and database
+objects, runs PHP lint/direct-access checks, and destroys the fixture on exit.
+This is a foundation lifecycle test, not a compatibility certification or the
+full WordPress matrix (#62).
