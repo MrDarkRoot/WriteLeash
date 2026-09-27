@@ -28,25 +28,25 @@ $result = \CommitCap\Guard::update(
 ```
 
 The fourth optional argument selects the `wpdb` connection; it defaults to
-`$GLOBALS['wpdb']`. The callback should use that same connection for its SQL.
-On success the callback return value is returned after COMMIT. Failures throw:
+`$GLOBALS['wpdb']`. The callback must use that same connection for protected
+work. On success the callback return value is returned after COMMIT. Failures
+throw:
 
 - `CommitCap\Budget_Denied` — a #54 row-event denial; `details()` returns
-  table, budget, consumed, attempted, reason, sqlstate, errno. Full rollback
-  happened before the exception was thrown.
+  table, budget, consumed, attempted, reason, sqlstate, errno.
 - `CommitCap\Unsupported_Transaction_State` — the guard refused before running
   the callback (existing transaction, nested guard, `autocommit=0`, dirty error
   state, stale accounting, unsupported connection).
 - `CommitCap\Guard_Error` — any other guarded failure (callback exception, DB
-  error, contract violation, connection change, commit failure). `reason()`
-  returns a short code and the callback exception is available through
+  error, reserved SQL, connection change, commit outcome, post-commit state).
+  `reason()` returns a short code and callback exceptions are available through
   `getPrevious()`.
 
 ## Supported flow
 
 ```text
 validate table and budget (canonical #54 rules)
-→ prove autocommit=1 and no active transaction
+→ prove autocommit=1 and no active transaction (collision-resistant probe)
 → verify the runtime policy through the #54 definer routine
 → prove no committed accounting row exists for this connection+policy
 → START TRANSACTION
@@ -60,9 +60,24 @@ validate table and budget (canonical #54 rules)
 → require the expected post-commit state
 ```
 
-Any failure after `START TRANSACTION` causes a full `ROLLBACK` before control
-returns to the caller. The guard never retries and never creates a second
-transaction. The caller must never finish the supported transaction itself.
+The caller must never finish the supported transaction itself.
+
+## Failure timing and durability
+
+The rollback guarantee only holds for failures observed **before** the Guard
+sends COMMIT:
+
+| Timing | Guarantee |
+|---|---|
+| PRE-COMMIT FAILURE (denial, callback error, DB error, reserved SQL, connection change) | full ROLLBACK; no guarded mutation from this transaction is durable |
+| CALLBACK-ISSUED COMMIT (`COMMIT`, `START TRANSACTION`, DDL or `$wpdb->dbh` control) | detected contract violation; changes may already be durable and are not undone |
+| GUARD COMMIT OUTCOME UNKNOWN (`commit_failed_or_unknown`) | durability unknown; the best-effort ROLLBACK cannot be assumed to undo a commit the server already accepted |
+| POST-COMMIT STATE ANOMALY (`post_commit_state`) | the COMMIT call appeared to succeed but the connection state is inconsistent; changes may already be durable |
+| Mid-callback reconnect / replaced handle (`connection_changed`) | the old server session is closed and rolled back by the server; nothing is claimed about ambiguous in-flight work |
+
+`transaction_lost` and `transaction_lost_after_close` mean the owned
+transaction ended unexpectedly; durability may already exist because the guard
+did not perform that COMMIT itself.
 
 ## Protected
 
@@ -82,8 +97,12 @@ transaction. The caller must never finish the supported transaction itself.
   outside the contract, and able to reset authority if used directly from a DB
   client;
 - direct mysqli / `$wpdb->dbh` SQL, which bypasses the monitor;
+- new `wpdb` objects or other database connections; only the guarded connection
+  and `$GLOBALS['wpdb']` are monitored, and protected writes attempted from
+  another connection are outside the contract (the #54 trigger still denies
+  unguarded writes on that connection);
 - hostile plugin code deliberately bypassing the guard;
-- new transactions, retries and other DB connections;
+- new transactions, retries and cross-request work;
 - INSERT/DELETE budgets, task-wide or cross-request authority.
 
 ## Transaction ownership
@@ -99,6 +118,12 @@ through the mysqli handle so the expected 1305 does not pollute wpdb error
 state or logs. Unexpected probe results fail closed as
 `Unsupported_Transaction_State`.
 
+Each probe uses a random name (`commitcap_v01_tx_` plus 16 hex characters from
+`random_bytes()`), so the probe can never replace or release a savepoint the
+caller created. The old fixed name is only used by the regression test that
+proves this property. A caller-owned savepoint with the old name survives and
+still controls its own rollback window after the guard refuses.
+
 The guard refuses before the callback when the connection is already inside a
 transaction, including a bare `START TRANSACTION` with no statements, and when
 `@@autocommit` is not `1`. Nested guards are refused before any nested
@@ -110,45 +135,61 @@ afterwards; a reconnect or replaced handle fails closed as `connection_changed`.
 The monitor attaches to WordPress's `query` filter, which runs before wpdb
 flushes its error state. A failed `$wpdb->query()` that a callback ignored is
 latched even if a later successful query clears `last_error`, so a swallowed
-`false` cannot silently commit. The monitor also checks the global `$wpdb`
-connection when the guard runs on a different connection and latches SQL
-reserved for the guard lifecycle (transaction control, `SET autocommit`,
-`CALL commitcap_v01_*`, `SET @commitcap_v01_*`).
+`false` cannot silently commit. The exact #54 denial identity
+(`CC54_DENIED` message, errno 1644, SQLSTATE 45000) is latched separately at the
+next query boundary, so a denial followed by `SELECT 1` still returns a typed
+`Budget_Denied` instead of a generic error. The latching is identity-based, not
+prose-based: an ordinary SQLSTATE 45000 from another source is not reported as
+a CommitCap budget denial.
 
-`denial_seen()` and the structured `CC54_DENIED` marker are only evidence; the
-guard also rolls back every other observed database failure. Direct
-mysqli/`$wpdb->dbh` use cannot be observed and is outside the supported
-contract.
+`Guard_Sql::classify()` tokenizes each callback query and detects Guard-reserved
+SQL despite database qualification, backtick quoting, comments
+(`/* */`, `-- `, `#`), mixed keyword case and formatting:
+
+- `CALL` to any `commitcap_v01_*` routine, including qualified and quoted forms;
+- `COMMIT`, `ROLLBACK`, `START TRANSACTION`, `BEGIN`, `SAVEPOINT`,
+  `ROLLBACK TO SAVEPOINT`, `RELEASE SAVEPOINT`;
+- `SET autocommit` in its `SESSION`/`GLOBAL`/`@@`/`@@session.` variants;
+- `SET @commitcap_v01_*` with `=` or `:=`, and any other reference to a
+  `@commitcap_v01_*` session variable;
+- `PREPARE`, `EXECUTE`, `DEALLOCATE` (dynamic SQL that could reconstruct
+  reserved statements).
+
+Statements the tokenizer cannot classify safely — executable comments
+(`/*! ... */`), unterminated comments or strings, multiple statements, or an
+unparseable `CALL` target — fail closed and are treated as reserved. Ordinary
+DML/SELECT and reserved-looking string literals are not blocked.
 
 ## Detected versus prevented
 
 | Callback behavior | Result |
 |---|---|
-| ignores event-six denial | `Budget_Denied`, full rollback, zero durable changes |
+| ignores event-six denial (including after a later `SELECT 1`) | `Budget_Denied`, full rollback, zero durable changes |
 | ignores a failed wpdb query (any error mode) | `Guard_Error` (`database_error`), full rollback |
 | callback throws `Exception`/`Error` | `Guard_Error` (`callback_failed`), full rollback, cause preserved |
 | `COMMIT` through wpdb | `Guard_Error` (`callback_issued_reserved_sql`); already-committed changes are **not** prevented |
 | `ROLLBACK` through wpdb | `Guard_Error` (`callback_issued_reserved_sql`), nothing durable |
+| qualified/backtick/commented `CALL ...commitcap_v01_close/open` | `Guard_Error` (`callback_issued_reserved_sql`), full rollback, never success |
+| ambiguous/executable-comment SQL | `Guard_Error` (`callback_issued_reserved_sql`), full rollback |
 | `COMMIT` through `$wpdb->dbh` | `Guard_Error` (`transaction_lost`); already-committed changes are **not** prevented |
-| direct `CALL commitcap_v01_close/open` | `Guard_Error` (`callback_issued_reserved_sql`), full rollback |
-| direct `SET @commitcap_v01_denied = 0` | `Guard_Error` (`callback_issued_reserved_sql`), full rollback |
-| replaced connection | `Guard_Error` (`connection_changed`), nothing durable |
+| direct `SET @commitcap_v01_denied = 0` / `:=` | `Guard_Error` (`callback_issued_reserved_sql`), full rollback |
+| replaced connection | `Guard_Error` (`connection_changed`), nothing durable from the old session |
 
 A direct callback COMMIT also commits the accounting row. The guard then fails
 closed with `stale_accounting_state` on that connection and policy until a
 trusted administrator removes the committed row (or the connection is
-replaced). `OPEN` cannot reset a still-open counter, but the #54
-CLOSE→OPEN authority reset remains confirmed and outside this contract; see
-[`ENGINE.md`](ENGINE.md).
+replaced). The #54 CLOSE→OPEN authority reset remains confirmed for direct DB
+clients and outside this contract; see [`ENGINE.md`](ENGINE.md).
 
 ## Limitations
 
 - The guard is point-in-time and depends on the merged #54 policy verification.
 - It cannot undo work a callback already committed through a path the monitor
-  cannot see.
-- It does not make arbitrary SQL safe, does not protect other tables, and does
-  not create cross-request or task-wide budgets.
+  cannot see, and it does not claim to.
+- A COMMIT whose outcome is unknown leaves durability unknown; no retry or
+  recovery is attempted.
+- It does not make arbitrary SQL safe, does not protect other tables or other
+  connections, and does not create cross-request or task-wide budgets.
 - A PHP fatal error mid-callback can leave the connection's transaction and
   session state behind; reconnect or trusted cleanup is required. The guard
   itself never silently repairs state.
-- No retry, deadlock recovery or connection pooling behavior is implemented.

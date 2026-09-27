@@ -11,18 +11,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  * wpdb applies the 'query' filter before it flushes its error state, so a
  * failed statement that a callback ignored can be latched before the next
  * successful query clears $wpdb->last_error. That closes the swallowed-false
- * hole for ordinary $wpdb callers. Direct mysqli/$wpdb->dbh use is outside the
- * supported callback contract and cannot be observed.
+ * hole for ordinary $wpdb callers, and the exact #54 denial identity
+ * (CC54_DENIED + errno 1644 + SQLSTATE 45000) is latched separately so a
+ * later successful query cannot downgrade a budget denial to a generic error.
+ * Direct mysqli/$wpdb->dbh use is outside the supported callback contract and
+ * cannot be observed.
  *
- * The monitor also latches SQL reserved for the Guard's transaction lifecycle
- * (transaction control, autocommit changes, direct #54 routine calls and
- * direct writes to @commitcap_v01_* variables). It detects cooperative
- * contract violations; it does not make a hostile caller impossible.
+ * Guard-reserved SQL (transaction control, autocommit changes, direct #54
+ * routine calls, @commitcap_v01_* references) is classified by Guard_Sql,
+ * which understands qualification, backtick quoting, comments and formatting
+ * variation, and fails closed on ambiguous statements. The monitor detects
+ * cooperative contract violations; it does not make a hostile caller
+ * impossible.
  */
 final class Guard_Monitor {
 	private $primary;
 	private $connections = array();
 	private $db_error    = false;
+	private $denial      = false;
 	private $violation   = null;
 	private $active      = false;
 
@@ -67,12 +73,24 @@ final class Guard_Monitor {
 			if ( '' !== $error && $error !== $entry['last'] ) {
 				$this->db_error = true;
 			}
+			if ( ! $this->denial && $entry['db'] === $this->primary && self::is_denial_state( $entry['db'] ) ) {
+				$this->denial = true;
+			}
 			$this->connections[ $id ]['last'] = $error;
 		}
-		if ( null === $this->violation && is_string( $query ) && self::reserved_sql( $query ) ) {
+		if ( null === $this->violation && is_string( $query ) && Guard_Sql::CLEAR !== Guard_Sql::classify( $query ) ) {
 			$this->violation = 'callback_issued_reserved_sql';
 		}
 		return $query;
+	}
+
+	/** True when the primary connection holds exact #54 denial evidence. */
+	private static function is_denial_state( \wpdb $db ): bool {
+		$link = $db->dbh;
+		return $link instanceof \mysqli &&
+			'CC54_DENIED' === (string) $db->last_error &&
+			1644 === $link->errno &&
+			'45000' === $link->sqlstate;
 	}
 
 	public function database_error(): bool {
@@ -91,23 +109,12 @@ final class Guard_Monitor {
 		return false;
 	}
 
-	public function contract_violation(): ?string {
-		return $this->violation;
+	/** Structured #54 budget-denial evidence latched before wpdb cleared it. */
+	public function budget_denial(): bool {
+		return $this->denial;
 	}
 
-	private static function reserved_sql( string $query ): bool {
-		if ( preg_match( '/\A\s*(?:START\s+TRANSACTION|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE\s+SAVEPOINT)\b/i', $query ) ) {
-			return true;
-		}
-		if ( preg_match( '/\A\s*SET\s+autocommit\b/i', $query ) ) {
-			return true;
-		}
-		if ( preg_match( '/\A\s*CALL\s+`?commitcap_v01_/i', $query ) ) {
-			return true;
-		}
-		if ( preg_match( '/\A\s*SET\s+@commitcap_v01_/i', $query ) ) {
-			return true;
-		}
-		return false;
+	public function contract_violation(): ?string {
+		return $this->violation;
 	}
 }

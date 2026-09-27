@@ -705,4 +705,181 @@ cc56_assert( array_fill( 0, 10, 0 ) === cc56_rows( $host, 'cc_guard_b' ), 'ungua
 cc56_clean( $writer );
 echo "  direct unguarded SQL stays outside the guard (trigger-refused): PASS\n";
 
+// 28. BLOCKER 1: reserved-SQL lexical matrix (qualified, quoted, commented,
+// alternate SET forms). Every form must be detected and rolled back.
+$policy        = hash( 'sha256', 'cc_guard_a' );
+$reserved_forms = array(
+	'qualified CALL'                 => "CALL wp_test.commitcap_v01_close('$policy')",
+	'backtick qualified CALL'        => "CALL `wp_test`.`commitcap_v01_close`('$policy')",
+	'inter-token comments CALL'      => "CALL /*a*/ `wp_test`./*b*/`commitcap_v01_close`('$policy')",
+	'leading block comment CALL'     => "/* lead */ CALL wp_test.commitcap_v01_open('$policy')",
+	'leading dash comment CALL'      => "-- lead\nCALL wp_test.commitcap_v01_open('$policy')",
+	'leading hash comment CALL'      => "# lead\nCALL wp_test.commitcap_v01_open('$policy')",
+	'mixed case qualified CALL'      => "cAlL wp_test.CommitCap_V01_Close('$policy')",
+	'qualified OPEN'                 => "CALL wp_test.commitcap_v01_open('$policy')",
+	'qualified COUNT'                => "CALL wp_test.commitcap_v01_count('$policy', @cc56_count)",
+	'qualified POLICY'               => "CALL wp_test.commitcap_v01_policy('cc_guard_a', 'x')",
+	'executable comment'             => '/*! COMMIT */',
+	'commit'                         => 'COMMIT',
+	'rollback'                       => 'ROLLBACK',
+	'start transaction'              => 'START TRANSACTION',
+	'begin'                          => 'BEGIN',
+	'savepoint'                      => 'SAVEPOINT cc56_s',
+	'rollback to savepoint'          => 'ROLLBACK TO SAVEPOINT cc56_s',
+	'release savepoint'              => 'RELEASE SAVEPOINT cc56_s',
+	'set autocommit'                 => 'SET autocommit = 0',
+	'set session autocommit'         => 'SET SESSION autocommit = 0',
+	'set @@autocommit'               => 'SET @@autocommit = 0',
+	'set @@session.autocommit'       => 'SET @@session.autocommit = 0',
+	'set @commitcap denied'          => 'SET @commitcap_v01_denied = 0',
+	'set @commitcap denied :='       => 'SET @commitcap_v01_denied:=0',
+	'select @commitcap assignment'   => 'SELECT @commitcap_v01_denied := 0',
+	'prepare'                        => "PREPARE cc56s FROM 'SELECT 1'",
+	'execute'                        => 'EXECUTE cc56s',
+	'deallocate'                     => 'DEALLOCATE PREPARE cc56s',
+	'ambiguous CALL target'          => 'CALL @cc56_dynamic_proc(1)',
+	'unterminated comment'           => '/* unterminated',
+	'multi statement'                => 'SELECT 1; COMMIT',
+);
+foreach ( $reserved_forms as $label => $reserved_sql ) {
+	cc56_seed( $root, 'cc_guard_a' );
+	$error = cc56_reject(
+		function () use ( $writer, $reserved_sql ) {
+			Guard::update(
+				'cc_guard_a',
+				5,
+				function () use ( $writer, $reserved_sql ) {
+					$writer->query( $reserved_sql );
+				},
+				$writer
+			);
+		},
+		Guard_Error::class,
+		'reserved SQL ' . $label
+	);
+	cc56_assert(
+		'callback_issued_reserved_sql' === $error->reason(),
+		'reserved reason ' . $label . ': ' . $error->reason()
+	);
+	cc56_assert( array_fill( 0, 10, 0 ) === cc56_rows( $host, 'cc_guard_a' ), 'reserved durability ' . $label );
+	if ( '1' !== (string) $writer->get_var( 'SELECT @@autocommit' ) ) {
+		$writer->query( 'SET autocommit = 1' );
+	}
+	// A reserved COMMIT form commits the guard's accounting row; clear it as
+	// trusted maintenance before the next case runs.
+	cc56_discard_accounting( $root, $writer, 'cc_guard_a' );
+	cc56_clean( $writer );
+}
+echo "  reserved-SQL lexical matrix (qualified/quoted/commented/SET forms): PASS\n";
+
+// 29. BLOCKER 1 critical: a full qualified CLOSE→OPEN reset can never return
+// success with more than the budget durable.
+$call_forms = array(
+	array( "CALL wp_test.commitcap_v01_close('$policy')", "CALL wp_test.commitcap_v01_open('$policy')" ),
+	array( "CALL `wp_test`.`commitcap_v01_close`('$policy')", "CALL `wp_test`.`commitcap_v01_open`('$policy')" ),
+	array( "CALL /*a*/ `wp_test`./*b*/`commitcap_v01_close`('$policy')", "CALL /*a*/ `wp_test`./*b*/`commitcap_v01_open`('$policy')" ),
+);
+foreach ( $call_forms as $call_form ) {
+	cc56_seed( $root, 'cc_guard_a' );
+	$error = cc56_reject(
+		function () use ( $writer, $call_form ) {
+			Guard::update(
+				'cc_guard_a',
+				5,
+				function () use ( $writer, $call_form ) {
+					cc56_updates( $writer, 'cc_guard_a', array( 1, 2, 3, 4, 5 ) );
+					$writer->query( $call_form[0] );
+					$writer->query( $call_form[1] );
+					cc56_updates( $writer, 'cc_guard_a', array( 6, 7, 8, 9, 10 ) );
+				},
+				$writer
+			);
+		},
+		Guard_Error::class,
+		'qualified CLOSE-OPEN ' . $call_form[0]
+	);
+	cc56_assert(
+		'callback_issued_reserved_sql' === $error->reason(),
+		'qualified CLOSE-OPEN reason: ' . $error->reason()
+	);
+	cc56_assert( array_fill( 0, 10, 0 ) === cc56_rows( $host, 'cc_guard_a' ), 'qualified CLOSE-OPEN durability' );
+	cc56_clean( $writer );
+}
+echo "  qualified/backtick/commented CLOSE→OPEN never returns success: PASS\n";
+
+// 30. BLOCKER 2: the guard probe must not replace a caller-owned savepoint
+// even when the caller used the name of the old fixed probe.
+cc56_seed( $root, 'cc_guard_plain' );
+cc56_assert( false !== $writer->query( 'START TRANSACTION' ), 'start caller savepoint tx' );
+cc56_updates( $writer, 'cc_guard_plain', array( 1 ) );
+cc56_assert( false !== $writer->query( 'SAVEPOINT commitcap_v01_tx_probe' ), 'caller savepoint' );
+cc56_updates( $writer, 'cc_guard_plain', array( 2 ) );
+$ran = false;
+$error = cc56_reject(
+	function () use ( $writer, &$ran ) {
+		Guard::update( 'cc_guard_a', 5, function () use ( &$ran ) { $ran = true; }, $writer );
+	},
+	Unsupported_Transaction_State::class,
+	'caller savepoint transaction'
+);
+cc56_assert( 'existing_transaction' === $error->reason(), 'caller savepoint reason' );
+cc56_assert( false === $ran, 'callback ran in caller savepoint transaction' );
+cc56_assert(
+	false !== $writer->query( 'ROLLBACK TO SAVEPOINT commitcap_v01_tx_probe' ),
+	'caller savepoint must survive the guard probe: ' . $writer->last_error
+);
+// The caller transaction is still open, so observe on the caller connection:
+// mutation A must remain and mutation B must be rolled back.
+$kept    = (int) $writer->get_var( 'SELECT touched FROM cc_guard_plain WHERE id = 1' );
+$undone  = (int) $writer->get_var( 'SELECT touched FROM cc_guard_plain WHERE id = 2' );
+cc56_assert( 1 === $kept && 0 === $undone, 'guard probe changed caller savepoint semantics' );
+cc56_assert( false !== $writer->query( 'ROLLBACK' ), 'end caller savepoint tx' );
+cc56_assert( array_fill( 0, 10, 0 ) === cc56_rows( $host, 'cc_guard_plain' ), 'caller savepoint final rollback' );
+cc56_clean( $writer );
+echo "  guard probe preserves caller savepoint (A kept, B rolled back): PASS\n";
+
+// 31. BLOCKER 3: a swallowed denial stays a typed Budget_Denied even after a
+// later successful query clears the raw mysqli error state.
+cc56_seed( $root, 'cc_guard_a' );
+$error = cc56_reject(
+	function () use ( $writer ) {
+		Guard::update(
+			'cc_guard_a',
+			5,
+			function () use ( $writer ) {
+				cc56_updates( $writer, 'cc_guard_a', array( 1, 2, 3, 4, 5 ) );
+				$writer->query( 'UPDATE cc_guard_a SET touched = touched + 1 WHERE id = 6' ); // denied, ignored
+				cc56_assert( false !== $writer->query( 'SELECT 1' ), 'post-denial select' );
+			},
+			$writer
+		);
+	},
+	Budget_Denied::class,
+	'swallowed denial then success'
+);
+$details = $error->details();
+cc56_assert( 'cc_guard_a' === $details['table'], 'swallowed denial table' );
+cc56_assert( 5 === $details['budget'], 'swallowed denial budget' );
+cc56_assert( 6 === $details['attempted'], 'swallowed denial attempted' );
+cc56_assert( array_fill( 0, 10, 0 ) === cc56_rows( $host, 'cc_guard_a' ), 'swallowed denial durability' );
+cc56_clean( $writer );
+echo "  swallowed denial after successful query stays Budget_Denied: PASS\n";
+
+// 32. Ordinary SQL and reserved-looking string content are not blocked.
+cc56_seed( $root, 'cc_guard_b' );
+$result = Guard::update(
+	'cc_guard_b',
+	3,
+	function () use ( $writer ) {
+		cc56_updates( $writer, 'cc_guard_b', array( 1, 2 ) );
+		$writer->get_var( "SELECT 'COMMIT', 'CALL commitcap_v01_close', 'SAVEPOINT', '/* x */'" );
+		return 'clear-sql';
+	},
+	$writer
+);
+cc56_assert( 'clear-sql' === $result, 'false-positive result' );
+$clear_rows = cc56_rows( $host, 'cc_guard_b' );
+cc56_assert( 1 === $clear_rows[0] && 1 === $clear_rows[1], 'false-positive durability' );
+echo "  ordinary SQL and reserved-looking string content are not blocked: PASS\n";
+
 echo "#56 $host: ALL EXPECTED GUARD ASSERTIONS PASS (cooperative boundary only)\n";

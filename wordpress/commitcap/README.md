@@ -55,12 +55,16 @@ $result = \CommitCap\Guard::update(
 ```
 
 `Guard` starts and finishes its own transaction, counts row events with the #54
-policy, rolls back the whole transaction on any denial or failure, and returns
-the callback result only after COMMIT. SQL outside `Guard::update()`, manual
-transaction control and direct #54 routine calls are outside the supported
-cooperative contract. See [`GUARD.md`](GUARD.md) for the exact contract,
-detection behavior and limitations. This is not a hostile-writer database
-security boundary and it does not protect all WordPress writes.
+policy, rolls back the whole transaction on any denial or failure observed
+before its COMMIT call, and returns the callback result only after COMMIT.
+Failures at or after a commit attempt (a callback-issued COMMIT, an
+unconfirmable Guard COMMIT, or a post-commit state anomaly) are reported
+without claiming an undo, because durability may already exist.
+SQL outside `Guard::update()`, manual transaction control, direct #54 routine
+calls and direct mysqli/`$wpdb->dbh` SQL are outside the supported cooperative
+contract. See [`GUARD.md`](GUARD.md) for the exact contract, detection behavior
+and limitations. This is not a hostile-writer database security boundary and it
+does not protect all WordPress writes.
 
 ## Development checks
 

@@ -32,6 +32,7 @@ require_once __DIR__ . '/includes/class-guard-error.php';
 require_once __DIR__ . '/includes/class-unsupported-transaction-state.php';
 require_once __DIR__ . '/includes/class-budget-denied.php';
 require_once __DIR__ . '/includes/class-guard-transaction.php';
+require_once __DIR__ . '/includes/class-guard-sql.php';
 require_once __DIR__ . '/includes/class-guard-monitor.php';
 require_once __DIR__ . '/includes/class-guard.php';
 require_once __DIR__ . '/includes/class-plugin.php';

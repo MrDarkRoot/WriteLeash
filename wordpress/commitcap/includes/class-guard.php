@@ -9,14 +9,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Cooperative guarded UPDATE transaction API (#56).
  *
  * Guard::update() owns one explicit DB transaction, one #54 UPDATE accounting
- * policy and the final COMMIT/ROLLBACK. Any denial, callback failure, database
- * failure, lost accounting state, lost ownership or contract violation causes
- * a full ROLLBACK before control returns to the caller.
+ * policy and the final COMMIT/ROLLBACK. Failures observed before the Guard's
+ * COMMIT call cause a full ROLLBACK before control returns to the caller.
+ * Failures at or after a commit attempt cannot promise rollback: if the
+ * callback committed directly, or the Guard COMMIT outcome is unknown, or the
+ * post-commit state is inconsistent, durability may already exist and the
+ * failure is reported without claiming an undo. See GUARD.md.
  *
  * This is cooperative application-level enforcement. It does not turn
  * MySQL/MariaDB into a hostile-writer security boundary. SQL outside this API,
  * direct transaction control and direct #54 routine calls are outside the
- * supported contract. See GUARD.md.
+ * supported contract, and direct mysqli/$wpdb->dbh SQL cannot be monitored.
  */
 final class Guard {
 	private static $active = false;
@@ -151,6 +154,7 @@ final class Guard {
 			$denial        = $engine->is_budget_denial() ? $engine->denial_details( $name, $limit ) : null;
 			$generic_error = $monitor->database_error();
 			$violation     = $monitor->contract_violation();
+			$swallowed     = $monitor->budget_denial();
 			if ( null !== $denial ) {
 				$transaction->rollback();
 				throw new Budget_Denied( $denial );
@@ -162,12 +166,13 @@ final class Guard {
 					'The guarded callback issued SQL reserved for the Guard transaction lifecycle.'
 				);
 			}
-			if ( $generic_error ) {
+			// A #54 denial whose raw mysqli state was cleared by a later query is
+			// still a budget denial: keep the typed classification ahead of the
+			// generic database error it also produced.
+			if ( $swallowed ) {
+				$denial = self::denial_details( $engine, $name, $limit );
 				$transaction->rollback();
-				throw new Guard_Error(
-					'database_error',
-					'A database operation failed during the guarded callback.'
-				);
+				throw new Budget_Denied( $denial );
 			}
 			if ( ! $transaction->connection_unchanged( $connection_id ) ) {
 				$transaction->rollback();
@@ -176,22 +181,19 @@ final class Guard {
 					'The database connection changed during the guarded callback.'
 				);
 			}
-			// The session denial signal lives outside the transaction, so reading
-			// it is safe after the ownership checks above.
+			// The session denial signal lives outside the transaction and belongs
+			// to this connection, so it is read only after the identity check.
 			if ( $engine->denial_seen() ) {
-				$count  = $engine->consumed( $name );
-				$denial = array(
-					'table'          => $name,
-					'budget'         => $limit,
-					'consumed'       => $count,
-					'attempted'      => null === $count ? null : $count + 1,
-					'returned_count' => $count,
-					'reason'         => 'denial_signal',
-					'sqlstate'       => '45000',
-					'errno'          => 1644,
-				);
+				$denial = self::denial_details( $engine, $name, $limit );
 				$transaction->rollback();
 				throw new Budget_Denied( $denial );
+			}
+			if ( $generic_error ) {
+				$transaction->rollback();
+				throw new Guard_Error(
+					'database_error',
+					'A database operation failed during the guarded callback.'
+				);
 			}
 			if ( ! $transaction->active() ) {
 				throw new Guard_Error(
@@ -211,17 +213,25 @@ final class Guard {
 			if ( ! $transaction->active() ) {
 				throw new Guard_Error(
 					'transaction_lost_after_close',
-					'The guarded transaction ended before commit.'
+					'The guarded transaction ended before the Guard commit; guarded changes may already be durable.'
 				);
 			}
 			if ( ! $transaction->commit() ) {
+				// After COMMIT is sent the outcome is unknown: the transaction may
+				// already be durable. The rollback attempt is best-effort only and
+				// is not claimed to undo a successful commit.
 				$transaction->rollback();
-				throw new Guard_Error( 'commit_failed', 'CommitCap could not commit the guarded transaction.' );
+				throw new Guard_Error(
+					'commit_failed_or_unknown',
+					'CommitCap could not confirm the guarded COMMIT; durability is unknown.'
+				);
 			}
 			if ( $transaction->active() || null !== $engine->consumed( $name ) ) {
+				// The COMMIT call appeared to succeed, so changes may already be
+				// durable even though the connection state is not as expected.
 				throw new Guard_Error(
 					'post_commit_state',
-					'The connection is not in the expected post-commit state.'
+					'The connection is not in the expected post-commit state; the commit may already be durable.'
 				);
 			}
 			return $result;
@@ -241,5 +251,28 @@ final class Guard {
 			}
 			self::$active = false;
 		}
+	}
+
+	/**
+	 * Structured denial facts for a denial proven by the monitor latch or the
+	 * session signal after the raw mysqli state was cleared.
+	 */
+	private static function denial_details( Update_Engine $engine, string $table, int $budget ): array {
+		$count = null;
+		try {
+			$count = $engine->consumed( $table );
+		} catch ( \Throwable $error ) {
+			$count = null;
+		}
+		return array(
+			'table'          => $table,
+			'budget'         => $budget,
+			'consumed'       => $count,
+			'attempted'      => null === $count ? null : $count + 1,
+			'returned_count' => $count,
+			'reason'         => 'denial_signal',
+			'sqlstate'       => '45000',
+			'errno'          => 1644,
+		);
 	}
 }
