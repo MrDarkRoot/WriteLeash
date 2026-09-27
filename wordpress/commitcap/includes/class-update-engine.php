@@ -83,9 +83,77 @@ final class Update_Engine {
 		return $rows;
 	}
 
+	/** Only fold formatting whitespace OUTSIDE quoted SQL tokens. Case is exact. */
+	private static function normalize_sql( string $sql ): ?string {
+		$result = '';
+		$quote = null;
+		$space = false;
+		$length = strlen( $sql );
+		for ( $i = 0; $i < $length; ++$i ) {
+			$char = $sql[ $i ];
+			if ( null !== $quote ) {
+				$result .= $char;
+				if ( '\\' === $char && $i + 1 < $length ) {
+					$result .= $sql[ ++$i ];
+				} elseif ( $char === $quote ) {
+					if ( $i + 1 < $length && $sql[ $i + 1 ] === $quote ) {
+						$result .= $sql[ ++$i ];
+					} else {
+						$quote = null;
+					}
+				}
+				continue;
+			}
+			if ( ctype_space( $char ) ) {
+				$space = true;
+				continue;
+			}
+			if ( $space && '' !== $result ) {
+				$result .= ' ';
+			}
+			$space = false;
+			$result .= $char;
+			if ( "'" === $char || '"' === $char || '`' === $char ) {
+				$quote = $char;
+			}
+		}
+		return null === $quote ? $result : null;
+	}
+
 	private static function same_sql( string $left, string $right ): bool {
-		return strtolower( preg_replace( '/\s+/', ' ', trim( $left ) ) ) ===
-			strtolower( preg_replace( '/\s+/', ' ', trim( $right ) ) );
+		$expected = self::normalize_sql( $left );
+		return null !== $expected && $expected === self::normalize_sql( $right );
+	}
+
+	private static function signature( string $name ): array {
+		$policy = array( 'p_policy', 'IN', 'char(64)', 'ascii', 'ascii_bin' );
+		switch ( $name ) {
+			case 'commitcap_v01_open':
+			case 'commitcap_v01_close':
+				return array( $policy );
+			case 'commitcap_v01_count':
+				return array( $policy, array( 'p_count', 'OUT', 'bigint unsigned', null, null ) );
+			case 'commitcap_v01_policy':
+				return array(
+					array( 'p_table', 'IN', 'varchar(64)', 'ascii', 'ascii_bin' ),
+					array( 'p_trigger', 'IN', 'varchar(64)', 'ascii', 'ascii_bin' ),
+				);
+		}
+		throw new \InvalidArgumentException( 'Unknown routine signature.' );
+	}
+
+	private static function routine_params( string $name ): string {
+		$policy = 'IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin';
+		switch ( $name ) {
+			case 'commitcap_v01_open':
+			case 'commitcap_v01_close':
+				return '(' . $policy . ')';
+			case 'commitcap_v01_count':
+				return '(' . $policy . ', OUT p_count BIGINT UNSIGNED)';
+			case 'commitcap_v01_policy':
+				return '(IN p_table VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin, IN p_trigger VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin)';
+		}
+		throw new \InvalidArgumentException( 'Unknown routine declaration.' );
 	}
 
 	private static function routines(): array {
@@ -110,9 +178,7 @@ final class Update_Engine {
 		foreach ( self::routines() as $name => $body ) {
 			$found = $this->routine( $name );
 			if ( null === $found ) {
-				$params = 'commitcap_v01_count' === $name
-					? '(IN p_policy CHAR(64), OUT p_count BIGINT UNSIGNED)'
-					: ( 'commitcap_v01_policy' === $name ? '(IN p_table VARCHAR(64), IN p_trigger VARCHAR(64))' : '(IN p_policy CHAR(64))' );
+				$params = self::routine_params( $name );
 				$this->execute( "CREATE PROCEDURE `$name` $params SQL SECURITY DEFINER $body" );
 			}
 			$this->verify_routine( $name, $body );
@@ -161,6 +227,25 @@ final class Update_Engine {
 			! self::same_sql( $entry->ROUTINE_DEFINITION, $body ) || 'DEFINER' !== $entry->SECURITY_TYPE ||
 			$entry->DEFINER !== $this->db->get_var( 'SELECT CURRENT_USER()' ) ) {
 			throw new \RuntimeException( 'Unknown/conflicting CommitCap routine: ' . $name );
+		}
+		$params = $this->rows( $this->db->prepare(
+			'SELECT ORDINAL_POSITION, PARAMETER_NAME, PARAMETER_MODE, DTD_IDENTIFIER, CHARACTER_SET_NAME, COLLATION_NAME FROM information_schema.PARAMETERS WHERE SPECIFIC_SCHEMA = DATABASE() AND SPECIFIC_NAME = %s ORDER BY ORDINAL_POSITION', $name
+		) );
+		$expected = self::signature( $name );
+		if ( count( $params ) !== count( $expected ) ) {
+			throw new \RuntimeException( 'Unknown CommitCap routine signature: ' . $name );
+		}
+		foreach ( $expected as $index => $spec ) {
+			$param = $params[ $index ];
+			$dtd = strtolower( $param->DTD_IDENTIFIER );
+			if ( $index + 1 !== (int) $param->ORDINAL_POSITION ||
+				$spec[0] !== $param->PARAMETER_NAME || $spec[1] !== $param->PARAMETER_MODE ||
+				( 'bigint unsigned' === $spec[2]
+					? ! preg_match( '/\Abigint(?:\(20\))? unsigned\z/', $dtd )
+					: $spec[2] !== $dtd ) ||
+				$spec[3] !== $param->CHARACTER_SET_NAME || $spec[4] !== $param->COLLATION_NAME ) {
+				throw new \RuntimeException( 'Unknown CommitCap routine signature: ' . $name );
+			}
 		}
 	}
 
@@ -293,18 +378,31 @@ final class Update_Engine {
 		return null === $value ? null : (int) $value;
 	}
 
-	/** Only a marker, code and SQLSTATE together identify our trigger denial. */
-	public function is_budget_denial(): bool {
+	/** Snapshot the original failed statement BEFORE any later database query. */
+	private function budget_error(): ?array {
 		$link = $this->db->dbh;
-		return $link instanceof \mysqli && 1644 === $link->errno && '45000' === $link->sqlstate &&
-			false !== strpos( $this->db->last_error, 'CC54_DENIED' );
+		if ( ! $link instanceof \mysqli ) {
+			return null;
+		}
+		$errno = $link->errno;
+		$sqlstate = $link->sqlstate;
+		$message = $this->db->last_error;
+		if ( 1644 !== $errno || '45000' !== $sqlstate || 'CC54_DENIED' !== $message ) {
+			return null;
+		}
+		return array( 'errno' => $errno, 'sqlstate' => $sqlstate );
+	}
+
+	public function is_budget_denial(): bool {
+		return null !== $this->budget_error();
 	}
 
 	/** Read immediately after a failed UPDATE, before another query resets errno. */
 	public function denial_details( $table, $budget ): ?array {
 		$name = self::table( $table );
 		$limit = self::budget( $budget );
-		if ( ! $this->is_budget_denial() ) {
+		$error = $this->budget_error();
+		if ( null === $error ) {
 			return null;
 		}
 		$count = $this->consumed( $name );
@@ -318,8 +416,8 @@ final class Update_Engine {
 			'attempted' => null === $count ? null : $limit + 1,
 			'returned_count' => $count,
 			'reason'    => null === $count ? 'no_active_accounting' : 'budget_exceeded',
-			'sqlstate'  => '45000',
-			'errno'     => 1644,
+			'sqlstate'  => $error['sqlstate'],
+			'errno'     => $error['errno'],
 		);
 	}
 }

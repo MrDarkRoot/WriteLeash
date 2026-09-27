@@ -23,6 +23,21 @@ function cc54_query( $db, $sql ) {
 	cc54_assert( false !== $result, $sql . ': ' . $db->last_error );
 	return $result;
 }
+function cc54_bad_routine( $db, $engine, $name, $declaration, $body, $label ) {
+	// Only fixed fixture names/declarations are passed from the test below.
+	cc54_query( $db, "CREATE PROCEDURE `$name` $declaration SQL SECURITY DEFINER $body" );
+	try {
+		$engine->install_infrastructure();
+		throw new RuntimeException( 'Signature verifier accepted ' . $label );
+	} catch ( RuntimeException $error ) {
+		cc54_assert( false !== strpos( $error->getMessage(), 'routine signature: ' . $name ),
+			'Wrong rejection reason for ' . $label . ': ' . $error->getMessage() );
+	}
+	cc54_assert( 1 === (int) $db->get_var( $db->prepare(
+		'SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = %s', $name
+	) ), 'malformed routine overwritten or deleted: ' . $label );
+	cc54_query( $db, "DROP PROCEDURE `$name`" ); // Only this exact test-owned fake.
+}
 function cc54_seed( $db, $name ) {
 	cc54_query( $db, "TRUNCATE TABLE `$name`" );
 	for ( $i = 1; $i <= 10; ++$i ) {
@@ -102,6 +117,21 @@ cc54_query( $root, 'DROP TABLE cc_child' ); // Exact test-owned unsupported fixt
 cc54_query( $root, 'CREATE PROCEDURE commitcap_v01_open(IN p_policy CHAR(64)) SELECT 1' );
 cc54_reject( static function () use ( $installer ) { $installer->install_infrastructure(); }, 'unknown routine' );
 cc54_query( $root, 'DROP PROCEDURE commitcap_v01_open' ); // Only this test-created conflicting routine.
+$open_body = 'BEGIN INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (CONNECTION_ID(), p_policy, 0); END';
+$count_body = 'BEGIN SELECT consumed INTO p_count FROM commitcap_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = p_policy; END';
+$ascii_policy = 'IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin';
+cc54_bad_routine( $root, $installer, 'commitcap_v01_open',
+	'(IN p_policy CHAR(63) CHARACTER SET ascii COLLATE ascii_bin)', $open_body, 'wrong lifecycle parameter length' );
+cc54_bad_routine( $root, $installer, 'commitcap_v01_open',
+	'(IN p_Policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin)', $open_body, 'wrong lifecycle parameter name' );
+cc54_bad_routine( $root, $installer, 'commitcap_v01_open',
+	'(' . $ascii_policy . ', IN p_extra INT)', $open_body, 'extra lifecycle parameter' );
+cc54_bad_routine( $root, $installer, 'commitcap_v01_count',
+	'(' . $ascii_policy . ', IN p_count BIGINT UNSIGNED)', $count_body, 'wrong IN instead of OUT' );
+cc54_bad_routine( $root, $installer, 'commitcap_v01_count',
+	'(' . $ascii_policy . ', OUT p_count BIGINT)', $count_body, 'wrong signedness' );
+cc54_bad_routine( $root, $installer, 'commitcap_v01_count',
+	'(OUT p_count BIGINT UNSIGNED, ' . $ascii_policy . ')', $count_body, 'wrong parameter order' );
 $installer->install_infrastructure();
 $installer->install_infrastructure(); // Idempotent verified infrastructure, no silent replacement.
 foreach ( array( 'open', 'close', 'count', 'policy' ) as $routine ) {
@@ -145,6 +175,12 @@ foreach ( array(
 	cc54_assert( false === $writer->query( $attack ), 'writer changed enforcement: ' . $attack );
 }
 cc54_assert( cc54_rows( $root, 'cc_alpha' ) === array_fill( 0, 10, 0 ), 'privilege test touched user rows' );
+// This signal is writable by the SQL caller; it is cooperative evidence only.
+cc54_query( $writer, 'SET @commitcap_v01_denied = 1' );
+cc54_assert( $engine->denial_seen(), 'direct session signal SET not observed' );
+cc54_query( $writer, 'SET @commitcap_v01_denied = 0' );
+cc54_assert( ! $engine->denial_seen(), 'direct session signal RESET not observed' );
+echo "  direct SQL can SET/RESET session denial signal: CONFIRMED ($host)\n";
 // Direct UPDATE with no open guard fails; no stale row after successful COMMIT.
 cc54_assert( false === cc54_update( $writer, 'cc_alpha', 1 ), 'unguarded write allowed' );
 cc54_reject( static function () use ( $engine ) { $engine->end_accounting( 'cc_alpha' ); }, 'missing state must not close' );
@@ -219,6 +255,19 @@ cc54_commit( $writer, $engine, 'cc_alpha' );
 cc54_commit( $other, $second, 'cc_alpha' );
 cc54_assert( cc54_rows( $root, 'cc_alpha' ) === array_fill( 0, 10, 1 ), 'two-session durability' );
 
+// Adversarial direct lifecycle calls: this is deliberately outside the
+// future #56-owned transaction boundary, but must remain a visible result.
+cc54_seed( $root, 'cc_alpha' );
+cc54_open( $writer, $engine, 'cc_alpha', 5 );
+for ( $i = 1; $i <= 5; ++$i ) { cc54_update( $writer, 'cc_alpha', $i ); }
+$engine->end_accounting( 'cc_alpha' );
+$engine->begin_accounting( 'cc_alpha', 5 );
+for ( $i = 6; $i <= 10; ++$i ) { cc54_update( $writer, 'cc_alpha', $i ); }
+$engine->end_accounting( 'cc_alpha' );
+cc54_query( $writer, 'COMMIT' );
+cc54_assert( cc54_rows( $root, 'cc_alpha' ) === array_fill( 0, 10, 1 ), 'CLOSE→OPEN direct-call reset did not commit ten events' );
+echo "CLOSE→OPEN SAME-TRANSACTION AUTHORITY RESET: CONFIRMED ($host)\n";
+
 // Even with this candidate engine, SIGNAL is nonsticky: unsupported manual
 // catch/savepoint/COMMIT is deliberately reproduced as a counterexample.
 cc54_seed( $root, 'cc_alpha' );
@@ -236,6 +285,8 @@ cc54_assert( $details === array(
 	'returned_count' => 5,
 	'reason' => 'budget_exceeded', 'sqlstate' => '45000', 'errno' => 1644,
 ), 'denial details' );
+cc54_assert( ! $engine->is_budget_denial() && null === $engine->denial_details( 'cc_alpha', 5 ),
+	'consumed error state was reused after count query' );
 cc54_assert( false !== strpos( $denial_error, 'CC54_DENIED' ), 'missing structured denial marker' );
 cc54_assert( 1644 === $denial_errno && '45000' === $denial_state, 'denial code/SQLSTATE' );
 cc54_query( $writer, 'ROLLBACK TO SAVEPOINT cc_denial' );
@@ -256,6 +307,7 @@ cc54_assert( 1644 === $writer->dbh->errno && '45000' === $writer->dbh->sqlstate,
 cc54_query( $writer, 'SELECT 1' ); // Callback swallowed the SQL error.
 cc54_assert( $engine->denial_seen(), 'swallowed error lost cooperative denial signal' );
 cc54_reject( static function () use ( $engine ) { $engine->end_accounting( 'cc_alpha' ); }, 'denied guard close' );
+cc54_assert( ! $engine->is_budget_denial(), 'close error misclassified as row-budget denial' );
 cc54_query( $writer, 'ROLLBACK' ); // #56 must do this IMMEDIATELY on any error.
 cc54_assert( cc54_rows( $root, 'cc_alpha' ) === array_fill( 0, 10, 0 ), 'immediate rollback not atomic' );
 cc54_open( $writer, $engine, 'cc_alpha', 5 );
@@ -265,13 +317,36 @@ cc54_assert( 1 === cc54_row( $root, 'cc_alpha', 1 ), 'new transaction not fresh'
 echo "  two sessions, fresh authority, structured denial, nonsticky DB counterexample: PASS\n";
 
 // A structurally wrong same-name trigger must never be removed or overwritten.
-$installer->remove_owned_policy( 'cc_malformed', 5 );
 $fake = 'commitcap_v01_' . substr( hash( 'sha256', 'cc_malformed' ), 0, 16 );
-cc54_query( $root, "CREATE TRIGGER `$fake` BEFORE UPDATE ON cc_malformed FOR EACH ROW SET @fixture_fake=1" );
-cc54_reject( static function () use ( $installer ) { $installer->verify_policy( 'cc_malformed', 5 ); }, 'malformed trigger' );
-cc54_reject( static function () use ( $installer ) { $installer->remove_owned_policy( 'cc_malformed', 5 ); }, 'unsafe removal' );
-cc54_reject( static function () use ( $engine ) { $engine->begin_accounting( 'cc_malformed', 5 ); }, 'restricted writer malformed trigger' );
-cc54_assert( 1 === (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_NAME = %s', $fake ) ), 'unknown trigger removed' );
+$original_body = $root->get_var( $root->prepare(
+	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s', $fake
+) );
+cc54_assert( is_string( $original_body ), 'original policy body missing' );
+$installer->remove_owned_policy( 'cc_malformed', 5 );
+$policy_id = hash( 'sha256', 'cc_malformed' );
+$wrong_id = ( '0' === $policy_id[0] ? '1' : '0' ) . substr( $policy_id, 1 );
+$malformed_bodies = array(
+	'marker case' => str_replace( "MESSAGE_TEXT = 'CC54_DENIED'", "MESSAGE_TEXT = 'cc54_denied'", $original_body ),
+	'policy ID literal' => str_replace( "policy_id = '$policy_id'", "policy_id = '$wrong_id'", $original_body ),
+	'budget operator' => str_replace( 'consumed < 5', 'consumed <= 5', $original_body ),
+);
+foreach ( $malformed_bodies as $label => $body ) {
+	cc54_assert( $original_body !== $body, 'fixture mutation did not occur: ' . $label );
+	cc54_query( $root, "CREATE TRIGGER `$fake` BEFORE UPDATE ON cc_malformed FOR EACH ROW $body" );
+	cc54_reject( static function () use ( $installer ) { $installer->verify_policy( 'cc_malformed', 5 ); }, $label . ' trusted verification' );
+	cc54_reject( static function () use ( $engine ) { $engine->verify_runtime_policy( 'cc_malformed', 5 ); }, $label . ' runtime verification' );
+	cc54_reject( static function () use ( $installer ) { $installer->remove_owned_policy( 'cc_malformed', 5 ); }, $label . ' unsafe removal' );
+	cc54_assert( 1 === (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_NAME = %s', $fake ) ), $label . ' unknown trigger removed' );
+	cc54_query( $root, "DROP TRIGGER `$fake`" ); // Exactly this test-created fake.
+}
+// Whitespace outside literals may vary without changing the exact literals.
+$formatted = str_replace( "MESSAGE_TEXT = 'CC54_DENIED'", "MESSAGE_TEXT   =   'CC54_DENIED'", $original_body );
+cc54_assert( $formatted !== $original_body, 'format-only fixture mutation missing' );
+cc54_query( $root, "CREATE TRIGGER `$fake` BEFORE UPDATE ON cc_malformed FOR EACH ROW $formatted" );
+$installer->verify_policy( 'cc_malformed', 5 );
+$engine->verify_runtime_policy( 'cc_malformed', 5 );
+$installer->remove_owned_policy( 'cc_malformed', 5 );
+echo "  marker-case, policy-ID and operator mutations rejected; external whitespace tolerated: PASS\n";
 $installer->remove_owned_policy( 'cc_alpha', 5 );
 cc54_assert( 0 === count( $installer->inspect_table( 'cc_alpha' )['triggers'] ), 'owned trigger not removed' );
 cc54_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'cc_alpha'" ), 'user table removed' );
