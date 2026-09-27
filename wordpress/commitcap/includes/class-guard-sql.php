@@ -9,15 +9,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Deterministic lexical classifier for SQL reserved to the Guard.
  *
  * The wpdb 'query' filter is a string boundary, so a fragile anchored regex is
- * not enough: database-qualified routine calls, backtick quoting, comments and
- * executable comments must be recognized. This is intentionally a small
- * tokenizer for the reserved subset, not a SQL parser.
+ * not enough: backtick quoting, comments and executable comments must be
+ * recognized. This is intentionally a small tokenizer for the reserved subset,
+ * not a SQL parser.
  *
  * classify() returns:
  * - CLEAR: the statement does not look like Guard-reserved SQL;
- * - RESERVED: a matched transaction/lifecycle form;
+ * - RESERVED: a matched transaction/lifecycle form or any opaque CALL;
  * - AMBIGUOUS: the statement cannot be safely classified (executable comments,
- *   unterminated tokens, multiple statements, unparseable CALL targets). The
+ *   unterminated tokens, multiple statements). The
  *   monitor treats AMBIGUOUS as reserved and fails closed.
  */
 final class Guard_Sql {
@@ -56,7 +56,9 @@ final class Guard_Sql {
 		}
 		switch ( strtoupper( $first['value'] ) ) {
 			case 'CALL':
-				return self::classify_call( array_slice( $tokens, 1 ) );
+				// A non-CommitCap procedure may call CLOSE/OPEN or COMMIT inside
+				// the server. Its body is opaque to the wpdb query filter.
+				return self::RESERVED;
 			case 'COMMIT':
 			case 'ROLLBACK':
 			case 'BEGIN':
@@ -71,37 +73,6 @@ final class Guard_Sql {
 				return self::second_is( $tokens, 'SAVEPOINT' ) ? self::RESERVED : self::CLEAR;
 			case 'SET':
 				return self::classify_set( array_slice( $tokens, 1 ) );
-		}
-		return self::CLEAR;
-	}
-
-	private static function classify_call( array $tokens ): string {
-		$segments       = array();
-		$expect_segment = true;
-		foreach ( $tokens as $token ) {
-			if ( 'symbol' === $token['type'] && '(' === $token['value'] ) {
-				break;
-			}
-			if ( 'symbol' === $token['type'] && '.' === $token['value'] ) {
-				if ( $expect_segment ) {
-					return self::AMBIGUOUS;
-				}
-				$expect_segment = true;
-				continue;
-			}
-			if ( ! $expect_segment || ! self::is_identifier_token( $token ) ) {
-				return self::AMBIGUOUS;
-			}
-			$segments[]     = strtolower( $token['value'] );
-			$expect_segment = false;
-		}
-		if ( array() === $segments || $expect_segment ) {
-			return self::AMBIGUOUS;
-		}
-		foreach ( $segments as $segment ) {
-			if ( 0 === strpos( $segment, 'commitcap_v01_' ) ) {
-				return self::RESERVED;
-			}
 		}
 		return self::CLEAR;
 	}
@@ -202,8 +173,11 @@ final class Guard_Sql {
 				continue;
 			}
 			if ( '/' === $char && $i + 1 < $length && '*' === $sql[ $i + 1 ] ) {
-				if ( $i + 2 < $length && '!' === $sql[ $i + 2 ] ) {
-					return null; // executable comment: cannot classify safely
+				if ( $i + 2 < $length && ( '!' === $sql[ $i + 2 ] ||
+					( $i + 3 < $length && ( 'M' === $sql[ $i + 2 ] || 'm' === $sql[ $i + 2 ] ) && '!' === $sql[ $i + 3 ] ) ) ) {
+					// MySQL /*! ... */ and MariaDB /*M! ... */ (including
+					// versioned forms) can execute SQL; never strip either.
+					return null;
 				}
 				$end = strpos( $sql, '*/', $i + 2 );
 				if ( false === $end ) {

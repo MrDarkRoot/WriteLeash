@@ -9,12 +9,13 @@
   accounting primitives and recognizes a denial. It does **not** own the
   transaction and is **not** a public protected-write API. Direct calls to its
   lifecycle routines can reset authority (see below).
-- **Future supported #56 path:** must exclusively own START TRANSACTION,
-  OPEN/CLOSE, callback execution and final COMMIT. Any denial or unexpected
-  error requires an immediate full ROLLBACK. It must check accounting and
-  denial state before deciding to COMMIT. #56 is not implemented.
+- **#56 guarded candidate:** owns START TRANSACTION, OPEN/CLOSE, callback
+  execution and final COMMIT for cooperative callers. It checks accounting and
+  denial state before COMMIT and rolls back while its transaction remains
+  intact. If a callback has already ended the transaction, durability may
+  exist; see [`GUARD.md`](GUARD.md) for failure timing and supported SQL.
 
-Writes outside that future cooperative guard are NOT protected. Callers that
+Writes outside that cooperative guard are NOT protected. Callers that
 can directly manipulate transactions or call lifecycle routines are outside
 the supported contract. Each new top-level guarded transaction would receive
 fresh authority; there is no cross-request, cross-transaction, or task wallet.
@@ -51,6 +52,13 @@ helper-table permissions. This privilege split is sufficient only for
 **cooperative use under a #56-owned transaction lifecycle**, not hostile
 DB-call containment. #54 alone does **not** meet an adversarial requirement
 that the writer cannot reset its own budget.
+For #56 the restricted runtime account must have no global EXECUTE privilege
+and no EXECUTE on unrelated/unreviewed procedures or functions. The Guard
+detects all wpdb `CALL` statements, but a side-effecting stored function
+invoked from `SELECT` can perform CLOSE→OPEN invisibly; granting extra EXECUTE
+on such a function is outside the supported cooperative contract. See
+[`GUARD.md`](GUARD.md) for the executable counterexample.
+
 Do not grant runtime direct helper-table writes, protected-table ownership,
 DROP/ALTER/TRIGGER, or global DDL. A typical WordPress account with DDL powers
 is *not* a restricted writer, and hosting support for split installer/runtime

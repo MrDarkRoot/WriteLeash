@@ -10,16 +10,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Guard::update() owns one explicit DB transaction, one #54 UPDATE accounting
  * policy and the final COMMIT/ROLLBACK. Failures observed before the Guard's
- * COMMIT call cause a full ROLLBACK before control returns to the caller.
- * Failures at or after a commit attempt cannot promise rollback: if the
- * callback committed directly, or the Guard COMMIT outcome is unknown, or the
- * post-commit state is inconsistent, durability may already exist and the
- * failure is reported without claiming an undo. See GUARD.md.
+ * COMMIT call while the owned transaction is still intact cause a full
+ * ROLLBACK before control returns to the caller. A callback can instead end
+ * the transaction (including through an opaque DB path); then durability may
+ * already exist. Unknown COMMIT outcomes and post-commit anomalies cannot
+ * promise rollback either. See GUARD.md, "Failure timing and durability".
  *
  * This is cooperative application-level enforcement. It does not turn
  * MySQL/MariaDB into a hostile-writer security boundary. SQL outside this API,
- * direct transaction control and direct #54 routine calls are outside the
- * supported contract, and direct mysqli/$wpdb->dbh SQL cannot be monitored.
+ * direct transaction control, CALLs and side-effecting stored functions are
+ * outside the supported contract; direct mysqli/$wpdb->dbh SQL cannot be
+ * monitored.
  */
 final class Guard {
 	private static $active = false;
@@ -32,9 +33,16 @@ final class Guard {
 	 * @param callable $callback Receives no arguments. Must use $db for its SQL.
 	 * @param \wpdb|null $db     Connection to guard; defaults to $GLOBALS['wpdb'].
 	 * @return mixed The callback return value, after COMMIT.
-	 * @throws Budget_Denied                  On a #54 budget denial (full rollback).
+	 * @throws Budget_Denied                  On a #54 budget denial (rollback while
+	 *                                         the owned transaction remains intact).
 	 * @throws Unsupported_Transaction_State  When the guard refuses before running.
-	 * @throws Guard_Error                    On any other guarded failure (full rollback).
+	 * @throws Guard_Error                    On other guarded failures. Rollback applies
+	 *                                         only while the owned transaction remains
+	 *                                         intact before Guard COMMIT; transaction
+	 *                                         loss may already be durable, COMMIT may
+	 *                                         be unknown, and post-COMMIT changes may
+	 *                                         be durable. See GUARD.md, "Failure timing
+	 *                                         and durability".
 	 * @throws \InvalidArgumentException      On an invalid table name or budget.
 	 */
 	public static function update( $table, $budget, $callback, ?\wpdb $db = null ) {
@@ -163,7 +171,7 @@ final class Guard {
 				$transaction->rollback();
 				throw new Guard_Error(
 					$violation,
-					'The guarded callback issued SQL reserved for the Guard transaction lifecycle.'
+					'The guarded callback issued SQL outside the supported Guard transaction contract.'
 				);
 			}
 			// A #54 denial whose raw mysqli state was cleared by a later query is

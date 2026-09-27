@@ -7,6 +7,7 @@ require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 use CommitCap\Budget_Denied;
 use CommitCap\Guard;
 use CommitCap\Guard_Error;
+use CommitCap\Guard_Sql;
 use CommitCap\Guard_Transaction;
 use CommitCap\Unsupported_Transaction_State;
 use CommitCap\Update_Engine;
@@ -719,7 +720,16 @@ $reserved_forms = array(
 	'qualified OPEN'                 => "CALL wp_test.commitcap_v01_open('$policy')",
 	'qualified COUNT'                => "CALL wp_test.commitcap_v01_count('$policy', @cc56_count)",
 	'qualified POLICY'               => "CALL wp_test.commitcap_v01_policy('cc_guard_a', 'x')",
+	'unrelated CALL'                 => 'CALL cc56_innocent_reset(1)',
 	'executable comment'             => '/*! COMMIT */',
+	'mariadb comment COMMIT'         => '/*M! COMMIT */',
+	'mariadb versioned COMMIT'       => '/*M!100000 COMMIT */',
+	'mariadb comment CLOSE'          => "/*M! CALL commitcap_v01_close('$policy') */",
+	'mariadb comment OPEN'           => "/*M! CALL commitcap_v01_open('$policy') */",
+	'mariadb versioned CLOSE'        => "/*M!100000 CALL commitcap_v01_close('$policy') */",
+	'mariadb versioned OPEN'         => "/*M!100000 CALL commitcap_v01_open('$policy') */",
+	'mariadb versioned higher OPEN'  => "/*M!101115 CALL commitcap_v01_open('$policy') */",
+	'mariadb mixed leading comment'  => 'SELECT 1 /*M!100000 COMMIT */',
 	'commit'                         => 'COMMIT',
 	'rollback'                       => 'ROLLBACK',
 	'start transaction'              => 'START TRANSACTION',
@@ -729,8 +739,12 @@ $reserved_forms = array(
 	'release savepoint'              => 'RELEASE SAVEPOINT cc56_s',
 	'set autocommit'                 => 'SET autocommit = 0',
 	'set session autocommit'         => 'SET SESSION autocommit = 0',
+	'set local autocommit'           => 'SET LOCAL autocommit = 0',
+	'set global autocommit'          => 'SET GLOBAL autocommit = 1',
 	'set @@autocommit'               => 'SET @@autocommit = 0',
 	'set @@session.autocommit'       => 'SET @@session.autocommit = 0',
+	'set @@local.autocommit'         => 'SET @@local.autocommit = 0',
+	'set @@global.autocommit'        => 'SET @@global.autocommit = 1',
 	'set @commitcap denied'          => 'SET @commitcap_v01_denied = 0',
 	'set @commitcap denied :='       => 'SET @commitcap_v01_denied:=0',
 	'select @commitcap assignment'   => 'SELECT @commitcap_v01_denied := 0',
@@ -742,6 +756,7 @@ $reserved_forms = array(
 	'multi statement'                => 'SELECT 1; COMMIT',
 );
 foreach ( $reserved_forms as $label => $reserved_sql ) {
+	cc56_assert( Guard_Sql::CLEAR !== Guard_Sql::classify( $reserved_sql ), 'classifier allowed ' . $label );
 	cc56_seed( $root, 'cc_guard_a' );
 	$error = cc56_reject(
 		function () use ( $writer, $reserved_sql ) {
@@ -770,7 +785,18 @@ foreach ( $reserved_forms as $label => $reserved_sql ) {
 	cc56_discard_accounting( $root, $writer, 'cc_guard_a' );
 	cc56_clean( $writer );
 }
-echo "  reserved-SQL lexical matrix (qualified/quoted/commented/SET forms): PASS\n";
+echo "  reserved-SQL lexical matrix (CALLs, MySQL/MariaDB executable comments, SESSION/LOCAL/GLOBAL/@@ autocommit): PASS\n";
+
+// Engine grammar and execution are independently checked on the trusted
+// fixture connection. MySQL ignores MariaDB comments; both must be rejected
+// by the WordPress classifier regardless of server-specific execution.
+cc56_assert( ( 'mariadb' === $host ? '3' : '1' ) === (string) $root->get_var( 'SELECT /*M! 2 + */ 1' ), 'MariaDB comment execution grammar' );
+cc56_assert( ( 'mariadb' === $host ? '3' : '1' ) === (string) $root->get_var( 'SELECT /*M!100000 2 + */ 1' ), 'versioned MariaDB comment execution grammar' );
+foreach ( array( 'SET LOCAL autocommit = 1', 'SET @@local.autocommit = 1', 'SET GLOBAL autocommit = 1', 'SET @@global.autocommit = 1' ) as $sql ) {
+	cc56_assert( false !== $root->query( $sql ), 'autocommit grammar ' . $sql . ': ' . $root->last_error );
+}
+cc56_assert( '1' === (string) $root->get_var( 'SELECT @@autocommit' ), 'autocommit grammar changed session state' );
+echo "  pinned-engine MariaDB comment execution and LOCAL/GLOBAL autocommit grammar: PASS\n";
 
 // 29. BLOCKER 1 critical: a full qualified CLOSE→OPEN reset can never return
 // success with more than the budget durable.
@@ -806,6 +832,60 @@ foreach ( $call_forms as $call_form ) {
 	cc56_clean( $writer );
 }
 echo "  qualified/backtick/commented CLOSE→OPEN never returns success: PASS\n";
+
+// MariaDB executable comments (versioned and unversioned) were previously
+// stripped as ordinary comments. The original path committed ten row events
+// with a five-event grant; neither engine may now return success with excess
+// durable changes, including on MySQL where /*M! */ is ignored by the server.
+$mariadb_reset_forms = array(
+	array( "/*M! CALL commitcap_v01_close('$policy') */", "/*M! CALL commitcap_v01_open('$policy') */" ),
+	array( "/*M!100000 CALL commitcap_v01_close('$policy') */", "/*M!100000 CALL commitcap_v01_open('$policy') */" ),
+	array( "/*M! CALL commitcap_v01_close('$policy') */", "/*M!101115 CALL commitcap_v01_open('$policy') */" ),
+);
+foreach ( $mariadb_reset_forms as $call_form ) {
+	cc56_seed( $root, 'cc_guard_a' );
+	$error = cc56_reject(
+		function () use ( $writer, $call_form ) {
+			Guard::update( 'cc_guard_a', 5, function () use ( $writer, $call_form ) {
+				cc56_updates( $writer, 'cc_guard_a', array( 1, 2, 3, 4, 5 ) );
+				$writer->query( $call_form[0] );
+				$writer->query( $call_form[1] );
+				// MySQL ignores /*M! */: event six will be denied, but
+				// the classifier must still latch the comment violation.
+				foreach ( array( 6, 7, 8, 9, 10 ) as $id ) {
+					$writer->query( "UPDATE cc_guard_a SET touched = touched + 1 WHERE id = $id" );
+				}
+				return 'unsafe-success';
+			}, $writer );
+		},
+		'mariadb' === $host ? Guard_Error::class : Budget_Denied::class,
+		'MariaDB executable-comment reset ' . $call_form[0]
+	);
+	cc56_assert( ( 'mariadb' === $host ? 'callback_issued_reserved_sql' : 'budget_denied' ) === $error->reason(), 'MariaDB comment reset reason: ' . $error->reason() );
+	cc56_assert( array_fill( 0, 10, 0 ) === cc56_rows( $host, 'cc_guard_a' ), 'MariaDB comment reset durable state' );
+	cc56_clean( $writer );
+}
+echo "  5 → MariaDB executable-comment CLOSE → OPEN → 5: Guard rejected, zero durable events ($host)\n";
+
+// A comment-wrapped COMMIT is also executable on MariaDB. Detection is
+// pre-query, but the wpdb filter does not suppress execution; report the
+// already-durable two events honestly rather than claiming an undo.
+foreach ( array( '/*M! COMMIT */', '/*M!100000 COMMIT */' ) as $comment_commit ) {
+	cc56_seed( $root, 'cc_guard_a' );
+	$error = cc56_reject( function () use ( $writer, $comment_commit ) {
+		Guard::update( 'cc_guard_a', 5, function () use ( $writer, $comment_commit ) {
+			cc56_updates( $writer, 'cc_guard_a', array( 1, 2 ) );
+			$writer->query( $comment_commit );
+			return 'unsafe-success';
+		}, $writer );
+	}, Guard_Error::class, 'MariaDB executable-comment COMMIT' );
+	cc56_assert( 'callback_issued_reserved_sql' === $error->reason(), 'comment COMMIT reason: ' . $error->reason() );
+	$expected = 'mariadb' === $host ? array( 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 ) : array_fill( 0, 10, 0 );
+	cc56_assert( $expected === cc56_rows( $host, 'cc_guard_a' ), 'comment COMMIT durability: ' . $comment_commit );
+	cc56_discard_accounting( $root, $writer, 'cc_guard_a' );
+	cc56_clean( $writer );
+}
+echo "  MariaDB comment COMMIT: Guard rejected, MariaDB two already durable / MySQL zero ($host)\n";
 
 // 30. BLOCKER 2: the guard probe must not replace a caller-owned savepoint
 // even when the caller used the name of the old fixed probe.
@@ -881,5 +961,61 @@ cc56_assert( 'clear-sql' === $result, 'false-positive result' );
 $clear_rows = cc56_rows( $host, 'cc_guard_b' );
 cc56_assert( 1 === $clear_rows[0] && 1 === $clear_rows[1], 'false-positive durability' );
 echo "  ordinary SQL and reserved-looking string content are not blocked: PASS\n";
+
+// Opaque stored procedure bodies: the pre-fix classifier returned CLEAR for
+// unrelated names and allowed a ten-event durable reset on BOTH engines.
+cc56_assert( false !== $root->query( 'CREATE PROCEDURE cc56_innocent_reset(IN p_policy CHAR(64)) SQL SECURITY DEFINER BEGIN CALL commitcap_v01_close(p_policy); CALL commitcap_v01_open(p_policy); END' ), 'create reset wrapper: ' . $root->last_error );
+cc56_assert( false !== $root->query( "GRANT EXECUTE ON PROCEDURE wp_test.cc56_innocent_reset TO 'cc_writer'@'%'" ), 'grant reset wrapper' );
+cc56_assert( Guard_Sql::RESERVED === Guard_Sql::classify( "CALL cc56_innocent_reset('$policy')" ), 'opaque CALL classification' );
+cc56_seed( $root, 'cc_guard_a' );
+$error = cc56_reject( function () use ( $writer, $policy ) {
+	Guard::update( 'cc_guard_a', 5, function () use ( $writer, $policy ) {
+		cc56_updates( $writer, 'cc_guard_a', array( 1, 2, 3, 4, 5 ) );
+		cc56_assert( false !== $writer->query( "CALL cc56_innocent_reset('$policy')" ), 'reset wrapper execution' );
+		cc56_updates( $writer, 'cc_guard_a', array( 6, 7, 8, 9, 10 ) );
+		return 'unsafe-success';
+	}, $writer );
+}, Guard_Error::class, 'opaque reset wrapper' );
+cc56_assert( 'callback_issued_reserved_sql' === $error->reason(), 'opaque reset reason: ' . $error->reason() );
+cc56_assert( array_fill( 0, 10, 0 ) === cc56_rows( $host, 'cc_guard_a' ), 'opaque reset durable state' );
+cc56_clean( $writer );
+echo "  unrelated-name CALL CLOSE→OPEN: DETECTED CONTRACT VIOLATION, zero durable events ($host)\n";
+
+cc56_assert( false !== $root->query( 'CREATE PROCEDURE cc56_innocent_commit() SQL SECURITY DEFINER BEGIN COMMIT; END' ), 'create commit wrapper: ' . $root->last_error );
+cc56_assert( false !== $root->query( "GRANT EXECUTE ON PROCEDURE wp_test.cc56_innocent_commit TO 'cc_writer'@'%'" ), 'grant commit wrapper' );
+cc56_seed( $root, 'cc_guard_a' );
+$error = cc56_reject( function () use ( $writer ) {
+	Guard::update( 'cc_guard_a', 5, function () use ( $writer ) {
+		cc56_updates( $writer, 'cc_guard_a', array( 1, 2 ) );
+		cc56_assert( false !== $writer->query( 'CALL cc56_innocent_commit()' ), 'commit wrapper execution' );
+		return 'unsafe-success';
+	}, $writer );
+}, Guard_Error::class, 'opaque commit wrapper' );
+cc56_assert( 'callback_issued_reserved_sql' === $error->reason(), 'opaque COMMIT reason: ' . $error->reason() );
+cc56_assert( array( 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 ) === cc56_rows( $host, 'cc_guard_a' ), 'opaque COMMIT durable state' );
+cc56_discard_accounting( $root, $writer, 'cc_guard_a' );
+cc56_clean( $writer );
+echo "  unrelated-name CALL COMMIT: DETECTED CONTRACT VIOLATION, two already durable ($host)\n";
+
+// Stored functions reached via SELECT do not have a CALL token. This fixture
+// deliberately grants the writer an EXTRA EXECUTE capability, contrary to the
+// supported contract, to pin down the residual limitation rather than claim
+// the Guard can inspect arbitrary stored SQL. Do not remove this counterexample.
+cc56_assert( false !== $root->query( 'CREATE FUNCTION cc56_innocent_function(p_policy CHAR(64)) RETURNS INT DETERMINISTIC MODIFIES SQL DATA SQL SECURITY DEFINER BEGIN CALL commitcap_v01_close(p_policy); CALL commitcap_v01_open(p_policy); RETURN 1; END' ), 'create function wrapper: ' . $root->last_error );
+cc56_assert( false !== $root->query( "GRANT EXECUTE ON FUNCTION wp_test.cc56_innocent_function TO 'cc_writer'@'%'" ), 'grant function wrapper' );
+cc56_assert( Guard_Sql::CLEAR === Guard_Sql::classify( "SELECT cc56_innocent_function('$policy')" ), 'stored function surface changed' );
+cc56_seed( $root, 'cc_guard_a' );
+$result = Guard::update( 'cc_guard_a', 5, function () use ( $writer, $policy ) {
+	cc56_updates( $writer, 'cc_guard_a', array( 1, 2, 3, 4, 5 ) );
+	cc56_assert( '1' === (string) $writer->get_var( "SELECT cc56_innocent_function('$policy')" ), 'function wrapper execution: ' . $writer->last_error );
+	cc56_updates( $writer, 'cc_guard_a', array( 6, 7, 8, 9, 10 ) );
+	return 'outside-contract';
+}, $writer );
+cc56_assert( 'outside-contract' === $result, 'stored function result changed' );
+cc56_assert( array_fill( 0, 10, 1 ) === cc56_rows( $host, 'cc_guard_a' ), 'stored function counterexample durability' );
+echo "  extra-EXECUTE stored function via SELECT: OUTSIDE SUPPORTED CONTRACT, ten durable ($host)\n";
+cc56_assert( false !== $root->query( 'DROP FUNCTION cc56_innocent_function' ), 'drop test function' );
+cc56_assert( false !== $root->query( 'DROP PROCEDURE cc56_innocent_commit' ), 'drop test commit wrapper' );
+cc56_assert( false !== $root->query( 'DROP PROCEDURE cc56_innocent_reset' ), 'drop test reset wrapper' );
 
 echo "#56 $host: ALL EXPECTED GUARD ASSERTIONS PASS (cooperative boundary only)\n";
