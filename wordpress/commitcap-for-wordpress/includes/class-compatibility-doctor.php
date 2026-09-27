@@ -39,7 +39,7 @@ final class Compatibility_Doctor {
 		$doctor->check( 'php', version_compare( $php, '7.4', '>=' ) ? 'PASS' : 'FAIL', true,
 			'PHP version', 'PHP ' . $php . '; plugin minimum is 7.4.' );
 		$multisite = function_exists( 'is_multisite' ) ? is_multisite() : null;
-		$network = false === $multisite ? false : ( function_exists( 'is_plugin_active_for_network' ) ? is_plugin_active_for_network( 'commitcap-for-wordpress/commitcap.php' ) : null );
+		$network = false === $multisite ? false : ( function_exists( 'is_plugin_active_for_network' ) ? is_plugin_active_for_network( 'commitcap-for-wordpress/commitcap-for-wordpress.php' ) : null );
 		$doctor->check( 'multisite', self::site_status( $multisite, $network ), true,
 			'Site activation scope', true === $multisite || true === $network ? 'Multisite/network activation is not validated.' : 'Single-site activation only; network status must be observable.' );
 		if ( null === $db ) {

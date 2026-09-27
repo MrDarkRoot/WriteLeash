@@ -17,12 +17,13 @@ function cc_snapshot() {
 	);
 }
 
-$plugin = 'commitcap-for-wordpress/commitcap.php';
+$plugin = 'commitcap-for-wordpress/commitcap-for-wordpress.php';
 cc_assert( ! is_plugin_active( $plugin ), 'Plugin active before first activation' );
 cc_assert( false === get_option( 'commitcap_version' ), 'Metadata before first activation' );
 add_option( 'commitcap_unrelated', 'keep me' );
 $before = cc_snapshot();
 require_once WP_PLUGIN_DIR . '/' . $plugin;
+cc_assert( $plugin === plugin_basename( COMMITCAP_PLUGIN_FILE ), 'Wrong WordPress plugin basename' );
 cc_assert( false === get_option( 'commitcap_version' ), 'Bootstrap wrote metadata' );
 cc_assert( $before === cc_snapshot(), 'Bootstrap changed DB objects or user tables' );
 
