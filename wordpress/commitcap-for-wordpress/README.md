@@ -25,8 +25,9 @@ recovery. Autocommit issues separate transaction authority for each statement.
 This plugin therefore does not claim to protect WordPress writes.
 
 The intended investigation targets are MySQL 8.0+, MariaDB 10.11+, and InnoDB.
-No version range, hosting environment, storage engine, or privilege combination
-has been approved by a WordPress compatibility doctor. #57 will add that doctor;
+#57 adds a read-only, fail-closed [compatibility doctor](DOCTOR.md) for the
+accepted cooperative path; its PASS requires separate restricted runtime and
+trusted installer evidence. It does not approve generic hosting compatibility.
 #54 adds a lower-level engine candidate and its deliberately narrow contract in
 [`ENGINE.md`](ENGINE.md); #56 adds the cooperative guarded UPDATE transaction
 API in [`GUARD.md`](GUARD.md).
@@ -75,7 +76,7 @@ From the repository root with Docker Engine and Compose:
 
 ```sh
 bash wordpress/tests/run.sh
-bash wordpress/tests/engine/run.sh   # #54 engine + #56 guard tests on both pinned DBs
+bash wordpress/tests/engine/run.sh   # #54 engine + #56 Guard + #57 doctor on both pinned DBs
 ```
 
 The focused harness boots WordPress 6.8.3 under PHP 8.2 against disposable
