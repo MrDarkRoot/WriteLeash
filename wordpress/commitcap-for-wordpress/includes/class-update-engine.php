@@ -256,6 +256,11 @@ final class Update_Engine {
 		}
 	}
 
+	/** Trusted, read-only structural verification shared with the doctor. */
+	public function verify_infrastructure_objects(): void {
+		$this->verify_infrastructure();
+	}
+
 	public function inspect_table( $table ): array {
 		$name = self::table( $table );
 		$this->require_target_server();

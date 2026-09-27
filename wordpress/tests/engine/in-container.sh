@@ -10,4 +10,5 @@ for host in mysql mariadb; do
     --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/engine/cases.php
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/guard/cases.php
+  CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/doctor/cases.php
 done
