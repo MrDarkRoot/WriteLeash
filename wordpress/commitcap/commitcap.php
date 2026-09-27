@@ -1,0 +1,32 @@
+<?php
+/**
+ * Plugin Name: CommitCap
+ * Description: Stop bulk database mistakes before they commit.
+ * Version: 0.1.0-dev
+ * Requires PHP: 7.4
+ * Text Domain: commitcap
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+define( 'COMMITCAP_VERSION', '0.1.0-dev' );
+define( 'COMMITCAP_PLUGIN_FILE', __FILE__ );
+
+// Avoid parsing PHP 7.4 class files on older runtimes; activation must fail.
+if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
+	register_activation_hook(
+		__FILE__,
+		static function () {
+			wp_die( 'CommitCap requires PHP 7.4 or newer.' );
+		}
+	);
+	return;
+}
+
+require_once __DIR__ . '/includes/class-environment.php';
+require_once __DIR__ . '/includes/class-lifecycle.php';
+require_once __DIR__ . '/includes/class-plugin.php';
+
+\CommitCap\Plugin::boot();

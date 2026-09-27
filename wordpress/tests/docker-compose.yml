@@ -1,0 +1,20 @@
+services:
+  db:
+    image: mariadb@sha256:85c39719200637250bb8abe3ccd239239d6f175156fc1698141409fcf8e01a38 # 10.11.15
+    environment:
+      MARIADB_ROOT_PASSWORD: disposable_root_password
+      MARIADB_DATABASE: wp_test
+      MARIADB_USER: wp_test
+      MARIADB_PASSWORD: disposable_wp_password
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p$$MARIADB_ROOT_PASSWORD --silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+  tester:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy

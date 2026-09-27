@@ -1,0 +1,24 @@
+name: WordPress plugin foundation
+
+on:
+  pull_request:
+    paths:
+      - 'wordpress/**'
+      - '.github/workflows/wordpress-foundation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'wordpress/**'
+      - '.github/workflows/wordpress-foundation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  wordpress-foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+      - name: Boot WordPress and test plugin lifecycle
+        run: bash wordpress/tests/run.sh
