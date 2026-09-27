@@ -27,6 +27,7 @@ if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
 
 require_once __DIR__ . '/includes/class-environment.php';
 require_once __DIR__ . '/includes/class-lifecycle.php';
+require_once __DIR__ . '/includes/class-update-engine.php';
 require_once __DIR__ . '/includes/class-plugin.php';
 
 \CommitCap\Plugin::boot();

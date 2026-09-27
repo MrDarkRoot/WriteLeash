@@ -25,10 +25,11 @@ This plugin therefore does not claim to protect WordPress writes.
 The intended investigation targets are MySQL 8.0+, MariaDB 10.11+, and InnoDB.
 No version range, hosting environment, storage engine, or privilege combination
 has been approved by a WordPress compatibility doctor. #57 will add that doctor;
-#54 is the separate engine issue, #56 is the guarded transaction API, and later
-issues cover demos and user-facing integrations. No admin UI, WP-CLI integration,
-WooCommerce integration, telemetry, external network requests, or cloud feature
-is present in this foundation.
+#54 adds a lower-level engine candidate and its deliberately narrow contract in
+[`ENGINE.md`](ENGINE.md); #56 is still required for a guarded transaction API.
+Later issues cover demos and user-facing integrations. No admin UI, WP-CLI
+integration, WooCommerce integration, telemetry, external network requests,
+or cloud feature is present in this foundation.
 
 ## Development checks
 
