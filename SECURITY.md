@@ -1,9 +1,10 @@
 # Security Policy
 
 CommitCap is intended to become security-sensitive PostgreSQL infrastructure.
-The repository contains Phase 0 research implementations and experiment
-harnesses, but no released or supported enforcement implementation. There is no
-current claim that installing or using this repository protects a database.
+The repository publishes the Phase 0 PostgreSQL 16.4 research fixture as a
+Public Research Preview, but no supported enforcement implementation is
+released. There is no claim that installing or using it protects a production
+database.
 
 ## Reporting A Vulnerability
 
@@ -75,7 +76,7 @@ Security reports and public claims MUST be evaluated against:
    assumptions.
 4. [docs/decisions.md](docs/decisions.md), which records accepted boundaries.
 5. [docs/support-matrix.md](docs/support-matrix.md), which records the current
-   research envelope and Public Research Preview preparation status.
+   research envelope and Public Research Preview status.
 6. Regression tests shipped by the affected release.
 
 Root [SPEC.md](SPEC.md), historical experiment scripts, and the experiment

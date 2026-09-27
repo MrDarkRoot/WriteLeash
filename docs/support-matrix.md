@@ -4,11 +4,10 @@ Last updated: 2026-09-25.
 
 This is the single public page for the current CommitCap research mechanism.
 The Public Research Preview ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31))
-is **being prepared, not released**. This document summarizes behavior present
-in the reviewed code and linked research evidence. The denial-evidence row
-requires the implementation and tests from [#34's PR
-#39](https://github.com/MrDarkRoot/CommitCap/pull/39) in the base history; it
-must not be published without them.
+is **released as a research artifact**, not a supported release. This document
+summarizes behavior present in the reviewed code and linked research evidence.
+The denial-evidence row includes the merged implementation and tests from
+[#34's PR #39](https://github.com/MrDarkRoot/CommitCap/pull/39).
 [README.md](../README.md) is the project overview, [docs/spec.md](spec.md)
 defines intended semantics, [docs/test-plan.md](test-plan.md) defines canonical
 test IDs, and [docs/limitations.md](limitations.md) preserves the historical
@@ -24,8 +23,8 @@ evidence. Nothing here is a production-ready security control.
 | **BLOCKED** | Denied by privileges/configuration for the exact tested topology, or blocked by a documented provider model. |
 | **INCONCLUSIVE** | Evidence exists but does not support a conclusion. |
 
-The current state is **research mechanism**, not a released Research Preview or
-a supported release: see [Product and release status](#e-product-and-release-status).
+The released Research Preview exposes the **research mechanism**, not a
+supported release: see [Product and release status](#e-product-and-release-status).
 
 ## A. Enforcement envelope (TESTED only within this envelope)
 
@@ -109,13 +108,13 @@ rerun is required before any overhead statement is published.
 
 ## E. Product and release status
 
-Exactly one product stage is current. A runnable research fixture is **not** a
-released Public Research Preview:
+Exactly one product stage is current. The released Public Research Preview is
+a runnable research fixture, **not** a supported release:
 
 | Status | Current | Reason |
 | --- | --- | --- |
-| Research mechanism | **CURRENT** | Native backend-local transaction-state experiment exists and passes its research suite. |
-| Public Research Preview ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31)) | **PREPARING — NOT YET RELEASED** | The umbrella issue remains open; demo/docs/PR work prepares for it but is not a launch. |
+| Research mechanism | **TESTED FOUNDATION** | Native backend-local transaction-state experiment exists and passes its research suite. |
+| Public Research Preview ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31)) | **CURRENT — RELEASED (RESEARCH ONLY)** | Public repository, unauthenticated clone and issue intake verified; local PG16.4 demo is reproducible. This is not a supported product launch. |
 | Supported release | **NO** | No release, support envelope or published support interface exists. |
 | Production-ready security control | **NO** | Do not deploy CommitCap as a security control; see [README](../README.md) and [SECURITY.md](../SECURITY.md). |
 
