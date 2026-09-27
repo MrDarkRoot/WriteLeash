@@ -28,6 +28,12 @@ if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
 require_once __DIR__ . '/includes/class-environment.php';
 require_once __DIR__ . '/includes/class-lifecycle.php';
 require_once __DIR__ . '/includes/class-update-engine.php';
+require_once __DIR__ . '/includes/class-guard-error.php';
+require_once __DIR__ . '/includes/class-unsupported-transaction-state.php';
+require_once __DIR__ . '/includes/class-budget-denied.php';
+require_once __DIR__ . '/includes/class-guard-transaction.php';
+require_once __DIR__ . '/includes/class-guard-monitor.php';
+require_once __DIR__ . '/includes/class-guard.php';
 require_once __DIR__ . '/includes/class-plugin.php';
 
 \CommitCap\Plugin::boot();

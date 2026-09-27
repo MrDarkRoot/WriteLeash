@@ -121,5 +121,7 @@ Actual installation is manual/trusted, never triggered by plugin activation.
 
 The #53 [counterexample](../../experiments/mysql_tx_budget/README.md) remains
 an independent required regression: `SIGNAL` followed by savepoint recovery
-allows a final COMMIT on both tested engines. #56 is still required before an
-application job has a supported guarded execution API.
+allows a final COMMIT on both tested engines. The supported guarded execution
+API is the #56 `CommitCap\Guard::update()` path in [`GUARD.md`](GUARD.md);
+application jobs must use it instead of calling the lower-level routines. The
+engine contract itself is unchanged by #56.
