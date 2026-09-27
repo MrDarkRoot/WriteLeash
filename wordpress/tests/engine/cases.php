@@ -1,6 +1,6 @@
 <?php
 // Real WordPress context, two actual wpdb connections with distinct grants.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap.php';
+require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
 use CommitCap\Update_Engine as Engine;
 
 function cc54_assert( $value, $label ) {

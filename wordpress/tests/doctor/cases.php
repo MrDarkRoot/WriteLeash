@@ -1,7 +1,7 @@
 <?php
 // #57: real pinned engines and split grants. No mock database substitutes for
 // object verification, effective privileges or Guard transaction behavior.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap.php';
+require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
 
 use CommitCap\Compatibility_Doctor as Doctor;
 use CommitCap\Compatibility_Grants as Grants;
