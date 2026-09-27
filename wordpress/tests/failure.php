@@ -1,6 +1,6 @@
 <?php
 // Executed through WP-CLI against real, fully bootstrapped WordPress.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap.php';
 $mode = getenv( 'CC_FAILURE' );
 global $wpdb;
 
