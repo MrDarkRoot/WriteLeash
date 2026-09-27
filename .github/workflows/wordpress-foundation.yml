@@ -5,11 +5,13 @@ on:
     paths:
       - 'wordpress/**'
       - '.github/workflows/wordpress-foundation.yml'
+      - '.github/workflows/wordpress-engine.yml'
   push:
     branches: [main]
     paths:
       - 'wordpress/**'
       - '.github/workflows/wordpress-foundation.yml'
+      - '.github/workflows/wordpress-engine.yml'
 
 permissions:
   contents: read
@@ -18,7 +20,22 @@ jobs:
   wordpress-foundation:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [mysql, mariadb]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
-      - name: Boot WordPress and test plugin lifecycle
-        run: bash wordpress/tests/run.sh
+      - name: Boot WordPress and test lifecycle on ${{ matrix.database }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash wordpress/tests/run.sh "${{ matrix.database }}" 2>&1 | tee "$RUNNER_TEMP/wordpress-foundation-${{ matrix.database }}.txt"
+      - name: Preserve synthetic lifecycle transcript
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, pinned
+        with:
+          name: wordpress-foundation-${{ matrix.database }}
+          path: ${{ runner.temp }}/wordpress-foundation-${{ matrix.database }}.txt
+          if-no-files-found: ignore
+          retention-days: 7

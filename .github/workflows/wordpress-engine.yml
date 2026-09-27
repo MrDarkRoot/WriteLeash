@@ -5,11 +5,13 @@ on:
     paths:
       - 'wordpress/**'
       - '.github/workflows/wordpress-engine.yml'
+      - '.github/workflows/wordpress-foundation.yml'
   push:
     branches: [main]
     paths:
       - 'wordpress/**'
       - '.github/workflows/wordpress-engine.yml'
+      - '.github/workflows/wordpress-foundation.yml'
 
 permissions:
   contents: read
@@ -21,6 +23,20 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
       - name: Exercise cooperative engine on exact pinned servers
-        run: bash wordpress/tests/engine/run.sh
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash wordpress/tests/engine/run.sh 2>&1 | tee "$RUNNER_TEMP/wordpress-engine-core.txt"
       - name: Preserve #53 feasibility counterexamples on both servers
-        run: bash experiments/mysql_tx_budget/run.sh
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash experiments/mysql_tx_budget/run.sh
+      - name: Preserve synthetic engine, Guard and doctor transcript
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, pinned
+        with:
+          name: wordpress-engine-core
+          path: ${{ runner.temp }}/wordpress-engine-core.txt
+          if-no-files-found: ignore
+          retention-days: 7
