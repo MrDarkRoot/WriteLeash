@@ -80,7 +80,10 @@ Before using Guard on a real table, rerun with its table name and budget.
   requires the trigger body to embed exactly that username, so a trigger for a
   different identity, with the condition removed, broadened, or accepting a
   foreign principal is FAIL. Normal WordPress/plugin writers outside that
-  username are not intercepted by the policy.
+  username are not intercepted by the policy. When a trusted installer
+  connection is available, Doctor also requires the certified username to map
+  to exactly one `mysql.user` account row: a same-username Host collision is an
+  explicit FAIL, not a certifiable identity.
 - Runtime opaque trigger surface (required): a non-target INSERT/UPDATE/DELETE
   grant can fire an **existing** trigger without any TRIGGER privilege. The
   trusted installer inspects `information_schema.TRIGGERS` for every

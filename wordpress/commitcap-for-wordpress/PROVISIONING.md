@@ -132,6 +132,14 @@ All database modifications are generated as inspectable, version-pinned SQL plan
    writers. The whole condition is part of the verified canonical body and the
    runtime Doctor derives the expected username from the live restricted
    connection.
+   **Runtime identity invariant:** the certified username must map to exactly
+   one `mysql.user` row with the plan's host. `install` may create it; but
+   `add_target`, `remove_target`, `uninstall`, `rotate_credential` and `drain`
+   read `mysql.user` first and refuse before any policy trigger or target grant
+   mutation when another Host row for the same username exists. A username
+   collision must be resolved by the operator, then the same plan retries
+   deterministically. `#84.6c` proves refusal, no trigger/grant mutation,
+   explicit Doctor ambiguity FAIL and the successful retry after removal.
 
 ### 3.3 Remove Target (`Provisioning_Plan::remove_target`)
 1. Drop canonical trigger:

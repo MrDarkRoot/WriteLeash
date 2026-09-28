@@ -75,7 +75,9 @@ username inside enforcement (fail closed). Normal WordPress/plugin writers keep
 their ordinary table behavior; the certified runtime is enforced and denied
 whenever no Guard accounting row exists. The whole identity condition is part
 of the verified canonical body, so a wrong-identity, removed or broadened
-condition never passes trusted or runtime verification. A missing/exhausted
+condition never passes trusted or runtime verification. Because the condition
+is username-scoped, provisioning refuses to create or modify a policy trigger
+when the certified username maps to more than one `mysql.user` account row. A missing/exhausted
 counter issues SQLSTATE `45000`, numeric error `1644`, with a
 stable `CC54_DENIED` marker. `denial_details()` combines the numeric code,
 SQLSTATE, table/budget and transactional count into structured data immediately

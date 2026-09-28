@@ -344,6 +344,70 @@ cc84_reset_grants( $root );
 echo "  #84.6b collision refusal (helper, routine, account, trigger, uninstall): PASS\n";
 
 // ---------------------------------------------------------------------------
+// #84.6c: the certified runtime username must map to exactly one mysql.user
+// account row. The physical trigger is username-scoped, so a second Host row
+// would make runtime identity ambiguous. Refuse before any policy trigger or
+// target grant mutation.
+// ---------------------------------------------------------------------------
+cc84_query( $root, "DROP USER IF EXISTS 'cc84_ambig'@'%', 'cc84_ambig'@'localhost'" );
+cc84_query( $root, 'DROP TABLE IF EXISTS cc84_ambig_t1, cc84_ambig_t2' );
+cc84_query( $root, 'CREATE TABLE cc84_ambig_t1 (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB' );
+cc84_query( $root, 'CREATE TABLE cc84_ambig_t2 (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB' );
+cc84_query( $root, "CREATE USER 'cc84_ambig'@'%' IDENTIFIED BY 'cc84_ambig_secret'" );
+foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
+	cc84_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$routine TO 'cc84_ambig'@'%'" );
+}
+cc84_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc84_ambig'@'%'" );
+Plan::add_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t1', 5 )->apply( $root );
+
+$ambig_writer = new wpdb( 'cc84_ambig', 'cc84_ambig_secret', 'wp_test', $host );
+$ambig_writer->suppress_errors( true );
+cc84_assert( 'PASS' === Doctor::run( 'cc84_ambig_t1', 5, $ambig_writer, $root )['overall'], '#84.6c unique account must certify before collision' );
+
+// Collision: a second account row for the same certified username.
+cc84_query( $root, "CREATE USER 'cc84_ambig'@'localhost' IDENTIFIED BY 'cc84_ambig_secret'" );
+$ambig_add_refused = false;
+try {
+	Plan::add_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t2', 5 )->apply( $root );
+} catch ( RuntimeException $e ) {
+	$ambig_add_refused = true;
+	cc84_assert( false !== stripos( $e->getMessage(), 'ambiguous' ), '#84.6c add_target refusal message: ' . $e->getMessage() );
+}
+cc84_assert( $ambig_add_refused, '#84.6c add_target must refuse a same-username collision' );
+$t2_trigger = Engine::trigger_name( 'cc84_ambig_t2' );
+cc84_assert( 0 === (int) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA='wp_test' AND TRIGGER_NAME=%s", $t2_trigger ) ), '#84.6c collision installed a trigger' );
+cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLE_PRIVILEGES WHERE GRANTEE = \"'cc84_ambig'@'%'\" AND TABLE_NAME='cc84_ambig_t2' AND PRIVILEGE_TYPE='SELECT'" ), '#84.6c collision mutated target grants' );
+
+$ambig_remove_refused = false;
+try {
+	Plan::remove_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t1', 5 )->apply( $root );
+} catch ( RuntimeException $e ) {
+	$ambig_remove_refused = true;
+}
+cc84_assert( $ambig_remove_refused, '#84.6c remove_target must refuse a same-username collision' );
+$t1_trigger = Engine::trigger_name( 'cc84_ambig_t1' );
+cc84_assert( 1 === (int) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA='wp_test' AND TRIGGER_NAME=%s", $t1_trigger ) ), '#84.6c removal dropped the trigger despite ambiguity' );
+
+// Trusted verification reports the ambiguity explicitly.
+$ambig_verify = Doctor::run( 'cc84_ambig_t1', 5, $ambig_writer, $root );
+cc84_assert( 'PASS' !== $ambig_verify['overall'], '#84.6c ambiguous identity must not PASS' );
+cc84_assert( 'FAIL' === $ambig_verify['integrations']['cc84_ambig_t1']['status'], '#84.6c ambiguous identity integration status: ' . json_encode( $ambig_verify['integrations'] ) );
+
+// Removing the collision restores deterministic retry.
+cc84_query( $root, "DROP USER 'cc84_ambig'@'localhost'" );
+Plan::add_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t2', 5 )->apply( $root );
+$ambig_retry = Doctor::run( 'cc84_ambig_t1', 5, $ambig_writer, $root, array( 'cc84_ambig_t2' => 5 ) );
+cc84_assert( 'PASS' === $ambig_retry['overall'], '#84.6c retry after collision removal must PASS: ' . json_encode( $ambig_retry ) );
+
+// Cleanup this fixture only; shared infrastructure stays installed.
+Plan::remove_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t1', 5 )->apply( $root );
+Plan::remove_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t2', 5 )->apply( $root );
+cc84_query( $root, "DROP USER 'cc84_ambig'@'%'" );
+cc84_query( $root, 'DROP TABLE cc84_ambig_t1' );
+cc84_query( $root, 'DROP TABLE cc84_ambig_t2' );
+echo "  #84.6c same-username account collision refused before policy trigger or grant mutation: PASS\n";
+
+// ---------------------------------------------------------------------------
 // #84.7: Remove Target A while B Remains Active
 // ---------------------------------------------------------------------------
 $plan_remove_a = Plan::remove_target( 'wp_test', 'cc84_writer', '%', 'cc84_a', 10 );
@@ -779,6 +843,7 @@ for ( $i = 1; $i <= 5; ++$i ) {
 cc84_query( $root, "DROP USER IF EXISTS 'cc84_op_target'@'%'" );
 cc84_query( $root, "CREATE USER 'cc84_op_target'@'%' IDENTIFIED BY 'cc84_op_secret'" );
 cc84_query( $root, 'GRANT SELECT, UPDATE ON wp_test.cc84_part TO \'cc84_op_target\'@\'%\' WITH GRANT OPTION' );
+cc84_query( $root, "GRANT SELECT ON mysql.* TO 'cc84_op_target'@'%'" );
 $op_target = new wpdb( 'cc84_op_target', 'cc84_op_secret', 'wp_test', $host );
 $op_target->suppress_errors( true );
 $target_failure = '';
