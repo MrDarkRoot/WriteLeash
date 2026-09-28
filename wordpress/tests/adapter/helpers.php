@@ -204,6 +204,24 @@ function cc87_rest_bulk_request( $action, array $extra = array() ) {
 	return $request;
 }
 
+/** Bulk-seed $count enabled redirects directly (large-N fixtures only). */
+function cc87_seed_bulk( $root, $count ) {
+	cc87_query( $root, 'DELETE FROM wp_redirection_items' );
+	$values = array();
+	for ( $i = 0; $i < $count; ++$i ) {
+		$values[] = "('/cc87-bulk-" . $i . "','url',301,'url')";
+		if ( 500 === count( $values ) ) {
+			cc87_query( $root, 'INSERT INTO wp_redirection_items (url, action_type, action_code, match_type) VALUES ' . implode( ',', $values ) );
+			$values = array();
+		}
+	}
+	if ( $values ) {
+		cc87_query( $root, 'INSERT INTO wp_redirection_items (url, action_type, action_code, match_type) VALUES ' . implode( ',', $values ) );
+	}
+	$counts = cc87_counts( $root );
+	cc87_assert( $count === $counts[0] && 0 === $counts[1], 'bulk seed state is not all-enabled: ' . json_encode( $counts ) );
+}
+
 /** The normal WordPress connection must be restored and still be the same identity. */
 function cc87_assert_normal( $normal, $normal_id, $label ) {
 	cc87_assert( isset( $GLOBALS['wpdb'] ) && $GLOBALS['wpdb'] === $normal, $label . ' global $wpdb was not restored' );
