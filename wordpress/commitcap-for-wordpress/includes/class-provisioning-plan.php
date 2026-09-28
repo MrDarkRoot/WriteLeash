@@ -821,9 +821,12 @@ final class Provisioning_Plan {
 				$this->assert_managed_user_or_absent( $installer );
 				break;
 			case self::ACTION_ROTATE_CREDENTIAL:
+				// The identity-scoped trigger makes uniqueness mandatory for every
+				// credential mutation, not only when draining sessions. Refuse
+				// before ALTER USER when the username is ambiguous.
+				self::assert_unique_runtime_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
 				if ( ! empty( $this->params['drain'] ) ) {
 					self::assert_drain_capability( $installer );
-					self::assert_unique_runtime_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
 				}
 				break;
 			case self::ACTION_DRAIN:

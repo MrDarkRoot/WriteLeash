@@ -94,13 +94,22 @@ permission callback has succeeded. Returning a non-null result skips
 Redirection's `route_bulk()` entirely, so the stock unbounded UPDATE on the
 normal connection cannot run for a certified request.
 
-The matcher is exact and narrow: concrete path
-`/redirection/v1/bulk/redirect/disable`, `POST`, Redirection
-`5.5.2`, the matched handler must be `Redirection_Api_Redirect::route_bulk`,
-`bulk=disable`, truthy `global`, no non-empty `items`, and no `filterBy`
-conditions. Everything else is untouched stock Redirection: item-scoped
-`items=[...]`, `global=false`, Enable, Reset, Delete, filtered `global=true`
-variants, single-item edits, hit/stat writers and unknown versions.
+Matching is deliberately split into three steps:
+
+1. candidate dangerous route/shape: concrete path
+   `/redirection/v1/bulk/redirect/disable`, `POST`, `bulk=disable`, truthy
+   `global`, no non-empty `items`, no `filterBy` conditions;
+2. version certification: only Redirection `5.5.2` proceeds. Any other or
+   unavailable version returns `503 commitcap_redirection_version_unsupported`
+   **without calling the stock handler**; callback identity is not required for
+   this refusal, so a handler refactor in a later build cannot turn the
+   protection back into an unbounded stock update;
+3. handler certification: the matched handler must be
+   `Redirection_Api_Redirect::route_bulk`; a mismatch also fails closed.
+
+Everything that is not a candidate is untouched stock Redirection:
+item-scoped `items=[...]`, `global=false`, Enable, Reset, Delete, filtered
+`global=true` variants, single-item edits and hit/stat writers.
 
 - budget source: one operation-specific canonical nonnegative integer option,
   `commitcap_operation_budget_redirection_5_5_2_bulk_disable`; #78/#60 will
@@ -111,14 +120,17 @@ variants, single-item edits, hit/stat writers and unknown versions.
   provisioning snippet, not a connect host.
 - responses: `COMMITTED` returns Redirection's own read-only list body plus a
   `commitcap` evidence key; `DENIED` returns `commitcap_budget_denied` (409);
-  missing/malformed budget, unavailable runtime or non-READY Doctor return 503
+  unsupported/unknown Redirection versions return 503
+  `commitcap_redirection_version_unsupported`; missing/malformed budget,
+  unavailable runtime or non-READY Doctor return 503
   `commitcap_budget_not_configured` / `commitcap_runtime_unavailable` /
   `commitcap_operation_unavailable`; an execution error returns 500. None of
   these fall back to the unguarded stock mutation.
 - permissions: unchanged. WordPress runs Redirection's own
-  `permission_callback_bulk` before the filter; invalid nonce/cookie auth is
-  rejected even earlier during REST authentication, so an unauthorized caller
-  never reaches CommitCap and never mutates.
+  `permission_callback_bulk` before the filter; nonce/cookie authentication is
+  inherited from WordPress REST authentication before dispatch, so an
+  unauthorized caller never reaches CommitCap and never mutates. The
+  executable unauthorized-user suite case proves the adapter is never reached.
 
 ## Evidence
 
@@ -136,9 +148,12 @@ trigger's own accounting SQL may appear.
 Real REST end-to-end coverage dispatches the actual
 `POST /redirection/v1/bulk/redirect/disable` request through `WP_REST_Server`
 (not the adapter directly) for safe COMMIT, logical denial, physical denial,
-missing/malformed budget, `L>P` and Doctor-not-ready; in every case the general
-log proves exactly one plugin UPDATE on a non-normal connection for a certified
-request and zero stock global UPDATEs on the normal connection. Non-certified
+missing/malformed budget, `L>P`, Doctor-not-ready and version drift (newer
+`5.5.3`, older `5.4.0`, unavailable `null` via a narrow test-only subclass of
+the version detector); in every fail-closed case the general log proves zero
+plugin UPDATEs on any connection and zero durable state changes, and for a
+certified request exactly one plugin UPDATE on a non-normal connection with
+zero stock global UPDATEs on the normal connection. Non-certified
 routes (item-scoped `items=[...]`, Enable, Reset, Delete) stay stock and send
 zero SQL to the restricted connection, and an unauthorized user is denied by
 Redirection's own permission callback before CommitCap runs.

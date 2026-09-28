@@ -22,17 +22,30 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Everything else keeps stock Redirection behavior: item scoped `items=[...]`,
  * `global=false`, Enable, Reset, Delete, filtered `global=true` variants,
- * single-item edits, hit/stat writes and every other route are untouched
- * because the matcher requires the exact route, method, Redirection callback,
- * `bulk=disable`, truthy `global` and no `filterBy` conditions.
+ * single-item edits, hit/stat writes and every other route are untouched.
+ *
+ * Candidate route and version certification are deliberately separate:
+ *
+ *   candidate dangerous route/shape -> CommitCap owns it, never stock fallback
+ *     -> unsupported/unknown version -> 503 fail closed
+ *     -> certified 5.5.2 + exact handler -> adapter
+ *
+ * A candidate is the exact route/method/`bulk=disable`/truthy `global`/
+ * no-items/no-filterBy shape; callback identity is NOT required for the
+ * unsupported-version refusal, so a 5.5.3 handler refactor cannot turn the
+ * protection back into a stock unbounded update.
  *
  * Budget source for #87 is one operation-specific integer option, validated as
  * a canonical nonnegative integer. Missing/invalid configuration fails closed
  * with a 503 instead of falling back to unguarded Redirection. #78/#60 will
  * replace this with the product budget source; no Admin SQL, table or method
  * name is configurable here.
+ *
+ * Not `final`: the test suite extends this class only to override
+ * `plugin_version()` and prove version-drift fail-closed behavior through the
+ * real REST route; production always runs the base class.
  */
-final class Redirection_Bulk_Disable_Rest {
+class Redirection_Bulk_Disable_Rest {
 	public const BUDGET_OPTION = 'commitcap_operation_budget_redirection_5_5_2_bulk_disable';
 	private const ROUTE         = '/redirection/v1/bulk/redirect/disable';
 
@@ -45,26 +58,55 @@ final class Redirection_Bulk_Disable_Rest {
 	 * @param \WP_REST_Request $request Matched request.
 	 * @param string $route Matched route.
 	 * @param array $handler Matched route handler.
-	 * @return mixed Non-null only for the exact certified request.
+	 * @return mixed Non-null only for an owned candidate (certified or refused).
 	 */
 	public static function dispatch( $result, $request, $route, $handler ) {
 		if ( null !== $result ) {
 			return $result;
 		}
-		if ( ! self::is_certified_request( $request, $route, $handler ) ) {
+		if ( ! self::is_candidate_global_disable( $request, $route ) ) {
 			return null;
+		}
+		// CommitCap owns this dangerous route/shape: never fall through to the
+		// stock unbounded update when the installed build is not certified.
+		$version = static::plugin_version();
+		if ( Redirection_Bulk_Disable::SUPPORTED_VERSION !== $version || ! Redirection_Bulk_Disable::plugin_class_available() ) {
+			return self::error(
+				'commitcap_redirection_version_unsupported',
+				'CommitCap does not certify this Redirection version for global Disable; the unbounded update was not executed.',
+				503,
+				array( 'detected_version' => $version, 'supported_version' => Redirection_Bulk_Disable::SUPPORTED_VERSION )
+			);
+		}
+		if ( ! self::is_certified_handler( $route, $handler ) ) {
+			return self::error(
+				'commitcap_operation_unavailable',
+				'CommitCap could not certify the matched Redirection handler for global Disable; the operation was not executed.',
+				503
+			);
 		}
 		return self::handle( $request, $handler );
 	}
 
-	/** Exact route/shape match only; never a general Redirection REST hook. */
-	private static function is_certified_request( $request, $route, $handler ): bool {
+	/**
+	 * Detected Redirection version. Protected static so the test suite can
+	 * simulate version drift with a narrow subclass; production always reads
+	 * the loaded plugin through the adapter.
+	 */
+	protected static function plugin_version(): ?string {
+		return Redirection_Bulk_Disable::detected_version();
+	}
+
+	/**
+	 * The dangerous route/shape CommitCap claims. No callback identity here:
+	 * the unsupported-version decision requires only the concrete route and
+	 * select-all-matching request shape.
+	 */
+	private static function is_candidate_global_disable( $request, $route ): bool {
 		if ( ! $request instanceof \WP_REST_Request ) {
 			return false;
 		}
-		// The concrete requested path; `$route` here is the registered pattern
-		// (`/redirection/v1/bulk/redirect/(?P<bulk>...)`), so the handler identity
-		// check below is what pins this to Redirection's own callback.
+		// The concrete requested path; `$route` is the registered pattern.
 		if ( self::ROUTE !== $request->get_route() ) {
 			return false;
 		}
@@ -72,16 +114,6 @@ final class Redirection_Bulk_Disable_Rest {
 			return false;
 		}
 		if ( 'POST' !== strtoupper( $request->get_method() ) ) {
-			return false;
-		}
-		if ( '5.5.2' !== Redirection_Bulk_Disable::detected_version() || ! Redirection_Bulk_Disable::plugin_class_available() ) {
-			return false;
-		}
-		// The matched handler must be Redirection's own bulk handler.
-		if ( ! isset( $handler['callback'] ) || ! is_array( $handler['callback'] ) ||
-			! isset( $handler['callback'][0], $handler['callback'][1] ) ||
-			! is_object( $handler['callback'][0] ) || ! is_a( $handler['callback'][0], 'Redirection_Api_Redirect' ) ||
-			'route_bulk' !== $handler['callback'][1] ) {
 			return false;
 		}
 		if ( 'disable' !== $request['bulk'] ) {
@@ -96,7 +128,7 @@ final class Redirection_Bulk_Disable_Rest {
 			return false;
 		}
 		// `Red_Item_Filters` turns filterBy values into WHERE conditions; only
-		// the unfiltered select-all-matching update is certified.
+		// the unfiltered select-all-matching update is owned.
 		$filter_by = $request['filterBy'];
 		if ( is_array( $filter_by ) ) {
 			foreach ( $filter_by as $value ) {
@@ -105,6 +137,20 @@ final class Redirection_Bulk_Disable_Rest {
 				}
 			}
 		} elseif ( null !== $filter_by && '' !== trim( (string) $filter_by ) ) {
+			return false;
+		}
+		return true;
+	}
+
+	/** The matched handler must be Redirection's own bulk handler. */
+	private static function is_certified_handler( $route, $handler ): bool {
+		if ( 0 !== strpos( (string) $route, '/redirection/v1/bulk/redirect/' ) ) {
+			return false;
+		}
+		if ( ! isset( $handler['callback'] ) || ! is_array( $handler['callback'] ) ||
+			! isset( $handler['callback'][0], $handler['callback'][1] ) ||
+			! is_object( $handler['callback'][0] ) || ! is_a( $handler['callback'][0], 'Redirection_Api_Redirect' ) ||
+			'route_bulk' !== $handler['callback'][1] ) {
 			return false;
 		}
 		return true;

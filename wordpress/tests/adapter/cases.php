@@ -108,6 +108,16 @@ class CC87_Missing_Class extends Adapter {
 		return array( 'UNKNOWN', 'redirection_class_missing' );
 	}
 }
+/**
+ * Narrow version-drift seam for the real REST route: production behavior is
+ * fixed in Redirection_Bulk_Disable_Rest; only the detector is overridden.
+ */
+class CC87_Version_Drift_Rest extends \CommitCap\Redirection_Bulk_Disable_Rest {
+	public static $version = '5.5.3';
+	protected static function plugin_version(): ?string {
+		return self::$version;
+	}
+}
 class CC87_Plugin_Throws extends Adapter {
 	protected function invoke_plugin() {
 		throw new RuntimeException( 'cc87 injected plugin failure' );
@@ -705,6 +715,40 @@ cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $thr
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 3 === $total && 0 === $disabled, 'unauthorized request changed durable state' );
 echo "  unauthorized user -> Redirection permission denial, no adapter, no mutation: PASS\n";
+
+// Version drift on the real REST route: the global=true Disable candidate is
+// still owned by CommitCap, but an uncertified or unavailable Redirection build
+// must fail closed instead of falling through to the stock unbounded UPDATE.
+// The drift filter runs before the production filter (priority 5) and the
+// production filter passes an earlier non-null result through unchanged.
+add_filter( 'rest_dispatch_request', array( 'CC87_Version_Drift_Rest', 'dispatch' ), 5, 4 );
+foreach ( array( '5.5.3', '5.4.0', null ) as $drift ) {
+	CC87_Version_Drift_Rest::$version = $drift;
+	cc87_seed( $root, 3 );
+	list( $response, $threads ) = cc87_trace_all( $root, function () {
+		return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+	} );
+	$body = $response->get_data();
+	cc87_assert(
+		503 === $response->get_status() && 'commitcap_redirection_version_unsupported' === $body['code'],
+		'REST version drift (' . var_export( $drift, true ) . ') response: ' . json_encode( $body )
+	);
+	list( $disable_updates, ) = cc87_disable_updates( $threads );
+	cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'REST version drift (' . var_export( $drift, true ) . ') ran a mutation or the adapter' );
+	list( $total, $disabled ) = cc87_counts( $root );
+	cc87_assert( 3 === $total && 0 === $disabled, 'REST version drift (' . var_export( $drift, true ) . ') changed durable state' );
+}
+remove_filter( 'rest_dispatch_request', array( 'CC87_Version_Drift_Rest', 'dispatch' ), 5 );
+
+// The production filter still certifies 5.5.2 after the drift simulation.
+cc87_seed( $root, 3 );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 200 === $response->get_status() && isset( $body['commitcap'] ) && 'COMMITTED' === $body['commitcap']['outcome'], 'production filter did not resume after drift tests: ' . json_encode( $body ) );
+cc87_assert( 1 === cc87_disable_updates( $threads )[0], 'production filter did not run exactly one restricted UPDATE after drift tests' );
+echo "  REST unsupported/unknown Redirection version -> 503 fail closed, zero normal and restricted UPDATE: PASS\n";
 
 // ---------------------------------------------------------------------------
 // Normal WordPress identity is still original after the whole matrix.

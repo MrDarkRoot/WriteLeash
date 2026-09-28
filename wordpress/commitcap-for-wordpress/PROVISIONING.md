@@ -156,15 +156,21 @@ All database modifications are generated as inspectable, version-pinned SQL plan
 **Required state machine (operator maintenance window; no concurrent account DCL
 or new runtime sessions until verification):**
 
-1. `PRECHECK`: before `ALTER USER`, prove pinned engine; global `PROCESS`
-   (complete processlist visibility) AND other-user KILL authority: global
-   `CONNECTION_ADMIN` or `SUPER` on MySQL 8.0.44; global `CONNECTION ADMIN` or
-   `SUPER` on MariaDB 10.11.15. Root/admin-equivalent also passes. `PROCESS`
-   alone does not authorize KILL; a KILL-only grant cannot prove visibility.
-   Require permission to inspect `mysql.user` and exactly **one** row with
+1. `PRECHECK`: before `ALTER USER`, **every** rotation - including
+   `rotate_credential(..., false)` - first proves the runtime identity is
+   unambiguous: permission to inspect `mysql.user` and exactly **one** row with
    matching username AND target host. When `user@%` and `user@localhost` coexist,
    refuse before ALTER: `PROCESSLIST.HOST` is the client origin, not the matched
-   account host. Similar usernames are not included. Test matrix executes KILL
+   account host. Similar usernames are not included. `#84.6d` proves a no-drain
+   rotation refusal preserves the credential hash, the surviving session, the
+   trigger body, helper state and the absence of a rotation marker, and that the
+   retry after removing the collision needs no trigger DDL.
+   With `drain=true`, the precheck additionally proves the pinned engine and the
+   drain authority: global `PROCESS` (complete processlist visibility) AND
+   other-user KILL authority: global `CONNECTION_ADMIN` or `SUPER` on MySQL
+   8.0.44; global `CONNECTION ADMIN` or `SUPER` on MariaDB 10.11.15.
+   Root/admin-equivalent also passes. `PROCESS` alone does not authorize KILL; a
+   KILL-only grant cannot prove visibility. The drain test matrix executes KILL
    against another user's session and checks both preflight refusal and actual
    drain on both pinned engines. Unknown server builds fail closed.
    Apply records a durable `ROTATED_UNSAFE` marker **before** ALTER in the
