@@ -344,6 +344,178 @@ cc84_reset_grants( $root );
 echo "  #84.6b collision refusal (helper, routine, account, trigger, uninstall): PASS\n";
 
 // ---------------------------------------------------------------------------
+// #84.6c: the certified runtime username must map to exactly one mysql.user
+// account row. The physical trigger is username-scoped, so a second Host row
+// would make runtime identity ambiguous. Refuse before any policy trigger or
+// target grant mutation.
+// ---------------------------------------------------------------------------
+cc84_query( $root, "DROP USER IF EXISTS 'cc84_ambig'@'%', 'cc84_ambig'@'localhost'" );
+cc84_query( $root, 'DROP TABLE IF EXISTS cc84_ambig_t1, cc84_ambig_t2' );
+cc84_query( $root, 'CREATE TABLE cc84_ambig_t1 (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB' );
+cc84_query( $root, 'CREATE TABLE cc84_ambig_t2 (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB' );
+cc84_query( $root, "CREATE USER 'cc84_ambig'@'%' IDENTIFIED BY 'cc84_ambig_secret'" );
+foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
+	cc84_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$routine TO 'cc84_ambig'@'%'" );
+}
+cc84_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc84_ambig'@'%'" );
+Plan::add_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t1', 5 )->apply( $root );
+
+$ambig_writer = new wpdb( 'cc84_ambig', 'cc84_ambig_secret', 'wp_test', $host );
+$ambig_writer->suppress_errors( true );
+cc84_assert( 'PASS' === Doctor::run( 'cc84_ambig_t1', 5, $ambig_writer, $root )['overall'], '#84.6c unique account must certify before collision' );
+
+// Collision: a second account row for the same certified username.
+cc84_query( $root, "CREATE USER 'cc84_ambig'@'localhost' IDENTIFIED BY 'cc84_ambig_secret'" );
+$ambig_add_refused = false;
+try {
+	Plan::add_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t2', 5 )->apply( $root );
+} catch ( RuntimeException $e ) {
+	$ambig_add_refused = true;
+	cc84_assert( false !== stripos( $e->getMessage(), 'ambiguous' ), '#84.6c add_target refusal message: ' . $e->getMessage() );
+}
+cc84_assert( $ambig_add_refused, '#84.6c add_target must refuse a same-username collision' );
+$t2_trigger = Engine::trigger_name( 'cc84_ambig_t2' );
+cc84_assert( 0 === (int) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA='wp_test' AND TRIGGER_NAME=%s", $t2_trigger ) ), '#84.6c collision installed a trigger' );
+cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLE_PRIVILEGES WHERE GRANTEE = \"'cc84_ambig'@'%'\" AND TABLE_NAME='cc84_ambig_t2' AND PRIVILEGE_TYPE='SELECT'" ), '#84.6c collision mutated target grants' );
+
+$ambig_remove_refused = false;
+try {
+	Plan::remove_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t1', 5 )->apply( $root );
+} catch ( RuntimeException $e ) {
+	$ambig_remove_refused = true;
+}
+cc84_assert( $ambig_remove_refused, '#84.6c remove_target must refuse a same-username collision' );
+$t1_trigger = Engine::trigger_name( 'cc84_ambig_t1' );
+cc84_assert( 1 === (int) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA='wp_test' AND TRIGGER_NAME=%s", $t1_trigger ) ), '#84.6c removal dropped the trigger despite ambiguity' );
+
+// Trusted verification reports the ambiguity explicitly.
+$ambig_verify = Doctor::run( 'cc84_ambig_t1', 5, $ambig_writer, $root );
+cc84_assert( 'PASS' !== $ambig_verify['overall'], '#84.6c ambiguous identity must not PASS' );
+cc84_assert( 'FAIL' === $ambig_verify['integrations']['cc84_ambig_t1']['status'], '#84.6c ambiguous identity integration status: ' . json_encode( $ambig_verify['integrations'] ) );
+
+// Removing the collision restores deterministic retry.
+cc84_query( $root, "DROP USER 'cc84_ambig'@'localhost'" );
+Plan::add_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t2', 5 )->apply( $root );
+$ambig_retry = Doctor::run( 'cc84_ambig_t1', 5, $ambig_writer, $root, array( 'cc84_ambig_t2' => 5 ) );
+cc84_assert( 'PASS' === $ambig_retry['overall'], '#84.6c retry after collision removal must PASS: ' . json_encode( $ambig_retry ) );
+
+// Cleanup this fixture only; shared infrastructure stays installed.
+Plan::remove_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t1', 5 )->apply( $root );
+Plan::remove_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t2', 5 )->apply( $root );
+cc84_query( $root, "DROP USER 'cc84_ambig'@'%'" );
+cc84_query( $root, 'DROP TABLE cc84_ambig_t1' );
+cc84_query( $root, 'DROP TABLE cc84_ambig_t2' );
+echo "  #84.6c same-username account collision refused before policy trigger or grant mutation: PASS\n";
+
+// ---------------------------------------------------------------------------
+// #84.6d: rotate_credential( ..., false ) must also refuse before ALTER USER
+// when the certified username is ambiguous. Credential, session, trigger and
+// helper state must all survive unchanged, and the retry after removing the
+// collision must install the new secret without any trigger DDL.
+// ---------------------------------------------------------------------------
+cc84_query( $root, "DROP USER IF EXISTS 'cc84_rot_ambig'@'%', 'cc84_rot_ambig'@'localhost'" );
+cc84_query( $root, 'DROP TABLE IF EXISTS cc84_rot_tbl' );
+cc84_query( $root, 'CREATE TABLE cc84_rot_tbl (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB' );
+cc84_query( $root, "CREATE USER 'cc84_rot_ambig'@'%' IDENTIFIED BY 'rot_v1_secret'" );
+foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
+	cc84_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$routine TO 'cc84_rot_ambig'@'%'" );
+}
+cc84_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc84_rot_ambig'@'%'" );
+Plan::add_target( 'wp_test', 'cc84_rot_ambig', '%', 'cc84_rot_tbl', 5 )->apply( $root );
+
+$rot_v1 = new wpdb( 'cc84_rot_ambig', 'rot_v1_secret', 'wp_test', $host );
+$rot_v1->suppress_errors( true );
+$rot_v1_id = (int) $rot_v1->get_var( 'SELECT CONNECTION_ID()' );
+$rot_trig = Engine::trigger_name( 'cc84_rot_tbl' );
+$rot_trig_before = (string) $root->get_var( $root->prepare(
+	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s',
+	$rot_trig
+) );
+$rot_helper_before = (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state' );
+$rot_hash_before = (string) $root->get_var( "SELECT authentication_string FROM mysql.user WHERE User = 'cc84_rot_ambig' AND Host = '%'" );
+
+cc84_query( $root, "CREATE USER 'cc84_rot_ambig'@'localhost' IDENTIFIED BY 'rot_collision_secret'" );
+$rot_collision_hash = (string) $root->get_var( "SELECT authentication_string FROM mysql.user WHERE User = 'cc84_rot_ambig' AND Host = 'localhost'" );
+$rot_refused = false;
+try {
+	Plan::rotate_credential( 'cc84_rot_ambig', '%', 'rot_v2_secret', false )->apply( $root );
+} catch ( RuntimeException $e ) {
+	$rot_refused = true;
+	cc84_assert( false !== stripos( $e->getMessage(), 'ambiguous' ), '#84.6d no-drain rotation refusal message: ' . $e->getMessage() );
+}
+cc84_assert( $rot_refused, '#84.6d rotate_credential(..., false) must refuse a same-username collision' );
+
+// Old credential still authenticates to the '%' account.
+$rot_v1_again = new wpdb( 'cc84_rot_ambig', 'rot_v1_secret', 'wp_test', $host );
+$rot_v1_again->suppress_errors( true );
+cc84_assert( 1 === (int) $rot_v1_again->get_var( 'SELECT 1' ), '#84.6d failed rotation changed the certified account secret' );
+cc84_assert( $rot_hash_before === (string) $root->get_var( "SELECT authentication_string FROM mysql.user WHERE User = 'cc84_rot_ambig' AND Host = '%'" ), '#84.6d credential hash changed' );
+// New secret does not authenticate.
+$rot_v2_try = new wpdb( 'cc84_rot_ambig', 'rot_v2_secret', 'wp_test', $host );
+$rot_v2_try->suppress_errors( true );
+cc84_assert( ! $rot_v2_try->ready, '#84.6d new secret became usable despite refusal' );
+// Other Host account credential unchanged (an account row for the alias host
+// would only match a localhost/socket connection, not this TCP fixture).
+cc84_assert( $rot_collision_hash === (string) $root->get_var( "SELECT authentication_string FROM mysql.user WHERE User = 'cc84_rot_ambig' AND Host = 'localhost'" ), '#84.6d collision account changed' );
+// No session drain: the surviving V1 session is untouched.
+cc84_assert( 1 === (int) $rot_v1->get_var( 'SELECT 1' ), '#84.6d refusal terminated the existing session' );
+cc84_assert( 1 === (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = %d', $rot_v1_id ) ), '#84.6d refusal killed a session' );
+// Trigger body, helper state and rotation marker unchanged.
+$rot_trig_after = (string) $root->get_var( $root->prepare(
+	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s',
+	$rot_trig
+) );
+cc84_assert( $rot_trig_before === $rot_trig_after, '#84.6d refusal changed the policy trigger' );
+cc84_assert( $rot_helper_before === (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state' ), '#84.6d refusal changed helper state' );
+cc84_assert( 0 === (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = 0' ), '#84.6d refusal created a rotation marker' );
+
+// Remove the collision; the same plan shape must now succeed without DDL.
+cc84_query( $root, "DROP USER 'cc84_rot_ambig'@'localhost'" );
+Plan::rotate_credential( 'cc84_rot_ambig', '%', 'rot_v2_secret', false )->apply( $root );
+$rot_v1_new = new wpdb( 'cc84_rot_ambig', 'rot_v1_secret', 'wp_test', $host );
+$rot_v1_new->suppress_errors( true );
+cc84_assert( ! $rot_v1_new->ready, '#84.6d old secret still authenticates after retry' );
+$rot_v2 = new wpdb( 'cc84_rot_ambig', 'rot_v2_secret', 'wp_test', $host );
+$rot_v2->suppress_errors( true );
+cc84_assert( 1 === (int) $rot_v2->get_var( 'SELECT 1' ), '#84.6d retry did not install V2' );
+$rot_trig_retry = (string) $root->get_var( $root->prepare(
+	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s',
+	$rot_trig
+) );
+cc84_assert( $rot_trig_before === $rot_trig_retry, '#84.6d rotation required trigger DDL' );
+// The no-drain retry is diagnostic-only and correctly leaves ROTATED_UNSAFE;
+// completing the supported lifecycle needs the standalone drain. The drain
+// terminates the V2 session too, so a fresh connection follows it.
+$rot_unsafe = Doctor::run( 'cc84_rot_tbl', 5, $rot_v2, $root );
+cc84_assert( 'PASS' !== $rot_unsafe['overall'], '#84.6d no-drain retry must not report READY' );
+Plan::drain( 'cc84_rot_ambig', '%' )->apply( $root );
+$rot_v2 = new wpdb( 'cc84_rot_ambig', 'rot_v2_secret', 'wp_test', $host );
+$rot_v2->suppress_errors( true );
+$rot_verify = Doctor::run( 'cc84_rot_tbl', 5, $rot_v2, $root );
+cc84_assert( 'PASS' === $rot_verify['overall'], '#84.6d rotated runtime not READY after drain: ' . json_encode( $rot_verify ) );
+cc84_query( $root, 'INSERT INTO cc84_rot_tbl (id, touched) VALUES (1, 0), (2, 0)' );
+$rot_guarded = Guard::update( 'cc84_rot_tbl', 2, function () use ( $rot_v2 ) {
+	cc84_query( $rot_v2, 'UPDATE cc84_rot_tbl SET touched = touched + 1 WHERE id <= 2' );
+	return 'rot-guarded';
+}, $rot_v2 );
+cc84_assert( 'rot-guarded' === $rot_guarded, '#84.6d rotated runtime did not enforce' );
+$rot_denied = false;
+try {
+	Guard::update( 'cc84_rot_tbl', 0, function () use ( $rot_v2 ) {
+		$rot_v2->query( 'UPDATE cc84_rot_tbl SET touched = touched + 1 WHERE id = 1' );
+	}, $rot_v2 );
+} catch ( \CommitCap\Budget_Denied $e ) {
+	$rot_denied = true;
+}
+cc84_assert( $rot_denied, '#84.6d rotated runtime lost budget enforcement' );
+
+// Cleanup this fixture only.
+Plan::remove_target( 'wp_test', 'cc84_rot_ambig', '%', 'cc84_rot_tbl', 5 )->apply( $root );
+cc84_query( $root, "DROP USER 'cc84_rot_ambig'@'%'" );
+cc84_query( $root, 'DROP TABLE cc84_rot_tbl' );
+echo "  #84.6d no-drain rotation refuses same-username collision before ALTER USER and retries without trigger DDL: PASS\n";
+
+// ---------------------------------------------------------------------------
 // #84.7: Remove Target A while B Remains Active
 // ---------------------------------------------------------------------------
 $plan_remove_a = Plan::remove_target( 'wp_test', 'cc84_writer', '%', 'cc84_a', 10 );
@@ -376,6 +548,14 @@ $survivor = new wpdb( 'cc84_writer', 'cc84_initial_secret', 'wp_test', $host );
 $survivor->suppress_errors( true );
 $survivor_id = (int) $survivor->get_var( 'SELECT CONNECTION_ID()' );
 cc84_assert( $survivor_id > 0, '#84.8 survivor session did not connect' );
+
+// Password rotation must not invalidate the identity-scoped policy trigger.
+$b_trigger = Engine::trigger_name( 'cc84_b' );
+$trigger_before_rotation = $root->get_var( $root->prepare(
+	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s',
+	$b_trigger
+) );
+cc84_assert( is_string( $trigger_before_rotation ), '#84.8 policy trigger missing before rotation' );
 
 $plan_rotate = Plan::rotate_credential( 'cc84_writer', '%', 'cc84_rotated_v2_secret', false );
 cc84_assert( 1 === count( $plan_rotate->get_steps( true ) ), '#84.8 no-drain rotate must have exactly one step' );
@@ -426,6 +606,17 @@ $v2_committed = Guard::update(
 	$writer_v2
 );
 cc84_assert( 'v2-committed' === $v2_committed, '#84.8 Guard enforcement under rotated credentials' );
+
+// The identity-scoped trigger body is untouched by a password-only rotation,
+// and the same runtime username is still physically enforced after rotation.
+$trigger_after_rotation = $root->get_var( $root->prepare(
+	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s',
+	$b_trigger
+) );
+cc84_assert( $trigger_before_rotation === $trigger_after_rotation, '#84.8 password rotation rewrote the policy trigger' );
+$rotated_unguarded = $writer_v2->query( 'UPDATE cc84_b SET touched = 999 WHERE id = 1' );
+cc84_assert( false === $rotated_unguarded && false !== strpos( (string) $writer_v2->last_error, 'CC54_DENIED' ), '#84.8 rotated runtime identity is no longer physically enforced' );
+$writer_v2->query( 'SELECT 1' );
 $writer = $writer_v2;
 
 // Verify secrets do not leak in Doctor reports or plan JSON.
@@ -463,7 +654,10 @@ if ( file_exists( $log_file ) ) {
 ini_set( 'error_log', (string) $previous_log );
 @unlink( $log_file );
 cc84_assert( ! $leaked, '#84.8b raw secret leaked in failure path' );
-cc84_assert( false !== strpos( $failure_message, 'withheld' ) || false !== strpos( $failure_message, Plan::REDACTED_SECRET ), '#84.8b failure message must be explicitly redacted' );
+// An absent account is now refused by the unconditional identity preflight
+// before any credential DDL. The withheld-credential-SQL failure path itself
+// stays exercised by #84.10c (identity preflight passes, ALTER is denied).
+cc84_assert( false !== stripos( $failure_message, 'Runtime identity is ambiguous' ), '#84.8b absent account must be refused before credential DDL: ' . $failure_message );
 
 // Successful apply results and default rendered plans carry no raw secret.
 $ok_rotate = Plan::rotate_credential( 'cc84_writer', '%', 'cc84_ok_secret_2', false );
@@ -760,6 +954,7 @@ for ( $i = 1; $i <= 5; ++$i ) {
 cc84_query( $root, "DROP USER IF EXISTS 'cc84_op_target'@'%'" );
 cc84_query( $root, "CREATE USER 'cc84_op_target'@'%' IDENTIFIED BY 'cc84_op_secret'" );
 cc84_query( $root, 'GRANT SELECT, UPDATE ON wp_test.cc84_part TO \'cc84_op_target\'@\'%\' WITH GRANT OPTION' );
+cc84_query( $root, "GRANT SELECT ON mysql.* TO 'cc84_op_target'@'%'" );
 $op_target = new wpdb( 'cc84_op_target', 'cc84_op_secret', 'wp_test', $host );
 $op_target->suppress_errors( true );
 $target_failure = '';
@@ -785,6 +980,9 @@ echo "  #84.10b add_target partial failure detected and deterministically replay
 // --- C: rotation fails without altering the account ------------------------
 cc84_query( $root, "DROP USER IF EXISTS 'cc84_op_rotate'@'%'" );
 cc84_query( $root, "CREATE USER 'cc84_op_rotate'@'%' IDENTIFIED BY 'cc84_op_secret'" );
+cc84_query( $root, "GRANT SELECT ON wp_test.* TO 'cc84_op_rotate'@'%'" ); // connection must be ready
+cc84_query( $root, "GRANT SELECT ON mysql.* TO 'cc84_op_rotate'@'%'" ); // identity preflight must pass so ALTER is the failing step
+cc84_query( $root, "GRANT SELECT, INSERT, UPDATE, DELETE ON wp_test.commitcap_v01_state TO 'cc84_op_rotate'@'%'" ); // rotation marker write/clear, no ALTER USER
 $op_rotate = new wpdb( 'cc84_op_rotate', 'cc84_op_secret', 'wp_test', $host );
 $op_rotate->suppress_errors( true );
 $rotate_failure = '';
@@ -794,6 +992,8 @@ try {
 	$rotate_failure = $e->getMessage();
 }
 cc84_assert( '' !== $rotate_failure, '#84.10c rotation without ALTER USER must fail' );
+cc84_assert( false !== strpos( $rotate_failure, 'withheld' ), '#84.10c failed credential DDL must withhold SQL: ' . $rotate_failure );
+cc84_assert( 0 === (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = 0' ), '#84.10c failed rotation left an unsafe marker' );
 $unchanged = new wpdb( 'cc84_part_user', 'cc84_part_v1_secret', 'wp_test', $host );
 $unchanged->suppress_errors( true );
 cc84_assert( 1 === (int) $unchanged->get_var( 'SELECT 1' ), '#84.10c failed rotation changed the account secret' );
@@ -802,7 +1002,7 @@ $rotated = new wpdb( 'cc84_part_user', 'cc84_part_v2_secret', 'wp_test', $host )
 $rotated->suppress_errors( true );
 cc84_assert( 1 === (int) $rotated->get_var( 'SELECT 1' ), '#84.10c rotation replay did not install V2' );
 cc84_query( $root, "DROP USER 'cc84_op_rotate'@'%'" );
-echo "  #84.10c rotation partial failure detected and deterministically replayed: PASS\n";
+echo "  #84.10c rotation partial failure (DCL withheld) detected and deterministically replayed: PASS\n";
 
 // --- D: uninstall fails after dropping triggers/routines, before the helper
 cc84_query( $root, "DROP USER IF EXISTS 'cc84_op_uninstall'@'%'" );

@@ -650,7 +650,17 @@ final class Compatibility_Doctor {
 				return;
 			}
 			if ( null !== $budget ) {
-				$engine->verify_policy( $name, $budget );
+				// The expected runtime identity comes from the runtime connection
+				// under test, never from the installer.
+				$runtime_user = ( new Update_Engine( $db ) )->session_user_name();
+				// The physical trigger is username-scoped: more than one account
+				// row for that username makes runtime identity ambiguous.
+				$account_count = $installer->get_var( $installer->prepare( 'SELECT COUNT(*) FROM mysql.user WHERE User = %s', $runtime_user ) );
+				if ( null === $account_count || '' !== (string) $installer->last_error || 1 !== (int) $account_count ) {
+					$this->check( 'target_table', 'FAIL', true, 'Target table/policy', 'Runtime identity is ambiguous or unverifiable: the certified username must map to exactly one database account; a username-scoped policy cannot be certified. Nothing was changed.' );
+					return;
+				}
+				$engine->verify_policy( $name, $budget, $runtime_user );
 				( new Update_Engine( $db ) )->verify_runtime_policy( $name, $budget );
 			}
 			$this->check( 'target_table', 'PASS', true, 'Target table/policy', null === $budget

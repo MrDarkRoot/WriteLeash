@@ -94,7 +94,7 @@ for ( $i = 1; $i <= 10; ++$i ) {
 	cc83_query( $root, "INSERT INTO cc83_a (id, touched) VALUES ($i, 0)" );
 }
 cc83_query( $root, "GRANT SELECT, UPDATE ON wp_test.cc83_a TO 'cc_writer'@'%'" );
-$installer->install_policy( 'cc83_a', 10 ); // physical ceiling P = 10
+$installer->install_policy( 'cc83_a', 10, 'cc_writer' ); // physical ceiling P = 10
 
 // Normal web request: ONLY restricted $writer connection, NO installer connection
 $res_a = Doctor::runtime( array( 'cc83_a' => 5 ), $writer );
@@ -132,7 +132,7 @@ for ( $i = 1; $i <= 10; ++$i ) {
 	cc83_query( $root, "INSERT INTO cc83_b (id, touched) VALUES ($i, 0)" );
 }
 cc83_query( $root, "GRANT SELECT, UPDATE ON wp_test.cc83_b TO 'cc_writer'@'%'" );
-$installer->install_policy( 'cc83_b', 20 ); // physical ceiling P = 20
+$installer->install_policy( 'cc83_b', 20, 'cc_writer' ); // physical ceiling P = 20
 
 // Both A and B are known code integration policies
 $res_ab = Doctor::runtime( array( 'cc83_a' => 5, 'cc83_b' => 15 ), $writer );
@@ -188,7 +188,7 @@ for ( $i = 1; $i <= 10; ++$i ) {
 	cc83_query( $root, "INSERT INTO cc83_b (id, touched) VALUES ($i, 0)" );
 }
 cc83_query( $root, "GRANT SELECT, UPDATE ON wp_test.cc83_b TO 'cc_writer'@'%'" );
-$installer->install_policy( 'cc83_b', 20 );
+$installer->install_policy( 'cc83_b', 20, 'cc_writer' );
 $res_restored = Doctor::runtime( array( 'cc83_a' => 5, 'cc83_b' => 15 ), $writer );
 cc83_assert( 'PASS' === $res_restored['overall'], '#83.3 restoration should restore PASS' );
 echo "  #83.3 corrupt/missing B forces A to UNKNOWN and aggregate to DEGRADED: PASS\n";
@@ -266,14 +266,14 @@ cc83_assert( 'UNKNOWN' === $res_tampered_trig['integrations']['cc83_b']['status'
 
 // Restore canonical policy
 cc83_query( $root, "DROP TRIGGER `$a_trigger`" );
-$installer->install_policy( 'cc83_a', 10 );
+$installer->install_policy( 'cc83_a', 10, 'cc_writer' );
 echo "  #83.6 policy ceiling and template mismatch: PASS\n";
 
 // ---------------------------------------------------------------------------
 // #83.7: Credential rotation and removed A while B remains
 // ---------------------------------------------------------------------------
 // 7a: Removed A while B remains
-$installer->remove_owned_policy( 'cc83_a', 10 );
+$installer->remove_owned_policy( 'cc83_a', 10, 'cc_writer' );
 cc83_query( $root, "REVOKE ALL PRIVILEGES ON wp_test.cc83_a FROM 'cc_writer'@'%'" );
 // Table cc83_a and its rows survive
 cc83_assert( 10 === (int) $root->get_var( 'SELECT COUNT(*) FROM cc83_a' ), '#83.7a table rows survive policy removal' );
@@ -417,13 +417,45 @@ try {
 	$probe_refused = true;
 }
 cc83_assert( $probe_refused, '#83.11 behavioral trigger probe accepted a dropped trigger' );
-$installer->install_policy( 'cc83_b', 20 );
+$installer->install_policy( 'cc83_b', 20, 'cc_writer' );
 $probe_result = $probe_engine->runtime_trigger_probe( 'cc83_b' );
 cc83_assert( 'probed' === $probe_result, '#83.11 behavioral trigger probe did not pass on the canonical trigger: ' . $probe_result );
 echo "  #83.11 behavioral trigger accounting probe is independent of definition evidence: PASS\n";
 
+// ---------------------------------------------------------------------------
+// #83.12: the runtime-identity condition is part of the trusted enforcement
+// body. A canonical-looking trigger with the wrong identity, the condition
+// removed or broadened, or an extra accepted principal must not certify.
+// ---------------------------------------------------------------------------
+function cc83_identity_tamper( $root, $installer, $writer, $table, $ceiling, $body, $label ) {
+	$trigger = Engine::trigger_name( $table );
+	cc83_query( $root, "DROP TRIGGER `$trigger`" );
+	cc83_query( $root, "CREATE TRIGGER `$trigger` BEFORE UPDATE ON `$table` FOR EACH ROW $body" );
+	$result = Doctor::runtime( array( $table => $ceiling ), $writer );
+	cc83_assert( 'PASS' !== $result['overall'], "$label must not PASS: " . json_encode( $result ) );
+	cc83_assert( 'FAIL' === $result['integrations'][ $table ]['status'], "$label integration must FAIL: " . json_encode( $result['integrations'] ) );
+	cc83_query( $root, "DROP TRIGGER `$trigger`" );
+	$installer->install_policy( $table, $ceiling, 'cc_writer' );
+}
+$canonical_b = Engine::trigger_body( 'cc83_b', 20, 'cc_writer' );
+$identity_condition = "LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('cc_writer')";
+cc83_assert( false !== strpos( $canonical_b, $identity_condition ), '#83.12 canonical identity condition missing' );
+$identity_variants = array(
+	'wrong runtime identity' => str_replace( $identity_condition, "LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('cc83_other')", $canonical_b ),
+	'identity check removed' => str_replace( $identity_condition, '1 = 1', $canonical_b ),
+	'broadened bypass' => str_replace( $identity_condition, "LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('cc_writer') OR 1 = 1", $canonical_b ),
+	'extra principal accepted' => str_replace( $identity_condition, "LOWER(SUBSTRING_INDEX(USER(), '@', 1)) IN (LOWER('cc_writer'), LOWER('cc83_foreign'))", $canonical_b ),
+);
+foreach ( $identity_variants as $label => $variant ) {
+	cc83_assert( $canonical_b !== $variant, '#83.12 fixture mutation did not occur: ' . $label );
+	cc83_identity_tamper( $root, $installer, $writer, 'cc83_b', 20, $variant, $label );
+}
+$restored_identity = Doctor::runtime( array( 'cc83_b' => 15 ), $writer );
+cc83_assert( 'PASS' === $restored_identity['overall'], '#83.12 canonical restoration must PASS: ' . json_encode( $restored_identity ) );
+echo "  #83.12 runtime-identity trigger variants rejected; canonical restore PASS: PASS\n";
+
 // Clean up Gate #83 test objects
-$installer->remove_owned_policy( 'cc83_b', 20 );
+$installer->remove_owned_policy( 'cc83_b', 20, 'cc_writer' );
 cc83_query( $root, "REVOKE ALL PRIVILEGES ON wp_test.cc83_b FROM 'cc_writer'@'%'" );
 cc83_query( $root, 'DROP TABLE cc83_a' );
 cc83_query( $root, 'DROP TABLE cc83_b' );

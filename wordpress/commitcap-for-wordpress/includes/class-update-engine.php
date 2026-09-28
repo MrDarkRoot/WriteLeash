@@ -305,33 +305,79 @@ final class Update_Engine {
 		) );
 	}
 
-	public static function trigger_body( string $table, int $budget ): string {
-		$id = self::policy_id( $table );
-		return "BEGIN UPDATE commitcap_v01_state SET consumed = consumed + 1 WHERE connection_id = CONNECTION_ID() AND policy_id = '$id' AND consumed < $budget; IF ROW_COUNT() != 1 THEN SET @commitcap_v01_denied = 1; SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED'; END IF; END";
+	/** Canonical runtime username grammar shared by provisioning and verification. */
+	public static function runtime_user( $name ): string {
+		if ( ! is_string( $name ) || strlen( $name ) > 32 ||
+			! preg_match( '/\A[A-Za-z0-9_.\-]+\z/D', $name ) ) {
+			throw new \InvalidArgumentException( 'Invalid database username.' );
+		}
+		return $name;
 	}
 
-	public function install_policy( $table, $budget ): void {
-		$name = self::table( $table );
-		$limit = self::budget( $budget );
+	/**
+	 * The authenticated username of this connection, with no host part.
+	 *
+	 * USER() is session state set by the server at authentication time; a
+	 * trigger's CURRENT_USER() instead reports the trigger DEFINER (proved on
+	 * both pinned engines), so USER() is the reviewed invocation identity.
+	 */
+	public function session_user_name(): string {
+		$name = $this->db->get_var( "SELECT SUBSTRING_INDEX(USER(), '@', 1)" );
+		if ( ! is_string( $name ) || '' === $name || '' !== (string) $this->db->last_error ) {
+			throw new \RuntimeException( 'CommitCap could not read the authenticated runtime username.' );
+		}
+		return self::runtime_user( $name );
+	}
+
+	private static function trigger_prefix( string $policy_id, string $runtime_user ): string {
+		return "BEGIN IF LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('" . $runtime_user . "') THEN UPDATE commitcap_v01_state SET consumed = consumed + 1 WHERE connection_id = CONNECTION_ID() AND policy_id = '$policy_id' AND consumed < ";
+	}
+
+	private static function trigger_suffix(): string {
+		return "; IF ROW_COUNT() != 1 THEN SET @commitcap_v01_denied = 1; SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED'; END IF; END IF; END";
+	}
+
+	/**
+	 * Canonical BEFORE UPDATE trigger for one table and one restricted runtime
+	 * account.
+	 *
+	 * The identity condition scopes physical enforcement to the certified
+	 * runtime username: normal WordPress/plugin writers keep their ordinary
+	 * table behavior, while the restricted runtime is enforced (and denied when
+	 * no Guard accounting row exists). LOWER() keeps any case variant of the
+	 * runtime username inside enforcement (fail closed). The whole condition is
+	 * part of the verified canonical body; Doctor rejects any variant.
+	 */
+	public static function trigger_body( string $table, int $budget, string $runtime_user ): string {
+		$id      = self::policy_id( $table );
+		$runtime = self::runtime_user( $runtime_user );
+		return self::trigger_prefix( $id, $runtime ) . $budget . self::trigger_suffix();
+	}
+
+	public function install_policy( $table, $budget, $runtime_user ): void {
+		$name    = self::table( $table );
+		$limit   = self::budget( $budget );
+		$runtime = self::runtime_user( $runtime_user );
 		$this->verify_infrastructure();
 		$info = $this->inspect_table( $name );
 		if ( $info['triggers'] ) {
 			throw new \RuntimeException( 'Existing trigger/policy conflict; no overwrite.' );
 		}
 		$trigger = self::trigger_name( $name );
-		$this->execute( "CREATE TRIGGER `$trigger` BEFORE UPDATE ON `$name` FOR EACH ROW " . self::trigger_body( $name, $limit ) );
-		$this->verify_policy( $name, $limit );
+		$this->execute( "CREATE TRIGGER `$trigger` BEFORE UPDATE ON `$name` FOR EACH ROW " . self::trigger_body( $name, $limit, $runtime ) );
+		$this->verify_policy( $name, $limit, $runtime );
 	}
 
-	public function verify_policy( $table, $budget ): void {
-		$name = self::table( $table );
-		$limit = self::budget( $budget );
+	public function verify_policy( $table, $budget, $runtime_user ): void {
+		$name    = self::table( $table );
+		$limit   = self::budget( $budget );
+		$runtime = self::runtime_user( $runtime_user );
 		$this->verify_infrastructure();
 		$info = $this->inspect_table( $name );
 		$triggers = $info['triggers'];
 		if ( 1 !== count( $triggers ) || self::trigger_name( $name ) !== $triggers[0]->TRIGGER_NAME ||
 			'BEFORE' !== $triggers[0]->ACTION_TIMING || 'UPDATE' !== $triggers[0]->EVENT_MANIPULATION ||
-			! self::same_sql( self::trigger_body( $name, $limit ), $triggers[0]->ACTION_STATEMENT ) ||
+			! self::same_sql( self::trigger_body( $name, $limit, $runtime ), $triggers[0]->ACTION_STATEMENT ) ||
 			$triggers[0]->DEFINER !== $this->db->get_var( 'SELECT CURRENT_USER()' ) ) {
 			throw new \RuntimeException( 'CommitCap policy absent, conflicting or malformed.' );
 		}
@@ -360,9 +406,10 @@ final class Update_Engine {
 		if ( null === $normalized ) {
 			throw new \RuntimeException( 'CommitCap runtime policy statement is malformed.' );
 		}
+		$runtime   = $this->session_user_name();
 		$policy_id = self::policy_id( $name );
-		$prefix = "BEGIN UPDATE commitcap_v01_state SET consumed = consumed + 1 WHERE connection_id = CONNECTION_ID() AND policy_id = '$policy_id' AND consumed < ";
-		$suffix = "; IF ROW_COUNT() != 1 THEN SET @commitcap_v01_denied = 1; SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED'; END IF; END";
+		$prefix    = self::trigger_prefix( $policy_id, $runtime );
+		$suffix    = self::trigger_suffix();
 		if ( 0 !== strpos( $normalized, $prefix ) || substr( $normalized, -strlen( $suffix ) ) !== $suffix ) {
 			throw new \RuntimeException( 'CommitCap runtime policy structure does not match canonical trigger template.' );
 		}
@@ -372,7 +419,7 @@ final class Update_Engine {
 		} catch ( \Throwable $error ) {
 			throw new \RuntimeException( 'CommitCap runtime policy contains invalid physical ceiling: ' . $ceiling_str );
 		}
-		if ( ! self::same_sql( self::trigger_body( $name, $ceiling ), $statement ) ) {
+		if ( ! self::same_sql( self::trigger_body( $name, $ceiling, $runtime ), $statement ) ) {
 			throw new \RuntimeException( 'CommitCap runtime policy statement mismatch.' );
 		}
 		return $ceiling;
@@ -688,9 +735,10 @@ final class Update_Engine {
 	 * Trusted structural check for an existing target trigger.
 	 * Absent trigger = true; canonical CommitCap trigger = true; foreign = throw.
 	 */
-	public function assert_canonical_trigger( string $table, bool $allow_absent = true ): bool {
-		$name = self::table( $table );
-		$info = $this->inspect_table( $name );
+	public function assert_canonical_trigger( string $table, bool $allow_absent, string $runtime_user ): bool {
+		$name    = self::table( $table );
+		$runtime = self::runtime_user( $runtime_user );
+		$info    = $this->inspect_table( $name );
 		if ( ! $info['triggers'] ) {
 			if ( $allow_absent ) {
 				return false;
@@ -701,22 +749,23 @@ final class Update_Engine {
 			throw new \RuntimeException( 'Refusing to replace: table ' . $name . ' has an existing unreviewed trigger ' . $info['triggers'][0]->TRIGGER_NAME . '.' );
 		}
 		$statement = (string) $info['triggers'][0]->ACTION_STATEMENT;
-		if ( ! self::statement_is_canonical_trigger( $name, $statement ) ) {
+		if ( ! self::statement_is_canonical_trigger( $name, $statement, $runtime ) ) {
 			throw new \RuntimeException( 'Refusing to replace a CommitCap-named trigger with a foreign body on ' . $name . '.' );
 		}
 		return true;
 	}
 
 	/** Structural canonical trigger template match, ceiling extracted, no PHP re-derivation. */
-	public static function statement_is_canonical_trigger( string $table, string $statement ): bool {
-		$name = self::table( $table );
+	public static function statement_is_canonical_trigger( string $table, string $statement, string $runtime_user ): bool {
+		$name    = self::table( $table );
+		$runtime = self::runtime_user( $runtime_user );
 		$normalized = self::normalize_sql( $statement );
 		if ( null === $normalized ) {
 			return false;
 		}
 		$policy_id = self::policy_id( $name );
-		$prefix = "BEGIN UPDATE commitcap_v01_state SET consumed = consumed + 1 WHERE connection_id = CONNECTION_ID() AND policy_id = '$policy_id' AND consumed < ";
-		$suffix = "; IF ROW_COUNT() != 1 THEN SET @commitcap_v01_denied = 1; SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED'; END IF; END";
+		$prefix    = self::trigger_prefix( $policy_id, $runtime );
+		$suffix    = self::trigger_suffix();
 		if ( 0 !== strpos( $normalized, $prefix ) || substr( $normalized, -strlen( $suffix ) ) !== $suffix ) {
 			return false;
 		}
@@ -726,7 +775,7 @@ final class Update_Engine {
 		} catch ( \Throwable $error ) {
 			return false;
 		}
-		return self::same_sql( self::trigger_body( $name, (int) $ceiling ), $statement );
+		return self::same_sql( self::trigger_body( $name, (int) $ceiling, $runtime ), $statement );
 	}
 
 	/** Restricted writer: check trigger count on non-target or foreign table via trusted procedure. */
@@ -740,9 +789,9 @@ final class Update_Engine {
 	}
 
 	/** Refuse unknown objects: no DROP TABLE and no wildcard trigger cleanup. */
-	public function remove_owned_policy( $table, $budget ): void {
+	public function remove_owned_policy( $table, $budget, $runtime_user ): void {
 		$name = self::table( $table );
-		$this->verify_policy( $name, $budget );
+		$this->verify_policy( $name, $budget, $runtime_user );
 		$trigger = self::trigger_name( $name );
 		$this->execute( "DROP TRIGGER `$trigger`" );
 	}

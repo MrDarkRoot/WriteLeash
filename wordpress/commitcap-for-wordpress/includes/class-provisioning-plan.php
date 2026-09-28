@@ -52,11 +52,7 @@ final class Provisioning_Plan {
 	}
 
 	public static function validate_user( $user ): string {
-		if ( ! is_string( $user ) || strlen( $user ) > 32 ||
-			! preg_match( '/\A[A-Za-z0-9_.\-]+\z/D', $user ) ) {
-			throw new \InvalidArgumentException( 'Invalid database username.' );
-		}
-		return $user;
+		return Update_Engine::runtime_user( $user );
 	}
 
 	public static function validate_host( $host ): string {
@@ -255,7 +251,7 @@ final class Provisioning_Plan {
 		}
 		$user_id      = "'$runtime_user'@'$runtime_host'";
 		$trigger_name = Update_Engine::trigger_name( $table_name );
-		$trigger_body = Update_Engine::trigger_body( $table_name, $ceiling );
+		$trigger_body = Update_Engine::trigger_body( $table_name, $ceiling, $runtime_user );
 
 		$sql_grant = "GRANT SELECT, UPDATE ON `$schema`.`$table_name` TO $user_id";
 		$sql_drop_trig = "DROP TRIGGER IF EXISTS `$schema`.`$trigger_name`";
@@ -787,6 +783,7 @@ final class Provisioning_Plan {
 	private function assert_preconditions( Update_Engine $engine, \wpdb $installer ): void {
 		switch ( $this->action ) {
 			case self::ACTION_INSTALL:
+				self::assert_installable_runtime_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
 				if ( $this->helper_exists( $installer ) ) {
 					$engine->assert_canonical_helper();
 				}
@@ -796,17 +793,19 @@ final class Provisioning_Plan {
 				$this->assert_managed_user_or_absent( $installer );
 				foreach ( (array) $this->params['targets'] as $tbl => $ceiling ) {
 					if ( $this->table_exists( $installer, (string) $tbl ) ) {
-						$engine->assert_canonical_trigger( (string) $tbl );
+						$engine->assert_canonical_trigger( (string) $tbl, true, (string) $this->params['runtime_user'] );
 					}
 				}
 				break;
 			case self::ACTION_ADD_TARGET:
 			case self::ACTION_REMOVE_TARGET:
+				self::assert_unique_runtime_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
 				if ( $this->table_exists( $installer, (string) $this->params['table'] ) ) {
-					$engine->assert_canonical_trigger( (string) $this->params['table'] );
+					$engine->assert_canonical_trigger( (string) $this->params['table'], true, (string) $this->params['runtime_user'] );
 				}
 				break;
 			case self::ACTION_UNINSTALL:
+				self::assert_unique_runtime_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
 				foreach ( Update_Engine::routine_names() as $name ) {
 					$engine->assert_canonical_routine( $name );
 				}
@@ -816,20 +815,23 @@ final class Provisioning_Plan {
 				foreach ( (array) $this->params['targets'] as $key => $val ) {
 					$tbl = is_string( $key ) ? $key : $val;
 					if ( $this->table_exists( $installer, (string) $tbl ) ) {
-						$engine->assert_canonical_trigger( (string) $tbl );
+						$engine->assert_canonical_trigger( (string) $tbl, true, (string) $this->params['runtime_user'] );
 					}
 				}
 				$this->assert_managed_user_or_absent( $installer );
 				break;
 			case self::ACTION_ROTATE_CREDENTIAL:
+				// The identity-scoped trigger makes uniqueness mandatory for every
+				// credential mutation, not only when draining sessions. Refuse
+				// before ALTER USER when the username is ambiguous.
+				self::assert_unique_runtime_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
 				if ( ! empty( $this->params['drain'] ) ) {
 					self::assert_drain_capability( $installer );
-					self::assert_unique_drain_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
 				}
 				break;
 			case self::ACTION_DRAIN:
 				self::assert_drain_capability( $installer );
-				self::assert_unique_drain_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
+				self::assert_unique_runtime_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
 				break;
 		}
 	}
@@ -925,11 +927,11 @@ final class Provisioning_Plan {
 		$runtime_user = self::validate_user( $runtime_user );
 		$runtime_host = self::validate_host( $runtime_host );
 		self::assert_drain_capability( $installer );
-		self::assert_unique_drain_account( $installer, $runtime_user, $runtime_host );
+		self::assert_unique_runtime_account( $installer, $runtime_user, $runtime_host );
 
 		$drained = 0;
 		for ( $attempt = 0; $attempt < 10; ++$attempt ) {
-			self::assert_unique_drain_account( $installer, $runtime_user, $runtime_host );
+			self::assert_unique_runtime_account( $installer, $runtime_user, $runtime_host );
 			$rows = $installer->get_col( $installer->prepare(
 				'SELECT ID FROM information_schema.PROCESSLIST WHERE USER = %s AND ID <> CONNECTION_ID()',
 				$runtime_user
@@ -941,7 +943,7 @@ final class Provisioning_Plan {
 				return array( 'drained' => $drained, 'remaining' => 0 );
 			}
 			foreach ( $rows as $id ) {
-				self::assert_unique_drain_account( $installer, $runtime_user, $runtime_host );
+				self::assert_unique_runtime_account( $installer, $runtime_user, $runtime_host );
 				$id = (int) $id;
 				if ( $id <= 0 ) {
 					continue;
@@ -958,7 +960,7 @@ final class Provisioning_Plan {
 			usleep( 50000 );
 		}
 
-		self::assert_unique_drain_account( $installer, $runtime_user, $runtime_host );
+		self::assert_unique_runtime_account( $installer, $runtime_user, $runtime_host );
 		$rows = $installer->get_col( $installer->prepare(
 			'SELECT ID FROM information_schema.PROCESSLIST WHERE USER = %s AND ID <> CONNECTION_ID()',
 			$runtime_user
@@ -969,11 +971,39 @@ final class Provisioning_Plan {
 		return array( 'drained' => $drained, 'remaining' => 0 );
 	}
 
-	/** PROCESSLIST.HOST is the client endpoint, not the matched mysql.user.Host. */
-	private static function assert_unique_drain_account( \wpdb $installer, string $user, string $host ): void {
+	/**
+	 * One certified runtime username must map to exactly one mysql.user Host
+	 * row. The physical trigger is scoped by username (`USER()` without host),
+	 * so a second account with the same username would silently fall into the
+	 * same enforcement bucket. PROCESSLIST.HOST is the client endpoint, not the
+	 * matched mysql.user.Host.
+	 *
+	 * @return array<int, string> Host rows for the username (empty when absent).
+	 */
+	private static function runtime_account_hosts( \wpdb $installer, string $user ): array {
 		$rows = $installer->get_col( $installer->prepare( 'SELECT Host FROM mysql.user WHERE User = %s', $user ) );
-		if ( ! is_array( $rows ) || '' !== (string) $installer->last_error || 1 !== count( $rows ) || $host !== (string) $rows[0] ) {
-			throw new \RuntimeException( 'Cannot map processlist username to one exact runtime account host; refusing to rotate or drain.' );
+		if ( ! is_array( $rows ) || '' !== (string) $installer->last_error ) {
+			throw new \RuntimeException( 'Unable to inspect the runtime account identity; refusing to continue.' );
+		}
+		return array_map( 'strval', $rows );
+	}
+
+	/** The account must exist exactly once, with the plan's expected host. */
+	private static function assert_unique_runtime_account( \wpdb $installer, string $user, string $host ): void {
+		$hosts = self::runtime_account_hosts( $installer, $user );
+		if ( 1 !== count( $hosts ) || $host !== $hosts[0] ) {
+			throw new \RuntimeException( 'Runtime identity is ambiguous: the certified username must have exactly one account row with the expected host; refusing before any policy trigger change.' );
+		}
+	}
+
+	/** Install/reuse may create the account, but never when the username is ambiguous. */
+	private static function assert_installable_runtime_account( \wpdb $installer, string $user, string $host ): void {
+		$hosts = self::runtime_account_hosts( $installer, $user );
+		if ( array() === $hosts ) {
+			return;
+		}
+		if ( 1 !== count( $hosts ) || $host !== $hosts[0] ) {
+			throw new \RuntimeException( 'Runtime identity is ambiguous: the certified username must have exactly one account row with the expected host; refusing before any policy trigger change.' );
 		}
 	}
 

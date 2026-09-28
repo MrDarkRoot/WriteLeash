@@ -107,22 +107,39 @@ All database modifications are generated as inspectable, version-pinned SQL plan
    ```sql
    GRANT SELECT, UPDATE ON `wp_db`.`target_table` TO 'cc_writer'@'localhost';
    ```
-2. Create physical ceiling `BEFORE UPDATE` trigger:
+2. Create the identity-scoped physical ceiling `BEFORE UPDATE` trigger:
    ```sql
    CREATE TRIGGER `wp_db`.`commitcap_v01_<hash>` BEFORE UPDATE ON `wp_db`.`target_table`
    FOR EACH ROW
    BEGIN
-     UPDATE commitcap_v01_state
-        SET consumed = consumed + 1
-      WHERE connection_id = CONNECTION_ID()
-        AND policy_id = '<policy_hash>'
-        AND consumed < <physical_ceiling>;
-     IF ROW_COUNT() != 1 THEN
-       SET @commitcap_v01_denied = 1;
-       SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED';
+     IF LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('cc_writer') THEN
+       UPDATE commitcap_v01_state
+          SET consumed = consumed + 1
+        WHERE connection_id = CONNECTION_ID()
+          AND policy_id = '<policy_hash>'
+          AND consumed < <physical_ceiling>;
+       IF ROW_COUNT() != 1 THEN
+         SET @commitcap_v01_denied = 1;
+         SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED';
+       END IF;
      END IF;
    END;
    ```
+   The `USER()` condition scopes enforcement to the certified runtime username
+   (proved on both pinned engines; a trigger's `CURRENT_USER()` is the DEFINER
+   and was rejected). Normal WordPress/plugin writers keep their ordinary table
+   behavior, including the Redirection item-scoped, single-item and hit/stat
+   writers. The whole condition is part of the verified canonical body and the
+   runtime Doctor derives the expected username from the live restricted
+   connection.
+   **Runtime identity invariant:** the certified username must map to exactly
+   one `mysql.user` row with the plan's host. `install` may create it; but
+   `add_target`, `remove_target`, `uninstall`, `rotate_credential` and `drain`
+   read `mysql.user` first and refuse before any policy trigger or target grant
+   mutation when another Host row for the same username exists. A username
+   collision must be resolved by the operator, then the same plan retries
+   deterministically. `#84.6c` proves refusal, no trigger/grant mutation,
+   explicit Doctor ambiguity FAIL and the successful retry after removal.
 
 ### 3.3 Remove Target (`Provisioning_Plan::remove_target`)
 1. Drop canonical trigger:
@@ -139,15 +156,21 @@ All database modifications are generated as inspectable, version-pinned SQL plan
 **Required state machine (operator maintenance window; no concurrent account DCL
 or new runtime sessions until verification):**
 
-1. `PRECHECK`: before `ALTER USER`, prove pinned engine; global `PROCESS`
-   (complete processlist visibility) AND other-user KILL authority: global
-   `CONNECTION_ADMIN` or `SUPER` on MySQL 8.0.44; global `CONNECTION ADMIN` or
-   `SUPER` on MariaDB 10.11.15. Root/admin-equivalent also passes. `PROCESS`
-   alone does not authorize KILL; a KILL-only grant cannot prove visibility.
-   Require permission to inspect `mysql.user` and exactly **one** row with
+1. `PRECHECK`: before `ALTER USER`, **every** rotation - including
+   `rotate_credential(..., false)` - first proves the runtime identity is
+   unambiguous: permission to inspect `mysql.user` and exactly **one** row with
    matching username AND target host. When `user@%` and `user@localhost` coexist,
    refuse before ALTER: `PROCESSLIST.HOST` is the client origin, not the matched
-   account host. Similar usernames are not included. Test matrix executes KILL
+   account host. Similar usernames are not included. `#84.6d` proves a no-drain
+   rotation refusal preserves the credential hash, the surviving session, the
+   trigger body, helper state and the absence of a rotation marker, and that the
+   retry after removing the collision needs no trigger DDL.
+   With `drain=true`, the precheck additionally proves the pinned engine and the
+   drain authority: global `PROCESS` (complete processlist visibility) AND
+   other-user KILL authority: global `CONNECTION_ADMIN` or `SUPER` on MySQL
+   8.0.44; global `CONNECTION ADMIN` or `SUPER` on MariaDB 10.11.15.
+   Root/admin-equivalent also passes. `PROCESS` alone does not authorize KILL; a
+   KILL-only grant cannot prove visibility. The drain test matrix executes KILL
    against another user's session and checks both preflight refusal and actual
    drain on both pinned engines. Unknown server builds fail closed.
    Apply records a durable `ROTATED_UNSAFE` marker **before** ALTER in the
@@ -158,6 +181,10 @@ or new runtime sessions until verification):**
    ```sql
    ALTER USER 'cc_writer'@'localhost' IDENTIFIED BY '[REDACTED_SECRET]';
    ```
+   Password-only rotation keeps the authenticated username unchanged, so the
+   identity-scoped policy triggers stay canonical and **no trigger DDL is
+   required**. `#84.8` asserts the trigger body is byte-identical before and
+   after rotation and that the rotated account is still physically enforced.
 3. Update `wp-config.php` with the V2 secret while enablement is held:
    ```php
    define( 'COMMITCAP_DB_PASSWORD', '<new_secret>' );

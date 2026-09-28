@@ -39,7 +39,7 @@ exact observed version and may refuse protection when support is unknown.
 
 `Update_Engine::install_infrastructure()` and `install_policy()` run with a
 distinct trusted installer connection. The installer needs CREATE for the helper table,
-CREATE ROUTINE for the four SQL SECURITY DEFINER routines, and TRIGGER for
+CREATE ROUTINE for the five SQL SECURITY DEFINER routines, and TRIGGER for
 each protected table. Removal requires TRIGGER privilege. The restricted
 runtime writer needs only UPDATE/SELECT on the protected tables and EXECUTE on
 the named `commitcap_v01_open`, `commitcap_v01_close`,
@@ -65,8 +65,20 @@ is *not* a restricted writer, and hosting support for split installer/runtime
 credentials is unproven. Never grant ALL to make the engine work.
 
 The helper is a trusted InnoDB table keyed by `(CONNECTION_ID(), policy_id)`.
-The row trigger atomically increments the counter before each row UPDATE; a
-missing/exhausted counter issues SQLSTATE `45000`, numeric error `1644`, with a
+The row trigger is **scoped to one certified runtime username**: its canonical
+body starts `IF LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('<runtime_user>')
+THEN ...` and only then increments the counter before each row UPDATE. `USER()`
+is the server-authenticated session identity set at authentication time;
+`CURRENT_USER()` was rejected because a trigger reports its DEFINER instead
+(proved on both pinned engines). `LOWER()` keeps any case variant of the runtime
+username inside enforcement (fail closed). Normal WordPress/plugin writers keep
+their ordinary table behavior; the certified runtime is enforced and denied
+whenever no Guard accounting row exists. The whole identity condition is part
+of the verified canonical body, so a wrong-identity, removed or broadened
+condition never passes trusted or runtime verification. Because the condition
+is username-scoped, provisioning refuses to create or modify a policy trigger
+when the certified username maps to more than one `mysql.user` account row. A missing/exhausted
+counter issues SQLSTATE `45000`, numeric error `1644`, with a
 stable `CC54_DENIED` marker. `denial_details()` combines the numeric code,
 SQLSTATE, table/budget and transactional count into structured data immediately
 after a failed statement; a missing counter is identified separately and has
@@ -105,8 +117,11 @@ needed to distinguish this sequence safely; no tombstone or implicit-COMMIT
 routine has been added. **Application code must not call OPEN/CLOSE directly.**
 Only #56 may call them for a supported application job; this direct-call
 counterexample remains in executable tests. `OPEN` itself does not issue
-`START TRANSACTION` or implicitly COMMIT. A direct unguarded UPDATE with no
-open row fails, but neither the trigger nor #54 protects arbitrary direct SQL.
+`START TRANSACTION` or implicitly COMMIT. A direct unguarded UPDATE by the
+certified runtime with no open row fails (the old design also broke every other
+writer; the scoped trigger removed that), but neither the trigger nor #54
+protects arbitrary direct SQL or principals outside the certified runtime
+identity.
 The engine is **not** a PostgreSQL-equivalent security boundary. If #56 cannot
 prove transaction ownership and prevent lifecycle reuse, it must refuse to run.
 
@@ -126,6 +141,13 @@ cannot synthesize a stale denial result.
 Removal verifies the *entire* expected trigger definition, owner and table
 before dropping just that trigger; no wildcard cleanup or user-table DROP.
 Actual installation is manual/trusted, never triggered by plugin activation.
+
+Password-only rotation does not change the authenticated runtime username, so
+the identity-scoped trigger remains canonical and **no trigger DDL is required
+for a password rotation** (#84 re-proves the body is unchanged and that the
+rotated account is still physically enforced). Renaming the runtime account or
+changing its username is not part of the lifecycle and requires re-running
+`add_target` for each protected table.
 
 The #53 [counterexample](../../experiments/mysql_tx_budget/README.md) remains
 an independent required regression: `SIGNAL` followed by savepoint recovery

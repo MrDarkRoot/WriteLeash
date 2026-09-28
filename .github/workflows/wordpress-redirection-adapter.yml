@@ -1,0 +1,35 @@
+name: WordPress Redirection adapter
+
+on:
+  pull_request:
+    paths:
+      - 'wordpress/**'
+      - '.github/workflows/wordpress-redirection-adapter.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'wordpress/**'
+      - '.github/workflows/wordpress-redirection-adapter.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  redirection-adapter:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+      - name: Run pinned Redirection 5.5.2 Bulk Disable adapter on both engines
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash wordpress/tests/adapter/run.sh 2>&1 | tee "$RUNNER_TEMP/wordpress-redirection-adapter.txt"
+      - name: Preserve #87 adapter transcript
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, pinned
+        with:
+          name: wordpress-redirection-adapter
+          path: ${{ runner.temp }}/wordpress-redirection-adapter.txt
+          if-no-files-found: ignore
+          retention-days: 7
