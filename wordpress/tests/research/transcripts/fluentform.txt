@@ -1,0 +1,24 @@
+=== CANDIDATE fluentform: install fluentform.5.2.9.zip ===
+Unpacking the package...
+Installing the plugin...
+Removing the old version of the plugin...
+Plugin updated successfully.
+Activating 'fluentform'...
+Plugin 'fluentform' activated.
+Success: Installed 1 of 1 plugins.
+SEED: form_id=1 entries=6 unread=6
+SERVICE: Selected entries successfully marked as Read
+--- TRACE fluentform_bulk_mark_read (thread 27) ---
+SQL: update `wp_fluentform_submissions` set `status` = 'read', `updated_at` = '2026-09-28 07:32:35' where `form_id` = 1 and `id` in (1, 2, 3, 4, 5, 6)
+SQL: SELECT COUNT(*) FROM wp_fluentform_submissions WHERE form_id=1 AND status='read'
+HOOKS: {"query":9,"sanitize_text_field":1,"gettext":3,"gettext_fluentform":3,"fluentform\/entry_statuses_core":1,"pre_option_timezone_string":4,"pre_option":6,"pre_wp_load_alloptions":6,"alloptions":6,"option_timezone_string":4,"pre_option_gmt_offset":2,"option_gmt_offset":2,"fluentform\/after_submission_status_update":6}
+MAIL: 0
+HTTP: []
+--- END TRACE fluentform_bulk_mark_read ---
+TABLE VERBS (fluentform_submissions): {"UPDATE":1,"SELECT":1}
+RESULT: read=6
+=== CANDIDATE fluentform: deactivate and delete ===
+Plugin 'fluentform' deactivated.
+Success: Deactivated 1 of 1 plugins.
+Deleted 'fluentform' plugin.
+Success: Deleted 1 of 1 plugins.

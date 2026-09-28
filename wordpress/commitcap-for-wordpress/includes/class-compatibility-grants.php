@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Compatibility_Grants {
 	private const ROUTINES = array(
 		'commitcap_v01_open', 'commitcap_v01_close',
-		'commitcap_v01_count', 'commitcap_v01_policy',
+		'commitcap_v01_count', 'commitcap_v01_policy', 'commitcap_v01_attest',
 	);
 	private const DDL = array(
 		'CREATE', 'ALTER', 'DROP', 'TRIGGER', 'CREATE ROUTINE',
@@ -108,6 +108,7 @@ final class Compatibility_Grants {
 	/** Return a machine status and a secret-free explanation. */
 	public function runtime(): array {
 		$reviewed = array();
+		$helper_select = false;
 		$ambiguous_scope = false;
 		foreach ( $this->grants as $grant ) {
 			if ( '*' !== $grant['database'] && $this->schema !== $grant['database'] &&
@@ -122,7 +123,7 @@ final class Compatibility_Grants {
 				if ( 'EXECUTE' === $privilege ) {
 					if ( 'PROCEDURE' !== $grant['kind'] || $this->schema !== $grant['database'] ||
 						! in_array( $grant['object'], self::ROUTINES, true ) ) {
-						return array( 'FAIL', 'EXECUTE extends beyond the four reviewed CommitCap procedures.' );
+						return array( 'FAIL', 'EXECUTE extends beyond the five reviewed CommitCap procedures.' );
 					}
 					$reviewed[ $grant['object'] ] = true;
 				}
@@ -141,6 +142,11 @@ final class Compatibility_Grants {
 					return array( 'FAIL', 'Runtime account can modify enforcement objects or delegate authority.' );
 				}
 				if ( $this->applies( $grant ) && 'commitcap_v01_state' === $grant['object'] &&
+					'SELECT' === $privilege ) {
+					// Reviewed unmediated read used by the runtime evidence probes.
+					$helper_select = true;
+				}
+				if ( $this->applies( $grant ) && 'commitcap_v01_state' === $grant['object'] &&
 					in_array( $privilege, array( 'INSERT', 'UPDATE', 'DELETE', 'REFERENCES' ), true ) ) {
 					return array( 'FAIL', 'Runtime account can modify the helper table.' );
 				}
@@ -154,13 +160,16 @@ final class Compatibility_Grants {
 			return array( 'UNKNOWN', 'Unexpanded role or unrecognized grant syntax; effective privilege boundary cannot be established.' );
 		}
 		if ( count( $reviewed ) !== count( self::ROUTINES ) ) {
-			return array( 'FAIL', 'Runtime account lacks explicit EXECUTE on all four reviewed procedures.' );
+			return array( 'FAIL', 'Runtime account lacks explicit EXECUTE on all five reviewed procedures.' );
 		}
-		return array( 'PASS', 'Direct grants restrict EXECUTE to four reviewed procedures and exclude helper writes and enforcement DDL.' );
+		if ( ! $helper_select ) {
+			return array( 'FAIL', 'Runtime account lacks the reviewed SELECT grant on the CommitCap helper state table.' );
+		}
+		return array( 'PASS', 'Direct grants restrict EXECUTE to five reviewed procedures, allow only helper-state SELECT and exclude helper writes and enforcement DDL.' );
 	}
 
 	/**
-	 * Runtime write scopes that can fire triggers outside the verified target.
+	 * Runtime write scopes that can fire triggers outside the verified target(s).
 	 *
 	 * The Guard monitor sees statement text only. A trigger fired by an ordinary
 	 * INSERT/UPDATE/DELETE on a writable object is opaque server-side execution,
@@ -168,14 +177,16 @@ final class Compatibility_Grants {
 	 * before the environment can PASS. Global/schema-wide and helper writes are
 	 * already FAILed by runtime() and are not repeated here.
 	 *
+	 * @param string|array<int, string>|null $target Known target or sibling policy table(s).
 	 * @return array{0: bool, 1: array<int, array{database: string, object: string}>}
 	 *         The first element is true when incomplete or pattern grants leave
 	 *         the effective write surface unprovable.
 	 */
-	public function trigger_write_scopes( ?string $target ): array {
+	public function trigger_write_scopes( $target = null ): array {
 		if ( ! $this->complete ) {
 			return array( true, array() );
 		}
+		$targets = is_array( $target ) ? $target : ( null !== $target && '' !== $target ? array( $target ) : array() );
 		$ambiguous = false;
 		$scopes    = array();
 		foreach ( $this->grants as $grant ) {
@@ -190,10 +201,10 @@ final class Compatibility_Grants {
 			if ( $this->applies( $grant ) && 'commitcap_v01_state' === $object ) {
 				continue; // Helper writes already FAIL runtime().
 			}
-			if ( $this->applies( $grant ) && null !== $target && $target === $object ) {
+			if ( $this->applies( $grant ) && in_array( $object, $targets, true ) ) {
 				continue; // The target policy is verified by target_table/target_access.
 			}
-			if ( '*' !== $database && strpbrk( $database, '%_\\' ) !== false ) {
+			if ( '*' !== $database && $this->schema !== $database && strpbrk( $database, '%_\\' ) !== false ) {
 				$ambiguous = true; // Database grant patterns may match other schemas.
 				continue;
 			}

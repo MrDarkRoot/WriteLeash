@@ -1,0 +1,35 @@
+name: WordPress plugin research
+
+on:
+  pull_request:
+    paths:
+      - 'wordpress/**'
+      - '.github/workflows/wordpress-plugin-research.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'wordpress/**'
+      - '.github/workflows/wordpress-plugin-research.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  plugin-research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+      - name: Run pinned real-plugin operations with runtime SQL tracing
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash wordpress/tests/research/run.sh 2>&1 | tee "$RUNNER_TEMP/wordpress-plugin-research.txt"
+      - name: Preserve Gate #85 runtime transcripts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, pinned
+        with:
+          name: wordpress-plugin-research
+          path: ${{ runner.temp }}/wordpress-plugin-research.txt
+          if-no-files-found: ignore
+          retention-days: 7

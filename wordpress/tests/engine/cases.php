@@ -134,9 +134,11 @@ cc54_bad_routine( $root, $installer, 'commitcap_v01_count',
 	'(OUT p_count BIGINT UNSIGNED, ' . $ascii_policy . ')', $count_body, 'wrong parameter order' );
 $installer->install_infrastructure();
 $installer->install_infrastructure(); // Idempotent verified infrastructure, no silent replacement.
-foreach ( array( 'open', 'close', 'count', 'policy' ) as $routine ) {
+foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
 	cc54_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$routine TO 'cc_writer'@'%'" );
 }
+// Reviewed unmediated helper-state read for the runtime evidence probes (#83).
+cc54_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc_writer'@'%'" );
 
 cc54_query( $root, 'CREATE TRIGGER cc_unrelated BEFORE UPDATE ON cc_conflict FOR EACH ROW SET @cc_fixture=1' );
 cc54_reject( static function () use ( $installer ) { $installer->install_policy( 'cc_conflict', 5 ); }, 'existing user trigger' );
@@ -162,9 +164,11 @@ cc54_reject( static function () use ( $engine ) { $engine->verify_runtime_policy
 $engine->verify_runtime_policy( 'cc_alpha', 5 );
 cc54_reject( static function () use ( $engine ) { $engine->begin_accounting( 'cc_conflict', 5 ); }, 'runtime conflicting trigger' );
 
-// Restricted writer cannot manage trusted helper, table DDL or trigger.
+// Reviewed #83 change: the runtime holds a read-only SELECT grant on the helper
+// state table so the pre-commit safety decision is an unmediated read, never a
+// routine body. The writer must still be unable to modify it.
+cc54_assert( false !== $writer->query( 'SELECT * FROM commitcap_v01_state' ), 'reviewed helper SELECT must work' );
 foreach ( array(
-	'SELECT * FROM commitcap_v01_state',
 	'INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (1, "bad", 0)',
 	'UPDATE commitcap_v01_state SET consumed=0',
 	'DELETE FROM commitcap_v01_state',

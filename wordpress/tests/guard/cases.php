@@ -1018,4 +1018,6 @@ cc56_assert( false !== $root->query( 'DROP FUNCTION cc56_innocent_function' ), '
 cc56_assert( false !== $root->query( 'DROP PROCEDURE cc56_innocent_commit' ), 'drop test commit wrapper' );
 cc56_assert( false !== $root->query( 'DROP PROCEDURE cc56_innocent_reset' ), 'drop test reset wrapper' );
 
+require __DIR__ . '/test-82-logical-budget.php';
+
 echo "#56 $host: ALL EXPECTED GUARD ASSERTIONS PASS (cooperative boundary only)\n";

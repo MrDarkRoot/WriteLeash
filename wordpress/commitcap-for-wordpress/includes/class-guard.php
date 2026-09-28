@@ -102,7 +102,10 @@ final class Guard {
 
 		$engine = new Update_Engine( $db );
 		try {
-			$engine->verify_runtime_policy( $name, $limit );
+			if ( $engine->rotation_unsafe() ) {
+				throw new \RuntimeException( 'Rotation drain not verified; old authenticated sessions may still exist.' );
+			}
+			$ceiling = $engine->verify_runtime_budget( $name, $limit );
 		} catch ( \Throwable $error ) {
 			throw new Guard_Error(
 				'policy_unverified',
@@ -113,8 +116,10 @@ final class Guard {
 
 		// A committed accounting row means a previous run ended outside the
 		// guard (for example a direct callback COMMIT). Refuse before mutating.
+		// The unmediated helper read is used so no routine body is load-bearing
+		// for the safety invariant.
 		try {
-			$stale = $engine->consumed( $name );
+			$stale = $engine->state_consumed( $name );
 		} catch ( \Throwable $error ) {
 			throw new Guard_Error(
 				'accounting_precheck_failed',
@@ -159,7 +164,7 @@ final class Guard {
 			$monitor->stop();
 
 			// Capture every failure signal before any further query clears it.
-			$denial        = $engine->is_budget_denial() ? $engine->denial_details( $name, $limit ) : null;
+			$denial        = $engine->is_budget_denial() ? $engine->denial_details( $name, $limit, $ceiling ) : null;
 			$generic_error = $monitor->database_error();
 			$violation     = $monitor->contract_violation();
 			$swallowed     = $monitor->budget_denial();
@@ -178,7 +183,7 @@ final class Guard {
 			// still a budget denial: keep the typed classification ahead of the
 			// generic database error it also produced.
 			if ( $swallowed ) {
-				$denial = self::denial_details( $engine, $name, $limit );
+				$denial = self::denial_details( $engine, $name, $limit, $ceiling );
 				$transaction->rollback();
 				throw new Budget_Denied( $denial );
 			}
@@ -192,7 +197,7 @@ final class Guard {
 			// The session denial signal lives outside the transaction and belongs
 			// to this connection, so it is read only after the identity check.
 			if ( $engine->denial_seen() ) {
-				$denial = self::denial_details( $engine, $name, $limit );
+				$denial = self::denial_details( $engine, $name, $limit, $ceiling );
 				$transaction->rollback();
 				throw new Budget_Denied( $denial );
 			}
@@ -209,13 +214,36 @@ final class Guard {
 					'The guarded transaction is no longer active; guarded changes may already be durable.'
 				);
 			}
-			$consumed = $engine->consumed( $name );
-			if ( null === $consumed || $consumed > $limit ) {
+			try {
+				$consumed = $engine->state_consumed( $name );
+			} catch ( \Throwable $error ) {
+				$transaction->rollback();
+				throw new Guard_Error(
+					'accounting_invalid',
+					'CommitCap could not read valid accounting state before commit.',
+					$error
+				);
+			}
+			if ( null === $consumed ) {
 				$transaction->rollback();
 				throw new Guard_Error(
 					'accounting_invalid',
 					'CommitCap could not read valid accounting state before commit.'
 				);
+			}
+			if ( $consumed > $limit ) {
+				$transaction->rollback();
+				throw new Budget_Denied( array(
+					'table'            => $name,
+					'budget'           => $limit,
+					'consumed'         => $consumed,
+					'attempted'        => $consumed,
+					'returned_count'   => $consumed,
+					'reason'           => 'logical_budget_exceeded',
+					'sqlstate'         => null,
+					'errno'            => null,
+					'physical_ceiling' => $ceiling,
+				) );
 			}
 			$engine->end_accounting( $name );
 			if ( ! $transaction->active() ) {
@@ -234,7 +262,14 @@ final class Guard {
 					'CommitCap could not confirm the guarded COMMIT; durability is unknown.'
 				);
 			}
-			if ( $transaction->active() || null !== $engine->consumed( $name ) ) {
+			$post_state = null;
+			$post_error = false;
+			try {
+				$post_state = $engine->state_consumed( $name );
+			} catch ( \Throwable $error ) {
+				$post_error = true;
+			}
+			if ( $transaction->active() || $post_error || null !== $post_state ) {
 				// The COMMIT call appeared to succeed, so changes may already be
 				// durable even though the connection state is not as expected.
 				throw new Guard_Error(
@@ -265,14 +300,14 @@ final class Guard {
 	 * Structured denial facts for a denial proven by the monitor latch or the
 	 * session signal after the raw mysqli state was cleared.
 	 */
-	private static function denial_details( Update_Engine $engine, string $table, int $budget ): array {
+	private static function denial_details( Update_Engine $engine, string $table, int $budget, ?int $ceiling = null ): array {
 		$count = null;
 		try {
-			$count = $engine->consumed( $table );
+			$count = $engine->state_consumed( $table );
 		} catch ( \Throwable $error ) {
 			$count = null;
 		}
-		return array(
+		$details = array(
 			'table'          => $table,
 			'budget'         => $budget,
 			'consumed'       => $count,
@@ -282,5 +317,9 @@ final class Guard {
 			'sqlstate'       => '45000',
 			'errno'          => 1644,
 		);
+		if ( null !== $ceiling ) {
+			$details['physical_ceiling'] = $ceiling;
+		}
+		return $details;
 	}
 }
