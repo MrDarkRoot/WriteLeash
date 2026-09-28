@@ -233,6 +233,84 @@ final class Compatibility_Grants {
 			: array( 'PASS', 'Runtime writer has SELECT and UPDATE on this target table.' );
 	}
 
+	/**
+	 * Exact reviewed target privilege boundary.
+	 *
+	 * Proves the effective privileges that apply to one target table - from
+	 * table-level, schema-wide and global grants - contain every reviewed
+	 * privilege and nothing outside the reviewed set. Presence-only callers
+	 * (the generic shared-runtime Doctor evidence) keep using target_access();
+	 * the exact boundary is owned by the descriptor-driven #78 readiness.
+	 *
+	 * Unknown/role/pattern/incomplete grant evidence returns UNKNOWN, never
+	 * PASS. USAGE is a no-op marker and is not an effective privilege;
+	 * PROCEDURE/FUNCTION grants are not table privileges.
+	 *
+	 * @param array<int, string> $allowed_privileges Reviewed privilege names.
+	 * @return array{0: string, 1: string} PASS/FAIL/UNKNOWN and secret-free detail.
+	 */
+	public function target_access_exact( string $table, array $allowed_privileges ): array {
+		if ( ! $this->complete ) {
+			return array( 'UNKNOWN', 'Cannot establish an exact target-table privilege boundary from incomplete grants.' );
+		}
+		$allowed = array();
+		foreach ( $allowed_privileges as $privilege ) {
+			if ( is_string( $privilege ) && '' !== $privilege ) {
+				$allowed[ strtoupper( $privilege ) ] = true;
+			}
+		}
+		if ( ! $allowed ) {
+			return array( 'UNKNOWN', 'No reviewed target privileges were supplied.' );
+		}
+		$effective = array();
+		$ambiguous = false;
+		foreach ( $this->grants as $grant ) {
+			if ( '' !== $grant['kind'] ) {
+				continue; // PROCEDURE/FUNCTION grants are not table privileges.
+			}
+			if ( $this->applies( $grant ) ) {
+				if ( '*' !== $grant['object'] && $table !== $grant['object'] ) {
+					continue;
+				}
+			} elseif ( strpbrk( $grant['database'], '%_\\' ) !== false && ( '*' === $grant['object'] || $table === $grant['object'] ) ) {
+				// A pattern database scope may match this schema; unprovable.
+				$ambiguous = true;
+				continue;
+			} else {
+				continue;
+			}
+			foreach ( $grant['privileges'] as $privilege ) {
+				$privilege = strtoupper( (string) $privilege );
+				if ( 'USAGE' === $privilege ) {
+					continue; // No-op marker, not an effective privilege.
+				}
+				$effective[ $privilege ] = true;
+			}
+		}
+		if ( $ambiguous ) {
+			return array( 'UNKNOWN', 'Pattern database grants may match this schema; an exact target-table privilege boundary cannot be proven.' );
+		}
+		$missing = array();
+		foreach ( array_keys( $allowed ) as $privilege ) {
+			if ( ! isset( $effective[ $privilege ] ) ) {
+				$missing[] = $privilege;
+			}
+		}
+		if ( $missing ) {
+			return array( 'FAIL', 'Runtime writer lacks reviewed target privilege(s): ' . implode( ', ', $missing ) . '.' );
+		}
+		$excess = array();
+		foreach ( array_keys( $effective ) as $privilege ) {
+			if ( ! isset( $allowed[ $privilege ] ) ) {
+				$excess[] = $privilege;
+			}
+		}
+		if ( $excess ) {
+			return array( 'FAIL', 'Runtime writer holds unreviewed target privilege(s): ' . implode( ', ', $excess ) . '.' );
+		}
+		return array( 'PASS', 'Runtime writer holds exactly the reviewed target privileges: ' . implode( ', ', array_keys( $allowed ) ) . '.' );
+	}
+
 	public function installer( ?string $table ): array {
 		if ( ! $this->complete ) {
 			return array( 'UNKNOWN', 'Installer grant listing includes unexpanded roles or unrecognized syntax.' );

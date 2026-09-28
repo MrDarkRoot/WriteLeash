@@ -230,7 +230,7 @@ class Redirection_Bulk_Disable_Rest {
 					$data
 				);
 			case 'adapter_unavailable':
-			case 'target_privileges_missing':
+			case 'target_privileges_mismatch':
 			case 'doctor_not_ready':
 			default:
 				return self::error(

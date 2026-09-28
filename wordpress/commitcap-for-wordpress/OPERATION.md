@@ -89,8 +89,18 @@ DISABLED       operation_disabled (absent or enabled=false)
 MISCONFIGURED  config_invalid | logical_budget_missing | logical_budget_invalid
 UNSUPPORTED    redirection_version_unsupported | adapter_unavailable
 NOT_READY      runtime_unavailable | doctor_not_ready
-               | physical_ceiling_mismatch | target_privileges_missing
+               | physical_ceiling_mismatch | target_privileges_mismatch
 ```
+
+READY requires the **effective** target privilege set - evaluated from
+table-level, schema-wide and global grants - to contain every descriptor
+privilege (`SELECT`, `UPDATE`) and to stay within the descriptor-reviewed
+boundary. Extra effective target privileges such as `INSERT`, `DELETE`,
+`REFERENCES`, `TRIGGER`, `GRANT OPTION`, `ALL` or any other unreviewed
+privilege are `NOT_READY` / `target_privileges_mismatch`, even when the
+presence-only generic Doctor check still sees `SELECT` + `UPDATE`. The
+descriptor is the single authority for the allowed set; readiness never
+restates the privilege list.
 
 The REST integration maps these to explicit fail-closed errors:
 `commitcap_operation_disabled`, `commitcap_operation_misconfigured`,

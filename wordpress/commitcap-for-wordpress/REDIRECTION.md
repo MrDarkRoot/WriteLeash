@@ -128,7 +128,9 @@ item-scoped `items=[...]`, `global=false`, Enable, Reset, Delete, filtered
   `commitcap_operation_disabled`; invalid stored config returns 503
   `commitcap_operation_misconfigured`; an unavailable runtime returns 503
   `commitcap_runtime_unavailable`; a physical-ceiling mismatch returns 503
-  `commitcap_physical_ceiling_mismatch`; other non-READY readiness returns 503
+  `commitcap_physical_ceiling_mismatch`; a target-privilege drift beyond the
+  descriptor-reviewed `SELECT`/`UPDATE` boundary (extra `INSERT`, `DELETE`,
+  `REFERENCES`, ...) and other non-READY readiness return 503
   `commitcap_operation_unavailable`; an execution error returns 500. None of
   these fall back to the unguarded stock mutation.
 - permissions: unchanged. WordPress runs Redirection's own

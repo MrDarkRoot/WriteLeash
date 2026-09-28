@@ -93,7 +93,14 @@ Before using Guard on a real table, rerun with its table name and budget.
   separately by #54. This is point-in-time: a trigger created later requires a
   rerun.
 - When a target is supplied, the writer must also have SELECT and UPDATE on
-  that exact table.
+  that exact table. This generic check proves **presence**; the exact reviewed
+  target-privilege boundary (no unreviewed effective target privilege such as
+  INSERT, DELETE, REFERENCES, TRIGGER, GRANT OPTION or ALL) is owned by the
+  descriptor-driven #78 readiness through
+  `Compatibility_Grants::target_access_exact()`, which evaluates effective
+  table-, schema- and global-scope grants. An extra table-scoped INSERT or
+  DELETE therefore does not make generic Doctor FAIL, but the certified
+  operation cannot become READY and the real REST path fails closed.
 - Existing infrastructure: absent = FAIL; named object that fails #54 helper,
   routine signature/body/definer verification = FAIL; unavailable trusted
   inspection = UNKNOWN. Existing target policies use the same #54 verifier,

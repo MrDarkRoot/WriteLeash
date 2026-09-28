@@ -73,6 +73,19 @@ final class Certified_Operation_Status {
 		}
 		$table = (string) $db->prefix . $operation->table_suffix();
 
+		// Exact reviewed boundary first: the effective target privileges must
+		// contain every descriptor privilege and nothing outside it, from
+		// table, schema-wide or global scope. The descriptor is the only
+		// authority for the allowed set; this check never restates it. It runs
+		// before the expensive Doctor probes so privilege drift fails closed
+		// without touching the guarded accounting routines.
+		$schema = $db->get_var( 'SELECT DATABASE()' );
+		$grants = is_string( $schema ) && '' !== $schema && '' === (string) $db->last_error ? Compatibility_Grants::read( $db, $schema ) : null;
+		$access = null === $grants ? array( 'UNKNOWN', 'Runtime target-table grants could not be read.' ) : $grants->target_access_exact( $table, $operation->target_privileges() );
+		if ( 'PASS' !== $access[0] ) {
+			return self::result( self::NOT_READY, 'target_privileges_mismatch', 'The restricted runtime target privileges do not match the descriptor-reviewed boundary: ' . $access[1], $operation, array( 'logical_budget' => $budget, 'runtime' => $db ) );
+		}
+
 		try {
 			$doctor = Compatibility_Doctor::runtime( array( $table => $budget ), $db );
 		} catch ( \Throwable $error ) {
@@ -87,13 +100,6 @@ final class Certified_Operation_Status {
 		$actual_ceiling = isset( $integration['physical_ceiling'] ) ? $integration['physical_ceiling'] : null;
 		if ( $operation->physical_ceiling() !== $actual_ceiling ) {
 			return self::result( self::NOT_READY, 'physical_ceiling_mismatch', 'The installed physical ceiling differs from the certified operation descriptor.', $operation, array( 'logical_budget' => $budget, 'runtime' => $db, 'doctor' => $doctor, 'actual_physical_ceiling' => $actual_ceiling ) );
-		}
-
-		$schema = $db->get_var( 'SELECT DATABASE()' );
-		$grants = is_string( $schema ) && '' !== $schema && '' === (string) $db->last_error ? Compatibility_Grants::read( $db, $schema ) : null;
-		$access = null === $grants ? array( 'UNKNOWN', 'Runtime target-table grants could not be read.' ) : $grants->target_access( $table );
-		if ( 'PASS' !== $access[0] ) {
-			return self::result( self::NOT_READY, 'target_privileges_missing', 'The restricted runtime lacks the descriptor-required target privileges: ' . $access[1], $operation, array( 'logical_budget' => $budget, 'runtime' => $db, 'doctor' => $doctor, 'actual_physical_ceiling' => $actual_ceiling ) );
 		}
 
 		return self::result( self::READY, 'ok', 'Certified operation is enabled, policy-verified and READY.', $operation, array(

@@ -107,6 +107,12 @@ All database modifications are generated as inspectable, version-pinned SQL plan
    ```sql
    GRANT SELECT, UPDATE ON `wp_db`.`target_table` TO 'cc_writer'@'localhost';
    ```
+   These are the **only** target privileges the runtime may hold. The #78
+   descriptor readiness evaluates the effective privilege set (table,
+   schema-wide and global scope) and reports `NOT_READY` /
+   `target_privileges_mismatch` for any extra target privilege, so scheduled
+   credential drift such as an added `INSERT` or `DELETE` fails closed without
+   broadening or weakening the reviewed boundary.
 2. Create the identity-scoped physical ceiling `BEFORE UPDATE` trigger:
    ```sql
    CREATE TRIGGER `wp_db`.`commitcap_v01_<hash>` BEFORE UPDATE ON `wp_db`.`target_table`
