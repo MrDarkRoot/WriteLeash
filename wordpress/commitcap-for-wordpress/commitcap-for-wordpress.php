@@ -39,6 +39,7 @@ require_once __DIR__ . '/includes/class-compatibility-grants.php';
 require_once __DIR__ . '/includes/class-compatibility-doctor.php';
 require_once __DIR__ . '/includes/class-provisioning-plan.php';
 require_once __DIR__ . '/includes/class-redirection-bulk-disable.php';
+require_once __DIR__ . '/includes/class-redirection-bulk-disable-rest.php';
 require_once __DIR__ . '/includes/class-plugin.php';
 
 \CommitCap\Plugin::boot();

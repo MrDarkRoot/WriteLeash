@@ -22,6 +22,40 @@ function cc87_counts( $root ) {
 }
 
 /**
+ * All general-log Query statements in the run window grouped by thread id.
+ * Used for REST end-to-end proofs where the CommitCap runtime connection is
+ * opened internally by the plugin and its thread id is not known up front.
+ *
+ * @return array{0: mixed, 1: array<int, array<int, string>>}
+ */
+function cc87_trace_all( $root, callable $invoke ) {
+	cc87_query( $root, 'SET GLOBAL general_log = 0' );
+	cc87_query( $root, 'TRUNCATE TABLE mysql.general_log' );
+	cc87_query( $root, "SET GLOBAL log_output = 'TABLE'" );
+	cc87_query( $root, 'SET GLOBAL general_log = 1' );
+
+	try {
+		$result = $invoke();
+	} finally {
+		cc87_query( $root, 'SET GLOBAL general_log = 0' );
+	}
+
+	$rows = $root->get_results(
+		"SELECT thread_id, argument FROM mysql.general_log WHERE command_type = 'Query'",
+		ARRAY_A
+	);
+	$by_thread = array();
+	foreach ( (array) $rows as $row ) {
+		$sql = preg_replace( '/\s+/', ' ', trim( (string) $row['argument'] ) );
+		if ( '' === $sql || preg_match( "/^SELECT 'CC87_TRACE_(START|END)'$/i", $sql ) ) {
+			continue;
+		}
+		$by_thread[ (int) $row['thread_id'] ][] = $sql;
+	}
+	return array( $result, $by_thread );
+}
+
+/**
  * All general-log Query statements for one connection in the run window,
  * whitespace-normalized. The general log is authoritative at the DB level: it
  * sees prepared statements as sent, including direct mysqli probes.
@@ -71,7 +105,7 @@ function cc87_trace( $root, $thread, callable $invoke ) {
 function cc87_assert_isolated( array $statements, $label, $expect_plugin_update = true ) {
 	$allowed = array(
 		'/^SELECT VERSION\(\)$/i',
-		'/^SELECT @@[a-z_]+$/i',
+		'/^SELECT @@[A-Za-z0-9_.]+$/i',
 		'/^SELECT CURRENT_USER\(\)$/i',
 		'/^SELECT USER\(\)$/i',
 		'/^SELECT DATABASE\(\)$/i',
@@ -86,6 +120,8 @@ function cc87_assert_isolated( array $statements, $label, $expect_plugin_update 
 		'/^SELECT .+ FROM commitcap_v01_state/i',
 		'/^SELECT .+ FROM `?wp_redirection_items`?/i',
 		'/^SET @commitcap_v01_denied/i',
+		"/^SET NAMES '?[A-Za-z0-9_]+'?( COLLATE '?[A-Za-z0-9_]+'?)?$/i",
+		"/^SET SESSION sql_mode='[^']*'$/i",
 		'/^START TRANSACTION$/i',
 		'/^COMMIT$/i',
 		'/^ROLLBACK$/i',
@@ -130,6 +166,42 @@ function cc87_assert_isolated( array $statements, $label, $expect_plugin_update 
 	} else {
 		cc87_assert( 0 === $plugin_updates, $label . ' plugin UPDATE ran although the callback must not execute; statements=' . json_encode( $statements ) );
 	}
+}
+
+/** Count the reviewed global Disable UPDATE and the threads that ran it. */
+function cc87_disable_updates( array $by_thread ): array {
+	$count   = 0;
+	$threads = array();
+	foreach ( $by_thread as $thread => $statements ) {
+		foreach ( $statements as $sql ) {
+			if ( preg_match( "/^UPDATE wp_redirection_items SET status='disabled'$/i", $sql ) ) {
+				++$count;
+				$threads[] = (int) $thread;
+			}
+		}
+	}
+	return array( $count, array_values( array_unique( $threads ) ) );
+}
+
+/** Adapter/Doctor/Guard markers proving the certified path ran on a thread. */
+function cc87_adapter_statements( array $by_thread ): array {
+	$found = array();
+	foreach ( $by_thread as $thread => $statements ) {
+		foreach ( $statements as $sql ) {
+			if ( preg_match( '/^CALL commitcap_v01_/i', $sql ) || preg_match( "/^SELECT SUBSTRING_INDEX\\(USER\\(\\), '@', 1\\)$/i", $sql ) ) {
+				$found[] = array( (int) $thread, $sql );
+			}
+		}
+	}
+	return $found;
+}
+
+/** REST request matching Redirection's own bulk action call shape. */
+function cc87_rest_bulk_request( $action, array $extra = array() ) {
+	$request = new WP_REST_Request( 'POST', '/redirection/v1/bulk/redirect/' . $action );
+	$request->set_header( 'X-WP-Nonce', wp_create_nonce( 'wp_rest' ) );
+	$request->set_body_params( array_merge( array( 'bulk' => $action ), $extra ) );
+	return $request;
 }
 
 /** The normal WordPress connection must be restored and still be the same identity. */

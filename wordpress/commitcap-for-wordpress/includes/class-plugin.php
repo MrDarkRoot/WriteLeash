@@ -5,10 +5,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-final class Plugin {
+	final class Plugin {
 	public static function boot(): void {
 		register_activation_hook( COMMITCAP_PLUGIN_FILE, array( Lifecycle::class, 'activate' ) );
 		register_deactivation_hook( COMMITCAP_PLUGIN_FILE, array( Lifecycle::class, 'deactivate' ) );
+		Redirection_Bulk_Disable_Rest::boot();
 	}
 
 	public static function version(): string {

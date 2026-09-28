@@ -159,7 +159,8 @@ cc87_expect( $result, 'COMMITTED', 'ok', null, '#87 safe run' );
 cc87_assert( 5 === $result['consumed'] && 5 === $result['logical_budget'], 'safe consumed/budget' );
 cc87_assert( 10 === $result['physical_ceiling'], 'safe physical ceiling' );
 cc87_assert( 5 === $result['affected_rows'], 'safe affected rows' );
-cc87_assert( false === $result['transaction_rollback_attempted'] && false === $result['guard_rollback_completed'], 'committed run must not claim rollback evidence' );
+cc87_assert( false === $result['transaction_rollback_attempted'], 'committed run must not claim rollback evidence' );
+cc87_assert( null === $result['guard_rollback_completed'], 'committed run must not claim rollback completion' );
 cc87_assert( false === $result['durability_verified_by_fresh_observer'], 'committed run must not claim durable verification' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 5 === $total && 5 === $disabled, 'safe run fresh-observer durability' );
@@ -173,7 +174,8 @@ cc87_seed( $root, 6 );
 $result = cc87_run_adapter( $root, $runtime, $runtime_id, new Adapter( $runtime, 5 ), true, true, '#87 logical denial', $normal, $normal_id );
 cc87_expect( $result, 'DENIED', 'logical_budget_exceeded', 'logical', '#87 logical denial' );
 cc87_assert( $result['consumed'] > $result['logical_budget'], 'logical denial must observe consumed > L' );
-cc87_assert( true === $result['transaction_rollback_attempted'] && true === $result['guard_rollback_completed'], 'logical denial guard rollback fact missing' );
+cc87_assert( true === $result['transaction_rollback_attempted'], 'logical denial rollback attempt fact missing' );
+cc87_assert( null === $result['guard_rollback_completed'], 'adapter must not claim rollback completion' );
 cc87_assert( false === $result['durability_verified_by_fresh_observer'], 'adapter must not claim fresh-observer durability' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 6 === $total && 0 === $disabled, 'logical denial left durable mutations' );
@@ -189,7 +191,7 @@ cc87_assert( 'DENIED' === $result['outcome'], 'physical denial outcome: ' . json
 cc87_assert( in_array( $result['reason'], array( 'budget_exceeded', 'denial_signal' ), true ), 'physical denial reason: ' . $result['reason'] );
 cc87_assert( 'physical' === $result['denial_kind'], 'physical denial kind: ' . json_encode( $result['denial_kind'] ) );
 cc87_assert( 5 === $result['physical_ceiling'], 'physical denial ceiling' );
-cc87_assert( true === $result['transaction_rollback_attempted'] && true === $result['guard_rollback_completed'], 'physical denial guard rollback fact missing' );
+cc87_assert( true === $result['transaction_rollback_attempted'] && null === $result['guard_rollback_completed'], 'physical denial rollback facts' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 8 === $total && 0 === $disabled, 'physical denial left durable mutations' );
 cc87_set_ceiling( $root, CC87_CEILING );
@@ -202,7 +204,7 @@ cc87_seed( $root, 3 );
 $result = cc87_run_adapter( $root, $runtime, $runtime_id, new Adapter( $runtime, 0 ), true, true, '#87 L=0', $normal, $normal_id );
 cc87_expect( $result, 'DENIED', 'logical_budget_exceeded', 'logical', '#87 L=0' );
 cc87_assert( $result['consumed'] > 0, 'L=0 denial consumed' );
-cc87_assert( true === $result['transaction_rollback_attempted'] && true === $result['guard_rollback_completed'], 'L=0 guard rollback fact missing' );
+cc87_assert( true === $result['transaction_rollback_attempted'] && null === $result['guard_rollback_completed'], 'L=0 rollback facts' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 3 === $total && 0 === $disabled, 'L=0 left durable mutations' );
 echo "  L=0 non-empty Disable -> denied and rolled back: PASS\n";
@@ -510,6 +512,199 @@ $foreign_ok = $foreign->query( 'UPDATE wp_redirection_items SET status = ' . "'d
 cc87_assert( false !== $foreign_ok, 'foreign granted principal was unexpectedly intercepted: ' . $foreign->last_error );
 cc87_assert( 1 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items WHERE id = ' . (int) $foreign_id . " AND status = 'disabled'" ), 'foreign principal update was not durable' );
 echo "  explicitly granted foreign principal classified as outside cooperative enforcement: PASS\n";
+
+// ---------------------------------------------------------------------------
+// Real WordPress REST end-to-end certification of the actual Admin operation:
+// POST /redirection/v1/bulk/redirect/disable with global=true. These cases go
+// through WP_REST_Server (rest_do_request), never the adapter directly.
+// ---------------------------------------------------------------------------
+if ( ! defined( 'COMMITCAP_DB_USER' ) ) {
+	define( 'COMMITCAP_DB_USER', CC87_RUNTIME_USER );
+	define( 'COMMITCAP_DB_PASSWORD', CC87_RUNTIME_SECRET );
+	define( 'COMMITCAP_DB_NAME', 'wp_test' );
+}
+$budget_option = \CommitCap\Redirection_Bulk_Disable_Rest::BUDGET_OPTION;
+update_option( $budget_option, 5 );
+wp_set_current_user( 1 );
+
+// Safe: N = L = 5 under P = 10.
+cc87_seed( $root, 5 );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 200 === $response->get_status(), 'REST safe status: ' . $response->get_status() . ' ' . wp_json_encode( $body ) );
+cc87_assert( is_array( $body ) && isset( $body['items'], $body['total'], $body['commitcap'] ), 'REST safe stock list shape plus evidence: ' . wp_json_encode( $body ) );
+cc87_assert( 'COMMITTED' === $body['commitcap']['outcome'], 'REST safe outcome: ' . wp_json_encode( $body['commitcap'] ) );
+list( $disable_updates, $disable_threads ) = cc87_disable_updates( $threads );
+cc87_assert( 1 === $disable_updates, 'REST safe expected exactly one plugin UPDATE, saw ' . $disable_updates . ': ' . json_encode( $threads ) );
+cc87_assert( ! in_array( $normal_id, $disable_threads, true ), 'REST safe plugin UPDATE ran on the normal connection' );
+cc87_assert( array() !== cc87_adapter_statements( $threads ), 'REST safe did not run the CommitCap adapter' );
+cc87_assert_isolated( $threads[ $disable_threads[0] ], '#87 REST safe runtime', true );
+list( $total, $disabled ) = cc87_counts( $root );
+cc87_assert( 5 === $total && 5 === $disabled, 'REST safe fresh-observer durability' );
+echo "  REST global=true Disable N=L=5 -> COMMITTED, restricted connection only: PASS\n";
+
+// Logical denial through the real REST route.
+cc87_seed( $root, 6 );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 409 === $response->get_status() && 'commitcap_budget_denied' === $body['code'], 'REST logical denial response: ' . json_encode( $body ) );
+cc87_assert( 'logical' === $body['data']['denial_kind'], 'REST logical denial kind: ' . json_encode( $body['data'] ) );
+list( $disable_updates, $disable_threads ) = cc87_disable_updates( $threads );
+cc87_assert( 1 === $disable_updates && ! in_array( $normal_id, $disable_threads, true ), 'REST logical denial must not run the stock global UPDATE' );
+list( $total, $disabled ) = cc87_counts( $root );
+cc87_assert( 6 === $total && 0 === $disabled, 'REST logical denial rollback durability' );
+echo "  REST N=6 > L=5 -> typed 409 denial, full rollback, no stock fallback: PASS\n";
+
+// Physical denial through the real REST route.
+cc87_set_ceiling( $root, 5 );
+cc87_seed( $root, 8 );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 409 === $response->get_status() && 'commitcap_budget_denied' === $body['code'], 'REST physical denial response: ' . json_encode( $body ) );
+cc87_assert( 'physical' === $body['data']['denial_kind'], 'REST physical denial kind: ' . json_encode( $body['data'] ) );
+list( $disable_updates, $disable_threads ) = cc87_disable_updates( $threads );
+cc87_assert( 1 === $disable_updates && ! in_array( $normal_id, $disable_threads, true ), 'REST physical denial must not run the stock global UPDATE' );
+list( $total, $disabled ) = cc87_counts( $root );
+cc87_assert( 8 === $total && 0 === $disabled, 'REST physical denial rollback durability' );
+cc87_set_ceiling( $root, CC87_CEILING );
+echo "  REST attempted > P -> distinguishable physical 409 denial, full rollback: PASS\n";
+
+// Missing budget: fail closed, never fall back to stock unguarded Disable.
+delete_option( $budget_option );
+cc87_seed( $root, 3 );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 503 === $response->get_status() && 'commitcap_budget_not_configured' === $body['code'], 'REST missing budget response: ' . json_encode( $body ) );
+list( $disable_updates, ) = cc87_disable_updates( $threads );
+cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'missing budget ran a mutation or the adapter' );
+list( $total, $disabled ) = cc87_counts( $root );
+cc87_assert( 3 === $total && 0 === $disabled, 'missing budget changed durable state' );
+update_option( $budget_option, 5 );
+echo "  REST missing budget -> 503 fail closed, zero stock mutation: PASS\n";
+
+// Malformed budget: fail closed as well.
+update_option( $budget_option, '-1' );
+cc87_seed( $root, 3 );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 503 === $response->get_status() && 'commitcap_budget_not_configured' === $body['code'], 'REST malformed budget response: ' . json_encode( $body ) );
+list( $disable_updates, ) = cc87_disable_updates( $threads );
+cc87_assert( 0 === $disable_updates, 'malformed budget ran a mutation' );
+update_option( $budget_option, 5 );
+echo "  REST malformed budget -> 503 fail closed, no stock fallback: PASS\n";
+
+// L > P: refused before the plugin callback.
+update_option( $budget_option, 11 );
+cc87_seed( $root, 3 );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 503 === $response->get_status() && 'commitcap_operation_unavailable' === $body['code'], 'REST L>P response: ' . json_encode( $body ) );
+list( $disable_updates, ) = cc87_disable_updates( $threads );
+cc87_assert( 0 === $disable_updates, 'L>P ran a mutation' );
+list( $total, $disabled ) = cc87_counts( $root );
+cc87_assert( 3 === $total && 0 === $disabled, 'L>P changed durable state' );
+update_option( $budget_option, 5 );
+echo "  REST L>P -> 503 fail closed before the plugin callback: PASS\n";
+
+// Doctor not ready: fail closed, no stock unguarded Disable.
+cc87_seed( $root, 4 );
+$trigger = Engine::trigger_name( CC87_TABLE );
+cc87_query( $root, "DROP TRIGGER `$trigger`" );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 503 === $response->get_status() && 'commitcap_operation_unavailable' === $body['code'], 'REST not-ready response: ' . json_encode( $body ) );
+list( $disable_updates, ) = cc87_disable_updates( $threads );
+cc87_assert( 0 === $disable_updates, 'not-ready route ran a mutation' );
+list( $total, $disabled ) = cc87_counts( $root );
+cc87_assert( 4 === $total && 0 === $disabled, 'not-ready route changed durable state' );
+Plan::add_target( 'wp_test', CC87_RUNTIME_USER, '%', CC87_TABLE, CC87_CEILING )->apply( $root );
+echo "  REST Doctor NOT READY -> 503 fail closed, zero stock mutation: PASS\n";
+
+// Non-certified routes stay stock Redirection on the normal connection.
+cc87_seed( $root, 4 );
+$scoped_ids = array_map( 'intval', $root->get_col( 'SELECT id FROM wp_redirection_items ORDER BY id LIMIT 2' ) );
+list( $response, $threads ) = cc87_trace_all( $root, function () use ( $scoped_ids ) {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'items' => $scoped_ids ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 200 === $response->get_status() && ! isset( $body['commitcap'] ), 'item-scoped REST must stay stock: ' . json_encode( $body ) );
+list( $disable_updates, ) = cc87_disable_updates( $threads );
+cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'item-scoped REST used CommitCap' );
+cc87_assert( 2 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items WHERE id IN (' . (int) $scoped_ids[0] . ',' . (int) $scoped_ids[1] . ") AND status = 'disabled'" ), 'item-scoped REST not durable on the normal connection' );
+echo "  non-certified REST item-scoped items=[...] stays stock: PASS\n";
+
+// Enable stays stock Redirection.
+cc87_seed( $root, 3 );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'enable', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 200 === $response->get_status() && ! isset( $body['commitcap'] ), 'enable REST must stay stock: ' . json_encode( $body ) );
+cc87_assert( array() === cc87_adapter_statements( $threads ), 'enable REST used CommitCap' );
+$enable_updates = 0;
+foreach ( (array) $threads as $statements ) {
+	foreach ( $statements as $sql ) {
+		if ( preg_match( "/^UPDATE wp_redirection_items SET status='enabled'\$/i", $sql ) ) {
+			++$enable_updates;
+		}
+	}
+}
+cc87_assert( $enable_updates >= 1, 'enable REST did not run on the normal connection' );
+echo "  non-certified REST Enable global=true stays stock: PASS\n";
+
+// Reset stays stock Redirection.
+cc87_seed( $root, 2 );
+cc87_query( $root, 'UPDATE wp_redirection_items SET last_count = 5' );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'reset', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 200 === $response->get_status() && ! isset( $body['commitcap'] ), 'reset REST must stay stock: ' . json_encode( $body ) );
+cc87_assert( array() === cc87_adapter_statements( $threads ), 'reset REST used CommitCap' );
+cc87_assert( 0 === (int) $root->get_var( 'SELECT SUM(last_count) FROM wp_redirection_items' ), 'reset REST was not durable' );
+echo "  non-certified REST Reset global=true stays stock: PASS\n";
+
+// Delete stays stock Redirection.
+cc87_seed( $root, 2 );
+$delete_id = (int) $root->get_var( 'SELECT id FROM wp_redirection_items ORDER BY id LIMIT 1' );
+list( $response, $threads ) = cc87_trace_all( $root, function () use ( $delete_id ) {
+	return rest_do_request( cc87_rest_bulk_request( 'delete', array( 'items' => array( $delete_id ) ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 200 === $response->get_status() && ! isset( $body['commitcap'] ), 'delete REST must stay stock: ' . json_encode( $body ) );
+cc87_assert( array() === cc87_adapter_statements( $threads ), 'delete REST used CommitCap' );
+cc87_assert( 1 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items' ), 'delete REST was not durable' );
+echo "  non-certified REST Delete stays stock: PASS\n";
+
+// Permission model is Redirection's own; unauthorized callers never reach
+// CommitCap and never mutate.
+cc87_seed( $root, 3 );
+wp_set_current_user( 0 );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+wp_set_current_user( 1 );
+$body = $response->get_data();
+cc87_assert( 401 === $response->get_status() || 403 === $response->get_status(), 'unauthorized REST status: ' . $response->get_status() . ' ' . json_encode( $body ) );
+list( $disable_updates, ) = cc87_disable_updates( $threads );
+cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'unauthorized request reached CommitCap or a mutation' );
+list( $total, $disabled ) = cc87_counts( $root );
+cc87_assert( 3 === $total && 0 === $disabled, 'unauthorized request changed durable state' );
+echo "  unauthorized user -> Redirection permission denial, no adapter, no mutation: PASS\n";
 
 // ---------------------------------------------------------------------------
 // Normal WordPress identity is still original after the whole matrix.

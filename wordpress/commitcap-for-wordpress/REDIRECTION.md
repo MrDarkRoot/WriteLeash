@@ -74,15 +74,51 @@ Substitution is not a hook and does not intercept Redirection requests.
 
 ```text
 transaction_rollback_attempted           true when Guard threw its typed Budget_Denied
-guard_rollback_completed                 true when Guard's owned rollback path ran (DENIED only)
+guard_rollback_completed                 always null here: Guard's ROLLBACK return value
+                                         is not checked, so completion is unknown
 durability_verified_by_fresh_observer    always false at this layer
 ```
 
 The adapter never manufactures fresh-observer certainty: it cannot prove
-durable state from its own connection, and it never uses the normal WordPress
-`$wpdb` as a verification shortcut. Only an independent observer connection
-(outside the adapter) can promote durability evidence; the CI suite does that
-with a `root` observer for every safe and denied case.
+durable state from its own connection, it cannot prove the best-effort
+`ROLLBACK` statement succeeded, and it never uses the normal WordPress `$wpdb`
+as a verification shortcut. Only an independent observer connection (outside
+the adapter) can promote durability evidence; the CI suite does that with a
+`root` observer for every safe and denied case.
+
+## REST integration (the actual Admin operation)
+
+`CommitCap\Redirection_Bulk_Disable_Rest` hooks WordPress's
+`rest_dispatch_request` filter, which runs **after** the matched route's
+permission callback has succeeded. Returning a non-null result skips
+Redirection's `route_bulk()` entirely, so the stock unbounded UPDATE on the
+normal connection cannot run for a certified request.
+
+The matcher is exact and narrow: concrete path
+`/redirection/v1/bulk/redirect/disable`, `POST`, Redirection
+`5.5.2`, the matched handler must be `Redirection_Api_Redirect::route_bulk`,
+`bulk=disable`, truthy `global`, no non-empty `items`, and no `filterBy`
+conditions. Everything else is untouched stock Redirection: item-scoped
+`items=[...]`, `global=false`, Enable, Reset, Delete, filtered `global=true`
+variants, single-item edits, hit/stat writers and unknown versions.
+
+- budget source: one operation-specific canonical nonnegative integer option,
+  `commitcap_operation_budget_redirection_5_5_2_bulk_disable`; #78/#60 will
+  replace this with the product budget source. No Admin SQL/table/method input.
+- runtime connection: `COMMITCAP_DB_USER` / `COMMITCAP_DB_PASSWORD`
+  (`COMMITCAP_DB_NAME` optional) on the normal connection's DB server, with the
+  normal table prefix. `COMMITCAP_DB_HOST` is the account-host restriction in the
+  provisioning snippet, not a connect host.
+- responses: `COMMITTED` returns Redirection's own read-only list body plus a
+  `commitcap` evidence key; `DENIED` returns `commitcap_budget_denied` (409);
+  missing/malformed budget, unavailable runtime or non-READY Doctor return 503
+  `commitcap_budget_not_configured` / `commitcap_runtime_unavailable` /
+  `commitcap_operation_unavailable`; an execution error returns 500. None of
+  these fall back to the unguarded stock mutation.
+- permissions: unchanged. WordPress runs Redirection's own
+  `permission_callback_bulk` before the filter; invalid nonce/cookie auth is
+  rejected even earlier during REST authentication, so an unauthorized caller
+  never reaches CommitCap and never mutates.
 
 ## Evidence
 
@@ -96,6 +132,16 @@ budgets. The database general log is used as the authoritative
 connection-isolation check: on the restricted connection only reviewed
 CommitCap evidence SQL, the exact Redirection target-table UPDATE and the
 trigger's own accounting SQL may appear.
+
+Real REST end-to-end coverage dispatches the actual
+`POST /redirection/v1/bulk/redirect/disable` request through `WP_REST_Server`
+(not the adapter directly) for safe COMMIT, logical denial, physical denial,
+missing/malformed budget, `L>P` and Doctor-not-ready; in every case the general
+log proves exactly one plugin UPDATE on a non-normal connection for a certified
+request and zero stock global UPDATEs on the normal connection. Non-certified
+routes (item-scoped `items=[...]`, Enable, Reset, Delete) stay stock and send
+zero SQL to the restricted connection, and an unauthorized user is denied by
+Redirection's own permission callback before CommitCap runs.
 
 The pre-scoping design broke these cases; the scoped-enforcement redesign made
 them pass, and they remain executable regressions:

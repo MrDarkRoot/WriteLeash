@@ -127,11 +127,13 @@ class Redirection_Bulk_Disable {
 	 * Outcomes: COMMITTED, DENIED, ERROR, UNKNOWN.
 	 *
 	 * Rollback facts are reported separately and conservatively:
-	 * `transaction_rollback_attempted` / `guard_rollback_completed` are true
-	 * only for a Guard-typed Budget_Denied, which performs its owned rollback
-	 * before throwing. `durability_verified_by_fresh_observer` is always false
-	 * here: only an independent observer connection (outside this adapter) can
-	 * prove durable state, and the adapter never manufactures that claim.
+	 * `transaction_rollback_attempted` is true for a Guard-typed Budget_Denied
+	 * (Guard calls its best-effort owned ROLLBACK before throwing), but the
+	 * adapter cannot prove the ROLLBACK statement succeeded, so
+	 * `guard_rollback_completed` is always null here.
+	 * `durability_verified_by_fresh_observer` is always false: only an
+	 * independent observer connection (outside this adapter) can prove durable
+	 * state, and the adapter never manufactures that claim.
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -262,8 +264,11 @@ class Redirection_Bulk_Disable {
 			'outcome'           => $outcome,
 			'denial_kind'       => $denial_kind,
 			// Three separate facts; never collapsed into one optimistic boolean.
+			// Guard's rollback is best-effort: "attempted" is what this layer
+			// knows, "completed" stays null (unknown here), and durability is
+			// only ever promoted by an independent observer outside the adapter.
 			'transaction_rollback_attempted'    => $rollback,
-			'guard_rollback_completed'          => $rollback,
+			'guard_rollback_completed'          => null,
 			'durability_verified_by_fresh_observer' => false,
 			'reason'            => $reason,
 		);
