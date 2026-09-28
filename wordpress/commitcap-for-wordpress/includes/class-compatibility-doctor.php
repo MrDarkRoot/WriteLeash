@@ -31,7 +31,7 @@ final class Compatibility_Doctor {
 	 * inspects readiness for a new policy. A distinct trusted installer connection
 	 * is needed to inspect protected object bodies and installation privileges.
 	 */
-	public static function run( $table = null, $budget = null, ?\wpdb $db = null, ?\wpdb $installer = null ): array {
+	public static function run( $table = null, $budget = null, ?\wpdb $db = null, ?\wpdb $installer = null, array $known_policies = array() ): array {
 		$doctor = new self();
 		$wp = self::wordpress_status( Environment::wordpress_version() );
 		$doctor->check( 'wordpress', $wp[0], true, 'WordPress version', $wp[1] );
@@ -125,7 +125,8 @@ final class Compatibility_Doctor {
 		$installer_status = $install_grants ? $install_grants->installer( is_string( $table ) ? $table : null ) : array( 'UNKNOWN', 'Installer grant evidence unavailable or incomplete.' );
 		$doctor->check( 'installer_grants', $installer_status[0], true, 'Trusted installation requirements', $installer_status[1] . ' #54 requires CREATE, CREATE ROUTINE and TRIGGER; removal requires TRIGGER, not DROP.' );
 
-		$doctor->trigger_surface( $runtime_grants, is_string( $table ) ? $table : null, $installer, $trusted );
+		$known_targets = is_string( $table ) ? array_merge( array( $table ), array_keys( $known_policies ) ) : ( $known_policies ? array_keys( $known_policies ) : null );
+		$doctor->trigger_surface( $runtime_grants, $known_targets, $installer, $trusted );
 
 		if ( ! $trusted ) {
 			$doctor->check( 'objects', 'UNKNOWN', true, 'CommitCap infrastructure', 'Cannot verify helper shape, routine bodies, signatures and trusted definers from the restricted runtime connection.' );
@@ -153,7 +154,319 @@ final class Compatibility_Doctor {
 			$doctor->check( 'target_access', $access[0], true, 'Runtime target-table rights', $access[1] );
 			$doctor->inspect_target( $table, $budget, $db, $trusted ? $installer : null, $family );
 		}
-		return $doctor->result();
+		$result = $doctor->result();
+		if ( null !== $table ) {
+			$tbl_check = null;
+			foreach ( $doctor->checks as $c ) {
+				if ( 'target_table' === $c['id'] ) {
+					$tbl_check = $c;
+					break;
+				}
+			}
+			$result['integrations'] = array(
+				(string) $table => array(
+					'status' => null !== $tbl_check ? $tbl_check['status'] : 'UNKNOWN',
+					'physical_ceiling' => null,
+					'logical_budget' => $budget,
+					'summary' => null !== $tbl_check ? $tbl_check['summary'] : '',
+					'detail' => null !== $tbl_check ? $tbl_check['detail'] : '',
+				),
+			);
+		} else {
+			$result['integrations'] = array();
+		}
+		return $result;
+	}
+
+	/**
+	 * Shared-runtime point-in-time verification without retained installer credentials.
+	 *
+	 * Inspects environment, restricted runtime account grants, infrastructure definitions
+	 * and DEFINERs via the trusted DEFINER routine, policy ceilings, sibling reachability,
+	 * and every non-target writable trigger surface.
+	 *
+	 * @param string|array<string, int|null>|array<int, string> $policies Known code integration policies.
+	 * @param \wpdb|null $db Restricted runtime wpdb connection.
+	 * @return array{overall: string, checks: array, integrations: array<string, array>}
+	 */
+	public static function runtime( $policies, ?\wpdb $db = null ): array {
+		if ( is_string( $policies ) ) {
+			$normalized = array( $policies => null );
+		} elseif ( is_array( $policies ) ) {
+			$normalized = array();
+			foreach ( $policies as $key => $val ) {
+				if ( is_int( $key ) && is_string( $val ) ) {
+					$normalized[ $val ] = null;
+				} elseif ( is_string( $key ) ) {
+					$normalized[ $key ] = is_array( $val ) && isset( $val['budget'] ) ? $val['budget'] : $val;
+				}
+			}
+		} else {
+			throw new \InvalidArgumentException( 'Expected policy table name or array of policy tables.' );
+		}
+
+		$doctor = new self();
+		$wp = self::wordpress_status( Environment::wordpress_version() );
+		$doctor->check( 'wordpress', $wp[0], true, 'WordPress version', $wp[1] );
+		$php = Environment::php_version();
+		$doctor->check( 'php', version_compare( $php, '7.4', '>=' ) ? 'PASS' : 'FAIL', true,
+			'PHP version', 'PHP ' . $php . '; plugin minimum is 7.4.' );
+		$multisite = function_exists( 'is_multisite' ) ? is_multisite() : null;
+		$network = false === $multisite ? false : ( function_exists( 'is_plugin_active_for_network' ) ? is_plugin_active_for_network( 'commitcap-for-wordpress/commitcap-for-wordpress.php' ) : null );
+		$doctor->check( 'multisite', self::site_status( $multisite, $network ), true,
+			'Site activation scope', true === $multisite || true === $network ? 'Multisite/network activation is not validated.' : 'Single-site activation only; network status must be observable.' );
+
+		if ( null === $db ) {
+			$db = isset( $GLOBALS['wpdb'] ) ? $GLOBALS['wpdb'] : null;
+		}
+		$ready = $db instanceof \wpdb && $db->ready && $db->dbh instanceof \mysqli;
+		$doctor->check( 'wpdb', $ready ? 'PASS' : 'FAIL', true,
+			'Guard database connection', $ready ? 'Ready mysqli-backed wpdb connection.' : 'A ready mysqli-backed wpdb connection is required.' );
+
+		if ( ! $ready ) {
+			foreach ( array(
+				'database' => 'Database identity', 'db_user' => 'Authenticated DB identity',
+				'schema' => 'Current database', 'transaction' => 'Guard transaction preconditions',
+				'connection_state' => 'Connection error state', 'runtime_grants' => 'Runtime privileges',
+				'runtime_trigger_surface' => 'Runtime opaque trigger surface',
+				'evidence_channel' => 'Trusted runtime evidence',
+				'objects' => 'CommitCap infrastructure',
+			) as $id => $summary ) {
+				$doctor->check( $id, 'UNKNOWN', true, $summary, 'Cannot inspect without a ready mysqli-backed wpdb.' );
+			}
+			$doctor->check( 'default_engine', 'UNKNOWN', false, 'Default table engine', 'Cannot inspect without wpdb.' );
+			$integrations = array();
+			foreach ( $normalized as $name => $budget ) {
+				$integrations[ $name ] = array(
+					'status' => 'UNKNOWN',
+					'physical_ceiling' => null,
+					'logical_budget' => $budget,
+					'summary' => 'Cannot inspect without ready wpdb.',
+					'detail' => 'Cannot inspect target table without a ready mysqli-backed wpdb.',
+				);
+			}
+			return array( 'overall' => 'FAIL', 'checks' => $doctor->checks, 'integrations' => $integrations );
+		}
+
+		$initial_error = '' !== (string) $db->last_error;
+		$version = $db->get_var( 'SELECT VERSION()' );
+		if ( ! is_string( $version ) || '' === $version || '' !== (string) $db->last_error ) {
+			$doctor->check( 'database', 'UNKNOWN', true, 'Database identity', 'SELECT VERSION() failed; exact database version unknown.' );
+		} else {
+			$classification = self::version_status( $version );
+			$doctor->check( 'database', $classification[0], true, 'Database identity', $classification[1] );
+		}
+		$schema = $db->get_var( 'SELECT DATABASE()' );
+		$schema = is_string( $schema ) && '' !== $schema && '' === (string) $db->last_error ? $schema : null;
+		$current = $db->get_var( 'SELECT CURRENT_USER()' );
+		$login = $db->get_var( 'SELECT USER()' );
+		$identity = is_string( $current ) && '' !== $current && is_string( $login ) && '' !== $login && '' === (string) $db->last_error;
+		$doctor->check( 'db_user', $identity ? 'PASS' : 'UNKNOWN', true, 'Authenticated DB identity',
+			$identity ? 'CURRENT_USER(): ' . $current . '; USER(): ' . $login . '. CURRENT_USER() is the matched account whose direct grants are inspected; USER() is the connecting identity.' : 'Could not confirm matched and connecting DB identities.' );
+		$doctor->check( 'schema', null === $schema ? 'UNKNOWN' : 'PASS', true, 'Current database',
+			null === $schema ? 'Current schema unreadable.' : 'Active schema: ' . $schema . '.' );
+
+		$default = $db->get_var( 'SELECT @@default_storage_engine' );
+		$doctor->check( 'default_engine', is_string( $default ) && '' !== $default && '' === (string) $db->last_error ? 'PASS' : 'UNKNOWN', false,
+			'Default table engine', is_string( $default ) && '' !== $default ? 'Default: ' . $default . '; only explicitly verified InnoDB target tables are supported.' : 'Default engine unreadable; does not substitute for target-table verification.' );
+		$autocommit = $db->get_var( 'SELECT @@autocommit' );
+		$state = null;
+		if ( '1' === (string) $autocommit && '' === (string) $db->last_error ) {
+			try {
+				$state = ( new Guard_Transaction( $db ) )->active() ? 'FAIL' : 'PASS';
+			} catch ( \Throwable $error ) {
+				$state = 'UNKNOWN';
+			}
+		} elseif ( null !== $autocommit && '' === (string) $db->last_error ) {
+			$state = 'FAIL';
+		}
+		$doctor->check( 'transaction', null === $state ? 'UNKNOWN' : $state, true,
+			'Guard transaction preconditions', 'Requires autocommit=1, no pre-existing transaction and exclusive Guard ownership; no transaction was started or ended by the doctor.' );
+		$doctor->check( 'connection_state', ! $initial_error && '' === (string) $db->last_error ? 'PASS' : 'FAIL', true,
+			'Connection error state', 'Guard requires a clean wpdb error state and a stable mysqli connection for the entire callback.' );
+
+		$runtime_grants = null !== $schema && $identity ? Compatibility_Grants::read( $db, $schema ) : null;
+		$runtime = null === $runtime_grants ? array( 'UNKNOWN', 'SHOW GRANTS unavailable, incomplete or contains unexpanded roles/unknown syntax; absence of a grant is not proven.' ) : $runtime_grants->runtime();
+		$doctor->check( 'runtime_grants', $runtime[0], true, 'Restricted runtime EXECUTE, helper and DDL boundary', $runtime[1] );
+
+		$engine = new Update_Engine( $db );
+
+		// Evidence channel & Infrastructure verification via DEFINER routine
+		$doctor->check( 'evidence_channel', 'PASS', true, 'Trusted runtime evidence',
+			'Verified via SQL SECURITY DEFINER routine commitcap_v01_policy without retained installer credentials in web PHP.' );
+
+		try {
+			$engine->runtime_inspect_infrastructure();
+			$probe = $db->query( "CALL commitcap_v01_count('0000000000000000000000000000000000000000000000000000000000000000', @cc_probe_count)" );
+			if ( false === $probe || ! empty( $db->last_error ) ) {
+				throw new \RuntimeException( 'commitcap_v01_count probe failed: ' . $db->last_error );
+			}
+			$doctor->check( 'objects', 'PASS', true, 'CommitCap infrastructure',
+				'Existing helper and all four routines verified via trusted DEFINER routine and runtime probe.' );
+		} catch ( \Throwable $error ) {
+			$doctor->check( 'objects', 'FAIL', true, 'CommitCap infrastructure',
+				'Runtime infrastructure objects absent, conflicting or altered: ' . $error->getMessage() );
+		}
+
+		// Foreign trigger surface check
+		$known_tables = array_keys( $normalized );
+		list( $ambiguous, $scopes ) = null !== $runtime_grants ? $runtime_grants->trigger_write_scopes( $known_tables ) : array( true, array() );
+		if ( null === $runtime_grants || $ambiguous ) {
+			$doctor->check( 'runtime_trigger_surface', 'UNKNOWN', true, 'Runtime opaque trigger surface',
+				'Runtime grant evidence is unavailable or ambiguous; unreviewed trigger surfaces cannot be ruled out.' );
+		} elseif ( ! $scopes ) {
+			$doctor->check( 'runtime_trigger_surface', 'PASS', true, 'Runtime opaque trigger surface',
+				'No non-target runtime write grant can fire an unreviewed trigger.' );
+		} else {
+			$foreign_triggers = 0;
+			$inspection_failed = false;
+			foreach ( $scopes as $scope ) {
+				$tbl_id = '*' === $scope['object'] ? $scope['database'] : ( $scope['database'] === $schema ? $scope['object'] : $scope['database'] . '.' . $scope['object'] );
+				try {
+					$count = $engine->runtime_table_triggers( $tbl_id );
+					$foreign_triggers += $count;
+				} catch ( \Throwable $error ) {
+					$inspection_failed = true;
+					break;
+				}
+			}
+			if ( $inspection_failed ) {
+				$doctor->check( 'runtime_trigger_surface', 'UNKNOWN', true, 'Runtime opaque trigger surface',
+					'Runtime-writable trigger graph could not be read; opaque server-side execution is not disproven.' );
+			} elseif ( $foreign_triggers > 0 ) {
+				$doctor->check( 'runtime_trigger_surface', 'UNKNOWN', true, 'Runtime opaque trigger surface',
+					$foreign_triggers . ' unreviewed trigger(s) exist on foreign runtime-writable object(s); opaque server-side execution is not proven safe.' );
+			} else {
+				$doctor->check( 'runtime_trigger_surface', 'PASS', true, 'Runtime opaque trigger surface',
+					'No triggers exist on foreign runtime-writable objects.' );
+			}
+		}
+
+		// Target policies verification
+		$integrations = array();
+		$corrupted = array();
+		foreach ( $normalized as $table => $budget ) {
+			try {
+				$tname = Update_Engine::table( $table );
+			} catch ( \Throwable $error ) {
+				$integrations[ $table ] = array(
+					'status' => 'FAIL',
+					'physical_ceiling' => null,
+					'logical_budget' => $budget,
+					'summary' => 'Invalid table identifier',
+					'detail' => $error->getMessage(),
+				);
+				$corrupted[] = $table;
+				continue;
+			}
+
+			$access = null !== $runtime_grants ? $runtime_grants->target_access( $tname ) : array( 'UNKNOWN', 'Grants unavailable.' );
+			if ( 'PASS' !== $access[0] ) {
+				$integrations[ $table ] = array(
+					'status' => 'FAIL',
+					'physical_ceiling' => null,
+					'logical_budget' => $budget,
+					'summary' => 'Runtime target-table rights',
+					'detail' => $access[1],
+				);
+				$corrupted[] = $table;
+				continue;
+			}
+
+			try {
+				$ceiling = $engine->runtime_ceiling( $tname );
+				if ( null !== $budget ) {
+					$limit = Update_Engine::budget( $budget );
+					if ( $limit > $ceiling ) {
+						$integrations[ $table ] = array(
+							'status' => 'FAIL',
+							'physical_ceiling' => $ceiling,
+							'logical_budget' => $limit,
+							'summary' => 'Logical budget exceeds physical ceiling',
+							'detail' => "CommitCap logical budget $limit exceeds installed physical ceiling $ceiling.",
+						);
+						$corrupted[] = $table;
+						continue;
+					}
+					$integrations[ $table ] = array(
+						'status' => 'PASS',
+						'physical_ceiling' => $ceiling,
+						'logical_budget' => $limit,
+						'summary' => 'Policy verified',
+						'detail' => "Target policy verified: physical ceiling $ceiling, logical budget $limit.",
+					);
+				} else {
+					$integrations[ $table ] = array(
+						'status' => 'PASS',
+						'physical_ceiling' => $ceiling,
+						'logical_budget' => null,
+						'summary' => 'Policy verified',
+						'detail' => "Target policy verified: physical ceiling $ceiling.",
+					);
+				}
+			} catch ( \Throwable $error ) {
+				$integrations[ $table ] = array(
+					'status' => 'FAIL',
+					'physical_ceiling' => null,
+					'logical_budget' => $budget,
+					'summary' => 'Policy absent or invalid',
+					'detail' => $error->getMessage(),
+				);
+				$corrupted[] = $table;
+			}
+		}
+
+		// Trigger surface check impacts integration status:
+		// If foreign trigger surface is UNKNOWN, no integration can PASS.
+		$surface_status = 'PASS';
+		foreach ( $doctor->checks as $check ) {
+			if ( 'runtime_trigger_surface' === $check['id'] ) {
+				$surface_status = $check['status'];
+				break;
+			}
+		}
+
+		if ( 'PASS' !== $surface_status ) {
+			foreach ( $integrations as $table => $info ) {
+				if ( 'PASS' === $info['status'] ) {
+					$integrations[ $table ]['status'] = 'UNKNOWN';
+					$integrations[ $table ]['detail'] .= ' (Unreviewed foreign trigger surface prevents certification.)';
+				}
+			}
+		} elseif ( $corrupted ) {
+			// Shared Reachability Invariant:
+			// If any sibling integration on the shared connection is corrupted or failing,
+			// all valid sibling integrations must become UNKNOWN because writes to the corrupted
+			// sibling could bypass or corrupt the shared runtime connection.
+			foreach ( $integrations as $table => $info ) {
+				if ( 'PASS' === $info['status'] ) {
+					$integrations[ $table ]['status'] = 'UNKNOWN';
+					$integrations[ $table ]['detail'] .= ' (Shared runtime is compromised by corrupted sibling integration: ' . implode( ', ', $corrupted ) . '; shared reachability prevents certification.)';
+				}
+			}
+		}
+
+		// Calculate overall status
+		$base_result = $doctor->result();
+		$overall = $base_result['overall'];
+		if ( 'PASS' === $overall ) {
+			$integ_statuses = array_column( $integrations, 'status' );
+			if ( ! $integ_statuses ) {
+				$overall = 'PASS';
+			} elseif ( array_fill( 0, count( $integ_statuses ), 'PASS' ) === $integ_statuses ) {
+				$overall = 'PASS';
+			} elseif ( array_fill( 0, count( $integ_statuses ), 'FAIL' ) === $integ_statuses ) {
+				$overall = 'FAIL';
+			} elseif ( in_array( 'FAIL', $integ_statuses, true ) || in_array( 'UNKNOWN', $integ_statuses, true ) ) {
+				$overall = 'DEGRADED';
+			}
+		}
+
+		return array(
+			'overall' => $overall,
+			'checks' => $doctor->checks,
+			'integrations' => $integrations,
+		);
 	}
 
 	/** Explicit network/site classification; network activation was refused by #55. */
@@ -185,7 +498,7 @@ final class Compatibility_Doctor {
 	 * non-target writable object whose trigger graph is uninspected, or that
 	 * currently has any trigger, cannot be certified PASS.
 	 */
-	private function trigger_surface( ?Compatibility_Grants $grants, ?string $target, ?\wpdb $installer, bool $trusted ): void {
+	private function trigger_surface( ?Compatibility_Grants $grants, $target, ?\wpdb $installer, bool $trusted ): void {
 		if ( null === $grants ) {
 			$this->check( 'runtime_trigger_surface', 'UNKNOWN', true, 'Runtime opaque trigger surface', 'Runtime grant evidence is unavailable or incomplete; unreviewed trigger surfaces cannot be ruled out.' );
 			return;

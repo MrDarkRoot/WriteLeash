@@ -270,3 +270,7 @@ cc57_query( $root, 'DROP TABLE commitcap_v01_state' );
 $engine->install_infrastructure(); // Restore exact fixture-owned infrastructure.
 cc57_check( Doctor::run( null, null, $writer, $root ), 'objects', 'PASS' );
 echo "#57 $host: ALL EXPECTED DOCTOR ASSERTIONS PASS\n";
+
+require_once __DIR__ . '/test-83-shared-runtime-doctor.php';
+require_once __DIR__ . '/test-84-provisioning-plan.php';
+

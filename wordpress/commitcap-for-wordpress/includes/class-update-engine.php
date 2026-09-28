@@ -10,8 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * restricted writer; transaction ownership and immediate rollback belong to #56.
  */
 final class Update_Engine {
-	private const STATE = 'commitcap_v01_state';
-	private const COMMENT = 'CommitCap V0.1 cooperative UPDATE state';
+	public const STATE = 'commitcap_v01_state';
+	public const COMMENT = 'CommitCap V0.1 cooperative UPDATE state';
 	private const MAX_BUDGET = '2147483647';
 	private $db;
 
@@ -61,11 +61,11 @@ final class Update_Engine {
 		self::target_family( $this->db->get_var( 'SELECT VERSION()' ) );
 	}
 
-	private static function policy_id( string $table ): string {
+	public static function policy_id( string $table ): string {
 		return hash( 'sha256', $table );
 	}
 
-	private static function trigger_name( string $table ): string {
+	public static function trigger_name( string $table ): string {
 		return 'commitcap_v01_' . substr( self::policy_id( $table ), 0, 16 );
 	}
 
@@ -142,7 +142,7 @@ final class Update_Engine {
 		throw new \InvalidArgumentException( 'Unknown routine signature.' );
 	}
 
-	private static function routine_params( string $name ): string {
+	public static function routine_params( string $name ): string {
 		$policy = 'IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin';
 		switch ( $name ) {
 			case 'commitcap_v01_open':
@@ -156,12 +156,12 @@ final class Update_Engine {
 		throw new \InvalidArgumentException( 'Unknown routine declaration.' );
 	}
 
-	private static function routines(): array {
+	public static function routines(): array {
 		return array(
 			'commitcap_v01_open' => 'BEGIN INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (CONNECTION_ID(), p_policy, 0); END',
 			'commitcap_v01_close' => "BEGIN IF COALESCE(@commitcap_v01_denied, 1) != 0 THEN SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED_PRECOMMIT'; END IF; DELETE FROM commitcap_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = p_policy; IF ROW_COUNT() != 1 THEN SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_STATE_MISSING'; END IF; END",
 			'commitcap_v01_count' => 'BEGIN SELECT consumed INTO p_count FROM commitcap_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = p_policy; END',
-			'commitcap_v01_policy' => "BEGIN SELECT t.TRIGGER_NAME, t.ACTION_STATEMENT, t.ACTION_TIMING, t.EVENT_MANIPULATION, t.DEFINER = CURRENT_USER() AS TRUSTED_DEFINER, (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = p_table) AS TRIGGER_COUNT, (SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND TABLE_TYPE = 'BASE TABLE') AS TABLE_ENGINE, (SELECT COUNT(*) FROM information_schema.PARTITIONS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND PARTITION_NAME IS NOT NULL) AS PARTITION_COUNT, (SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_NAME IS NOT NULL AND ((TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table) OR (REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = p_table))) AS FOREIGN_KEY_COUNT FROM information_schema.TRIGGERS t WHERE t.TRIGGER_SCHEMA = DATABASE() AND t.TRIGGER_NAME = p_trigger AND t.EVENT_OBJECT_TABLE = p_table; END",
+			'commitcap_v01_policy' => "BEGIN IF p_trigger != '' THEN SELECT t.TRIGGER_NAME, t.ACTION_STATEMENT, t.ACTION_TIMING, t.EVENT_MANIPULATION, t.DEFINER = CURRENT_USER() AS TRUSTED_DEFINER, (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE (TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = p_table) OR (p_table LIKE '%.%' AND TRIGGER_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND EVENT_OBJECT_TABLE = SUBSTRING_INDEX(p_table, '.', -1))) AS TRIGGER_COUNT, (SELECT ENGINE FROM information_schema.TABLES WHERE (TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND TABLE_TYPE = 'BASE TABLE') OR (p_table LIKE '%.%' AND TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1) AND TABLE_TYPE = 'BASE TABLE')) AS TABLE_ENGINE, (SELECT COUNT(*) FROM information_schema.PARTITIONS WHERE (TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND PARTITION_NAME IS NOT NULL) OR (p_table LIKE '%.%' AND TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1) AND PARTITION_NAME IS NOT NULL)) AS PARTITION_COUNT, (SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_NAME IS NOT NULL AND (((TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table) OR (REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = p_table)) OR (p_table LIKE '%.%' AND ((TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1)) OR (REFERENCED_TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND REFERENCED_TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1)))))) AS FOREIGN_KEY_COUNT FROM information_schema.TRIGGERS t WHERE ((t.TRIGGER_SCHEMA = DATABASE() AND t.EVENT_OBJECT_TABLE = p_table) OR (p_table LIKE '%.%' AND t.TRIGGER_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND t.EVENT_OBJECT_TABLE = SUBSTRING_INDEX(p_table, '.', -1))) AND t.TRIGGER_NAME = p_trigger; ELSEIF p_table != '' THEN SELECT '' AS TRIGGER_NAME, '' AS ACTION_STATEMENT, '' AS ACTION_TIMING, '' AS EVENT_MANIPULATION, 1 AS TRUSTED_DEFINER, (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE (TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = p_table) OR (p_table LIKE '%.%' AND TRIGGER_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND EVENT_OBJECT_TABLE = SUBSTRING_INDEX(p_table, '.', -1))) AS TRIGGER_COUNT, (SELECT ENGINE FROM information_schema.TABLES WHERE (TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND TABLE_TYPE = 'BASE TABLE') OR (p_table LIKE '%.%' AND TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1) AND TABLE_TYPE = 'BASE TABLE')) AS TABLE_ENGINE, 0 AS PARTITION_COUNT, 0 AS FOREIGN_KEY_COUNT; ELSE SELECT (SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('commitcap_v01_open','commitcap_v01_close','commitcap_v01_count','commitcap_v01_policy') AND DEFINER = CURRENT_USER() AND SECURITY_TYPE = 'DEFINER') AS ROUTINE_COUNT, (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commitcap_v01_state' AND TABLE_TYPE = 'BASE TABLE' AND ENGINE = 'InnoDB') AS HELPER_COUNT, (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commitcap_v01_state') AS COLUMN_COUNT, (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = 'commitcap_v01_state') AS HELPER_TRIGGER_COUNT, (SELECT COUNT(*) FROM information_schema.PARAMETERS WHERE SPECIFIC_SCHEMA = DATABASE() AND SPECIFIC_NAME IN ('commitcap_v01_open','commitcap_v01_close','commitcap_v01_count','commitcap_v01_policy')) AS PARAMETER_COUNT; END IF; END",
 		);
 	}
 
@@ -291,7 +291,7 @@ final class Update_Engine {
 		) );
 	}
 
-	private static function trigger_body( string $table, int $budget ): string {
+	public static function trigger_body( string $table, int $budget ): string {
 		$id = self::policy_id( $table );
 		return "BEGIN UPDATE commitcap_v01_state SET consumed = consumed + 1 WHERE connection_id = CONNECTION_ID() AND policy_id = '$id' AND consumed < $budget; IF ROW_COUNT() != 1 THEN SET @commitcap_v01_denied = 1; SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED'; END IF; END";
 	}
@@ -323,22 +323,92 @@ final class Update_Engine {
 		}
 	}
 
-	/** Restricted writer: read-only metadata snapshot through a trusted definer. */
-	public function verify_runtime_policy( $table, $budget ): void {
+	/** Restricted writer: extract and verify physical ceiling from canonical trigger. */
+	public function runtime_ceiling( string $table ): int {
 		$name = self::table( $table );
-		$limit = self::budget( $budget );
 		$this->require_target_server();
+		$trigger = self::trigger_name( $name );
 		$found = $this->rows( $this->db->prepare(
-			'CALL commitcap_v01_policy(%s, %s)', $name, self::trigger_name( $name )
+			'CALL commitcap_v01_policy(%s, %s)', $name, $trigger
 		) );
-		if ( 1 !== count( $found ) || self::trigger_name( $name ) !== $found[0]->TRIGGER_NAME ||
+		if ( 1 !== count( $found ) || $trigger !== $found[0]->TRIGGER_NAME ||
 			'BEFORE' !== $found[0]->ACTION_TIMING || 'UPDATE' !== $found[0]->EVENT_MANIPULATION ||
 			'InnoDB' !== $found[0]->TABLE_ENGINE || 1 !== (int) $found[0]->TRIGGER_COUNT ||
 			0 !== (int) $found[0]->PARTITION_COUNT || 0 !== (int) $found[0]->FOREIGN_KEY_COUNT ||
-			1 !== (int) $found[0]->TRUSTED_DEFINER ||
-			! self::same_sql( self::trigger_body( $name, $limit ), $found[0]->ACTION_STATEMENT ) ) {
+			1 !== (int) $found[0]->TRUSTED_DEFINER ) {
+			throw new \RuntimeException( 'CommitCap runtime policy absent, conflicting or altered.' );
+		}
+		$statement = $found[0]->ACTION_STATEMENT;
+		if ( ! is_string( $statement ) ) {
+			throw new \RuntimeException( 'CommitCap runtime policy statement is unavailable.' );
+		}
+		$normalized = self::normalize_sql( $statement );
+		if ( null === $normalized ) {
+			throw new \RuntimeException( 'CommitCap runtime policy statement is malformed.' );
+		}
+		$policy_id = self::policy_id( $name );
+		$prefix = "BEGIN UPDATE commitcap_v01_state SET consumed = consumed + 1 WHERE connection_id = CONNECTION_ID() AND policy_id = '$policy_id' AND consumed < ";
+		$suffix = "; IF ROW_COUNT() != 1 THEN SET @commitcap_v01_denied = 1; SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED'; END IF; END";
+		if ( 0 !== strpos( $normalized, $prefix ) || substr( $normalized, -strlen( $suffix ) ) !== $suffix ) {
+			throw new \RuntimeException( 'CommitCap runtime policy structure does not match canonical trigger template.' );
+		}
+		$ceiling_str = substr( $normalized, strlen( $prefix ), strlen( $normalized ) - strlen( $prefix ) - strlen( $suffix ) );
+		try {
+			$ceiling = self::budget( $ceiling_str );
+		} catch ( \Throwable $error ) {
+			throw new \RuntimeException( 'CommitCap runtime policy contains invalid physical ceiling: ' . $ceiling_str );
+		}
+		if ( ! self::same_sql( self::trigger_body( $name, $ceiling ), $statement ) ) {
+			throw new \RuntimeException( 'CommitCap runtime policy statement mismatch.' );
+		}
+		return $ceiling;
+	}
+
+	/** Verify that installed physical ceiling matches exact expected budget. */
+	public function verify_runtime_policy( $table, $budget ): void {
+		$name = self::table( $table );
+		$limit = self::budget( $budget );
+		$ceiling = $this->runtime_ceiling( $name );
+		if ( $ceiling !== $limit ) {
 			throw new \RuntimeException( 'CommitCap runtime policy absent or altered.' );
 		}
+	}
+
+	/** Verify that table has verified policy and logical budget L satisfies 0 <= L <= P. */
+	public function verify_runtime_budget( $table, $budget ): int {
+		$name = self::table( $table );
+		$limit = self::budget( $budget );
+		$ceiling = $this->runtime_ceiling( $name );
+		if ( $limit > $ceiling ) {
+			throw new \RuntimeException(
+				'CommitCap logical budget ' . $limit . ' exceeds installed physical ceiling ' . $ceiling . '.'
+			);
+		}
+		return $ceiling;
+	}
+
+	/** Restricted writer: verify helper shape and 4 procedure DEFINERs via trusted procedure. */
+	public function runtime_inspect_infrastructure(): void {
+		$this->require_target_server();
+		$rows = $this->rows( "CALL commitcap_v01_policy('', '')" );
+		if ( 1 !== count( $rows ) ||
+			4 !== (int) $rows[0]->ROUTINE_COUNT ||
+			1 !== (int) $rows[0]->HELPER_COUNT ||
+			3 !== (int) $rows[0]->COLUMN_COUNT ||
+			0 !== (int) $rows[0]->HELPER_TRIGGER_COUNT ||
+			6 !== (int) $rows[0]->PARAMETER_COUNT ) {
+			throw new \RuntimeException( 'CommitCap runtime infrastructure invalid, conflicting or altered.' );
+		}
+	}
+
+	/** Restricted writer: check trigger count on non-target or foreign table via trusted procedure. */
+	public function runtime_table_triggers( string $table ): int {
+		$this->require_target_server();
+		$rows = $this->rows( $this->db->prepare( "CALL commitcap_v01_policy(%s, '')", $table ) );
+		if ( 1 !== count( $rows ) ) {
+			throw new \RuntimeException( 'CommitCap runtime trigger inspection failed for table: ' . $table );
+		}
+		return (int) $rows[0]->TRIGGER_COUNT;
 	}
 
 	/** Refuse unknown objects: no DROP TABLE and no wildcard trigger cleanup. */
@@ -364,9 +434,13 @@ final class Update_Engine {
 	}
 
 	/** Must be called only after the PHP guard starts its explicit transaction. */
-	public function begin_accounting( $table, $budget ): void {
+	public function begin_accounting( $table, $budget = null ): void {
 		$name = self::table( $table );
-		$this->verify_runtime_policy( $name, $budget );
+		if ( null !== $budget ) {
+			$this->verify_runtime_budget( $name, $budget );
+		} else {
+			$this->runtime_ceiling( $name );
+		}
 		$this->execute( $this->db->prepare( 'CALL commitcap_v01_open(%s)', self::policy_id( $name ) ) );
 	}
 
@@ -403,7 +477,7 @@ final class Update_Engine {
 	}
 
 	/** Read immediately after a failed UPDATE, before another query resets errno. */
-	public function denial_details( $table, $budget ): ?array {
+	public function denial_details( $table, $budget, ?int $ceiling = null ): ?array {
 		$name = self::table( $table );
 		$limit = self::budget( $budget );
 		$error = $this->budget_error();
@@ -411,7 +485,7 @@ final class Update_Engine {
 			return null;
 		}
 		$count = $this->consumed( $name );
-		return array(
+		$details = array(
 			'table'     => $name,
 			'budget'    => $limit,
 			// The failed statement rolls back its own helper increments. If a
@@ -424,5 +498,9 @@ final class Update_Engine {
 			'sqlstate'  => $error['sqlstate'],
 			'errno'     => $error['errno'],
 		);
+		if ( null !== $ceiling ) {
+			$details['physical_ceiling'] = $ceiling;
+		}
+		return $details;
 	}
 }

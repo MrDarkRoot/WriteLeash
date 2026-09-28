@@ -101,3 +101,30 @@ engine/schema/trigger changes. No automatic rerun or monitoring is implied.
 The real-fixture assertions are in `wordpress/tests/doctor/cases.php`, executed
 for both pinned servers by `bash wordpress/tests/engine/run.sh` alongside #54
 and #56. The #53 feasibility counterexample remains a separate CI regression.
+
+## Gate #83: Shared-Runtime Doctor (No Retained Installer Credentials)
+
+`CommitCap\Compatibility_Doctor::runtime($policies, ?\wpdb $db = null)`
+provides point-in-time shared runtime verification for normal web requests where
+**no installer credentials exist in PHP memory or `wp-config.php`**.
+
+### 1. Evidence Channel Evaluation
+To verify database infrastructure and foreign triggers without installer credentials, three evidence channels were evaluated:
+- **Signed manifest / `wp_options`**: Disqualified. Options and local files are mutable by WordPress plugins, can fall out of sync with actual database state, and cannot detect database-level tampering or drift.
+- **Dedicated metadata table**: Disqualified. A state table duplicates `information_schema` data, requires synchronization DDL, and risks silent desynchronization from the real DB schema.
+- **`SQL SECURITY DEFINER` procedure (`commitcap_v01_policy`)**: **Adopted**. Created once by the trusted installer during initial provisioning with installer DEFINER rights. The restricted runtime writer is granted only `EXECUTE` on this procedure. The procedure queries `information_schema` directly on live database state with the installer's DEFINER authority, inspecting routine signatures, DEFINER matches, helper table definitions, target policy triggers, and foreign writable trigger counts.
+
+### 2. Multi-Policy Sibling Recognition
+When multiple code integrations share the same restricted database connection, passing an array of known policies (e.g. `array('table_a' => 10, 'table_b' => 20)`) allows the Doctor to:
+- Inspect and verify each target policy's physical ceiling and trigger template.
+- Validate that logical budgets $L$ satisfy $0 \le L \le P$ for each integration.
+- Exclude verified sibling tables from being classified as unreviewed "foreign" trigger surfaces.
+
+### 3. Shared Reachability Invariant
+When integrations share a restricted database connection, they share a single transaction boundary:
+- If **any** writable sibling table has a corrupted, missing, or tampered trigger, or lacks proper grants, writes to that sibling during a transaction can bypass CommitCap accounting.
+- **Invariant**: Any corrupted or failing sibling integration forces all otherwise valid sibling integrations on the shared connection to fail closed to `UNKNOWN`, and forces the aggregate status to `DEGRADED`. A shared runtime can NEVER report `PASS` for integration A if sibling B is corrupt.
+
+### 4. Normal Web Request vs. Operator Verification
+- **Normal Web Request**: `Doctor::runtime()` runs with only the restricted `$writer` connection in `$wpdb`. Installer credentials are never stored, parsed, or retained in PHP.
+- **Operator Verification**: `Doctor::run()` is invoked only during explicit setup, migration, or auditing by an administrator with a separate, temporary installer connection. Full grant listings and structural verifiers are evaluated directly.

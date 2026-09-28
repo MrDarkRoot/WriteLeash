@@ -160,7 +160,7 @@ final class Compatibility_Grants {
 	}
 
 	/**
-	 * Runtime write scopes that can fire triggers outside the verified target.
+	 * Runtime write scopes that can fire triggers outside the verified target(s).
 	 *
 	 * The Guard monitor sees statement text only. A trigger fired by an ordinary
 	 * INSERT/UPDATE/DELETE on a writable object is opaque server-side execution,
@@ -168,14 +168,16 @@ final class Compatibility_Grants {
 	 * before the environment can PASS. Global/schema-wide and helper writes are
 	 * already FAILed by runtime() and are not repeated here.
 	 *
+	 * @param string|array<int, string>|null $target Known target or sibling policy table(s).
 	 * @return array{0: bool, 1: array<int, array{database: string, object: string}>}
 	 *         The first element is true when incomplete or pattern grants leave
 	 *         the effective write surface unprovable.
 	 */
-	public function trigger_write_scopes( ?string $target ): array {
+	public function trigger_write_scopes( $target = null ): array {
 		if ( ! $this->complete ) {
 			return array( true, array() );
 		}
+		$targets = is_array( $target ) ? $target : ( null !== $target && '' !== $target ? array( $target ) : array() );
 		$ambiguous = false;
 		$scopes    = array();
 		foreach ( $this->grants as $grant ) {
@@ -190,10 +192,10 @@ final class Compatibility_Grants {
 			if ( $this->applies( $grant ) && 'commitcap_v01_state' === $object ) {
 				continue; // Helper writes already FAIL runtime().
 			}
-			if ( $this->applies( $grant ) && null !== $target && $target === $object ) {
+			if ( $this->applies( $grant ) && in_array( $object, $targets, true ) ) {
 				continue; // The target policy is verified by target_table/target_access.
 			}
-			if ( '*' !== $database && strpbrk( $database, '%_\\' ) !== false ) {
+			if ( '*' !== $database && $this->schema !== $database && strpbrk( $database, '%_\\' ) !== false ) {
 				$ambiguous = true; // Database grant patterns may match other schemas.
 				continue;
 			}
