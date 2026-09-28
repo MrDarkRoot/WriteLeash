@@ -150,7 +150,7 @@ class Redirection_Bulk_Disable {
 		}
 
 		try {
-			$doctor = Compatibility_Doctor::runtime( array( $this->table => $this->budget ), $this->db );
+			$doctor = Certified_Operation_Status::runtime_doctor( $this->table, $this->budget, $this->db );
 		} catch ( \Throwable $error ) {
 			return $this->result( 'UNKNOWN', 'doctor_unavailable' );
 		}

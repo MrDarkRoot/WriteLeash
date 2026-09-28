@@ -161,6 +161,13 @@ class Redirection_Bulk_Disable_Rest {
 
 		$result  = ( new Redirection_Bulk_Disable( $runtime, $budget ) )->run();
 		$outcome = isset( $result['outcome'] ) ? (string) $result['outcome'] : 'UNKNOWN';
+		// After Guard returns, best-effort informational storage. A failed option
+		// write must never change the certified outcome or REST response.
+		try {
+			Last_Outcome::record( $result );
+		} catch ( \Throwable $error ) {
+			// Local evidence is optional; Guard's decision is authoritative.
+		}
 
 		if ( 'COMMITTED' === $outcome ) {
 			$response = self::stock_list( $handler, $request );
