@@ -6,7 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * REST integration for the one certified Redirection operation (#87).
+ * REST integration for the one certified Redirection operation (#87), driven
+ * by the #78 descriptor and config.
  *
  * Intercepts exactly:
  *
@@ -20,35 +21,32 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Redirection handler entirely. The stock `route_bulk()` therefore cannot run
  * its unbounded UPDATE on the normal connection for a certified request.
  *
+ * Candidate route and certification are deliberately separate:
+ *
+ *   candidate dangerous route/shape -> CommitCap owns it, never stock fallback
+ *     -> Certified_Operation_Status::check() decides:
+ *          READY        -> restricted runtime -> adapter -> Guard
+ *          DISABLED     -> 503, no mutation
+ *          MISCONFIGURED-> 503, no mutation
+ *          UNSUPPORTED  -> 503, no mutation
+ *          NOT_READY    -> 503, no mutation
+ *
+ * The dangerous route is derived from the descriptor; callback identity is NOT
+ * required for the version/readiness refusals, so a later-build handler
+ * refactor cannot turn the protection back into a stock unbounded update. The
+ * logical budget and enabled flag have exactly one authority:
+ * Operation_Config (plus the immutable descriptor); the legacy #87 budget
+ * option is no longer read.
+ *
  * Everything else keeps stock Redirection behavior: item scoped `items=[...]`,
  * `global=false`, Enable, Reset, Delete, filtered `global=true` variants,
  * single-item edits, hit/stat writes and every other route are untouched.
- *
- * Candidate route and version certification are deliberately separate:
- *
- *   candidate dangerous route/shape -> CommitCap owns it, never stock fallback
- *     -> unsupported/unknown version -> 503 fail closed
- *     -> certified 5.5.2 + exact handler -> adapter
- *
- * A candidate is the exact route/method/`bulk=disable`/truthy `global`/
- * no-items/no-filterBy shape; callback identity is NOT required for the
- * unsupported-version refusal, so a 5.5.3 handler refactor cannot turn the
- * protection back into a stock unbounded update.
- *
- * Budget source for #87 is one operation-specific integer option, validated as
- * a canonical nonnegative integer. Missing/invalid configuration fails closed
- * with a 503 instead of falling back to unguarded Redirection. #78/#60 will
- * replace this with the product budget source; no Admin SQL, table or method
- * name is configurable here.
  *
  * Not `final`: the test suite extends this class only to override
  * `plugin_version()` and prove version-drift fail-closed behavior through the
  * real REST route; production always runs the base class.
  */
 class Redirection_Bulk_Disable_Rest {
-	public const BUDGET_OPTION = 'commitcap_operation_budget_redirection_5_5_2_bulk_disable';
-	private const ROUTE         = '/redirection/v1/bulk/redirect/disable';
-
 	public static function boot(): void {
 		add_filter( 'rest_dispatch_request', array( __CLASS__, 'dispatch' ), 10, 4 );
 	}
@@ -64,28 +62,11 @@ class Redirection_Bulk_Disable_Rest {
 		if ( null !== $result ) {
 			return $result;
 		}
-		if ( ! self::is_candidate_global_disable( $request, $route ) ) {
+		$operation = Certified_Operation::find( Certified_Operation::REDIRECTION_BULK_DISABLE_ID );
+		if ( null === $operation || ! self::is_candidate_global_disable( $operation, $request, $route ) ) {
 			return null;
 		}
-		// CommitCap owns this dangerous route/shape: never fall through to the
-		// stock unbounded update when the installed build is not certified.
-		$version = static::plugin_version();
-		if ( Redirection_Bulk_Disable::SUPPORTED_VERSION !== $version || ! Redirection_Bulk_Disable::plugin_class_available() ) {
-			return self::error(
-				'commitcap_redirection_version_unsupported',
-				'CommitCap does not certify this Redirection version for global Disable; the unbounded update was not executed.',
-				503,
-				array( 'detected_version' => $version, 'supported_version' => Redirection_Bulk_Disable::SUPPORTED_VERSION )
-			);
-		}
-		if ( ! self::is_certified_handler( $route, $handler ) ) {
-			return self::error(
-				'commitcap_operation_unavailable',
-				'CommitCap could not certify the matched Redirection handler for global Disable; the operation was not executed.',
-				503
-			);
-		}
-		return self::handle( $request, $handler );
+		return self::handle( $operation, $request, $route, $handler );
 	}
 
 	/**
@@ -98,25 +79,22 @@ class Redirection_Bulk_Disable_Rest {
 	}
 
 	/**
-	 * The dangerous route/shape CommitCap claims. No callback identity here:
-	 * the unsupported-version decision requires only the concrete route and
-	 * select-all-matching request shape.
+	 * The dangerous route/shape CommitCap claims, derived from the descriptor.
+	 * No callback identity here: the version/readiness refusal requires only
+	 * the concrete route and select-all-matching request shape.
 	 */
-	private static function is_candidate_global_disable( $request, $route ): bool {
+	private static function is_candidate_global_disable( Certified_Operation $operation, $request, $route ): bool {
 		if ( ! $request instanceof \WP_REST_Request ) {
 			return false;
 		}
 		// The concrete requested path; `$route` is the registered pattern.
-		if ( self::ROUTE !== $request->get_route() ) {
+		if ( ! $operation->matches_rest( (string) $request->get_route(), (string) $request->get_method() ) ) {
 			return false;
 		}
-		if ( 0 !== strpos( (string) $route, '/redirection/v1/bulk/redirect/' ) ) {
+		if ( 0 !== strpos( (string) $route, $operation->rest_route_prefix() ) ) {
 			return false;
 		}
-		if ( 'POST' !== strtoupper( $request->get_method() ) ) {
-			return false;
-		}
-		if ( 'disable' !== $request['bulk'] ) {
+		if ( $operation->rest_bulk_action() !== $request['bulk'] ) {
 			return false;
 		}
 		// Mirrors Redirection's own `if ( $params['global'] )` branch test.
@@ -143,8 +121,8 @@ class Redirection_Bulk_Disable_Rest {
 	}
 
 	/** The matched handler must be Redirection's own bulk handler. */
-	private static function is_certified_handler( $route, $handler ): bool {
-		if ( 0 !== strpos( (string) $route, '/redirection/v1/bulk/redirect/' ) ) {
+	private static function is_certified_handler( Certified_Operation $operation, $route, $handler ): bool {
+		if ( 0 !== strpos( (string) $route, $operation->rest_route_prefix() ) ) {
 			return false;
 		}
 		if ( ! isset( $handler['callback'] ) || ! is_array( $handler['callback'] ) ||
@@ -156,22 +134,28 @@ class Redirection_Bulk_Disable_Rest {
 		return true;
 	}
 
-	/** Certified path: budget -> restricted runtime -> adapter -> REST response. */
-	private static function handle( \WP_REST_Request $request, array $handler ) {
-		$budget = self::configured_budget();
-		if ( null === $budget ) {
+	/** Certified path: readiness -> restricted runtime -> adapter -> REST response. */
+	private static function handle( Certified_Operation $operation, \WP_REST_Request $request, $route, array $handler ) {
+		$readiness = Certified_Operation_Status::check( $operation, static::plugin_version() );
+		if ( Certified_Operation_Status::READY !== $readiness['status'] ) {
+			return self::readiness_error( $readiness );
+		}
+		if ( ! self::is_certified_handler( $operation, $route, $handler ) ) {
 			return self::error(
-				'commitcap_budget_not_configured',
-				'CommitCap has no configured budget for the certified global Disable operation; no redirects were changed.',
-				503
+				'commitcap_operation_unavailable',
+				'CommitCap could not certify the matched Redirection handler for global Disable; the operation was not executed.',
+				503,
+				self::readiness_evidence( $readiness )
 			);
 		}
-		$runtime = self::runtime_connection();
-		if ( null === $runtime ) {
+		$runtime = $readiness['runtime'];
+		$budget  = $readiness['logical_budget'];
+		if ( ! $runtime instanceof \wpdb || ! is_int( $budget ) ) {
 			return self::error(
-				'commitcap_runtime_unavailable',
-				'CommitCap shared runtime connection is unavailable; the certified global Disable was not executed.',
-				503
+				'commitcap_operation_unavailable',
+				'CommitCap could not certify the runtime policy for global Disable; the operation was not executed.',
+				503,
+				self::readiness_evidence( $readiness )
 			);
 		}
 
@@ -201,6 +185,76 @@ class Redirection_Bulk_Disable_Rest {
 			'CommitCap could not certify the runtime policy for global Disable; the operation was not executed.',
 			503,
 			self::evidence( $result )
+		);
+	}
+
+	/** Map a non-READY readiness result to the explicit fail-closed REST error. */
+	private static function readiness_error( array $readiness ) {
+		$data = self::readiness_evidence( $readiness );
+		switch ( isset( $readiness['reason'] ) ? $readiness['reason'] : '' ) {
+			case 'redirection_version_unsupported':
+				return self::error(
+					'commitcap_redirection_version_unsupported',
+					'CommitCap does not certify this Redirection version for global Disable; the unbounded update was not executed.',
+					503,
+					$data
+				);
+			case 'operation_disabled':
+				return self::error(
+					'commitcap_operation_disabled',
+					'The CommitCap certified global Disable operation is disabled; no redirects were changed.',
+					503,
+					$data
+				);
+			case 'config_invalid':
+			case 'logical_budget_missing':
+			case 'logical_budget_invalid':
+				return self::error(
+					'commitcap_operation_misconfigured',
+					'CommitCap operation configuration is invalid; no redirects were changed.',
+					503,
+					$data
+				);
+			case 'runtime_unavailable':
+				return self::error(
+					'commitcap_runtime_unavailable',
+					'CommitCap shared runtime connection is unavailable; the certified global Disable was not executed.',
+					503,
+					$data
+				);
+			case 'physical_ceiling_mismatch':
+				return self::error(
+					'commitcap_physical_ceiling_mismatch',
+					'The installed physical ceiling differs from the certified operation descriptor; the operation was not executed.',
+					503,
+					$data
+				);
+			case 'adapter_unavailable':
+			case 'target_privileges_mismatch':
+			case 'doctor_not_ready':
+			default:
+				return self::error(
+					'commitcap_operation_unavailable',
+					'CommitCap could not certify the runtime policy for global Disable; the operation was not executed.',
+					503,
+					$data
+				);
+		}
+	}
+
+	/** Secret-free readiness facts for REST error data. */
+	private static function readiness_evidence( array $readiness ): array {
+		return array(
+			'operation_id'              => Certified_Operation::REDIRECTION_BULK_DISABLE_ID,
+			// Named `readiness_status`: `status` in WP_Error data is the numeric
+			// HTTP status consumed by error_to_response().
+			'readiness_status'          => isset( $readiness['status'] ) ? $readiness['status'] : null,
+			'reason'                    => isset( $readiness['reason'] ) ? $readiness['reason'] : null,
+			'logical_budget'            => isset( $readiness['logical_budget'] ) ? $readiness['logical_budget'] : null,
+			'expected_physical_ceiling' => isset( $readiness['physical_ceiling'] ) ? $readiness['physical_ceiling'] : null,
+			'actual_physical_ceiling'   => isset( $readiness['actual_physical_ceiling'] ) ? $readiness['actual_physical_ceiling'] : null,
+			'detected_version'          => isset( $readiness['detected_version'] ) ? $readiness['detected_version'] : null,
+			'detail'                    => isset( $readiness['detail'] ) ? $readiness['detail'] : null,
 		);
 	}
 
@@ -248,61 +302,5 @@ class Redirection_Bulk_Disable_Rest {
 
 	private static function error( string $code, string $message, int $status, array $data = array() ): \WP_Error {
 		return new \WP_Error( $code, $message, array_merge( array( 'status' => $status ), $data ) );
-	}
-
-	/**
-	 * Operation budget: one canonical nonnegative integer option. Absent or
-	 * malformed configuration returns null and the caller fails closed.
-	 */
-	private static function configured_budget(): ?int {
-		$raw = get_option( self::BUDGET_OPTION, null );
-		if ( is_int( $raw ) ) {
-			return $raw >= 0 ? $raw : null;
-		}
-		if ( is_string( $raw ) && preg_match( '/\A(?:0|[1-9][0-9]*)\z/D', $raw ) ) {
-			$value = (int) $raw;
-			return $value <= 2147483647 ? $value : null;
-		}
-		return null;
-	}
-
-	/**
-	 * Restricted shared runtime connection from the operator's protected
-	 * configuration, on the same DB server as the normal WordPress connection.
-	 * `COMMITCAP_DB_HOST` from the provisioning snippet is the account host
-	 * restriction and is not a connect host; the normal connection's host is
-	 * used here. Missing or unusable configuration returns null.
-	 */
-	private static function runtime_connection(): ?\wpdb {
-		if ( ! defined( 'COMMITCAP_DB_USER' ) || ! defined( 'COMMITCAP_DB_PASSWORD' ) ) {
-			return null;
-		}
-		$user     = (string) constant( 'COMMITCAP_DB_USER' );
-		$password = (string) constant( 'COMMITCAP_DB_PASSWORD' );
-		if ( '' === $user ) {
-			return null;
-		}
-		$normal = isset( $GLOBALS['wpdb'] ) && $GLOBALS['wpdb'] instanceof \wpdb ? $GLOBALS['wpdb'] : null;
-		$name   = defined( 'COMMITCAP_DB_NAME' ) && '' !== (string) constant( 'COMMITCAP_DB_NAME' )
-			? (string) constant( 'COMMITCAP_DB_NAME' )
-			: ( null !== $normal ? (string) $normal->dbname : '' );
-		$host   = null !== $normal ? (string) $normal->dbhost : 'localhost';
-		if ( '' === $name || '' === $host ) {
-			return null;
-		}
-		try {
-			$db = new \wpdb( $user, $password, $name, $host );
-		} catch ( \Throwable $error ) {
-			return null;
-		}
-		$db->suppress_errors( true );
-		if ( null !== $normal ) {
-			$db->set_prefix( (string) $normal->prefix );
-		}
-		$probe = $db->get_var( 'SELECT 1' );
-		if ( ! $db->ready || '1' !== (string) $probe ) {
-			return null;
-		}
-		return $db;
 	}
 }
