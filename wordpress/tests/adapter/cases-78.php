@@ -8,6 +8,7 @@ require_once __DIR__ . '/helpers.php';
 
 use CommitCap\Certified_Operation;
 use CommitCap\Certified_Operation_Status as Status;
+use CommitCap\Compatibility_Grants;
 use CommitCap\Operation_Config;
 use CommitCap\Provisioning_Plan as Plan;
 use CommitCap\Redirection_Bulk_Disable as Adapter;
@@ -235,6 +236,76 @@ $legacy_ignored = Status::check( $operation, '5.5.2', $runtime );
 cc87_assert( Status::READY === $legacy_ignored['status'] && 5 === $legacy_ignored['logical_budget'], 'legacy budget option must be ignored' );
 delete_option( 'commitcap_operation_budget_redirection_5_5_2_bulk_disable' );
 echo "  readiness status model (disabled/misconfigured/unsupported/not-ready/READY) and single budget authority: PASS\n";
+
+// ---------------------------------------------------------------------------
+// Exact target privilege boundary: the descriptor owns SELECT+UPDATE; any
+// unreviewed effective target privilege (table, schema or global scope) is
+// NOT_READY and the real REST path fails closed with zero mutations.
+// ---------------------------------------------------------------------------
+$canonical_privileges = $operation->target_privileges();
+$table_name = (string) $runtime->prefix . $operation->table_suffix();
+cc78_configure( $operation, true, 5 );
+cc78_expect( Status::check( $operation, Adapter::detected_version(), $runtime ), Status::READY, 'ok', 'canonical SELECT+UPDATE' );
+
+// Missing privileges.
+cc87_query( $root, "REVOKE UPDATE ON wp_test.`$table_name` FROM 'cc87_writer'@'%'" );
+$missing_update = Status::check( $operation, Adapter::detected_version(), $runtime );
+cc87_assert( Status::NOT_READY === $missing_update['status'], 'missing UPDATE must not READY: ' . json_encode( $missing_update ) );
+cc87_query( $root, "GRANT UPDATE ON wp_test.`$table_name` TO 'cc87_writer'@'%'" );
+cc87_assert( Status::READY === Status::check( $operation, Adapter::detected_version(), $runtime )['status'], 'UPDATE restore must READY' );
+
+cc87_query( $root, "REVOKE SELECT ON wp_test.`$table_name` FROM 'cc87_writer'@'%'" );
+$missing_select = Status::check( $operation, Adapter::detected_version(), $runtime );
+cc87_assert( Status::NOT_READY === $missing_select['status'], 'missing SELECT must not READY: ' . json_encode( $missing_select ) );
+cc87_query( $root, "GRANT SELECT ON wp_test.`$table_name` TO 'cc87_writer'@'%'" );
+cc87_assert( Status::READY === Status::check( $operation, Adapter::detected_version(), $runtime )['status'], 'SELECT restore must READY' );
+echo "  target privileges canonical -> READY; SELECT-only / UPDATE-only -> NOT READY: PASS\n";
+
+wp_set_current_user( 1 );
+foreach ( array( 'INSERT', 'DELETE', 'REFERENCES' ) as $extra ) {
+	cc87_query( $root, "GRANT $extra ON wp_test.`$table_name` TO 'cc87_writer'@'%'" );
+	$state = Status::check( $operation, Adapter::detected_version(), $runtime );
+	cc78_expect( $state, Status::NOT_READY, 'target_privileges_mismatch', 'extra ' . $extra );
+	// The generic presence layer still sees SELECT+UPDATE; the exact verifier
+	// is what rejects the unreviewed privilege.
+	$grants = Compatibility_Grants::read( $runtime, 'wp_test' );
+	cc87_assert( null !== $grants && 'PASS' === $grants->target_access( $table_name )[0], 'generic presence with extra ' . $extra );
+	$exact = $grants->target_access_exact( $table_name, $canonical_privileges );
+	cc87_assert( 'FAIL' === $exact[0] && false !== stripos( $exact[1], 'unreviewed' ), 'exact verifier rejects extra ' . $extra . ': ' . $exact[1] );
+	if ( in_array( $extra, array( 'INSERT', 'DELETE' ), true ) ) {
+		cc87_seed( $root, 3 );
+		list( $response, $threads ) = cc87_trace_all( $root, function () {
+			return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+		} );
+		$body = $response->get_data();
+		cc87_assert( 503 === $response->get_status() && 'commitcap_operation_unavailable' === $body['code'], 'extra ' . $extra . ' REST must fail closed: ' . json_encode( $body ) );
+		cc87_assert( 'target_privileges_mismatch' === $body['data']['reason'], 'extra ' . $extra . ' REST reason: ' . json_encode( $body['data'] ) );
+		list( $disable_updates, ) = cc87_disable_updates( $threads );
+		cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'extra ' . $extra . ' REST ran a mutation or the adapter' );
+		list( $total, $disabled ) = cc87_counts( $root );
+		cc87_assert( 3 === $total && 0 === $disabled, 'extra ' . $extra . ' REST changed durable state' );
+	}
+	cc87_query( $root, "REVOKE $extra ON wp_test.`$table_name` FROM 'cc87_writer'@'%'" );
+	cc87_assert( Status::READY === Status::check( $operation, Adapter::detected_version(), $runtime )['status'], 'revoke ' . $extra . ' must restore READY' );
+}
+echo "  extra table INSERT/DELETE/REFERENCES -> NOT READY; REST fail closed with zero mutations: PASS\n";
+
+// Broader scope drift: schema-wide INSERT is rejected by the generic
+// runtime_grants boundary, so readiness is NOT_READY and REST fails closed.
+cc87_query( $root, "GRANT INSERT ON wp_test.* TO 'cc87_writer'@'%'" );
+$schema_drift = Status::check( $operation, Adapter::detected_version(), $runtime );
+cc87_assert( Status::NOT_READY === $schema_drift['status'], 'schema-wide INSERT must not READY: ' . json_encode( $schema_drift ) );
+cc87_seed( $root, 3 );
+list( $response, $threads ) = cc87_trace_all( $root, function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+$body = $response->get_data();
+cc87_assert( 503 === $response->get_status(), 'schema-wide INSERT REST must fail closed: ' . json_encode( $body ) );
+list( $disable_updates, ) = cc87_disable_updates( $threads );
+cc87_assert( 0 === $disable_updates, 'schema-wide INSERT REST ran a mutation' );
+cc87_query( $root, "REVOKE INSERT ON wp_test.* FROM 'cc87_writer'@'%'" );
+cc87_assert( Status::READY === Status::check( $operation, Adapter::detected_version(), $runtime )['status'], 'schema-wide revoke must restore READY' );
+echo "  schema-wide INSERT drift -> NOT READY; REST fail closed: PASS\n";
 
 // ---------------------------------------------------------------------------
 // Logical budget changes need zero DDL, zero grants and zero runtime SQL.

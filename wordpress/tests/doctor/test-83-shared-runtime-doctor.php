@@ -3,7 +3,9 @@
 // Proves narrow trusted-evidence model for one shared restricted runtime and
 // multiple code-known/versioned integration policies on real MySQL and MariaDB engines.
 
+use CommitCap\Certified_Operation;
 use CommitCap\Compatibility_Doctor as Doctor;
+use CommitCap\Compatibility_Grants;
 use CommitCap\Guard;
 use CommitCap\Update_Engine as Engine;
 
@@ -453,6 +455,37 @@ foreach ( $identity_variants as $label => $variant ) {
 $restored_identity = Doctor::runtime( array( 'cc83_b' => 15 ), $writer );
 cc83_assert( 'PASS' === $restored_identity['overall'], '#83.12 canonical restoration must PASS: ' . json_encode( $restored_identity ) );
 echo "  #83.12 runtime-identity trigger variants rejected; canonical restore PASS: PASS\n";
+
+// ---------------------------------------------------------------------------
+// #83.13: layering. The generic shared-runtime evidence proves target
+// privilege PRESENCE (SELECT+UPDATE); the exact descriptor-reviewed boundary
+// is owned by the #78 verifier. Extra target mutation authority must be
+// rejected by the exact verifier, never silently certified.
+// ---------------------------------------------------------------------------
+$descriptor_privileges = Certified_Operation::redirection_5_5_2_bulk_disable()->target_privileges();
+foreach ( array( 'INSERT', 'DELETE' ) as $extra ) {
+	cc83_query( $root, "GRANT $extra ON wp_test.cc83_b TO 'cc_writer'@'%'" );
+	$grants = Compatibility_Grants::read( $writer, 'wp_test' );
+	cc83_assert( null !== $grants, '#83.13 grants read failed' );
+	$generic = $grants->target_access( 'cc83_b' );
+	cc83_assert( 'PASS' === $generic[0], '#83.13 generic presence check is scoped to presence: ' . $generic[1] );
+	$exact = $grants->target_access_exact( 'cc83_b', $descriptor_privileges );
+	cc83_assert( 'FAIL' === $exact[0], '#83.13 extra ' . $extra . ' must fail the exact target boundary: ' . $exact[1] );
+	cc83_assert( false !== stripos( $exact[1], 'unreviewed' ), '#83.13 exact failure must name the unreviewed privilege: ' . $exact[1] );
+	cc83_query( $root, "REVOKE $extra ON wp_test.cc83_b FROM 'cc_writer'@'%'" );
+	$restored = Compatibility_Grants::read( $writer, 'wp_test' )->target_access_exact( 'cc83_b', $descriptor_privileges );
+	cc83_assert( 'PASS' === $restored[0], '#83.13 canonical restore must PASS: ' . $restored[1] );
+}
+// Unknown/pattern grant evidence is fail-closed, never PASS.
+$incomplete = Compatibility_Grants::from_statements(
+	array(
+		"GRANT SELECT, UPDATE ON wp_test.cc83_b TO 'cc_writer'@'%'",
+		"GRANT `dynamic-role` TO 'cc_writer'@'%'",
+	),
+	'wp_test'
+);
+cc83_assert( null === $incomplete, '#83.13 unexpanded role grant evidence must be null/UNKNOWN' );
+echo "  #83.13 generic presence vs exact descriptor boundary; extra target INSERT/DELETE rejected: PASS\n";
 
 // Clean up Gate #83 test objects
 $installer->remove_owned_policy( 'cc83_b', 20, 'cc_writer' );
