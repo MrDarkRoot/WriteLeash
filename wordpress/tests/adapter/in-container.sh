@@ -23,6 +23,7 @@ for host in mysql mariadb; do
   esac
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases.php
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-78.php
+  CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-58.php
   wp --path="$site" plugin deactivate redirection
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-plugin-missing.php
 done

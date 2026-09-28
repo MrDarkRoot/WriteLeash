@@ -249,7 +249,7 @@ final class Compatibility_Grants {
 	 * @param array<int, string> $allowed_privileges Reviewed privilege names.
 	 * @return array{0: string, 1: string} PASS/FAIL/UNKNOWN and secret-free detail.
 	 */
-	public function target_access_exact( string $table, array $allowed_privileges ): array {
+	public function target_access_exact( string $table, array $allowed_privileges, bool $require_all = true ): array {
 		if ( ! $this->complete ) {
 			return array( 'UNKNOWN', 'Cannot establish an exact target-table privilege boundary from incomplete grants.' );
 		}
@@ -259,7 +259,7 @@ final class Compatibility_Grants {
 				$allowed[ strtoupper( $privilege ) ] = true;
 			}
 		}
-		if ( ! $allowed ) {
+		if ( ! $allowed && $require_all ) {
 			return array( 'UNKNOWN', 'No reviewed target privileges were supplied.' );
 		}
 		$effective = array();
@@ -296,7 +296,7 @@ final class Compatibility_Grants {
 				$missing[] = $privilege;
 			}
 		}
-		if ( $missing ) {
+		if ( $require_all && $missing ) {
 			return array( 'FAIL', 'Runtime writer lacks reviewed target privilege(s): ' . implode( ', ', $missing ) . '.' );
 		}
 		$excess = array();
@@ -308,7 +308,7 @@ final class Compatibility_Grants {
 		if ( $excess ) {
 			return array( 'FAIL', 'Runtime writer holds unreviewed target privilege(s): ' . implode( ', ', $excess ) . '.' );
 		}
-		return array( 'PASS', 'Runtime writer holds exactly the reviewed target privileges: ' . implode( ', ', array_keys( $allowed ) ) . '.' );
+		return array( 'PASS', $require_all ? 'Runtime writer holds exactly the reviewed target privileges: ' . implode( ', ', array_keys( $allowed ) ) . '.' : 'No privileges outside the reviewed target set.' );
 	}
 
 	public function installer( ?string $table ): array {
