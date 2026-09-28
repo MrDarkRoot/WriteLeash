@@ -42,6 +42,8 @@ require_once __DIR__ . '/includes/class-redirection-bulk-disable.php';
 require_once __DIR__ . '/includes/class-certified-operation.php';
 require_once __DIR__ . '/includes/class-operation-config.php';
 require_once __DIR__ . '/includes/class-certified-operation-status.php';
+require_once __DIR__ . '/includes/class-disposable-demo.php';
+require_once __DIR__ . '/includes/class-disposable-demo-setup.php';
 require_once __DIR__ . '/includes/class-redirection-bulk-disable-rest.php';
 require_once __DIR__ . '/includes/class-plugin.php';
 

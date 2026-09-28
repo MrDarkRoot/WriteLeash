@@ -194,9 +194,13 @@ final class Compatibility_Doctor {
 	 *
 	 * @param string|array<string, int|null>|array<int, string> $policies Known code integration policies.
 	 * @param \wpdb|null $db Restricted runtime wpdb connection.
+	 * @param array<int, string>|null $probe_targets Optional explicitly selected
+	 *                     behavioral probe tables; null retains the existing
+	 *                     all-known-policies behavior. Other known policies still
+	 *                     undergo canonical metadata and grant verification.
 	 * @return array{overall: string, checks: array, integrations: array<string, array>}
 	 */
-	public static function runtime( $policies, ?\wpdb $db = null ): array {
+	public static function runtime( $policies, ?\wpdb $db = null, ?array $probe_targets = null ): array {
 		if ( is_string( $policies ) ) {
 			$normalized = array( $policies => null );
 		} elseif ( is_array( $policies ) ) {
@@ -407,8 +411,8 @@ final class Compatibility_Doctor {
 
 			try {
 				$ceiling = $engine->runtime_ceiling( $tname );
-				$probe_note = ' Behavioral trigger accounting probe not run (transaction preconditions or evidence channel not PASS).';
-				if ( $probes_allowed && $infrastructure_ok ) {
+				$probe_note = ' Behavioral trigger accounting probe not run (transaction preconditions, evidence channel or explicit probe selection).';
+				if ( $probes_allowed && $infrastructure_ok && ( null === $probe_targets || in_array( $tname, $probe_targets, true ) ) ) {
 					$probe_result = $engine->runtime_trigger_probe( $tname );
 					$probe_note = 'empty_table' === $probe_result
 						? ' Behavioral trigger accounting probe skipped: target table has no row to observe.'
