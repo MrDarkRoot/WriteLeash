@@ -43,7 +43,7 @@ foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
 cc57_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc_writer'@'%'" );
 cc57_query( $root, 'CREATE TABLE cc57_target (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB' );
 cc57_query( $root, "GRANT SELECT, UPDATE ON wp_test.cc57_target TO 'cc_writer'@'%'" );
-$engine->install_policy( 'cc57_target', 5 );
+$engine->install_policy( 'cc57_target', 5, 'cc_writer' );
 $version = $root->get_var( 'SELECT VERSION()' );
 cc57_assert( 0 === strpos( $version, 'mysql' === $host ? '8.0.44' : '10.11.15' ), 'fixture version drift' );
 $result = Doctor::run( 'cc57_target', 5, $writer, $root );
@@ -165,11 +165,11 @@ cc57_check( Doctor::run( 'cc57_target', 4, $writer, $root ), 'target_table', 'FA
 cc57_query( $root, 'CREATE TABLE cc57_conflict (id INT PRIMARY KEY) ENGINE=InnoDB' );
 cc57_query( $root, 'CREATE TRIGGER cc57_other BEFORE UPDATE ON cc57_conflict FOR EACH ROW SET @cc57_fixture=1' );
 cc57_check( Doctor::run( 'cc57_conflict', null, $writer, $root ), 'target_table', 'FAIL' );
-$engine->remove_owned_policy( 'cc57_target', 5 );
+$engine->remove_owned_policy( 'cc57_target', 5, 'cc_writer' );
 cc57_query( $root, 'CREATE TRIGGER cc57_fake BEFORE UPDATE ON cc57_target FOR EACH ROW SET @cc57_fixture=1' );
 cc57_check( Doctor::run( 'cc57_target', 5, $writer, $root ), 'target_table', 'FAIL' );
 cc57_query( $root, 'DROP TRIGGER cc57_fake' );
-$engine->install_policy( 'cc57_target', 5 );
+$engine->install_policy( 'cc57_target', 5, 'cc_writer' );
 
 cc57_query( $root, 'CREATE FUNCTION cc57_unreviewed() RETURNS INT DETERMINISTIC RETURN 1' );
 cc57_query( $root, "GRANT EXECUTE ON FUNCTION wp_test.cc57_unreviewed TO 'cc_writer'@'%'" );
@@ -257,7 +257,7 @@ cc57_assert( 'PASS' !== Doctor::run( 'cc57_target', 5, $unreadable, $root )['ove
 cc57_query( $root, 'DROP TRIGGER cc57_other' );
 cc57_query( $root, 'DROP TABLE cc57_conflict' );
 cc57_query( $root, 'DROP TABLE cc57_myisam' );
-$engine->remove_owned_policy( 'cc57_target', 5 );
+$engine->remove_owned_policy( 'cc57_target', 5, 'cc_writer' );
 cc57_query( $root, 'DROP TABLE cc57_target' );
 foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
 	cc57_query( $root, 'DROP PROCEDURE commitcap_v01_' . $routine );

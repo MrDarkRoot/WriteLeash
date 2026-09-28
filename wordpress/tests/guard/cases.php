@@ -86,7 +86,7 @@ foreach ( $policies as $table => $budget ) {
 	$root->query( "DROP TABLE IF EXISTS `$table`" );
 	cc56_assert( false !== $root->query( "CREATE TABLE `$table` (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB" ), 'create table' );
 	cc56_seed( $root, $table );
-	$installer->install_policy( $table, $budget );
+	$installer->install_policy( $table, $budget, 'cc_writer' );
 	$root->query( "GRANT SELECT, UPDATE ON wp_test.`$table` TO 'cc_writer'@'%'" );
 }
 $root->query( 'DROP TABLE IF EXISTS cc_guard_plain' );
@@ -692,12 +692,22 @@ Guard::update( 'cc_guard_a', 5, function () use ( $writer_two ) { cc56_updates( 
 cc56_assert( array_fill( 0, 10, 1 ) === cc56_rows( $host, 'cc_guard_a' ), 'two-connection durability' );
 echo "  separate guarded connections are independent: PASS\n";
 
-// 26. The default connection ($GLOBALS['wpdb']) is supported.
+// 26. A connection whose authenticated identity is not the policy's certified
+// runtime identity is refused before the callback: the physical trigger is
+// scoped to that identity, so another connection cannot be physically bounded.
 cc56_seed( $root, 'cc_guard_a' );
-$result = Guard::update( 'cc_guard_a', 5, function () { cc56_updates( $GLOBALS['wpdb'], 'cc_guard_a', array( 1, 2 ) ); return 'default-db'; } );
-cc56_assert( 'default-db' === $result, 'default connection result' );
-cc56_assert( array( 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 ) === cc56_rows( $host, 'cc_guard_a' ), 'default connection durability' );
-echo "  default \$wpdb connection path: PASS\n";
+$default_ran = false;
+$error = cc56_reject(
+	function () use ( &$default_ran ) {
+		Guard::update( 'cc_guard_a', 5, function () use ( &$default_ran ) { $default_ran = true; return 'default-db'; } );
+	},
+	Guard_Error::class,
+	'non-runtime default connection'
+);
+cc56_assert( 'policy_unverified' === $error->reason(), 'non-runtime connection reason: ' . $error->reason() );
+cc56_assert( false === $default_ran, 'non-runtime default callback executed' );
+cc56_assert( array_fill( 0, 10, 0 ) === cc56_rows( $host, 'cc_guard_a' ), 'non-runtime default durability' );
+echo "  non-runtime default \$wpdb connection refused before callback: PASS\n";
 
 // 27. Direct SQL outside the guard remains outside protection (still denied by the trigger).
 cc56_seed( $root, 'cc_guard_b' );

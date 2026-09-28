@@ -141,16 +141,16 @@ foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
 cc54_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc_writer'@'%'" );
 
 cc54_query( $root, 'CREATE TRIGGER cc_unrelated BEFORE UPDATE ON cc_conflict FOR EACH ROW SET @cc_fixture=1' );
-cc54_reject( static function () use ( $installer ) { $installer->install_policy( 'cc_conflict', 5 ); }, 'existing user trigger' );
-cc54_reject( static function () use ( $installer ) { $installer->remove_owned_policy( 'cc_conflict', 5 ); }, 'unrelated trigger removal' );
+cc54_reject( static function () use ( $installer ) { $installer->install_policy( 'cc_conflict', 5, 'cc_writer' ); }, 'existing user trigger' );
+cc54_reject( static function () use ( $installer ) { $installer->remove_owned_policy( 'cc_conflict', 5, 'cc_writer' ); }, 'unrelated trigger removal' );
 cc54_assert( (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_NAME='cc_unrelated'" ) === 1, 'unrelated trigger lost' );
 
 foreach ( array( 'cc_alpha' => 5, 'cc_beta' => 1, 'cc_zero' => 0, 'cc_one' => 1, 'cc_max' => 2147483647, 'cc_malformed' => 5 ) as $table => $budget ) {
-	$installer->install_policy( $table, $budget );
-	$installer->verify_policy( $table, $budget );
-	cc54_reject( static function () use ( $installer, $table, $budget ) { $installer->install_policy( $table, $budget ); }, 'duplicate policy' );
+	$installer->install_policy( $table, $budget, 'cc_writer' );
+	$installer->verify_policy( $table, $budget, 'cc_writer' );
+	cc54_reject( static function () use ( $installer, $table, $budget ) { $installer->install_policy( $table, $budget, 'cc_writer' ); }, 'duplicate policy' );
 }
-cc54_reject( static function () use ( $installer ) { $installer->verify_policy( 'cc_alpha', 4 ); }, 'wrong budget' );
+cc54_reject( static function () use ( $installer ) { $installer->verify_policy( 'cc_alpha', 4, 'cc_writer' ); }, 'wrong budget' );
 echo "  installation, verification, identity grammar and object conflicts: PASS\n";
 
 $writer = new wpdb( 'cc_writer', 'disposable_writer_password', 'wp_test', $host );
@@ -326,20 +326,25 @@ $original_body = $root->get_var( $root->prepare(
 	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s', $fake
 ) );
 cc54_assert( is_string( $original_body ), 'original policy body missing' );
-$installer->remove_owned_policy( 'cc_malformed', 5 );
+$installer->remove_owned_policy( 'cc_malformed', 5, 'cc_writer' );
 $policy_id = hash( 'sha256', 'cc_malformed' );
 $wrong_id = ( '0' === $policy_id[0] ? '1' : '0' ) . substr( $policy_id, 1 );
+$identity_condition = "LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('cc_writer')";
 $malformed_bodies = array(
 	'marker case' => str_replace( "MESSAGE_TEXT = 'CC54_DENIED'", "MESSAGE_TEXT = 'cc54_denied'", $original_body ),
 	'policy ID literal' => str_replace( "policy_id = '$policy_id'", "policy_id = '$wrong_id'", $original_body ),
 	'budget operator' => str_replace( 'consumed < 5', 'consumed <= 5', $original_body ),
+	'wrong runtime identity' => str_replace( $identity_condition, "LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('cc_other')", $original_body ),
+	'identity check removed' => str_replace( $identity_condition, '1 = 1', $original_body ),
+	'foreign principal accepted' => str_replace( $identity_condition, "LOWER(SUBSTRING_INDEX(USER(), '@', 1)) IN (LOWER('cc_writer'), LOWER('cc_foreign'))", $original_body ),
 );
+cc54_assert( false === strpos( $original_body, 'cc_other' ) && false === strpos( $original_body, 'cc_foreign' ), 'unexpected identity fixture text' );
 foreach ( $malformed_bodies as $label => $body ) {
 	cc54_assert( $original_body !== $body, 'fixture mutation did not occur: ' . $label );
 	cc54_query( $root, "CREATE TRIGGER `$fake` BEFORE UPDATE ON cc_malformed FOR EACH ROW $body" );
-	cc54_reject( static function () use ( $installer ) { $installer->verify_policy( 'cc_malformed', 5 ); }, $label . ' trusted verification' );
+	cc54_reject( static function () use ( $installer ) { $installer->verify_policy( 'cc_malformed', 5, 'cc_writer' ); }, $label . ' trusted verification' );
 	cc54_reject( static function () use ( $engine ) { $engine->verify_runtime_policy( 'cc_malformed', 5 ); }, $label . ' runtime verification' );
-	cc54_reject( static function () use ( $installer ) { $installer->remove_owned_policy( 'cc_malformed', 5 ); }, $label . ' unsafe removal' );
+	cc54_reject( static function () use ( $installer ) { $installer->remove_owned_policy( 'cc_malformed', 5, 'cc_writer' ); }, $label . ' unsafe removal' );
 	cc54_assert( 1 === (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_NAME = %s', $fake ) ), $label . ' unknown trigger removed' );
 	cc54_query( $root, "DROP TRIGGER `$fake`" ); // Exactly this test-created fake.
 }
@@ -347,11 +352,11 @@ foreach ( $malformed_bodies as $label => $body ) {
 $formatted = str_replace( "MESSAGE_TEXT = 'CC54_DENIED'", "MESSAGE_TEXT   =   'CC54_DENIED'", $original_body );
 cc54_assert( $formatted !== $original_body, 'format-only fixture mutation missing' );
 cc54_query( $root, "CREATE TRIGGER `$fake` BEFORE UPDATE ON cc_malformed FOR EACH ROW $formatted" );
-$installer->verify_policy( 'cc_malformed', 5 );
+$installer->verify_policy( 'cc_malformed', 5, 'cc_writer' );
 $engine->verify_runtime_policy( 'cc_malformed', 5 );
-$installer->remove_owned_policy( 'cc_malformed', 5 );
-echo "  marker-case, policy-ID and operator mutations rejected; external whitespace tolerated: PASS\n";
-$installer->remove_owned_policy( 'cc_alpha', 5 );
+$installer->remove_owned_policy( 'cc_malformed', 5, 'cc_writer' );
+echo "  marker-case, policy-ID, operator and runtime-identity mutations rejected; external whitespace tolerated: PASS\n";
+$installer->remove_owned_policy( 'cc_alpha', 5, 'cc_writer' );
 cc54_assert( 0 === count( $installer->inspect_table( 'cc_alpha' )['triggers'] ), 'owned trigger not removed' );
 cc54_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'cc_alpha'" ), 'user table removed' );
 cc54_reject( static function () use ( $engine ) { $engine->begin_accounting( 'cc_alpha', 5 ); }, 'removed runtime policy' );

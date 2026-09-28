@@ -377,6 +377,14 @@ $survivor->suppress_errors( true );
 $survivor_id = (int) $survivor->get_var( 'SELECT CONNECTION_ID()' );
 cc84_assert( $survivor_id > 0, '#84.8 survivor session did not connect' );
 
+// Password rotation must not invalidate the identity-scoped policy trigger.
+$b_trigger = Engine::trigger_name( 'cc84_b' );
+$trigger_before_rotation = $root->get_var( $root->prepare(
+	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s',
+	$b_trigger
+) );
+cc84_assert( is_string( $trigger_before_rotation ), '#84.8 policy trigger missing before rotation' );
+
 $plan_rotate = Plan::rotate_credential( 'cc84_writer', '%', 'cc84_rotated_v2_secret', false );
 cc84_assert( 1 === count( $plan_rotate->get_steps( true ) ), '#84.8 no-drain rotate must have exactly one step' );
 $plan_rotate->apply( $root );
@@ -426,6 +434,17 @@ $v2_committed = Guard::update(
 	$writer_v2
 );
 cc84_assert( 'v2-committed' === $v2_committed, '#84.8 Guard enforcement under rotated credentials' );
+
+// The identity-scoped trigger body is untouched by a password-only rotation,
+// and the same runtime username is still physically enforced after rotation.
+$trigger_after_rotation = $root->get_var( $root->prepare(
+	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s',
+	$b_trigger
+) );
+cc84_assert( $trigger_before_rotation === $trigger_after_rotation, '#84.8 password rotation rewrote the policy trigger' );
+$rotated_unguarded = $writer_v2->query( 'UPDATE cc84_b SET touched = 999 WHERE id = 1' );
+cc84_assert( false === $rotated_unguarded && false !== strpos( (string) $writer_v2->last_error, 'CC54_DENIED' ), '#84.8 rotated runtime identity is no longer physically enforced' );
+$writer_v2->query( 'SELECT 1' );
 $writer = $writer_v2;
 
 // Verify secrets do not leak in Doctor reports or plan JSON.

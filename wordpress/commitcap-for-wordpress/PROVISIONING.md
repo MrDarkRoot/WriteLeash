@@ -107,22 +107,31 @@ All database modifications are generated as inspectable, version-pinned SQL plan
    ```sql
    GRANT SELECT, UPDATE ON `wp_db`.`target_table` TO 'cc_writer'@'localhost';
    ```
-2. Create physical ceiling `BEFORE UPDATE` trigger:
+2. Create the identity-scoped physical ceiling `BEFORE UPDATE` trigger:
    ```sql
    CREATE TRIGGER `wp_db`.`commitcap_v01_<hash>` BEFORE UPDATE ON `wp_db`.`target_table`
    FOR EACH ROW
    BEGIN
-     UPDATE commitcap_v01_state
-        SET consumed = consumed + 1
-      WHERE connection_id = CONNECTION_ID()
-        AND policy_id = '<policy_hash>'
-        AND consumed < <physical_ceiling>;
-     IF ROW_COUNT() != 1 THEN
-       SET @commitcap_v01_denied = 1;
-       SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED';
+     IF LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('cc_writer') THEN
+       UPDATE commitcap_v01_state
+          SET consumed = consumed + 1
+        WHERE connection_id = CONNECTION_ID()
+          AND policy_id = '<policy_hash>'
+          AND consumed < <physical_ceiling>;
+       IF ROW_COUNT() != 1 THEN
+         SET @commitcap_v01_denied = 1;
+         SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED';
+       END IF;
      END IF;
    END;
    ```
+   The `USER()` condition scopes enforcement to the certified runtime username
+   (proved on both pinned engines; a trigger's `CURRENT_USER()` is the DEFINER
+   and was rejected). Normal WordPress/plugin writers keep their ordinary table
+   behavior, including the Redirection item-scoped, single-item and hit/stat
+   writers. The whole condition is part of the verified canonical body and the
+   runtime Doctor derives the expected username from the live restricted
+   connection.
 
 ### 3.3 Remove Target (`Provisioning_Plan::remove_target`)
 1. Drop canonical trigger:
@@ -158,6 +167,10 @@ or new runtime sessions until verification):**
    ```sql
    ALTER USER 'cc_writer'@'localhost' IDENTIFIED BY '[REDACTED_SECRET]';
    ```
+   Password-only rotation keeps the authenticated username unchanged, so the
+   identity-scoped policy triggers stay canonical and **no trigger DDL is
+   required**. `#84.8` asserts the trigger body is byte-identical before and
+   after rotation and that the rotated account is still physically enforced.
 3. Update `wp-config.php` with the V2 secret while enablement is held:
    ```php
    define( 'COMMITCAP_DB_PASSWORD', '<new_secret>' );

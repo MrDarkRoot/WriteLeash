@@ -52,11 +52,7 @@ final class Provisioning_Plan {
 	}
 
 	public static function validate_user( $user ): string {
-		if ( ! is_string( $user ) || strlen( $user ) > 32 ||
-			! preg_match( '/\A[A-Za-z0-9_.\-]+\z/D', $user ) ) {
-			throw new \InvalidArgumentException( 'Invalid database username.' );
-		}
-		return $user;
+		return Update_Engine::runtime_user( $user );
 	}
 
 	public static function validate_host( $host ): string {
@@ -255,7 +251,7 @@ final class Provisioning_Plan {
 		}
 		$user_id      = "'$runtime_user'@'$runtime_host'";
 		$trigger_name = Update_Engine::trigger_name( $table_name );
-		$trigger_body = Update_Engine::trigger_body( $table_name, $ceiling );
+		$trigger_body = Update_Engine::trigger_body( $table_name, $ceiling, $runtime_user );
 
 		$sql_grant = "GRANT SELECT, UPDATE ON `$schema`.`$table_name` TO $user_id";
 		$sql_drop_trig = "DROP TRIGGER IF EXISTS `$schema`.`$trigger_name`";
@@ -796,14 +792,14 @@ final class Provisioning_Plan {
 				$this->assert_managed_user_or_absent( $installer );
 				foreach ( (array) $this->params['targets'] as $tbl => $ceiling ) {
 					if ( $this->table_exists( $installer, (string) $tbl ) ) {
-						$engine->assert_canonical_trigger( (string) $tbl );
+						$engine->assert_canonical_trigger( (string) $tbl, true, (string) $this->params['runtime_user'] );
 					}
 				}
 				break;
 			case self::ACTION_ADD_TARGET:
 			case self::ACTION_REMOVE_TARGET:
 				if ( $this->table_exists( $installer, (string) $this->params['table'] ) ) {
-					$engine->assert_canonical_trigger( (string) $this->params['table'] );
+					$engine->assert_canonical_trigger( (string) $this->params['table'], true, (string) $this->params['runtime_user'] );
 				}
 				break;
 			case self::ACTION_UNINSTALL:
@@ -816,7 +812,7 @@ final class Provisioning_Plan {
 				foreach ( (array) $this->params['targets'] as $key => $val ) {
 					$tbl = is_string( $key ) ? $key : $val;
 					if ( $this->table_exists( $installer, (string) $tbl ) ) {
-						$engine->assert_canonical_trigger( (string) $tbl );
+						$engine->assert_canonical_trigger( (string) $tbl, true, (string) $this->params['runtime_user'] );
 					}
 				}
 				$this->assert_managed_user_or_absent( $installer );

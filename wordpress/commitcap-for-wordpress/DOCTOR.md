@@ -71,6 +71,16 @@ Before using Guard on a real table, rerun with its table name and budget.
   the same state independently; routine bodies are not load-bearing for the
   logical budget. This replaces the older four-EXECUTE issue wording and needs
   Maintainer approval as a security-contract change.
+- Identity-scoped physical policy: the canonical target trigger enforces only
+  the certified runtime username, derived from `USER()` (the authenticated
+  session identity). A trigger's `CURRENT_USER()` reports the trigger DEFINER
+  instead, which is why it is rejected as an invocation identity; both facts
+  were proved on the pinned engines. `runtime_ceiling()` reads the live
+  `SELECT SUBSTRING_INDEX(USER(), '@', 1)` on the restricted connection and
+  requires the trigger body to embed exactly that username, so a trigger for a
+  different identity, with the condition removed, broadened, or accepting a
+  foreign principal is FAIL. Normal WordPress/plugin writers outside that
+  username are not intercepted by the policy.
 - Runtime opaque trigger surface (required): a non-target INSERT/UPDATE/DELETE
   grant can fire an **existing** trigger without any TRIGGER privilege. The
   trusted installer inspects `information_schema.TRIGGERS` for every
@@ -160,6 +170,14 @@ target-trigger tamper, dropped trigger, ceiling mismatch, sibling corruption,
 foreign writable triggered object and altered grants. Every tamper leaves the
 aggregate not-PASS and forces sibling integrations to `UNKNOWN`; restoration
 returns to PASS.
+
+`#83.12` additionally tampers the target trigger's runtime-identity condition
+with the exact canonical signature and structure: wrong runtime username,
+condition removed (`1 = 1`), broadened (`OR 1 = 1`), and an extra accepted
+principal (`IN (..., 'foreign')`). All four fail Doctor and integration status;
+the canonical restore returns to PASS. `#54` runs the same identity-condition
+mutations through the trusted `verify_policy()` and restricted
+`verify_runtime_policy()` verifiers.
 
 ### 7. Normal Web Request vs. Operator Verification
 - **Normal Web Request**: `Doctor::runtime()` runs with only the restricted `$writer` connection in `$wpdb`. Installer credentials are never stored, parsed, or retained in PHP.

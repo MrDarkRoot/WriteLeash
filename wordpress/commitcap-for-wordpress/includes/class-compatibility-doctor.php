@@ -650,7 +650,10 @@ final class Compatibility_Doctor {
 				return;
 			}
 			if ( null !== $budget ) {
-				$engine->verify_policy( $name, $budget );
+				// The expected runtime identity comes from the runtime connection
+				// under test, never from the installer.
+				$runtime_user = ( new Update_Engine( $db ) )->session_user_name();
+				$engine->verify_policy( $name, $budget, $runtime_user );
 				( new Update_Engine( $db ) )->verify_runtime_policy( $name, $budget );
 			}
 			$this->check( 'target_table', 'PASS', true, 'Target table/policy', null === $budget

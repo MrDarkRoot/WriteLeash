@@ -21,7 +21,7 @@ for ( $i = 1; $i <= 15; ++$i ) {
 	cc56_assert( false !== $root->query( "INSERT INTO `$table_l` (id, touched) VALUES ($i, 0)" ), 'seed insert table_l' );
 }
 // Install physical ceiling P = 10.
-$installer->install_policy( $table_l, 10 );
+$installer->install_policy( $table_l, 10, 'cc_writer' );
 $root->query( "GRANT SELECT, UPDATE ON wp_test.`$table_l` TO 'cc_writer'@'%'" );
 
 function cc82_seed( $root, $table_l, $count = 15 ) {
@@ -399,7 +399,7 @@ function cc82_bench_once( $host, $root, $writer, $installer, $bench_table, $rows
 	if ( $values ) {
 		cc56_assert( false !== $root->query( 'INSERT INTO `' . $bench_table . '` (id, touched) VALUES ' . implode( ',', $values ) ), 'insert bench rows' );
 	}
-	$installer->install_policy( $bench_table, $ceiling );
+	$installer->install_policy( $bench_table, $ceiling, 'cc_writer' );
 	$observed = array();
 	$t0 = microtime( true );
 	$error = cc56_reject(
@@ -430,7 +430,7 @@ function cc82_bench_once( $host, $root, $writer, $installer, $bench_table, $rows
 	$durable = cc82_rows( $host, $bench_table, 1 );
 	cc56_assert( array( 0 ) === $durable, 'benchmark rollback durable check' );
 	cc56_clean( $writer );
-	$installer->remove_owned_policy( $bench_table, $ceiling );
+	$installer->remove_owned_policy( $bench_table, $ceiling, 'cc_writer' );
 	$details = $error->details();
 	return array(
 		'ms'        => $elapsed * 1000,
@@ -481,7 +481,7 @@ foreach ( $sizes as $rows ) {
 $root->query( "DROP TABLE `$bench_table`" );
 
 // Cleanup test table.
-$installer->remove_owned_policy( $table_l, 10 );
+$installer->remove_owned_policy( $table_l, 10, 'cc_writer' );
 $root->query( "DROP TABLE `$table_l`" );
 
 echo "  --- End Gate #82 Logical Budget Tests ($host): ALL PASS ---\n";

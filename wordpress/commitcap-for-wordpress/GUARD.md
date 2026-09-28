@@ -28,9 +28,12 @@ $result = \CommitCap\Guard::update(
 ```
 
 The fourth optional argument selects the `wpdb` connection; it defaults to
-`$GLOBALS['wpdb']`. The callback must use that same connection for protected
-work. On success the callback return value is returned after COMMIT. Failures
-throw:
+`$GLOBALS['wpdb']`. The policy trigger is scoped to one certified runtime
+username, so the guarded connection must authenticate as that identity:
+`verify_runtime_budget()` compares the live `USER()` username against the
+canonical trigger body and refuses with `policy_unverified` when they differ.
+The callback must use that same connection for protected work. On success the
+callback return value is returned after COMMIT. Failures throw:
 
 - `CommitCap\Budget_Denied` — a #54 row-event denial; `details()` returns
   table, budget, consumed, attempted, reason, sqlstate, errno.
@@ -115,8 +118,12 @@ did not perform that COMMIT itself.
 - direct mysqli / `$wpdb->dbh` SQL, which bypasses the monitor;
 - new `wpdb` objects or other database connections; only the guarded connection
   and `$GLOBALS['wpdb']` are monitored, and protected writes attempted from
-  another connection are outside the contract (the #54 trigger still denies
-  unguarded writes on that connection);
+  another connection are outside the contract. The #54 trigger denies unguarded
+  writes made **as the certified runtime identity**; it is scoped to that
+  username so normal WordPress/Redirection writers keep their ordinary
+  behavior. Guard refuses to run on a connection with any other identity
+  (`policy_unverified`), and an explicitly granted foreign DB principal is
+  outside cooperative enforcement entirely;
 - hostile plugin code deliberately bypassing the guard;
 - new transactions, retries and cross-request work;
 - INSERT/DELETE budgets, task-wide or cross-request authority.
