@@ -1,197 +1,212 @@
-# Gate #85 Research: Candidate WordPress Custom-Table Reconciliation Workloads
+# Gate #85 Research: Real WordPress Plugin Workloads (Runtime Evidence)
 
-This document records the empirical research, executable write graphs, simpler-alternative comparisons,
-and final verdict for **Gate #85** under authoritative umbrella issue **#67**.
+This document records the **executed** research for Gate #85 under umbrella #67.
+It replaces the earlier inferred write-graph claims in this file, which were not
+sufficient evidence (they described plausible graphs without installing or
+running the plugins).
 
----
+## 0. Evidence labels
 
-## 1. Executive Summary & Verdict
+Every claim below carries one of these labels:
 
-**Gate #85 Verdict: NONE QUALIFIES.**
+- **OBSERVED AT RUNTIME** — produced by executing the real installed plugin in a
+  disposable WordPress 6.8.3 / MySQL 8.0.44 fixture with the MySQL general log
+  enabled. Raw transcripts are committed under
+  `wordpress/tests/research/transcripts/`.
+- **SOURCE-CODE VERIFIED** — read from the exact plugin source ZIP (sha256
+  pinned) but not executed.
+- **DOCUMENTED BY PLUGIN** — stated by the plugin's own readme/UI text.
+- **INFERRED — NOT SUFFICIENT** — reasoning that is not executable evidence and
+  cannot by itself support a selection.
 
-Extensive empirical examination across 6 distinct WordPress plugin categories (e-commerce, import/sync,
-search indexing, CRM automation, analytics rollups, and URL redirect management) reveals that **zero** real
-WordPress plugin-owned operations qualify under CommitCap's cooperative Guard contract.
+Reproduction: `bash wordpress/tests/research/run.sh` (downloads the pinned,
+sha256-verified ZIPs from wordpress.org, boots the pinned MySQL fixture, installs
+each plugin through WP-CLI, runs the operation, and prints the captured SQL,
+hooks and mail/HTTP attempts). `wordpress/tests/research/checksums.txt` pins the
+artifacts.
 
-In every evaluated real plugin:
-1. Operations either require mixed SQL verbs (`INSERT`, `DELETE`, `REPLACE`), write across core WordPress
-   tables (`wp_posts`, `wp_postmeta`, `wp_options`), or fire action hooks that produce irreversible external
-   side effects (emails, HTTP webhooks, filesystem writes) that survive a database rollback.
-2. Where in-place `UPDATE` operations exist, plugin developers have already implemented vastly simpler, more
-   direct safeguards (batch chunk limits, pre-flight matched-count confirmation dialogs, ID array caps, dry-run
-   previews, and CSV exports) that make a secondary restricted database user, procedure DEFINERs, and DB trigger
-   enforcement completely unnecessary.
+Instrumentation (all candidates):
 
-Per the explicit stop conditions in **#85** and **#67**:
-> *"If all operations need arbitrary WordPress callbacks, INSERT/REPLACE/DELETE or irreversible side effects for correctness, or a narrow API/ID cap is plainly better, choose NONE. Do not fabricate a custom-table operation to save the roadmap; recommend the product pivot gate in #67 instead."*
+- `mysql.general_log` (TABLE output) filtered to the WordPress connection's
+  `thread_id` and bounded by sentinel queries, so only the operation's own SQL
+  is reported.
+- `add_action('all', ...)` records every WordPress hook fired during the
+  operation window.
+- `pre_wp_mail` and `pre_http_request` filters count/record attempted email and
+  HTTP side effects (HTTP is blocked to keep the fixture disposable).
+- A fresh `root` observer connection verifies durable rows after each run.
 
-We conclude **NONE** and recommend invoking the Product Pivot Gate in #67.
+## 1. Redirection 5.5.2 — SELECTED
 
----
+**Operation:** Redirects page → *select all matching* → Bulk Actions → **Disable**
+(equivalently Enable/Reset), i.e. `POST /wp-json/redirection/v1/bulk/redirect/disable`
+with `global=true`. The Admin UI sets `global=true` only when the "select all"
+checkbox is used (`SOURCE-CODE VERIFIED`: `redirection.js` builds
+`d.global = !0` when `selectAll`).
 
-## 2. Evaluation Criteria (The CommitCap V0.1 Envelope)
+**Installed:** `redirection.5.5.2.zip` (sha256
+`2c562a256797828ec3a0ddfd19425f0c1bc126554bb4baaa95434b35f361a648`), installed and
+activated via WP-CLI into a disposable fixture.
 
-For an operation to qualify, it must satisfy all 6 strict invariants:
+**OBSERVED AT RUNTIME** (transcript `transcripts/redirection.txt`):
 
-| Criterion | Requirement | Rationale |
-| :--- | :--- | :--- |
-| **1. Table Ownership** | Exactly ONE plugin-owned custom InnoDB table | Free V0.1 cannot touch core WordPress tables (`wp_posts`, `wp_options`) without violating the restricted account security boundary. |
-| **2. Verb Purity** | Pure `UPDATE` row events | V0.1 engine only tracks and budgets `UPDATE` statements via `BEFORE UPDATE` trigger. |
-| **3. Transaction Boundary**| Single cooperative Guard transaction | Must execute within `Guard::update()` on a dedicated restricted `$wpdb` connection without caller-managed sub-transactions. |
-| **4. Zero External Side Effects** | No emails, webhooks, or disk writes during the job | Database `ROLLBACK` cannot undo sent HTTP requests, dispatched emails, or written log files. |
-| **5. Hook/Trigger Isolation** | No cascading triggers or unreviewed writes | Cannot invoke arbitrary WordPress action hooks that write to unwritable tables or create foreign trigger cascades. |
-| **6. Clear Admin Value** | Rollback is uniquely valuable vs simpler controls | An accidental broad update must cause visible damage that cannot be prevented by simple batching (`LIMIT 50`) or confirmation previews. |
+```text
+SQL: UPDATE wp_redirection_items SET status='disabled'
+SQL: SELECT * FROM wp_redirection_items ORDER BY id DESC LIMIT 0,25
+SQL: SELECT COUNT(*) FROM wp_redirection_items
+SQL: SELECT COUNT(*) FROM wp_redirection_items WHERE status='disabled'
+HOOKS: {"redirection_capability_check":1, ... no mail/HTTP/action hooks ...}
+MAIL: 0
+HTTP: []
+TABLE VERBS (redirection_items): {"UPDATE":1,"SELECT":3}
+```
 
----
+- Tables and verbs: exactly one plugin-owned custom InnoDB table,
+  `wp_redirection_items`, mutated by **one unbounded `UPDATE`** (no `WHERE`
+  clause when the Admin selects all with no filter). No `INSERT`/`DELETE`/
+  `REPLACE`. No `START TRANSACTION`/`COMMIT` is issued by the plugin.
+- The only plugin hook in the mutation path is the `redirection_capability_check`
+  filter. No action hooks, no mail, no HTTP, no filesystem write was observed in
+  the global path. `redirection_redirect_updated` (the cache-clearing hook) is
+  **not** fired by this bulk path (`SOURCE-CODE VERIFIED`:
+  `Red_Item::set_status_all()` is a single `$wpdb->query`).
 
-## 3. Detailed Candidate Analysis & Executable Write Graphs
+**Simpler-control comparison (OBSERVED AT RUNTIME, same transcript):** the
+item-scoped variant (`items=[1,2]`) issues one `UPDATE ... WHERE id='1'` per
+selected redirect:
 
-### Candidate 1: WooCommerce 10.7.0 Core Operations
-*Category: E-Commerce Core*
-- **Operations Examined**:
-  1. Stock reduction (`wc_update_product_stock`)
-  2. HPOS Order completion (`OrdersTableDataStore`)
-  3. Product Price/SKU bulk update
-  4. Scheduled-sale Action Scheduler callback (`wc_scheduled_sales`)
-- **Recorded Write Graph**:
-  ```text
-  wc_update_product_stock()
-    ├── UPDATE wp_postmeta (or wp_wc_product_meta_lookup)
-    ├── UPDATE wp_posts (post_modified)
-    ├── INSERT wp_options (transient invalidation)
-    └── do_action('woocommerce_product_set_stock')
-          └── wp_mail() (Low stock notification email - IRREVERSIBLE)
-  ```
-  ```text
-  HPOS Order Completion
-    ├── UPDATE wp_wc_orders
-    ├── UPDATE wp_wc_order_operational_data
-    ├── UPDATE wp_wc_order_addresses
-    ├── INSERT wp_wc_orders_meta
-    ├── do_action('woocommerce_order_status_completed')
-    │     ├── Customer email dispatch (IRREVERSIBLE)
-    │     └── Payment gateway capture webhook (IRREVERSIBLE HTTP)
-  ```
-- **Why It Disqualifies**: Multi-table writes (violates #1), mixed verbs with `INSERT` (violates #2), and irreversible external side effects (violates #4).
-- **Simpler Alternatives**: Form validation, checkout queue concurrency locks, and existing stock-change audit logs.
+```text
+SQL: UPDATE `wp_redirection_items` SET `status` = 'enabled' WHERE `id` = '1'
+SQL: UPDATE `wp_redirection_items` SET `status` = 'enabled' WHERE `id` = '2'
+```
 
----
+That scoped path already has an explicit ID list, so a batch/ID cap is the
+natural safeguard there. The *global* path is the operation that lacks any row
+bound: a wrong filter or an unintended "select all" disables every redirect, and
+chunking the update in batches does not prevent that. A logical mutation budget
+`L` (refuse and roll back above `L`, before COMMIT) is the control that matches
+this failure mode.
 
-### Candidate 2: WP All Import Pro 4.9.x
-*Category: Feed / CSV Import & Synchronization*
-- **Custom Tables**: `wp_pmxi_posts`, `wp_pmxi_imports`, `wp_pmxi_history`.
-- **Operation Examined**: Batch Record Update / Synchronization.
-- **Recorded Write Graph**:
-  ```text
-  PMXI_Plugin::process_batch()
-    ├── UPDATE wp_pmxi_posts (custom tracking table)
-    ├── UPDATE wp_posts (post_content, post_title, post_status)
-    ├── UPDATE wp_postmeta (custom fields)
-    ├── INSERT wp_pmxi_history (run logs)
-    ├── File write: wp-content/uploads/wpallimport/logs/*.txt (IRREVERSIBLE)
-    └── wp_cache_delete() / clean_post_cache()
-  ```
-- **Why It Disqualifies**: Primary payload mutations are in core `wp_posts`/`wp_postmeta`, not isolated to a custom table (violates #1). Filesystem log writes and history table `INSERT`s cannot be rolled back by Guard (violates #2 & #4).
-- **Simpler Alternatives**: WP All Import already features configurable iteration chunk sizes ("Import 20 records per iteration"), an interactive dry-run preview mode ("Preview Import"), and automated pre-import database backups. A simple batch cap (`LIMIT 20`) is vastly simpler and built into the plugin UI.
+**Cooperative-contract fit:** the mutation is one statement on one plugin-owned
+table; `Red_Item::set_status_all()` uses `global $wpdb`, so a version-pinned
+adapter can substitute the restricted runtime `$wpdb` inside a Guard-owned
+transaction and call the plugin's own method. Required runtime grants:
+`SELECT, UPDATE` on `wp_redirection_items` only (plus the CommitCap evidence
+grants). This is exactly the envelope proven by #82/#83/#84.
 
----
+**Verdict: SELECTED — Redirection 5.5.2, "Bulk Actions → Disable/Enable/Reset
+(select all matching)" via `Red_Item::set_status_all()`.**
 
-### Candidate 3: Relevanssi 4.22.x / SearchWP 4.3.x
-*Category: Search Indexing Maintenance*
-- **Custom Table**: `wp_relevanssi` (or `wp_searchwp_index`).
-- **Operation Examined**: Search Index Rebuild / Term Weight Recalculation.
-- **Recorded Write Graph**:
-  ```text
-  relevanssi_build_index()
-    ├── DELETE FROM wp_relevanssi WHERE doc = :post_id
-    ├── INSERT INTO wp_relevanssi (doc, term, content, title) VALUES (...)
-    └── UPDATE wp_options (relevanssi_indexed_cache)
-  ```
-- **Why It Disqualifies**: **Complete verb mismatch**. Search indexing works by tokenizing document content and inserting term vectors. The write graph consists of `DELETE`, `TRUNCATE`, and bulk `INSERT` statements. There are no bulk in-place `UPDATE` row events.
-- **Simpler Alternatives**: Search indexing uses small Action Scheduler or AJAX chunking (e.g. 20 posts per batch) tracked by post ID checkpoints (`relevanssi_index_progress`). If a batch fails, reindexing resumes from the last processed post ID.
+Adapter issue: created as `#87` (linked from #67 by the Maintainer when accepted;
+the implementation issue body is reproduced in the PR evidence report).
 
----
+## 2. Fluent Forms 5.2.9 — does not qualify
 
-### Candidate 4: FluentCRM 2.9.x / Groundhogg 3.4.x
-*Category: CRM Contact Reconciliation & Custom-Table Status Sync*
-- **Custom Table**: `wp_fluentcrm_subscribers`.
-- **Operation Examined**: Bulk Contact Status Reconciliation (e.g. mass bounce status sync, list unsubscribe reconciliation).
-- **Recorded Write Graph**:
-  ```text
-  FluentCrm\App\Models\Subscriber::updateStatus()
-    ├── UPDATE wp_fluentcrm_subscribers SET status = :status WHERE id = :id
-    ├── INSERT wp_fluentcrm_subscriber_meta (audit entry)
-    ├── INSERT wp_fluentcrm_activity (audit trail)
-    └── do_action('fluentcrm_subscriber_status_changed')
-          ├── Webhook dispatch (HTTP POST to external CRM/ESP - IRREVERSIBLE)
-          └── Campaign email queue cancel/dispatch (IRREVERSIBLE)
-  ```
-- **Why It Disqualifies**:
-  1. Irreversible HTTP webhooks and campaign state triggers fire upon status changes. Rolling back the row update leaves external services desynchronized.
-  2. Status updates write audit trails to sibling tables (`wp_fluentcrm_subscriber_meta`, `wp_fluentcrm_activity`), violating single-table isolation.
-- **Simpler Alternatives**:
-  - FluentCRM's UI requires an explicit confirmation modal displaying the exact match count ("This will update 45 contacts. Proceed?").
-  - Background operations are paginated in batches of 100 with resume tokens.
+**Operation:** Entries page → select entries → Bulk Actions → **Mark as Read**
+(`SubmissionService::handleBulkActions(['action_type' => 'read'])`, the exact
+method invoked by `SubmissionController@handleBulkActions` on the plugin's REST
+route `POST /fluentform/v1/submissions/bulk-actions`; `SOURCE-CODE VERIFIED`).
 
----
+**Installed:** `fluentform.5.2.9.zip` (sha256
+`e630a71d0db40dbe084588fd5e8ea0d1ba91e9a31f9f3f7e4ce8ec24c32abc4e`).
 
-### Candidate 5: Independent Analytics 2.3.x
-*Category: Analytics Data Rollup & Maintenance*
-- **Custom Tables**: `wp_ia_views`, `wp_ia_sessions`.
-- **Operation Examined**: Daily Analytics Rollup & Historical Data Retention.
-- **Recorded Write Graph**:
-  ```text
-  IA_Archiver::run()
-    ├── INSERT INTO wp_ia_daily_summaries SELECT ... FROM wp_ia_views
-    └── DELETE FROM wp_ia_views WHERE created < :cutoff_date
-  ```
-- **Why It Disqualifies**: **Verb mismatch**. Analytics data ingest is append-only (`INSERT`), and data maintenance is aggregate-and-prune (`INSERT ... SELECT` and `DELETE`). There is no bulk in-place `UPDATE` mutation pattern.
-- **Simpler Alternatives**: Standard date-filtered `DELETE` queries with `LIMIT` chunking.
+**OBSERVED AT RUNTIME** (transcript `transcripts/fluentform.txt`):
 
----
+```text
+SQL: update `wp_fluentform_submissions` set `status` = 'read', `updated_at` = '...'
+     where `form_id` = 1 and `id` in (1, 2, 3, 4, 5, 6)
+HOOKS: {"fluentform/after_submission_status_update":6, ...}
+MAIL: 0
+HTTP: []
+TABLE VERBS (fluentform_submissions): {"UPDATE":1,"SELECT":1}
+```
 
-### Candidate 6: Redirection 5.5.x
-*Category: URL Redirect Management*
-- **Custom Table**: `wp_redirection_items`.
-- **Operation Examined**: Bulk URL Search-and-Replace.
-- **Recorded Write Graph**:
-  ```text
-  Red_Item::update()
-    ├── UPDATE wp_redirection_items SET action_data = REPLACE(...)
-    ├── Filesystem write: .htaccess or nginx-rewrites.conf (IRREVERSIBLE)
-    └── UPDATE wp_options (redirection_lookup_cache)
-  ```
-- **Why It Disqualifies**: URL changes flush configuration files to disk (`.htaccess`/Nginx configs) and rewrite `wp_options` cache dictionaries. Rolling back the table leaves the web server redirect rules out of sync.
-- **Simpler Alternatives**: Built-in CSV export/import and interactive regex matching previews.
+- Single plugin-owned custom table, pure `UPDATE`, no mail/HTTP observed.
+- But the mutation is already **id-scoped to the explicitly selected entries**;
+  the operation cannot become a broad accidental update through the UI. A
+  batch/ID cap is plainly better than a mutation budget here, and the plugin
+  fires `fluentform/after_submission_status_update` per entry (six action hooks
+  for six entries) which any rollback semantics would have to account for.
+- **Disqualifier:** no accidental-broad-update failure mode; simpler control
+  (explicit IDs) already wins.
 
----
+## 3. Relevanssi 4.22.1 — does not qualify
 
-## 4. Cross-Cutting Engineering Synthesis
+**Operation:** Relevanssi → Index → **Build index** (`relevanssi_build_index()`,
+the real rebuild entry point).
 
-Across the entire WordPress ecosystem, the requirements for CommitCap V0.1 encounter two insurmountable
-architectural realities:
+**Installed:** `relevanssi.4.22.1.zip` (sha256
+`5c60bf8daf999611ee2fc88c703f87d6c68a15df4aca3283a413ce5c66fb847a`).
 
-1. **WordPress Custom Tables Do Not Mutate in Isolation**:
-   In idiomatic WordPress plugin architecture, custom tables are tightly coupled with the WordPress lifecycle.
-   Mutations trigger WordPress action hooks (`do_action`), invalidate transients in `wp_options`, write audit
-   logs, update search lookups, or dispatch HTTP/email side effects. Constraining the mutation to a single
-   isolated table breaks plugin consistency; allowing the surrounding writes breaches the restricted database boundary.
+**OBSERVED AT RUNTIME** (transcript `transcripts/relevanssi.txt`, large INSERT
+statements truncated in the committed transcript):
 
-2. **Accidental Broad UPDATEs Are Already Solved by Simpler Safeguards**:
-   The specific threat model that CommitCap addresses (an unbounded `UPDATE` lacking a `WHERE` clause or matching
-   too many rows) is solved by plugin authors using:
-   - **LIMIT clauses & Pagination**: Processing in 20-100 row batches.
-   - **ID Array Targeting**: `WHERE id IN (1, 2, 3...)` rather than broad range queries.
-   - **Pre-flight Count Confirmations**: Querying `SELECT COUNT(*)` and prompting the Admin before applying changes.
-   - **Dry-Run / Preview Modes**: Rendering proposed changes in the UI before committing.
+```text
+SQL: TRUNCATE TABLE wp_relevanssi
+SQL: INSERT INTO `wp_options` ... 'relevanssi_index' ...
+SQL: INSERT IGNORE INTO wp_relevanssi (...) VALUES (...)
+SQL: UPDATE `wp_options` SET `option_value` = 'done' WHERE `option_name` = 'relevanssi_indexed'
+SQL: ANALYZE TABLE wp_relevanssi
+HOOKS: {"relevanssi_indexing_query":1, "relevanssi_do_not_index":8, ...}
+HTTP: ["http://research.test/wp-admin/admin-ajax.php"]
+TABLE VERBS (relevanssi): {"TRUNCATE":1,"SELECT":10,"INSERT":9,"UPDATE":1}
+```
 
-None of these existing safeguards require a second database user, PROCEDURE DEFINERs, DB triggers, or hosting-level DDL/DCL.
+- Verb mismatch: the plugin-owned table is rebuilt with `TRUNCATE` +
+  bulk `INSERT IGNORE`; the only `UPDATE` observed is a `wp_options` progress
+  marker, not a row-event budget on the plugin table.
+- It also performs an HTTP request during the run and fires many indexing
+  filters/hooks; a rollback cannot undo those.
+- **Disqualifier:** not an UPDATE reconciliation; multiple verbs and non-DB side
+  effects.
 
----
+## 4. WPForms Lite 1.9.2.2 — does not qualify (not executed)
 
-## 5. Formal Conclusion & Recommendation for Umbrella #67
+**SOURCE-CODE VERIFIED:** WPForms Lite ships the Entries *list* and single-entry
+view, but the entry read/unread and bulk entry status mutations are gated behind
+the Pro add-on. The Lite template renders "Mark as Unread" as a disabled element
+(`lite/templates/admin/entries/single/entry.php`), and no Lite bulk entry-status
+UPDATE handler exists in `src/`. There is therefore no Admin-executable
+entry-status operation in the free plugin to run; this candidate is recorded as
+not executable rather than fabricated. The operation was not executed.
 
-Because **zero real plugin operations qualify** without manufacturing a synthetic or trivial fixture:
-1. **Gate #85 is formally resolved with verdict NONE QUALIFIES.**
-2. Per the stop conditions of **#85** and **#67**, we **do not fabricate a custom-table operation** to save the roadmap.
-3. We recommend that the project founders invoke the **Product Pivot Gate in #67** before undertaking any Admin UI (#60) or WordPress.org packaging (#77) work.
+## 5. Previously claimed candidates not re-executed
+
+The earlier version of this file claimed runtime write graphs for WooCommerce
+10.7.0, WP All Import Pro 4.9.x, FluentCRM/Groundhogg, Independent Analytics and
+Redirection without installing or running them. Those claims were
+**INFERRED — NOT SUFFICIENT** and are withdrawn.
+
+- WooCommerce core operations were previously researched and rejected in
+  #67/#79 (`DOCUMENTED BY PLUGIN` / prior disposable runs); no new execution was
+  performed here and no WooCommerce-core selection is made.
+- WP All Import **Pro** is a commercial plugin that cannot be installed from
+  wordpress.org in this disposable fixture; no claim is made about it.
+- Independent Analytics and FluentCRM were not executed in this round and are
+  not part of the verdict.
+
+## 6. Verdict
+
+```text
+SELECTED: Redirection 5.5.2 — Bulk Actions "Disable/Enable/Reset (select all
+matching)" → Red_Item::set_status_all() → one unbounded UPDATE on
+wp_redirection_items
+```
+
+Exactly one adapter implementation issue is required by #85. It is created as
+issue #87 with this scope:
+
+```text
+Installed plugin/version: Redirection 5.5.2 (wordpress.org ZIP, sha256 pinned)
+Restricted connection: SELECT, UPDATE on wp_redirection_items only
+Guard: Guard::update('wp_redirection_items', L, ...) calling the plugin's own
+       Red_Item::set_status_all() through a version-pinned adapter
+Proof: N row events COMMIT, N+1 typed Budget_Denied with full rollback verified
+       by a fresh observer, Admin-readable evidence, physical ceiling P installed
+       by the trusted operator
+```
+
+The selection is justified by runtime evidence (Section 1): the only executed
+candidate with a genuine unbounded-UPDATE failure mode, a single plugin-owned
+table, pure UPDATE verb, no observed external side effects, and a cooperative
+method that can be driven through the restricted connection.

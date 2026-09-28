@@ -37,9 +37,10 @@ $engine = new Engine( $root );
 // Reset the writer to the exact surface this suite declares and proves.
 cc57_query( $root, "REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'cc_writer'@'%'" );
 $engine->install_infrastructure();
-foreach ( array( 'open', 'close', 'count', 'policy' ) as $routine ) {
+foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
 	cc57_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$routine TO 'cc_writer'@'%'" );
 }
+cc57_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc_writer'@'%'" );
 cc57_query( $root, 'CREATE TABLE cc57_target (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB' );
 cc57_query( $root, "GRANT SELECT, UPDATE ON wp_test.cc57_target TO 'cc_writer'@'%'" );
 $engine->install_policy( 'cc57_target', 5 );
@@ -258,7 +259,7 @@ cc57_query( $root, 'DROP TABLE cc57_conflict' );
 cc57_query( $root, 'DROP TABLE cc57_myisam' );
 $engine->remove_owned_policy( 'cc57_target', 5 );
 cc57_query( $root, 'DROP TABLE cc57_target' );
-foreach ( array( 'open', 'close', 'count', 'policy' ) as $routine ) {
+foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
 	cc57_query( $root, 'DROP PROCEDURE commitcap_v01_' . $routine );
 }
 cc57_query( $root, 'DROP TABLE commitcap_v01_state' );

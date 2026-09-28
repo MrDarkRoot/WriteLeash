@@ -1,0 +1,23 @@
+services:
+  mysql:
+    image: mysql@sha256:9c3380eac945af0736031b200027f581925927c81e010056214a4bd6b6693714 # 8.0.44
+    environment:
+      MYSQL_ROOT_PASSWORD: disposable_root_password
+      MYSQL_DATABASE: wp_test
+      MYSQL_USER: wp_test
+      MYSQL_PASSWORD: disposable_wp_password
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+  tester:
+    build:
+      context: ../..
+      dockerfile: tests/Dockerfile
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./.cache:/opt/plugin-zips:ro
+    command: ["sh", "/opt/tests/research/in-container.sh"]

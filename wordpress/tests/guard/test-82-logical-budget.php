@@ -366,71 +366,119 @@ cc56_assert( false !== $writer->query( 'COMMIT' ), 'end caller tx' );
 cc56_clean( $writer );
 echo "  #82.12 caller savepoint preserved outside guard: PASS\n";
 
-// 82.13. Measure resource/time cost when P >> L.
-// Benchmark table cc_bench_p_vs_l with 2000 rows.
+// 82.13. Resource characterization for P >> L, repeated runs, sized tables.
+// The physical case aborts inside the trigger at the trusted ceiling; the
+// logical case performs every row event, then Guard refuses before COMMIT and
+// rolls the whole statement back. Observable transaction facts are captured
+// mid-transaction from a trusted observer connection.
 $bench_table = 'cc_bench_p_vs_l';
 $root->query( "DROP TABLE IF EXISTS `$bench_table`" );
 cc56_assert( false !== $root->query( "CREATE TABLE `$bench_table` (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB" ), 'create bench table' );
-$values = array();
-for ( $i = 1; $i <= 2000; ++$i ) {
-	$values[] = "($i, 0)";
-	if ( count( $values ) === 500 ) {
-		cc56_assert( false !== $root->query( "INSERT INTO `$bench_table` (id, touched) VALUES " . implode( ',', $values ) ), 'insert bench rows' );
-		$values = array();
-	}
-}
 $root->query( "GRANT SELECT, UPDATE ON wp_test.`$bench_table` TO 'cc_writer'@'%'" );
 
-// Case A: P = 5, L = 5 (Physical abort at 6th row).
-$installer->install_policy( $bench_table, 5 );
-$t0 = microtime( true );
-$error_phys = cc56_reject(
-	function () use ( $writer, $bench_table ) {
-		Guard::update(
-			$bench_table,
-			5,
-			function () use ( $writer, $bench_table ) {
-				$writer->query( "UPDATE `$bench_table` SET touched = touched + 1 WHERE id <= 2000" );
-			},
-			$writer
-		);
-	},
-	Budget_Denied::class,
-	'physical benchmark'
-);
-$t_phys = microtime( true ) - $t0;
-cc56_clean( $writer );
-$installer->remove_owned_policy( $bench_table, 5 );
+$trx_columns = array();
+foreach ( $root->get_col( "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'information_schema' AND TABLE_NAME = 'INNODB_TRX' ORDER BY ORDINAL_POSITION" ) as $column ) {
+	$trx_columns[] = strtoupper( (string) $column );
+}
+$trx_available = array_values( array_intersect(
+	array( 'TRX_STATE', 'TRX_ROWS_MODIFIED', 'TRX_ROWS_LOCKED', 'TRX_LOCK_MEMORY_BYTES', 'TRX_TABLES_LOCKED', 'TRX_LOCK_STRUCTS', 'TRX_WEIGHT' ),
+	$trx_columns
+) );
+echo "  #82.13 observable INNODB_TRX columns on $host: " . implode( ', ', $trx_available ) . "\n";
 
-// Case B: P = 2000, L = 5 (Logical abort after all 2000 rows are updated and rolled back by Guard).
-$installer->install_policy( $bench_table, 2000 );
-$t0 = microtime( true );
-$error_log = cc56_reject(
-	function () use ( $writer, $bench_table ) {
-		Guard::update(
-			$bench_table,
-			5,
-			function () use ( $writer, $bench_table ) {
-				$writer->query( "UPDATE `$bench_table` SET touched = touched + 1 WHERE id <= 2000" );
-			},
-			$writer
-		);
-	},
-	Budget_Denied::class,
-	'logical benchmark'
-);
-$t_log = microtime( true ) - $t0;
-cc56_clean( $writer );
-$installer->remove_owned_policy( $bench_table, 2000 );
+function cc82_bench_once( $host, $root, $writer, $installer, $bench_table, $rows, $ceiling, $logical, $trx_available ) {
+	$root->query( 'TRUNCATE TABLE `' . $bench_table . '`' );
+	$values = array();
+	for ( $i = 1; $i <= $rows; ++$i ) {
+		$values[] = "($i, 0)";
+		if ( count( $values ) === 1000 ) {
+			cc56_assert( false !== $root->query( 'INSERT INTO `' . $bench_table . '` (id, touched) VALUES ' . implode( ',', $values ) ), 'insert bench rows' );
+			$values = array();
+		}
+	}
+	if ( $values ) {
+		cc56_assert( false !== $root->query( 'INSERT INTO `' . $bench_table . '` (id, touched) VALUES ' . implode( ',', $values ) ), 'insert bench rows' );
+	}
+	$installer->install_policy( $bench_table, $ceiling );
+	$observed = array();
+	$t0 = microtime( true );
+	$error = cc56_reject(
+		function () use ( $writer, $root, $bench_table, $rows, $logical, $trx_available, &$observed ) {
+			Guard::update(
+				$bench_table,
+				$logical,
+				function () use ( $writer, $root, $bench_table, $rows, $trx_available, &$observed ) {
+					// Capture the identity BEFORE the broad UPDATE so the raw
+					// denial errno/sqlstate stays intact for Guard attribution.
+					$connection_id = (int) $writer->get_var( 'SELECT CONNECTION_ID()' );
+					$writer->query( 'UPDATE `' . $bench_table . '` SET touched = touched + 1 WHERE id <= ' . (int) $rows );
+					if ( $connection_id > 0 && $trx_available ) {
+						$select = implode( ', ', $trx_available );
+						$row = $root->get_row( 'SELECT ' . $select . ' FROM information_schema.INNODB_TRX WHERE TRX_MYSQL_THREAD_ID = ' . $connection_id, ARRAY_A );
+						if ( is_array( $row ) ) {
+							$observed = $row;
+						}
+					}
+				},
+				$writer
+			);
+		},
+		Budget_Denied::class,
+		'benchmark denial'
+	);
+	$elapsed = microtime( true ) - $t0;
+	$durable = cc82_rows( $host, $bench_table, 1 );
+	cc56_assert( array( 0 ) === $durable, 'benchmark rollback durable check' );
+	cc56_clean( $writer );
+	$installer->remove_owned_policy( $bench_table, $ceiling );
+	$details = $error->details();
+	return array(
+		'ms'        => $elapsed * 1000,
+		'attempted' => $details['attempted'],
+		'reason'    => $details['reason'],
+		'observed'  => $observed,
+	);
+}
+
+function cc82_bench_stats( array $runs ) {
+	$ms = array_map( static function ( $r ) { return $r['ms']; }, $runs );
+	sort( $ms );
+	$count = count( $ms );
+	return array(
+		'min'    => round( $ms[0], 2 ),
+		'median' => round( $ms[ (int) floor( ( $count - 1 ) / 2 ) ], 2 ),
+		'max'    => round( $ms[ $count - 1 ], 2 ),
+	);
+}
+
+$sizes = array( 2000, 10000, 50000 );
+$summary = array();
+foreach ( $sizes as $rows ) {
+	$phys_runs = array();
+	$log_runs  = array();
+	for ( $repeat = 0; $repeat < 3; ++$repeat ) {
+		$phys_runs[] = cc82_bench_once( $host, $root, $writer, $installer, $bench_table, $rows, 5, 5, $trx_available );
+		$log_runs[]  = cc82_bench_once( $host, $root, $writer, $installer, $bench_table, $rows, $rows, 5, $trx_available );
+	}
+	$phys = cc82_bench_stats( $phys_runs );
+	$log  = cc82_bench_stats( $log_runs );
+	$ratio = $phys['median'] > 0 ? round( $log['median'] / $phys['median'], 1 ) : 'N/A';
+	$summary[ $rows ] = array( 'phys' => $phys, 'log' => $log, 'ratio' => $ratio );
+	echo sprintf( "  #82.13 P>>L rows=%d (P=5,L=5 physical abort at row 6; P=%d,L=5 logical pre-COMMIT abort):\n", $rows, $rows );
+	echo sprintf(
+		"         physical ms min/median/max: %s / %s / %s (attempted: %s, reason: %s)\n",
+		$phys['min'], $phys['median'], $phys['max'], $phys_runs[0]['attempted'], $phys_runs[0]['reason']
+	);
+	echo sprintf(
+		"         logical  ms min/median/max: %s / %s / %s (attempted: %s, reason: %s)\n",
+		$log['min'], $log['median'], $log['max'], $log_runs[0]['attempted'], $log_runs[0]['reason']
+	);
+	echo sprintf( "         logical/physical median ratio: %sx; logical scaling: %s ms per 1000 row events\n", $ratio, round( $log['median'] / ( $rows / 1000 ), 2 ) );
+	if ( $log_runs[0]['observed'] ) {
+		echo '         observed mid-transaction facts (logical run): ' . json_encode( $log_runs[0]['observed'] ) . "\n";
+	}
+}
 $root->query( "DROP TABLE `$bench_table`" );
-
-$phys_ms = round( $t_phys * 1000, 2 );
-$log_ms  = round( $t_log * 1000, 2 );
-$ratio   = $t_phys > 0 ? round( $t_log / $t_phys, 1 ) : 'N/A';
-echo sprintf( "  #82.13 resource cost measurement (P >> L on 2000 rows, %s):\n", $host );
-echo sprintf( "         P=5, L=5 (physical abort at row 6): %s ms (attempted: %s, sqlstate: %s)\n", $phys_ms, $error_phys->details()['attempted'], $error_phys->details()['sqlstate'] );
-echo sprintf( "         P=2000, L=5 (logical abort at pre-commit): %s ms (attempted: %s, sqlstate: %s)\n", $log_ms, $error_log->details()['attempted'], var_export( $error_log->details()['sqlstate'], true ) );
-echo sprintf( "         Overhead ratio: %sx\n", $ratio );
 
 // Cleanup test table.
 $installer->remove_owned_policy( $table_l, 10 );

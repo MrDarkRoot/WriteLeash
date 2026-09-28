@@ -44,12 +44,14 @@ Before using Guard on a real table, rerun with its table name and budget.
   random savepoint inside an existing transaction, then releases it, as #56
   describes. This is a snapshot, not a guarantee the connection stays stable.
 - Trusted installer: schema CREATE for helper, schema CREATE ROUTINE for the
-  four definer procedures, and applicable TRIGGER for the target (schema TRIGGER
+  five definer procedures, and applicable TRIGGER for the target (schema TRIGGER
   before an unspecified/new table). Removing an owned trigger requires TRIGGER,
   **not** DROP. No installer auto-fix or grant creation is performed.
-- Runtime writer: explicit EXECUTE on exactly the four reviewed procedures,
-  no global/schema EXECUTE or unrelated procedure/function EXECUTE; no helper
-  writes (including schema-wide grants), no DDL that changes the protected
+- Runtime writer: explicit EXECUTE on exactly the five reviewed procedures and
+  the reviewed **read-only** `SELECT` on the helper state table (the unmediated
+  accounting read used by Guard and the runtime probes); no global/schema
+  EXECUTE or unrelated procedure/function EXECUTE; no helper writes (including
+  schema-wide grants), no DDL that changes the protected
   table/trigger or routine and no authority to create a bypassing routine in
   another schema. **TRIGGER authority on any schema is FAIL**: a trigger is
   server-side code on the guarded connection that the lexical monitor cannot
@@ -109,22 +111,48 @@ provides point-in-time shared runtime verification for normal web requests where
 **no installer credentials exist in PHP memory or `wp-config.php`**.
 
 ### 1. Evidence Channel Evaluation
-To verify database infrastructure and foreign triggers without installer credentials, three evidence channels were evaluated:
 - **Signed manifest / `wp_options`**: Disqualified. Options and local files are mutable by WordPress plugins, can fall out of sync with actual database state, and cannot detect database-level tampering or drift.
 - **Dedicated metadata table**: Disqualified. A state table duplicates `information_schema` data, requires synchronization DDL, and risks silent desynchronization from the real DB schema.
-- **`SQL SECURITY DEFINER` procedure (`commitcap_v01_policy`)**: **Adopted**. Created once by the trusted installer during initial provisioning with installer DEFINER rights. The restricted runtime writer is granted only `EXECUTE` on this procedure. The procedure queries `information_schema` directly on live database state with the installer's DEFINER authority, inspecting routine signatures, DEFINER matches, helper table definitions, target policy triggers, and foreign writable trigger counts.
+- **One `SQL SECURITY DEFINER` evidence procedure**: Insufficient. A single reporter that only returned counts/signatures and whose own body was never checked could not distinguish a replaced body (proved by adversarial test: the previous Doctor PASSed a body-only tampered `commitcap_v01_count`).
+- **Two mutually cross-attesting `SQL SECURITY DEFINER` procedures plus unmediated metadata**: **Adopted** (`commitcap_v01_policy` and `commitcap_v01_attest`). Each reports the live `ROUTINE_DEFINITION` of all five reviewed routines. A body replaced in any single object is reported by the other canonical object and compared against the canonical body shipped in the plugin.
 
-### 2. Multi-Policy Sibling Recognition
+### 2. Runtime evidence trust root (exact)
+The runtime does not trust any single routine. `runtime_attestation()` combines:
+1. **Cross-attestation**: `commitcap_v01_policy` and `commitcap_v01_attest` each return the live body of every reviewed routine (including the other evidence routine). Each body must normalize-equal both the other report and the canonical body in `Update_Engine::routines()`. All five must be `SQL SECURITY DEFINER` with one shared DEFINER.
+2. **Unmediated `information_schema` metadata**: the restricted account reads `ROUTINES.SECURITY_TYPE/DEFINER/CREATED/LAST_ALTERED` itself (definitions are NULL for it). Reports must match these rows, and all five `CREATED` values must fall inside one install batch (10 s tolerance) — replacing a body changes `CREATED`, and on MySQL `DROP`+`CREATE` also removes the runtime's EXECUTE grant.
+3. **Unmediated grant evidence**: `SHOW GRANTS` must show exactly the reviewed surface: EXECUTE on the five procedures and read-only SELECT on `commitcap_v01_state`.
+4. **Unmediated helper shape**: `information_schema` table/column/index/trigger reads prove the helper table shape with no routine involved.
+5. **Behavioral probes**: the runtime calls `open`, reads the helper row directly, calls `count` and compares with the direct read, sets the denial signal and requires `close` to reject, then closes and requires the row gone. `runtime_trigger_probe()` opens accounting on a target, issues one **data-preserving no-op `UPDATE ... SET col = col LIMIT 1`** (the pinned engines fire `BEFORE UPDATE` triggers for it), and requires the direct helper read and `count` to both report exactly one event before rolling back.
+
+`commitcap_v01_policy` therefore attests the live bodies of all five routines; it is not trusted by its own report — its body is attested by `commitcap_v01_attest` and vice versa, and a replacement of either changes `CREATED` and (on MySQL) drops its EXECUTE grant. **UNKNOWN is never upgraded to PASS.**
+
+**Residual (explicit):** a principal that can coherently replace *both* evidence routines *and* the enforcement objects (installer-equivalent / full DB control) is not distinguishable by any database-resident check without an external secret. The Doctor's checks are single-object-tamper proof; against an installer-equivalent adversary the operator must re-run `Doctor::run()` with trusted credentials. This is the documented boundary, not a PASS claim.
+
+### 3. Guard is not dependent on routine bodies
+`Guard::update()` reads the accounting state for the stale pre-check, the logical pre-COMMIT decision, denial attribution and the post-COMMIT state check **directly from `commitcap_v01_state`** (reviewed SELECT grant). A replaced `commitcap_v01_count` body cannot cause an over-budget COMMIT; it is detected by the Doctor and the direct-state denial still fires and rolls back (tested as `#83.10`).
+
+### 4. Multi-Policy Sibling Recognition
 When multiple code integrations share the same restricted database connection, passing an array of known policies (e.g. `array('table_a' => 10, 'table_b' => 20)`) allows the Doctor to:
 - Inspect and verify each target policy's physical ceiling and trigger template.
 - Validate that logical budgets $L$ satisfy $0 \le L \le P$ for each integration.
 - Exclude verified sibling tables from being classified as unreviewed "foreign" trigger surfaces.
 
-### 3. Shared Reachability Invariant
+### 5. Shared Reachability Invariant
 When integrations share a restricted database connection, they share a single transaction boundary:
 - If **any** writable sibling table has a corrupted, missing, or tampered trigger, or lacks proper grants, writes to that sibling during a transaction can bypass CommitCap accounting.
 - **Invariant**: Any corrupted or failing sibling integration forces all otherwise valid sibling integrations on the shared connection to fail closed to `UNKNOWN`, and forces the aggregate status to `DEGRADED`. A shared runtime can NEVER report `PASS` for integration A if sibling B is corrupt.
 
-### 4. Normal Web Request vs. Operator Verification
+### 6. Adversarial evidence (both pinned engines)
+`wordpress/tests/doctor/test-83-shared-runtime-doctor.php` executes body-only tampers
+with identical name, parameters, `SQL SECURITY DEFINER` and apparent object counts
+(the tampered body keeps the canonical statement shape and changes one behavioral
+token; EXECUTE is re-granted to simulate an installer-capable attacker):
+`open`, `close`, `count`, `policy`, `attest`, plus signature-level tamper,
+target-trigger tamper, dropped trigger, ceiling mismatch, sibling corruption,
+foreign writable triggered object and altered grants. Every tamper leaves the
+aggregate not-PASS and forces sibling integrations to `UNKNOWN`; restoration
+returns to PASS.
+
+### 7. Normal Web Request vs. Operator Verification
 - **Normal Web Request**: `Doctor::runtime()` runs with only the restricted `$writer` connection in `$wpdb`. Installer credentials are never stored, parsed, or retained in PHP.
 - **Operator Verification**: `Doctor::run()` is invoked only during explicit setup, migration, or auditing by an administrator with a separate, temporary installer connection. Full grant listings and structural verifiers are evaluated directly.

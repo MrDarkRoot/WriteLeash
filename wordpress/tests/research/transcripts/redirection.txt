@@ -1,0 +1,40 @@
+=== CANDIDATE redirection: install redirection.5.5.2.zip ===
+Unpacking the package...
+Installing the plugin...
+Removing the old version of the plugin...
+Plugin updated successfully.
+Activating 'redirection'...
+Plugin 'redirection' activated.
+Success: Installed 1 of 1 plugins.
+SETUP: redirection_tables=4
+SEED: total=8 enabled=8
+REST: status=200
+--- TRACE redirection_rest_bulk_disable_global (thread 17) ---
+SQL: UPDATE wp_redirection_items SET status='disabled'
+SQL: SELECT * FROM wp_redirection_items ORDER BY id DESC LIMIT 0,25
+SQL: SELECT COUNT(*) FROM wp_redirection_items
+SQL: SELECT COUNT(*) FROM wp_redirection_items WHERE status='disabled'
+HOOKS: {"query":11,"nonce_life":1,"gettext":1221,"gettext_default":1221,"salt":1,"wp_rest_server_class":1,"rest_get_max_batch_size":1,"rest_api_init":1,"register_setting_args":20,"register_setting":20,"oembed_default_width":1,"is_post_type_viewable":5,"gettext_with_context":20,"gettext_with_context_default":20,"pre_option_permalink_structure":9,"pre_option":49,"pre_wp_load_alloptions":49,"alloptions":49,"option_permalink_structure":9,"pre_option_home":14,"option_home":14,"set_url_scheme":7,"home_url":7,"wp_parse_str":7,"rest_url":7,"rest_post_item_schema":1,"rest_post_collection_params":1,"rest_page_item_schema":1,"rest_page_collection_params":1,"rest_attachment_item_schema":1,"rest_attachment_collection_params":1,"mime_types":1,"map_meta_cap":2,"user_has_cap":2,"upload_mimes":1,"rest_nav_menu_item_collection_params":1,"rest_wp_block_item_schema":1,"rest_wp_block_collection_params":1,"rest_wp_navigation_item_schema":1,"rest_wp_navigation_collection_params":1,"rest_wp_font_family_collection_params":2,"rest_wp_font_face_collection_params":2,"rest_category_collection_params":1,"rest_post_tag_collection_params":1,"rest_nav_menu_collection_params":1,"rest_wp_pattern_category_collection_params":1,"pre_get_language_files_from_path":1,"get_available_languages":1,"pre_option_show_avatars":2,"option_show_avatars":2,"rest_avatar_sizes":2,"rest_user_collection_params":1,"rest_comment_collection_params":1,"wp_rest_search_handlers":1,"rest_themes_collection_params":1,"rest_block_directory_collection_params":1,"rest_pattern_directory_collection_params":1,"rest_font_collections_collection_params":1,"rest_pre_dispatch":1,"rest_endpoints":1,"rest_request_parameter_order":19,"rest_request_before_callbacks":1,"redirection_role":1,"redirection_capability_check":1,"rest_dispatch_request":1,"sanitize_text_field":1,"pre_option_redirection_options":24,"option_redirection_options":24,"red_default_options":24,"rest_request_after_callbacks":1}
+MAIL: 0
+HTTP: []
+--- END TRACE redirection_rest_bulk_disable_global ---
+TABLE VERBS (redirection_items): {"UPDATE":1,"SELECT":3}
+RESULT: disabled_after=8
+REST-SCOPED: status=200 ids=1,2
+--- TRACE redirection_rest_bulk_disable_selected_items (thread 17) ---
+SQL: SELECT * FROM wp_redirection_items WHERE id=1
+SQL: UPDATE `wp_redirection_items` SET `status` = 'enabled' WHERE `id` = '1'
+SQL: SELECT * FROM wp_redirection_items WHERE id=2
+SQL: UPDATE `wp_redirection_items` SET `status` = 'enabled' WHERE `id` = '2'
+SQL: SELECT * FROM wp_redirection_items ORDER BY id DESC LIMIT 0,25
+SQL: SELECT COUNT(*) FROM wp_redirection_items
+HOOKS: {"query":13,"nonce_life":1,"salt":1,"rest_pre_dispatch":1,"rest_endpoints":1,"rest_request_parameter_order":19,"rest_request_before_callbacks":1,"redirection_role":1,"redirection_capability_check":1,"map_meta_cap":1,"user_has_cap":1,"rest_dispatch_request":1,"pre_option_permalink_structure":2,"pre_option":30,"pre_wp_load_alloptions":30,"alloptions":30,"option_permalink_structure":2,"sanitize_text_field":1,"pre_option_redirection_options":28,"option_redirection_options":28,"red_default_options":28,"pre_get_col_charset":4,"redirection_redirect_enabled":2,"rest_request_after_callbacks":1}
+MAIL: 0
+HTTP: []
+--- END TRACE redirection_rest_bulk_disable_selected_items ---
+TABLE VERBS (redirection_items): {"SELECT":4,"UPDATE":2}
+=== CANDIDATE redirection: deactivate and delete ===
+Plugin 'redirection' deactivated.
+Success: Deactivated 1 of 1 plugins.
+Deleted 'redirection' plugin.
+Success: Deleted 1 of 1 plugins.

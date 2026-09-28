@@ -32,11 +32,12 @@ and installer credentials are never saved in `wp_options`, filesystem manifests,
 +-------------------------------------------------------------------------------+
 | Normal Web Request (WordPress Admin & Scheduled Jobs)                         |
 | - Restricted runtime wpdb connection only                                     |
-| - EXECUTE on exactly 4 DEFINER routines (commitcap_v01_open/close/count/policy)|
+| - EXECUTE on exactly 5 DEFINER routines (open/close/count/policy/attest)      |
+| - Read-only SELECT on commitcap_v01_state (unmediated accounting evidence)    |
 | - SELECT, UPDATE on exact declared target tables only                         |
 | - NO TRIGGER, NO CREATE ROUTINE, NO helper DML, NO broad grants              |
 | - Guard-owned cooperative UPDATE transactions within logical budget L <= P   |
-| - Doctor::runtime() point-in-time verification via DEFINER routine           |
+| - Doctor::runtime() point-in-time verification via cross-attesting routines   |
 +-------------------------------------------------------------------------------+
 ```
 
@@ -48,10 +49,11 @@ All database modifications are generated as inspectable, version-pinned SQL plan
 
 ### Principles:
 1. **Offline Reviewability**: Plans output structured statement metadata and human-readable SQL scripts.
-2. **Secret Redaction**: Passwords/secrets are masked by default (`[REDACTED_SECRET]`) in all logs, CLI outputs, and Doctor reports.
+2. **Secret Redaction**: Passwords/secrets are masked by default (`[REDACTED_SECRET]`) in all logs, CLI outputs, and Doctor reports. Credential statements never appear in exception messages, apply results, or host error logging (`DCL` execution is wrapped in `suppress_errors`); failures report the step id and a withheld-SQL marker instead.
 3. **Application Table Preservation**: Target removal and plugin uninstallation **NEVER drop application tables or delete existing application rows**. Only CommitCap-owned triggers, procedures, helper state, and runtime accounts are touched.
-4. **Conflict Refusal**: Attempting to add a target table that has an unreviewed foreign trigger, is not InnoDB, or has foreign keys/partitions is refused before any DDL is applied.
+4. **Conflict Refusal**: Apply runs a pre-flight before any statement. A foreign helper shape, a CommitCap-named routine with a foreign body, an existing runtime account with grants outside the reviewed surface, a foreign trigger (including one that merely reuses the expected trigger name), or a non-canonical object during remove/uninstall refuses the plan. Nothing foreign is dropped, replaced or revoked.
 5. **No Retained Installer Secrets**: The apply phase runs through a temporary installer connection provided by the operator; credentials are discarded immediately.
+6. **Deterministic Replay**: DDL/DCL is auto-commit, so a plan can stop halfway. The plan is idempotent over its own partial state: re-running the same version-pinned plan completes a failed install, add-target, rotation or uninstall without overwriting anything foreign, and `Doctor::runtime()` refuses the partial state in the meantime (tested for all four lifecycles on both engines).
 
 ---
 
@@ -71,21 +73,24 @@ All database modifications are generated as inspectable, version-pinned SQL plan
      PRIMARY KEY (connection_id, policy_id)
    ) ENGINE=InnoDB COMMENT='CommitCap V0.1 cooperative UPDATE state';
    ```
-3. Create 4 `SQL SECURITY DEFINER` routines:
+3. Create 5 `SQL SECURITY DEFINER` routines:
    - `commitcap_v01_open(IN p_policy CHAR(64))`
    - `commitcap_v01_close(IN p_policy CHAR(64))`
    - `commitcap_v01_count(IN p_policy CHAR(64), OUT p_count BIGINT UNSIGNED)`
    - `commitcap_v01_policy(IN p_table VARCHAR(64), IN p_trigger VARCHAR(64))`
+   - `commitcap_v01_attest()` (cross-attesting live routine bodies)
 4. Revoke inherited or broad privileges:
    ```sql
    REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'cc_writer'@'localhost';
    ```
-5. Grant explicit `EXECUTE` on the 4 routines:
+5. Grant explicit `EXECUTE` on the 5 routines plus the reviewed read-only helper state grant:
    ```sql
    GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_open` TO 'cc_writer'@'localhost';
    GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_close` TO 'cc_writer'@'localhost';
    GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_count` TO 'cc_writer'@'localhost';
    GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_policy` TO 'cc_writer'@'localhost';
+   GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_attest` TO 'cc_writer'@'localhost';
+   GRANT SELECT ON `wp_db`.`commitcap_v01_state` TO 'cc_writer'@'localhost';
    ```
 
 ### 3.2 Add Target (`Provisioning_Plan::add_target`)
@@ -130,11 +135,33 @@ All database modifications are generated as inspectable, version-pinned SQL plan
    ```php
    define( 'COMMITCAP_DB_PASSWORD', '<new_secret>' );
    ```
-3. Drain surviving sessions (existing connections terminate upon timeout or process recycle; new connections use rotated secret).
+3. **Deterministically drain surviving sessions.** `ALTER USER` does not
+   terminate already-authenticated sessions on MySQL 8.0.44 or MariaDB
+   10.11.15 (proved by `#84.8`: a connection opened before the rotation keeps
+   executing SQL). The plan includes a `DRAIN` step that lists
+   `information_schema.PROCESSLIST` for the runtime user on the trusted
+   installer connection, executes `KILL <id>` for every remaining session, and
+   verifies none remain. The drain refuses to claim success when the installer
+   cannot see or kill sessions.
+
+   Required operator authority: `PROCESS` + `KILL` via
+   `CONNECTION_ADMIN`/`SUPER` (MySQL 8.0: `CONNECTION_ADMIN`; MariaDB 10.11:
+   `PROCESS` + `SUPER` or `CONNECTION ADMIN`). `root` has it. `assert_drain_capability()`
+   refuses before any `KILL` when the installer's `SHOW GRANTS` does not prove it.
+4. Verify: new connections with the old secret fail, the drained session is gone
+   from `PROCESSLIST`, `Doctor::runtime()` is READY under the rotated secret, and
+   Guard still enforces.
+
+### 3.6 Canonical pre-flight privileges
+`apply()` reads object definitions to refuse foreign collisions. On MySQL 8.0
+that requires `SHOW_ROUTINE` (definitions are NULL otherwise); on MariaDB 10.11
+it requires `SELECT` on the `mysql` schema. `SHOW GRANTS FOR` other accounts
+requires `SELECT` on the `mysql` schema. `root` satisfies all of these.
 
 ### 3.5 Uninstall (`Provisioning_Plan::uninstall`)
-1. Drop triggers on all active target tables.
-2. Drop 4 stored procedures.
+1. Drop triggers on all active target tables (only canonical CommitCap triggers;
+   a foreign-bodied expected-name trigger refuses the plan).
+2. Drop the 5 stored procedures (only canonical bodies; foreign bodies refuse).
 3. Drop helper table `commitcap_v01_state`.
 4. Revoke all remaining privileges from `cc_writer`.
 5. Drop user `cc_writer`.
@@ -164,7 +191,7 @@ The required steps across roles for each lifecycle event:
 | **Initial Setup / Install** | 2 (review rendered SQL, apply via installer) | 1 (add `COMMITCAP_DB_*` constants) | 1 (verify Doctor READY in WP) | **4** |
 | **Add Target Operation** | 2 (review target SQL plan, apply DDL/DCL) | 0 | 1 (run Doctor verify, choose logical budget $L$) | **3** |
 | **Adjust Budget ($L \le P$)** | **0 (No DDL needed! Proved by Gate #82)** | **0** | **1 (select logical budget in WP)** | **1** |
-| **Rotate Credentials** | 1 (execute `ALTER USER` plan) | 1 (update secret in `wp-config.php`) | 1 (verify Doctor READY) | **3** |
+| **Rotate Credentials** | 1 (execute `ALTER USER` + supported session-drain plan) | 1 (update secret in `wp-config.php`) | 1 (verify Doctor READY) | **3** |
 | **Remove Target Policy** | 2 (review removal plan, apply drop trigger & revoke) | 0 | 0 (or disable in plugin settings) | **2** |
 | **Uninstall / Cleanup** | 2 (review uninstall plan, apply cleanup) | 1 (remove constants from config) | 1 (uninstall plugin in WP admin) | **4** |
 

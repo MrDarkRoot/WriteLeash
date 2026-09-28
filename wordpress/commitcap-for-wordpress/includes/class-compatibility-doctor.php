@@ -133,7 +133,7 @@ final class Compatibility_Doctor {
 		} else {
 			$engine = new Update_Engine( $installer );
 			$present = $installer->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commitcap_v01_state'" );
-			$routines = $installer->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('commitcap_v01_open','commitcap_v01_close','commitcap_v01_count','commitcap_v01_policy')" );
+			$routines = $installer->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('commitcap_v01_open','commitcap_v01_close','commitcap_v01_count','commitcap_v01_policy','commitcap_v01_attest')" );
 			if ( null === $present || null === $routines || '' !== (string) $installer->last_error ) {
 				$doctor->check( 'objects', 'UNKNOWN', true, 'CommitCap infrastructure', 'Object inventory unavailable.' );
 			} elseif ( '0' === (string) $present && '0' === (string) $routines ) {
@@ -290,20 +290,37 @@ final class Compatibility_Doctor {
 		$doctor->check( 'runtime_grants', $runtime[0], true, 'Restricted runtime EXECUTE, helper and DDL boundary', $runtime[1] );
 
 		$engine = new Update_Engine( $db );
+		$infrastructure_ok = true;
 
-		// Evidence channel & Infrastructure verification via DEFINER routine
-		$doctor->check( 'evidence_channel', 'PASS', true, 'Trusted runtime evidence',
-			'Verified via SQL SECURITY DEFINER routine commitcap_v01_policy without retained installer credentials in web PHP.' );
-
+		// Evidence root: two SQL SECURITY DEFINER routines cross-report the live
+		// body of all five reviewed routines; unmediated information_schema
+		// metadata for the same routines is cross-checked by the runtime account.
 		try {
-			$engine->runtime_inspect_infrastructure();
-			$probe = $db->query( "CALL commitcap_v01_count('0000000000000000000000000000000000000000000000000000000000000000', @cc_probe_count)" );
-			if ( false === $probe || ! empty( $db->last_error ) ) {
-				throw new \RuntimeException( 'commitcap_v01_count probe failed: ' . $db->last_error );
-			}
-			$doctor->check( 'objects', 'PASS', true, 'CommitCap infrastructure',
-				'Existing helper and all four routines verified via trusted DEFINER routine and runtime probe.' );
+			$attestation = $engine->runtime_attestation();
+			$doctor->check( 'evidence_channel', 'PASS', true, 'Trusted runtime evidence',
+				'Both DEFINER evidence routines cross-report the live bodies of all five reviewed routines; all bodies match the reviewed canonical templates and share DEFINER ' . $attestation['definer'] . '.' );
 		} catch ( \Throwable $error ) {
+			$infrastructure_ok = false;
+			$doctor->check( 'evidence_channel', 'FAIL', true, 'Trusted runtime evidence',
+				'Runtime evidence does not match the reviewed canonical installation: ' . $error->getMessage() );
+		}
+
+		$probes_allowed = 'PASS' === $state;
+		try {
+			if ( ! $infrastructure_ok ) {
+				throw new \RuntimeException( 'The evidence channel is not canonical; infrastructure cannot be certified.' );
+			}
+			$engine->runtime_helper_shape();
+			if ( ! $probes_allowed ) {
+				$doctor->check( 'objects', 'UNKNOWN', true, 'CommitCap infrastructure',
+					'Helper shape and cross-attested routines passed, but behavioral probes require autocommit=1 and no caller transaction.' );
+			} else {
+				$engine->runtime_probe_routines();
+				$doctor->check( 'objects', 'PASS', true, 'CommitCap infrastructure',
+					'Helper shape, five cross-attested routines and behavioral open/count/close probes passed without installer credentials.' );
+			}
+		} catch ( \Throwable $error ) {
+			$infrastructure_ok = false;
 			$doctor->check( 'objects', 'FAIL', true, 'CommitCap infrastructure',
 				'Runtime infrastructure objects absent, conflicting or altered: ' . $error->getMessage() );
 		}
@@ -375,6 +392,13 @@ final class Compatibility_Doctor {
 
 			try {
 				$ceiling = $engine->runtime_ceiling( $tname );
+				$probe_note = ' Behavioral trigger accounting probe not run (transaction preconditions or evidence channel not PASS).';
+				if ( $probes_allowed && $infrastructure_ok ) {
+					$probe_result = $engine->runtime_trigger_probe( $tname );
+					$probe_note = 'empty_table' === $probe_result
+						? ' Behavioral trigger accounting probe skipped: target table has no row to observe.'
+						: ' Behavioral trigger accounting probe confirmed exactly one physical accounting event for one data-preserving no-op row event.';
+				}
 				if ( null !== $budget ) {
 					$limit = Update_Engine::budget( $budget );
 					if ( $limit > $ceiling ) {
@@ -404,6 +428,7 @@ final class Compatibility_Doctor {
 						'detail' => "Target policy verified: physical ceiling $ceiling.",
 					);
 				}
+				$integrations[ $table ]['detail'] .= $probe_note;
 			} catch ( \Throwable $error ) {
 				$integrations[ $table ] = array(
 					'status' => 'FAIL',
@@ -426,7 +451,14 @@ final class Compatibility_Doctor {
 			}
 		}
 
-		if ( 'PASS' !== $surface_status ) {
+		if ( ! $infrastructure_ok ) {
+			foreach ( $integrations as $table => $info ) {
+				if ( 'PASS' === $info['status'] ) {
+					$integrations[ $table ]['status'] = 'UNKNOWN';
+					$integrations[ $table ]['detail'] .= ' (The runtime evidence channel is not canonical; no integration can be certified.)';
+				}
+			}
+		} elseif ( 'PASS' !== $surface_status ) {
 			foreach ( $integrations as $table => $info ) {
 				if ( 'PASS' === $info['status'] ) {
 					$integrations[ $table ]['status'] = 'UNKNOWN';

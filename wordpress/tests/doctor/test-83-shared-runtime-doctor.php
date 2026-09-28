@@ -39,10 +39,50 @@ $installer = new Engine( $root );
 
 // The #57 suite runs first and leaves grants behind on cc57_target.
 // Reset the writer to the exact surface this suite declares and proves.
-cc83_query( $root, "REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'cc_writer'@'%'" );
-$installer->install_infrastructure();
-foreach ( array( 'open', 'close', 'count', 'policy' ) as $r ) {
-	cc83_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$r TO 'cc_writer'@'%'" );
+function cc83_reset_grants( $root, $installer ) {
+	cc83_query( $root, "REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'cc_writer'@'%'" );
+	$installer->install_infrastructure();
+	foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $r ) {
+		cc83_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$r TO 'cc_writer'@'%'" );
+	}
+	cc83_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc_writer'@'%'" );
+	foreach ( array( 'cc83_a', 'cc83_b' ) as $target ) {
+		$exists = (int) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME=%s", $target ) );
+		if ( $exists > 0 ) {
+			cc83_query( $root, "GRANT SELECT, UPDATE ON wp_test.`$target` TO 'cc_writer'@'%'" );
+		}
+	}
+}
+cc83_reset_grants( $root, $installer );
+
+/**
+ * Adversarial body-only tamper: replace a reviewed routine with a malicious
+ * body that keeps the exact signature, SQL SECURITY DEFINER and name, and
+ * re-grants EXECUTE so the tamper simulates an installer-capable adversary.
+ */
+function cc83_tamper( $root, $name, $params, $body ) {
+	cc83_query( $root, "DROP PROCEDURE `$name`" );
+	cc83_query( $root, "CREATE PROCEDURE `$name` $params SQL SECURITY DEFINER $body" );
+	cc83_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.`$name` TO 'cc_writer'@'%'" );
+}
+
+function cc83_restore_routines( $root, $installer ) {
+	foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $r ) {
+		$root->query( "DROP PROCEDURE IF EXISTS commitcap_v01_$r" );
+	}
+	$installer->install_infrastructure();
+	cc83_reset_grants( $root, $installer );
+}
+
+function cc83_tamper_ok( $root, $installer, $writer, $name, $params, $body, $policy_table ) {
+	cc83_tamper( $root, $name, $params, $body );
+	$result = Doctor::runtime( array( $policy_table => 15 ), $writer );
+	cc83_assert( 'PASS' !== $result['overall'], "$name tamper must not PASS: " . json_encode( $result ) );
+	cc83_check( $result, 'evidence_channel', 'FAIL' );
+	cc83_assert( 'UNKNOWN' === $result['integrations'][ $policy_table ]['status'], "$name tamper must force integration UNKNOWN: " . json_encode( $result['integrations'] ) );
+	cc83_restore_routines( $root, $installer );
+	$restored = Doctor::runtime( array( $policy_table => 15 ), $writer );
+	cc83_assert( 'PASS' === $restored['overall'], "$name restore must return to PASS: " . json_encode( $restored ) );
 }
 
 // ---------------------------------------------------------------------------
@@ -269,21 +309,118 @@ cc83_query( $root, "ALTER USER 'cc_writer'@'%' IDENTIFIED BY 'disposable_writer_
 echo "  #83.7 credential rotation and removed A while B remains: PASS\n";
 
 // ---------------------------------------------------------------------------
-// #83.8: Infrastructure tampering detection via DEFINER routine
+// #83.8: Signature-level infrastructure tampering detection
 // ---------------------------------------------------------------------------
 cc83_query( $root, 'DROP PROCEDURE commitcap_v01_count' );
 cc83_query( $root, 'CREATE PROCEDURE commitcap_v01_count() SELECT 1' );
 $res_infra_tamper = Doctor::runtime( array( 'cc83_b' => 15 ), $writer );
-cc83_check( $res_infra_tamper, 'objects', 'FAIL' );
+cc83_check( $res_infra_tamper, 'evidence_channel', 'FAIL' );
 cc83_assert( 'PASS' !== $res_infra_tamper['overall'], '#83.8 infrastructure tampering must FAIL' );
-
-// Restore canonical infrastructure
-cc83_query( $root, 'DROP PROCEDURE commitcap_v01_count' );
-$installer->install_infrastructure();
-cc83_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_count TO 'cc_writer'@'%'" );
+cc83_restore_routines( $root, $installer );
 $res_infra_clean = Doctor::runtime( array( 'cc83_b' => 15 ), $writer );
 cc83_check( $res_infra_clean, 'objects', 'PASS' );
-echo "  #83.8 infrastructure tampering detection: PASS\n";
+echo "  #83.8 signature-level infrastructure tampering detection: PASS\n";
+
+// ---------------------------------------------------------------------------
+// #83.9: Body-only tamper with identical name/parameters/DEFINER/apparent
+// counts. The body keeps the canonical statement shape and only changes one
+// behavioral token, so signature counting and successful CALLs cannot detect it.
+// Cross-attested live definitions and direct information_schema metadata must.
+// ---------------------------------------------------------------------------
+$canonical = Engine::routines();
+
+$open_tamper = str_replace( 'p_policy, 0)', 'p_policy, 7)', $canonical['commitcap_v01_open'] );
+cc83_assert( $open_tamper !== $canonical['commitcap_v01_open'], 'open tamper fixture changed nothing' );
+cc83_tamper_ok( $root, $installer, $writer, 'commitcap_v01_open',
+	'(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin)', $open_tamper, 'cc83_b' );
+echo "  #83.9a body-only tamper of open detected: PASS\n";
+
+$close_tamper = str_replace( 'COALESCE(@commitcap_v01_denied, 1) != 0', 'COALESCE(@commitcap_v01_denied, 0) != 0', $canonical['commitcap_v01_close'] );
+cc83_assert( $close_tamper !== $canonical['commitcap_v01_close'], 'close tamper fixture changed nothing' );
+cc83_tamper_ok( $root, $installer, $writer, 'commitcap_v01_close',
+	'(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin)', $close_tamper, 'cc83_b' );
+echo "  #83.9b body-only tamper of close detected: PASS\n";
+
+$count_tamper = str_replace( 'SELECT consumed INTO p_count', 'SELECT 0*consumed INTO p_count', $canonical['commitcap_v01_count'] );
+cc83_assert( $count_tamper !== $canonical['commitcap_v01_count'], 'count tamper fixture changed nothing' );
+cc83_tamper_ok( $root, $installer, $writer, 'commitcap_v01_count',
+	'(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin, OUT p_count BIGINT UNSIGNED)', $count_tamper, 'cc83_b' );
+echo "  #83.9c body-only tamper of count detected: PASS\n";
+
+// Evidence root #1: commitcap_v01_policy. The tamper appends a statement to the
+// canonical body, preserving signature, DEFINER, output shape and apparent
+// counts. Only commitcap_v01_attest and direct metadata can expose it.
+$policy_tamper = str_replace( 'BEGIN ', 'BEGIN SET @cc83_policy_tamper = 1; ', $canonical['commitcap_v01_policy'] );
+cc83_assert( $policy_tamper !== $canonical['commitcap_v01_policy'], 'policy tamper fixture changed nothing' );
+cc83_tamper_ok( $root, $installer, $writer, 'commitcap_v01_policy',
+	'(IN p_table VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin, IN p_trigger VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin)', $policy_tamper, 'cc83_b' );
+echo "  #83.9d body-only tamper of the policy evidence root detected: PASS\n";
+
+// Evidence root #2: commitcap_v01_attest. Symmetric cross-report from policy.
+$attest_tamper = str_replace( 'ORDER BY r.ROUTINE_NAME', 'ORDER BY r.ROUTINE_NAME, 1', $canonical['commitcap_v01_attest'] );
+cc83_assert( $attest_tamper !== $canonical['commitcap_v01_attest'], 'attest tamper fixture changed nothing' );
+cc83_tamper_ok( $root, $installer, $writer, 'commitcap_v01_attest', '()', $attest_tamper, 'cc83_b' );
+echo "  #83.9e body-only tamper of the attest evidence root detected: PASS\n";
+
+// ---------------------------------------------------------------------------
+// #83.10: A tampered count routine cannot produce consumed > L with a Guard
+// COMMIT. Guard reads the helper state without any routine mediation, so the
+// logical pre-commit denial still fires and rolls the whole transaction back
+// even while the count routine under-reports.
+// ---------------------------------------------------------------------------
+// Re-seed cc83_b to a known all-zero state through root.
+cc83_query( $root, 'DELETE FROM cc83_b' );
+for ( $i = 1; $i <= 20; ++$i ) {
+	cc83_query( $root, "INSERT INTO cc83_b (id, touched) VALUES ($i, 0)" );
+}
+cc83_tamper( $root, 'commitcap_v01_count',
+	'(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin, OUT p_count BIGINT UNSIGNED)',
+	'BEGIN SET p_count = 0; END' );
+$res_lied = Doctor::runtime( array( 'cc83_b' => 15 ), $writer );
+cc83_assert( 'PASS' !== $res_lied['overall'], '#83.10 tampered count must not PASS Doctor' );
+$denied_by_state = null;
+try {
+	Guard::update(
+		'cc83_b',
+		15,
+		function () use ( $writer ) {
+			for ( $i = 1; $i <= 16; ++$i ) {
+				cc83_query( $writer, "UPDATE cc83_b SET touched = 1 WHERE id = $i" );
+			}
+		},
+		$writer
+	);
+} catch ( \CommitCap\Budget_Denied $error ) {
+	$denied_by_state = $error->details();
+}
+cc83_assert( null !== $denied_by_state, '#83.10 tampered count caused an over-budget COMMIT' );
+cc83_assert( 'logical_budget_exceeded' === $denied_by_state['reason'], '#83.10 denial must come from direct state accounting: ' . $denied_by_state['reason'] );
+cc83_assert( 16 === $denied_by_state['consumed'], '#83.10 direct state must report the true 16 events' );
+$observer = new wpdb( 'root', 'disposable_root_password', 'wp_test', $host );
+$observer->suppress_errors( true );
+cc83_assert( 0 === (int) $observer->get_var( 'SELECT COUNT(*) FROM cc83_b WHERE touched = 1' ), '#83.10 over-budget events became durable' );
+cc83_restore_routines( $root, $installer );
+echo "  #83.10 tampered count cannot force an over-budget Guard COMMIT (direct-state denial + full rollback): PASS\n";
+
+// ---------------------------------------------------------------------------
+// #83.11: Behavioral trigger probe is independent of the evidence routine.
+// With the policy trigger dropped, the probe must refuse even though no
+// definition channel reported anything.
+// ---------------------------------------------------------------------------
+$b_trigger2 = Engine::trigger_name( 'cc83_b' );
+cc83_query( $root, "DROP TRIGGER `$b_trigger2`" );
+$probe_engine = new Engine( $writer );
+$probe_refused = false;
+try {
+	$probe_engine->runtime_trigger_probe( 'cc83_b' );
+} catch ( \Throwable $error ) {
+	$probe_refused = true;
+}
+cc83_assert( $probe_refused, '#83.11 behavioral trigger probe accepted a dropped trigger' );
+$installer->install_policy( 'cc83_b', 20 );
+$probe_result = $probe_engine->runtime_trigger_probe( 'cc83_b' );
+cc83_assert( 'probed' === $probe_result, '#83.11 behavioral trigger probe did not pass on the canonical trigger: ' . $probe_result );
+echo "  #83.11 behavioral trigger accounting probe is independent of definition evidence: PASS\n";
 
 // Clean up Gate #83 test objects
 $installer->remove_owned_policy( 'cc83_b', 20 );
