@@ -9,13 +9,14 @@ analysis for **Gate #84**.
 
 CommitCap for WordPress uses **one shared restricted database account** per site/environment.
 Normal WordPress execution never possesses administrative database privileges (`root`/installer),
-and installer credentials are never saved in `wp_options`, filesystem manifests, or PHP memory.
+and installer credentials are never saved in `wp_options` or filesystem manifests
+or retained in normal-request PHP memory.
 
 ```text
 +-------------------------------------------------------------------------------+
 | Trusted Operator / Installer (One-time or migration only)                     |
 | - Generates deterministic, reviewable provisioning plans offline             |
-| - Executes exact DDL (helper table, 4 DEFINER routines, target triggers)     |
+| - Executes exact DDL (helper table, 5 DEFINER routines, target triggers)     |
 | - Executes exact DCL (CREATE USER, exact GRANTs/REVOKEs)                     |
 +-------------------------------------------------------------------------------+
                                       |
@@ -35,7 +36,7 @@ and installer credentials are never saved in `wp_options`, filesystem manifests,
 | - EXECUTE on exactly 5 DEFINER routines (open/close/count/policy/attest)      |
 | - Read-only SELECT on commitcap_v01_state (unmediated accounting evidence)    |
 | - SELECT, UPDATE on exact declared target tables only                         |
-| - NO TRIGGER, NO CREATE ROUTINE, NO helper DML, NO broad grants              |
+| - NO helper INSERT/UPDATE/DELETE, runtime DDL/TRIGGER/GRANT authority       |
 | - Guard-owned cooperative UPDATE transactions within logical budget L <= P   |
 | - Doctor::runtime() point-in-time verification via cross-attesting routines   |
 +-------------------------------------------------------------------------------+
@@ -53,7 +54,7 @@ All database modifications are generated as inspectable, version-pinned SQL plan
 3. **Application Table Preservation**: Target removal and plugin uninstallation **NEVER drop application tables or delete existing application rows**. Only CommitCap-owned triggers, procedures, helper state, and runtime accounts are touched.
 4. **Conflict Refusal**: Apply runs a pre-flight before any statement. A foreign helper shape, a CommitCap-named routine with a foreign body, an existing runtime account with grants outside the reviewed surface, a foreign trigger (including one that merely reuses the expected trigger name), or a non-canonical object during remove/uninstall refuses the plan. Nothing foreign is dropped, replaced or revoked.
 5. **No Retained Installer Secrets**: The apply phase runs through a temporary installer connection provided by the operator; credentials are discarded immediately.
-6. **Deterministic Replay**: DDL/DCL is auto-commit, so a plan can stop halfway. The plan is idempotent over its own partial state: re-running the same version-pinned plan completes a failed install, add-target, rotation or uninstall without overwriting anything foreign, and `Doctor::runtime()` refuses the partial state in the meantime (tested for all four lifecycles on both engines).
+6. **Deterministic Replay**: DDL/DCL is auto-commit. Install/add/remove/uninstall can stop halfway and need trusted replay and verification. A rotated credential with a failed drain is **not** fixed by Doctor alone: use the standalone drain under the new secret, then independently verify. Never re-run an old-secret plan as a substitute for draining.
 
 ---
 
@@ -92,6 +93,14 @@ All database modifications are generated as inspectable, version-pinned SQL plan
    GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_attest` TO 'cc_writer'@'localhost';
    GRANT SELECT ON `wp_db`.`commitcap_v01_state` TO 'cc_writer'@'localhost';
    ```
+   **Exact runtime surface:** EXECUTE on exactly open, close, count, policy,
+   attest; SELECT only on `commitcap_v01_state` (no helper
+   INSERT/UPDATE/DELETE); SELECT/UPDATE only on certified target tables; no
+   runtime DDL, TRIGGER or GRANT authority. Guard decides logical L by reading
+   helper state directly and Doctor's behavioral probes independently read it.
+   Routine bodies are not load-bearing for logical-budget correctness. This
+   five-routine + helper-SELECT change from the four-routine #84 issue is a
+   Maintainer architecture decision at PR acceptance.
 
 ### 3.2 Add Target (`Provisioning_Plan::add_target`)
 1. Grant minimal table rights:
@@ -127,38 +136,77 @@ All database modifications are generated as inspectable, version-pinned SQL plan
 *(Application table `target_table` and its data rows remain untouched).*
 
 ### 3.4 Rotate Credential (`Provisioning_Plan::rotate_credential`)
-1. Update user password in database:
+**Required state machine (operator maintenance window; no concurrent account DCL
+or new runtime sessions until verification):**
+
+1. `PRECHECK`: before `ALTER USER`, prove pinned engine; global `PROCESS`
+   (complete processlist visibility) AND other-user KILL authority: global
+   `CONNECTION_ADMIN` or `SUPER` on MySQL 8.0.44; global `CONNECTION ADMIN` or
+   `SUPER` on MariaDB 10.11.15. Root/admin-equivalent also passes. `PROCESS`
+   alone does not authorize KILL; a KILL-only grant cannot prove visibility.
+   Require permission to inspect `mysql.user` and exactly **one** row with
+   matching username AND target host. When `user@%` and `user@localhost` coexist,
+   refuse before ALTER: `PROCESSLIST.HOST` is the client origin, not the matched
+   account host. Similar usernames are not included. Test matrix executes KILL
+   against another user's session and checks both preflight refusal and actual
+   drain on both pinned engines. Unknown server builds fail closed.
+   Apply records a durable `ROTATED_UNSAFE` marker **before** ALTER in the
+   reviewed helper state table (`connection_id=0`, SHA-256 policy marker,
+   `consumed=1`), using the **trusted installer** connection only. If that DML
+   fails, ALTER is refused. The restricted runtime retains helper SELECT only.
+2. `ROTATED`: change database password:
    ```sql
    ALTER USER 'cc_writer'@'localhost' IDENTIFIED BY '[REDACTED_SECRET]';
    ```
-2. Update `wp-config.php`:
+3. Update `wp-config.php` with the V2 secret while enablement is held:
    ```php
    define( 'COMMITCAP_DB_PASSWORD', '<new_secret>' );
    ```
-3. **Deterministically drain surviving sessions.** `ALTER USER` does not
+4. `DRAINING` → `DRAINED`: terminate surviving sessions. `ALTER USER` does not
    terminate already-authenticated sessions on MySQL 8.0.44 or MariaDB
    10.11.15 (proved by `#84.8`: a connection opened before the rotation keeps
    executing SQL). The plan includes a `DRAIN` step that lists
-   `information_schema.PROCESSLIST` for the runtime user on the trusted
-   installer connection, executes `KILL <id>` for every remaining session, and
-   verifies none remain. The drain refuses to claim success when the installer
-   cannot see or kill sessions.
+   `information_schema.PROCESSLIST` for the uniquely mapped runtime username
+   on the trusted installer connection, executes `KILL <id>` for each surviving
+   session, and verifies zero remain. Rechecks the unique account mapping during
+   drain. Only after that does the trusted installer delete the unsafe marker.
+   If the precheck fails, old credentials and all existing sessions remain
+   untouched. `rotate_credential(..., false)` is diagnostic-only; its result is
+   `success=false, state=ROTATED_UNSAFE`, never a supported completed rotation.
+5. `VERIFIED` (operator gate): new connections with the old secret fail; all
+   previously authenticated session IDs are gone; V2 connection succeeds;
+   `Doctor::runtime()` is PASS and Guard still enforces. The plan returns
+   `DRAINED` after server-side zero-session verification, **not** `VERIFIED`.
 
-   Required operator authority: `PROCESS` + `KILL` via
-   `CONNECTION_ADMIN`/`SUPER` (MySQL 8.0: `CONNECTION_ADMIN`; MariaDB 10.11:
-   `PROCESS` + `SUPER` or `CONNECTION ADMIN`). `root` has it. `assert_drain_capability()`
-   refuses before any `KILL` when the installer's `SHOW GRANTS` does not prove it.
-4. Verify: new connections with the old secret fail, the drained session is gone
-   from `PROCESSLIST`, `Doctor::runtime()` is READY under the rotated secret, and
-   Guard still enforces.
+If `ALTER USER` succeeds but `KILL` fails, apply throws `ROTATED_UNSAFE` and
+explicitly warns that old authenticated sessions may still exist. Do not enable
+protected work based solely on V2 authentication: Doctor reads the unsafe marker
+and returns FAIL, and Guard refuses before the callback. Doctor cannot inventory
+other accounts' sessions without privileged credentials; the trusted marker is
+the only durable safety signal across requests. A raw direct `ALTER USER` outside
+this plan bypasses this protocol and cannot be certified as a supported rotation.
+Keep runtime traffic paused; retain the V2 config secret; re-run
+`Provisioning_Plan::drain(user, host)` with a qualified operator after correcting
+the failure; require zero remaining sessions, then perform the `VERIFIED` checks.
+An absent marker means no *plan-recorded* unsafe rotation; it is not proof that
+no external administrator ever changed credentials directly.
+If the account host collision persists, remove/resolve it with the account owner
+before rerunning drain; do not kill by username across that collision. No
+automatic transactional rollback of `ALTER USER` is possible.
 
-### 3.6 Canonical pre-flight privileges
+The installer must have both global drain privileges, `SELECT` on `mysql.user`
+for the exact account inventory, `SELECT/INSERT/UPDATE/DELETE` on the CommitCap helper
+for the durable marker, and `ALTER USER` authority. These are operator
+privileges, never runtime grants. An outage, racing account DCL, or processlist
+visibility loss suspends enablement until a fresh drain and verification.
+
+### 3.5 Canonical pre-flight privileges
 `apply()` reads object definitions to refuse foreign collisions. On MySQL 8.0
 that requires `SHOW_ROUTINE` (definitions are NULL otherwise); on MariaDB 10.11
 it requires `SELECT` on the `mysql` schema. `SHOW GRANTS FOR` other accounts
 requires `SELECT` on the `mysql` schema. `root` satisfies all of these.
 
-### 3.5 Uninstall (`Provisioning_Plan::uninstall`)
+### 3.6 Uninstall (`Provisioning_Plan::uninstall`)
 1. Drop triggers on all active target tables (only canonical CommitCap triggers;
    a foreign-bodied expected-name trigger refuses the plan).
 2. Drop the 5 stored procedures (only canonical bodies; foreign bodies refuse).
@@ -198,4 +246,11 @@ The required steps across roles for each lifecycle event:
 ### Key Product Implication for Admin:
 - **Zero SQL for Admin**: The WordPress Admin / Site owner never writes or sees SQL.
 - **Routine Budget Adjustments**: Because Gate #82 proved $0 \le L \le P$ logical budgeting below the physical trigger ceiling, **normal day-to-day budget adjustments require 0 Operator/DBA steps and 0 DDL statements**.
+- **Resource limit remains open**: logical $L$ is a semantic rollback bound, not
+  an early execution/resource bound. When $P \gg L$, a broad statement can run
+  $O(P)$ row events (including helper writes and locks) before Guard refuses
+  COMMIT. The #82 CI medians on MySQL 8.0.44 were ~130.9 ms at 2k, ~619.9 ms
+  at 10k and ~3176.1 ms at 50k (~62–65 ms / 1k row events). These figures
+  describe that CI run, not a throughput guarantee. Choosing acceptable P and
+  operational resource limits remains a Maintainer product decision.
 - **One-time Operator Assistance**: Initial setup and adding certified integrations require operator/host assistance on managed hosting.

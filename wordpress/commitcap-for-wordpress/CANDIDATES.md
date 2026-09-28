@@ -34,12 +34,14 @@ Instrumentation (all candidates):
   operation window.
 - `pre_wp_mail` and `pre_http_request` filters count/record attempted email and
   HTTP side effects (HTTP is blocked to keep the fixture disposable).
+- **INFERRED — NOT SUFFICIENT:** the harness does not observe filesystem writes;
+  it makes no runtime filesystem-inactivity claim.
 - A fresh `root` observer connection verifies durable rows after each run.
 
 ## 1. Redirection 5.5.2 — SELECTED
 
-**Operation:** Redirects page → *select all matching* → Bulk Actions → **Disable**
-(equivalently Enable/Reset), i.e. `POST /wp-json/redirection/v1/bulk/redirect/disable`
+**Operation:** Redirects page → *select all matching* → Bulk Actions → **Disable**,
+i.e. `POST /wp-json/redirection/v1/bulk/redirect/disable`
 with `global=true`. The Admin UI sets `global=true` only when the "select all"
 checkbox is used (`SOURCE-CODE VERIFIED`: `redirection.js` builds
 `d.global = !0` when `selectAll`).
@@ -55,7 +57,7 @@ SQL: UPDATE wp_redirection_items SET status='disabled'
 SQL: SELECT * FROM wp_redirection_items ORDER BY id DESC LIMIT 0,25
 SQL: SELECT COUNT(*) FROM wp_redirection_items
 SQL: SELECT COUNT(*) FROM wp_redirection_items WHERE status='disabled'
-HOOKS: {"redirection_capability_check":1, ... no mail/HTTP/action hooks ...}
+HOOKS: {"redirection_capability_check":1, ... WordPress REST and option hooks ...}
 MAIL: 0
 HTTP: []
 TABLE VERBS (redirection_items): {"UPDATE":1,"SELECT":3}
@@ -65,11 +67,12 @@ TABLE VERBS (redirection_items): {"UPDATE":1,"SELECT":3}
   `wp_redirection_items`, mutated by **one unbounded `UPDATE`** (no `WHERE`
   clause when the Admin selects all with no filter). No `INSERT`/`DELETE`/
   `REPLACE`. No `START TRANSACTION`/`COMMIT` is issued by the plugin.
-- The only plugin hook in the mutation path is the `redirection_capability_check`
-  filter. No action hooks, no mail, no HTTP, no filesystem write was observed in
-  the global path. `redirection_redirect_updated` (the cache-clearing hook) is
-  **not** fired by this bulk path (`SOURCE-CODE VERIFIED`:
-  `Red_Item::set_status_all()` is a single `$wpdb->query`).
+- **OBSERVED AT RUNTIME:** The captured mutation window includes
+  `redirection_capability_check`, zero mail attempts and zero HTTP attempts;
+  filesystem activity was not instrumented. `redirection_redirect_updated`
+  is absent from the captured hooks. **SOURCE-CODE VERIFIED:** this cache-clearing
+  hook is **not** fired by this bulk path because
+  `Red_Item::set_status_all()` is a single `$wpdb->query`.
 
 **Simpler-control comparison (OBSERVED AT RUNTIME, same transcript):** the
 item-scoped variant (`items=[1,2]`) issues one `UPDATE ... WHERE id='1'` per
@@ -94,8 +97,9 @@ transaction and call the plugin's own method. Required runtime grants:
 `SELECT, UPDATE` on `wp_redirection_items` only (plus the CommitCap evidence
 grants). This is exactly the envelope proven by #82/#83/#84.
 
-**Verdict: SELECTED — Redirection 5.5.2, "Bulk Actions → Disable/Enable/Reset
-(select all matching)" via `Red_Item::set_status_all()`.**
+**Verdict: SELECTED — Redirection 5.5.2, "Bulk Actions → Disable
+(select all matching)" via `Red_Item::set_status_all()`.** Enable and Reset
+require independent write-graph and side-effect evidence before certification.
 
 Adapter issue: created as `#87` (linked from #67 by the Maintainer when accepted;
 the implementation issue body is reproduced in the PR evidence report).
@@ -188,8 +192,8 @@ Redirection without installing or running them. Those claims were
 ## 6. Verdict
 
 ```text
-SELECTED: Redirection 5.5.2 — Bulk Actions "Disable/Enable/Reset (select all
-matching)" → Red_Item::set_status_all() → one unbounded UPDATE on
+SELECTED: Redirection 5.5.2 — Bulk Actions "Disable (select all matching)"
+→ Red_Item::set_status_all() → one unbounded UPDATE on
 wp_redirection_items
 ```
 

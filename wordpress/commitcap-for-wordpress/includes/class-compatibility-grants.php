@@ -123,7 +123,7 @@ final class Compatibility_Grants {
 				if ( 'EXECUTE' === $privilege ) {
 					if ( 'PROCEDURE' !== $grant['kind'] || $this->schema !== $grant['database'] ||
 						! in_array( $grant['object'], self::ROUTINES, true ) ) {
-						return array( 'FAIL', 'EXECUTE extends beyond the four reviewed CommitCap procedures.' );
+						return array( 'FAIL', 'EXECUTE extends beyond the five reviewed CommitCap procedures.' );
 					}
 					$reviewed[ $grant['object'] ] = true;
 				}

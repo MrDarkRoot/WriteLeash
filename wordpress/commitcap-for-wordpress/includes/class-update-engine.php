@@ -645,6 +645,15 @@ final class Update_Engine {
 		return $this->state_consumed_by_policy( self::policy_id( $name ) );
 	}
 
+	/** Any trusted rotation with an unverified drain blocks ALL shared policies. */
+	public function rotation_unsafe(): bool {
+		$value = $this->db->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = 0' );
+		if ( null === $value || '' !== (string) $this->db->last_error ) {
+			throw new \RuntimeException( 'Cannot inspect trusted rotation safety state.' );
+		}
+		return (int) $value > 0;
+	}
+
 	private function state_consumed_by_policy( string $policy_id ): ?int {
 		$value = $this->db->get_var( $this->db->prepare(
 			'SELECT consumed FROM commitcap_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = %s', $policy_id

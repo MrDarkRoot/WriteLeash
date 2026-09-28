@@ -74,6 +74,21 @@ final class Provisioning_Plan {
 		return "'" . addcslashes( $value, "\0..\37'\\" ) . "'";
 	}
 
+	/** Trusted-only durable marker, visible to Doctor/Guard via existing helper SELECT. */
+	private static function rotation_marker( string $user, string $host ): string {
+		return hash( 'sha256', 'commitcap_v01_rotation:' . $user . '@' . $host );
+	}
+
+	private static function mark_rotation( \wpdb $installer, string $user, string $host, bool $unsafe ): void {
+		$marker = self::rotation_marker( $user, $host );
+		$query = $unsafe
+			? $installer->prepare( 'INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (0, %s, 1) ON DUPLICATE KEY UPDATE consumed = 1', $marker )
+			: $installer->prepare( 'DELETE FROM commitcap_v01_state WHERE connection_id = 0 AND policy_id = %s', $marker );
+		if ( false === $installer->query( $query ) ) {
+			throw new \RuntimeException( 'Trusted rotation safety marker could not be updated; protected enablement remains unverified.' );
+		}
+	}
+
 	/**
 	 * Render plan to install initial infrastructure and one restricted runtime account.
 	 *
@@ -358,8 +373,8 @@ final class Provisioning_Plan {
 	 *
 	 * The drain step terminates every remaining session of the runtime account
 	 * on the trusted installer connection. The trusted operator needs
-	 * PROCESS/CONNECTION_ADMIN (MySQL 8.0) or PROCESS/SUPER or CONNECTION ADMIN
-	 * (MariaDB 10.11) authority; root has it. Merely rotating the password does
+	 * global PROCESS for visibility AND global CONNECTION_ADMIN/SUPER (MySQL)
+	 * or CONNECTION ADMIN/SUPER (MariaDB) for other-user KILL. Rotation alone does
 	 * not terminate already-authenticated sessions on either pinned engine.
 	 *
 	 * @param string $runtime_user Restricted DB username.
@@ -431,14 +446,14 @@ final class Provisioning_Plan {
 			'sql'            => "SELECT ID, USER, HOST, DB, COMMAND, TIME FROM information_schema.PROCESSLIST WHERE USER = " . self::escape_literal( $runtime_user ),
 			'raw_sql'        => "SELECT ID, USER, HOST, DB, COMMAND, TIME FROM information_schema.PROCESSLIST WHERE USER = " . self::escape_literal( $runtime_user ),
 			'statements'     => array(
-				'-- Draining requires PROCESS/CONNECTION_ADMIN (MySQL 8.0) or PROCESS plus SUPER/CONNECTION ADMIN (MariaDB 10.11)',
+				'-- PRECHECK before ALTER USER: global PROCESS plus global other-user KILL authority; mysql.user must contain exactly one row with this username and requested host',
 				"SELECT ID, USER, HOST, DB, COMMAND, TIME FROM information_schema.PROCESSLIST WHERE USER = " . self::escape_literal( $runtime_user ),
-				'-- The apply step executes KILL <ID> for every session row returned above and verifies none remain',
+				'-- PROCESSLIST.HOST is the client origin, not the account host. Apply KILLs only after unique-account precheck and verifies zero remaining.',
 			),
 			'raw_statements' => array(
-				'-- Draining requires PROCESS/CONNECTION_ADMIN (MySQL 8.0) or PROCESS plus SUPER/CONNECTION ADMIN (MariaDB 10.11)',
+				'-- PRECHECK before ALTER USER: global PROCESS plus global other-user KILL authority; mysql.user must contain exactly one row with this username and requested host',
 				"SELECT ID, USER, HOST, DB, COMMAND, TIME FROM information_schema.PROCESSLIST WHERE USER = " . self::escape_literal( $runtime_user ),
-				'-- The apply step executes KILL <ID> for every session row returned above and verifies none remain',
+				'-- PROCESSLIST.HOST is the client origin, not the account host. Apply KILLs only after unique-account precheck and verifies zero remaining.',
 			),
 			'grant_delta'    => 'SESSION_DRAIN',
 			'reversible'     => false,
@@ -605,6 +620,10 @@ final class Provisioning_Plan {
 		$out[] = "-- Notice: Execute as trusted database administrator/installer only.";
 		$out[] = "-- Never provide installer credentials to normal web requests.";
 		$out[] = "-- Application tables and existing data rows are never dropped.";
+		if ( in_array( $this->action, array( self::ACTION_ROTATE_CREDENTIAL, self::ACTION_DRAIN ), true ) ) {
+			$out[] = "-- Apply uses trusted helper-state DML: reserve connection_id=0 for a durable ROTATED_UNSAFE marker before ALTER; clear it only after zero-session drain verification.";
+			$out[] = "-- This SQL-only rendering is NOT a substitute for apply(): it does not implement account-collision/privilege preflight, marker state, KILL loop or verification.";
+		}
 		$out[] = "-- ===========================================================================";
 		$out[] = "";
 
@@ -651,7 +670,7 @@ final class Provisioning_Plan {
 	 *
 	 * @param \wpdb $installer Trusted installer connection with administrative privileges.
 	 * @param string|null $raw_secret Override secret if plan was rendered redacted.
-	 * @return array{success: bool, executed_steps: int, details: array<int, string>}
+	 * @return array{success: bool, state: string, executed_steps: int, details: array<int, string>}
 	 */
 	public function apply( \wpdb $installer, ?string $raw_secret = null ): array {
 		if ( ! $installer->ready || ! $installer->dbh instanceof \mysqli ) {
@@ -668,15 +687,23 @@ final class Provisioning_Plan {
 		$details  = array();
 		$executed = 0;
 
+		$rotated = false;
+		$marked = false;
+		try {
 		foreach ( $this->steps as $step ) {
 			if ( 'DRAIN' === $step['kind'] ) {
 				$this->drain_sessions( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
+				self::mark_rotation( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'], false );
 				$executed++;
 				$details[] = sprintf( "Executed [%s] %s", $step['kind'], $step['description'] );
 				continue;
 			}
 
 			foreach ( $step['raw_statements'] as $query ) {
+				if ( self::ACTION_ROTATE_CREDENTIAL === $this->action && 'alter_user_password' === $step['id'] && ! $marked ) {
+					self::mark_rotation( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'], true );
+					$marked = true;
+				}
 				$query = $this->substitute_secret( $query, $secret );
 
 				$query = trim( $query );
@@ -707,10 +734,25 @@ final class Provisioning_Plan {
 
 			$executed++;
 			$details[] = sprintf( "Executed [%s] %s", $step['kind'], $step['description'] );
+			if ( self::ACTION_ROTATE_CREDENTIAL === $this->action && 'alter_user_password' === $step['id'] ) {
+				$rotated = true;
+			}
+		}
+		} catch ( \Throwable $error ) {
+			if ( $rotated ) {
+				throw new \RuntimeException( 'ROTATED_UNSAFE: credential changed but drain was not verified; old authenticated sessions may still exist. Disable protected enablement, retain V2 secret and re-run the standalone drain with a qualified operator during a connection-free maintenance window; verify zero sessions and V2 Doctor/Guard before enabling. Cause: ' . $error->getMessage(), 0, $error );
+			}
+			if ( $marked ) {
+				// ALTER failed: no credentials changed. Clear the preparatory marker;
+				// if cleanup fails, keep the safer blocked state and report it.
+				self::mark_rotation( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'], false );
+			}
+			throw $error;
 		}
 
 		return array(
-			'success'        => true,
+			'success'        => self::ACTION_ROTATE_CREDENTIAL !== $this->action || ! empty( $this->params['drain'] ),
+			'state'          => self::ACTION_ROTATE_CREDENTIAL === $this->action && empty( $this->params['drain'] ) ? 'ROTATED_UNSAFE' : ( in_array( $this->action, array( self::ACTION_ROTATE_CREDENTIAL, self::ACTION_DRAIN ), true ) ? 'DRAINED' : 'APPLIED' ),
 			'executed_steps' => $executed,
 			'details'        => $details,
 		);
@@ -782,10 +824,12 @@ final class Provisioning_Plan {
 			case self::ACTION_ROTATE_CREDENTIAL:
 				if ( ! empty( $this->params['drain'] ) ) {
 					self::assert_drain_capability( $installer );
+					self::assert_unique_drain_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
 				}
 				break;
 			case self::ACTION_DRAIN:
 				self::assert_drain_capability( $installer );
+				self::assert_unique_drain_account( $installer, (string) $this->params['runtime_user'], (string) $this->params['runtime_host'] );
 				break;
 		}
 	}
@@ -881,9 +925,11 @@ final class Provisioning_Plan {
 		$runtime_user = self::validate_user( $runtime_user );
 		$runtime_host = self::validate_host( $runtime_host );
 		self::assert_drain_capability( $installer );
+		self::assert_unique_drain_account( $installer, $runtime_user, $runtime_host );
 
 		$drained = 0;
 		for ( $attempt = 0; $attempt < 10; ++$attempt ) {
+			self::assert_unique_drain_account( $installer, $runtime_user, $runtime_host );
 			$rows = $installer->get_col( $installer->prepare(
 				'SELECT ID FROM information_schema.PROCESSLIST WHERE USER = %s AND ID <> CONNECTION_ID()',
 				$runtime_user
@@ -895,6 +941,7 @@ final class Provisioning_Plan {
 				return array( 'drained' => $drained, 'remaining' => 0 );
 			}
 			foreach ( $rows as $id ) {
+				self::assert_unique_drain_account( $installer, $runtime_user, $runtime_host );
 				$id = (int) $id;
 				if ( $id <= 0 ) {
 					continue;
@@ -911,30 +958,53 @@ final class Provisioning_Plan {
 			usleep( 50000 );
 		}
 
+		self::assert_unique_drain_account( $installer, $runtime_user, $runtime_host );
 		$rows = $installer->get_col( $installer->prepare(
 			'SELECT ID FROM information_schema.PROCESSLIST WHERE USER = %s AND ID <> CONNECTION_ID()',
 			$runtime_user
 		) );
-		if ( is_array( $rows ) && $rows ) {
+		if ( ! is_array( $rows ) || '' !== (string) $installer->last_error || $rows ) {
 			throw new \RuntimeException( 'Runtime sessions remain after draining; draining is not complete.' );
 		}
 		return array( 'drained' => $drained, 'remaining' => 0 );
 	}
 
-	/** Drain authority must be provable before any session is claimed drained. */
+	/** PROCESSLIST.HOST is the client endpoint, not the matched mysql.user.Host. */
+	private static function assert_unique_drain_account( \wpdb $installer, string $user, string $host ): void {
+		$rows = $installer->get_col( $installer->prepare( 'SELECT Host FROM mysql.user WHERE User = %s', $user ) );
+		if ( ! is_array( $rows ) || '' !== (string) $installer->last_error || 1 !== count( $rows ) || $host !== (string) $rows[0] ) {
+			throw new \RuntimeException( 'Cannot map processlist username to one exact runtime account host; refusing to rotate or drain.' );
+		}
+	}
+
+	/** Both global visibility and other-user KILL authority are required. */
 	public static function assert_drain_capability( \wpdb $installer ): void {
 		$rows = $installer->get_results( 'SHOW GRANTS', ARRAY_N );
 		if ( ! is_array( $rows ) || ! $rows || '' !== (string) $installer->last_error ) {
 			throw new \RuntimeException( 'Cannot read installer grants; session draining cannot be certified.' );
 		}
+		$version = $installer->get_var( 'SELECT VERSION()' );
+		if ( ! is_string( $version ) || '' !== (string) $installer->last_error ||
+			! in_array( $version, array( '8.0.44', '10.11.15-MariaDB-ubu2204' ), true ) ) {
+			throw new \RuntimeException( 'Drain privilege model is verified only on pinned MySQL 8.0.44 and MariaDB 10.11.15.' );
+		}
+		$mysql = '8.0.44' === $version;
+		$process = false;
+		$kill = false;
 		foreach ( $rows as $row ) {
 			$statement = is_array( $row ) && isset( $row[0] ) ? (string) $row[0] : '';
-			if ( preg_match( '/\AGRANT ALL PRIVILEGES ON \*\.\*/iD', $statement ) ||
-				preg_match( '/\b(?:PROCESS|SUPER|CONNECTION_ADMIN|CONNECTION ADMIN)\b/i', $statement ) ) {
-				return;
+			if ( ! preg_match( '/\AGRANT (.+?) ON \*\.\* TO /i', $statement, $match ) ) {
+				continue;
 			}
+			$privileges = array_map( 'trim', explode( ',', strtoupper( $match[1] ) ) );
+			$all = in_array( 'ALL PRIVILEGES', $privileges, true );
+			$process = $process || $all || in_array( 'PROCESS', $privileges, true );
+			$kill = $kill || $all || in_array( 'SUPER', $privileges, true ) || in_array( $mysql ? 'CONNECTION_ADMIN' : 'CONNECTION ADMIN', $privileges, true );
 		}
-		throw new \RuntimeException( 'Session draining requires PROCESS/CONNECTION_ADMIN (MySQL 8.0) or PROCESS plus SUPER/CONNECTION ADMIN (MariaDB 10.11) authority; refusing to claim a drained runtime.' );
+		if ( $process && $kill ) {
+			return;
+		}
+		throw new \RuntimeException( 'Draining requires global PROCESS visibility AND global other-user KILL authority (CONNECTION_ADMIN or SUPER on MySQL; CONNECTION ADMIN or SUPER on MariaDB); refusing before credential mutation.' );
 	}
 
 	/**

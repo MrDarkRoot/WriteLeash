@@ -63,6 +63,14 @@ Before using Guard on a real table, rerun with its table name and budget.
   Routine creation is **not** needed by the runtime writer. An ordinary
   WordPress user with schema-wide UPDATE, CREATE or ALTER grants is not a
   restricted runtime account.
+  The exact grant surface is EXECUTE on open/close/count/policy/attest, SELECT
+  **only** on `commitcap_v01_state` (no helper INSERT/UPDATE/DELETE), and
+  SELECT/UPDATE only on certified target tables. No runtime DDL/TRIGGER/GRANT
+  authority. The helper SELECT is necessary because Guard makes the logical
+  pre-COMMIT decision from direct state and Doctor's behavioral probes inspect
+  the same state independently; routine bodies are not load-bearing for the
+  logical budget. This replaces the older four-EXECUTE issue wording and needs
+  Maintainer approval as a security-contract change.
 - Runtime opaque trigger surface (required): a non-target INSERT/UPDATE/DELETE
   grant can fire an **existing** trigger without any TRIGGER privilege. The
   trusted installer inspects `information_schema.TRIGGERS` for every
@@ -156,3 +164,12 @@ returns to PASS.
 ### 7. Normal Web Request vs. Operator Verification
 - **Normal Web Request**: `Doctor::runtime()` runs with only the restricted `$writer` connection in `$wpdb`. Installer credentials are never stored, parsed, or retained in PHP.
 - **Operator Verification**: `Doctor::run()` is invoked only during explicit setup, migration, or auditing by an administrator with a separate, temporary installer connection. Full grant listings and structural verifiers are evaluated directly.
+
+**Credential rotation qualification:** Doctor checks the trusted helper-state
+`ROTATED_UNSAFE` marker before claiming PASS, and Guard refuses a protected
+callback while it exists. Doctor does not inventory surviving V1 sessions; the
+trusted installer marks the rotation before ALTER and clears it only after a
+zero-session drain. Only a trusted standalone drain followed by V2 Doctor and
+Guard checks qualifies the operator-verified READY state. Direct external
+credential changes outside the plan cannot be certified by this protocol. See
+[PROVISIONING.md](PROVISIONING.md#34-rotate-credential-commitcapprovisioning_planrotate_credential).

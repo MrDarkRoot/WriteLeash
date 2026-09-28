@@ -25,6 +25,7 @@ function cc84_query( $db, $sql ) {
 $root = new wpdb( 'root', 'disposable_root_password', 'wp_test', $host );
 $root->suppress_errors( true );
 $installer = new Engine( $root );
+$is_mysql = 'mysql' === $host;
 
 // ---------------------------------------------------------------------------
 // #84.1: Offline Plan Renderer Inspection & Secret Redaction
@@ -311,7 +312,11 @@ cc84_assert( false !== strpos( (string) $root->get_var( $root->prepare( "SELECT 
 cc84_query( $root, "DROP TRIGGER `$conflict2_trigger`" );
 cc84_query( $root, 'DROP TABLE cc84_conflict2' );
 
-// Restore the reviewed infrastructure destroyed by (a)/(b) before (e).
+// Restore all routines in one installation batch after destructive tamper
+// fixtures; restoring only the missing member violates Doctor's 10s batch.
+foreach ( Engine::routine_names() as $routine ) {
+	cc84_query( $root, "DROP PROCEDURE IF EXISTS `$routine`" );
+}
 $installer->install_infrastructure();
 cc84_reset_grants( $root );
 
@@ -331,6 +336,9 @@ foreach ( array( 'open', 'close', 'count', 'policy' ) as $routine ) {
 }
 cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME='commitcap_v01_state'" ), '#84.6b uninstall dropped helper despite refusal' );
 cc84_query( $root, 'DROP PROCEDURE commitcap_v01_attest' );
+foreach ( Engine::routine_names() as $routine ) {
+	cc84_query( $root, "DROP PROCEDURE IF EXISTS `$routine`" );
+}
 $installer->install_infrastructure();
 cc84_reset_grants( $root );
 echo "  #84.6b collision refusal (helper, routine, account, trigger, uninstall): PASS\n";
@@ -468,6 +476,200 @@ $rotate_back->apply( $root );
 $writer = new wpdb( 'cc84_writer', 'cc84_rotated_v2_secret', 'wp_test', $host );
 $writer->suppress_errors( true );
 echo "  #84.8b credential failure paths and default plans never expose the raw secret: PASS\n";
+
+// Supported single-plan rotate+drain on the real certified B runtime (A-F).
+$live_v1 = new wpdb( 'cc84_writer', 'cc84_rotated_v2_secret', 'wp_test', $host );
+$live_v1->suppress_errors( true );
+$live_v1_id = (int) $live_v1->get_var( 'SELECT CONNECTION_ID()' );
+$supported = Plan::rotate_credential( 'cc84_writer', '%', 'cc84_supported_v3', true )->apply( $root );
+cc84_assert( $supported['success'] && 'DRAINED' === $supported['state'], '#84.8 supported rotation not drained' );
+cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $live_v1_id" ), '#84.8 V1 still alive' );
+cc84_assert( false === @mysqli_query( $live_v1->dbh, 'SELECT 1' ), '#84.8 V1 can still query after supported drain' );
+$v3_writer = new wpdb( 'cc84_writer', 'cc84_supported_v3', 'wp_test', $host );
+$v3_writer->suppress_errors( true );
+cc84_assert( 'PASS' === Plan::verify( array( 'cc84_b' => 15 ), $v3_writer )['overall'], '#84.8 V2 Doctor not PASS after supported drain' );
+$v3_denied = false;
+try {
+	Guard::update( 'cc84_b', 0, function () use ( $v3_writer ) {
+		$v3_writer->query( 'UPDATE cc84_b SET touched = touched + 1 WHERE id = 1' );
+	}, $v3_writer );
+} catch ( \CommitCap\Budget_Denied $error ) {
+	$v3_denied = true;
+}
+cc84_assert( $v3_denied, '#84.8 V2 Guard did not enforce after supported drain' );
+Plan::rotate_credential( 'cc84_writer', '%', 'cc84_rotated_v2_secret', true )->apply( $root );
+$writer = new wpdb( 'cc84_writer', 'cc84_rotated_v2_secret', 'wp_test', $host );
+$writer->suppress_errors( true );
+echo "  #84.8 supported rotate+drain with V1 invalidation, V2 Doctor and Guard: PASS\n";
+
+class CC84_Kill_Fault_DB extends wpdb {
+	public $fail_kill = true;
+	public function query( $query ) {
+		if ( $this->fail_kill && preg_match( '/\AKILL [0-9]+\z/', $query ) ) {
+			return false;
+		}
+		return parent::query( $query );
+	}
+}
+$faulty = new CC84_Kill_Fault_DB( 'root', 'disposable_root_password', 'wp_test', $host );
+$faulty->suppress_errors( true );
+$unsafe_v1_id = (int) $writer->get_var( 'SELECT CONNECTION_ID()' );
+$unsafe_error = '';
+try {
+	Plan::rotate_credential( 'cc84_writer', '%', 'cc84_unsafe_v4', true )->apply( $faulty );
+} catch ( RuntimeException $error ) {
+	$unsafe_error = $error->getMessage();
+}
+cc84_assert( false !== strpos( $unsafe_error, 'ROTATED_UNSAFE' ), '#84.8 post-ALTER KILL failure must be explicit' );
+cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $unsafe_v1_id" ), '#84.8 V1 no longer surviving KILL failure' );
+$unsafe_v2 = new wpdb( 'cc84_writer', 'cc84_unsafe_v4', 'wp_test', $host );
+$unsafe_v2->suppress_errors( true );
+$unsafe_report = Plan::verify( array( 'cc84_b' => 15 ), $unsafe_v2 );
+cc84_assert( 'FAIL' === $unsafe_report['overall'] && 'UNKNOWN' === $unsafe_report['integrations']['cc84_b']['status'], '#84.8 unsafe rotation Doctor claimed READY' );
+$ran_unsafe = false;
+try {
+	Guard::update( 'cc84_b', 5, function () use ( &$ran_unsafe ) { $ran_unsafe = true; }, $unsafe_v2 );
+} catch ( \CommitCap\Guard_Error $error ) {
+	cc84_assert( 'policy_unverified' === $error->reason(), '#84.8 unsafe Guard refusal reason' );
+}
+cc84_assert( ! $ran_unsafe, '#84.8 Guard ran callback despite unsafe rotation' );
+Plan::drain( 'cc84_writer', '%' )->apply( $root );
+$recovered = new wpdb( 'cc84_writer', 'cc84_unsafe_v4', 'wp_test', $host );
+$recovered->suppress_errors( true );
+cc84_assert( 'PASS' === Plan::verify( array( 'cc84_b' => 15 ), $recovered )['overall'], '#84.8 trusted recovery drain did not restore Doctor' );
+Plan::rotate_credential( 'cc84_writer', '%', 'cc84_rotated_v2_secret', true )->apply( $root );
+$writer = new wpdb( 'cc84_writer', 'cc84_rotated_v2_secret', 'wp_test', $host );
+$writer->suppress_errors( true );
+echo "  #84.8 post-ALTER KILL fault blocks V2 Doctor/Guard until standalone drain: PASS\n";
+
+// ---------------------------------------------------------------------------
+// #84.8c: adversarial drain matrix. PROCESS is visibility, not KILL authority;
+// PROCESSLIST.HOST is the client address, not the matched mysql.user.Host.
+// All preflight refusals must leave V1 credentials AND sessions unchanged.
+// ---------------------------------------------------------------------------
+cc84_query( $root, "DROP USER IF EXISTS 'cc84_drain'@'%', 'cc84_drain'@'localhost', 'cc84_drain_x'@'%'" );
+cc84_query( $root, "CREATE USER 'cc84_drain'@'%' IDENTIFIED BY 'drain_v1'" );
+cc84_query( $root, "CREATE USER 'cc84_drain_x'@'%' IDENTIFIED BY 'unrelated_v1'" );
+cc84_query( $root, "GRANT SELECT ON wp_test.cc84_b TO 'cc84_drain'@'%', 'cc84_drain_x'@'%'" );
+$victim = new wpdb( 'cc84_drain', 'drain_v1', 'wp_test', $host );
+$unrelated = new wpdb( 'cc84_drain_x', 'unrelated_v1', 'wp_test', $host );
+$victim->suppress_errors( true );
+$unrelated->suppress_errors( true );
+$victim_id = (int) $victim->get_var( 'SELECT CONNECTION_ID()' );
+$unrelated_id = (int) $unrelated->get_var( 'SELECT CONNECTION_ID()' );
+cc84_assert( $victim_id > 0 && $unrelated_id > 0, '#84.8c session setup' );
+$initial_hash = (string) $root->get_var( "SELECT authentication_string FROM mysql.user WHERE User='cc84_drain' AND Host='%'" );
+
+function cc84_preflight_unchanged( $root, $host, $operator, $label, $victim_id, $unrelated_id, $initial_hash ) {
+	$failure = '';
+	try {
+		Plan::rotate_credential( 'cc84_drain', '%', 'should_not_install', true )->apply( $operator );
+	} catch ( RuntimeException $error ) {
+		$failure = $error->getMessage();
+	}
+	cc84_assert( '' !== $failure && false === strpos( $failure, 'ROTATED_UNSAFE' ), "$label must refuse during PRECHECK" );
+	$old = new wpdb( 'cc84_drain', 'drain_v1', 'wp_test', $host );
+	$old->suppress_errors( true );
+	cc84_assert( 1 === (int) $old->get_var( 'SELECT 1' ), "$label changed V1 password" );
+	$new = new wpdb( 'cc84_drain', 'should_not_install', 'wp_test', $host );
+	$new->suppress_errors( true );
+	cc84_assert( ! $new->ready, "$label installed V2 despite preflight refusal" );
+	cc84_assert( $initial_hash === (string) $root->get_var( "SELECT authentication_string FROM mysql.user WHERE User='cc84_drain' AND Host='%'" ), "$label mutated credential hash" );
+	cc84_assert( 0 === (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = 0' ), "$label left partial rotation marker state" );
+	cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $victim_id" ), "$label killed existing V1 session" );
+	cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $unrelated_id" ), "$label killed unrelated session" );
+}
+
+foreach ( array( 'none', 'process', 'super', 'connection' ) as $mode ) {
+	if ( 'connection' === $mode && ! $is_mysql ) {
+		// MariaDB CONNECTION ADMIN is exercised separately below as an alternative to SUPER.
+	}
+	$user = 'cc84_op_' . $mode;
+	cc84_query( $root, "DROP USER IF EXISTS '$user'@'%'" );
+	cc84_query( $root, "CREATE USER '$user'@'%' IDENTIFIED BY 'op_secret'" );
+	// The operator has real ALTER USER capability, so only the drain precheck
+	// can prevent a credential change. SELECT mysql.user enables identity check.
+	cc84_query( $root, "GRANT CREATE USER ON *.* TO '$user'@'%'" );
+	cc84_query( $root, "GRANT SELECT ON mysql.user TO '$user'@'%'" );
+	cc84_query( $root, "GRANT SELECT ON wp_test.cc84_b TO '$user'@'%'" );
+	if ( 'process' === $mode ) {
+		cc84_query( $root, "GRANT PROCESS ON *.* TO '$user'@'%'" );
+	} elseif ( 'super' === $mode ) {
+		cc84_query( $root, "GRANT SUPER ON *.* TO '$user'@'%'" );
+	} elseif ( 'connection' === $mode ) {
+		cc84_query( $root, "GRANT " . ( $is_mysql ? 'CONNECTION_ADMIN' : 'CONNECTION ADMIN' ) . " ON *.* TO '$user'@'%'" );
+	}
+	$op = new wpdb( $user, 'op_secret', 'wp_test', $host );
+	$op->suppress_errors( true );
+	cc84_assert( $op->ready, "$mode operator login" );
+	// Prove raw cross-user KILL behavior on a separate sacrificial connection,
+	// without ever touching the real V1 session in the negative matrix.
+	$sacrifice = new wpdb( 'cc84_drain_x', 'unrelated_v1', 'wp_test', $host );
+	$sacrifice->suppress_errors( true );
+	$sacrifice_id = (int) $sacrifice->get_var( 'SELECT CONNECTION_ID()' );
+	$visible = $op->get_col( $op->prepare( 'SELECT ID FROM information_schema.PROCESSLIST WHERE ID = %d', $sacrifice_id ) );
+	$kill_result = $op->query( 'KILL ' . $sacrifice_id );
+	cc84_assert( ( 'process' === $mode || 'none' === $mode ) === ( false === $kill_result ), "$mode raw cross-user KILL outcome" );
+	if ( false !== $kill_result ) {
+		cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $sacrifice_id" ), "$mode raw KILL did not terminate" );
+	}
+	if ( 'process' === $mode || 'none' === $mode ) {
+		cc84_assert( ( 'process' === $mode ) === in_array( (string) $sacrifice_id, array_map( 'strval', (array) $visible ), true ), "$mode processlist visibility" );
+	}
+	cc84_preflight_unchanged( $root, $host, $op, $mode, $victim_id, $unrelated_id, $initial_hash );
+	echo "    $mode only: raw cross-user KILL " . ( false === $kill_result ? 'DENIED' : 'SUCCEEDED' ) . ', victim visible=' . ( in_array( (string) $sacrifice_id, array_map( 'strval', (array) $visible ), true ) ? 'yes' : 'no' ) . "; pre-ALTER rotation refusal PASS\n";
+	cc84_query( $root, "DROP USER '$user'@'%'" );
+}
+
+// Account collision: even root must refuse before ALTER and without killing
+// any session. Client HOST cannot identify which of the two account rows won.
+cc84_query( $root, "CREATE USER 'cc84_drain'@'localhost' IDENTIFIED BY 'collision_secret'" );
+$collision_hash = (string) $root->get_var( "SELECT authentication_string FROM mysql.user WHERE User='cc84_drain' AND Host='localhost'" );
+cc84_preflight_unchanged( $root, $host, $root, 'same-username host collision', $victim_id, $unrelated_id, $initial_hash );
+cc84_assert( $collision_hash === (string) $root->get_var( "SELECT authentication_string FROM mysql.user WHERE User='cc84_drain' AND Host='localhost'" ), '#84.8c collision account credential changed' );
+cc84_query( $root, "DROP USER 'cc84_drain'@'localhost'" );
+
+// Combined privileges, on BOTH engines, actually rotate + drain; a similar
+// username is untouched. The pinned-engine matrix proves preflight and KILL.
+cc84_query( $root, "CREATE USER 'cc84_op_combined'@'%' IDENTIFIED BY 'op_secret'" );
+cc84_query( $root, "GRANT CREATE USER, PROCESS ON *.* TO 'cc84_op_combined'@'%'" );
+cc84_query( $root, "GRANT SELECT ON mysql.user TO 'cc84_op_combined'@'%'" );
+cc84_query( $root, "GRANT SELECT ON wp_test.cc84_b TO 'cc84_op_combined'@'%'" );
+cc84_query( $root, "GRANT SELECT, INSERT, UPDATE, DELETE ON wp_test.commitcap_v01_state TO 'cc84_op_combined'@'%'" );
+cc84_query( $root, "GRANT " . ( $is_mysql ? 'CONNECTION_ADMIN' : 'CONNECTION ADMIN' ) . " ON *.* TO 'cc84_op_combined'@'%'" );
+$combined = new wpdb( 'cc84_op_combined', 'op_secret', 'wp_test', $host );
+$combined->suppress_errors( true );
+$combined_result = Plan::rotate_credential( 'cc84_drain', '%', 'drain_v2', true )->apply( $combined );
+cc84_assert( $combined_result['success'] && 'DRAINED' === $combined_result['state'], '#84.8c combined operator did not drain' );
+cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $victim_id" ), '#84.8c V1 survived combined drain' );
+cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $unrelated_id" ), '#84.8c similar username was killed' );
+$v2 = new wpdb( 'cc84_drain', 'drain_v2', 'wp_test', $host );
+$v2->suppress_errors( true );
+cc84_assert( 1 === (int) $v2->get_var( 'SELECT 1' ), '#84.8c V2 auth failed' );
+$v1 = new wpdb( 'cc84_drain', 'drain_v1', 'wp_test', $host );
+$v1->suppress_errors( true );
+cc84_assert( ! $v1->ready, '#84.8c V1 new auth still works' );
+
+// Fault-inject an actual KILL failure AFTER real ALTER USER. This is an unsafe
+// partial state even if V2 could authenticate; rerun drain rather than rotate.
+$faulty = new CC84_Kill_Fault_DB( 'root', 'disposable_root_password', 'wp_test', $host );
+$faulty->suppress_errors( true );
+$v2_id = (int) $v2->get_var( 'SELECT CONNECTION_ID()' );
+$post_failure = '';
+try {
+	Plan::rotate_credential( 'cc84_drain', '%', 'drain_v3', true )->apply( $faulty );
+} catch ( RuntimeException $error ) {
+	$post_failure = $error->getMessage();
+}
+cc84_assert( false !== strpos( $post_failure, 'ROTATED_UNSAFE' ) && false !== strpos( $post_failure, 'old authenticated sessions may still exist' ), '#84.8c post-ALTER failure state/recovery absent' );
+cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $v2_id" ), '#84.8c fault injection killed V2 survivor' );
+$v3 = new wpdb( 'cc84_drain', 'drain_v3', 'wp_test', $host );
+$v3->suppress_errors( true );
+cc84_assert( 1 === (int) $v3->get_var( 'SELECT 1' ), '#84.8c ALTER did not execute before fault' );
+cc84_assert( 'DRAINED' === Plan::drain( 'cc84_drain', '%' )->apply( $root )['state'], '#84.8c standalone recovery drain failed' );
+cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $v2_id" ), '#84.8c recovery left stale V2 session' );
+cc84_query( $root, "DROP USER 'cc84_op_combined'@'%', 'cc84_drain'@'%', 'cc84_drain_x'@'%'" );
+echo "  #84.8c drain privilege matrix, account collision, combined operator and post-ALTER recovery: PASS\n";
 
 // ---------------------------------------------------------------------------
 // #84.9: Remove B and Full Uninstall

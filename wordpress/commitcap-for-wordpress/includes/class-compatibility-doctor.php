@@ -109,6 +109,13 @@ final class Compatibility_Doctor {
 		$runtime_grants = null !== $schema && $identity ? Compatibility_Grants::read( $db, $schema ) : null;
 		$runtime = null === $runtime_grants ? array( 'UNKNOWN', 'SHOW GRANTS unavailable, incomplete or contains unexpanded roles/unknown syntax; absence of a grant is not proven.' ) : $runtime_grants->runtime();
 		$doctor->check( 'runtime_grants', $runtime[0], true, 'Restricted runtime EXECUTE, helper and DDL boundary', $runtime[1] );
+		try {
+			$rotation_safe = ! ( new Update_Engine( $db ) )->rotation_unsafe();
+			$doctor->check( 'rotation_drain', $rotation_safe ? 'PASS' : 'FAIL', true, 'Credential rotation drain',
+				$rotation_safe ? 'No trusted unsafe-rotation marker exists.' : 'ROTATED_UNSAFE: drain not verified; do not enable protected operations.' );
+		} catch ( \Throwable $error ) {
+			$doctor->check( 'rotation_drain', 'UNKNOWN', true, 'Credential rotation drain', 'Cannot inspect trusted rotation safety marker.' );
+		}
 
 		$trusted = $installer instanceof \wpdb && $installer !== $db && $installer->ready && $installer->dbh instanceof \mysqli;
 		if ( $trusted ) {
@@ -141,7 +148,7 @@ final class Compatibility_Doctor {
 			} else {
 				try {
 					$engine->verify_infrastructure_objects();
-					$doctor->check( 'objects', 'PASS', true, 'CommitCap infrastructure', 'Existing helper and all four routines passed the #54 structural verifier.' );
+					$doctor->check( 'objects', 'PASS', true, 'CommitCap infrastructure', 'Existing helper and all five routines passed the #54 structural verifier.' );
 				} catch ( \Throwable $error ) {
 					$doctor->check( 'objects', 'FAIL', true, 'CommitCap infrastructure', 'Existing objects conflict with #54 structural verification; nothing was replaced.' );
 				}
@@ -291,6 +298,14 @@ final class Compatibility_Doctor {
 
 		$engine = new Update_Engine( $db );
 		$infrastructure_ok = true;
+		$rotation_safe = false;
+		try {
+			$rotation_safe = ! $engine->rotation_unsafe();
+			$doctor->check( 'rotation_drain', $rotation_safe ? 'PASS' : 'FAIL', true, 'Credential rotation drain',
+				$rotation_safe ? 'No trusted unsafe-rotation marker exists.' : 'ROTATED_UNSAFE: old authenticated sessions may still exist; trusted standalone drain and V2 verification required before protected enablement.' );
+		} catch ( \Throwable $error ) {
+			$doctor->check( 'rotation_drain', 'UNKNOWN', true, 'Credential rotation drain', 'Cannot read trusted rotation safety marker; no protected READY claim.' );
+		}
 
 		// Evidence root: two SQL SECURITY DEFINER routines cross-report the live
 		// body of all five reviewed routines; unmediated information_schema
@@ -451,7 +466,14 @@ final class Compatibility_Doctor {
 			}
 		}
 
-		if ( ! $infrastructure_ok ) {
+		if ( ! $rotation_safe ) {
+			foreach ( $integrations as $table => $info ) {
+				if ( 'PASS' === $info['status'] ) {
+					$integrations[ $table ]['status'] = 'UNKNOWN';
+					$integrations[ $table ]['detail'] .= ' (Credential rotation drain is unverified.)';
+				}
+			}
+		} elseif ( ! $infrastructure_ok ) {
 			foreach ( $integrations as $table => $info ) {
 				if ( 'PASS' === $info['status'] ) {
 					$integrations[ $table ]['status'] = 'UNKNOWN';

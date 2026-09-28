@@ -102,6 +102,9 @@ final class Guard {
 
 		$engine = new Update_Engine( $db );
 		try {
+			if ( $engine->rotation_unsafe() ) {
+				throw new \RuntimeException( 'Rotation drain not verified; old authenticated sessions may still exist.' );
+			}
 			$ceiling = $engine->verify_runtime_budget( $name, $limit );
 		} catch ( \Throwable $error ) {
 			throw new Guard_Error(
