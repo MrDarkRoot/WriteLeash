@@ -159,7 +159,8 @@ cc87_expect( $result, 'COMMITTED', 'ok', null, '#87 safe run' );
 cc87_assert( 5 === $result['consumed'] && 5 === $result['logical_budget'], 'safe consumed/budget' );
 cc87_assert( 10 === $result['physical_ceiling'], 'safe physical ceiling' );
 cc87_assert( 5 === $result['affected_rows'], 'safe affected rows' );
-cc87_assert( false === $result['rollback_verified'], 'committed run must not claim rollback evidence' );
+cc87_assert( false === $result['transaction_rollback_attempted'] && false === $result['guard_rollback_completed'], 'committed run must not claim rollback evidence' );
+cc87_assert( false === $result['durability_verified_by_fresh_observer'], 'committed run must not claim durable verification' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 5 === $total && 5 === $disabled, 'safe run fresh-observer durability' );
 echo "  safe run N=5 L=5 P=10 -> COMMITTED with fresh observer: PASS\n";
@@ -172,7 +173,8 @@ cc87_seed( $root, 6 );
 $result = cc87_run_adapter( $root, $runtime, $runtime_id, new Adapter( $runtime, 5 ), true, true, '#87 logical denial', $normal, $normal_id );
 cc87_expect( $result, 'DENIED', 'logical_budget_exceeded', 'logical', '#87 logical denial' );
 cc87_assert( $result['consumed'] > $result['logical_budget'], 'logical denial must observe consumed > L' );
-cc87_assert( true === $result['rollback_verified'], 'logical denial rollback evidence missing' );
+cc87_assert( true === $result['transaction_rollback_attempted'] && true === $result['guard_rollback_completed'], 'logical denial guard rollback fact missing' );
+cc87_assert( false === $result['durability_verified_by_fresh_observer'], 'adapter must not claim fresh-observer durability' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 6 === $total && 0 === $disabled, 'logical denial left durable mutations' );
 echo "  logical denial N=6 > L=5 -> typed Budget_Denied + full rollback: PASS\n";
@@ -187,7 +189,7 @@ cc87_assert( 'DENIED' === $result['outcome'], 'physical denial outcome: ' . json
 cc87_assert( in_array( $result['reason'], array( 'budget_exceeded', 'denial_signal' ), true ), 'physical denial reason: ' . $result['reason'] );
 cc87_assert( 'physical' === $result['denial_kind'], 'physical denial kind: ' . json_encode( $result['denial_kind'] ) );
 cc87_assert( 5 === $result['physical_ceiling'], 'physical denial ceiling' );
-cc87_assert( true === $result['rollback_verified'], 'physical denial rollback evidence missing' );
+cc87_assert( true === $result['transaction_rollback_attempted'] && true === $result['guard_rollback_completed'], 'physical denial guard rollback fact missing' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 8 === $total && 0 === $disabled, 'physical denial left durable mutations' );
 cc87_set_ceiling( $root, CC87_CEILING );
@@ -200,7 +202,7 @@ cc87_seed( $root, 3 );
 $result = cc87_run_adapter( $root, $runtime, $runtime_id, new Adapter( $runtime, 0 ), true, true, '#87 L=0', $normal, $normal_id );
 cc87_expect( $result, 'DENIED', 'logical_budget_exceeded', 'logical', '#87 L=0' );
 cc87_assert( $result['consumed'] > 0, 'L=0 denial consumed' );
-cc87_assert( true === $result['rollback_verified'], 'L=0 rollback evidence missing' );
+cc87_assert( true === $result['transaction_rollback_attempted'] && true === $result['guard_rollback_completed'], 'L=0 guard rollback fact missing' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 3 === $total && 0 === $disabled, 'L=0 left durable mutations' );
 echo "  L=0 non-empty Disable -> denied and rolled back: PASS\n";
@@ -377,59 +379,137 @@ cc87_assert( 3 === $total && 0 === $disabled, 'prefix mismatch changed durable s
 echo "  runtime prefix mismatch -> refused before callback: PASS\n";
 
 // ---------------------------------------------------------------------------
-// Item-scoped Redirection path regression.
+// Redirection coexistence under an installed certified policy.
 //
-// #87 adds no REST hook and never intercepts this path. The control run proves
-// the unchanged plugin behavior with no CommitCap policy installed. The
-// protected run proves the same code path and connection routing with the
-// certified policy installed, and records the pre-existing #54 consequence:
-// unguarded UPDATEs to a protected table are denied by the physical trigger
-// (GUARD.md: "the #54 trigger still denies unguarded writes").
+// Regression for the pre-scoping trigger: with the old body, every unguarded
+// UPDATE to the protected table was denied. These cases must now pass because
+// the canonical trigger enforces only the certified runtime identity.
 // ---------------------------------------------------------------------------
 cc87_seed( $root, 4 );
-$ids = array_map( 'intval', $root->get_col( 'SELECT id FROM wp_redirection_items ORDER BY id LIMIT 2' ) );
-cc87_assert( 2 === count( $ids ), 'item-scoped ids' );
+$ids = array_map( 'intval', $root->get_col( 'SELECT id FROM wp_redirection_items ORDER BY id LIMIT 4' ) );
+cc87_assert( 4 === count( $ids ), 'coexistence ids' );
 wp_set_current_user( 1 );
 
-function cc87_item_scoped_enable( $root, $normal, $normal_id, $ids, $runtime_id, $label ) {
-	list( $response, $statements ) = cc87_trace( $root, $normal_id, function () use ( $normal, $ids ) {
-		$normal->query( "SELECT 'CC87_TRACE_START'" );
-		$request = new WP_REST_Request( 'POST', '/redirection/v1/bulk/redirect/enable' );
-		$request->set_header( 'X-WP-Nonce', wp_create_nonce( 'wp_rest' ) );
-		$request->set_body_params( array( 'bulk' => 'enable', 'items' => $ids ) );
-		$value = rest_do_request( $request );
-		$normal->query( "SELECT 'CC87_TRACE_END'" );
-		return $value;
-	} );
-	cc87_assert( 200 === $response->get_status(), $label . ' REST status: ' . $response->get_status() );
-	$updates = 0;
-	foreach ( $statements as $sql ) {
-		if ( preg_match( "/^UPDATE `wp_redirection_items` SET `status` = 'enabled' WHERE `id` = '\d+'$/i", $sql ) ) {
-			++$updates;
-		}
+// Normal WordPress identity: a plain UPDATE succeeds under the installed policy.
+$normal->query( 'SELECT 1' );
+$normal_ok = $normal->query( 'UPDATE wp_redirection_items SET status = ' . "'disabled'" . ' WHERE id = ' . (int) $ids[0] );
+cc87_assert( false !== $normal_ok, 'normal WordPress UPDATE was denied under the installed policy: ' . $normal->last_error );
+cc87_assert( false === strpos( (string) $normal->last_error, 'CC54_DENIED' ), 'normal WordPress UPDATE hit the CommitCap trigger' );
+cc87_assert( 1 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items WHERE id = ' . (int) $ids[0] . " AND status = 'disabled'" ), 'normal WordPress UPDATE was not durable' );
+echo "  normal WordPress identity update unaffected by installed policy: PASS\n";
+
+// Item-scoped bulk path: stock Redirection behavior on the normal connection.
+$normal->query( 'SELECT 1' );
+list( $response, $statements ) = cc87_trace( $root, $normal_id, function () use ( $normal, $ids ) {
+	$normal->query( "SELECT 'CC87_TRACE_START'" );
+	$request = new WP_REST_Request( 'POST', '/redirection/v1/bulk/redirect/disable' );
+	$request->set_header( 'X-WP-Nonce', wp_create_nonce( 'wp_rest' ) );
+	$request->set_body_params( array( 'bulk' => 'disable', 'items' => array( (int) $ids[1], (int) $ids[2] ) ) );
+	$value = rest_do_request( $request );
+	$normal->query( "SELECT 'CC87_TRACE_END'" );
+	return $value;
+} );
+cc87_assert( 200 === $response->get_status(), 'item-scoped REST status: ' . $response->get_status() );
+$scoped_updates = 0;
+foreach ( $statements as $sql ) {
+	if ( preg_match( "/^UPDATE `wp_redirection_items` SET `status` = 'disabled' WHERE `id` = '\d+'$/i", $sql ) ) {
+		++$scoped_updates;
 	}
-	cc87_assert( 2 === $updates, $label . ' did not issue two per-ID updates on the normal connection: ' . json_encode( $statements ) );
-	$runtime_rows = (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM mysql.general_log WHERE thread_id = %d', $runtime_id ) );
-	cc87_assert( 0 === $runtime_rows, $label . ' runtime connection received SQL' );
-	cc87_assert_normal( $normal, $normal_id, $label );
 }
+cc87_assert( 2 === $scoped_updates, 'item-scoped path did not issue two per-ID updates on the normal connection: ' . json_encode( $statements ) );
+$runtime_rows = (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM mysql.general_log WHERE thread_id = %d', $runtime_id ) );
+cc87_assert( 0 === $runtime_rows, 'runtime connection received SQL during the item-scoped request' );
+cc87_assert( 2 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items WHERE id IN (' . (int) $ids[1] . ',' . (int) $ids[2] . ") AND status = 'disabled'" ), 'item-scoped disable was not durable' );
+cc87_assert_normal( $normal, $normal_id, '#87 item-scoped' );
+echo "  item-scoped items=[...] path unchanged on the normal connection: PASS\n";
 
-// Control regime: no certified policy installed.
-Plan::remove_target( 'wp_test', CC87_RUNTIME_USER, '%', CC87_TABLE, 0 )->apply( $root );
-cc87_item_scoped_enable( $root, $normal, $normal_id, $ids, $runtime_id, '#87 item-scoped control' );
-list( $total, $disabled ) = cc87_counts( $root );
-cc87_assert( 4 === $total && 0 === $disabled, 'item-scoped control changed durable state unexpectedly' );
-Plan::add_target( 'wp_test', CC87_RUNTIME_USER, '%', CC87_TABLE, CC87_CEILING )->apply( $root );
+// Single-item edit path: Red_Item::disable()/enable() are ordinary $wpdb->update.
+$item = Red_Item::get_by_id( (int) $ids[3] );
+cc87_assert( $item instanceof Red_Item, 'single-item fixture missing' );
+$item->disable();
+cc87_assert( 1 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items WHERE id = ' . (int) $ids[3] . " AND status = 'disabled'" ), 'single-item disable was denied' );
+$item = Red_Item::get_by_id( (int) $ids[3] );
+$item->enable();
+cc87_assert( 1 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items WHERE id = ' . (int) $ids[3] . " AND status = 'enabled'" ), 'single-item enable was denied' );
+echo "  single-item Red_Item disable/enable path works under installed policy: PASS\n";
 
-// Certified policy installed: same code path and normal connection, no adapter
-// interception; the physical trigger denies the unguarded UPDATE attempts.
-cc87_item_scoped_enable( $root, $normal, $normal_id, $ids, $runtime_id, '#87 item-scoped protected' );
-$probe = $normal->query( 'UPDATE wp_redirection_items SET status = ' . "'enabled'" . ' WHERE id = ' . (int) $ids[0] );
-cc87_assert( false === $probe, 'unguarded normal-connection update unexpectedly succeeded under the installed policy' );
-cc87_assert( false !== strpos( (string) $normal->last_error, 'CC54_DENIED' ), 'unguarded update was not denied by the physical policy: ' . $normal->last_error );
+// Hit/stat writer: Red_Item::visit() updates last_count/last_access.
+cc87_assert( ! empty( red_get_options()['track_hits'] ), 'hit-tracking option disabled in fixture' );
+$item = Red_Item::get_by_id( (int) $ids[0] );
+cc87_assert( $item instanceof Red_Item, 'hit-path fixture missing' );
+$hits_before = (int) $item->get_hits();
+list( $unused, $hit_statements ) = cc87_trace( $root, $normal_id, function () use ( $normal, $item ) {
+	$normal->query( "SELECT 'CC87_TRACE_START'" );
+	$item->visit( '/cc87-hit', false );
+	$normal->query( "SELECT 'CC87_TRACE_END'" );
+	return true;
+} );
+$hit_updates = 0;
+foreach ( $hit_statements as $sql ) {
+	if ( preg_match( '/^UPDATE `?wp_redirection_items`? SET last_count=last_count\+1, last_access=NOW\(\) WHERE id=\d+$/i', $sql ) ) {
+		++$hit_updates;
+	}
+}
+cc87_assert( 1 === $hit_updates, 'hit/stat writer did not update on the normal connection: ' . json_encode( $hit_statements ) );
+cc87_assert( $hits_before + 1 === (int) $root->get_var( 'SELECT last_count FROM wp_redirection_items WHERE id = ' . (int) $ids[0] ), 'hit/stat writer was denied or not durable' );
+$runtime_rows = (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM mysql.general_log WHERE thread_id = %d', $runtime_id ) );
+cc87_assert( 0 === $runtime_rows, 'runtime connection received SQL during the hit/stat write' );
+cc87_assert_normal( $normal, $normal_id, '#87 hit/stat writer' );
+echo "  hit/stat writer (Red_Item::visit) works under installed policy: PASS\n";
+
+// ---------------------------------------------------------------------------
+// Restricted runtime outside Guard is still denied, even with forged session
+// state. P is enforced for the certified identity only; other grantees are
+// outside the cooperative contract and are classified explicitly.
+// ---------------------------------------------------------------------------
+cc87_seed( $root, 3 );
+$unguarded_id = (int) $root->get_var( 'SELECT id FROM wp_redirection_items ORDER BY id LIMIT 1' );
+$runtime->query( 'SET @commitcap_v01_denied = 0' );
+$runtime->query( 'SET @cc87_forged = 1' );
+$runtime->query( 'SELECT 1' );
+$unguarded = $runtime->query( 'UPDATE wp_redirection_items SET status = ' . "'disabled'" . ' WHERE id = ' . $unguarded_id );
+cc87_assert( false === $unguarded, 'unguarded restricted-runtime UPDATE was allowed' );
+cc87_assert( false !== strpos( (string) $runtime->last_error, 'CC54_DENIED' ), 'unguarded UPDATE was not denied by the physical policy: ' . $runtime->last_error );
 list( $total, $disabled ) = cc87_counts( $root );
-cc87_assert( 4 === $total && 0 === $disabled, 'item-scoped path changed durable state unexpectedly' );
-echo "  item-scoped path: normal connection, no interception; control works, installed policy denies unguarded UPDATE: PASS\n";
+cc87_assert( 3 === $total && 0 === $disabled, 'unguarded denial left durable state' );
+echo "  restricted runtime outside Guard denied (forged session state insufficient): PASS\n";
+
+// Direct lifecycle calls remain outside the cooperative contract, but the
+// physical ceiling P still bounds them: 5 events allowed, 6th denied. The
+// 6th event reuses a row to prove repeated-row accounting is not a bypass.
+cc87_set_ceiling( $root, 5 );
+cc87_seed( $root, 5 );
+$five_ids = array_map( 'intval', $root->get_col( 'SELECT id FROM wp_redirection_items ORDER BY id' ) );
+cc87_assert( 5 === count( $five_ids ), 'direct lifecycle fixture' );
+$runtime->query( 'SELECT 1' );
+cc87_query( $runtime, 'START TRANSACTION' );
+$runtime->query( 'CALL commitcap_v01_open(' . "'" . Engine::policy_id( CC87_TABLE ) . "'" . ')' );
+$allowed = 0;
+foreach ( $five_ids as $five_id ) {
+	if ( false !== $runtime->query( 'UPDATE wp_redirection_items SET status = ' . "'disabled'" . ' WHERE id = ' . (int) $five_id ) ) {
+		++$allowed;
+	}
+}
+cc87_assert( 5 === $allowed, 'direct lifecycle path did not allow 5 events: ' . $allowed );
+cc87_assert( false === $runtime->query( 'UPDATE wp_redirection_items SET status = ' . "'enabled'" . ' WHERE id = ' . (int) $five_ids[0] ), 'direct lifecycle path exceeded P' );
+cc87_query( $runtime, 'ROLLBACK' );
+list( $total, $disabled ) = cc87_counts( $root );
+cc87_assert( 5 === $total && 0 === $disabled, 'direct lifecycle path left durable state' );
+cc87_set_ceiling( $root, CC87_CEILING );
+echo "  direct lifecycle call outside Guard still bounded by physical P: PASS\n";
+
+// Explicit classification: another explicitly granted DB principal is outside
+// the certified runtime identity and is not intercepted by the scoped policy.
+cc87_query( $root, "DROP USER IF EXISTS 'cc87_foreign'@'%'" );
+cc87_query( $root, "CREATE USER 'cc87_foreign'@'%' IDENTIFIED BY 'cc87_foreign_secret'" );
+cc87_query( $root, "GRANT SELECT, UPDATE ON wp_test.wp_redirection_items TO 'cc87_foreign'@'%'" );
+$foreign = new wpdb( 'cc87_foreign', 'cc87_foreign_secret', 'wp_test', $host );
+$foreign->suppress_errors( true );
+$foreign_id = $five_ids[1];
+$foreign_ok = $foreign->query( 'UPDATE wp_redirection_items SET status = ' . "'disabled'" . ' WHERE id = ' . (int) $foreign_id );
+cc87_assert( false !== $foreign_ok, 'foreign granted principal was unexpectedly intercepted: ' . $foreign->last_error );
+cc87_assert( 1 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items WHERE id = ' . (int) $foreign_id . " AND status = 'disabled'" ), 'foreign principal update was not durable' );
+echo "  explicitly granted foreign principal classified as outside cooperative enforcement: PASS\n";
 
 // ---------------------------------------------------------------------------
 // Normal WordPress identity is still original after the whole matrix.

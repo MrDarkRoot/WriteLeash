@@ -124,9 +124,14 @@ class Redirection_Bulk_Disable {
 	/**
 	 * Execute the certified operation and return factual, structured evidence.
 	 *
-	 * Outcomes: COMMITTED, DENIED, ERROR, UNKNOWN. Only a DENIED result whose
-	 * post-rollback fingerprint matches the pre-run fingerprint on a separate
-	 * connection reports rollback_verified = true.
+	 * Outcomes: COMMITTED, DENIED, ERROR, UNKNOWN.
+	 *
+	 * Rollback facts are reported separately and conservatively:
+	 * `transaction_rollback_attempted` / `guard_rollback_completed` are true
+	 * only for a Guard-typed Budget_Denied, which performs its owned rollback
+	 * before throwing. `durability_verified_by_fresh_observer` is always false
+	 * here: only an independent observer connection (outside this adapter) can
+	 * prove durable state, and the adapter never manufactures that claim.
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -156,7 +161,6 @@ class Redirection_Bulk_Disable {
 			) );
 		}
 		$ceiling = isset( $integration['physical_ceiling'] ) ? $integration['physical_ceiling'] : null;
-		$before  = $this->fingerprint( $normal );
 
 		try {
 			$captured = Guard::update(
@@ -173,8 +177,11 @@ class Redirection_Bulk_Disable {
 				'physical_ceiling' => isset( $details['physical_ceiling'] ) ? $details['physical_ceiling'] : $ceiling,
 				'consumed'         => isset( $details['consumed'] ) ? $details['consumed'] : null,
 				'attempted'        => isset( $details['attempted'] ) ? $details['attempted'] : null,
+				// Guard's typed denial contract performs its owned rollback before
+				// throwing. This layer reports only that rollback path; durable
+				// state is proven separately by an independent observer.
+				'rollback_attempted' => true,
 			);
-			$evidence['rollback_verified'] = $this->rollback_verified( $normal, $before );
 			return $this->result(
 				'DENIED',
 				isset( $details['reason'] ) ? (string) $details['reason'] : 'budget_denied',
@@ -222,33 +229,6 @@ class Redirection_Bulk_Disable {
 		);
 	}
 
-	/**
-	 * Durable-state fingerprint on a separate observer connection.
-	 *
-	 * @return array{0: string, 1: string}|null Total rows and disabled rows.
-	 */
-	private function fingerprint( ?\wpdb $observer ): ?array {
-		if ( ! $observer instanceof \wpdb || ! $observer->ready || ! $observer->dbh instanceof \mysqli || $observer === $this->db ) {
-			return null;
-		}
-		if ( '' !== (string) $observer->last_error ) {
-			return null;
-		}
-		$row = $observer->get_row(
-			"SELECT COUNT(*) AS total, COALESCE(SUM(status = 'disabled'), 0) AS disabled FROM `" . $this->table . '`',
-			ARRAY_A
-		);
-		if ( ! is_array( $row ) || ! isset( $row['total'], $row['disabled'] ) || '' !== (string) $observer->last_error ) {
-			return null;
-		}
-		return array( (string) $row['total'], (string) $row['disabled'] );
-	}
-
-	private function rollback_verified( ?\wpdb $observer, ?array $before ): bool {
-		$after = $this->fingerprint( $observer );
-		return null !== $before && null !== $after && $before === $after;
-	}
-
 	/** @param array<string, mixed> $details Budget_Denied::details(). */
 	private static function denial_kind( array $details ): ?string {
 		$reason = isset( $details['reason'] ) ? (string) $details['reason'] : '';
@@ -267,6 +247,7 @@ class Redirection_Bulk_Disable {
 	 * @return array<string, mixed>
 	 */
 	private function result( string $outcome, string $reason, array $evidence = array(), ?string $denial_kind = null ): array {
+		$rollback = ! empty( $evidence['rollback_attempted'] );
 		return array(
 			'operation_id'      => self::OPERATION,
 			'plugin'            => self::PLUGIN_SLUG,
@@ -280,7 +261,10 @@ class Redirection_Bulk_Disable {
 			'affected_rows'     => isset( $evidence['affected'] ) ? $evidence['affected'] : null,
 			'outcome'           => $outcome,
 			'denial_kind'       => $denial_kind,
-			'rollback_verified' => ! empty( $evidence['rollback_verified'] ),
+			// Three separate facts; never collapsed into one optimistic boolean.
+			'transaction_rollback_attempted'    => $rollback,
+			'guard_rollback_completed'          => $rollback,
+			'durability_verified_by_fresh_observer' => false,
 			'reason'            => $reason,
 		);
 	}

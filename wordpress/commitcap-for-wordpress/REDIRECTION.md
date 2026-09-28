@@ -70,12 +70,19 @@ Substitution is not a hook and does not intercept Redirection requests.
 `plugin_version`, `supported_version`, `table`, `logical_budget`,
 `physical_ceiling`, `consumed`, `attempted`, `affected_rows`, `outcome`
 (`COMMITTED` / `DENIED` / `ERROR` / `UNKNOWN`), `denial_kind`
-(`logical` / `physical` / `null`), `rollback_verified` and `reason`.
+(`logical` / `physical` / `null`), `reason`, and three separate rollback facts:
 
-`rollback_verified` is `true` only for a `DENIED` run whose post-rollback
-fingerprint (total rows and disabled rows read on a separate connection)
-equals the pre-run fingerprint. It is never claimed for `COMMITTED` or for
-guard failures whose transaction state is unknown.
+```text
+transaction_rollback_attempted           true when Guard threw its typed Budget_Denied
+guard_rollback_completed                 true when Guard's owned rollback path ran (DENIED only)
+durability_verified_by_fresh_observer    always false at this layer
+```
+
+The adapter never manufactures fresh-observer certainty: it cannot prove
+durable state from its own connection, and it never uses the normal WordPress
+`$wpdb` as a verification shortcut. Only an independent observer connection
+(outside the adapter) can promote durability evidence; the CI suite does that
+with a `root` observer for every safe and denied case.
 
 ## Evidence
 
@@ -84,24 +91,34 @@ guard failures whose transaction state is unknown.
 COMMIT, N+1 logical denial, physical ceiling denial, L=0, L>P before callback,
 fresh-observer durability, exact-version/absence refusal, Doctor FAIL and
 ROTATED_UNSAFE refusal, plugin exception, DB error, swallowed error, foreign
-table/DDL/INSERT attempts, existing transaction and malformed budgets. The
-database general log is used as the authoritative connection-isolation check:
-on the restricted connection only reviewed CommitCap evidence SQL, the exact
-Redirection target-table UPDATE and the trigger's own accounting SQL may
-appear.
+table/DDL/INSERT/DELETE/REPLACE attempts, existing transaction and malformed
+budgets. The database general log is used as the authoritative
+connection-isolation check: on the restricted connection only reviewed
+CommitCap evidence SQL, the exact Redirection target-table UPDATE and the
+trigger's own accounting SQL may appear.
 
-Two observed boundary behaviors are asserted rather than hidden:
+The pre-scoping design broke these cases; the scoped-enforcement redesign made
+them pass, and they remain executable regressions:
 
-- A callback-issued DDL statement triggers an implicit commit before the
-  denied statement; the open accounting row is already durable, the guard fails
-  closed, and the residue blocks the next run until trusted cleanup (the
-  reviewed adapter never issues DDL; this is an adversarial subclass test).
-- The item-scoped `items=[...]` path keeps its own normal-connection code path
-  and is never intercepted, but once a #54 physical policy is installed on
-  `wp_redirection_items`, its unguarded per-ID UPDATEs are denied by the
-  trigger, like every other update to a protected table. This is the accepted
-  #54/#67 enforcement model, not an adapter change; it needs a Maintainer
-  decision before Admin enablement (see below).
+- normal WordPress-identity `UPDATE` on `wp_redirection_items` succeeds under
+  the installed policy;
+- the item-scoped `items=[...]` REST path is unchanged: stock Redirection
+  behavior, normal connection, zero restricted-connection SQL;
+- the single-item `Red_Item::disable()/enable()` path works;
+- the hit/stat writer `Red_Item::visit()` (`UPDATE ... SET
+  last_count=last_count+1, last_access=NOW() WHERE id=...`) works;
+- the restricted runtime outside Guard is still denied, including with forged
+  session state (`SET @commitcap_v01_denied = 0`);
+- a direct lifecycle call (`CALL commitcap_v01_open` + unaudited UPDATE) remains
+  outside the cooperative contract but is still bounded by physical P;
+- an explicitly granted foreign DB principal is outside cooperative
+  enforcement and classified as such.
+
+One observed boundary behavior is asserted rather than hidden: a callback-issued
+DDL statement triggers an implicit commit before the denied statement, so the
+open accounting row is already durable; the guard fails closed and the residue
+blocks the next run until trusted cleanup (the reviewed adapter never issues
+DDL; this is an adversarial subclass test).
 
 ## Limitations / non-goals
 
@@ -109,11 +126,8 @@ Two observed boundary behaviors are asserted rather than hidden:
 - Enable, Reset, filtered `global=true` variants, generic Redirection support,
   arbitrary tables/methods and Admin-supplied SQL are out of scope.
 - No Admin UI, packaging, WordPress.org or Pro work in this issue.
-- The item-scoped `items=[...]` path is not intercepted and not protected.
-- A protected table is updated only through Guard: other UPDATE writers on that
-  table (single-redirect edits, item-scoped bulk, hit logging) are denied by the
-  physical trigger unless they run through CommitCap. Protecting
-  `wp_redirection_items` therefore changes the plugin's other write paths at the
-  database level. This is inherent to the PR #86 physical-ceiling model and must
-  be accepted or redesigned in #54/#61 before the Free product enables this
-  operation; #87 does not weaken the trigger to work around it.
+- The item-scoped `items=[...]` path is not intercepted, not routed through
+  CommitCap and not budget-protected; it keeps stock behavior by design.
+- The physical policy bounds only the certified runtime identity. An explicitly
+  granted foreign DB principal with UPDATE on the table is outside cooperative
+  enforcement; grants to such principals are an operator decision.

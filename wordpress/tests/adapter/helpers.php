@@ -76,6 +76,7 @@ function cc87_assert_isolated( array $statements, $label, $expect_plugin_update 
 		'/^SELECT USER\(\)$/i',
 		'/^SELECT DATABASE\(\)$/i',
 		'/^SELECT CONNECTION_ID\(\)$/i',
+		"/^SELECT SUBSTRING_INDEX\\(USER\\(\\), '@', 1\\)$/i",
 		'/^SELECT 1$/i',
 		"/^SELECT 'CC87_TRACE_(START|END)'$/i",
 		'/^SELECT @[A-Za-z0-9_]+$/i',
