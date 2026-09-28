@@ -30,7 +30,8 @@ accepted cooperative path; its PASS requires separate restricted runtime and
 trusted installer evidence. It does not approve generic hosting compatibility.
 #54 adds a lower-level engine candidate and its deliberately narrow contract in
 [`ENGINE.md`](ENGINE.md); #56 adds the cooperative guarded UPDATE transaction
-API in [`GUARD.md`](GUARD.md).
+API in [`GUARD.md`](GUARD.md). #78 adds the single certified Free V0.1
+operation descriptor and its minimal config: [`OPERATION.md`](OPERATION.md).
 The #54 routines remain callable by a DB writer: CLOSE→OPEN in one transaction
 can reset its own budget, and the session denial signal is writable. The
 split-privilege fixture is only a cooperative mechanism, not an adversarial
