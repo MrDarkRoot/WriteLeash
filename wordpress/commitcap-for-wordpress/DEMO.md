@@ -12,21 +12,24 @@ The real Redirection 5.5.2 global Bulk Disable proof remains #87/#78.
   and `CommitCap-owned disposable demo rows v1` comment. Table names are never
   accepted from Admin input. No application or third-party table is seeded,
   updated, reset or dropped by this demo.
-* Six fixture rows: ids 1–6, value 0, seeded/reset by the **trusted operator**.
+* Six fixture rows, ids 1–6, seeded once by the **trusted operator**.
+  The only runnable row states are `A=[0,0,0,0,0,0]` and
+  `B=[1,1,1,1,1,0]`; neither is a user-configurable setting.
 * `L=5`, `P=6`, `UPDATE`, restricted account target grants **exactly SELECT,
   UPDATE**. `P=6` is the *smallest* physical ceiling that accepts the entire
   six-row UPDATE so the Guard's *logical* pre-COMMIT check can observe six
   accounting events and deny. Choosing `P=5` would instead deny at the physical
   trigger and fail to demonstrate the distinction.
-* `Disposable_Demo::run()` executes the fixed five-row UPDATE (`value=1`), then
-  the fixed six-row UPDATE (`value=2`). Guard owns both transactions. The first
-  COMMITs with consumed=5/affected=5; the second completes six row events at
-  the trigger, raises typed `Budget_Denied` at Guard's pre-COMMIT check and
+* `Disposable_Demo::run()` executes a fixed five-row UPDATE toggling A→B
+  (`value=1`) or B→A (`value=0`), then the fixed six-row UPDATE (`value=2`).
+  Guard owns both transactions. The safe leg COMMITs with consumed=5/affected=5;
+  the denied leg completes six row events at the trigger, raises typed
+  `Budget_Denied` at Guard's pre-COMMIT check and
   attempts ROLLBACK. `run()` returns `COMPLETE` only after both exact outcomes.
-  A fresh independent observer in CI sees values `[1,1,1,1,1,0]` afterward:
-  five safe durable changes, zero denied durable changes.
-  `run_denied()` is a fixed standalone six-row denial after a trusted reset:
-  a fresh observer then sees all six original zero-valued rows unchanged.
+  Fresh independent CI observers see B after run #1, A after run #2 and B
+  after run #3, with zero denied durable changes and no trusted reset between
+  runs. `run_denied()` also works from either canonical state, leaving A or B
+  unchanged according to a fresh observer.
 
 ## Operator setup and reuse
 
@@ -54,6 +57,9 @@ $demo = new \CommitCap\Disposable_Demo();
 $ready = $demo->status();
 if ( 'READY' === $ready['status'] ) {
 	$result = $demo->run();
+	if ( 'COMPLETE' === $result['status'] ) {
+		$result_again = $demo->run(); // The restricted runtime toggles B back to A.
+	}
 }
 
 // Later, from the trusted operator context only:
@@ -75,6 +81,10 @@ no-op UPDATE) against its application table. Each callback is gated by a new
 Doctor result. Missing policy,
 unavailable runtime, unexpected grants/ceiling or UNKNOWN evidence means
 `NOT_READY`, without executing that callback.
+`READY` additionally requires the six exact rows to be in A or B, so READY
+means a normal `run()` can start. A wrong id/count or a partial/unexpected value
+returns `NOT_READY / trusted_reset_required`. After the safe COMMIT, `run()`
+rechecks both Doctor and the opposite canonical state before its denied leg.
 
 Results are labeled **CommitCap-owned disposable demo**. They report separate
 `transaction_rollback_attempted`, `guard_rollback_completed` (unknown), and
@@ -83,9 +93,13 @@ service result is not itself independent evidence that ROLLBACK completed.
 CI creates a new root observer connection **after** Guard execution to assert
 durability; root is external test/operator tooling, never a runtime secret.
 
-Repeated use requires a trusted `reset()` (six rows set back to zero), followed
-by another live `status()` and `run()`. If a callback/DB error occurs, Guard
-fails closed and the verified table remains for inspection/reset. A partial
+One trusted initial seed/reset establishes A. Successful ordinary runs then
+toggle A↔B indefinitely using **only restricted SELECT and UPDATE**, without
+operator involvement. If execution stops after the safe COMMIT and before the
+denied leg, the opposite canonical state is already runnable by the next
+normal `run()`. Trusted `reset()` is reserved for initial seeding and recovery
+from noncanonical/corrupt owned data. If a callback/DB error occurs, Guard
+fails closed and the verified table remains for inspection or repair. A partial
 nontransactional DDL/DCL setup or cleanup remains actionable: rerun the same
 operator step after resolving a conflict. Foreign shape/trigger/grant drift is
 refused, not automatically destroyed. Cleanup never drops `commitcap_v01_state`,
@@ -96,4 +110,7 @@ explicit trusted demo cleanup is a separate lifecycle action.
 Run the exact pinned MySQL 8.0.44 / MariaDB 10.11.15 proof as part of
 `bash wordpress/tests/adapter/run.sh`. The `#58` transcript tests fresh
 observers, normal-vs-restricted SQL connections, logical-vs-physical denial,
-failure and tamper refusal, reset/repeat, interruption and exact cleanup.
+three successive normal A→B→A→B runs with a single continuous general-log
+window (zero demo INSERT/DELETE, DDL, grants or trusted reset between runs),
+denied-only A/B preservation, failure and tamper refusal, recovery and exact
+cleanup.

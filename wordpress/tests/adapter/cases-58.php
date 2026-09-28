@@ -47,12 +47,14 @@ $redirection_trigger = Engine::trigger_name( 'wp_redirection_items' );
 $redirection_body = $installer->get_var( $installer->prepare( 'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s', $redirection_trigger ) );
 $setup->setup();
 $setup->setup(); // No duplicate trigger or privilege accumulation.
+cc87_assert( 'trusted_reset_required' === $demo->status()['reason'], 'unseeded table is not runnable' );
 $setup->reset();
 $grants_before = $installer->get_results( "SHOW GRANTS FOR 'cc87_writer'@'%'", ARRAY_N );
 $body_before = $installer->get_var( $installer->prepare( 'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s', $trigger ) );
 cc87_assert( 'OWNED' === $setup->cleanup_status()['status'], 'owned cleanup inventory' );
-cc87_assert( 'READY' === $demo->status()['status'] && 'PASS' === $demo->status()['exact_grants'], 'Doctor READY with exact grants and shared sibling' );
-echo "#58 $host: owned target=$table L=5 P=6 Doctor READY exact grants SELECT,UPDATE\n";
+$initial = $demo->status();
+cc87_assert( 'READY' === $initial['status'] && 'A' === $initial['canonical_state'] && 'PASS' === $initial['exact_grants'], 'Doctor READY in canonical A with exact grants and shared sibling' );
+echo "#58 $host: owned target=$table L=5 P=6 Doctor READY state=A exact grants SELECT,UPDATE (one trusted seed/reset)\n";
 
 function cc58_observe( $host, $table ) {
 	// New connection after Guard returns. Never use the restricted transaction connection.
@@ -60,29 +62,66 @@ function cc58_observe( $host, $table ) {
 	$observer->suppress_errors( true );
 	$rows = $observer->get_results( "SELECT id, value FROM `$table` ORDER BY id", ARRAY_A );
 	cc87_assert( is_array( $rows ) && 6 === count( $rows ), 'fresh observer must see six rows' );
+	cc87_assert( 0 === (int) $observer->get_var( "SELECT COUNT(*) FROM `$table` WHERE value = 2" ), 'denied value 2 must not be durable' );
 	return array_map( static function ( $row ) { return (int) $row['value']; }, $rows );
 }
 
-function cc58_trace( $root, $normal_id, $runtime_id, $table, $invoke, $label ) {
-	list( $result, $threads ) = cc87_trace_all( $root, $invoke );
-	$updates = 0;
+/** Cumulative exact SQL counts on the restricted thread while log stays on. */
+function cc58_update_counts( $root, $runtime_id, $table ) {
+	$queries = $root->get_col( $root->prepare(
+		"SELECT argument FROM mysql.general_log WHERE thread_id = %d AND command_type = 'Query'", $runtime_id
+	) );
+	cc87_assert( is_array( $queries ) && '' === (string) $root->last_error, 'per-run general log readable' );
+	$counts = array( 0 => 0, 1 => 0, 2 => 0 );
+	foreach ( $queries as $query ) {
+		$sql = preg_replace( '/\s+/', ' ', trim( (string) $query ) );
+		if ( "UPDATE `$table` SET value = 0 WHERE id BETWEEN 1 AND 5 AND value = 1" === $sql ) {
+			++$counts[0];
+		} elseif ( "UPDATE `$table` SET value = 1 WHERE id BETWEEN 1 AND 5 AND value = 0" === $sql ) {
+			++$counts[1];
+		} elseif ( "UPDATE `$table` SET value = 2 WHERE id BETWEEN 1 AND 6" === $sql ) {
+			++$counts[2];
+		}
+	}
+	return $counts;
+}
+
+/** One uninterrupted general-log window covers all THREE ordinary runs. */
+function cc58_assert_repeat_trace( $threads, $normal_id, $runtime_id, $table ) {
+	$safe_updates = array( 0 => 0, 1 => 0 );
+	$denied_updates = 0;
+	$doctor_probes = 0;
 	$counter_events = 0;
 	$normal_updates = 0;
 	$redirection_updates = 0;
+	$other_demo_writes = 0;
+	$privileged_sql = 0;
 	$starts = 0;
 	$commits = 0;
 	$rollbacks = 0;
 	foreach ( $threads as $id => $queries ) {
 		foreach ( $queries as $sql ) {
-			if ( preg_match( '/^UPDATE `?' . preg_quote( $table, '/' ) . '`? SET value = [12] WHERE id BETWEEN 1 AND [56]/i', $sql ) ) {
-				++$updates;
-				cc87_assert( $id === $runtime_id, "$label demo UPDATE must use restricted connection" );
+			if ( preg_match( '/^UPDATE `?' . preg_quote( $table, '/' ) . '`? SET value = ([01]) WHERE id BETWEEN 1 AND 5 AND value = ([01])$/i', $sql, $match ) &&
+				(int) $match[1] !== (int) $match[2] ) {
+				++$safe_updates[ (int) $match[1] ];
+				cc87_assert( $id === $runtime_id, 'safe UPDATE must use restricted connection' );
+			} elseif ( preg_match( '/^UPDATE `?' . preg_quote( $table, '/' ) . '`? SET value = 2 WHERE id BETWEEN 1 AND 6$/i', $sql ) ) {
+				++$denied_updates;
+				cc87_assert( $id === $runtime_id, 'denied UPDATE must use restricted connection' );
+			} elseif ( preg_match( '/^UPDATE `' . preg_quote( $table, '/' ) . '` SET `id` = `id` LIMIT 1$/i', $sql ) ) {
+				++$doctor_probes;
+				cc87_assert( $id === $runtime_id, 'Doctor no-op probe must use restricted connection' );
+			} elseif ( preg_match( '/^(UPDATE|INSERT|DELETE|REPLACE|TRUNCATE) (?:INTO |FROM |TABLE )?`?' . preg_quote( $table, '/' ) . '`?(?=\s|$|\()/i', $sql ) ) {
+				++$other_demo_writes;
 			}
 			if ( $id === $normal_id && preg_match( '/^UPDATE `?' . preg_quote( $table, '/' ) . '`?/i', $sql ) ) {
 				++$normal_updates;
 			}
 			if ( preg_match( '/^UPDATE `?wp_redirection_items`?/i', $sql ) ) {
 				++$redirection_updates;
+			}
+			if ( preg_match( '/^(CREATE|DROP|ALTER|GRANT|REVOKE|TRUNCATE)\b/i', $sql ) ) {
+				++$privileged_sql;
 			}
 			if ( $id === $runtime_id ) {
 				$counter_events += (int) (bool) preg_match( '/^UPDATE commitcap_v01_state SET consumed = consumed \+ 1 /i', $sql );
@@ -92,42 +131,109 @@ function cc58_trace( $root, $normal_id, $runtime_id, $table, $invoke, $label ) {
 			}
 		}
 	}
-	cc87_assert( 2 === $updates && 0 === $normal_updates, "$label exactly two restricted demo UPDATEs, zero normal UPDATEs: " . json_encode( $threads ) );
-	cc87_assert( 0 === $redirection_updates, "$label must never UPDATE Redirection (including no-op Doctor probes)" );
-	// Doctor probes only the demo target, once before each callback.
-	cc87_assert( 13 === $counter_events, "$label expected 11 demo + 2 Doctor probe events: $counter_events" );
-	cc87_assert( 4 === $starts && 1 === $commits && $rollbacks >= 3, "$label Guard and two demo Doctor probes own START/COMMIT/ROLLBACK: $starts/$commits/$rollbacks" );
-	return $result;
+	cc87_assert( array( 0 => 1, 1 => 2 ) === $safe_updates && 3 === $denied_updates && 9 === $doctor_probes,
+		'exactly one restricted safe and denied UPDATE per run, toggling A/B/A (safe=' . json_encode( $safe_updates ) . " denied=$denied_updates probes=$doctor_probes)" );
+	cc87_assert( 0 === $normal_updates && 0 === $other_demo_writes && 0 === $privileged_sql,
+		"zero normal wpdb UPDATE, demo INSERT/DELETE/reset or DDL/DCL across all three runs (normal=$normal_updates other=$other_demo_writes privileged=$privileged_sql)" );
+	cc87_assert( 0 === $redirection_updates, 'demo must never UPDATE Redirection (including Doctor no-ops)' );
+	// Three runs x (5 safe + 6 denied + 3 demo Doctor no-op probes,
+	// including the post-run READY check inside this uninterrupted log window).
+	cc87_assert( 42 === $counter_events, "three runs expected 33 demo + 9 Doctor physical events: $counter_events" );
+	cc87_assert( 15 === $starts && 3 === $commits && $rollbacks >= 12,
+		"Guard and demo Doctor probes own START/COMMIT/ROLLBACK: $starts/$commits/$rollbacks" );
 }
 
-for ( $cycle = 1; $cycle <= 2; ++$cycle ) {
-	if ( 2 === $cycle ) {
-		$setup->reset();
+// A denied-only call from A uses restricted UPDATE and leaves all six rows A.
+$denied_a = $demo->run_denied();
+cc87_assert( 'COMPLETE' === $denied_a['status'] && 'A' === $denied_a['input_state'] &&
+	'logical' === $denied_a['denied']['denial_kind'] && 6 === $denied_a['denied']['consumed'] &&
+	6 === $denied_a['denied']['attempted'] && $denied_a['denied']['transaction_rollback_attempted'], 'A denied-only logical proof' );
+cc87_assert( array( 0, 0, 0, 0, 0, 0 ) === cc58_observe( $host, $table ), 'denied-only fresh observer A preserved' );
+cc87_assert( 'A' === $demo->status()['canonical_state'], 'A remains READY after denied-only' );
+
+// Logging stays enabled across all three calls, intervening status checks and
+// independently connected observers. No hidden trusted reset can escape it.
+list( $runs, $threads ) = cc87_trace_all( $installer, static function () use ( $demo, $host, $table, $runtime_id, $installer ) {
+	$runs = array();
+	$previous_counts = array( 0 => 0, 1 => 0, 2 => 0 );
+	foreach ( array( 1 => 'B', 2 => 'A', 3 => 'B' ) as $number => $next ) {
+		$result = $demo->run(); // Deliberately NO setup/reset between runs.
+		$safe = isset( $result['safe'] ) ? $result['safe'] : array();
+		$denied = isset( $result['denied'] ) ? $result['denied'] : array();
+		cc87_assert( 'COMPLETE' === $result['status'], "run #$number must complete: " . json_encode( $result ) );
+		cc87_assert( $next === $result['safe_state'] && ( 'B' === $next ? 'A' : 'B' ) === $result['input_state'], "run #$number toggled the canonical state" );
+		cc87_assert( Demo::LABEL === $safe['label'] && 'COMMITTED' === $safe['outcome'] && 5 === $safe['consumed'] && 5 === $safe['affected_rows'], "run #$number safe five events" );
+		cc87_assert( 'DENIED' === $denied['outcome'] && 'logical' === $denied['denial_kind'] && 'logical_budget_exceeded' === $denied['reason'] &&
+			6 === $denied['consumed'] && 6 === $denied['attempted'] && $denied['transaction_rollback_attempted'], "run #$number six events logically denied" );
+		cc87_assert( false === $safe['durability_verified_by_fresh_observer'] && false === $denied['durability_verified_by_fresh_observer'] && null === $denied['guard_rollback_completed'], 'service must not claim independent rollback proof' );
+		$counts = cc58_update_counts( $installer, $runtime_id, $table );
+		$delta = array( $counts[0] - $previous_counts[0], $counts[1] - $previous_counts[1], $counts[2] - $previous_counts[2] );
+		$expected_sql = 'B' === $next ? array( 0, 1, 1 ) : array( 1, 0, 1 );
+		cc87_assert( $expected_sql === $delta, "run #$number has exactly one restricted safe and one restricted denied UPDATE: " . json_encode( $delta ) );
+		$previous_counts = $counts;
+		$observed = cc58_observe( $host, $table );
+		$expected = 'B' === $next ? array( 1, 1, 1, 1, 1, 0 ) : array( 0, 0, 0, 0, 0, 0 );
+		cc87_assert( $expected === $observed, "run #$number fresh observer state $next; no denied 2" );
+		$status = $demo->status();
+		cc87_assert( 'READY' === $status['status'] && $next === $status['canonical_state'], "run #$number must leave READY runnable state $next" );
+		cc87_assert( 0 === (int) $installer->get_var( $installer->prepare( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = %d', $runtime_id ) ), 'no stale accounting' );
+		$runs[] = $result;
+		echo "#58 $host normal run #$number: 5 COMMITTED, 6 logical DENIED, fresh observer STATE_$next, status READY, no trusted reset: PASS\n";
 	}
-	$result = cc58_trace( $installer, $normal_id, $runtime_id, $table, static function () use ( $demo ) {
-		return $demo->run();
-	}, "cycle $cycle" );
-	$safe = $result['safe'];
-	$denied = $result['denied'];
-	cc87_assert( 'COMPLETE' === $result['status'], 'both demo paths ran: ' . json_encode( $result ) );
-	cc87_assert( Demo::LABEL === $safe['label'] && 'COMMITTED' === $safe['outcome'] && 5 === $safe['consumed'] && 5 === $safe['affected_rows'], 'five events committed' );
-	cc87_assert( 'DENIED' === $denied['outcome'] && 'logical' === $denied['denial_kind'] && 'logical_budget_exceeded' === $denied['reason'] && 6 === $denied['consumed'] && 6 === $denied['attempted'] && $denied['transaction_rollback_attempted'], 'six events logical denial after physical trigger accepted six: ' . json_encode( $denied ) );
-	cc87_assert( false === $safe['durability_verified_by_fresh_observer'] && false === $denied['durability_verified_by_fresh_observer'] && null === $denied['guard_rollback_completed'], 'service does not manufacture fresh observer claims' );
-	cc87_assert( array( 1, 1, 1, 1, 1, 0 ) === cc58_observe( $host, $table ), 'fresh observer proves safe durability and zero denied value=2' );
-	cc87_assert( 0 === (int) $installer->get_var( $installer->prepare( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = %d', $runtime_id ) ), 'no stale accounting after safe/denied' );
-	cc87_assert( $grants_before === $installer->get_results( "SHOW GRANTS FOR 'cc87_writer'@'%'", ARRAY_N ), 'runtime grants did not accumulate' );
-	cc87_assert( $body_before === $installer->get_var( $installer->prepare( 'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s', $trigger ) ), 'no trigger duplication/replacement' );
-	echo "#58 $host cycle $cycle: 5 COMMITTED (fresh observer 5), 6 logical DENIED (fresh observer zero denied), Guard rollback, normal wpdb UPDATE=0: PASS\n";
-}
+	return $runs;
+} );
+cc87_assert( 3 === count( $runs ), 'three normal runs without installer mutation' );
+cc58_assert_repeat_trace( $threads, $normal_id, $runtime_id, $table );
+cc87_assert( $grants_before === $installer->get_results( "SHOW GRANTS FOR 'cc87_writer'@'%'", ARRAY_N ), 'no privilege accumulation across three normal runs' );
+cc87_assert( $body_before === $installer->get_var( $installer->prepare( 'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s', $trigger ) ), 'no trigger duplication across three normal runs' );
+echo "#58 $host: one trusted reset -> runs #1/#2/#3 (B/A/B) with ZERO demo INSERT/DELETE, DDL/DCL or trusted reset SQL: PASS\n";
 
-// Independent denied-only pass after a trusted reset: all SIX baseline rows
-// start unchanged (zero), and a fresh observer sees the same six zeros.
-$setup->reset();
-$denied_only = $demo->run_denied();
-cc87_assert( 'COMPLETE' === $denied_only['status'] && 'logical' === $denied_only['denied']['denial_kind'] &&
-	6 === $denied_only['denied']['consumed'] && $denied_only['denied']['transaction_rollback_attempted'], 'standalone denied-only logical proof' );
-cc87_assert( array( 0, 0, 0, 0, 0, 0 ) === cc58_observe( $host, $table ), 'fresh observer sees all six original rows after denied-only run' );
-echo "#58 $host: trusted reset -> 6 logical DENIED -> fresh observer all six unchanged: PASS\n";
+// B denied-only requires no reset after run #3 and preserves B durably.
+$denied_b = $demo->run_denied();
+cc87_assert( 'COMPLETE' === $denied_b['status'] && 'B' === $denied_b['input_state'] &&
+	'logical' === $denied_b['denied']['denial_kind'] && 6 === $denied_b['denied']['consumed'] &&
+	6 === $denied_b['denied']['attempted'] && $denied_b['denied']['transaction_rollback_attempted'], 'B denied-only logical proof' );
+cc87_assert( array( 1, 1, 1, 1, 1, 0 ) === cc58_observe( $host, $table ), 'denied-only fresh observer B preserved' );
+cc87_assert( 'READY' === $demo->status()['status'] && 'B' === $demo->status()['canonical_state'], 'B remains runnable after denied-only' );
+echo "#58 $host: denied-only from A and B: logical DENIED, both canonical states preserved by fresh observers: PASS\n";
+
+// Recovery is the ONLY reason for another trusted reset: corrupt a demo-owned
+// row deliberately and verify Doctor never reports runnable until repaired.
+cc87_query( $installer, "UPDATE `$table` SET value = 0 WHERE id = 3" );
+$noncanonical = $demo->status();
+cc87_assert( 'NOT_READY' === $noncanonical['status'] && 'trusted_reset_required' === $noncanonical['reason'], 'partial/corrupt state is not READY' );
+list( $refused, $refusal_sql ) = cc87_trace_all( $installer, static function () use ( $demo ) { return $demo->run(); } );
+cc87_assert( 'NOT_READY' === $refused['status'] && 'trusted_reset_required' === $refused['reason'], 'noncanonical run refuses callback' );
+foreach ( $refusal_sql as $queries ) {
+	foreach ( $queries as $sql ) {
+		cc87_assert( ! preg_match( '/^UPDATE `?' . preg_quote( $table, '/' ) . '`? SET value = /i', $sql ) ||
+			(bool) preg_match( '/ LIMIT 1$/i', $sql ), 'noncanonical callback UPDATE must not execute' );
+	}
+}
+cc87_assert( array( 1, 1, 0, 1, 1, 0 ) === cc58_observe( $host, $table ), 'refused run leaves noncanonical data unchanged' );
+cc87_query( $installer, "UPDATE `$table` SET value = 1 WHERE id = 3" );
+cc87_query( $installer, "UPDATE `$table` SET id = 7 WHERE id = 6" );
+cc87_assert( 'trusted_reset_required' === $demo->status()['reason'], 'wrong id with six rows not runnable' );
+cc87_query( $installer, "DELETE FROM `$table` WHERE id = 7" );
+cc87_assert( 'trusted_reset_required' === $demo->status()['reason'], 'wrong row count not runnable' );
+$setup->reset(); // Trusted recovery, never part of the normal three-run sequence.
+cc87_assert( 'READY' === $demo->status()['status'] && 'A' === $demo->status()['canonical_state'], 'trusted recovery restores READY A' );
+cc87_assert( 'COMPLETE' === $demo->run()['status'] && array( 1, 1, 1, 1, 1, 0 ) === cc58_observe( $host, $table ), 'normal demo works after trusted recovery' );
+echo "#58 $host: noncanonical NOT_READY/no callback -> trusted recovery reset -> normal COMPLETE: PASS\n";
+
+// Test-only interruption simulation using existing Guard (no new production
+// partial-run API): stop after the safe COMMIT; next ordinary run uses B.
+cc87_assert( 'COMPLETE' === $demo->run()['status'] && 'A' === $demo->status()['canonical_state'], 'prepare A with only restricted normal run' );
+$interrupted_safe = Guard::update( $table, 5, static function () use ( $runtime, $table ) {
+	$affected = $runtime->query( "UPDATE `$table` SET value = 1 WHERE id BETWEEN 1 AND 5 AND value = 0" );
+	return array( 'affected' => $affected, 'consumed' => ( new Engine( $runtime ) )->state_consumed( $table ) );
+}, $runtime );
+cc87_assert( 5 === $interrupted_safe['consumed'] && 5 === $interrupted_safe['affected'], 'safe-only Guard COMMIT counted five' );
+cc87_assert( array( 1, 1, 1, 1, 1, 0 ) === cc58_observe( $host, $table ) && 'B' === $demo->status()['canonical_state'], 'safe-only COMMIT leaves runnable B' );
+$resumed = $demo->run();
+cc87_assert( 'COMPLETE' === $resumed['status'] && 'B' === $resumed['input_state'] && 'A' === $resumed['safe_state'] &&
+	array( 0, 0, 0, 0, 0, 0 ) === cc58_observe( $host, $table ), 'fresh normal run after interruption B -> A without reset' );
+echo "#58 $host: test-only stop after safe COMMIT B -> next normal run succeeds B/A without reset: PASS\n";
 
 // No caller-supplied callback is accepted by the demo. Probe Guard's failure
 // behavior directly on the same owned table and shared runtime.
@@ -201,4 +307,4 @@ cc87_assert( $redirection_body === $installer->get_var( $installer->prepare( 'SE
 cc87_assert( 'cc87_writer@%' === $runtime->get_var( 'SELECT CURRENT_USER()' ), 'shared runtime account preserved' );
 cc87_assert( 2000 === ( new Engine( $runtime ) )->runtime_ceiling( 'wp_redirection_items' ), 'shared Redirection policy preserved' );
 cc87_assert_normal( $normal, $normal_id, 'after #58' );
-echo "#58 $host: failures fail closed, repeat/reset, exact cleanup, Redirection and shared runtime preserved: PASS\n";
+echo "#58 $host: failures fail closed, trusted recovery, exact cleanup, Redirection and shared runtime preserved: PASS\n";

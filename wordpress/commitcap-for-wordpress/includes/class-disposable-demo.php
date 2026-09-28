@@ -13,6 +13,8 @@ final class Disposable_Demo {
 	// Six physical events must succeed so Guard can deny the sixth at pre-COMMIT.
 	public const PHYSICAL_CEILING = 6;
 	public const TABLE_COMMENT = 'CommitCap-owned disposable demo rows v1';
+	private const STATE_A = 'A';
+	private const STATE_B = 'B';
 
 	/** @var \wpdb|null Explicit restricted secondary connection (or operator config). */
 	private $runtime;
@@ -89,7 +91,14 @@ final class Disposable_Demo {
 			if ( self::PHYSICAL_CEILING !== $integration['physical_ceiling'] ) {
 				return self::result( 'NOT_READY', 'physical_ceiling_mismatch', array( 'table' => $table, 'doctor' => $doctor, 'exact_grants' => 'PASS', 'actual_physical_ceiling' => $integration['physical_ceiling'] ) );
 			}
-			return self::result( 'READY', 'ok', array( 'table' => $table, 'doctor' => $doctor, 'exact_grants' => 'PASS', 'actual_physical_ceiling' => $integration['physical_ceiling'] ) );
+			$state = $this->canonical_state( $table );
+			if ( '' !== (string) $db->last_error ) {
+				return self::result( 'NOT_READY', 'demo_state_unavailable' );
+			}
+			if ( null === $state ) {
+				return self::result( 'NOT_READY', 'trusted_reset_required', array( 'table' => $table ) );
+			}
+			return self::result( 'READY', 'ok', array( 'table' => $table, 'canonical_state' => $state, 'doctor' => $doctor, 'exact_grants' => 'PASS', 'actual_physical_ceiling' => $integration['physical_ceiling'] ) );
 		} catch ( \Throwable $error ) {
 			return self::result( 'NOT_READY', 'doctor_unavailable' );
 		}
@@ -118,7 +127,8 @@ final class Disposable_Demo {
 
 	/**
 	 * Run the fixed five-row commit followed by the six-row logical denial.
-	 * Trusted fixture must first seed exactly six (id=1..6, value=0) rows.
+	 * A trusted initial seed establishes A. Every successful run toggles A/B
+	 * using only the restricted runtime SELECT/UPDATE grants.
 	 * Returns Guard facts, never claims independent durability verification.
 	 */
 	public function run(): array {
@@ -127,16 +137,18 @@ final class Disposable_Demo {
 			return self::result( 'NOT_READY', $ready['reason'], array( 'ready' => $ready ) );
 		}
 		$table = $ready['table'];
-		if ( ! $this->rows_are( $table, array( 0, 0, 0, 0, 0, 0 ) ) ) {
-			return self::result( 'NOT_READY', 'seed_not_ready' );
-		}
-		$safe = $this->execute( $table, "UPDATE `$table` SET value = 1 WHERE id BETWEEN 1 AND 5 AND value = 0", 5 );
+		$input = $ready['canonical_state'];
+		$next = self::STATE_A === $input ? self::STATE_B : self::STATE_A;
+		$safe_sql = self::STATE_A === $input
+			? "UPDATE `$table` SET value = 1 WHERE id BETWEEN 1 AND 5 AND value = 0"
+			: "UPDATE `$table` SET value = 0 WHERE id BETWEEN 1 AND 5 AND value = 1";
+		$safe = $this->execute( $table, $safe_sql, 5 );
 		if ( 'COMMITTED' !== $safe['outcome'] || 5 !== $safe['consumed'] || 5 !== $safe['affected_rows'] ) {
 			return self::result( 'ERROR', 'safe_run_not_confirmed', array( 'safe' => $safe ) );
 		}
 		// A new Doctor check gates the second callback even after the first commit.
 		$ready = $this->status();
-		if ( 'READY' !== $ready['status'] || ! $this->rows_are( $table, array( 1, 1, 1, 1, 1, 0 ) ) ) {
+		if ( 'READY' !== $ready['status'] || $next !== $ready['canonical_state'] ) {
 			return self::result( 'NOT_READY', 'denied_run_not_ready', array( 'safe' => $safe, 'ready' => $ready ) );
 		}
 		$denied = $this->execute( $table, "UPDATE `$table` SET value = 2 WHERE id BETWEEN 1 AND 6", 6 );
@@ -144,38 +156,41 @@ final class Disposable_Demo {
 			6 !== $denied['consumed'] || 6 !== $denied['attempted'] || ! $denied['transaction_rollback_attempted'] ) {
 			return self::result( 'ERROR', 'logical_denial_not_confirmed', array( 'safe' => $safe, 'denied' => $denied ) );
 		}
-		return self::result( 'COMPLETE', 'guard_paths_exercised', array( 'safe' => $safe, 'denied' => $denied ) );
+		return self::result( 'COMPLETE', 'guard_paths_exercised', array( 'input_state' => $input, 'safe_state' => $next, 'safe' => $safe, 'denied' => $denied ) );
 	}
 
-	/** Standalone six-row denial after an operator reset to six unchanged rows. */
+	/** Standalone six-row denial from either canonical state. */
 	public function run_denied(): array {
 		$ready = $this->status();
 		if ( 'READY' !== $ready['status'] ) {
 			return self::result( 'NOT_READY', $ready['reason'] );
 		}
 		$table = $ready['table'];
-		if ( ! $this->rows_are( $table, array( 0, 0, 0, 0, 0, 0 ) ) ) {
-			return self::result( 'NOT_READY', 'seed_not_ready' );
-		}
 		$denied = $this->execute( $table, "UPDATE `$table` SET value = 2 WHERE id BETWEEN 1 AND 6", 6 );
 		if ( 'DENIED' !== $denied['outcome'] || 'logical' !== $denied['denial_kind'] ||
 			6 !== $denied['consumed'] || 6 !== $denied['attempted'] || ! $denied['transaction_rollback_attempted'] ) {
 			return self::result( 'ERROR', 'logical_denial_not_confirmed', array( 'denied' => $denied ) );
 		}
-		return self::result( 'COMPLETE', 'logical_denial_exercised', array( 'denied' => $denied ) );
+		return self::result( 'COMPLETE', 'logical_denial_exercised', array( 'input_state' => $ready['canonical_state'], 'denied' => $denied ) );
 	}
 
-	private function rows_are( string $table, array $values ): bool {
+	/** The only two runnable row layouts; all other layouts need trusted repair. */
+	private function canonical_state( string $table ): ?string {
 		$rows = $this->runtime_db()->get_results( "SELECT id, value FROM `$table` ORDER BY id", ARRAY_A );
-		if ( ! is_array( $rows ) || '' !== (string) $this->runtime_db()->last_error || count( $rows ) !== count( $values ) ) {
-			return false;
+		if ( ! is_array( $rows ) || '' !== (string) $this->runtime_db()->last_error || 6 !== count( $rows ) ) {
+			return null;
 		}
+		$values = array();
 		foreach ( $rows as $index => $row ) {
-			if ( $index + 1 !== (int) $row['id'] || $values[ $index ] !== (int) $row['value'] ) {
-				return false;
+			if ( $index + 1 !== (int) $row['id'] ) {
+				return null;
 			}
+			$values[] = (int) $row['value'];
 		}
-		return true;
+		if ( array( 0, 0, 0, 0, 0, 0 ) === $values ) {
+			return self::STATE_A;
+		}
+		return array( 1, 1, 1, 1, 1, 0 ) === $values ? self::STATE_B : null;
 	}
 
 	private function runtime_db(): \wpdb {
