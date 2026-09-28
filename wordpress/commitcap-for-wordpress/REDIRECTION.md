@@ -111,9 +111,12 @@ Everything that is not a candidate is untouched stock Redirection:
 item-scoped `items=[...]`, `global=false`, Enable, Reset, Delete, filtered
 `global=true` variants, single-item edits and hit/stat writers.
 
-- budget source: one operation-specific canonical nonnegative integer option,
-  `commitcap_operation_budget_redirection_5_5_2_bulk_disable`; #78/#60 will
-  replace this with the product budget source. No Admin SQL/table/method input.
+- budget and enablement source: the #78 immutable descriptor
+  (`Certified_Operation`) plus the single mutable `Operation_Config` state
+  (`enabled`, `logical_budget`). The legacy #87 option
+  `commitcap_operation_budget_redirection_5_5_2_bulk_disable` is no longer
+  read; there is exactly one budget authority. No Admin SQL/table/method input.
+  See [OPERATION.md](OPERATION.md).
 - runtime connection: `COMMITCAP_DB_USER` / `COMMITCAP_DB_PASSWORD`
   (`COMMITCAP_DB_NAME` optional) on the normal connection's DB server, with the
   normal table prefix. `COMMITCAP_DB_HOST` is the account-host restriction in the
@@ -121,9 +124,11 @@ item-scoped `items=[...]`, `global=false`, Enable, Reset, Delete, filtered
 - responses: `COMMITTED` returns Redirection's own read-only list body plus a
   `commitcap` evidence key; `DENIED` returns `commitcap_budget_denied` (409);
   unsupported/unknown Redirection versions return 503
-  `commitcap_redirection_version_unsupported`; missing/malformed budget,
-  unavailable runtime or non-READY Doctor return 503
-  `commitcap_budget_not_configured` / `commitcap_runtime_unavailable` /
+  `commitcap_redirection_version_unsupported`; a disabled operation returns 503
+  `commitcap_operation_disabled`; invalid stored config returns 503
+  `commitcap_operation_misconfigured`; an unavailable runtime returns 503
+  `commitcap_runtime_unavailable`; a physical-ceiling mismatch returns 503
+  `commitcap_physical_ceiling_mismatch`; other non-READY readiness returns 503
   `commitcap_operation_unavailable`; an execution error returns 500. None of
   these fall back to the unguarded stock mutation.
 - permissions: unchanged. WordPress runs Redirection's own
