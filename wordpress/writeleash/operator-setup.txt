@@ -1,0 +1,242 @@
+WriteLeash Free V0.1 - trusted database operator setup
+======================================================
+
+WriteLeash protects one certified operation: the Redirection 5.5.2
+global/select-all Bulk Disable. The protected runtime needs a trusted, one-time
+database setup before the WordPress Admin can enable the certified operation.
+This document is for the database operator who performs that setup. A normal
+site administrator never runs SQL and never enters database credentials in
+WordPress.
+
+WHO DOES WHAT
+
+* Database operator (DBA, host, DevOps): runs the reviewed provisioning plan
+  once in review mode and then apply mode, adds the runtime constants to
+  wp-config.php, and later rotates or removes the setup if needed.
+* Site administrator: uses Tools -> WriteLeash to confirm readiness, set the
+  logical budget, enable or disable the certified operation, and read the local
+  outcome. No SQL, no PHP.
+
+PREREQUISITES
+
+* WordPress with Redirection 5.5.2 installed and active, and WriteLeash
+  installed and active. WordPress knows WriteLeash requires Redirection, but
+  WriteLeash itself still verifies the exact supported version 5.5.2 at runtime.
+* A pinned, supported engine: MySQL 8.0.44 or MariaDB 10.11.15, the
+  release-matrix-tested builds. Other builds are not certified in V0.1.
+* A trusted database connection (temporary installer or administrator account)
+  with the privileges to create a user, grant and revoke, create routines and
+  triggers, and alter the runtime account. To inspect routine and trigger
+  definitions, MySQL 8.0 additionally needs SHOW_ROUTINE; MariaDB needs SELECT
+  on the mysql schema.
+* For credential rotation with drain, the operator connection also needs global
+  PROCESS visibility and other-user KILL authority (CONNECTION_ADMIN or SUPER).
+
+The installer/root credential is used only for this one-time setup. It is never
+stored in WordPress, never saved in wp_options, and never required by normal
+plugin requests.
+
+HOST CONCEPTS - READ THIS BEFORE RUNNING
+
+Three different hosts appear in this workflow; do not mix them up.
+
+* installer DB connect host: where your trusted installer connection reaches the
+  database server (for example 127.0.0.1, localhost, or a container/service
+  name).
+* normal WordPress DB connect host: the host WordPress itself already uses; the
+  restricted runtime connects the same way. You do not configure it here.
+* runtime account host restriction: the MySQL/MariaDB account host used when the
+  plan creates the runtime user, for example localhost. This is WRITELEASH_DB_HOST
+  in wp-config.php. It is NOT a network connect host.
+
+STEP 1 - SAVE THE OPERATOR SCRIPT
+
+Save the complete script below as a temporary file outside the web root, for
+example /root/provision-writeleash.php. The script is self-contained: it reads
+every secret from environment variables, supports a review mode and an apply
+mode in the same invocation logic, and never prints a password.
+
+-----------------------------------------------------------------------
+BEGIN writeleash-operator-script
+<?php
+// WriteLeash trusted operator provisioning script (documented example).
+// Run with: wp eval-file /root/provision-writeleash.php
+//
+// Modes (environment variable WRITELEASH_PROVISION_MODE):
+//   review - print the complete redacted SQL plan and exit
+//   apply  - execute the same plan with the trusted installer connection
+//
+// Secrets come from the environment only. Nothing is written to WordPress.
+
+$mode = getenv( 'WRITELEASH_PROVISION_MODE' );
+if ( ! in_array( $mode, array( 'review', 'apply' ), true ) ) {
+	fwrite( STDERR, "Set WRITELEASH_PROVISION_MODE=review or WRITELEASH_PROVISION_MODE=apply.\n" );
+	exit( 1 );
+}
+
+$required = array(
+	'WRITELEASH_INSTALLER_DB_USER',
+	'WRITELEASH_INSTALLER_DB_PASSWORD',
+	'WRITELEASH_INSTALLER_DB_CONNECT_HOST',
+	'WRITELEASH_RUNTIME_DB_USER',
+	'WRITELEASH_RUNTIME_DB_ACCOUNT_HOST',
+	'WRITELEASH_RUNTIME_DB_PASSWORD',
+);
+$env = array();
+foreach ( $required as $name ) {
+	$value = getenv( $name );
+	if ( ! is_string( $value ) || '' === $value ) {
+		fwrite( STDERR, "Missing required environment variable: $name\n" );
+		exit( 1 );
+	}
+	$env[ $name ] = $value;
+}
+
+$target_table = $GLOBALS['wpdb']->prefix . 'redirection_items';
+
+$plan = \WriteLeash\Provisioning_Plan::install(
+	DB_NAME,
+	$env['WRITELEASH_RUNTIME_DB_USER'],
+	$env['WRITELEASH_RUNTIME_DB_ACCOUNT_HOST'],
+	$env['WRITELEASH_RUNTIME_DB_PASSWORD'],
+	array( $target_table => 2000 )
+);
+
+if ( 'review' === $mode ) {
+	echo $plan->render_sql( true ); // Redacted review copy; never prints a secret.
+	echo "\nReview complete. Re-run with WRITELEASH_PROVISION_MODE=apply to execute.\n";
+	exit( 0 );
+}
+
+$installer = new wpdb(
+	$env['WRITELEASH_INSTALLER_DB_USER'],
+	$env['WRITELEASH_INSTALLER_DB_PASSWORD'],
+	DB_NAME,
+	$env['WRITELEASH_INSTALLER_DB_CONNECT_HOST']
+);
+$installer->suppress_errors( true );
+if ( ! $installer->ready ) {
+	fwrite( STDERR, "Trusted installer connection is not ready.\n" );
+	exit( 1 );
+}
+
+$result = $plan->apply( $installer );
+if ( empty( $result['success'] ) ) {
+	fwrite( STDERR, 'Provisioning did not complete: state=' . $result['state'] . ', steps=' . (int) $result['executed_steps'] . "\n" );
+	exit( 1 );
+}
+
+echo 'Provisioning complete: state=' . $result['state'] . ', steps=' . (int) $result['executed_steps'] . "\n";
+echo "\nAdd these constants to wp-config.php and use the secret from your secret manager:\n";
+echo \WriteLeash\Provisioning_Plan::render_wp_config_snippet(
+	$env['WRITELEASH_RUNTIME_DB_USER'],
+	$env['WRITELEASH_RUNTIME_DB_ACCOUNT_HOST'],
+	DB_NAME
+) . "\n";
+exit( 0 );
+END writeleash-operator-script
+-----------------------------------------------------------------------
+
+STEP 2 - REVIEW THE PLAN
+
+Export the trusted values for this shell (example names only; use your own
+secret manager):
+
+	export WRITELEASH_PROVISION_MODE=review
+	export WRITELEASH_INSTALLER_DB_USER='root'
+	export WRITELEASH_INSTALLER_DB_PASSWORD='<installer password from your secret manager>'
+	export WRITELEASH_INSTALLER_DB_CONNECT_HOST='127.0.0.1'
+	export WRITELEASH_RUNTIME_DB_USER='writeleash_runtime'
+	export WRITELEASH_RUNTIME_DB_ACCOUNT_HOST='localhost'
+	export WRITELEASH_RUNTIME_DB_PASSWORD='<new runtime password from your secret manager>'
+
+	wp eval-file /root/provision-writeleash.php
+
+Review the printed SQL before continuing. The review output never contains a
+password: secrets are shown as [REDACTED_SECRET]. The plan creates exactly:
+
+* one restricted runtime account;
+* the commitcap_v01_state helper table;
+* five reviewed SQL SECURITY DEFINER routines (commitcap_v01_open,
+  commitcap_v01_close, commitcap_v01_count, commitcap_v01_policy,
+  commitcap_v01_attest);
+* EXECUTE on exactly those five routines and read-only SELECT on the helper;
+* SELECT, UPDATE and one identity-scoped BEFORE UPDATE policy trigger with
+  physical ceiling 2000 on the certified target table.
+
+STEP 3 - APPLY THE PLAN
+
+	export WRITELEASH_PROVISION_MODE=apply
+	wp eval-file /root/provision-writeleash.php
+
+Apply refuses to overwrite a foreign helper shape, a foreign routine body, a
+foreign trigger that reuses a WriteLeash name, or a pre-existing account with
+grants outside the reviewed surface. If the run is interrupted, replay the same
+script: the steps are deterministic and safe to repeat. Delete the temporary
+script when you are done.
+
+STEP 4 - ADD THE RUNTIME CONSTANTS TO wp-config.php
+
+Use the template printed by apply mode and the same runtime secret from your
+secret manager:
+
+	define( 'WRITELEASH_DB_USER', 'writeleash_runtime' );
+	define( 'WRITELEASH_DB_PASSWORD', '<the runtime secret from your secret manager>' );
+	define( 'WRITELEASH_DB_HOST', 'localhost' );
+	define( 'WRITELEASH_DB_NAME', '<your WordPress database name>' );
+
+WRITELEASH_DB_HOST is the runtime account host restriction, not a connect host.
+The restricted runtime connects the same way normal WordPress connects.
+
+STEP 5 - VERIFY AND ENABLE
+
+Open Tools -> WriteLeash. The readiness line should report READY, with the Doctor
+showing PASS and the restricted runtime available. If it does not, read the
+reason shown on the page before enabling anything. Then choose the logical
+budget L (0-2000), save it, and enable the certified operation. Normal use then
+happens in Redirection: Redirects -> select all matching -> Bulk Actions ->
+Disable.
+
+The disposable demo on Tools -> WriteLeash is optional and is not needed for
+production protection.
+
+EXACT RUNTIME PRIVILEGE SURFACE
+
+The restricted account holds, in total:
+
+* EXECUTE on exactly the five reviewed routines;
+* SELECT on the helper table commitcap_v01_state;
+* SELECT, UPDATE on the certified target table only.
+
+The runtime account has no INSERT, DELETE, DROP, ALTER, CREATE, TRIGGER, GRANT
+or REVOKE authority. It cannot read WordPress options or any other application
+table. Normal WordPress keeps its ordinary database account; WriteLeash does not
+restrict the site-wide WordPress database identity and does not claim to.
+
+CREDENTIAL ROTATION
+
+Rotation is a two-part operator action, not a password edit alone:
+
+1. Apply the reviewed rotation plan (Provisioning_Plan::rotate_credential) with a
+   new secret; it records a durable safety marker before ALTER USER.
+2. Drain surviving sessions: on both pinned engines ALTER USER does not terminate
+   already-authenticated connections. The plan terminates the runtime account's
+   remaining sessions, verifies zero remain, and only then clears the marker. If
+   the drain cannot be proven, the Doctor keeps the operation not-ready and the
+   Admin refuses to enable protected work until a successful standalone drain
+   (Provisioning_Plan::drain) completes.
+
+Update WRITELEASH_DB_PASSWORD in wp-config.php to the new secret as part of the
+rotation.
+
+REMOVAL AND UNINSTALL
+
+* Remove protection only: apply Provisioning_Plan::remove_target. The policy
+  trigger and target grants are removed; the application table and all rows stay.
+* Full operator cleanup: apply Provisioning_Plan::uninstall. WriteLeash-managed triggers,
+  the five routines, the helper table and the runtime account are removed.
+  Application tables and Redirection data are never touched.
+* WordPress uninstall (deleting the plugin from the Plugins screen) removes only
+  WriteLeash's local WordPress state. It never removes database users, grants,
+  routines, triggers or Redirection data, and it needs no installer credential.
+  Removing the database runtime remains the operator's job.

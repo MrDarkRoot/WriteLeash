@@ -47,7 +47,7 @@ foreach ( $entries as $entry ) {
 }
 
 // Required runtime and release files.
-foreach ( array( 'commitcap.php', 'uninstall.php', 'readme.txt', 'LICENSE', 'operator-setup.txt' ) as $required ) {
+foreach ( array( 'writeleash.php', 'uninstall.php', 'readme.txt', 'LICENSE', 'operator-setup.txt' ) as $required ) {
 	if ( ! in_array( $required, $entries, true ) ) {
 		$fail( 'required distribution file missing from allowlist: ' . $required );
 	}
@@ -94,7 +94,7 @@ if ( ! str_contains( $license, 'GNU GENERAL PUBLIC LICENSE' ) || ! str_contains(
 }
 
 // Main file must carry the founder-selected license and the release version.
-$main = (string) file_get_contents( $source . '/commitcap.php' );
+$main = (string) file_get_contents( $source . '/writeleash.php' );
 foreach ( array(
 	'/^\s*\*\s*Version:\s*0\.1\.0\s*$/m',
 	'/^\s*\*\s*Requires at least:\s*6\.8\s*$/m',
@@ -108,7 +108,7 @@ foreach ( array(
 		$fail( 'main plugin file is missing expected license/version header: ' . $pattern );
 	}
 }
-if ( ! str_contains( $main, "define( 'COMMITCAP_VERSION', '0.1.0' )" ) ) {
+if ( ! str_contains( $main, "define( 'WRITELEASH_VERSION', '0.1.0' )" ) ) {
 	$fail( 'runtime version constant does not match the release version' );
 }
 if ( ! preg_match( '/^\s*\*\s*Requires Plugins:\s*redirection\s*$/m', $main ) ) {

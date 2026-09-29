@@ -1,12 +1,12 @@
 <?php
 // #87 acceptance suite: real pinned Redirection 5.5.2 Bulk Disable through the
-// CommitCap shared restricted runtime on both pinned database engines.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+// WriteLeash shared restricted runtime on both pinned database engines.
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
 
-use CommitCap\Provisioning_Plan as Plan;
-use CommitCap\Redirection_Bulk_Disable as Adapter;
-use CommitCap\Update_Engine as Engine;
+use WriteLeash\Provisioning_Plan as Plan;
+use WriteLeash\Redirection_Bulk_Disable as Adapter;
+use WriteLeash\Update_Engine as Engine;
 
 define( 'CC87_RUNTIME_USER', 'cc87_writer' );
 define( 'CC87_RUNTIME_SECRET', 'cc87_secret' );
@@ -37,7 +37,7 @@ cc87_assert( array( 'UNKNOWN', 'redirection_class_missing' ) === Adapter::compat
 echo "  Redirection 5.5.2 exact version and compatibility refusal: PASS\n";
 
 // ---------------------------------------------------------------------------
-// Redirection schema and reviewed CommitCap runtime provisioning.
+// Redirection schema and reviewed WriteLeash runtime provisioning.
 // ---------------------------------------------------------------------------
 $tables = (int) $normal->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'wp_redirection_%'" );
 if ( 0 === $tables ) {
@@ -112,7 +112,7 @@ class CC87_Missing_Class extends Adapter {
  * Narrow version-drift seam for the real REST route: production behavior is
  * fixed in Redirection_Bulk_Disable_Rest; only the detector is overridden.
  */
-class CC87_Version_Drift_Rest extends \CommitCap\Redirection_Bulk_Disable_Rest {
+class CC87_Version_Drift_Rest extends \WriteLeash\Redirection_Bulk_Disable_Rest {
 	public static $version = '5.5.3';
 	protected static function plugin_version(): ?string {
 		return self::$version;
@@ -406,7 +406,7 @@ wp_set_current_user( 1 );
 $normal->query( 'SELECT 1' );
 $normal_ok = $normal->query( 'UPDATE wp_redirection_items SET status = ' . "'disabled'" . ' WHERE id = ' . (int) $ids[0] );
 cc87_assert( false !== $normal_ok, 'normal WordPress UPDATE was denied under the installed policy: ' . $normal->last_error );
-cc87_assert( false === strpos( (string) $normal->last_error, 'CC54_DENIED' ), 'normal WordPress UPDATE hit the CommitCap trigger' );
+cc87_assert( false === strpos( (string) $normal->last_error, 'CC54_DENIED' ), 'normal WordPress UPDATE hit the managed runtime trigger' );
 cc87_assert( 1 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items WHERE id = ' . (int) $ids[0] . " AND status = 'disabled'" ), 'normal WordPress UPDATE was not durable' );
 echo "  normal WordPress identity update unaffected by installed policy: PASS\n";
 
@@ -529,20 +529,20 @@ echo "  explicitly granted foreign principal classified as outside cooperative e
 // through WP_REST_Server (rest_do_request), never the adapter directly, and
 // consume the #78 descriptor/config instead of any legacy budget option.
 // ---------------------------------------------------------------------------
-if ( ! defined( 'COMMITCAP_DB_USER' ) ) {
-	define( 'COMMITCAP_DB_USER', CC87_RUNTIME_USER );
-	define( 'COMMITCAP_DB_PASSWORD', CC87_RUNTIME_SECRET );
-	define( 'COMMITCAP_DB_NAME', 'wp_test' );
+if ( ! defined( 'WRITELEASH_DB_USER' ) ) {
+	define( 'WRITELEASH_DB_USER', CC87_RUNTIME_USER );
+	define( 'WRITELEASH_DB_PASSWORD', CC87_RUNTIME_SECRET );
+	define( 'WRITELEASH_DB_NAME', 'wp_test' );
 }
-$operation = \CommitCap\Certified_Operation::redirection_5_5_2_bulk_disable();
+$operation = \WriteLeash\Certified_Operation::redirection_5_5_2_bulk_disable();
 wp_set_current_user( 1 );
 
 function cc87_configure( $operation, $enabled, $budget ) {
-	\CommitCap\Operation_Config::reset( $operation );
+	\WriteLeash\Operation_Config::reset( $operation );
 	if ( null !== $budget ) {
-		\CommitCap\Operation_Config::set_logical_budget( $operation, $budget );
+		\WriteLeash\Operation_Config::set_logical_budget( $operation, $budget );
 	}
-	\CommitCap\Operation_Config::set_enabled( $operation, $enabled );
+	\WriteLeash\Operation_Config::set_enabled( $operation, $enabled );
 }
 
 // The product descriptor fixes the trusted physical ceiling at 2000.
@@ -557,12 +557,12 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 } );
 $body = $response->get_data();
 cc87_assert( 200 === $response->get_status(), 'REST safe status: ' . $response->get_status() . ' ' . wp_json_encode( $body ) );
-cc87_assert( is_array( $body ) && isset( $body['items'], $body['total'], $body['commitcap'] ), 'REST safe stock list shape plus evidence: ' . wp_json_encode( $body ) );
-cc87_assert( 'COMMITTED' === $body['commitcap']['outcome'], 'REST safe outcome: ' . wp_json_encode( $body['commitcap'] ) );
+cc87_assert( is_array( $body ) && isset( $body['items'], $body['total'], $body['writeleash'] ), 'REST safe stock list shape plus evidence: ' . wp_json_encode( $body ) );
+cc87_assert( 'COMMITTED' === $body['writeleash']['outcome'], 'REST safe outcome: ' . wp_json_encode( $body['writeleash'] ) );
 list( $disable_updates, $disable_threads ) = cc87_disable_updates( $threads );
 cc87_assert( 1 === $disable_updates, 'REST safe expected exactly one plugin UPDATE, saw ' . $disable_updates . ': ' . json_encode( $threads ) );
 cc87_assert( ! in_array( $normal_id, $disable_threads, true ), 'REST safe plugin UPDATE ran on the normal connection' );
-cc87_assert( array() !== cc87_adapter_statements( $threads ), 'REST safe did not run the CommitCap adapter' );
+cc87_assert( array() !== cc87_adapter_statements( $threads ), 'REST safe did not run the WriteLeash adapter' );
 cc87_assert_isolated( $threads[ $disable_threads[0] ], '#87 REST safe runtime', true );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 5 === $total && 5 === $disabled, 'REST safe fresh-observer durability' );
@@ -575,7 +575,7 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 409 === $response->get_status() && 'commitcap_budget_denied' === $body['code'], 'REST logical denial response: ' . json_encode( $body ) );
+cc87_assert( 409 === $response->get_status() && 'writeleash_budget_denied' === $body['code'], 'REST logical denial response: ' . json_encode( $body ) );
 cc87_assert( 'logical' === $body['data']['denial_kind'], 'REST logical denial kind: ' . json_encode( $body['data'] ) );
 list( $disable_updates, $disable_threads ) = cc87_disable_updates( $threads );
 cc87_assert( 1 === $disable_updates && ! in_array( $normal_id, $disable_threads, true ), 'REST logical denial must not run the stock global UPDATE' );
@@ -590,7 +590,7 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 409 === $response->get_status() && 'commitcap_budget_denied' === $body['code'], 'REST physical denial response: ' . json_encode( $body ) );
+cc87_assert( 409 === $response->get_status() && 'writeleash_budget_denied' === $body['code'], 'REST physical denial response: ' . json_encode( $body ) );
 cc87_assert( 'physical' === $body['data']['denial_kind'], 'REST physical denial kind: ' . json_encode( $body['data'] ) );
 list( $disable_updates, $disable_threads ) = cc87_disable_updates( $threads );
 cc87_assert( 1 === $disable_updates && ! in_array( $normal_id, $disable_threads, true ), 'REST physical denial must not run the stock global UPDATE' );
@@ -605,7 +605,7 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 503 === $response->get_status() && 'commitcap_operation_disabled' === $body['code'], 'REST disabled response: ' . json_encode( $body ) );
+cc87_assert( 503 === $response->get_status() && 'writeleash_operation_disabled' === $body['code'], 'REST disabled response: ' . json_encode( $body ) );
 list( $disable_updates, ) = cc87_disable_updates( $threads );
 cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'disabled operation ran a mutation or the adapter' );
 list( $total, $disabled ) = cc87_counts( $root );
@@ -613,13 +613,13 @@ cc87_assert( 3 === $total && 0 === $disabled, 'disabled operation changed durabl
 echo "  REST disabled -> 503 fail closed, zero stock mutation: PASS\n";
 
 // Missing config: absent state is disabled and fails closed.
-\CommitCap\Operation_Config::reset( $operation );
+\WriteLeash\Operation_Config::reset( $operation );
 cc87_seed( $root, 3 );
 list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 503 === $response->get_status() && 'commitcap_operation_disabled' === $body['code'], 'REST missing config response: ' . json_encode( $body ) );
+cc87_assert( 503 === $response->get_status() && 'writeleash_operation_disabled' === $body['code'], 'REST missing config response: ' . json_encode( $body ) );
 list( $disable_updates, ) = cc87_disable_updates( $threads );
 cc87_assert( 0 === $disable_updates, 'missing config ran a mutation' );
 list( $total, $disabled ) = cc87_counts( $root );
@@ -628,7 +628,7 @@ echo "  REST missing config -> 503 fail closed, zero stock mutation: PASS\n";
 
 // Malformed stored config: fail closed, never silently repaired.
 update_option(
-	\CommitCap\Operation_Config::STATE_OPTION,
+	\WriteLeash\Operation_Config::STATE_OPTION,
 	array( 'operation_id' => $operation->id(), 'enabled' => true, 'logical_budget' => 5, 'table_name' => 'wp_redirection_items' )
 );
 cc87_seed( $root, 3 );
@@ -636,12 +636,12 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 503 === $response->get_status() && 'commitcap_operation_misconfigured' === $body['code'], 'REST malformed config response: ' . json_encode( $body ) );
+cc87_assert( 503 === $response->get_status() && 'writeleash_operation_misconfigured' === $body['code'], 'REST malformed config response: ' . json_encode( $body ) );
 list( $disable_updates, ) = cc87_disable_updates( $threads );
 cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'malformed config ran a mutation or the adapter' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 3 === $total && 0 === $disabled, 'malformed config changed durable state' );
-\CommitCap\Operation_Config::reset( $operation );
+\WriteLeash\Operation_Config::reset( $operation );
 echo "  REST malformed config -> 503 fail closed, no stock fallback: PASS\n";
 
 // Physical ceiling mismatch: NOT READY even though Doctor itself would pass.
@@ -652,7 +652,7 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 503 === $response->get_status() && 'commitcap_physical_ceiling_mismatch' === $body['code'], 'REST P mismatch response: ' . json_encode( $body ) );
+cc87_assert( 503 === $response->get_status() && 'writeleash_physical_ceiling_mismatch' === $body['code'], 'REST P mismatch response: ' . json_encode( $body ) );
 cc87_assert( 2000 === $body['data']['expected_physical_ceiling'] && 1999 === $body['data']['actual_physical_ceiling'], 'REST P mismatch evidence' );
 list( $disable_updates, ) = cc87_disable_updates( $threads );
 cc87_assert( 0 === $disable_updates, 'P mismatch ran a mutation' );
@@ -670,7 +670,7 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 503 === $response->get_status() && 'commitcap_operation_unavailable' === $body['code'], 'REST not-ready response: ' . json_encode( $body ) );
+cc87_assert( 503 === $response->get_status() && 'writeleash_operation_unavailable' === $body['code'], 'REST not-ready response: ' . json_encode( $body ) );
 list( $disable_updates, ) = cc87_disable_updates( $threads );
 cc87_assert( 0 === $disable_updates, 'not-ready route ran a mutation' );
 list( $total, $disabled ) = cc87_counts( $root );
@@ -686,9 +686,9 @@ list( $response, $threads ) = cc87_trace_all( $root, function () use ( $scoped_i
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'items' => $scoped_ids ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 200 === $response->get_status() && ! isset( $body['commitcap'] ), 'item-scoped REST must stay stock: ' . json_encode( $body ) );
+cc87_assert( 200 === $response->get_status() && ! isset( $body['writeleash'] ), 'item-scoped REST must stay stock: ' . json_encode( $body ) );
 list( $disable_updates, ) = cc87_disable_updates( $threads );
-cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'item-scoped REST used CommitCap' );
+cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'item-scoped REST used WriteLeash' );
 cc87_assert( 2 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items WHERE id IN (' . (int) $scoped_ids[0] . ',' . (int) $scoped_ids[1] . ") AND status = 'disabled'" ), 'item-scoped REST not durable on the normal connection' );
 echo "  non-certified REST item-scoped items=[...] stays stock: PASS\n";
 
@@ -698,8 +698,8 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'enable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 200 === $response->get_status() && ! isset( $body['commitcap'] ), 'enable REST must stay stock: ' . json_encode( $body ) );
-cc87_assert( array() === cc87_adapter_statements( $threads ), 'enable REST used CommitCap' );
+cc87_assert( 200 === $response->get_status() && ! isset( $body['writeleash'] ), 'enable REST must stay stock: ' . json_encode( $body ) );
+cc87_assert( array() === cc87_adapter_statements( $threads ), 'enable REST used WriteLeash' );
 $enable_updates = 0;
 foreach ( (array) $threads as $statements ) {
 	foreach ( $statements as $sql ) {
@@ -718,8 +718,8 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'reset', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 200 === $response->get_status() && ! isset( $body['commitcap'] ), 'reset REST must stay stock: ' . json_encode( $body ) );
-cc87_assert( array() === cc87_adapter_statements( $threads ), 'reset REST used CommitCap' );
+cc87_assert( 200 === $response->get_status() && ! isset( $body['writeleash'] ), 'reset REST must stay stock: ' . json_encode( $body ) );
+cc87_assert( array() === cc87_adapter_statements( $threads ), 'reset REST used WriteLeash' );
 cc87_assert( 0 === (int) $root->get_var( 'SELECT SUM(last_count) FROM wp_redirection_items' ), 'reset REST was not durable' );
 echo "  non-certified REST Reset global=true stays stock: PASS\n";
 
@@ -730,13 +730,13 @@ list( $response, $threads ) = cc87_trace_all( $root, function () use ( $delete_i
 	return rest_do_request( cc87_rest_bulk_request( 'delete', array( 'items' => array( $delete_id ) ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 200 === $response->get_status() && ! isset( $body['commitcap'] ), 'delete REST must stay stock: ' . json_encode( $body ) );
-cc87_assert( array() === cc87_adapter_statements( $threads ), 'delete REST used CommitCap' );
+cc87_assert( 200 === $response->get_status() && ! isset( $body['writeleash'] ), 'delete REST must stay stock: ' . json_encode( $body ) );
+cc87_assert( array() === cc87_adapter_statements( $threads ), 'delete REST used WriteLeash' );
 cc87_assert( 1 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items' ), 'delete REST was not durable' );
 echo "  non-certified REST Delete stays stock: PASS\n";
 
 // Permission model is Redirection's own; unauthorized callers never reach
-// CommitCap and never mutate.
+// WriteLeash and never mutate.
 cc87_seed( $root, 3 );
 wp_set_current_user( 0 );
 list( $response, $threads ) = cc87_trace_all( $root, function () {
@@ -746,13 +746,13 @@ wp_set_current_user( 1 );
 $body = $response->get_data();
 cc87_assert( 401 === $response->get_status() || 403 === $response->get_status(), 'unauthorized REST status: ' . $response->get_status() . ' ' . json_encode( $body ) );
 list( $disable_updates, ) = cc87_disable_updates( $threads );
-cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'unauthorized request reached CommitCap or a mutation' );
+cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'unauthorized request reached WriteLeash or a mutation' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 3 === $total && 0 === $disabled, 'unauthorized request changed durable state' );
 echo "  unauthorized user -> Redirection permission denial, no adapter, no mutation: PASS\n";
 
 // Version drift on the real REST route: the global=true Disable candidate is
-// still owned by CommitCap, but an uncertified or unavailable Redirection build
+// still owned by WriteLeash, but an uncertified or unavailable Redirection build
 // must fail closed instead of falling through to the stock unbounded UPDATE.
 // The drift filter runs before the production filter (priority 5) and the
 // production filter passes an earlier non-null result through unchanged.
@@ -766,7 +766,7 @@ foreach ( array( '5.5.3', '5.4.0', null ) as $drift ) {
 	} );
 	$body = $response->get_data();
 	cc87_assert(
-		503 === $response->get_status() && 'commitcap_redirection_version_unsupported' === $body['code'],
+		503 === $response->get_status() && 'writeleash_redirection_version_unsupported' === $body['code'],
 		'REST version drift (' . var_export( $drift, true ) . ') response: ' . json_encode( $body )
 	);
 	list( $disable_updates, ) = cc87_disable_updates( $threads );
@@ -783,7 +783,7 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 200 === $response->get_status() && isset( $body['commitcap'] ) && 'COMMITTED' === $body['commitcap']['outcome'], 'production filter did not resume after drift tests: ' . json_encode( $body ) );
+cc87_assert( 200 === $response->get_status() && isset( $body['writeleash'] ) && 'COMMITTED' === $body['writeleash']['outcome'], 'production filter did not resume after drift tests: ' . json_encode( $body ) );
 cc87_assert( 1 === cc87_disable_updates( $threads )[0], 'production filter did not run exactly one restricted UPDATE after drift tests' );
 echo "  REST unsupported/unknown Redirection version -> 503 fail closed, zero normal and restricted UPDATE: PASS\n";
 

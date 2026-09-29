@@ -1,17 +1,17 @@
 <?php
 // #60 repair: after the actual uninstall, a fresh WordPress process must not
 // recover old local authorization, budget or production evidence.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
 if ( ! function_exists( 'activate_plugin' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php';
 }
 
-use CommitCap\Admin_Page;
-use CommitCap\Certified_Operation as Operation;
-use CommitCap\Last_Outcome;
-use CommitCap\Operation_Config as Config;
-use CommitCap\Product_Status;
+use WriteLeash\Admin_Page;
+use WriteLeash\Certified_Operation as Operation;
+use WriteLeash\Last_Outcome;
+use WriteLeash\Operation_Config as Config;
+use WriteLeash\Product_Status;
 
 $host = getenv( 'CC_ENGINE_HOST' );
 cc87_assert( in_array( $host, array( 'mysql', 'mariadb' ), true ), '#60 reinstall pinned host' );
@@ -22,8 +22,12 @@ $root->suppress_errors( true );
 $options_table = (string) $normal->options;
 $operation = Operation::redirection_5_5_2_bulk_disable();
 
-// Fresh process: the uninstalled local options must still be absent.
-foreach ( array( 'commitcap_version', Config::STATE_OPTION, Last_Outcome::OPTION, 'commitcap_operation_budget_redirection_5_5_2_bulk_disable' ) as $owned_option ) {
+// Fresh process: the uninstalled local options (canonical and the finite
+// pre-release development cleanup list) must still be absent.
+foreach ( array(
+	'writeleash_version', Config::STATE_OPTION, Last_Outcome::OPTION, 'writeleash_operation_budget_redirection_5_5_2_bulk_disable',
+	'commitcap_version', 'commitcap_certified_operation_state', 'commitcap_last_certified_outcome', 'commitcap_operation_budget_redirection_5_5_2_bulk_disable',
+) as $owned_option ) {
 	$remaining = (string) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM `$options_table` WHERE option_name = %s", $owned_option ) );
 	cc87_assert( '0' === $remaining, 'reinstall process saw surviving option: ' . $owned_option );
 }
@@ -48,8 +52,8 @@ cc87_assert( false !== strpos( $html, 'enabled: no' ) && false !== strpos( $html
 echo "#60 $host: reinstall defaults disabled/null with no old evidence in Admin/status\n";
 
 // Re-activation recreates only plugin metadata, never old authorization.
-\CommitCap\Lifecycle::activate();
-cc87_assert( '0.1.0' === get_option( 'commitcap_version' ), 're-activation did not recreate plugin metadata' );
+\WriteLeash\Lifecycle::activate();
+cc87_assert( '0.1.0' === get_option( 'writeleash_version' ), 're-activation did not recreate plugin metadata' );
 $state = Config::read( $operation );
 cc87_assert( 'absent' === $state['state'] && false === $state['enabled'] && null === $state['logical_budget'], 're-activation restored old config' );
 cc87_assert( null === Last_Outcome::read(), 're-activation restored old evidence' );

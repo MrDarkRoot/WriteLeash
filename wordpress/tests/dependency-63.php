@@ -9,7 +9,7 @@ $phase = getenv( 'CC63_PHASE' );
 // Core parses Requires Plugins during initialize(); in WP-CLI that is not run
 // automatically before our assertions.
 WP_Plugin_Dependencies::initialize();
-$plugin = 'commitcap/commitcap.php';
+$plugin = 'writeleash/writeleash.php';
 $dependency = 'redirection/redirection.php';
 $assert = static function ( $condition, string $message ): void {
 	if ( ! $condition ) {
@@ -26,7 +26,7 @@ switch ( $phase ) {
 		$assert( $result instanceof WP_Error, 'Core activation was not blocked: ' . wp_json_encode( $result ) );
 		$assert( false !== stripos( $result->get_error_message(), 'redirection' ), 'Core refusal does not name Redirection: ' . $result->get_error_message() );
 		$assert( ! is_plugin_active( $plugin ), 'plugin became active despite unmet dependency' );
-		echo "#63 dependency block: Core refuses CommitCap activation while Redirection is missing: PASS\n";
+		echo "#63 dependency block: Core refuses WriteLeash activation while Redirection is missing: PASS\n";
 		break;
 
 	case 'installed':
@@ -40,26 +40,26 @@ switch ( $phase ) {
 		break;
 
 	case 'dependents':
-		// CommitCap active: this is the predicate the plugin list UI uses to
+		// WriteLeash active: this is the predicate the plugin list UI uses to
 		// withhold normal deactivation/deletion of its active dependency.
-		$assert( is_plugin_active( $plugin ), 'CommitCap not active' );
-		$assert( true === WP_Plugin_Dependencies::has_active_dependents( $dependency ), 'Core did not report CommitCap as an active dependent' );
-		$assert( in_array( $plugin, WP_Plugin_Dependencies::get_dependents( 'redirection' ), true ), 'CommitCap missing from dependency graph' );
-		echo "#63 dependency active: Core withholds normal dependency deactivation while CommitCap is active: PASS\n";
+		$assert( is_plugin_active( $plugin ), 'WriteLeash not active' );
+		$assert( true === WP_Plugin_Dependencies::has_active_dependents( $dependency ), 'Core did not report WriteLeash as an active dependent' );
+		$assert( in_array( $plugin, WP_Plugin_Dependencies::get_dependents( 'redirection' ), true ), 'WriteLeash missing from dependency graph' );
+		echo "#63 dependency active: Core withholds normal dependency deactivation while WriteLeash is active: PASS\n";
 		break;
 
 	case 'lost':
 		// Lower-level/WP-CLI deactivation succeeded: the runtime must still
 		// fail closed with zero target mutation. This mirrors real deployment
 		// loss (filesystem, automation) rather than the UI path.
-		require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+		require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 		require_once __DIR__ . '/adapter/helpers.php';
-		$assert( is_plugin_active( $plugin ), 'CommitCap was deactivated along with the dependency' );
+		$assert( is_plugin_active( $plugin ), 'WriteLeash was deactivated along with the dependency' );
 		$assert( ! is_plugin_active( $dependency ), 'Redirection still active in lost phase' );
 		$assert( ! defined( 'REDIRECTION_VERSION' ), 'Redirection constant still defined after loss' );
-		$assert( null === \CommitCap\Redirection_Bulk_Disable::detected_version(), 'lost dependency reported a version' );
+		$assert( null === \WriteLeash\Redirection_Bulk_Disable::detected_version(), 'lost dependency reported a version' );
 		$assert(
-			array( 'UNKNOWN', 'redirection_missing' ) === \CommitCap\Redirection_Bulk_Disable::compatibility_status( null, false ),
+			array( 'UNKNOWN', 'redirection_missing' ) === \WriteLeash\Redirection_Bulk_Disable::compatibility_status( null, false ),
 			'lost dependency was not classified missing'
 		);
 		$host = getenv( 'CC_DB_FAMILY' );
@@ -75,11 +75,11 @@ switch ( $phase ) {
 		break;
 
 	case 'released':
-		// CommitCap inactive: the dependency no longer has active dependents.
-		$assert( ! is_plugin_active( $plugin ), 'CommitCap still active' );
+		// WriteLeash inactive: the dependency no longer has active dependents.
+		$assert( ! is_plugin_active( $plugin ), 'WriteLeash still active' );
 		$assert( is_plugin_active( $dependency ), 'Redirection not active' );
 		$assert( false === WP_Plugin_Dependencies::has_active_dependents( $dependency ), 'Core still reports an active dependent' );
-		echo "#63 dependency released: no active dependents once CommitCap is inactive: PASS\n";
+		echo "#63 dependency released: no active dependents once WriteLeash is inactive: PASS\n";
 		break;
 
 	default:

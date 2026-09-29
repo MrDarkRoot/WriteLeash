@@ -1,6 +1,6 @@
 #!/bin/sh
 # #63 current-stable compatibility gate: WordPress 7.1.2 + Redirection 5.5.2 +
-# the allowlisted CommitCap package on both pinned database engines. Focused on
+# the allowlisted WriteLeash package on both pinned database engines. Focused on
 # the certified product path and lifecycle; the full adversarial matrix remains
 # pinned to the WordPress 6.8.3 baseline (#62).
 set -eu
@@ -14,7 +14,7 @@ for host in mysql mariadb; do
   wp --path="$site" core install --url="http://$host.example.test" --title=Current-Core \
     --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
   wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
-  wp --path="$site" plugin activate commitcap
+  wp --path="$site" plugin activate writeleash
   wp_version=$(wp --path="$site" core version)
   server_version=$(wp --path="$site" eval 'global $wpdb; echo $wpdb->get_var( "SELECT VERSION()" );')
   plugin_version=$(wp --path="$site" eval 'echo REDIRECTION_VERSION;')
@@ -27,8 +27,8 @@ for host in mysql mariadb; do
     *) echo "Wrong fixture: $host $server_version Redirection $plugin_version" >&2; exit 1 ;;
   esac
   wp --path="$site" eval-file /opt/tests/identity-62.php
-  php /opt/tests/release/source-audit.php "$site/wp-content/plugins/commitcap"
-  php /opt/tests/release/readme-validate.php "$site/wp-content/plugins/commitcap"
+  php /opt/tests/release/source-audit.php "$site/wp-content/plugins/writeleash"
+  php /opt/tests/release/readme-validate.php "$site/wp-content/plugins/writeleash"
 
   # Redirection installs its schema through its own setup API (as its wizard
   # does); the accepted 6.8.3 adapter suite uses the same API.
@@ -39,13 +39,13 @@ for host in mysql mariadb; do
   # apply modes, and leaks no secret.
   sh /opt/tests/current-core/operator-example.sh "$host" "$site"
 
-  wp --path="$site" config set COMMITCAP_DB_USER cc63_writer --type=constant
-  wp --path="$site" config set COMMITCAP_DB_PASSWORD cc63_runtime_secret --type=constant >/dev/null
-  wp --path="$site" config set COMMITCAP_DB_NAME wp_test --type=constant
+  wp --path="$site" config set WRITELEASH_DB_USER cc63_writer --type=constant
+  wp --path="$site" config set WRITELEASH_DB_PASSWORD cc63_runtime_secret --type=constant >/dev/null
+  wp --path="$site" config set WRITELEASH_DB_NAME wp_test --type=constant
 
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/current-core/cases.php
 
-  # Dedicated debug-enabled product slice (#63 requires zero CommitCap
+  # Dedicated debug-enabled product slice (#63 requires zero WriteLeash
   # diagnostics under WP_DEBUG).
   wp --path="$site" config set WP_DEBUG true --raw >/dev/null
   wp --path="$site" config set WP_DEBUG_LOG true --raw >/dev/null
@@ -53,17 +53,24 @@ for host in mysql mariadb; do
   php /opt/tests/release/debug-audit.php "$site/wp-content/debug.log" "$host"
   wp --path="$site" config set WP_DEBUG false --raw >/dev/null
 
-  status_json=$(wp --path="$site" commitcap status --format=json)
+  status_json=$(wp --path="$site" writeleash status --format=json)
   php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["operation_status"] !== "READY" || $d["doctor_state"] !== "PASS" || $d["last_outcome"]["outcome"] !== "COMMITTED") exit(1);' "$status_json"
-  doctor_json=$(wp --path="$site" commitcap doctor --format=json)
+  doctor_json=$(wp --path="$site" writeleash doctor --format=json)
   php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["operation_status"] !== "READY" || $d["doctor_state"] !== "PASS") exit(1);' "$doctor_json"
   case "$status_json$doctor_json" in *cc63_runtime_secret*|*disposable_root_password*) echo "current-core CLI JSON leaked credentials" >&2; exit 1 ;; esac
   echo "#63 current-core $host: WP-CLI status/doctor READY with JSON output and no credentials: PASS"
 
-  # #61 deactivation boundary remains: CommitCap inactive, Redirection active.
-  wp --path="$site" plugin deactivate commitcap
+  # #96: the old CommitCap command is gone, not aliased.
+  if wp --path="$site" commitcap status --format=json >/dev/null 2>&1; then
+    echo "#96 legacy wp commitcap command is still registered" >&2
+    exit 1
+  fi
+  echo "#96 current-core $host: wp writeleash registered; wp commitcap unregistered: PASS"
+
+  # #61 deactivation boundary remains: WriteLeash inactive, Redirection active.
+  wp --path="$site" plugin deactivate writeleash
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-61-deactivated.php
-  wp --path="$site" plugin activate commitcap
+  wp --path="$site" plugin activate writeleash
 
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/current-core/lifecycle.php
 done

@@ -1,11 +1,11 @@
 <?php
 // #63 current-core WP_DEBUG product slice on the current WordPress stable.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/../adapter/helpers.php';
 
-use CommitCap\Admin_Page;
-use CommitCap\Certified_Operation as Operation;
-use CommitCap\Operation_Config as Config;
+use WriteLeash\Admin_Page;
+use WriteLeash\Certified_Operation as Operation;
+use WriteLeash\Operation_Config as Config;
 
 $host = getenv( 'CC_ENGINE_HOST' );
 cc87_assert( in_array( $host, array( 'mysql', 'mariadb' ), true ), '#63 pinned host' );
@@ -25,8 +25,8 @@ $fresh->suppress_errors( true );
 cc87_assert( 409 === $denied->get_status() && array( 6, 0 ) === cc87_counts( $fresh ), '#63 debug logical denial independently unchanged' );
 
 $post = array(
-	'commitcap_task' => 'budget',
-	'_wpnonce'       => wp_create_nonce( 'commitcap_budget' ),
+	'writeleash_task' => 'budget',
+	'_wpnonce'       => wp_create_nonce( 'writeleash_budget' ),
 	'logical_budget' => '10',
 );
 cc87_assert( 'OK' === Admin_Page::process( $post )['status'], '#63 debug Admin handler budget update' );

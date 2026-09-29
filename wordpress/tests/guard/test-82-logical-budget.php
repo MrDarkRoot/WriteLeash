@@ -5,11 +5,11 @@
 // actual > L -> typed logical Budget_Denied -> ROLLBACK
 // L > P -> fail before callback
 
-use CommitCap\Budget_Denied;
-use CommitCap\Guard;
-use CommitCap\Guard_Error;
-use CommitCap\Unsupported_Transaction_State;
-use CommitCap\Update_Engine;
+use WriteLeash\Budget_Denied;
+use WriteLeash\Guard;
+use WriteLeash\Guard_Error;
+use WriteLeash\Unsupported_Transaction_State;
+use WriteLeash\Update_Engine;
 
 echo "  --- Begin Gate #82 Logical Budget below Physical Ceiling Tests ($host) ---\n";
 

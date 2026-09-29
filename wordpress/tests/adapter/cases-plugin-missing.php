@@ -1,10 +1,10 @@
 <?php
 // #87: a fresh PHP process where Redirection is deactivated. The adapter must
 // refuse before any callback and leave the restricted connection untouched.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
 
-use CommitCap\Redirection_Bulk_Disable as Adapter;
+use WriteLeash\Redirection_Bulk_Disable as Adapter;
 
 $host = getenv( 'CC_ENGINE_HOST' );
 cc87_assert( in_array( $host, array( 'mysql', 'mariadb' ), true ), 'unknown fixture host' );

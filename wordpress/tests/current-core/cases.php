@@ -2,22 +2,22 @@
 // #63 current-stable product gate. Focused on the certified real operation on
 // the current WordPress stable core fixture; the full adversarial matrix
 // remains pinned to the WordPress 6.8.3 baseline (#62) and is not duplicated.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/../adapter/helpers.php';
 
-use CommitCap\Admin_Page;
-use CommitCap\Certified_Operation as Operation;
-use CommitCap\Certified_Operation_Status as Status;
-use CommitCap\Operation_Config as Config;
-use CommitCap\Product_Status;
-use CommitCap\Provisioning_Plan as Plan;
-use CommitCap\Redirection_Bulk_Disable as Adapter;
+use WriteLeash\Admin_Page;
+use WriteLeash\Certified_Operation as Operation;
+use WriteLeash\Certified_Operation_Status as Status;
+use WriteLeash\Operation_Config as Config;
+use WriteLeash\Product_Status;
+use WriteLeash\Provisioning_Plan as Plan;
+use WriteLeash\Redirection_Bulk_Disable as Adapter;
 
 define( 'CC63_RUNTIME_USER', 'cc63_writer' );
 $host = getenv( 'CC_ENGINE_HOST' );
 cc87_assert( in_array( $host, array( 'mysql', 'mariadb' ), true ), '#63 pinned host' );
 
-$wp_version = \CommitCap\Environment::wordpress_version();
+$wp_version = \WriteLeash\Environment::wordpress_version();
 cc87_assert( '7.1.2' === $wp_version, '#63 expected the current-stable WordPress 7.1.2 fixture, saw ' . $wp_version );
 cc87_assert( '5.5.2' === Adapter::detected_version(), '#63 expected Redirection 5.5.2' );
 echo "#63 current-core $host: WordPress $wp_version + Redirection 5.5.2 fixture PASS\n";
@@ -66,8 +66,8 @@ list( $response, $threads ) = cc87_trace_all( $root, static function () {
 } );
 $body = $response->get_data();
 cc87_assert( 200 === $response->get_status(), '#63 safe status: ' . $response->get_status() . ' ' . json_encode( $body ) );
-cc87_assert( 'COMMITTED' === ( $body['commitcap']['outcome'] ?? null ), '#63 safe outcome: ' . json_encode( $body ) );
-cc87_assert( 6 === ( $body['commitcap']['consumed'] ?? null ), '#63 safe consumed' );
+cc87_assert( 'COMMITTED' === ( $body['writeleash']['outcome'] ?? null ), '#63 safe outcome: ' . json_encode( $body ) );
+cc87_assert( 6 === ( $body['writeleash']['consumed'] ?? null ), '#63 safe consumed' );
 list( $safe_updates, $safe_threads ) = cc87_disable_updates( $threads );
 cc87_assert( 1 === $safe_updates && 1 === count( $safe_threads ) && ! in_array( $normal_id, $safe_threads, true ), '#63 safe target UPDATE not restricted-only' );
 $safe_user = (string) $root->get_var( $root->prepare( "SELECT user_host FROM mysql.general_log WHERE thread_id = %d AND command_type = 'Connect'", $safe_threads[0] ) );
@@ -84,7 +84,7 @@ list( $response, $threads ) = cc87_trace_all( $root, static function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 409 === $response->get_status() && 'commitcap_budget_denied' === ( $body['code'] ?? null ), '#63 denial response: ' . json_encode( $body ) );
+cc87_assert( 409 === $response->get_status() && 'writeleash_budget_denied' === ( $body['code'] ?? null ), '#63 denial response: ' . json_encode( $body ) );
 cc87_assert( 'logical' === ( $body['data']['denial_kind'] ?? null ), '#63 denial kind: ' . json_encode( $body ) );
 list( $denied_updates, $denied_threads ) = cc87_disable_updates( $threads );
 cc87_assert( 1 === $denied_updates && ! in_array( $normal_id, $denied_threads, true ), '#63 denied target UPDATE not restricted-only' );

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-project=commitcap_wp_engine54
+project=writeleash_wp_engine54
 compose_file="$(dirname "$0")/docker-compose.yml"
 compose=(docker compose -p "$project" -f "$compose_file")
 cleanup() {

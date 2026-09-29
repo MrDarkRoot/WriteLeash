@@ -24,7 +24,7 @@ fetch redirection.5.5.2   "$(cat "$here/checksums.txt" 2>/dev/null | awk '$2=="r
 fetch fluentform.5.2.9    "$(cat "$here/checksums.txt" 2>/dev/null | awk '$2=="fluentform.5.2.9"{print $1}')"
 fetch relevanssi.4.22.1   "$(cat "$here/checksums.txt" 2>/dev/null | awk '$2=="relevanssi.4.22.1"{print $1}')"
 
-project=commitcap_wp_research
+project=writeleash_wp_research
 compose_file="$here/docker-compose.yml"
 compose=(docker compose -p "$project" -f "$compose_file")
 cleanup() {

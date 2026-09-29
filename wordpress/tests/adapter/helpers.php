@@ -1,6 +1,6 @@
 <?php
 // Shared helpers for the #87 Redirection 5.5.2 Bulk Disable adapter suite.
-// Executed by WP-CLI after WordPress, CommitCap and Redirection are loaded.
+// Executed by WP-CLI after WordPress, WriteLeash and Redirection are loaded.
 
 function cc87_assert( $value, $label ) {
 	if ( ! $value ) {
@@ -23,7 +23,7 @@ function cc87_counts( $root ) {
 
 /**
  * All general-log Query statements in the run window grouped by thread id.
- * Used for REST end-to-end proofs where the CommitCap runtime connection is
+ * Used for REST end-to-end proofs where the WriteLeash runtime connection is
  * opened internally by the plugin and its thread id is not known up front.
  *
  * @return array{0: mixed, 1: array<int, array<int, string>>}
@@ -98,7 +98,7 @@ function cc87_trace( $root, $thread, callable $invoke ) {
 
 /**
  * Connection-isolation gate: every statement that reached the restricted
- * connection must be reviewed CommitCap evidence SQL or the exact reviewed
+ * connection must be reviewed WriteLeash evidence SQL or the exact reviewed
  * Redirection target-table SQL. Destructive verbs and any other wp_ table
  * reference fail closed.
  */

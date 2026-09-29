@@ -25,7 +25,7 @@ if [ ! -f "$zip" ] || [ "$(sha256sum "$zip" | cut -d' ' -f1)" != "$sha" ]; then
 fi
 echo "$sha  $zip" | sha256sum -c - >/dev/null
 
-project="commitcap_wordpress_foundation_$db"
+project="writeleash_wordpress_foundation_$db"
 compose_file="$(dirname "$0")/docker-compose.yml"
 compose=(docker compose -p "$project" -f "$compose_file")
 cleanup() {

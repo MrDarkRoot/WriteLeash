@@ -8,7 +8,7 @@ global $wpdb;
 for ( $i = 0; $i < 5; ++$i ) {
 	wp_insert_post( array(
 		'post_title'   => 'CC Research ' . $i,
-		'post_content' => 'CommitCap research content ' . $i,
+		'post_content' => 'WriteLeash research content ' . $i,
 		'post_status'  => 'publish',
 		'post_type'    => 'post',
 	) );

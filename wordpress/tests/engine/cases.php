@@ -1,7 +1,7 @@
 <?php
 // Real WordPress context, two actual wpdb connections with distinct grants.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
-use CommitCap\Update_Engine as Engine;
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
+use WriteLeash\Update_Engine as Engine;
 
 function cc54_assert( $value, $label ) {
 	if ( ! $value ) {
@@ -152,6 +152,36 @@ foreach ( array( 'cc_alpha' => 5, 'cc_beta' => 1, 'cc_zero' => 0, 'cc_one' => 1,
 }
 cc54_reject( static function () use ( $installer ) { $installer->verify_policy( 'cc_alpha', 4, 'cc_writer' ); }, 'wrong budget' );
 echo "  installation, verification, identity grammar and object conflicts: PASS\n";
+
+// #96 DB-boundary regression: the low-level attestation identity is #97-deferred
+// and must still be the exact pre-#96 canonical graph. No compatibility path is
+// involved: nothing renamed the helper TABLE_COMMENT, routine family or trigger
+// prefix, so the unchanged WriteLeash runtime verifies the unchanged objects.
+cc54_assert( 'commitcap_v01_state' === Engine::STATE, 'canonical helper name changed before #97' );
+cc54_assert( 'CommitCap V0.1 cooperative UPDATE state' === Engine::COMMENT, 'canonical helper TABLE_COMMENT changed before #97' );
+$canonical_routines = Engine::routine_names();
+sort( $canonical_routines );
+cc54_assert( array(
+	'commitcap_v01_attest', 'commitcap_v01_close', 'commitcap_v01_count',
+	'commitcap_v01_open', 'commitcap_v01_policy',
+) === $canonical_routines, 'canonical routine family changed before #97' );
+$installed_comment = (string) $root->get_var( $root->prepare(
+	'SELECT TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s', Engine::STATE
+) );
+cc54_assert( 'CommitCap V0.1 cooperative UPDATE state' === $installed_comment,
+	'installed helper TABLE_COMMENT is not the pre-#96 canonical value: ' . $installed_comment );
+$installer->verify_infrastructure_objects(); // Helper shape + cross-attested routine bodies.
+$installed_routines = array_values( (array) $root->get_col( $root->prepare(
+	'SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE %s ORDER BY ROUTINE_NAME', 'commitcap_v01\_%'
+) ) );
+cc54_assert( $canonical_routines === $installed_routines, 'canonical routines are missing or renamed: ' . json_encode( $installed_routines ) );
+$premature = (int) $root->get_var(
+	"SELECT (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'writeleash_v01\\_%')" .
+	" + (SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'writeleash_v01\\_%')" .
+	" + (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME LIKE 'writeleash_v01\\_%')"
+);
+cc54_assert( 0 === $premature, 'premature writeleash_v01_* database objects introduced: ' . $premature );
+echo "  canonical pre-#96 DB identity preserved; helper shape, attestation and zero premature writeleash_v01_* objects: PASS\n";
 
 $writer = new wpdb( 'cc_writer', 'disposable_writer_password', 'wp_test', $host );
 $other = new wpdb( 'cc_writer', 'disposable_writer_password', 'wp_test', $host );

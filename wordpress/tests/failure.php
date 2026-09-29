@@ -1,6 +1,6 @@
 <?php
 // Executed through WP-CLI against real, fully bootstrapped WordPress.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 $mode = getenv( 'CC_FAILURE' );
 global $wpdb;
 
@@ -28,14 +28,14 @@ switch ( $mode ) {
 		};
 		break;
 	case 'write':
-		add_filter( 'pre_update_option_commitcap_version', static function ( $new, $old ) { return $old; }, 10, 2 );
+		add_filter( 'pre_update_option_writeleash_version', static function ( $new, $old ) { return $old; }, 10, 2 );
 		break;
 	case 'network':
-		\CommitCap\Lifecycle::activate( true );
+		\WriteLeash\Lifecycle::activate( true );
 		break;
 	default:
 		throw new RuntimeException( 'Unknown failure case' );
 }
 
-\CommitCap\Lifecycle::activate();
+\WriteLeash\Lifecycle::activate();
 throw new RuntimeException( 'Failed activation returned normally' );

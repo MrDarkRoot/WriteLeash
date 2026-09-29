@@ -3,16 +3,16 @@
 // validated mutable config, live readiness and the no-DDL logical-budget
 // change, exercised against the real pinned fixture. Runs after cases.php on
 // each engine (separate WP-CLI process, same disposable site).
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
 
-use CommitCap\Certified_Operation;
-use CommitCap\Certified_Operation_Status as Status;
-use CommitCap\Compatibility_Grants;
-use CommitCap\Operation_Config;
-use CommitCap\Provisioning_Plan as Plan;
-use CommitCap\Redirection_Bulk_Disable as Adapter;
-use CommitCap\Update_Engine as Engine;
+use WriteLeash\Certified_Operation;
+use WriteLeash\Certified_Operation_Status as Status;
+use WriteLeash\Compatibility_Grants;
+use WriteLeash\Operation_Config;
+use WriteLeash\Provisioning_Plan as Plan;
+use WriteLeash\Redirection_Bulk_Disable as Adapter;
+use WriteLeash\Update_Engine as Engine;
 
 define( 'CC78_RUNTIME_USER', 'cc87_writer' );
 define( 'CC78_RUNTIME_SECRET', 'cc87_secret' );
@@ -46,7 +46,7 @@ cc87_assert( '/redirection/v1/bulk/redirect/' === $operation->rest_route_prefix(
 cc87_assert( 'redirection_items' === $operation->table_suffix(), 'table suffix' );
 cc87_assert( 'UPDATE' === $operation->mutation(), 'mutation' );
 cc87_assert( array( 'SELECT', 'UPDATE' ) === $operation->target_privileges(), 'target privileges' );
-cc87_assert( 'CommitCap\\Redirection_Bulk_Disable' === $operation->adapter_class(), 'adapter class' );
+cc87_assert( 'WriteLeash\\Redirection_Bulk_Disable' === $operation->adapter_class(), 'adapter class' );
 cc87_assert( 2000 === $operation->physical_ceiling(), 'physical ceiling' );
 cc87_assert( 0 === $operation->logical_budget_min() && 2000 === $operation->logical_budget_max(), 'logical budget bounds' );
 cc87_assert( $operation->matches_rest( '/redirection/v1/bulk/redirect/disable', 'POST' ), 'rest match positive' );
@@ -151,10 +151,10 @@ echo "  config round trip, strict validation, unknown-field rejection and secret
 // ---------------------------------------------------------------------------
 // Fixture: ensure the descriptor policy (P = 2000) and runtime connection.
 // ---------------------------------------------------------------------------
-if ( ! defined( 'COMMITCAP_DB_USER' ) ) {
-	define( 'COMMITCAP_DB_USER', CC78_RUNTIME_USER );
-	define( 'COMMITCAP_DB_PASSWORD', CC78_RUNTIME_SECRET );
-	define( 'COMMITCAP_DB_NAME', 'wp_test' );
+if ( ! defined( 'WRITELEASH_DB_USER' ) ) {
+	define( 'WRITELEASH_DB_USER', CC78_RUNTIME_USER );
+	define( 'WRITELEASH_DB_PASSWORD', CC78_RUNTIME_SECRET );
+	define( 'WRITELEASH_DB_NAME', 'wp_test' );
 }
 $runtime = new wpdb( CC78_RUNTIME_USER, CC78_RUNTIME_SECRET, 'wp_test', $host );
 $runtime->suppress_errors( true );
@@ -231,10 +231,10 @@ $installer->install_policy( CC78_TABLE, 2000, CC78_RUNTIME_USER );
 cc78_expect( Status::check( $operation, '5.5.2', $runtime ), Status::READY, 'ok', 'P restored' );
 
 // The legacy #87 budget option is not an authority.
-update_option( 'commitcap_operation_budget_redirection_5_5_2_bulk_disable', 1 );
+update_option( 'writeleash_operation_budget_redirection_5_5_2_bulk_disable', 1 );
 $legacy_ignored = Status::check( $operation, '5.5.2', $runtime );
 cc87_assert( Status::READY === $legacy_ignored['status'] && 5 === $legacy_ignored['logical_budget'], 'legacy budget option must be ignored' );
-delete_option( 'commitcap_operation_budget_redirection_5_5_2_bulk_disable' );
+delete_option( 'writeleash_operation_budget_redirection_5_5_2_bulk_disable' );
 echo "  readiness status model (disabled/misconfigured/unsupported/not-ready/READY) and single budget authority: PASS\n";
 
 // ---------------------------------------------------------------------------
@@ -278,7 +278,7 @@ foreach ( array( 'INSERT', 'DELETE', 'REFERENCES' ) as $extra ) {
 			return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 		} );
 		$body = $response->get_data();
-		cc87_assert( 503 === $response->get_status() && 'commitcap_operation_unavailable' === $body['code'], 'extra ' . $extra . ' REST must fail closed: ' . json_encode( $body ) );
+		cc87_assert( 503 === $response->get_status() && 'writeleash_operation_unavailable' === $body['code'], 'extra ' . $extra . ' REST must fail closed: ' . json_encode( $body ) );
 		cc87_assert( 'target_privileges_mismatch' === $body['data']['reason'], 'extra ' . $extra . ' REST reason: ' . json_encode( $body['data'] ) );
 		list( $disable_updates, ) = cc87_disable_updates( $threads );
 		cc87_assert( 0 === $disable_updates && array() === cc87_adapter_statements( $threads ), 'extra ' . $extra . ' REST ran a mutation or the adapter' );
@@ -360,7 +360,7 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 409 === $response->get_status() && 'commitcap_budget_denied' === $body['code'], 'new-L first run must deny: ' . json_encode( $body ) );
+cc87_assert( 409 === $response->get_status() && 'writeleash_budget_denied' === $body['code'], 'new-L first run must deny: ' . json_encode( $body ) );
 list( $disable_updates, ) = cc87_disable_updates( $threads );
 cc87_assert( 1 === $disable_updates, 'new-L first run must execute the plugin UPDATE once' );
 
@@ -369,8 +369,8 @@ list( $response, $threads ) = cc87_trace_all( $root, function () {
 	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 } );
 $body = $response->get_data();
-cc87_assert( 200 === $response->get_status() && isset( $body['commitcap'] ) && 'COMMITTED' === $body['commitcap']['outcome'], 'new-L second run must commit: ' . json_encode( $body ) );
-cc87_assert( 25 === $body['commitcap']['logical_budget'], 'REST evidence uses the configured L' );
+cc87_assert( 200 === $response->get_status() && isset( $body['writeleash'] ) && 'COMMITTED' === $body['writeleash']['outcome'], 'new-L second run must commit: ' . json_encode( $body ) );
+cc87_assert( 25 === $body['writeleash']['logical_budget'], 'REST evidence uses the configured L' );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 6 === $total && 6 === $disabled, 'new-L commit durability' );
 $metadata_after = $root->get_row( $root->prepare(

@@ -3,10 +3,10 @@
 // Proves version-pinned inspectable plans, apply/verify flow, credential rotation,
 // scoped tamper probes, and safe application-table preservation across MySQL and MariaDB.
 
-use CommitCap\Compatibility_Doctor as Doctor;
-use CommitCap\Guard;
-use CommitCap\Provisioning_Plan as Plan;
-use CommitCap\Update_Engine as Engine;
+use WriteLeash\Compatibility_Doctor as Doctor;
+use WriteLeash\Guard;
+use WriteLeash\Provisioning_Plan as Plan;
+use WriteLeash\Update_Engine as Engine;
 
 echo "--- Begin Gate #84 Provisioning Plan Tests ($host) ---\n";
 
@@ -47,8 +47,8 @@ cc84_assert( false !== strpos( $raw_sql, 'secret_pass_123' ), '#84.1a raw secret
 
 // Config snippet rendering
 $config_snippet = Plan::render_wp_config_snippet( 'cc84_writer', 'localhost', 'wp_test', 'secret_pass_123' );
-cc84_assert( false !== strpos( $config_snippet, "define( 'COMMITCAP_DB_USER', 'cc84_writer' );" ), '#84.1a config user' );
-cc84_assert( false !== strpos( $config_snippet, "define( 'COMMITCAP_DB_PASSWORD', 'secret_pass_123' );" ), '#84.1a config pass' );
+cc84_assert( false !== strpos( $config_snippet, "define( 'WRITELEASH_DB_USER', 'cc84_writer' );" ), '#84.1a config user' );
+cc84_assert( false !== strpos( $config_snippet, "define( 'WRITELEASH_DB_PASSWORD', 'secret_pass_123' );" ), '#84.1a config pass' );
 
 // 1b: Identifier validation & error handling
 try {
@@ -132,7 +132,7 @@ try {
 			$writer->query( "UPDATE cc84_a SET touched = 2 WHERE id = $i" );
 		}
 	}, $writer );
-} catch ( \CommitCap\Budget_Denied $e ) {
+} catch ( \WriteLeash\Budget_Denied $e ) {
 	$denied_seen = true;
 	$det = $e->details();
 	cc84_assert( 'cc84_a' === $det['table'], '#84.3 Budget_Denied table' );
@@ -176,7 +176,7 @@ try {
 			$writer->query( "UPDATE cc84_b SET touched = 2 WHERE id = $i" );
 		}
 	}, $writer );
-} catch ( \CommitCap\Budget_Denied $e ) {
+} catch ( \WriteLeash\Budget_Denied $e ) {
 	$denied_b = true;
 }
 cc84_assert( $denied_b, '#84.4 16th update on B triggers Budget_Denied' );
@@ -234,7 +234,7 @@ echo "  #84.6 conflict refusal on unreviewed target trigger: PASS\n";
 
 // ---------------------------------------------------------------------------
 // #84.6b: Collision refusal for all destructive/replacement behavior. Foreign
-// objects that merely share a CommitCap name must never be overwritten.
+// objects that merely share a WriteLeash name must never be overwritten.
 // The suite restores the exact reviewed fixture before returning.
 // ---------------------------------------------------------------------------
 function cc84_reset_grants( $root ) {
@@ -259,7 +259,7 @@ cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schem
 cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM mysql.user WHERE user='cc84_probe_user'" ), '#84.6b install created user after refusal' );
 cc84_query( $root, 'DROP TABLE commitcap_v01_state' );
 
-// (b) Foreign-bodied CommitCap-named routine refuses install/replacement.
+// (b) Foreign-bodied managed runtime routine refuses install/replacement.
 cc84_query( $root, 'DROP PROCEDURE commitcap_v01_count' );
 cc84_query( $root, 'CREATE PROCEDURE commitcap_v01_count(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin, OUT p_count BIGINT UNSIGNED) SQL SECURITY DEFINER BEGIN SET p_count = 999; END' );
 $routine_refused = false;
@@ -320,7 +320,7 @@ foreach ( Engine::routine_names() as $routine ) {
 $installer->install_infrastructure();
 cc84_reset_grants( $root );
 
-// (e) Uninstall refuses when a CommitCap-named routine has a foreign body.
+// (e) Uninstall refuses when a managed runtime routine has a foreign body.
 cc84_query( $root, 'DROP PROCEDURE commitcap_v01_attest' );
 cc84_query( $root, 'CREATE PROCEDURE commitcap_v01_attest() SQL SECURITY DEFINER BEGIN SELECT 1; END' );
 $uninstall_refused = false;
@@ -504,7 +504,7 @@ try {
 	Guard::update( 'cc84_rot_tbl', 0, function () use ( $rot_v2 ) {
 		$rot_v2->query( 'UPDATE cc84_rot_tbl SET touched = touched + 1 WHERE id = 1' );
 	}, $rot_v2 );
-} catch ( \CommitCap\Budget_Denied $e ) {
+} catch ( \WriteLeash\Budget_Denied $e ) {
 	$rot_denied = true;
 }
 cc84_assert( $rot_denied, '#84.6d rotated runtime lost budget enforcement' );
@@ -687,7 +687,7 @@ try {
 	Guard::update( 'cc84_b', 0, function () use ( $v3_writer ) {
 		$v3_writer->query( 'UPDATE cc84_b SET touched = touched + 1 WHERE id = 1' );
 	}, $v3_writer );
-} catch ( \CommitCap\Budget_Denied $error ) {
+} catch ( \WriteLeash\Budget_Denied $error ) {
 	$v3_denied = true;
 }
 cc84_assert( $v3_denied, '#84.8 V2 Guard did not enforce after supported drain' );
@@ -723,7 +723,7 @@ cc84_assert( 'FAIL' === $unsafe_report['overall'] && 'UNKNOWN' === $unsafe_repor
 $ran_unsafe = false;
 try {
 	Guard::update( 'cc84_b', 5, function () use ( &$ran_unsafe ) { $ran_unsafe = true; }, $unsafe_v2 );
-} catch ( \CommitCap\Guard_Error $error ) {
+} catch ( \WriteLeash\Guard_Error $error ) {
 	cc84_assert( 'policy_unverified' === $error->reason(), '#84.8 unsafe Guard refusal reason' );
 }
 cc84_assert( ! $ran_unsafe, '#84.8 Guard ran callback despite unsafe rotation' );
@@ -875,7 +875,7 @@ $plan_uninstall->apply( $root );
 cc84_assert( 10 === (int) $root->get_var( 'SELECT COUNT(*) FROM cc84_a' ), '#84.9 cc84_a data survives uninstall' );
 cc84_assert( 20 === (int) $root->get_var( 'SELECT COUNT(*) FROM cc84_b' ), '#84.9 cc84_b data survives uninstall' );
 
-// CommitCap infrastructure objects are gone
+// WriteLeash infrastructure objects are gone
 $routines_left = (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'wp_test' AND ROUTINE_NAME LIKE 'commitcap_v01_%'" );
 cc84_assert( 0 === $routines_left, '#84.9 all routines dropped' );
 

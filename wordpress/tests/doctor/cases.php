@@ -1,12 +1,12 @@
 <?php
 // #57: real pinned engines and split grants. No mock database substitutes for
 // object verification, effective privileges or Guard transaction behavior.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 
-use CommitCap\Compatibility_Doctor as Doctor;
-use CommitCap\Compatibility_Grants as Grants;
-use CommitCap\Guard;
-use CommitCap\Update_Engine as Engine;
+use WriteLeash\Compatibility_Doctor as Doctor;
+use WriteLeash\Compatibility_Grants as Grants;
+use WriteLeash\Guard;
+use WriteLeash\Update_Engine as Engine;
 
 function cc57_assert( $value, $label ) {
 	if ( ! $value ) {
@@ -84,7 +84,7 @@ foreach ( array( '8.0.45' => 'MySQL', '10.11.16-MariaDB' => 'MariaDB', '10.11.15
 	cc57_assert( 'PASS' === $label[0] && $family === $label[2] && false !== strpos( $label[1], 'UNTESTED' ), 'later version incorrectly labelled tested' );
 }
 // #57 Blocker 1 adversarial regression, real engines. A cross-schema writable
-// table whose trigger resets CommitCap authority is invisible to the lexical
+// table whose trigger resets WriteLeash authority is invisible to the lexical
 // Guard monitor. The server-side bypass is preserved as explicit negative
 // evidence; the doctor must refuse to PASS this environment.
 $sidecar = 'cc57sidecar';

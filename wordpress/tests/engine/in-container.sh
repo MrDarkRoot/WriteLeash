@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 for host in mysql mariadb; do
-  site="/tmp/commitcap-engine-$host"
+  site="/tmp/writeleash-engine-$host"
   cp -R /opt/wp-core/. "$site/"
   sh /opt/tests/stage-plugin.sh "$site"
   wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost="$host"
