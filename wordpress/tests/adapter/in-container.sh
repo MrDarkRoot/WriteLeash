@@ -55,6 +55,32 @@ for host in mysql mariadb; do
     CC_ENGINE_HOST="$host" CC60_PHASE="${failure}_fix" wp --path="$site" eval-file /opt/tests/adapter/cli-fixture-60.php
   done
   echo "#60 $host: CLI doctor rejects live P/grant/policy drift; repaired production READY: PASS"
+  # #61 final threat-model adversarial matrix on the production surfaces.
+  CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-61-threat-model.php
+  # Deactivation boundary: CommitCap inactive -> certified global Disable is stock.
+  wp --path="$site" plugin deactivate commitcap-for-wordpress
+  CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-61-deactivated.php
+  wp --path="$site" plugin activate commitcap-for-wordpress
+  # Bounded concurrency: two independent certified requests, one budget each.
+  CC_ENGINE_HOST="$host" CC61_PHASE=seed wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php
+  CC_ENGINE_HOST="$host" CC61_PHASE=run wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php >"/tmp/cc61-run-1-$host.json" 2>"/tmp/cc61-run-1-$host.err" &
+  cc61_pid_1=$!
+  CC_ENGINE_HOST="$host" CC61_PHASE=run wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php >"/tmp/cc61-run-2-$host.json" 2>"/tmp/cc61-run-2-$host.err" &
+  cc61_pid_2=$!
+  cc61_status=0
+  wait "$cc61_pid_1" || cc61_status=1
+  wait "$cc61_pid_2" || cc61_status=1
+  if [ "$cc61_status" -ne 0 ]; then
+    echo "concurrent certified request failed" >&2
+    cat "/tmp/cc61-run-1-$host.json" "/tmp/cc61-run-1-$host.err" "/tmp/cc61-run-2-$host.json" "/tmp/cc61-run-2-$host.err" >&2
+    exit 1
+  fi
+  for cc61_run in "1-$host" "2-$host"; do
+    cc61_json=$(cat "/tmp/cc61-run-$cc61_run.json")
+    php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["status"] !== 200 || $d["outcome"] !== "COMMITTED" || $d["consumed"] !== 6 || $d["logical_budget"] !== 10) exit(1);' "$cc61_json"
+  done
+  CC_ENGINE_HOST="$host" CC61_PHASE=verify wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php
+  rm -f "/tmp/cc61-run-1-$host.json" "/tmp/cc61-run-1-$host.err" "/tmp/cc61-run-2-$host.json" "/tmp/cc61-run-2-$host.err"
   CC_ENGINE_HOST="$host" CC60_PHASE=begin wp --path="$site" eval-file /opt/tests/adapter/cli-fixture-60.php
   for expected in B A B; do
     demo_json=$(wp --path="$site" commitcap demo --format=json)

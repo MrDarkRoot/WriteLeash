@@ -23,8 +23,9 @@ developmental; no plugin license decision has been made (#64).
 
 **MySQL/MariaDB does not currently provide the PostgreSQL-equivalent sticky
 transaction boundary demonstrated by CommitCap's PostgreSQL research path.**
-The planned WordPress V0.1 contract is a **cooperative guarded-transaction
-model**. **The guard/engine itself is NOT implemented by #55.** See the [#53
+The WordPress V0.1 contract is a **cooperative guarded-transaction
+model**, implemented and tested in this subtree (#54/#56/#57/#78/#82–#84/#87/#58/#60).
+See the [#53
 feasibility experiment](../../experiments/mysql_tx_budget/README.md): event six
 was denied on the pinned test servers, but COMMIT still succeeded after savepoint
 recovery. Autocommit issues separate transaction authority for each statement.
@@ -44,6 +45,9 @@ split-privilege fixture is only a cooperative mechanism, not an adversarial
 database-writer security boundary. Application code must not invoke these
 lifecycle routines directly; only `CommitCap\Guard::update()` owns them for a
 supported job.
+[THREAT-MODEL.md](THREAT-MODEL.md) is the final #61 cooperative threat model:
+actors/authorities, reachable DB graph, budget semantics, fail-closed rules, the
+adversarial test matrix and every documented outside-contract/UNKNOWN path.
 The Free V0.1 development surface supports **one** certified operation:
 Redirection 5.5.2 unfiltered global/select-all Bulk Disable. #58's
 [CommitCap-owned disposable demo](DEMO.md) is independent of that real
