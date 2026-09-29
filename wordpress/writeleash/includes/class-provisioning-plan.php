@@ -131,7 +131,7 @@ final class Provisioning_Plan {
 		$steps[]     = array(
 			'id'             => 'create_helper_table',
 			'kind'           => 'DDL',
-			'description'    => "Create WriteLeash helper state table `$schema`.`$state_table`",
+			'description'    => "Create WriteLeash-managed helper state table `$schema`.`$state_table`",
 			'sql'            => $sql_helper,
 			'raw_sql'        => $sql_helper,
 			'statements'     => array( $sql_helper ),
@@ -458,8 +458,8 @@ final class Provisioning_Plan {
 
 	/**
 	 * Render plan to clean up all WriteLeash infrastructure, triggers, and runtime account.
-	 * Application tables and rows are NEVER dropped. Foreign-bodied WriteLeash-named
-	 * objects are refused, not overwritten or destroyed.
+	 * Application tables and rows are NEVER dropped. Foreign-bodied managed
+	 * runtime objects are refused, not overwritten or destroyed.
 	 *
 	 * @param string $schema Database schema name.
 	 * @param string $runtime_user Restricted DB username.
@@ -506,7 +506,7 @@ final class Provisioning_Plan {
 			$steps[] = array(
 				'id'             => "drop_routine_$rname",
 				'kind'           => 'DDL',
-				'description'    => "Drop WriteLeash routine `$schema`.`$rname`",
+				'description'    => "Drop WriteLeash-managed routine `$schema`.`$rname`",
 				'sql'            => $sql_drop_r,
 				'raw_sql'        => $sql_drop_r,
 				'statements'     => array( $sql_drop_r ),
@@ -522,7 +522,7 @@ final class Provisioning_Plan {
 		$steps[]     = array(
 			'id'              => 'drop_helper_table',
 			'kind'            => 'DDL',
-			'description'     => "Drop WriteLeash helper table `$schema`.`$state_table`",
+			'description'     => "Drop WriteLeash-managed helper table `$schema`.`$state_table`",
 			'sql'             => $sql_drop_st,
 			'raw_sql'         => $sql_drop_st,
 			'statements'      => array( $sql_drop_st ),
@@ -677,7 +677,7 @@ final class Provisioning_Plan {
 		$engine = new Update_Engine( $installer );
 
 		// Conflict refusal runs before any DDL/DCL so a foreign object is never
-		// overwritten merely because a WriteLeash name collides.
+		// overwritten merely because a managed runtime object name collides.
 		$this->assert_preconditions( $engine, $installer );
 
 		$details  = array();
@@ -842,7 +842,7 @@ final class Provisioning_Plan {
 			Update_Engine::STATE
 		) );
 		if ( null === $count || '' !== (string) $installer->last_error ) {
-			throw new \RuntimeException( 'Unable to inspect the WriteLeash helper table; refusing to continue.' );
+			throw new \RuntimeException( 'Unable to inspect the managed helper table; refusing to continue.' );
 		}
 		return 0 < (int) $count;
 	}

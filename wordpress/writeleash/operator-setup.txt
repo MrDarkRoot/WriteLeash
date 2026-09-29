@@ -233,7 +233,7 @@ REMOVAL AND UNINSTALL
 
 * Remove protection only: apply Provisioning_Plan::remove_target. The policy
   trigger and target grants are removed; the application table and all rows stay.
-* Full operator cleanup: apply Provisioning_Plan::uninstall. WriteLeash triggers,
+* Full operator cleanup: apply Provisioning_Plan::uninstall. WriteLeash-managed triggers,
   the five routines, the helper table and the runtime account are removed.
   Application tables and Redirection data are never touched.
 * WordPress uninstall (deleting the plugin from the Plugins screen) removes only

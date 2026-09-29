@@ -52,7 +52,7 @@ All database modifications are generated as inspectable, version-pinned SQL plan
 1. **Offline Reviewability**: Plans output structured statement metadata and human-readable SQL scripts.
 2. **Secret Redaction**: Passwords/secrets are masked by default (`[REDACTED_SECRET]`) in all logs, CLI outputs, and Doctor reports. Credential statements never appear in exception messages, apply results, or host error logging (`DCL` execution is wrapped in `suppress_errors`); failures report the step id and a withheld-SQL marker instead.
 3. **Application Table Preservation**: Target removal and plugin uninstallation **NEVER drop application tables or delete existing application rows**. Only WriteLeash-owned triggers, procedures, helper state, and runtime accounts are touched.
-4. **Conflict Refusal**: Apply runs a pre-flight before any statement. A foreign helper shape, a WriteLeash-named routine with a foreign body, an existing runtime account with grants outside the reviewed surface, a foreign trigger (including one that merely reuses the expected trigger name), or a non-canonical object during remove/uninstall refuses the plan. Nothing foreign is dropped, replaced or revoked.
+4. **Conflict Refusal**: Apply runs a pre-flight before any statement. A foreign helper shape, a managed runtime routine with a foreign body, an existing runtime account with grants outside the reviewed surface, a foreign trigger (including one that merely reuses the expected trigger name), or a non-canonical object during remove/uninstall refuses the plan. Nothing foreign is dropped, replaced or revoked.
 5. **No Retained Installer Secrets**: The apply phase runs through a temporary installer connection provided by the operator; credentials are discarded immediately.
 6. **Deterministic Replay**: DDL/DCL is auto-commit. Install/add/remove/uninstall can stop halfway and need trusted replay and verification. A rotated credential with a failed drain is **not** fixed by Doctor alone: use the standalone drain under the new secret, then independently verify. Never re-run an old-secret plan as a substitute for draining.
 
@@ -240,7 +240,7 @@ it requires `SELECT` on the `mysql` schema. `SHOW GRANTS FOR` other accounts
 requires `SELECT` on the `mysql` schema. `root` satisfies all of these.
 
 ### 3.6 Uninstall (`Provisioning_Plan::uninstall`)
-1. Drop triggers on all active target tables (only canonical WriteLeash triggers;
+1. Drop triggers on all active target tables (only canonical managed triggers;
    a foreign-bodied expected-name trigger refuses the plan).
 2. Drop the 5 stored procedures (only canonical bodies; foreign bodies refuse).
 3. Drop helper table `commitcap_v01_state`.

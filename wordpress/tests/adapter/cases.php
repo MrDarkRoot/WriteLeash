@@ -406,7 +406,7 @@ wp_set_current_user( 1 );
 $normal->query( 'SELECT 1' );
 $normal_ok = $normal->query( 'UPDATE wp_redirection_items SET status = ' . "'disabled'" . ' WHERE id = ' . (int) $ids[0] );
 cc87_assert( false !== $normal_ok, 'normal WordPress UPDATE was denied under the installed policy: ' . $normal->last_error );
-cc87_assert( false === strpos( (string) $normal->last_error, 'CC54_DENIED' ), 'normal WordPress UPDATE hit the WriteLeash trigger' );
+cc87_assert( false === strpos( (string) $normal->last_error, 'CC54_DENIED' ), 'normal WordPress UPDATE hit the managed runtime trigger' );
 cc87_assert( 1 === (int) $root->get_var( 'SELECT COUNT(*) FROM wp_redirection_items WHERE id = ' . (int) $ids[0] . " AND status = 'disabled'" ), 'normal WordPress UPDATE was not durable' );
 echo "  normal WordPress identity update unaffected by installed policy: PASS\n";
 

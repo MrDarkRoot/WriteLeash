@@ -22,7 +22,7 @@ cc87_assert( $updates >= 1, 'stock global Disable must still run Redirection\'s 
 cc87_assert( array( 2, 2 ) === cc87_counts( $root ), 'stock global Disable durability' );
 foreach ( $threads as $statements ) {
 	foreach ( $statements as $sql ) {
-		cc87_assert( false === stripos( $sql, 'commitcap_v01_' ), 'WriteLeash helper SQL ran while deactivated: ' . $sql );
+		cc87_assert( false === stripos( $sql, 'commitcap_v01_' ), 'managed runtime helper SQL ran while deactivated: ' . $sql );
 	}
 }
 echo "#61 $host: WriteLeash deactivated -> certified global Disable is stock and unprotected (documented boundary): PASS\n";

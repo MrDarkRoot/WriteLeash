@@ -11,7 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Update_Engine {
 	public const STATE = 'commitcap_v01_state';
-	public const COMMENT = 'WriteLeash V0.1 cooperative UPDATE state';
+	// #97 owns the low-level database-object rename. Until then the canonical
+	// helper table, its TABLE_COMMENT and the routine/trigger family keep the
+	// pre-#96 names exactly, so the attestation shape stays unchanged.
+	public const COMMENT = 'CommitCap V0.1 cooperative UPDATE state';
 	private const MAX_BUDGET = '2147483647';
 	private const ROUTINE_NAMES = array(
 		'commitcap_v01_open', 'commitcap_v01_close', 'commitcap_v01_count',
@@ -205,7 +208,7 @@ final class Update_Engine {
 		) );
 		if ( 1 !== count( $tables ) || 'BASE TABLE' !== $tables[0]->TABLE_TYPE ||
 			'InnoDB' !== $tables[0]->ENGINE || self::COMMENT !== $tables[0]->TABLE_COMMENT ) {
-			throw new \RuntimeException( 'Unknown/conflicting WriteLeash helper object.' );
+			throw new \RuntimeException( 'Unknown/conflicting managed helper object.' );
 		}
 		$columns = $this->rows( $this->db->prepare(
 			'SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s ORDER BY ORDINAL_POSITION', self::STATE
@@ -216,7 +219,7 @@ final class Update_Engine {
 			'char(64)' !== strtolower( $columns[1]->COLUMN_TYPE ) ||
 			! preg_match( '/\Abigint(?:\(20\))? unsigned\z/i', $columns[2]->COLUMN_TYPE ) ||
 			'NO' !== $columns[0]->IS_NULLABLE || 'NO' !== $columns[1]->IS_NULLABLE || 'NO' !== $columns[2]->IS_NULLABLE ) {
-			throw new \RuntimeException( 'Unknown WriteLeash helper column shape.' );
+			throw new \RuntimeException( 'Unknown managed helper column shape.' );
 		}
 		$indexes = $this->rows( $this->db->prepare(
 			'SELECT INDEX_NAME, COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s ORDER BY INDEX_NAME, SEQ_IN_INDEX', self::STATE
@@ -224,7 +227,7 @@ final class Update_Engine {
 		if ( 2 !== count( $indexes ) || 'PRIMARY' !== $indexes[0]->INDEX_NAME ||
 			'connection_id' !== $indexes[0]->COLUMN_NAME || 'PRIMARY' !== $indexes[1]->INDEX_NAME ||
 			'policy_id' !== $indexes[1]->COLUMN_NAME || $this->triggers( self::STATE ) ) {
-			throw new \RuntimeException( 'Unknown WriteLeash helper key or trigger.' );
+			throw new \RuntimeException( 'Unknown managed helper key or trigger.' );
 		}
 	}
 
@@ -240,14 +243,14 @@ final class Update_Engine {
 		if ( null === $entry || ! is_string( $entry->ROUTINE_DEFINITION ) ||
 			! self::same_sql( $entry->ROUTINE_DEFINITION, $body ) || 'DEFINER' !== $entry->SECURITY_TYPE ||
 			$entry->DEFINER !== $this->db->get_var( 'SELECT CURRENT_USER()' ) ) {
-			throw new \RuntimeException( 'Unknown/conflicting WriteLeash routine: ' . $name );
+			throw new \RuntimeException( 'Unknown/conflicting managed routine: ' . $name );
 		}
 		$params = $this->rows( $this->db->prepare(
 			'SELECT ORDINAL_POSITION, PARAMETER_NAME, PARAMETER_MODE, DTD_IDENTIFIER, CHARACTER_SET_NAME, COLLATION_NAME FROM information_schema.PARAMETERS WHERE SPECIFIC_SCHEMA = DATABASE() AND SPECIFIC_NAME = %s ORDER BY ORDINAL_POSITION', $name
 		) );
 		$expected = self::signature( $name );
 		if ( count( $params ) !== count( $expected ) ) {
-			throw new \RuntimeException( 'Unknown WriteLeash routine signature: ' . $name );
+			throw new \RuntimeException( 'Unknown managed routine signature: ' . $name );
 		}
 		foreach ( $expected as $index => $spec ) {
 			$param = $params[ $index ];
@@ -258,7 +261,7 @@ final class Update_Engine {
 					? ! preg_match( '/\Abigint(?:\(20\))? unsigned\z/', $dtd )
 					: $spec[2] !== $dtd ) ||
 				$spec[3] !== $param->CHARACTER_SET_NAME || $spec[4] !== $param->COLLATION_NAME ) {
-				throw new \RuntimeException( 'Unknown WriteLeash routine signature: ' . $name );
+				throw new \RuntimeException( 'Unknown managed routine signature: ' . $name );
 			}
 		}
 	}
@@ -560,7 +563,7 @@ final class Update_Engine {
 		) );
 		if ( 1 !== count( $tables ) || 'BASE TABLE' !== $tables[0]->TABLE_TYPE ||
 			'InnoDB' !== $tables[0]->ENGINE || self::COMMENT !== $tables[0]->TABLE_COMMENT ) {
-			throw new \RuntimeException( 'WriteLeash runtime helper object is missing or conflicting.' );
+			throw new \RuntimeException( 'Managed runtime helper object is missing or conflicting.' );
 		}
 		$columns = $this->rows( $this->db->prepare(
 			'SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s ORDER BY ORDINAL_POSITION', self::STATE
@@ -571,7 +574,7 @@ final class Update_Engine {
 			'char(64)' !== strtolower( $columns[1]->COLUMN_TYPE ) ||
 			! preg_match( '/\Abigint(?:\(20\))? unsigned\z/i', $columns[2]->COLUMN_TYPE ) ||
 			'NO' !== $columns[0]->IS_NULLABLE || 'NO' !== $columns[1]->IS_NULLABLE || 'NO' !== $columns[2]->IS_NULLABLE ) {
-			throw new \RuntimeException( 'WriteLeash runtime helper column shape is unknown.' );
+			throw new \RuntimeException( 'Managed runtime helper column shape is unknown.' );
 		}
 		$indexes = $this->rows( $this->db->prepare(
 			'SELECT INDEX_NAME, COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s ORDER BY INDEX_NAME, SEQ_IN_INDEX', self::STATE
@@ -579,7 +582,7 @@ final class Update_Engine {
 		if ( 2 !== count( $indexes ) || 'PRIMARY' !== $indexes[0]->INDEX_NAME ||
 			'connection_id' !== $indexes[0]->COLUMN_NAME || 'PRIMARY' !== $indexes[1]->INDEX_NAME ||
 			'policy_id' !== $indexes[1]->COLUMN_NAME || $this->triggers( self::STATE ) ) {
-			throw new \RuntimeException( 'WriteLeash runtime helper key or trigger shape is unknown.' );
+			throw new \RuntimeException( 'Managed runtime helper key or trigger shape is unknown.' );
 		}
 	}
 
@@ -719,7 +722,7 @@ final class Update_Engine {
 	/** Trusted structural check for one existing routine, refusing foreign bodies. */
 	public function assert_canonical_routine( string $name ): void {
 		if ( ! in_array( $name, self::ROUTINE_NAMES, true ) ) {
-			throw new \InvalidArgumentException( 'Unknown WriteLeash routine name.' );
+			throw new \InvalidArgumentException( 'Unknown managed routine name.' );
 		}
 		$entry = $this->routine( $name );
 		if ( null === $entry ) {
@@ -727,13 +730,13 @@ final class Update_Engine {
 		}
 		$canonical = self::routines()[ $name ];
 		if ( ! is_string( $entry->ROUTINE_DEFINITION ) || ! self::same_sql( $entry->ROUTINE_DEFINITION, $canonical ) ) {
-			throw new \RuntimeException( 'Existing WriteLeash-named routine has a foreign body; refusing to replace it: ' . $name . '.' );
+			throw new \RuntimeException( 'Existing managed runtime routine has a foreign body; refusing to replace it: ' . $name . '.' );
 		}
 	}
 
 	/**
 	 * Trusted structural check for an existing target trigger.
-	 * Absent trigger = true; canonical WriteLeash trigger = true; foreign = throw.
+	 * Absent trigger = true; canonical managed trigger = true; foreign = throw.
 	 */
 	public function assert_canonical_trigger( string $table, bool $allow_absent, string $runtime_user ): bool {
 		$name    = self::table( $table );
@@ -750,7 +753,7 @@ final class Update_Engine {
 		}
 		$statement = (string) $info['triggers'][0]->ACTION_STATEMENT;
 		if ( ! self::statement_is_canonical_trigger( $name, $statement, $runtime ) ) {
-			throw new \RuntimeException( 'Refusing to replace a WriteLeash-named trigger with a foreign body on ' . $name . '.' );
+			throw new \RuntimeException( 'Refusing to replace a managed runtime trigger with a foreign body on ' . $name . '.' );
 		}
 		return true;
 	}

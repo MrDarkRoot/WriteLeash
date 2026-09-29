@@ -259,7 +259,7 @@ cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schem
 cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM mysql.user WHERE user='cc84_probe_user'" ), '#84.6b install created user after refusal' );
 cc84_query( $root, 'DROP TABLE commitcap_v01_state' );
 
-// (b) Foreign-bodied WriteLeash-named routine refuses install/replacement.
+// (b) Foreign-bodied managed runtime routine refuses install/replacement.
 cc84_query( $root, 'DROP PROCEDURE commitcap_v01_count' );
 cc84_query( $root, 'CREATE PROCEDURE commitcap_v01_count(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin, OUT p_count BIGINT UNSIGNED) SQL SECURITY DEFINER BEGIN SET p_count = 999; END' );
 $routine_refused = false;
@@ -320,7 +320,7 @@ foreach ( Engine::routine_names() as $routine ) {
 $installer->install_infrastructure();
 cc84_reset_grants( $root );
 
-// (e) Uninstall refuses when a WriteLeash-named routine has a foreign body.
+// (e) Uninstall refuses when a managed runtime routine has a foreign body.
 cc84_query( $root, 'DROP PROCEDURE commitcap_v01_attest' );
 cc84_query( $root, 'CREATE PROCEDURE commitcap_v01_attest() SQL SECURITY DEFINER BEGIN SELECT 1; END' );
 $uninstall_refused = false;

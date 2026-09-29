@@ -123,7 +123,7 @@ final class Compatibility_Grants {
 				if ( 'EXECUTE' === $privilege ) {
 					if ( 'PROCEDURE' !== $grant['kind'] || $this->schema !== $grant['database'] ||
 						! in_array( $grant['object'], self::ROUTINES, true ) ) {
-						return array( 'FAIL', 'EXECUTE extends beyond the five reviewed WriteLeash procedures.' );
+						return array( 'FAIL', 'EXECUTE extends beyond the five reviewed runtime procedures.' );
 					}
 					$reviewed[ $grant['object'] ] = true;
 				}
@@ -152,7 +152,7 @@ final class Compatibility_Grants {
 				}
 				if ( $this->applies( $grant ) && '*' === $grant['object'] &&
 					in_array( $privilege, array( 'INSERT', 'UPDATE', 'DELETE', 'REFERENCES' ), true ) ) {
-					return array( 'FAIL', 'Schema-wide write privilege includes the WriteLeash helper table.' );
+					return array( 'FAIL', 'Schema-wide write privilege includes the managed helper table.' );
 				}
 			}
 		}
@@ -163,7 +163,7 @@ final class Compatibility_Grants {
 			return array( 'FAIL', 'Runtime account lacks explicit EXECUTE on all five reviewed procedures.' );
 		}
 		if ( ! $helper_select ) {
-			return array( 'FAIL', 'Runtime account lacks the reviewed SELECT grant on the WriteLeash helper state table.' );
+			return array( 'FAIL', 'Runtime account lacks the reviewed SELECT grant on the managed helper state table.' );
 		}
 		return array( 'PASS', 'Direct grants restrict EXECUTE to five reviewed procedures, allow only helper-state SELECT and exclude helper writes and enforcement DDL.' );
 	}

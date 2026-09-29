@@ -39,7 +39,7 @@ final class Guard_Sql {
 			return self::CLEAR;
 		}
 
-		// Any reference to a WriteLeash session variable is reserved, whether it
+		// Any reference to a managed runtime session variable is reserved, whether it
 		// reads or writes the variable (for example SELECT @commitcap_v01_denied := 0).
 		foreach ( $tokens as $index => $token ) {
 			if ( 'symbol' === $token['type'] && '@' === $token['value'] ) {
@@ -56,7 +56,7 @@ final class Guard_Sql {
 		}
 		switch ( strtoupper( $first['value'] ) ) {
 			case 'CALL':
-				// A non-WriteLeash procedure may call CLOSE/OPEN or COMMIT inside
+				// A foreign procedure may call CLOSE/OPEN or COMMIT inside
 				// the server. Its body is opaque to the wpdb query filter.
 				return self::RESERVED;
 			case 'COMMIT':
