@@ -25,7 +25,15 @@ services:
       retries: 45
   tester:
     build:
-      context: ..
+      context: ../..
       dockerfile: tests/Dockerfile
+      args:
+        CORE_IMAGE: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mariadb:
+        condition: service_healthy
     volumes:
-      - ./research/.cache:/opt/plugin-zips:ro
+      - ../research/.cache:/opt/plugin-zips:ro
+    command: ["sh", "/opt/tests/current-core/in-container.sh"]

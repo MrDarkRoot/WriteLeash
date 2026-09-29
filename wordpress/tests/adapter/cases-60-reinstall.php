@@ -49,7 +49,7 @@ echo "#60 $host: reinstall defaults disabled/null with no old evidence in Admin/
 
 // Re-activation recreates only plugin metadata, never old authorization.
 \CommitCap\Lifecycle::activate();
-cc87_assert( '0.1.0-dev' === get_option( 'commitcap_version' ), 're-activation did not recreate plugin metadata' );
+cc87_assert( '0.1.0' === get_option( 'commitcap_version' ), 're-activation did not recreate plugin metadata' );
 $state = Config::read( $operation );
 cc87_assert( 'absent' === $state['state'] && false === $state['enabled'] && null === $state['logical_budget'], 're-activation restored old config' );
 cc87_assert( null === Last_Outcome::read(), 're-activation restored old evidence' );

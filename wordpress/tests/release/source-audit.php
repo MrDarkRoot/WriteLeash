@@ -58,4 +58,25 @@ if ( 1 !== $headers || $php_count < 20 ||
 	! preg_match( '/\* Text Domain: commitcap\s*$/m', file_get_contents( $root . '/commitcap.php' ) ) ) {
 	throw new RuntimeException( 'Plugin identity, source count or duplicate headers' );
 }
-echo "#62 source audit: $php_count guarded PHP files; one public header; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS\n";
+
+// #63/#64 staged release files: license, readme and the public operator guide
+// must be present; internal development documents must not be staged.
+foreach ( array( 'readme.txt', 'LICENSE', 'operator-setup.txt' ) as $required ) {
+	if ( ! is_file( $root . '/' . $required ) ) {
+		throw new RuntimeException( 'Required staged release file missing: ' . $required );
+	}
+}
+// The monorepo source root still carries its internal documents; a staged
+// distribution root does not. Reject internal documents only in the
+// distribution-shaped root so this audit can run against both.
+if ( ! is_file( $root . '/README.md' ) ) {
+	foreach ( array( 'LICENSE-AUDIT.md', 'RELEASE-MATRIX.md', 'THREAT-MODEL.md', 'PROVISIONING.md' ) as $excluded ) {
+		if ( is_file( $root . '/' . $excluded ) ) {
+			throw new RuntimeException( 'Internal document staged into the distribution: ' . $excluded );
+		}
+	}
+}
+if ( 'edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6' !== hash_file( 'sha256', $root . '/LICENSE' ) ) {
+	throw new RuntimeException( 'Staged LICENSE is not the reviewed verbatim GNU GPLv2 text' );
+}
+echo "#62/#63 source audit: $php_count guarded PHP files; one public header; GPLv2 LICENSE; readme/operator guide staged; no internal docs; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS\n";

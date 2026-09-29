@@ -19,9 +19,11 @@ trap cleanup EXIT
 curl -fsSL -o "$check_zip.tmp" https://downloads.wordpress.org/plugin/plugin-check.2.1.0.zip
 printf '%s  %s\n' '6ff4bd2145f3befcf907df158cc466b1649dafed5686de8369907403c3013fc4' "$check_zip.tmp" | sha256sum -c -
 mv "$check_zip.tmp" "$check_zip"
+php "$here/package-preflight.php" "$repo/wordpress/commitcap-for-wordpress" "$repo/wordpress/release/commitcap-distribution-files.txt"
+php "$here/readme-validate.php" "$repo/wordpress/commitcap-for-wordpress"
 php "$here/source-audit.php" "$repo/wordpress/commitcap-for-wordpress"
 linted=0
-for file in "$tests"/*.php "$tests"/adapter/*.php "$tests"/engine/*.php "$tests"/guard/*.php "$tests"/doctor/*.php "$here"/*.php; do
+for file in "$tests"/*.php "$tests"/adapter/*.php "$tests"/current-core/*.php "$tests"/engine/*.php "$tests"/guard/*.php "$tests"/doctor/*.php "$here"/*.php; do
   php -l "$file" >/dev/null
   linted=$((linted + 1))
 done
@@ -35,4 +37,6 @@ echo '#62 both engines: cooperative engine/Guard/Doctor/provisioning research'
 bash "$tests/engine/run.sh"
 echo '#62 both engines: real authenticated Redirection REST, Admin/CLI, lifecycle, #61 overlap, Plugin Check 2.1.0'
 CC62_PLUGIN_CHECK=1 bash "$tests/adapter/run.sh"
-echo '#62 technical release matrix PASS (source-tree preflight only; see RELEASE-MATRIX.md for UNKNOWN/DEFERRED)'
+echo '#63 both engines: current-stable WordPress 7.1.2 compatibility gate'
+bash "$tests/current-core/run.sh"
+echo '#63 technical release matrix PASS (source-tree preflight only; see RELEASE-MATRIX.md for UNKNOWN/DEFERRED)'
