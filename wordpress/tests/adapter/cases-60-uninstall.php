@@ -1,22 +1,22 @@
 <?php
 // #60 repair: the actual WordPress uninstall.php removes only local
-// CommitCap-owned options; trusted DB infrastructure is operator lifecycle.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+// WriteLeash-owned options; trusted DB infrastructure is operator lifecycle.
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
 if ( ! function_exists( 'uninstall_plugin' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php';
 }
 
-use CommitCap\Certified_Operation as Operation;
-use CommitCap\Disposable_Demo as Demo;
-use CommitCap\Disposable_Demo_Setup as Setup;
-use CommitCap\Last_Outcome;
-use CommitCap\Operation_Config as Config;
-use CommitCap\Update_Engine as Engine;
+use WriteLeash\Certified_Operation as Operation;
+use WriteLeash\Disposable_Demo as Demo;
+use WriteLeash\Disposable_Demo_Setup as Setup;
+use WriteLeash\Last_Outcome;
+use WriteLeash\Operation_Config as Config;
+use WriteLeash\Update_Engine as Engine;
 
 $host = getenv( 'CC_ENGINE_HOST' );
 cc87_assert( in_array( $host, array( 'mysql', 'mariadb' ), true ), '#60 uninstall pinned host' );
-$plugin = 'commitcap/commitcap.php';
+$plugin = 'writeleash/writeleash.php';
 $normal = $GLOBALS['wpdb'];
 $normal->suppress_errors( true );
 $root = new wpdb( 'root', 'disposable_root_password', 'wp_test', $host );
@@ -26,17 +26,24 @@ $demo_table = Demo::table( (string) $normal->prefix );
 $table = 'wp_redirection_items';
 $options_table = (string) $normal->options;
 $owned_options = array(
-	'commitcap_version',
+	'writeleash_version',
 	Config::STATE_OPTION,
 	Last_Outcome::OPTION,
+	'writeleash_operation_budget_redirection_5_5_2_bulk_disable',
+);
+// Finite pre-release development cleanup: exact old CommitCap option names only.
+$legacy_cleanup = array(
+	'commitcap_version',
+	'commitcap_certified_operation_state',
+	'commitcap_last_certified_outcome',
 	'commitcap_operation_budget_redirection_5_5_2_bulk_disable',
 );
 
 // Drift regression: exact literals in the standalone uninstall file must match
 // the production class constants (uninstall.php never bootstraps the plugin).
-$uninstall_source = file_get_contents( WP_PLUGIN_DIR . '/commitcap/uninstall.php' );
+$uninstall_source = file_get_contents( WP_PLUGIN_DIR . '/writeleash/uninstall.php' );
 cc87_assert( is_string( $uninstall_source ) && '' !== $uninstall_source, 'uninstall.php readable' );
-foreach ( $owned_options as $owned_option ) {
+foreach ( array_merge( $owned_options, $legacy_cleanup ) as $owned_option ) {
 	cc87_assert( false !== strpos( $uninstall_source, "'" . $owned_option . "'" ), 'uninstall.php drift, missing literal: ' . $owned_option );
 }
 
@@ -63,8 +70,14 @@ Last_Outcome::record( array(
 	'guard_rollback_completed'         => null,
 	'durability_verified_by_fresh_observer' => false,
 ) );
-update_option( 'commitcap_operation_budget_redirection_5_5_2_bulk_disable', 1 );
-update_option( 'commitcap_unrelated', 'keep me' );
+update_option( 'writeleash_operation_budget_redirection_5_5_2_bulk_disable', 1 );
+update_option( 'writeleash_unrelated', 'keep me' );
+update_option( 'commitcap_unrelated', 'keep me too' );
+// Adversarial old-brand state: deleted by exact name, never read as authority.
+update_option( 'commitcap_version', '0.1.0', false );
+update_option( 'commitcap_certified_operation_state', array( 'operation_id' => Operation::REDIRECTION_BULK_DISABLE_ID, 'enabled' => true, 'logical_budget' => 2000 ), false );
+update_option( 'commitcap_last_certified_outcome', array( 'outcome' => 'COMMITTED' ), false );
+update_option( 'commitcap_operation_budget_redirection_5_5_2_bulk_disable', 1, false );
 $state = Config::read( $operation );
 cc87_assert( true === $state['enabled'] && 10 === $state['logical_budget'], 'seeded product config shape' );
 cc87_assert( null !== Last_Outcome::read(), 'seeded last outcome invalid' );
@@ -93,7 +106,7 @@ cc87_assert( defined( 'WP_UNINSTALL_PLUGIN' ) && $plugin === WP_UNINSTALL_PLUGIN
 
 // Strict SQL classification: only bootstrap SELECTs, session SETs and the four
 // exact wp_options deletions are allowed in the uninstall window.
-$expected_deletes = array_fill_keys( $owned_options, 0 );
+$expected_deletes = array_fill_keys( array_merge( $owned_options, $legacy_cleanup ), 0 );
 $unexpected = array();
 foreach ( $threads as $statements ) {
 	foreach ( $statements as $sql ) {
@@ -120,11 +133,12 @@ foreach ( $threads as $statements ) {
 }
 
 // Exact local state removal, with existence checks against wp_options rows.
-foreach ( $owned_options as $owned_option ) {
+foreach ( array_merge( $owned_options, $legacy_cleanup ) as $owned_option ) {
 	$remaining = (string) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM `$options_table` WHERE option_name = %s", $owned_option ) );
 	cc87_assert( '0' === $remaining, 'uninstall left owned local state: ' . $owned_option );
 }
-cc87_assert( 'keep me' === get_option( 'commitcap_unrelated' ), 'uninstall removed an unrelated commitcap_-prefixed option' );
+cc87_assert( 'keep me' === get_option( 'writeleash_unrelated' ), 'uninstall removed an unrelated writeleash_-prefixed option' );
+cc87_assert( 'keep me too' === get_option( 'commitcap_unrelated' ), 'uninstall wildcard-deleted an unrelated commitcap_-prefixed option' );
 
 // Trusted DB infrastructure must be byte-identical and still canonical.
 $redirection_trigger_after = $root->get_row( $root->prepare( "SELECT $trigger_columns FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s", Engine::trigger_name( $table ) ), ARRAY_A );
@@ -148,4 +162,4 @@ $runtime->suppress_errors( true );
 $runtime->set_prefix( (string) $normal->prefix );
 cc87_assert( $runtime->ready && 2000 === ( new Engine( $runtime ) )->runtime_ceiling( $table ), 'shared runtime account unusable after uninstall' );
 cc87_assert( Demo::PHYSICAL_CEILING === ( new Engine( $runtime ) )->runtime_ceiling( $demo_table ), 'demo policy P=6 unusable after uninstall' );
-echo "#60 $host: actual uninstall removed only 4 exact options; runtime/grants/routines/helper/Redirection+demo policy and data unchanged; zero privileged SQL: PASS\n";
+echo "#60 $host: actual uninstall removed only 8 exact options (4 canonical + 4 pre-release development cleanup); runtime/grants/routines/helper/Redirection+demo policy and data unchanged; zero privileged SQL: PASS\n";

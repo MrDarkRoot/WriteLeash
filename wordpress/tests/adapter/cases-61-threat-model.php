@@ -2,19 +2,19 @@
 // #61 final threat-model adversarial proof on the production surfaces.
 // Everything here attacks the cooperative envelope or records its bounds.
 // It never broadens the runtime's authority or the product claim.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
 
-use CommitCap\Certified_Operation as Operation;
-use CommitCap\Certified_Operation_Status as Status;
-use CommitCap\Disposable_Demo as Demo;
-use CommitCap\Disposable_Demo_Setup as Setup;
-use CommitCap\Guard;
-use CommitCap\Guard_Error;
-use CommitCap\Operation_Config as Config;
-use CommitCap\Provisioning_Plan as Plan;
-use CommitCap\Redirection_Bulk_Disable as Adapter;
-use CommitCap\Update_Engine as Engine;
+use WriteLeash\Certified_Operation as Operation;
+use WriteLeash\Certified_Operation_Status as Status;
+use WriteLeash\Disposable_Demo as Demo;
+use WriteLeash\Disposable_Demo_Setup as Setup;
+use WriteLeash\Guard;
+use WriteLeash\Guard_Error;
+use WriteLeash\Operation_Config as Config;
+use WriteLeash\Provisioning_Plan as Plan;
+use WriteLeash\Redirection_Bulk_Disable as Adapter;
+use WriteLeash\Update_Engine as Engine;
 
 $host = getenv( 'CC_ENGINE_HOST' );
 cc87_assert( in_array( $host, array( 'mysql', 'mariadb' ), true ), '#61 pinned host' );
@@ -122,7 +122,7 @@ cc87_assert( false !== $normal->query( 'UPDATE cc61_normal_probe SET v = 1 WHERE
 	1 === (int) $root->get_var( 'SELECT v FROM cc61_normal_probe WHERE id = 1' ), 'normal WordPress identity keeps ordinary application authority' );
 // Honest boundary: the normal WordPress identity holds ordinary broad
 // application grants in this fixture (schema-wide EXECUTE), so it is outside
-// the cooperative envelope and not constrained by CommitCap.
+// the cooperative envelope and not constrained by WriteLeash.
 cc87_assert( false !== $normal->query( "CALL commitcap_v01_open('cc61_probe')" ), 'fixture normal identity has schema-wide routine EXECUTE' );
 cc87_query( $root, "DELETE FROM commitcap_v01_state WHERE policy_id = 'cc61_probe'" ); // trusted cleanup of the identity probe row
 cc87_assert( false === $runtime->query( "SELECT option_value FROM {$normal->options} LIMIT 1" ), 'runtime identity cannot read WordPress options' );
@@ -245,7 +245,7 @@ cc87_seed_bulk( $root, 6 );
 Config::set_logical_budget( $operation, 5 );
 for ( $attempt = 1; $attempt <= 2; ++$attempt ) {
 	$response = rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
-	cc87_assert( 409 === $response->get_status() && 'commitcap_budget_denied' === $response->get_data()['code'], 'retry ' . $attempt . ' must deny independently' );
+	cc87_assert( 409 === $response->get_status() && 'writeleash_budget_denied' === $response->get_data()['code'], 'retry ' . $attempt . ' must deny independently' );
 	cc87_assert( array( 6, 0 ) === cc87_counts( $root ), 'retry ' . $attempt . ' durable mutation' );
 }
 Config::set_logical_budget( $operation, 10 );
@@ -314,11 +314,11 @@ $leaked = $root->get_results( $root->prepare(
 	'%disposable_root_password%', '%cc87_secret%', '%cc87_initial_secret%'
 ), ARRAY_A );
 cc87_assert( array() === $leaked, 'credential material retained in wp_options: ' . json_encode( $leaked ) );
-$snapshot = \CommitCap\Product_Status::snapshot();
+$snapshot = \WriteLeash\Product_Status::snapshot();
 cc87_assert( false === strpos( wp_json_encode( $snapshot ), 'disposable_root_password' ) &&
 	false === strpos( wp_json_encode( $snapshot ), 'cc87_secret' ), 'status snapshot leaks credentials' );
 ob_start();
-\CommitCap\Admin_Page::render();
+\WriteLeash\Admin_Page::render();
 $admin_html = ob_get_clean();
 cc87_assert( false === strpos( $admin_html, 'disposable_root_password' ) && false === strpos( $admin_html, 'cc87_secret' ), 'Admin HTML leaks credentials' );
 echo "#61 $host: no installer/runtime credential material in options, status snapshot or Admin HTML: PASS\n";
@@ -326,12 +326,12 @@ echo "#61 $host: no installer/runtime credential material in options, status sna
 // ---------------------------------------------------------------------------
 // Prefix audit: production PHP derives all target names from wpdb->prefix.
 // ---------------------------------------------------------------------------
-foreach ( glob( WP_PLUGIN_DIR . '/commitcap/includes/*.php' ) as $file ) {
+foreach ( glob( WP_PLUGIN_DIR . '/writeleash/includes/*.php' ) as $file ) {
 	// Comments are stripped; string literals remain, so this detects real
 	// hard-coded target names, not documentation.
 	$source = php_strip_whitespace( $file );
 	cc87_assert( false === strpos( $source, 'wp_redirection_items' ), 'hard-coded wp_ target in ' . basename( $file ) );
-	cc87_assert( false === strpos( $source, 'wp_commitcap_demo_rows' ), 'hard-coded wp_ demo target in ' . basename( $file ) );
+	cc87_assert( false === strpos( $source, 'wp_writeleash_demo_rows' ), 'hard-coded wp_ demo target in ' . basename( $file ) );
 }
 echo "#61 $host: no hard-coded wp_ target names in production code: PASS\n";
 
@@ -352,9 +352,9 @@ $wrong_handler = array(
 // Exercise the exact production filter entrypoint WordPress calls, with an
 // unexpected matched handler identity for the certified route shape.
 list( $drift_result, $drift_threads ) = cc87_trace_all( $root, static function () use ( $drift_request, $wrong_handler ) {
-	return \CommitCap\Redirection_Bulk_Disable_Rest::dispatch( null, $drift_request, '/redirection/v1/bulk/redirect/(?P<action>[a-z]+)', $wrong_handler );
+	return \WriteLeash\Redirection_Bulk_Disable_Rest::dispatch( null, $drift_request, '/redirection/v1/bulk/redirect/(?P<action>[a-z]+)', $wrong_handler );
 } );
-cc87_assert( $drift_result instanceof WP_Error && 'commitcap_operation_unavailable' === $drift_result->get_error_code(), 'handler drift must 503: ' . json_encode( is_object( $drift_result ) ? $drift_result->get_error_code() : $drift_result ) );
+cc87_assert( $drift_result instanceof WP_Error && 'writeleash_operation_unavailable' === $drift_result->get_error_code(), 'handler drift must 503: ' . json_encode( is_object( $drift_result ) ? $drift_result->get_error_code() : $drift_result ) );
 cc87_assert( 503 === ( $drift_result->get_error_data()['status'] ?? null ), 'handler drift HTTP status' );
 cc87_assert( false === $wrong_handler_called, 'uncertified handler executed' );
 list( $drift_updates, ) = cc87_disable_updates( $drift_threads );

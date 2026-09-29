@@ -2,12 +2,12 @@
 // #61 deterministic concurrency fixture. A trusted row-lock barrier forces two
 // real certified Redirection requests to overlap inside distinct restricted DB
 // transactions. Phases are driven by the adapter CI script; no production code.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
 
-use CommitCap\Certified_Operation as Operation;
-use CommitCap\Certified_Operation_Status as Status;
-use CommitCap\Operation_Config as Config;
+use WriteLeash\Certified_Operation as Operation;
+use WriteLeash\Certified_Operation_Status as Status;
+use WriteLeash\Operation_Config as Config;
 
 $host = getenv( 'CC_ENGINE_HOST' );
 $phase = getenv( 'CC61_PHASE' );
@@ -85,13 +85,13 @@ if ( 'seed' === $phase ) {
 	wp_set_current_user( 1 );
 	$response = rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
 	$body = $response->get_data();
-	$outcome = isset( $body['commitcap']['outcome'] ) ? (string) $body['commitcap']['outcome'] : (string) ( $body['code'] ?? 'NO_CERTIFIED_RESULT' );
+	$outcome = isset( $body['writeleash']['outcome'] ) ? (string) $body['writeleash']['outcome'] : (string) ( $body['code'] ?? 'NO_CERTIFIED_RESULT' );
 	echo wp_json_encode( array(
 		'status' => $response->get_status(),
 		'outcome' => $outcome,
-		'consumed' => isset( $body['commitcap']['consumed'] ) ? $body['commitcap']['consumed'] : null,
-		'affected_rows' => isset( $body['commitcap']['affected_rows'] ) ? $body['commitcap']['affected_rows'] : null,
-		'logical_budget' => isset( $body['commitcap']['logical_budget'] ) ? $body['commitcap']['logical_budget'] : null,
+		'consumed' => isset( $body['writeleash']['consumed'] ) ? $body['writeleash']['consumed'] : null,
+		'affected_rows' => isset( $body['writeleash']['affected_rows'] ) ? $body['writeleash']['affected_rows'] : null,
+		'logical_budget' => isset( $body['writeleash']['logical_budget'] ) ? $body['writeleash']['logical_budget'] : null,
 	) ), "\n";
 } elseif ( 'await_overlap' === $phase ) {
 	$stage = (string) getenv( 'CC61_STAGE' );

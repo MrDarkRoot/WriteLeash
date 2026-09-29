@@ -3,11 +3,11 @@
 // Proves narrow trusted-evidence model for one shared restricted runtime and
 // multiple code-known/versioned integration policies on real MySQL and MariaDB engines.
 
-use CommitCap\Certified_Operation;
-use CommitCap\Compatibility_Doctor as Doctor;
-use CommitCap\Compatibility_Grants;
-use CommitCap\Guard;
-use CommitCap\Update_Engine as Engine;
+use WriteLeash\Certified_Operation;
+use WriteLeash\Compatibility_Doctor as Doctor;
+use WriteLeash\Compatibility_Grants;
+use WriteLeash\Guard;
+use WriteLeash\Update_Engine as Engine;
 
 echo "--- Begin Gate #83 Shared-Runtime Doctor Tests ($host) ---\n";
 
@@ -392,7 +392,7 @@ try {
 		},
 		$writer
 	);
-} catch ( \CommitCap\Budget_Denied $error ) {
+} catch ( \WriteLeash\Budget_Denied $error ) {
 	$denied_by_state = $error->details();
 }
 cc83_assert( null !== $denied_by_state, '#83.10 tampered count caused an over-budget COMMIT' );

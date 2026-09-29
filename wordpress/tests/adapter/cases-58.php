@@ -1,15 +1,15 @@
 <?php
 // #58 synthetic proof, run after #78 on the same shared runtime/Redirection site.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
 
-use CommitCap\Compatibility_Grants;
-use CommitCap\Disposable_Demo as Demo;
-use CommitCap\Disposable_Demo_Setup as Setup;
-use CommitCap\Guard;
-use CommitCap\Guard_Error;
-use CommitCap\Provisioning_Plan as Plan;
-use CommitCap\Update_Engine as Engine;
+use WriteLeash\Compatibility_Grants;
+use WriteLeash\Disposable_Demo as Demo;
+use WriteLeash\Disposable_Demo_Setup as Setup;
+use WriteLeash\Guard;
+use WriteLeash\Guard_Error;
+use WriteLeash\Provisioning_Plan as Plan;
+use WriteLeash\Update_Engine as Engine;
 
 $host = getenv( 'CC_ENGINE_HOST' );
 cc87_assert( in_array( $host, array( 'mysql', 'mariadb' ), true ), 'demo pinned host' );
@@ -27,7 +27,7 @@ $trigger = Engine::trigger_name( $table );
 $setup = new Setup( $installer, 'cc87_writer', '%' );
 $demo = new Demo( $runtime );
 cc87_assert( 6 === Demo::PHYSICAL_CEILING && 5 === Demo::LOGICAL_BUDGET, 'reviewed P/L' );
-cc87_assert( $table === 'wp_commitcap_demo_rows', 'code-known owned target' );
+cc87_assert( $table === 'wp_writeleash_demo_rows', 'code-known owned target' );
 cc87_assert( $normal_id !== $runtime_id, 'explicit secondary wpdb' );
 cc87_assert( 'NOT_READY' === $demo->status()['status'], 'before setup fail closed' );
 

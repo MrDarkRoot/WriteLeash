@@ -1,7 +1,7 @@
 <?php
 // Real WordPress context, two actual wpdb connections with distinct grants.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
-use CommitCap\Update_Engine as Engine;
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
+use WriteLeash\Update_Engine as Engine;
 
 function cc54_assert( $value, $label ) {
 	if ( ! $value ) {

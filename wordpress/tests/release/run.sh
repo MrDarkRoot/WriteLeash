@@ -19,9 +19,9 @@ trap cleanup EXIT
 curl -fsSL -o "$check_zip.tmp" https://downloads.wordpress.org/plugin/plugin-check.2.1.0.zip
 printf '%s  %s\n' '6ff4bd2145f3befcf907df158cc466b1649dafed5686de8369907403c3013fc4' "$check_zip.tmp" | sha256sum -c -
 mv "$check_zip.tmp" "$check_zip"
-php "$here/package-preflight.php" "$repo/wordpress/commitcap-for-wordpress" "$repo/wordpress/release/commitcap-distribution-files.txt"
-php "$here/readme-validate.php" "$repo/wordpress/commitcap-for-wordpress"
-php "$here/source-audit.php" "$repo/wordpress/commitcap-for-wordpress"
+php "$here/package-preflight.php" "$repo/wordpress/writeleash" "$repo/wordpress/release/writeleash-distribution-files.txt"
+php "$here/readme-validate.php" "$repo/wordpress/writeleash"
+php "$here/source-audit.php" "$repo/wordpress/writeleash"
 linted=0
 for file in "$tests"/*.php "$tests"/adapter/*.php "$tests"/current-core/*.php "$tests"/engine/*.php "$tests"/guard/*.php "$tests"/doctor/*.php "$here"/*.php; do
   php -l "$file" >/dev/null

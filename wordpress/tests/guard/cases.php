@@ -2,15 +2,15 @@
 // #56 guarded transaction API acceptance tests.
 // Runs through WP-CLI on the pinned MySQL 8.0.44 / MariaDB 10.11.15 fixtures
 // after the #54 engine cases. Fresh trusted connections verify durability.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 
-use CommitCap\Budget_Denied;
-use CommitCap\Guard;
-use CommitCap\Guard_Error;
-use CommitCap\Guard_Sql;
-use CommitCap\Guard_Transaction;
-use CommitCap\Unsupported_Transaction_State;
-use CommitCap\Update_Engine;
+use WriteLeash\Budget_Denied;
+use WriteLeash\Guard;
+use WriteLeash\Guard_Error;
+use WriteLeash\Guard_Sql;
+use WriteLeash\Guard_Transaction;
+use WriteLeash\Unsupported_Transaction_State;
+use WriteLeash\Update_Engine;
 
 function cc56_assert( $value, $label ) {
 	if ( ! $value ) {
@@ -726,7 +726,7 @@ $reserved_forms = array(
 	'leading block comment CALL'     => "/* lead */ CALL wp_test.commitcap_v01_open('$policy')",
 	'leading dash comment CALL'      => "-- lead\nCALL wp_test.commitcap_v01_open('$policy')",
 	'leading hash comment CALL'      => "# lead\nCALL wp_test.commitcap_v01_open('$policy')",
-	'mixed case qualified CALL'      => "cAlL wp_test.CommitCap_V01_Close('$policy')",
+	'mixed case qualified CALL'      => "cAlL wp_test.WriteLeash_V01_Close('$policy')",
 	'qualified OPEN'                 => "CALL wp_test.commitcap_v01_open('$policy')",
 	'qualified COUNT'                => "CALL wp_test.commitcap_v01_count('$policy', @cc56_count)",
 	'qualified POLICY'               => "CALL wp_test.commitcap_v01_policy('cc_guard_a', 'x')",
@@ -755,9 +755,9 @@ $reserved_forms = array(
 	'set @@session.autocommit'       => 'SET @@session.autocommit = 0',
 	'set @@local.autocommit'         => 'SET @@local.autocommit = 0',
 	'set @@global.autocommit'        => 'SET @@global.autocommit = 1',
-	'set @commitcap denied'          => 'SET @commitcap_v01_denied = 0',
-	'set @commitcap denied :='       => 'SET @commitcap_v01_denied:=0',
-	'select @commitcap assignment'   => 'SELECT @commitcap_v01_denied := 0',
+	'set @writeleash denied'          => 'SET @commitcap_v01_denied = 0',
+	'set @writeleash denied :='       => 'SET @commitcap_v01_denied:=0',
+	'select @writeleash assignment'   => 'SELECT @commitcap_v01_denied := 0',
 	'prepare'                        => "PREPARE cc56s FROM 'SELECT 1'",
 	'execute'                        => 'EXECUTE cc56s',
 	'deallocate'                     => 'DEALLOCATE PREPARE cc56s',

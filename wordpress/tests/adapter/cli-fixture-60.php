@@ -1,15 +1,15 @@
 <?php
 // External #60 CI observer/operator only; root never enters normal product PHP.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
 
-use CommitCap\Certified_Operation;
-use CommitCap\Certified_Operation_Status;
-use CommitCap\Disposable_Demo;
-use CommitCap\Disposable_Demo_Setup;
-use CommitCap\Last_Outcome;
-use CommitCap\Provisioning_Plan;
-use CommitCap\Update_Engine;
+use WriteLeash\Certified_Operation;
+use WriteLeash\Certified_Operation_Status;
+use WriteLeash\Disposable_Demo;
+use WriteLeash\Disposable_Demo_Setup;
+use WriteLeash\Last_Outcome;
+use WriteLeash\Provisioning_Plan;
+use WriteLeash\Update_Engine;
 
 $host = getenv( 'CC_ENGINE_HOST' );
 $phase = getenv( 'CC60_PHASE' );
@@ -71,7 +71,7 @@ if ( 'p_bad' === $phase || 'p_fix' === $phase ) {
 	}
 	cc87_assert( 3 === $safe && 3 === $denied && 3 === count( $used ) && 0 === $other && 0 === $privileged,
 		"CLI 3-process trace: safe=$safe denied=$denied threads=" . count( $used ) . " unreviewed_demo=$other privileged=$privileged" );
-	echo "#60 $host: three separate wp commitcap demo processes B/A/B; one safe + one denied restricted UPDATE each; zero demo INSERT/DELETE/DDL/DCL/reset: PASS\n";
+	echo "#60 $host: three separate wp writeleash demo processes B/A/B; one safe + one denied restricted UPDATE each; zero demo INSERT/DELETE/DDL/DCL/reset: PASS\n";
 } elseif ( 'cleanup' === $phase ) {
 	$setup = new Disposable_Demo_Setup( $root, 'cc87_writer', '%' );
 	cc87_assert( 'REMOVED' === $setup->cleanup()['status'], 'exact demo cleanup' );

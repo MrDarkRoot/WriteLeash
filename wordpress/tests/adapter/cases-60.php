@@ -1,22 +1,22 @@
 <?php
 // #60 real Admin controller, REST evidence and demo surface on both engines.
-require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
+require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
 // WP-CLI warns on intentional admin-post redirects; keep the production
 // callback unchanged and disable only the CLI fixture's redirect handler.
 remove_filter( 'wp_redirect', 'WP_CLI\\Utils\\wp_redirect_handler' );
 add_filter( 'wp_redirect', static function () { return ''; }, 1 );
 
-use CommitCap\Admin_Page as Admin;
-use CommitCap\Certified_Operation as Operation;
-use CommitCap\Certified_Operation_Status as Status;
-use CommitCap\Disposable_Demo as Demo;
-use CommitCap\Disposable_Demo_Setup as Setup;
-use CommitCap\Last_Outcome;
-use CommitCap\Operation_Config as Config;
-use CommitCap\Product_Status;
-use CommitCap\Provisioning_Plan as Plan;
-use CommitCap\Update_Engine as Engine;
+use WriteLeash\Admin_Page as Admin;
+use WriteLeash\Certified_Operation as Operation;
+use WriteLeash\Certified_Operation_Status as Status;
+use WriteLeash\Disposable_Demo as Demo;
+use WriteLeash\Disposable_Demo_Setup as Setup;
+use WriteLeash\Last_Outcome;
+use WriteLeash\Operation_Config as Config;
+use WriteLeash\Product_Status;
+use WriteLeash\Provisioning_Plan as Plan;
+use WriteLeash\Update_Engine as Engine;
 
 $host = getenv( 'CC_ENGINE_HOST' );
 cc87_assert( in_array( $host, array( 'mysql', 'mariadb' ), true ), '#60 pinned engine host' );
@@ -38,13 +38,13 @@ Config::reset( $operation );
 delete_option( Last_Outcome::OPTION );
 wp_set_current_user( 1 );
 cc87_assert( current_user_can( 'manage_options' ), 'admin test user capability' );
-cc87_assert( 0 < has_action( 'admin_post_commitcap_action', array( Admin::class, 'handle_post' ) ), 'direct action hook registered' );
+cc87_assert( 0 < has_action( 'admin_post_writeleash_action', array( Admin::class, 'handle_post' ) ), 'direct action hook registered' );
 
 function cc60_post( $task, $extra = array(), $nonce = null ) {
 	return array_merge( array(
-		'action' => 'commitcap_action',
-		'commitcap_task' => $task,
-		'_wpnonce' => null === $nonce ? wp_create_nonce( 'commitcap_' . $task ) : $nonce,
+		'action' => 'writeleash_action',
+		'writeleash_task' => $task,
+		'_wpnonce' => null === $nonce ? wp_create_nonce( 'writeleash_' . $task ) : $nonce,
 	), $extra );
 }
 
@@ -79,7 +79,7 @@ if ( ! function_exists( 'add_management_page' ) ) {
 do_action( 'admin_menu' );
 global $submenu;
 $tools_items = isset( $submenu['tools.php'] ) ? $submenu['tools.php'] : array();
-cc87_assert( in_array( 'commitcap', array_column( $tools_items, 2 ), true ), 'Tools → CommitCap registered' );
+cc87_assert( in_array( 'writeleash', array_column( $tools_items, 2 ), true ), 'Tools → WriteLeash registered' );
 $view = Product_Status::snapshot();
 cc87_assert( 'DISABLED' === $view['operation_status'] && 'logical_budget_missing' === $view['preflight_reason'], 'operation and preflight separate before budget' );
 cc87_assert( 'READY' === $view['demo_status'] && 'A' === $view['demo_state'], 'demo seeded and READY' );
@@ -117,9 +117,15 @@ foreach ( array( 'budget' => array( 'logical_budget' => '5' ), 'enable' => array
 	unset( $post['_wpnonce'] );
 	cc87_assert( 'invalid_nonce' === Admin::process( $post, 'POST', $runtime )['reason'], "missing nonce $action" );
 	cc87_assert( 'invalid_nonce' === Admin::process( cc60_post( $action, $extra, 'not-a-nonce' ), 'POST', $runtime )['reason'], "invalid nonce $action" );
-	cc87_assert( 'invalid_nonce' === Admin::process( cc60_post( $action, $extra, wp_create_nonce( 'commitcap_other' ) ), 'POST', $runtime )['reason'], "wrong-action nonce $action" );
+	cc87_assert( 'invalid_nonce' === Admin::process( cc60_post( $action, $extra, wp_create_nonce( 'writeleash_other' ) ), 'POST', $runtime )['reason'], "wrong-action nonce $action" );
 	cc87_assert( 'post_required' === Admin::process( cc60_post( $action, $extra ), 'GET', $runtime )['reason'], "GET $action" );
 }
+// Old CommitCap action/task/nonce names are not compatibility aliases: the old
+// hook stays unregistered and the old field/nonce pair can never authorize.
+cc87_assert( false === has_action( 'admin_post_commitcap_action' ), 'old CommitCap admin action must be unregistered' );
+$old_only = array( 'action' => 'commitcap_action', 'commitcap_task' => 'enable', '_wpnonce' => wp_create_nonce( 'commitcap_enable' ) );
+cc87_assert( 'invalid_action' === Admin::process( $old_only, 'POST', $runtime )['reason'], 'old CommitCap action/task rejected' );
+cc87_assert( 'invalid_nonce' === Admin::process( cc60_post( 'enable', array( 'commitcap_task' => 'enable' ), wp_create_nonce( 'commitcap_enable' ) ), 'POST', $runtime )['reason'], 'old CommitCap nonce rejected for the new task' );
 $original_post = $_POST;
 $original_method = isset( $_SERVER['REQUEST_METHOD'] ) ? $_SERVER['REQUEST_METHOD'] : null;
 $_POST = cc60_post( 'demo' );
@@ -129,10 +135,10 @@ $_POST = $original_post;
 if ( null === $original_method ) { unset( $_SERVER['REQUEST_METHOD'] ); } else { $_SERVER['REQUEST_METHOD'] = $original_method; }
 cc87_assert( $config_before === get_option( Config::STATE_OPTION, null ), 'rejected actions left config unchanged' );
 cc87_assert( $demo_before === $root->get_results( "SELECT id, value FROM `$table` ORDER BY id", ARRAY_A ), 'rejected actions left demo unchanged' );
-cc87_assert( false === get_transient( 'commitcap_notice_1' ), 'rejected direct request did not create an informational option' );
+cc87_assert( false === get_transient( 'writeleash_notice_1' ), 'rejected direct request did not create an informational option' );
 $_POST = cc60_post( 'demo', array(), 'invalid-nonce' );
 $_SERVER['REQUEST_METHOD'] = 'POST';
-cc87_assert( 'invalid_nonce' === Admin::handle_post()['reason'] && false === get_transient( 'commitcap_notice_1' ), 'direct invalid-nonce handler writes neither config nor notice' );
+cc87_assert( 'invalid_nonce' === Admin::handle_post()['reason'] && false === get_transient( 'writeleash_notice_1' ), 'direct invalid-nonce handler writes neither config nor notice' );
 $_POST = $original_post;
 if ( null === $original_method ) { unset( $_SERVER['REQUEST_METHOD'] ); } else { $_SERVER['REQUEST_METHOD'] = $original_method; }
 list( , $rejected_queries ) = cc87_trace_all( $root, static function () use ( $subscriber_id, $runtime ) {
@@ -240,7 +246,7 @@ echo "#60 $host: real REST over-L DENIED, last outcome/Admin truthful, fresh obs
 echo "#62 $host real over-L: HTTP 409 logical DENIED L=5 P=2000 consumed=6 fresh-observer=6-enabled normal-UPDATE=0 restricted-UPDATE=1 PASS\n";
 
 // Cross-process CLI status must see the same DENIED record before COMMIT overwrites it.
-$cli_command = 'wp --path=' . escapeshellarg( ABSPATH ) . ' commitcap status --format=json';
+$cli_command = 'wp --path=' . escapeshellarg( ABSPATH ) . ' writeleash status --format=json';
 $cli_output = array(); $cli_code = -1;
 exec( $cli_command . ' 2>&1', $cli_output, $cli_code );
 $cli_denied = json_decode( implode( "\n", $cli_output ), true );
@@ -288,7 +294,7 @@ $future_schema['schema_version'] = 2;
 update_option( Last_Outcome::OPTION, $future_schema, false );
 cc87_assert( null === Last_Outcome::read() && 'READY' === Product_Status::snapshot()['operation_status'], 'unknown evidence schema ignored; no readiness authority' );
 update_option( Last_Outcome::OPTION, $committed, false ); // Restore validated real evidence after tamper test.
-set_transient( 'commitcap_notice_1', array( 'status' => '<img src=x onerror=alert(1)>', 'reason' => '<script>alert(2)</script>' ), 120 );
+set_transient( 'writeleash_notice_1', array( 'status' => '<img src=x onerror=alert(1)>', 'reason' => '<script>alert(2)</script>' ), 120 );
 ob_start(); Admin::render(); $escaped_notice = ob_get_clean();
 cc87_assert( false === strpos( $escaped_notice, '<img src=x onerror=alert(1)>' ) && false === strpos( $escaped_notice, '<script>alert(2)</script>' ) &&
 	false !== strpos( $escaped_notice, '&lt;img' ), 'Admin escapes untrusted notice text and never renders raw reason' );
@@ -318,11 +324,11 @@ echo "#60 $host: failing informational evidence save does not change real DENIED
 cc87_seed_bulk( $root, 6 );
 $one_id = (int) $root->get_var( 'SELECT id FROM wp_redirection_items ORDER BY id LIMIT 1' );
 $stock = rest_do_request( cc87_rest_bulk_request( 'disable', array( 'items' => array( $one_id ) ) ) );
-cc87_assert( 200 === $stock->get_status() && ! isset( $stock->get_data()['commitcap'] ) &&
+cc87_assert( 200 === $stock->get_status() && ! isset( $stock->get_data()['writeleash'] ) &&
 	$saved_record === Last_Outcome::read(), 'item-scoped stock operation did not forge production evidence' );
 cc87_seed_bulk( $root, 6 );
 $filtered = rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true, 'filterBy' => array( 'url' => 'cc87-bulk-0' ) ) ) );
-cc87_assert( 200 === $filtered->get_status() && ! isset( $filtered->get_data()['commitcap'] ) &&
+cc87_assert( 200 === $filtered->get_status() && ! isset( $filtered->get_data()['writeleash'] ) &&
 	array( 6, 1 ) === cc60_observe( $host ) && $saved_record === Last_Outcome::read(), 'filtered global Disable remains stock and leaves certified evidence unchanged' );
 cc87_seed_bulk( $root, 6 );
 $restored = rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
@@ -369,7 +375,7 @@ foreach ( $demo_threads as $id => $queries ) {
 cc87_assert( 3 === $safe_updates && 3 === $denied_updates && 3 === count( $used_threads ) && 0 === $normal_demo_updates && 0 === $privileged,
 	'Admin three-run trace: only restricted SELECT/UPDATE, no demo reset/installer SQL (safe=' . $safe_updates . ' denied=' . $denied_updates . ' normal=' . $normal_demo_updates . ' privileged=' . $privileged . ')' );
 ob_start(); Admin::render(); $demo_html = ob_get_clean();
-cc87_assert( false !== strpos( $demo_html, 'CommitCap-owned disposable demo: safe leg 5 UPDATE row events COMMITTED; denied leg 6 UPDATE row events' ) &&
+cc87_assert( false !== strpos( $demo_html, 'WriteLeash-owned disposable demo: safe leg 5 UPDATE row events COMMITTED; denied leg 6 UPDATE row events' ) &&
 	false !== strpos( $demo_html, 'rollback attempted. Independent durable rollback is not verified by this request.' ), 'Admin demo notice is factual and synthetic' );
 cc87_assert( false === strpos( $demo_html, 'cc87_secret' ) && false === strpos( $demo_html, 'disposable_root_password' ), 'Admin demo notice has no secrets' );
 echo "#60 $host: Admin demo #1 B, #2 A, #3 B; fresh observers; zero trusted reset/DDL/DCL/INSERT/DELETE: PASS\n";
@@ -381,7 +387,7 @@ cc87_assert( 'NOT_READY' === $not_ready['demo_status'] && 'trusted_reset_require
 cc87_assert( 'NOT_READY' === cc60_admin( 'demo' )['status'], 'Admin demo noncanonical refusal' );
 cc87_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM `$table` WHERE value = 2" ), 'Admin refusal caused no denied mutation' );
 $cli_output = array(); $cli_code = -1;
-exec( 'wp --path=' . escapeshellarg( ABSPATH ) . ' commitcap demo --format=json 2>&1', $cli_output, $cli_code );
+exec( 'wp --path=' . escapeshellarg( ABSPATH ) . ' writeleash demo --format=json 2>&1', $cli_output, $cli_code );
 $cli_invalid = json_decode( implode( "\n", $cli_output ), true );
 cc87_assert( 0 !== $cli_code && is_array( $cli_invalid ) && 'trusted_reset_required' === $cli_invalid['reason'], 'actual CLI noncanonical nonzero/no reset: ' . implode( ' ', $cli_output ) );
 $setup->reset(); // Test/operator recovery, outside ordinary Admin/CLI run windows.

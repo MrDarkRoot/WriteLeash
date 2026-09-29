@@ -28,7 +28,7 @@ for host in mysql mariadb; do
   wp --path="$site" core install --url="http://$host.example.test" --title=Adapter-Test \
     --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
   wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
-  wp --path="$site" plugin activate commitcap
+  wp --path="$site" plugin activate writeleash
   server_version=$(wp --path="$site" eval 'global $wpdb; echo $wpdb->get_var( "SELECT VERSION()" );')
   plugin_version=$(wp --path="$site" eval 'echo REDIRECTION_VERSION;')
   echo "Adapter fixture: $host $server_version; Redirection $plugin_version; WordPress $(wp --path="$site" core version); PHP $(php -r 'echo PHP_VERSION;')"
@@ -43,11 +43,11 @@ for host in mysql mariadb; do
     wp --path="$site" plugin install /opt/plugin-zips/plugin-check.2.1.0.zip --activate --force
     check_version=$(wp --path="$site" plugin get plugin-check --field=version)
     [ "$check_version" = 2.1.0 ]
-    echo "#62 $host: Plugin Check $check_version stable/static against installed commitcap/"
+    echo "#62 $host: Plugin Check $check_version stable/static against installed writeleash/"
     # Capture both output and exit: PCP returns nonzero for findings, classified
     # by code below (never hidden or passed to --ignore-codes).
     check_json="/tmp/cc62-plugin-check-$host.json"
-    if wp --path="$site" plugin check commitcap --format=json >"$check_json"; then
+    if wp --path="$site" plugin check writeleash --format=json >"$check_json"; then
       check_exit=0
     else
       check_exit=$?
@@ -59,15 +59,17 @@ for host in mysql mariadb; do
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-78.php
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-58.php
   # No runtime config yet: actual CLI entrypoints fail closed without a fatal.
-  status_json=$(wp --path="$site" commitcap status --format=json)
+  status_json=$(wp --path="$site" writeleash status --format=json)
   php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["runtime_available"] !== false || $d["demo_status"] !== "NOT_READY") exit(1);' "$status_json"
-  if missing_doctor=$(wp --path="$site" commitcap doctor --format=json); then echo "CLI Doctor succeeded without runtime" >&2; exit 1; fi
-  if missing_demo=$(wp --path="$site" commitcap demo --format=json); then echo "CLI demo succeeded without runtime" >&2; exit 1; fi
+  if wp --path="$site" commitcap status --format=json >/dev/null 2>&1; then echo "#96 legacy wp commitcap command is still registered" >&2; exit 1; fi
+  echo "#96 $host: wp commitcap unregistered; wp writeleash owns the CLI namespace: PASS"
+  if missing_doctor=$(wp --path="$site" writeleash doctor --format=json); then echo "CLI Doctor succeeded without runtime" >&2; exit 1; fi
+  if missing_demo=$(wp --path="$site" writeleash demo --format=json); then echo "CLI demo succeeded without runtime" >&2; exit 1; fi
   php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["reason"] !== "runtime_unavailable") exit(1);' "$missing_demo"
   echo "#60 $host: CLI missing runtime status structured; doctor/demo nonzero with zero mutation: PASS"
-  wp --path="$site" config set COMMITCAP_DB_USER cc87_writer --type=constant
-  wp --path="$site" config set COMMITCAP_DB_PASSWORD cc87_secret --type=constant >/dev/null
-  wp --path="$site" config set COMMITCAP_DB_NAME wp_test --type=constant
+  wp --path="$site" config set WRITELEASH_DB_USER cc87_writer --type=constant
+  wp --path="$site" config set WRITELEASH_DB_PASSWORD cc87_secret --type=constant >/dev/null
+  wp --path="$site" config set WRITELEASH_DB_NAME wp_test --type=constant
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-60.php
   # Debug-enabled *product* requests in their own CLI process. Keep the
   # adversarial wrong-credential fixture under its original WP_DEBUG setting:
@@ -77,32 +79,32 @@ for host in mysql mariadb; do
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/debug-62.php
   php /opt/tests/release/debug-audit.php "$site/wp-content/debug.log" "$host"
   wp --path="$site" config set WP_DEBUG false --raw >/dev/null
-  status_json=$(wp --path="$site" commitcap status --format=json)
+  status_json=$(wp --path="$site" writeleash status --format=json)
   php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["operation_status"] !== "READY" || $d["doctor_state"] !== "PASS" || $d["last_outcome"]["outcome"] !== "COMMITTED" || $d["demo_state"] !== "A") exit(1);' "$status_json"
-  doctor_json=$(wp --path="$site" commitcap doctor --format=json)
+  doctor_json=$(wp --path="$site" writeleash doctor --format=json)
   php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["operation_status"] !== "READY" || $d["doctor_state"] !== "PASS") exit(1);' "$doctor_json"
   case "$status_json$doctor_json" in *cc87_secret*|*disposable_root_password*) echo "CLI JSON leaked credentials" >&2; exit 1 ;; esac
-  human=$(wp --path="$site" commitcap status)
+  human=$(wp --path="$site" writeleash status)
   case "$human" in *operation_id:*doctor_state:*last_outcome:*) ;; *) echo "Human CLI status incomplete" >&2; exit 1 ;; esac
   case "$human" in *cc87_secret*|*disposable_root_password*) echo "CLI secret leak" >&2; exit 1 ;; esac
   echo "#60 $host: CLI status/doctor READY human+JSON, last production outcome, no credentials: PASS"
-  if wp --path="$site" commitcap demo --format=csv; then echo "CLI accepted invalid format" >&2; exit 1; fi
-  if wp --path="$site" commitcap demo arbitrary; then echo "CLI accepted arbitrary argument" >&2; exit 1; fi
+  if wp --path="$site" writeleash demo --format=csv; then echo "CLI accepted invalid format" >&2; exit 1; fi
+  if wp --path="$site" writeleash demo arbitrary; then echo "CLI accepted arbitrary argument" >&2; exit 1; fi
   for failure in p grant doctor; do
     CC_ENGINE_HOST="$host" CC60_PHASE="${failure}_bad" wp --path="$site" eval-file /opt/tests/adapter/cli-fixture-60.php
-    drift_json=$(wp --path="$site" commitcap status --format=json)
+    drift_json=$(wp --path="$site" writeleash status --format=json)
     case "$failure" in p) reason=physical_ceiling_mismatch ;; grant) reason=target_privileges_mismatch ;; doctor) reason=doctor_not_ready ;; esac
     php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["operation_status"] !== "NOT_READY" || $d["operation_reason"] !== $argv[2]) exit(1);' "$drift_json" "$reason"
-    if wp --path="$site" commitcap doctor --format=json >/dev/null; then echo "CLI Doctor accepted $failure drift" >&2; exit 1; fi
+    if wp --path="$site" writeleash doctor --format=json >/dev/null; then echo "CLI Doctor accepted $failure drift" >&2; exit 1; fi
     CC_ENGINE_HOST="$host" CC60_PHASE="${failure}_fix" wp --path="$site" eval-file /opt/tests/adapter/cli-fixture-60.php
   done
   echo "#60 $host: CLI doctor rejects live P/grant/policy drift; repaired production READY: PASS"
   # #61 final threat-model adversarial matrix on the production surfaces.
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-61-threat-model.php
-  # Deactivation boundary: CommitCap inactive -> certified global Disable is stock.
-  wp --path="$site" plugin deactivate commitcap
+  # Deactivation boundary: WriteLeash inactive -> certified global Disable is stock.
+  wp --path="$site" plugin deactivate writeleash
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-61-deactivated.php
-  wp --path="$site" plugin activate commitcap
+  wp --path="$site" plugin activate writeleash
   # Deterministic concurrency: trusted two-stage row-lock barrier. Two real
   # certified Redirection requests must both be observed blocked on the
   # certified target UPDATE in distinct restricted sessions before release.
@@ -189,18 +191,18 @@ for host in mysql mariadb; do
   rm -f "$cc61_ready_a" "$cc61_ready_b" "$cc61_release_a" "$cc61_release_b" "$cc61_lock_a_log" "$cc61_lock_b_log" "$cc61_run_a_json" "$cc61_run_a_err" "$cc61_run_b_json" "$cc61_run_b_err"
   CC_ENGINE_HOST="$host" CC60_PHASE=begin wp --path="$site" eval-file /opt/tests/adapter/cli-fixture-60.php
   for expected in B A B; do
-    demo_json=$(wp --path="$site" commitcap demo --format=json)
+    demo_json=$(wp --path="$site" writeleash demo --format=json)
     php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["status"] !== "COMPLETE" || $d["safe_state"] !== $argv[2] || $d["safe"]["consumed"] !== 5 || $d["denied"]["consumed"] !== 6 || $d["denied"]["denial_kind"] !== "logical" || $d["denied"]["durability_verified_by_fresh_observer"] !== false) exit(1);' "$demo_json" "$expected"
     case "$demo_json" in *cc87_secret*|*disposable_root_password*) echo "CLI demo JSON leaked credentials" >&2; exit 1 ;; esac
     CC_ENGINE_HOST="$host" CC60_PHASE=observe CC60_EXPECTED="$expected" wp --path="$site" eval-file /opt/tests/adapter/cli-fixture-60.php
   done
   CC_ENGINE_HOST="$host" CC60_PHASE=end wp --path="$site" eval-file /opt/tests/adapter/cli-fixture-60.php
   CC_ENGINE_HOST="$host" CC60_PHASE=cleanup wp --path="$site" eval-file /opt/tests/adapter/cli-fixture-60.php
-  if wp --path="$site" commitcap demo --format=json >/dev/null; then echo "CLI demo ran after trusted cleanup" >&2; exit 1; fi
+  if wp --path="$site" writeleash demo --format=json >/dev/null; then echo "CLI demo ran after trusted cleanup" >&2; exit 1; fi
   wp --path="$site" plugin deactivate redirection
-  unsupported_json=$(wp --path="$site" commitcap status --format=json)
+  unsupported_json=$(wp --path="$site" writeleash status --format=json)
   php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["operation_status"] !== "UNSUPPORTED" || $d["operation_reason"] !== "redirection_version_unsupported") exit(1);' "$unsupported_json"
-  if wp --path="$site" commitcap doctor --format=json >/dev/null; then echo "CLI Doctor accepted missing Redirection version" >&2; exit 1; fi
+  if wp --path="$site" writeleash doctor --format=json >/dev/null; then echo "CLI Doctor accepted missing Redirection version" >&2; exit 1; fi
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-plugin-missing.php
   # Actual WordPress uninstall: local options removed, trusted DB objects kept.
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-60-uninstall.php

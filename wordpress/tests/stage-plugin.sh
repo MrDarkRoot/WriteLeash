@@ -1,11 +1,11 @@
 #!/bin/sh
 # Test-only installation shape driven by the #63 distribution allowlist.
-# Source stays at /opt/commitcap-for-wordpress; the manifest is /opt/release/... .
+# Source stays at /opt/writeleash; the manifest is /opt/release/... .
 set -eu
 site=$1
-source=/opt/commitcap-for-wordpress
-manifest=/opt/release/commitcap-distribution-files.txt
-destination="$site/wp-content/plugins/commitcap"
+source=/opt/writeleash
+manifest=/opt/release/writeleash-distribution-files.txt
+destination="$site/wp-content/plugins/writeleash"
 test -f "$manifest"
 test ! -e "$destination"
 
@@ -37,8 +37,11 @@ if [ "$staged" != "$expected" ]; then
   exit 1
 fi
 
-test -f "$destination/commitcap.php"
-test ! -e "$destination/commitcap-for-wordpress.php"
+test -f "$destination/writeleash.php"
+# The old CommitCap package basename and the wrong directory-named main file
+# must never be staged as the active plugin.
+test ! -e "$destination/commitcap.php"
+test ! -e "$destination/writeleash-for-wordpress.php"
 test ! -e "$destination/README.md"
 test ! -e "$destination/LICENSE-AUDIT.md"
 test ! -e "$destination/RELEASE-MATRIX.md"

@@ -39,7 +39,7 @@ foreach ( $data as $item ) {
 		throw new RuntimeException( 'Unexpected Plugin Check result type: ' . $type );
 	}
 	$path = $item['file'];
-	$source = file_get_contents( dirname( $argv[3] ) . '/cc87-' . $argv[1] . '/wp-content/plugins/commitcap/' . $path );
+	$source = file_get_contents( dirname( $argv[3] ) . '/cc87-' . $argv[1] . '/wp-content/plugins/writeleash/' . $path );
 	$lines = is_string( $source ) ? explode( "\n", $source ) : array();
 
 	// PCP's escape sniff treats thrown exception constructors as HTML output.

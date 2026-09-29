@@ -4,11 +4,11 @@ case "${CC_DB_FAMILY:-}" in
   mysql|mariadb) db="$CC_DB_FAMILY" ;;
   *) echo 'Expected CC_DB_FAMILY=mysql or mariadb' >&2; exit 2 ;;
 esac
-site=/tmp/commitcap-site
+site=/tmp/writeleash-site
 cp -R /opt/wp-core/. "$site/"
 sh /opt/tests/stage-plugin.sh "$site"
 wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost="$db"
-wp --path="$site" core install --url=http://example.test --title=CommitCap-Test \
+wp --path="$site" core install --url=http://example.test --title=WriteLeash-Test \
   --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
 server_version=$(wp --path="$site" eval 'global $wpdb; echo $wpdb->get_var( "SELECT VERSION()" );')
 case "$db:$server_version" in
@@ -26,22 +26,22 @@ CC63_PHASE=block wp --path="$site" eval-file /opt/tests/dependency-63.php
 wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
 wp --path="$site" eval-file /opt/tests/redirection-schema.php
 CC63_PHASE=installed wp --path="$site" eval-file /opt/tests/dependency-63.php
-wp --path="$site" plugin activate commitcap
+wp --path="$site" plugin activate writeleash
 CC63_PHASE=dependents wp --path="$site" eval-file /opt/tests/dependency-63.php
 wp --path="$site" plugin deactivate redirection
 CC63_PHASE=lost wp --path="$site" eval-file /opt/tests/dependency-63.php
 wp --path="$site" plugin activate redirection
-wp --path="$site" plugin deactivate commitcap
+wp --path="$site" plugin deactivate writeleash
 CC63_PHASE=released wp --path="$site" eval-file /opt/tests/dependency-63.php
-# The dependency fixture activated CommitCap once; restore the uninstalled
+# The dependency fixture activated WriteLeash once; restore the uninstalled
 # baseline that the failure and lifecycle suites assert on.
-wp --path="$site" option delete commitcap_version >/dev/null 2>&1 || true
+wp --path="$site" option delete writeleash_version >/dev/null 2>&1 || true
 
 wp --path="$site" eval-file /opt/tests/identity-62.php
-php /opt/tests/release/source-audit.php "$site/wp-content/plugins/commitcap"
-php /opt/tests/release/readme-validate.php "$site/wp-content/plugins/commitcap"
+php /opt/tests/release/source-audit.php "$site/wp-content/plugins/writeleash"
+php /opt/tests/release/readme-validate.php "$site/wp-content/plugins/writeleash"
 
-for file in "$site"/wp-content/plugins/commitcap/*.php "$site"/wp-content/plugins/commitcap/includes/*.php; do
+for file in "$site"/wp-content/plugins/writeleash/*.php "$site"/wp-content/plugins/writeleash/includes/*.php; do
   php -l "$file"
   # Direct execution must exit before reaching a subsequent marker.
   result=$(php -n -r 'include $argv[1]; print "UNGUARDED";' "$file")
@@ -58,14 +58,14 @@ for mode in null invalid version query-exception write network; do
     exit 1
   fi
   case "$result" in
-    *"CommitCap "*) : ;;
+    *"WriteLeash "*) : ;;
     *) echo "Unexpected $mode failure output: $result" >&2; exit 1 ;;
   esac
-  if wp --path="$site" option get commitcap_version >/dev/null 2>&1; then
+  if wp --path="$site" option get writeleash_version >/dev/null 2>&1; then
     echo "Activation left metadata after $mode failure" >&2
     exit 1
   fi
-  if wp --path="$site" plugin is-active commitcap; then
+  if wp --path="$site" plugin is-active writeleash; then
     echo "Plugin active after $mode failure" >&2
     exit 1
   fi

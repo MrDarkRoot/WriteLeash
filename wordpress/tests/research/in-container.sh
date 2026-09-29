@@ -7,7 +7,7 @@ site=/tmp/cc-research
 cp -R /opt/wp-core/. "$site/"
 sh /opt/tests/stage-plugin.sh "$site"
 wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost=mysql
-wp --path="$site" core install --url=http://research.test --title=CommitCap-Research \
+wp --path="$site" core install --url=http://research.test --title=WriteLeash-Research \
   --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
 server_version=$(wp --path="$site" eval 'global $wpdb; echo $wpdb->get_var( "SELECT VERSION()" );')
 echo "Research fixture: MySQL $server_version; WordPress $(wp --path="$site" core version); PHP $(php -r 'echo PHP_VERSION;')"

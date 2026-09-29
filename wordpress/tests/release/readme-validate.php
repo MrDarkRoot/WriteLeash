@@ -7,7 +7,7 @@ if ( 2 !== $argc ) {
 }
 $root   = rtrim( $argv[1], '/' );
 $readme = $root . '/readme.txt';
-$main   = $root . '/commitcap.php';
+$main   = $root . '/writeleash.php';
 $fail   = static function ( string $message ): void {
 	throw new RuntimeException( '#63 readme preflight: ' . $message );
 };
@@ -26,8 +26,8 @@ if ( ! str_ends_with( $text, "\n" ) ) {
 }
 
 $lines = preg_split( '/\r?\n/', $text );
-if ( trim( $lines[0] ) !== '=== CommitCap ===' ) {
-	$fail( 'readme title must be exactly "=== CommitCap ==="' );
+if ( trim( $lines[0] ) !== '=== WriteLeash ===' ) {
+	$fail( 'readme title must be exactly "=== WriteLeash ==="' );
 }
 
 // Parse the header block (up to the first blank line).
@@ -124,16 +124,25 @@ if ( preg_match( '/^\s*\*\s*Version:\s*(\S+)\s*$/m', (string) file_get_contents(
 if ( null === $version || $headers['stable tag'] !== $version ) {
 	$fail( 'Stable tag does not match the main plugin Version header' );
 }
-if ( false === strpos( (string) file_get_contents( $main ), "define( 'COMMITCAP_VERSION', '" . $version . "' )" ) ) {
+if ( false === strpos( (string) file_get_contents( $main ), "define( 'WRITELEASH_VERSION', '" . $version . "' )" ) ) {
 	$fail( 'main plugin runtime constant does not match the Version header' );
 }
 
 // Public identity, dependency and license must agree with the plugin header.
 $main_source = (string) file_get_contents( $main );
-if ( ! preg_match( '/^\s*\*\s*Plugin Name:\s*CommitCap\s*$/m', $main_source ) ||
+if ( ! preg_match( '/^\s*\*\s*Plugin Name:\s*WriteLeash\s*$/m', $main_source ) ||
 	! preg_match( '/^\s*\*\s*Requires Plugins:\s*redirection\s*$/m', $main_source ) ||
 	! preg_match( '/^\s*\*\s*License:\s*GPL v2 or later\s*$/m', $main_source ) ) {
 	$fail( 'main plugin header does not match the readme identity/dependency/license' );
+}
+// The readme display name must match the plugin header exactly and must never
+// include the WordPress.org-restricted term "WordPress" (mismatched_plugin_name
+// / trademarked_term Plugin Check findings).
+$readme_title = trim( $lines[0], "= \t" );
+if ( '' === $readme_title || preg_match( '/\bwordpress\b/i', $readme_title ) ||
+	! preg_match( '/^\s*\*\s*Plugin Name:\s*(.+?)\s*$/m', $main_source, $plugin_name_match ) ||
+	$readme_title !== trim( $plugin_name_match[1] ) ) {
+	$fail( 'readme title must equal the plugin header name and must not contain the restricted term "WordPress"' );
 }
 
 echo '#63 readme preflight: title, ' . strlen( $short ) . "-char description, " . count( $tags ) . " tags, Stable tag $version, GPLv2-or-later PASS\n";
