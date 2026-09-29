@@ -4,16 +4,22 @@ Canonical plugin directory slug: `commitcap-for-wordpress`; WordPress plugin bas
 
 This subtree is a developmental WordPress plugin, not a released security control.
 #55 adds a loadable plugin, baseline activation checks, conservative deactivation,
-and uninstall of one plugin-owned option (`commitcap_version`). Loading the plugin
+and explicit uninstall of the plugin's local WordPress state. Loading the plugin
 registers hooks only; activation reads WordPress/PHP/database version facts and
 stores the version option if the basic runtime checks pass. It does not change
-user data, database objects, or storage engines. Deactivation retains that option
-and makes no database changes: **deactivation is not uninstall**. Explicit
-uninstall removes only `commitcap_version` for the current site; an unrelated
-option with a similar name is never removed. Network activation and multisite
-cleanup have not been validated; network activation is refused without writing
-plugin metadata. The version header is developmental; no plugin license decision
-has been made (#64).
+user data, database objects, or storage engines. Deactivation retains those
+options and makes no database changes: **deactivation is not uninstall**.
+WordPress uninstall removes only CommitCap-owned local WordPress state:
+`commitcap_version`, the certified-operation config option and the last-outcome
+evidence option, plus the stale #87 budget option when present. An unrelated
+option with a similar commitcap_ prefix is never removed, and no wildcard option
+deletion is used. It does **not** remove trusted DB users, triggers, routines,
+demo objects or grants; those remain explicit operator lifecycle tasks under
+[PROVISIONING.md](PROVISIONING.md) and [DEMO.md](DEMO.md). The 120-second Admin
+notice transient is allowed to expire naturally and is never wildcard-scanned.
+Network activation and multisite cleanup have not been validated; network
+activation is refused without writing plugin metadata. The version header is
+developmental; no plugin license decision has been made (#64).
 
 **MySQL/MariaDB does not currently provide the PostgreSQL-equivalent sticky
 transaction boundary demonstrated by CommitCap's PostgreSQL research path.**

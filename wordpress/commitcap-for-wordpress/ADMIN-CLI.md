@@ -72,3 +72,24 @@ exits zero only for operation READY with Doctor PASS; demo exits zero only for
 COMPLETE. Missing runtime constants fail closed without switching to WordPress
 `$wpdb`. No CLI command accepts an operation ID, SQL, table, arbitrary count,
 PHP callback or installer credential.
+
+## WordPress uninstall boundary
+
+WordPress uninstall removes CommitCap's local WordPress configuration and
+last-outcome evidence: `commitcap_version`, the certified-operation config
+option and the last-outcome option, plus the stale #87 budget option if an old
+install left it. It uses exact option names only — never a wildcard
+`commitcap_%` deletion — so unrelated options and Redirection's own options and
+data survive.
+
+Uninstall does **not** remove trusted DB users, grants, triggers, the helper
+table, the five reviewed routines, demo objects or any Redirection data. Those
+remain explicit operator lifecycle tasks under
+[PROVISIONING.md](PROVISIONING.md) and [DEMO.md](DEMO.md); uninstall needs no
+installer or root credential and performs no DDL/DCL. Because trusted DB
+policies can outlive uninstall, a reinstall still starts `enabled=false` with no
+logical budget and no last outcome until an Admin configures it again. The
+120-second user notice transient is accepted ephemeral behavior: it carries
+only bounded action feedback (never a production COMMITTED/DENIED record), so
+it cannot restore old authorization or evidence, and it is deliberately not
+wildcard-scanned after uninstall.

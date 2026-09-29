@@ -70,5 +70,8 @@ for host in mysql mariadb; do
   php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["operation_status"] !== "UNSUPPORTED" || $d["operation_reason"] !== "redirection_version_unsupported") exit(1);' "$unsupported_json"
   if wp --path="$site" commitcap doctor --format=json >/dev/null; then echo "CLI Doctor accepted missing Redirection version" >&2; exit 1; fi
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-plugin-missing.php
+  # Actual WordPress uninstall: local options removed, trusted DB objects kept.
+  CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-60-uninstall.php
+  CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-60-reinstall.php
 done
 echo "Redirection 5.5.2 adapter suite complete."
