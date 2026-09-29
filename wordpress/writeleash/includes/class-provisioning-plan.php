@@ -72,14 +72,14 @@ final class Provisioning_Plan {
 
 	/** Trusted-only durable marker, visible to Doctor/Guard via existing helper SELECT. */
 	private static function rotation_marker( string $user, string $host ): string {
-		return hash( 'sha256', 'commitcap_v01_rotation:' . $user . '@' . $host );
+		return hash( 'sha256', 'writeleash_v01_rotation:' . $user . '@' . $host );
 	}
 
 	private static function mark_rotation( \wpdb $installer, string $user, string $host, bool $unsafe ): void {
 		$marker = self::rotation_marker( $user, $host );
 		$query = $unsafe
-			? $installer->prepare( 'INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (0, %s, 1) ON DUPLICATE KEY UPDATE consumed = 1', $marker )
-			: $installer->prepare( 'DELETE FROM commitcap_v01_state WHERE connection_id = 0 AND policy_id = %s', $marker );
+			? $installer->prepare( 'INSERT INTO writeleash_v01_state (connection_id, policy_id, consumed) VALUES (0, %s, 1) ON DUPLICATE KEY UPDATE consumed = 1', $marker )
+			: $installer->prepare( 'DELETE FROM writeleash_v01_state WHERE connection_id = 0 AND policy_id = %s', $marker );
 		if ( false === $installer->query( $query ) ) {
 			throw new \RuntimeException( 'Trusted rotation safety marker could not be updated; protected enablement remains unverified.' );
 		}
@@ -199,7 +199,7 @@ final class Provisioning_Plan {
 			'raw_sql'        => $sql_state_select,
 			'statements'     => array( $sql_state_select ),
 			'raw_statements' => array( $sql_state_select ),
-			'grant_delta'    => '+SELECT(commitcap_v01_state)',
+			'grant_delta'    => '+SELECT(writeleash_v01_state)',
 			'reversible'     => true,
 		);
 
@@ -887,10 +887,10 @@ final class Provisioning_Plan {
 		if ( preg_match( '/\AGRANT USAGE ON \*\.\* TO /iD', $statement ) ) {
 			return true;
 		}
-		if ( preg_match( '/\AGRANT SELECT ON `' . preg_quote( str_replace( '`', '``', $schema ), '/' ) . '`\.`commitcap_v01_state` TO /iD', $statement ) ) {
+		if ( preg_match( '/\AGRANT SELECT ON `' . preg_quote( str_replace( '`', '``', $schema ), '/' ) . '`\.`writeleash_v01_state` TO /iD', $statement ) ) {
 			return true;
 		}
-		if ( preg_match( '/\AGRANT EXECUTE ON PROCEDURE `' . preg_quote( str_replace( '`', '``', $schema ), '/' ) . '`\.`commitcap_v01_(?:open|close|count|policy|attest)` TO /iD', $statement ) ) {
+		if ( preg_match( '/\AGRANT EXECUTE ON PROCEDURE `' . preg_quote( str_replace( '`', '``', $schema ), '/' ) . '`\.`writeleash_v01_(?:open|close|count|policy|attest)` TO /iD', $statement ) ) {
 			return true;
 		}
 		$targets = array();

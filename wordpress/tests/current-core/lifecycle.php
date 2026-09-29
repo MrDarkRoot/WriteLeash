@@ -87,7 +87,7 @@ foreach ( $owned as $option ) {
 $trigger = Engine::trigger_name( $table );
 $trigger_before = $root->get_row( $root->prepare( 'SELECT ACTION_STATEMENT, DEFINER FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s', $trigger ), ARRAY_A );
 $grants_before = $root->get_results( "SHOW GRANTS FOR 'cc63_writer'@'%'", ARRAY_N );
-$routines_before = $root->get_results( "SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'commitcap_v01_%' ORDER BY ROUTINE_NAME", ARRAY_N );
+$routines_before = $root->get_results( "SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'writeleash_v01_%' ORDER BY ROUTINE_NAME", ARRAY_N );
 $rows_before = $root->get_results( "SELECT id, url, status FROM `$table` ORDER BY id", ARRAY_A );
 cc87_assert( is_array( $trigger_before ) && 5 === count( $routines_before ), '#63 trusted infrastructure missing before uninstall' );
 
@@ -98,7 +98,7 @@ foreach ( $owned as $option ) {
 }
 cc87_assert( $trigger_before === $root->get_row( $root->prepare( 'SELECT ACTION_STATEMENT, DEFINER FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s', $trigger ), ARRAY_A ), '#63 uninstall changed the policy trigger' );
 cc87_assert( $grants_before === $root->get_results( "SHOW GRANTS FOR 'cc63_writer'@'%'", ARRAY_N ), '#63 uninstall changed runtime grants' );
-cc87_assert( $routines_before === $root->get_results( "SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'commitcap_v01_%' ORDER BY ROUTINE_NAME", ARRAY_N ), '#63 uninstall changed the reviewed routines' );
+cc87_assert( $routines_before === $root->get_results( "SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'writeleash_v01_%' ORDER BY ROUTINE_NAME", ARRAY_N ), '#63 uninstall changed the reviewed routines' );
 cc87_assert( $rows_before === $root->get_results( "SELECT id, url, status FROM `$table` ORDER BY id", ARRAY_A ), '#63 uninstall changed Redirection rows' );
 $after_uninstall_runtime = new wpdb( 'cc63_writer', 'cc63_runtime_secret', 'wp_test', $host );
 $after_uninstall_runtime->suppress_errors( true );

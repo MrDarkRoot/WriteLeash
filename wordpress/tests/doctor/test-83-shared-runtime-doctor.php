@@ -45,9 +45,9 @@ function cc83_reset_grants( $root, $installer ) {
 	cc83_query( $root, "REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'cc_writer'@'%'" );
 	$installer->install_infrastructure();
 	foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $r ) {
-		cc83_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$r TO 'cc_writer'@'%'" );
+		cc83_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.writeleash_v01_$r TO 'cc_writer'@'%'" );
 	}
-	cc83_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc_writer'@'%'" );
+	cc83_query( $root, "GRANT SELECT ON wp_test.writeleash_v01_state TO 'cc_writer'@'%'" );
 	foreach ( array( 'cc83_a', 'cc83_b' ) as $target ) {
 		$exists = (int) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME=%s", $target ) );
 		if ( $exists > 0 ) {
@@ -70,7 +70,7 @@ function cc83_tamper( $root, $name, $params, $body ) {
 
 function cc83_restore_routines( $root, $installer ) {
 	foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $r ) {
-		$root->query( "DROP PROCEDURE IF EXISTS commitcap_v01_$r" );
+		$root->query( "DROP PROCEDURE IF EXISTS writeleash_v01_$r" );
 	}
 	$installer->install_infrastructure();
 	cc83_reset_grants( $root, $installer );
@@ -166,7 +166,7 @@ echo "  #83.2 exact A+B READY with recognized sibling policy: PASS\n";
 // Shared Reachability Invariant: A and B share the restricted connection.
 // If B is corrupted, writing to B during A's transaction could bypass accounting
 // or execute unconstrained writes. A cannot be certified PASS.
-$b_trigger = 'commitcap_v01_' . substr( hash( 'sha256', 'cc83_b' ), 0, 16 );
+$b_trigger = 'writeleash_v01_' . substr( hash( 'sha256', 'cc83_b' ), 0, 16 );
 cc83_query( $root, "DROP TRIGGER `$b_trigger`" );
 
 $res_corrupt_b = Doctor::runtime( array( 'cc83_a' => 5, 'cc83_b' => 15 ), $writer );
@@ -259,7 +259,7 @@ cc83_assert( 'UNKNOWN' === $res_over_ceiling['integrations']['cc83_b']['status']
 cc83_assert( false !== strpos( $res_over_ceiling['integrations']['cc83_a']['detail'], 'exceeds installed physical ceiling' ), '#83.6a detail message' );
 
 // 6b: Trigger statement template altered
-$a_trigger = 'commitcap_v01_' . substr( hash( 'sha256', 'cc83_a' ), 0, 16 );
+$a_trigger = 'writeleash_v01_' . substr( hash( 'sha256', 'cc83_a' ), 0, 16 );
 cc83_query( $root, "DROP TRIGGER `$a_trigger`" );
 cc83_query( $root, "CREATE TRIGGER `$a_trigger` BEFORE UPDATE ON cc83_a FOR EACH ROW SET @cc83_tamper = 1" );
 $res_tampered_trig = Doctor::runtime( array( 'cc83_a' => 5, 'cc83_b' => 15 ), $writer );
@@ -313,8 +313,8 @@ echo "  #83.7 credential rotation and removed A while B remains: PASS\n";
 // ---------------------------------------------------------------------------
 // #83.8: Signature-level infrastructure tampering detection
 // ---------------------------------------------------------------------------
-cc83_query( $root, 'DROP PROCEDURE commitcap_v01_count' );
-cc83_query( $root, 'CREATE PROCEDURE commitcap_v01_count() SELECT 1' );
+cc83_query( $root, 'DROP PROCEDURE writeleash_v01_count' );
+cc83_query( $root, 'CREATE PROCEDURE writeleash_v01_count() SELECT 1' );
 $res_infra_tamper = Doctor::runtime( array( 'cc83_b' => 15 ), $writer );
 cc83_check( $res_infra_tamper, 'evidence_channel', 'FAIL' );
 cc83_assert( 'PASS' !== $res_infra_tamper['overall'], '#83.8 infrastructure tampering must FAIL' );
@@ -331,37 +331,37 @@ echo "  #83.8 signature-level infrastructure tampering detection: PASS\n";
 // ---------------------------------------------------------------------------
 $canonical = Engine::routines();
 
-$open_tamper = str_replace( 'p_policy, 0)', 'p_policy, 7)', $canonical['commitcap_v01_open'] );
-cc83_assert( $open_tamper !== $canonical['commitcap_v01_open'], 'open tamper fixture changed nothing' );
-cc83_tamper_ok( $root, $installer, $writer, 'commitcap_v01_open',
+$open_tamper = str_replace( 'p_policy, 0)', 'p_policy, 7)', $canonical['writeleash_v01_open'] );
+cc83_assert( $open_tamper !== $canonical['writeleash_v01_open'], 'open tamper fixture changed nothing' );
+cc83_tamper_ok( $root, $installer, $writer, 'writeleash_v01_open',
 	'(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin)', $open_tamper, 'cc83_b' );
 echo "  #83.9a body-only tamper of open detected: PASS\n";
 
-$close_tamper = str_replace( 'COALESCE(@commitcap_v01_denied, 1) != 0', 'COALESCE(@commitcap_v01_denied, 0) != 0', $canonical['commitcap_v01_close'] );
-cc83_assert( $close_tamper !== $canonical['commitcap_v01_close'], 'close tamper fixture changed nothing' );
-cc83_tamper_ok( $root, $installer, $writer, 'commitcap_v01_close',
+$close_tamper = str_replace( 'COALESCE(@writeleash_v01_denied, 1) != 0', 'COALESCE(@writeleash_v01_denied, 0) != 0', $canonical['writeleash_v01_close'] );
+cc83_assert( $close_tamper !== $canonical['writeleash_v01_close'], 'close tamper fixture changed nothing' );
+cc83_tamper_ok( $root, $installer, $writer, 'writeleash_v01_close',
 	'(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin)', $close_tamper, 'cc83_b' );
 echo "  #83.9b body-only tamper of close detected: PASS\n";
 
-$count_tamper = str_replace( 'SELECT consumed INTO p_count', 'SELECT 0*consumed INTO p_count', $canonical['commitcap_v01_count'] );
-cc83_assert( $count_tamper !== $canonical['commitcap_v01_count'], 'count tamper fixture changed nothing' );
-cc83_tamper_ok( $root, $installer, $writer, 'commitcap_v01_count',
+$count_tamper = str_replace( 'SELECT consumed INTO p_count', 'SELECT 0*consumed INTO p_count', $canonical['writeleash_v01_count'] );
+cc83_assert( $count_tamper !== $canonical['writeleash_v01_count'], 'count tamper fixture changed nothing' );
+cc83_tamper_ok( $root, $installer, $writer, 'writeleash_v01_count',
 	'(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin, OUT p_count BIGINT UNSIGNED)', $count_tamper, 'cc83_b' );
 echo "  #83.9c body-only tamper of count detected: PASS\n";
 
-// Evidence root #1: commitcap_v01_policy. The tamper appends a statement to the
+// Evidence root #1: writeleash_v01_policy. The tamper appends a statement to the
 // canonical body, preserving signature, DEFINER, output shape and apparent
-// counts. Only commitcap_v01_attest and direct metadata can expose it.
-$policy_tamper = str_replace( 'BEGIN ', 'BEGIN SET @cc83_policy_tamper = 1; ', $canonical['commitcap_v01_policy'] );
-cc83_assert( $policy_tamper !== $canonical['commitcap_v01_policy'], 'policy tamper fixture changed nothing' );
-cc83_tamper_ok( $root, $installer, $writer, 'commitcap_v01_policy',
+// counts. Only writeleash_v01_attest and direct metadata can expose it.
+$policy_tamper = str_replace( 'BEGIN ', 'BEGIN SET @cc83_policy_tamper = 1; ', $canonical['writeleash_v01_policy'] );
+cc83_assert( $policy_tamper !== $canonical['writeleash_v01_policy'], 'policy tamper fixture changed nothing' );
+cc83_tamper_ok( $root, $installer, $writer, 'writeleash_v01_policy',
 	'(IN p_table VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin, IN p_trigger VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin)', $policy_tamper, 'cc83_b' );
 echo "  #83.9d body-only tamper of the policy evidence root detected: PASS\n";
 
-// Evidence root #2: commitcap_v01_attest. Symmetric cross-report from policy.
-$attest_tamper = str_replace( 'ORDER BY r.ROUTINE_NAME', 'ORDER BY r.ROUTINE_NAME, 1', $canonical['commitcap_v01_attest'] );
-cc83_assert( $attest_tamper !== $canonical['commitcap_v01_attest'], 'attest tamper fixture changed nothing' );
-cc83_tamper_ok( $root, $installer, $writer, 'commitcap_v01_attest', '()', $attest_tamper, 'cc83_b' );
+// Evidence root #2: writeleash_v01_attest. Symmetric cross-report from policy.
+$attest_tamper = str_replace( 'ORDER BY r.ROUTINE_NAME', 'ORDER BY r.ROUTINE_NAME, 1', $canonical['writeleash_v01_attest'] );
+cc83_assert( $attest_tamper !== $canonical['writeleash_v01_attest'], 'attest tamper fixture changed nothing' );
+cc83_tamper_ok( $root, $installer, $writer, 'writeleash_v01_attest', '()', $attest_tamper, 'cc83_b' );
 echo "  #83.9e body-only tamper of the attest evidence root detected: PASS\n";
 
 // ---------------------------------------------------------------------------
@@ -375,7 +375,7 @@ cc83_query( $root, 'DELETE FROM cc83_b' );
 for ( $i = 1; $i <= 20; ++$i ) {
 	cc83_query( $root, "INSERT INTO cc83_b (id, touched) VALUES ($i, 0)" );
 }
-cc83_tamper( $root, 'commitcap_v01_count',
+cc83_tamper( $root, 'writeleash_v01_count',
 	'(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin, OUT p_count BIGINT UNSIGNED)',
 	'BEGIN SET p_count = 0; END' );
 $res_lied = Doctor::runtime( array( 'cc83_b' => 15 ), $writer );

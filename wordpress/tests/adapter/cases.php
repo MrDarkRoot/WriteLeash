@@ -261,10 +261,10 @@ echo "  Doctor FAIL (foreign trigger body / ceiling mismatch) -> refused before 
 // Doctor FAIL: trusted ROTATED_UNSAFE marker.
 // ---------------------------------------------------------------------------
 cc87_seed( $root, 3 );
-cc87_query( $root, "INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (0, 'cc87_marker', 1)" );
+cc87_query( $root, "INSERT INTO writeleash_v01_state (connection_id, policy_id, consumed) VALUES (0, 'cc87_marker', 1)" );
 $result = cc87_run_adapter( $root, $runtime, $runtime_id, new Adapter( $runtime, 3 ), false, true, '#87 rotated unsafe', $normal, $normal_id );
 cc87_expect( $result, 'UNKNOWN', 'doctor_not_ready', null, '#87 rotated unsafe' );
-cc87_query( $root, "DELETE FROM commitcap_v01_state WHERE connection_id = 0 AND policy_id = 'cc87_marker'" );
+cc87_query( $root, "DELETE FROM writeleash_v01_state WHERE connection_id = 0 AND policy_id = 'cc87_marker'" );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 3 === $total && 0 === $disabled, 'ROTATED_UNSAFE changed durable state' );
 echo "  ROTATED_UNSAFE -> refused before callback: PASS\n";
@@ -277,11 +277,11 @@ echo "  ROTATED_UNSAFE -> refused before callback: PASS\n";
 // ---------------------------------------------------------------------------
 cc87_seed( $root, 3 );
 $policy_id = Engine::policy_id( CC87_TABLE );
-cc87_query( $root, $root->prepare( 'INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (%d, %s, 1)', $runtime_id, $policy_id ) );
+cc87_query( $root, $root->prepare( 'INSERT INTO writeleash_v01_state (connection_id, policy_id, consumed) VALUES (%d, %s, 1)', $runtime_id, $policy_id ) );
 $result = cc87_run_adapter( $root, $runtime, $runtime_id, new Adapter( $runtime, 3 ), false, true, '#87 stale accounting', $normal, $normal_id, false );
 cc87_expect( $result, 'UNKNOWN', 'doctor_not_ready', null, '#87 stale accounting' );
-cc87_assert( 1 === (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = %d AND policy_id = %s', $runtime_id, $policy_id ) ), 'stale accounting row was not preserved on refusal' );
-cc87_query( $root, $root->prepare( 'DELETE FROM commitcap_v01_state WHERE connection_id = %d AND policy_id = %s', $runtime_id, $policy_id ) );
+cc87_assert( 1 === (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM writeleash_v01_state WHERE connection_id = %d AND policy_id = %s', $runtime_id, $policy_id ) ), 'stale accounting row was not preserved on refusal' );
+cc87_query( $root, $root->prepare( 'DELETE FROM writeleash_v01_state WHERE connection_id = %d AND policy_id = %s', $runtime_id, $policy_id ) );
 list( $total, $disabled ) = cc87_counts( $root );
 cc87_assert( 3 === $total && 0 === $disabled, 'stale accounting changed durable state' );
 echo "  stale committed accounting -> refused before callback: PASS\n";
@@ -323,11 +323,11 @@ cc87_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schem
 // DDL triggers an implicit commit before the denied statement, so the open
 // accounting row is already durable; the guard fails closed and the residue
 // blocks the next run until trusted cleanup (documented in GUARD.md).
-$ddl_residue = (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = %d', $runtime_id ) );
+$ddl_residue = (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM writeleash_v01_state WHERE connection_id = %d', $runtime_id ) );
 cc87_assert( $ddl_residue > 0, 'DDL implicit commit did not leave the expected accounting residue' );
 $blocked = cc87_run_adapter( $root, $runtime, $runtime_id, new Adapter( $runtime, 3 ), false, false, '#87 ddl residue', $normal, $normal_id, false );
 cc87_assert( 'COMMITTED' !== $blocked['outcome'], 'accounting residue did not fail closed' );
-cc87_query( $root, $root->prepare( 'DELETE FROM commitcap_v01_state WHERE connection_id = %d', $runtime_id ) );
+cc87_query( $root, $root->prepare( 'DELETE FROM writeleash_v01_state WHERE connection_id = %d', $runtime_id ) );
 
 $result = cc87_run_adapter( $root, $runtime, $runtime_id, new CC87_Insert_Attempt( $runtime, 3 ), false, false, '#87 insert attempt', $normal, $normal_id );
 cc87_assert( 'ERROR' === $result['outcome'], 'INSERT attempt did not fail closed: ' . json_encode( $result ) );
@@ -476,7 +476,7 @@ echo "  hit/stat writer (Red_Item::visit) works under installed policy: PASS\n";
 // ---------------------------------------------------------------------------
 cc87_seed( $root, 3 );
 $unguarded_id = (int) $root->get_var( 'SELECT id FROM wp_redirection_items ORDER BY id LIMIT 1' );
-$runtime->query( 'SET @commitcap_v01_denied = 0' );
+$runtime->query( 'SET @writeleash_v01_denied = 0' );
 $runtime->query( 'SET @cc87_forged = 1' );
 $runtime->query( 'SELECT 1' );
 $unguarded = $runtime->query( 'UPDATE wp_redirection_items SET status = ' . "'disabled'" . ' WHERE id = ' . $unguarded_id );
@@ -495,7 +495,7 @@ $five_ids = array_map( 'intval', $root->get_col( 'SELECT id FROM wp_redirection_
 cc87_assert( 5 === count( $five_ids ), 'direct lifecycle fixture' );
 $runtime->query( 'SELECT 1' );
 cc87_query( $runtime, 'START TRANSACTION' );
-$runtime->query( 'CALL commitcap_v01_open(' . "'" . Engine::policy_id( CC87_TABLE ) . "'" . ')' );
+$runtime->query( 'CALL writeleash_v01_open(' . "'" . Engine::policy_id( CC87_TABLE ) . "'" . ')' );
 $allowed = 0;
 foreach ( $five_ids as $five_id ) {
 	if ( false !== $runtime->query( 'UPDATE wp_redirection_items SET status = ' . "'disabled'" . ' WHERE id = ' . (int) $five_id ) ) {

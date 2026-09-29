@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * cannot be observed.
  *
  * Guard-reserved SQL (transaction control, autocommit changes, all CALLs,
- * @commitcap_v01_* references) is classified by Guard_Sql, which understands
+ * @writeleash_v01_* references) is classified by Guard_Sql, which understands
  * comments and formatting variation and fails closed on ambiguous statements.
  * The monitor detects
  * cooperative contract violations; it does not make a hostile caller

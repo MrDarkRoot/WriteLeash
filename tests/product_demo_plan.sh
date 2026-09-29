@@ -11,14 +11,14 @@ reject() {
     fi
 }
 
-plan="$("$ROOT/commitcap" protect-update --table public.cc_demo_test_a --budget 5 --writer-role commitcap_demo_writer)"
+plan="$("$ROOT/writeleash" protect-update --table public.cc_demo_test_a --budget 5 --writer-role writeleash_demo_writer)"
 install="$(extract_plan_section "$plan" install)"
 verify="$(extract_plan_section "$plan" verify)"
 [[ "$install" == *'BEFORE UPDATE ON "public"."cc_demo_test_a"'* &&
-   "$install" == *"EXECUTE FUNCTION commitcap_native.enforce_rows_updated('5');"* &&
+   "$install" == *"EXECUTE FUNCTION writeleash_native.enforce_rows_updated('5');"* &&
    "$verify" == *'\set cc_table_name cc_demo_test_a'* &&
    "$verify" == *'\set cc_expected_budget 5'* &&
-   "$verify" == *'\set cc_writer_role commitcap_demo_writer'* &&
+   "$verify" == *'\set cc_writer_role writeleash_demo_writer'* &&
    "$verify" == *'protected writer cannot change session_replication_role'* ]] || fail 'extracted sections do not match #27 plan'
 
 install_begin='-- BEGIN TRUSTED-ADMIN INSTALL SQL'

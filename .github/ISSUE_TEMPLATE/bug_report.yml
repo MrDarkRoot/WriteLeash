@@ -1,17 +1,17 @@
 name: Bug report
-description: Report reproducible behavior that conflicts with the documented CommitCap contract
+description: Report reproducible behavior that conflicts with the documented WriteLeash contract
 title: "bug: "
 labels: []
 body:
   - type: markdown
     attributes:
       value: |
-        CommitCap is security-sensitive. If this may be a vulnerability, do not disclose exploit details here. Follow `SECURITY.md` and use the private reporting channel described there.
+        WriteLeash is security-sensitive. If this may be a vulnerability, do not disclose exploit details here. Follow `SECURITY.md` and use the private reporting channel described there.
 
   - type: input
     id: version
     attributes:
-      label: CommitCap commit or version
+      label: WriteLeash commit or version
       placeholder: Commit hash, tag, or version
     validations:
       required: true

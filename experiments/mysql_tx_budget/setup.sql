@@ -30,7 +30,7 @@ BEGIN
     WHERE connection_id = CONNECTION_ID() AND consumed < 5;
     IF ROW_COUNT() != 1 THEN
         SIGNAL SQLSTATE '45000'
-            SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CommitCap research: UPDATE budget exhausted or no guard';
+            SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'WriteLeash research: UPDATE budget exhausted or no guard';
     END IF;
 END//
 DELIMITER ;

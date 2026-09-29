@@ -124,7 +124,7 @@ function cc58_assert_repeat_trace( $threads, $normal_id, $runtime_id, $table ) {
 				++$privileged_sql;
 			}
 			if ( $id === $runtime_id ) {
-				$counter_events += (int) (bool) preg_match( '/^UPDATE commitcap_v01_state SET consumed = consumed \+ 1 /i', $sql );
+				$counter_events += (int) (bool) preg_match( '/^UPDATE writeleash_v01_state SET consumed = consumed \+ 1 /i', $sql );
 				$starts += (int) ( 'START TRANSACTION' === strtoupper( $sql ) );
 				$commits += (int) ( 'COMMIT' === strtoupper( $sql ) );
 				$rollbacks += (int) ( 'ROLLBACK' === strtoupper( $sql ) );
@@ -176,7 +176,7 @@ list( $runs, $threads ) = cc87_trace_all( $installer, static function () use ( $
 		cc87_assert( $expected === $observed, "run #$number fresh observer state $next; no denied 2" );
 		$status = $demo->status();
 		cc87_assert( 'READY' === $status['status'] && $next === $status['canonical_state'], "run #$number must leave READY runnable state $next" );
-		cc87_assert( 0 === (int) $installer->get_var( $installer->prepare( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = %d', $runtime_id ) ), 'no stale accounting' );
+		cc87_assert( 0 === (int) $installer->get_var( $installer->prepare( 'SELECT COUNT(*) FROM writeleash_v01_state WHERE connection_id = %d', $runtime_id ) ), 'no stale accounting' );
 		$runs[] = $result;
 		echo "#58 $host normal run #$number: 5 COMMITTED, 6 logical DENIED, fresh observer STATE_$next, status READY, no trusted reset: PASS\n";
 	}

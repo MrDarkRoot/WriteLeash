@@ -343,7 +343,7 @@ Expected:
 Writer attempts:
 
 ```text
-UPDATE commitcap.policy ...
+UPDATE writeleash.policy ...
 ```
 
 or equivalent.

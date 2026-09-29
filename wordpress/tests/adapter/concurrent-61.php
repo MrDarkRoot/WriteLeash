@@ -134,7 +134,7 @@ if ( 'seed' === $phase ) {
 } else {
 	$counts = cc87_counts( $root );
 	cc87_assert( array( 6, 6 ) === $counts, 'final durable state must be six disabled rows: ' . json_encode( $counts ) );
-	$stale = (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id <> 0' );
+	$stale = (int) $root->get_var( 'SELECT COUNT(*) FROM writeleash_v01_state WHERE connection_id <> 0' );
 	cc87_assert( 0 === $stale, 'leftover per-connection accounting rows: ' . $stale );
 	cc87_assert( 'READY' === Status::check( $operation, '5.5.2', $runtime )['status'], 'concurrency left production READY' );
 	echo "#61 $host: two independent certified requests; durable (6,6); zero stale accounting; READY: PASS\n";

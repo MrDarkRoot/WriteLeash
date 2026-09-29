@@ -115,11 +115,11 @@ function cc87_assert_isolated( array $statements, $label, $expect_plugin_update 
 		"/^SELECT 'CC87_TRACE_(START|END)'$/i",
 		'/^SELECT @[A-Za-z0-9_]+$/i',
 		'/^SHOW GRANTS/i',
-		'/^CALL commitcap_v01_(open|close|count|policy|attest)\(/i',
+		'/^CALL writeleash_v01_(open|close|count|policy|attest)\(/i',
 		'/^SELECT .+ FROM information_schema\.[A-Z_]+/i',
-		'/^SELECT .+ FROM commitcap_v01_state/i',
+		'/^SELECT .+ FROM writeleash_v01_state/i',
 		'/^SELECT .+ FROM `?wp_redirection_items`?/i',
-		'/^SET @commitcap_v01_denied/i',
+		'/^SET @writeleash_v01_denied/i',
 		"/^SET NAMES '?[A-Za-z0-9_]+'?( COLLATE '?[A-Za-z0-9_]+'?)?$/i",
 		"/^SET SESSION sql_mode='[^']*'$/i",
 		'/^START TRANSACTION$/i',
@@ -132,7 +132,7 @@ function cc87_assert_isolated( array $statements, $label, $expect_plugin_update 
 		"/^UPDATE wp_redirection_items SET status='disabled'$/i",
 		// Executed by the reviewed BEFORE UPDATE trigger inside the server, one
 		// statement per accounted row event, plus its physical denial signal.
-		"/^UPDATE commitcap_v01_state SET consumed = consumed \\+ 1 WHERE connection_id = CONNECTION_ID\\(\\) AND policy_id = '[a-f0-9]{64}' AND consumed < [0-9]+$/i",
+		"/^UPDATE writeleash_v01_state SET consumed = consumed \\+ 1 WHERE connection_id = CONNECTION_ID\\(\\) AND policy_id = '[a-f0-9]{64}' AND consumed < [0-9]+$/i",
 		"/^SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED'$/i",
 	);
 	$plugin_updates = 0;
@@ -188,7 +188,7 @@ function cc87_adapter_statements( array $by_thread ): array {
 	$found = array();
 	foreach ( $by_thread as $thread => $statements ) {
 		foreach ( $statements as $sql ) {
-			if ( preg_match( '/^CALL commitcap_v01_/i', $sql ) || preg_match( "/^SELECT SUBSTRING_INDEX\\(USER\\(\\), '@', 1\\)$/i", $sql ) ) {
+			if ( preg_match( '/^CALL writeleash_v01_/i', $sql ) || preg_match( "/^SELECT SUBSTRING_INDEX\\(USER\\(\\), '@', 1\\)$/i", $sql ) ) {
 				$found[] = array( (int) $thread, $sql );
 			}
 		}
@@ -263,7 +263,7 @@ function cc87_seed( $root, $count ) {
 
 /** The runtime account must hold no leftover accounting rows after a run. */
 function cc87_assert_no_accounting( $root, $runtime_id, $label ) {
-	$rows = (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = %d', $runtime_id ) );
+	$rows = (int) $root->get_var( $root->prepare( 'SELECT COUNT(*) FROM writeleash_v01_state WHERE connection_id = %d', $runtime_id ) );
 	cc87_assert( 0 === $rows, $label . ' left accounting state behind' );
 }
 

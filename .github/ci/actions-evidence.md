@@ -24,8 +24,8 @@ contain the unabridged suite transcript. These temporary artifacts are distinct
 from the already archived [integrated audit evidence](../../experiments/native_tx_state/evidence/2026-09-23-integrated-audit-e97f19b.txt).
 
 Locally, from the unchanged initial fixture and the CI implementation tree,
-`COMPOSE_PROJECT_NAME=commitcap_ci_local ./experiments/native_tx_state/run.sh > /tmp/opencode/commitcap-ci-local.log 2>&1`
-followed by `bash .github/ci/assert-security-log.sh /tmp/opencode/commitcap-ci-local.log`
+`COMPOSE_PROJECT_NAME=writeleash_ci_local ./experiments/native_tx_state/run.sh > /tmp/opencode/writeleash-ci-local.log 2>&1`
+followed by `bash .github/ci/assert-security-log.sh /tmp/opencode/writeleash-ci-local.log`
 exited **0** with the full suite and all required markers. No suite skips were
 introduced. These checks show repeatability in the **documented research
 envelope only**, not production support or task-wide transaction-splitting

@@ -29,32 +29,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./experiments/native_tx_state/run.sh 2>&1 | tee "$RUNNER_TEMP/commitcap-native-suite.txt"
-          bash .github/ci/assert-security-log.sh "$RUNNER_TEMP/commitcap-native-suite.txt"
+          ./experiments/native_tx_state/run.sh 2>&1 | tee "$RUNNER_TEMP/writeleash-native-suite.txt"
+          bash .github/ci/assert-security-log.sh "$RUNNER_TEMP/writeleash-native-suite.txt"
 
       - name: One-command demo path (./demo.sh)
         shell: bash
         run: |
           set -euo pipefail
-          ./demo.sh 2>&1 | tee "$RUNNER_TEMP/commitcap-demo.txt"
-          grep -Fq 'Demo: PASS' "$RUNNER_TEMP/commitcap-demo.txt"
-          grep -Fq 'Demo exit status: 0' "$RUNNER_TEMP/commitcap-demo.txt"
+          ./demo.sh 2>&1 | tee "$RUNNER_TEMP/writeleash-demo.txt"
+          grep -Fq 'Demo: PASS' "$RUNNER_TEMP/writeleash-demo.txt"
+          grep -Fq 'Demo exit status: 0' "$RUNNER_TEMP/writeleash-demo.txt"
 
       - name: CLI/DX input and PostgreSQL catalog preflight tests
         shell: bash
         run: |
           set -euo pipefail
-          bash -n ./commitcap ./demo/product_plan.sh ./demo/product_update_demo.sh ./tests/commitcap_cli.sh ./tests/commitcap_catalog.sh ./tests/product_demo_plan.sh
-          ./tests/commitcap_cli.sh
+          bash -n ./writeleash ./demo/product_plan.sh ./demo/product_update_demo.sh ./tests/writeleash_cli.sh ./tests/writeleash_catalog.sh ./tests/product_demo_plan.sh ./tests/writeleash_identity_scan.sh
+          ./tests/writeleash_identity_scan.sh
+          ./tests/writeleash_cli.sh
           ./tests/product_demo_plan.sh
-          ./tests/commitcap_catalog.sh
+          ./tests/writeleash_catalog.sh
 
       - name: Arbitrary-table product acceptance (two clean runs)
         shell: bash
         run: |
           set -euo pipefail
           for run in 1 2; do
-            ./commitcap demo 2>&1 | tee "$RUNNER_TEMP/product-demo-run-${run}.txt"
+            ./writeleash demo 2>&1 | tee "$RUNNER_TEMP/product-demo-run-${run}.txt"
             for marker in \
               'Product demo catalog preflight: PASS' \
               'Product demo safe transaction: PASS' \
@@ -67,9 +68,9 @@ jobs:
               'Product Demo exit status: 0'; do
               grep -Fxq "$marker" "$RUNNER_TEMP/product-demo-run-${run}.txt"
             done
-            test -z "$(docker compose -p commitcap_product_demo -f experiments/native_tx_state/docker-compose.yml ps -a -q)"
-            test -z "$(docker network ls -q --filter label=com.docker.compose.project=commitcap_product_demo)"
-            test -z "$(docker volume ls -q --filter label=com.docker.compose.project=commitcap_product_demo)"
+            test -z "$(docker compose -p writeleash_product_demo -f experiments/native_tx_state/docker-compose.yml ps -a -q)"
+            test -z "$(docker network ls -q --filter label=com.docker.compose.project=writeleash_product_demo)"
+            test -z "$(docker volume ls -q --filter label=com.docker.compose.project=writeleash_product_demo)"
           done
 
       - name: Remove disposable PostgreSQL resources
@@ -83,8 +84,8 @@ jobs:
         with:
           name: native-pg16-security-log
           path: |
-            ${{ runner.temp }}/commitcap-native-suite.txt
-            ${{ runner.temp }}/commitcap-demo.txt
+            ${{ runner.temp }}/writeleash-native-suite.txt
+            ${{ runner.temp }}/writeleash-demo.txt
             ${{ runner.temp }}/product-demo-run-1.txt
             ${{ runner.temp }}/product-demo-run-2.txt
           if-no-files-found: ignore

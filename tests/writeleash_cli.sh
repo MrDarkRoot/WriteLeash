@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-CLI="$REPO_DIR/commitcap"
+CLI="$REPO_DIR/writeleash"
 BASH_BIN="$(command -v bash)"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf -- "$TMP_DIR"' EXIT
@@ -28,21 +28,21 @@ reject_command() {
     [[ "$output" != *'CREATE TRIGGER'* ]] || fail "$label emitted SQL before rejecting input"
 }
 
-[[ -x "$CLI" ]] || fail './commitcap is not executable'
+[[ -x "$CLI" ]] || fail './writeleash is not executable'
 
 help_output="$("$CLI" --help)"
-contains "$help_output" './commitcap doctor'
+contains "$help_output" './writeleash doctor'
 contains "$help_output" 'protect-update'
-contains "$help_output" './commitcap demo'
+contains "$help_output" './writeleash demo'
 contains "$("$CLI" doctor --help)" 'Docker daemon reachability'
 contains "$("$CLI" protect-update --help)" 'canonical decimal integer'
 contains "$("$CLI" protect-update --help)" 'SET ROLE'
 
 for valid_budget in 50 0 2147483647; do
     valid_output="$("$CLI" protect-update --table public.orders --budget "$valid_budget")"
-    contains "$valid_output" 'CREATE TRIGGER "commitcap_rows_updated"'
+    contains "$valid_output" 'CREATE TRIGGER "writeleash_rows_updated"'
     contains "$valid_output" 'BEFORE UPDATE ON "public"."orders"'
-    contains "$valid_output" "EXECUTE FUNCTION commitcap_native.enforce_rows_updated('$valid_budget');"
+    contains "$valid_output" "EXECUTE FUNCTION writeleash_native.enforce_rows_updated('$valid_budget');"
     contains "$valid_output" "\\set cc_expected_budget $valid_budget"
     contains "$valid_output" 'V0 rejects SET or ALTER SYSTEM privilege on session_replication_role'
     contains "$valid_output" 'OVERALL'
@@ -163,8 +163,8 @@ if doctor_output="$(PATH="$TMP_DIR/stub:$PATH" DOCKER_STUB_MODE=no-daemon "$BASH
     fail "doctor passed without daemon: $doctor_output"
 fi
 contains "$doctor_output" '✗ Docker daemon unavailable'
-contains "$doctor_output" 'Start Docker and retry: ./commitcap doctor'
+contains "$doctor_output" 'Start Docker and retry: ./writeleash doctor'
 
 reject_command 'demo rejects unknown flags' demo --apply
 
-printf 'CommitCap CLI/DX tests: PASS\n'
+printf 'WriteLeash CLI/DX tests: PASS\n'

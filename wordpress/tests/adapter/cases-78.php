@@ -230,6 +230,73 @@ $installer->remove_owned_policy( CC78_TABLE, 1999, CC78_RUNTIME_USER );
 $installer->install_policy( CC78_TABLE, 2000, CC78_RUNTIME_USER );
 cc78_expect( Status::check( $operation, '5.5.2', $runtime ), Status::READY, 'ok', 'P restored' );
 
+// ---------------------------------------------------------------------------
+// #97 old low-level DB graph refusal. The canonical WriteLeash graph is the
+// only trusted identity: the pre-rebrand CommitCap graph is never migrated,
+// never renamed and never accepted, and stale routine EXECUTE grants cannot
+// satisfy readiness. Runs with real Redirection so the refusal is exact.
+// ---------------------------------------------------------------------------
+$cc78_canonical_trigger = Engine::trigger_name( CC78_TABLE );
+$cc78_canonical_comment = (string) $root->get_var( $root->prepare(
+	'SELECT TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s', Engine::STATE
+) );
+$cc78_canonical_routines = Engine::routines();
+$cc78_old_name = static function ( string $name ): string {
+	return str_replace( 'writeleash_v01_', 'commitcap_v01_', $name );
+};
+
+// Replace the canonical graph with an exact pre-rebrand replica.
+cc87_query( $root, "DROP TRIGGER `$cc78_canonical_trigger`" );
+foreach ( Engine::routine_names() as $cc78_routine ) {
+	cc87_query( $root, "DROP PROCEDURE `$cc78_routine`" );
+}
+cc87_query( $root, 'DROP TABLE writeleash_v01_state' );
+cc87_query( $root, 'CREATE TABLE `commitcap_v01_state` (connection_id BIGINT UNSIGNED NOT NULL, policy_id CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, consumed BIGINT UNSIGNED NOT NULL, PRIMARY KEY (connection_id, policy_id)) ENGINE=InnoDB COMMENT=' . $root->prepare( '%s', str_replace( 'WriteLeash', 'CommitCap', $cc78_canonical_comment ) ) );
+foreach ( $cc78_canonical_routines as $cc78_name => $cc78_body ) {
+	cc87_query( $root, "CREATE PROCEDURE `" . $cc78_old_name( $cc78_name ) . '` ' . Engine::routine_params( $cc78_name ) . ' SQL SECURITY DEFINER ' . $cc78_body );
+}
+cc87_query( $root, 'CREATE TRIGGER `' . $cc78_old_name( $cc78_canonical_trigger ) . '` BEFORE UPDATE ON `' . CC78_TABLE . '` FOR EACH ROW ' . Engine::trigger_body( CC78_TABLE, 2000, CC78_RUNTIME_USER ) );
+foreach ( Engine::routine_names() as $cc78_routine ) {
+	cc87_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test." . $cc78_old_name( $cc78_routine ) . " TO 'cc87_writer'@'%'" );
+}
+cc87_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc87_writer'@'%'" );
+
+cc87_seed_bulk( $root, 2 );
+$cc78_old_graph = Status::check( $operation, '5.5.2', $runtime );
+cc87_assert( Status::NOT_READY === $cc78_old_graph['status'], 'old CommitCap-only graph must be NOT_READY: ' . json_encode( $cc78_old_graph ) );
+cc87_assert( Status::READY !== Status::can_enable( $operation, '5.5.2', $runtime )['status'], 'enable preflight accepted the old CommitCap-only graph' );
+wp_set_current_user( 1 );
+$cc78_old_response = rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+cc87_assert( 503 === $cc78_old_response->get_status() && array( 2, 0 ) === cc87_counts( $root ), 'old graph REST request was not fail-closed with zero mutation: ' . $cc78_old_response->get_status() );
+
+// No automatic migration: the old helper, routines and trigger stay exactly as
+// they are, and no canonical object appears without trusted provisioning.
+cc87_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commitcap_v01_state'" ), 'old helper was renamed or dropped' );
+cc87_assert( 5 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'commitcap_v01\\_%'" ), 'old routines were renamed or dropped' );
+cc87_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'writeleash_v01_state'" ), 'old graph was auto-migrated to the canonical helper' );
+cc87_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'writeleash_v01\\_%'" ), 'canonical routines appeared without trusted provisioning' );
+cc87_assert( 1 === (int) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s", $cc78_old_name( $cc78_canonical_trigger ) ) ), 'old trigger was renamed or dropped' );
+
+// Trusted reprovisioning is the only transition to the canonical graph.
+// Clear the old object-level grants while the objects still exist: some
+// engines keep stale object privileges listed after the object is dropped.
+// The target grant is also cleared so the install plan sees exactly the
+// reviewed empty surface; add_target re-grants it immediately after.
+foreach ( Engine::routine_names() as $cc78_routine ) {
+	cc87_query( $root, "REVOKE EXECUTE ON PROCEDURE wp_test." . $cc78_old_name( $cc78_routine ) . " FROM 'cc87_writer'@'%'" );
+}
+cc87_query( $root, "REVOKE SELECT ON wp_test.commitcap_v01_state FROM 'cc87_writer'@'%'" );
+cc87_query( $root, "REVOKE SELECT, UPDATE ON wp_test.`" . CC78_TABLE . "` FROM 'cc87_writer'@'%'" );
+cc87_query( $root, 'DROP TRIGGER `' . $cc78_old_name( $cc78_canonical_trigger ) . '`' );
+foreach ( Engine::routine_names() as $cc78_routine ) {
+	cc87_query( $root, 'DROP PROCEDURE `' . $cc78_old_name( $cc78_routine ) . '`' );
+}
+cc87_query( $root, 'DROP TABLE commitcap_v01_state' );
+Plan::install( 'wp_test', CC78_RUNTIME_USER, '%', CC78_RUNTIME_SECRET )->apply( $root );
+Plan::add_target( 'wp_test', CC78_RUNTIME_USER, '%', CC78_TABLE, 2000 )->apply( $root );
+cc78_expect( Status::check( $operation, '5.5.2', $runtime ), Status::READY, 'ok', 'trusted canonical reprovision' );
+echo "  #97 old CommitCap-only graph: NOT_READY, enable refused, zero mutation, no auto rename/drop, trusted reprovision restores READY: PASS\n";
+
 // The legacy #87 budget option is not an authority.
 update_option( 'writeleash_operation_budget_redirection_5_5_2_bulk_disable', 1 );
 $legacy_ignored = Status::check( $operation, '5.5.2', $runtime );

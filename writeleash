@@ -11,20 +11,20 @@ SCRIPT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR" && pwd)"
 
 usage() {
     printf '%s\n' \
-        'CommitCap V0 Research Preview — local PostgreSQL 16.4 fixture only' \
+        'WriteLeash V0 Research Preview — local PostgreSQL 16.4 fixture only' \
         '' \
         'Usage:' \
-        '  ./commitcap doctor' \
-        '  ./commitcap protect-update --table schema.table --budget N [--writer-role ROLE]' \
-        '  ./commitcap demo' \
+        '  ./writeleash doctor' \
+        '  ./writeleash protect-update --table schema.table --budget N [--writer-role ROLE]' \
+        '  ./writeleash demo' \
         '' \
         'protect-update prints trusted-admin SQL and a catalog preflight; it never connects or applies SQL.' \
-        'Run ./commitcap protect-update --help for identifier, budget, and trust-check details.'
+        'Run ./writeleash protect-update --help for identifier, budget, and trust-check details.'
 }
 
 doctor_usage() {
     printf '%s\n' \
-        'Usage: ./commitcap doctor' \
+        'Usage: ./writeleash doctor' \
         '' \
         'Checks Bash, Docker, the `docker compose` plugin, and Docker daemon reachability.' \
         'It does not install or change anything.'
@@ -32,7 +32,7 @@ doctor_usage() {
 
 protect_usage() {
     printf '%s\n' \
-        'Usage: ./commitcap protect-update --table schema.table --budget N [--writer-role ROLE]' \
+        'Usage: ./writeleash protect-update --table schema.table --budget N [--writer-role ROLE]' \
         '' \
         'Prints (does not apply) a fixed-name BEFORE UPDATE FOR EACH ROW trigger and a psql catalog preflight.' \
         'Use simple lowercase unquoted identifiers (at most 63 bytes). Budget is a canonical decimal integer from 0 through 2147483647.' \
@@ -42,7 +42,7 @@ protect_usage() {
 }
 
 fail() {
-    printf 'commitcap: %s\n' "$1" >&2
+    printf 'writeleash: %s\n' "$1" >&2
     exit "${2:-2}"
 }
 
@@ -50,12 +50,12 @@ doctor() {
     local failed=0
     local compose_version=''
 
-    printf 'CommitCap doctor\n\n'
+    printf 'WriteLeash doctor\n\n'
     if [[ -n "${BASH_VERSION:-}" ]]; then
         printf '✓ Bash %s\n' "$BASH_VERSION"
     else
         printf '✗ Bash unavailable\n'
-        printf 'Run this command with Bash: ./commitcap doctor\n'
+        printf 'Run this command with Bash: ./writeleash doctor\n'
         failed=1
     fi
 
@@ -65,7 +65,7 @@ doctor() {
             printf '✓ Docker Compose v2 interface (%s)\n' "$compose_version"
         else
             printf '✗ Docker Compose v2 unavailable\n'
-            printf 'Install the Docker Compose plugin and retry: ./commitcap doctor\n'
+            printf 'Install the Docker Compose plugin and retry: ./writeleash doctor\n'
             failed=1
         fi
 
@@ -73,12 +73,12 @@ doctor() {
             printf '✓ Docker daemon\n'
         else
             printf '✗ Docker daemon unavailable\n'
-            printf 'Start Docker and retry: ./commitcap doctor\n'
+            printf 'Start Docker and retry: ./writeleash doctor\n'
             failed=1
         fi
     else
         printf '✗ Docker CLI unavailable\n'
-        printf 'Install Docker Engine/Desktop and retry: ./commitcap doctor\n'
+        printf 'Install Docker Engine/Desktop and retry: ./writeleash doctor\n'
         failed=1
     fi
 
@@ -218,16 +218,16 @@ protect_update() {
     WRITER_ROLE="$writer_role"
     BUDGET="$budget"
 
-    printf 'CommitCap V0 protection plan\n\n'
+    printf 'WriteLeash V0 protection plan\n\n'
     printf 'table:\n  %s.%s\n\n' "$TABLE_SCHEMA" "$TABLE_NAME"
     printf 'metric:\n  UPDATE row events\n\n'
     printf 'budget:\n  %s per top-level transaction\n\n' "$budget"
     printf 'Trusted-admin SQL (review and apply as the table owner/admin):\n\n'
     printf '%s\n' '-- BEGIN TRUSTED-ADMIN INSTALL SQL'
-    printf 'CREATE TRIGGER "commitcap_rows_updated"\n'
+    printf 'CREATE TRIGGER "writeleash_rows_updated"\n'
     printf 'BEFORE UPDATE ON "%s"."%s"\n' "$TABLE_SCHEMA" "$TABLE_NAME"
     printf 'FOR EACH ROW\n'
-    printf "EXECUTE FUNCTION commitcap_native.enforce_rows_updated('%s');\n" "$budget"
+    printf "EXECUTE FUNCTION writeleash_native.enforce_rows_updated('%s');\n" "$budget"
     printf '%s\n\n' '-- END TRUSTED-ADMIN INSTALL SQL'
     printf 'This is CREATE, not CREATE OR REPLACE. If the fixed trigger name already exists, PostgreSQL reports a conflict; inspect it rather than replacing it.\n'
     printf 'The generated SQL is not applied by this command. The protected writer must not apply or alter trusted policy SQL.\n\n'
@@ -240,7 +240,7 @@ protect_update() {
     fi
     printf '\n'
     print_verification_script
-    printf '\nCommitCap V0 Research Preview\n\n'
+    printf '\nWriteLeash V0 Research Preview\n\n'
     printf 'Protected if installed and all verification checks pass:\n'
     printf 'UPDATE row events on %s.%s\n' "$TABLE_SCHEMA" "$TABLE_NAME"
     printf 'budget: %s / top-level transaction\n\n' "$budget"
@@ -276,18 +276,18 @@ main() {
                 doctor_usage
                 return 0
             fi
-            (( $# == 0 )) || fail 'doctor accepts no flags; use ./commitcap doctor --help'
+            (( $# == 0 )) || fail 'doctor accepts no flags; use ./writeleash doctor --help'
             doctor
             ;;
         protect-update)
             protect_update "$@"
             ;;
         demo)
-            (( $# == 0 )) || fail 'demo accepts no flags; use ./commitcap --help'
+            (( $# == 0 )) || fail 'demo accepts no flags; use ./writeleash --help'
             demo
             ;;
         *)
-            fail "unknown command: $command_name; use ./commitcap --help"
+            fail "unknown command: $command_name; use ./writeleash --help"
             ;;
     esac
 }

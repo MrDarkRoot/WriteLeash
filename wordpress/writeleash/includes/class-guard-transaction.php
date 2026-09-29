@@ -65,7 +65,7 @@ final class Guard_Transaction {
 				$error
 			);
 		}
-		$name = 'commitcap_v01_tx_' . $suffix;
+		$name = 'writeleash_v01_tx_' . $suffix;
 		if ( ! preg_match( '/\A[A-Za-z_][A-Za-z0-9_]{0,63}\z/', $name ) ) {
 			throw new Unsupported_Transaction_State(
 				'transaction_probe_failed',

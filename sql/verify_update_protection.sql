@@ -27,8 +27,8 @@ extension AS (
            n.oid AS schema_oid, n.nspowner AS schema_owner
     FROM pg_extension AS e
     JOIN pg_namespace AS n ON n.oid = e.extnamespace
-    WHERE e.extname = 'commitcap_native_tx_state'
-      AND n.nspname = 'commitcap_native'
+    WHERE e.extname = 'writeleash_native_tx_state'
+      AND n.nspname = 'writeleash_native'
 ),
 function_candidates AS (
     SELECT
@@ -43,12 +43,12 @@ function_candidates AS (
                AND d.objid = p.oid
                AND d.refclassid = 'pg_extension'::regclass
                AND d.deptype = 'e'
-               AND e.extname = 'commitcap_native_tx_state'
+               AND e.extname = 'writeleash_native_tx_state'
          )) AS supported_function
     FROM pg_proc AS p
     JOIN pg_namespace AS n ON n.oid = p.pronamespace
     JOIN pg_language AS l ON l.oid = p.prolang
-    WHERE n.nspname = 'commitcap_native'
+    WHERE n.nspname = 'writeleash_native'
       AND p.proname = 'enforce_rows_updated'
       AND p.pronargs = 0
 ),
@@ -63,8 +63,8 @@ trigger_rows AS (
               AND d.objid = t.tgfoid
               AND d.refclassid = 'pg_extension'::regclass
               AND d.deptype = 'e'
-              AND e.extname = 'commitcap_native_tx_state'
-        ) AS commitcap_extension_trigger
+              AND e.extname = 'writeleash_native_tx_state'
+        ) AS writeleash_extension_trigger
     FROM relation AS r
     JOIN pg_trigger AS t ON t.tgrelid = r.relation_oid
     WHERE NOT t.tgisinternal
@@ -76,15 +76,15 @@ generic_triggers AS (
 ),
 trigger_summary AS (
     SELECT
-        count(*) FILTER (WHERE t.commitcap_extension_trigger) AS extension_trigger_count,
+        count(*) FILTER (WHERE t.writeleash_extension_trigger) AS extension_trigger_count,
         count(*) FILTER (
-            WHERE t.commitcap_extension_trigger
+            WHERE t.writeleash_extension_trigger
               AND t.tgfoid IN (SELECT function_oid FROM function_candidates WHERE supported_function)
         ) AS generic_trigger_count,
         count(*) FILTER (
-            WHERE t.commitcap_extension_trigger
+            WHERE t.writeleash_extension_trigger
               AND t.tgfoid IN (SELECT function_oid FROM function_candidates WHERE supported_function)
-              AND t.tgname = 'commitcap_rows_updated'
+              AND t.tgname = 'writeleash_rows_updated'
         ) AS fixed_name_count
     FROM relation AS r
     LEFT JOIN trigger_rows AS t ON true
@@ -141,17 +141,17 @@ checks AS (
     FROM relation AS r
 
     UNION ALL
-    SELECT 30, 'CommitCap extension and trusted schema',
+    SELECT 30, 'WriteLeash extension and trusted schema',
         EXISTS (SELECT 1 FROM extension),
-        'requires commitcap_native_tx_state installed in commitcap_native'
+        'requires writeleash_native_tx_state installed in writeleash_native'
 
     UNION ALL
     SELECT 40, 'exact generic enforcement function',
         (SELECT count(*) = 1 AND bool_and(supported_function) FROM function_candidates),
-        'requires commitcap_native.enforce_rows_updated(), C trigger function owned by the extension'
+        'requires writeleash_native.enforce_rows_updated(), C trigger function owned by the extension'
 
     UNION ALL
-    SELECT 50, 'exactly one CommitCap UPDATE trigger',
+    SELECT 50, 'exactly one WriteLeash UPDATE trigger',
         (s.extension_trigger_count = 1 AND s.generic_trigger_count = 1 AND s.fixed_name_count = 1),
         format('extension triggers=%s, generic triggers=%s, fixed-name triggers=%s',
                s.extension_trigger_count, s.generic_trigger_count, s.fixed_name_count)
@@ -160,7 +160,7 @@ checks AS (
     UNION ALL
     SELECT 55, 'no other direct user-defined triggers',
         (SELECT count(*) = 1 FROM trigger_rows),
-        'requires the CommitCap trigger to be the only non-internal trigger on this relation'
+        'requires the WriteLeash trigger to be the only non-internal trigger on this relation'
 
     UNION ALL
     SELECT 60, 'enabled for ordinary writes',
@@ -266,7 +266,7 @@ checks AS (
         'evaluated with PostgreSQL effective table privileges'
 
     UNION ALL
-    SELECT 170, 'protected writer cannot CREATE in CommitCap schema',
+    SELECT 170, 'protected writer cannot CREATE in WriteLeash schema',
         COALESCE((
             SELECT NOT has_schema_privilege(w.oid, e.schema_oid, 'CREATE')
             FROM writer AS w CROSS JOIN extension AS e
@@ -284,7 +284,7 @@ checks AS (
                    )
             FROM writer AS w CROSS JOIN extension AS e
         ), false),
-        'checks membership in CommitCap extension, schema and enforcement-function owner roles'
+        'checks membership in WriteLeash extension, schema and enforcement-function owner roles'
 
     UNION ALL
     SELECT 190, 'protected writer cannot change session_replication_role',

@@ -7,12 +7,13 @@ brand-level statement, not a Free V0.1 technical claim. The Free V0.1 claim
 remains narrow: one certified Redirection 5.5.2 global/select-all Bulk Disable
 operation with a logical mutation budget.
 
-Naming transition: #96 rebranded the active WordPress/PHP/package/local
-identity to WriteLeash. The low-level MySQL helper table and routine family
-(`commitcap_v01_*`, session variables, transaction probes, rotation marker) and
-the PostgreSQL/native research identifiers keep their CommitCap names until the
-follow-up database-identity rename; that work is tracked separately and is not
-marketed to end users as the final naming state.
+Naming: the active WordPress/PHP/package/local identity is WriteLeash, and the
+low-level MySQL helper table, routine family, session variables, transaction
+probes and rotation marker now use the canonical `writeleash_v01_*` family. The
+PostgreSQL/native research identity (`writeleash_native_tx_state`) follows the
+same product name. There is no runtime migration from the pre-rebrand
+development graph: old-only or mixed low-level graphs are NOT_READY and require
+trusted reprovisioning.
 
 Internal source: `wordpress/writeleash/`. Public slug and text domain:
 `writeleash`; the installed WordPress basename is `writeleash/writeleash.php`.

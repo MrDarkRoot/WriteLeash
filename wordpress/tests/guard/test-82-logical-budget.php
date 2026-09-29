@@ -265,7 +265,7 @@ echo "  #82.9 invalid L and L > P fail before callback without transaction: PASS
 // Record initial trigger statement and information_schema metadata.
 $trig_before = $root->get_row( $root->prepare(
 	'SELECT TRIGGER_NAME, ACTION_STATEMENT, DEFINER FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s',
-	'commitcap_v01_' . substr( hash( 'sha256', $table_l ), 0, 16 )
+	'writeleash_v01_' . substr( hash( 'sha256', $table_l ), 0, 16 )
 ) );
 cc56_assert( null !== $trig_before, 'trigger must exist before changing L' );
 
@@ -294,7 +294,7 @@ cc56_assert( array_fill( 0, 15, 0 ) === cc82_rows( $host, $table_l ), 'change L=
 // Verify trigger and grants are strictly identical.
 $trig_after = $root->get_row( $root->prepare(
 	'SELECT TRIGGER_NAME, ACTION_STATEMENT, DEFINER FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s',
-	'commitcap_v01_' . substr( hash( 'sha256', $table_l ), 0, 16 )
+	'writeleash_v01_' . substr( hash( 'sha256', $table_l ), 0, 16 )
 ) );
 cc56_assert( $trig_before->ACTION_STATEMENT === $trig_after->ACTION_STATEMENT, 'trigger DDL was modified unexpectedly' );
 cc56_assert( $trig_before->DEFINER === $trig_after->DEFINER, 'trigger definer changed' );

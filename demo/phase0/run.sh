@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 FIXTURE="$ROOT/experiments/native_tx_state"
 PINNED_IMAGE='postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c'
-export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-commitcap_demo}"
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-writeleash_demo}"
 COMPOSE=(docker compose -f "$FIXTURE/docker-compose.yml")
 started=false
 
@@ -12,16 +12,16 @@ fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 ok() { printf '  ✓ %s\n' "$1"; }
 # Echo the denial evidence emitted by the mechanism (never synthesized here).
 print_denial_evidence() {
-    printf '  ✗ CommitCap denied mutation\n'
+    printf '  ✗ WriteLeash denied mutation\n'
     printf '%s\n' "$1" | grep -E '^(policy / metric|granted|consumed before attempt|attempted effect|result):' | awk '!seen[$0]++' | sed 's/^/    /'
 }
 admin_psql() {
-    "${COMPOSE[@]}" exec -T -e PGPASSWORD=commitcap_native_admin_experiment_only postgres \
-        psql -X -A -t -h 127.0.0.1 -U commitcap_native_admin -d commitcap_native -v ON_ERROR_STOP=1 "$@"
+    "${COMPOSE[@]}" exec -T -e PGPASSWORD=writeleash_native_admin_experiment_only postgres \
+        psql -X -A -t -h 127.0.0.1 -U writeleash_native_admin -d writeleash_native -v ON_ERROR_STOP=1 "$@"
 }
 writer_psql() {
-    "${COMPOSE[@]}" exec -T -e PGPASSWORD=commitcap_writer_experiment_only postgres \
-        psql -X -A -t -h 127.0.0.1 -U commitcap_writer -d commitcap_native "$@"
+    "${COMPOSE[@]}" exec -T -e PGPASSWORD=writeleash_writer_experiment_only postgres \
+        psql -X -A -t -h 127.0.0.1 -U writeleash_writer -d writeleash_native "$@"
 }
 cleanup() {
     local status=$?
@@ -81,17 +81,17 @@ started=true
 "${COMPOSE[@]}" up -d --build --wait >/dev/null
 admin_psql < "$FIXTURE/setup.sql" >/dev/null
 
-printf 'CommitCap Phase 0 local research demo; project=%s\n' "$COMPOSE_PROJECT_NAME"
+printf 'WriteLeash Phase 0 local research demo; project=%s\n' "$COMPOSE_PROJECT_NAME"
 printf 'Command: ./demo.sh (alias of ./demo/phase0/run.sh)\n'
 printf 'Implementation commit: %s\n' "$(git -C "$ROOT" rev-parse HEAD)"
 printf 'Base image: %s (verified local image ID: %s)\n' "$PINNED_IMAGE" "$tagged_id"
 printf 'PostgreSQL: %s\n' "$(admin_psql -c 'SHOW server_version;')"
-privileges="$(admin_psql -c "SELECT (NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolbypassrls AND NOT pg_has_role('commitcap_writer','commitcap_owner','MEMBER') AND has_column_privilege('commitcap_writer','public.subscriptions','status','UPDATE') AND has_column_privilege('commitcap_writer','public.users','role','UPDATE') AND has_column_privilege('commitcap_writer','public.refunds','amount','UPDATE') AND has_column_privilege('commitcap_writer','public.unprotected_audit','message','INSERT') AND NOT has_table_privilege('commitcap_writer','public.refunds','INSERT') AND NOT has_table_privilege('commitcap_writer','public.subscriptions','DELETE') AND NOT has_schema_privilege('commitcap_writer','commitcap_native','USAGE')) FROM pg_roles WHERE rolname='commitcap_writer';")"
+privileges="$(admin_psql -c "SELECT (NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolbypassrls AND NOT pg_has_role('writeleash_writer','writeleash_owner','MEMBER') AND has_column_privilege('writeleash_writer','public.subscriptions','status','UPDATE') AND has_column_privilege('writeleash_writer','public.users','role','UPDATE') AND has_column_privilege('writeleash_writer','public.refunds','amount','UPDATE') AND has_column_privilege('writeleash_writer','public.unprotected_audit','message','INSERT') AND NOT has_table_privilege('writeleash_writer','public.refunds','INSERT') AND NOT has_table_privilege('writeleash_writer','public.subscriptions','DELETE') AND NOT has_schema_privilege('writeleash_writer','writeleash_native','USAGE')) FROM pg_roles WHERE rolname='writeleash_writer';")"
 [[ "$privileges" == t ]] || fail 'restricted writer privilege envelope differs from setup.sql'
-settings="$(writer_psql -v ON_ERROR_STOP=1 -c "SELECT current_user || '|' || current_setting('commitcap_native.test_budget') || '|' || current_setting('commitcap_native.test_numeric_budget');")"
-[[ "$settings" == 'commitcap_writer|5|100.00' ]] || fail "writer or budget settings differ: $settings"
+settings="$(writer_psql -v ON_ERROR_STOP=1 -c "SELECT current_user || '|' || current_setting('writeleash_native.test_budget') || '|' || current_setting('writeleash_native.test_numeric_budget');")"
+[[ "$settings" == 'writeleash_writer|5|100.00' ]] || fail "writer or budget settings differ: $settings"
 printf 'Restricted writer: %s (fixture privilege check=t)\n' "$settings"
-printf 'Outcome markers: ✓ committed or verified; ✗ CommitCap denied the transaction\n'
+printf 'Outcome markers: ✓ committed or verified; ✗ WriteLeash denied the transaction\n'
 
 printf '\n1. SAFE: subscriptions repairs + allowed role transition\n'
 reset
@@ -99,7 +99,7 @@ out="$(writer_psql -v ON_ERROR_STOP=1 2>&1 <<'SQL'
 BEGIN;
 UPDATE public.subscriptions SET status='repaired' WHERE id BETWEEN 1 AND 2;
 UPDATE public.users SET role='moderator' WHERE id=1;
-SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM commitcap_probe.cc_native_policy_probe();
+SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM writeleash_probe.writeleash_native_policy_probe();
 COMMIT;
 SQL
 )"
@@ -126,14 +126,14 @@ SAVEPOINT before_sixth;
 UPDATE public.subscriptions SET status='six' WHERE id=6;
 \echo sixth_SQLSTATE :SQLSTATE
 ROLLBACK TO SAVEPOINT before_sixth;
-SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM commitcap_probe.cc_native_policy_probe();
+SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM writeleash_probe.writeleash_native_policy_probe();
 COMMIT;
 \echo commit_SQLSTATE :SQLSTATE
 SQL
 )"
 line "$out" 'sixth_SQLSTATE 54000'; line "$out" 'policy=5|1|20.00|true'
 line "$out" 'commit_SQLSTATE 54000'
-[[ "$out" == *'CommitCap mutation budget exceeded (limit 5, attempted 6)'* && "$out" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail 'row denial message differs'
+[[ "$out" == *'WriteLeash mutation budget exceeded (limit 5, attempted 6)'* && "$out" == *'WriteLeash top-level transaction denied after mutation authority violation'* ]] || fail 'row denial message differs'
 line "$out" 'policy / metric: subscriptions.rows_updated'
 line "$out" 'granted: 5'
 line "$out" 'consumed before attempt: 5'
@@ -154,14 +154,14 @@ SAVEPOINT before_admin;
 UPDATE public.users SET role='admin' WHERE id=1;
 \echo transition_SQLSTATE :SQLSTATE
 ROLLBACK TO SAVEPOINT before_admin;
-SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM commitcap_probe.cc_native_policy_probe();
+SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM writeleash_probe.writeleash_native_policy_probe();
 COMMIT;
 \echo commit_SQLSTATE :SQLSTATE
 SQL
 )"
 line "$out" 'transition_SQLSTATE 54000'; line "$out" 'policy=1|0|0.00|true'
 line "$out" 'commit_SQLSTATE 54000'
-[[ "$out" == *'CommitCap forbidden state transition (* -> admin)'* && "$out" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail 'transition denial message differs'
+[[ "$out" == *'WriteLeash forbidden state transition (* -> admin)'* && "$out" == *'WriteLeash top-level transaction denied after mutation authority violation'* ]] || fail 'transition denial message differs'
 line "$out" 'policy / metric: users.role (* -> admin)'
 line "$out" 'attempted effect: 1 forbidden row transition to admin'
 line "$out" 'result: ABORTED'
@@ -176,7 +176,7 @@ out="$(writer_psql -v ON_ERROR_STOP=1 2>&1 <<'SQL'
 BEGIN;
 UPDATE public.refunds SET amount=30.00 WHERE id=1;
 UPDATE public.refunds SET amount=70.00 WHERE id=2;
-SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM commitcap_probe.cc_native_policy_probe();
+SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM writeleash_probe.writeleash_native_policy_probe();
 COMMIT;
 SQL
 )"
@@ -199,14 +199,14 @@ SAVEPOINT before_excess;
 UPDATE public.refunds SET amount=21.00 WHERE id=2;
 \echo delta_SQLSTATE :SQLSTATE
 ROLLBACK TO SAVEPOINT before_excess;
-SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM commitcap_probe.cc_native_policy_probe();
+SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM writeleash_probe.writeleash_native_policy_probe();
 COMMIT;
 \echo commit_SQLSTATE :SQLSTATE
 SQL
 )"
 line "$out" 'delta_SQLSTATE 54000'; line "$out" 'policy=1|1|80.00|true'
 line "$out" 'commit_SQLSTATE 54000'
-[[ "$out" == *'CommitCap numeric delta budget exceeded'* && "$out" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail 'numeric denial message differs'
+[[ "$out" == *'WriteLeash numeric delta budget exceeded'* && "$out" == *'WriteLeash top-level transaction denied after mutation authority violation'* ]] || fail 'numeric denial message differs'
 line "$out" 'policy / metric: refunds.amount positive_delta'
 line "$out" 'granted: 100.00'
 line "$out" 'consumed before attempt: 80.00'
@@ -224,7 +224,7 @@ BEGIN;
 UPDATE public.subscriptions SET status='independent' WHERE id BETWEEN 1 AND 5;
 UPDATE public.users SET role='moderator' WHERE id BETWEEN 1 AND 5;
 UPDATE public.refunds SET amount=100.00 WHERE id=1;
-SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM commitcap_probe.cc_native_policy_probe();
+SELECT 'policy=' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || denied FROM writeleash_probe.writeleash_native_policy_probe();
 COMMIT;
 SQL
 )"

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        CommitCap is a PostgreSQL 16.4 local research fixture, not a supported release. Other environments are not expected to work. Report an attempted step without secrets, credentials, private data or unsanitized logs; see the exact tested envelope in docs/support-matrix.md.
+        WriteLeash is a PostgreSQL 16.4 local research fixture, not a supported release. Other environments are not expected to work. Report an attempted step without secrets, credentials, private data or unsanitized logs; see the exact tested envelope in docs/support-matrix.md.
   - type: input
     id: postgres-version
     attributes:
@@ -34,9 +34,9 @@ body:
     validations:
       required: true
   - type: input
-    id: commitcap-revision
+    id: writeleash-revision
     attributes:
-      label: CommitCap commit SHA or version attempted
+      label: WriteLeash commit SHA or version attempted
       placeholder: "git rev-parse HEAD"
     validations:
       required: true
@@ -57,7 +57,7 @@ body:
   - type: dropdown
     id: demo-result
     attributes:
-      label: Does the local ./commitcap demo work?
+      label: Does the local ./writeleash demo work?
       description: This is the arbitrary-table first-run path. If you also tried the separate historical ./demo.sh, describe its result under the documented step and error.
       options:
         - "Yes"

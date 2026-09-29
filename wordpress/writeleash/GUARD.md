@@ -97,7 +97,7 @@ did not perform that COMMIT itself.
 - manual transaction control (START TRANSACTION / COMMIT / ROLLBACK) by the
   callback — reserved SQL is detected and the guard never reports success, but
   durability created by an already-executed direct COMMIT cannot be undone;
-- direct calls to the #54 `commitcap_v01_*` routines — detected through wpdb,
+- direct calls to the #54 `writeleash_v01_*` routines — detected through wpdb,
   outside the contract, and able to reset authority if used directly from a DB
   client;
 - calls to **any** stored procedure inside the callback, even one with an
@@ -142,7 +142,7 @@ state or logs. Unexpected probe results fail closed as
 `Unsupported_Transaction_State`.
 
 Each probe uses a cryptographically random, collision-resistant name
-(`commitcap_v01_tx_` plus 16 hex characters from `random_bytes()`). A
+(`writeleash_v01_tx_` plus 16 hex characters from `random_bytes()`). A
 collision with a caller's savepoint is negligibly likely, not impossible.
 The old fixed name is used by the regression test: a caller-owned savepoint
 with that name survives and still controls its own rollback window after the
@@ -175,8 +175,8 @@ SQL despite database qualification, backtick quoting, comments
   `ROLLBACK TO SAVEPOINT`, `RELEASE SAVEPOINT`;
 - `SET autocommit` in its `SESSION`/`LOCAL`/`GLOBAL`/`@@`/`@@session.`/
   `@@local.`/`@@global.` variants;
-- `SET @commitcap_v01_*` with `=` or `:=`, and any other reference to a
-  `@commitcap_v01_*` session variable;
+- `SET @writeleash_v01_*` with `=` or `:=`, and any other reference to a
+  `@writeleash_v01_*` session variable;
 - `PREPARE`, `EXECUTE`, `DEALLOCATE` (dynamic SQL that could reconstruct
   reserved statements).
 
@@ -195,14 +195,14 @@ DML/SELECT and reserved-looking string literals are not blocked.
 | callback throws `Exception`/`Error` | `Guard_Error` (`callback_failed`), full rollback, cause preserved |
 | `COMMIT` through wpdb | `Guard_Error` (`callback_issued_reserved_sql`); already-committed changes are **not** prevented |
 | `ROLLBACK` through wpdb | `Guard_Error` (`callback_issued_reserved_sql`), nothing durable |
-| qualified/backtick/commented `CALL ...commitcap_v01_close/open` | `Guard_Error` (`callback_issued_reserved_sql`), full rollback, never success |
+| qualified/backtick/commented `CALL ...writeleash_v01_close/open` | `Guard_Error` (`callback_issued_reserved_sql`), full rollback, never success |
 | unrelated-name `CALL` wrapping CLOSE→OPEN | `Guard_Error` (`callback_issued_reserved_sql`), full rollback after execution; no success |
 | unrelated-name `CALL` wrapping COMMIT | `Guard_Error` (`callback_issued_reserved_sql`); earlier writes may already be durable |
 | `SELECT` invoking a side-effecting stored function with extra EXECUTE privilege | outside supported contract; tested 10 durable under budget 5 on both fixtures |
 | ambiguous/executable-comment SQL while the owned transaction remains intact | `Guard_Error` (`callback_issued_reserved_sql`), full rollback |
 | MariaDB executable-comment `COMMIT` | `Guard_Error` (`callback_issued_reserved_sql`); already-committed changes are not undone (two durable in the pinned fixture) |
 | `COMMIT` through `$wpdb->dbh` | `Guard_Error` (`transaction_lost`); already-committed changes are **not** prevented |
-| direct `SET @commitcap_v01_denied = 0` / `:=` | `Guard_Error` (`callback_issued_reserved_sql`), full rollback |
+| direct `SET @writeleash_v01_denied = 0` / `:=` | `Guard_Error` (`callback_issued_reserved_sql`), full rollback |
 | replaced connection | `Guard_Error` (`connection_changed`), nothing durable from the old session |
 
 A direct callback COMMIT also commits the accounting row. The guard then fails

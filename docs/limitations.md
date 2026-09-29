@@ -339,7 +339,7 @@ These are canonical [test-plan.md](test-plan.md) IDs, not legacy experiment
 labels. They were added after the historical row-budget matrix above.
 
 The native transaction-state mechanism was extended with a second trigger
-function, `commitcap_native.enforce_role_transition`, attached to a `users`
+function, `writeleash_native.enforce_role_transition`, attached to a `users`
 fixture (`id`, `tenant_id`, `role`). The test-only rule denies any `UPDATE`
 whose new text `role` value is `admin` (`* -> admin`). Allowed transitions
 share the same transaction-wide row-update accounting.

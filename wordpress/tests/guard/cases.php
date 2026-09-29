@@ -61,7 +61,7 @@ function cc56_discard_accounting( $root, $db, $table ) {
 	$policy_id     = hash( 'sha256', $table );
 	cc56_assert(
 		false !== $root->query( $root->prepare(
-			'DELETE FROM commitcap_v01_state WHERE connection_id = %d AND policy_id = %s',
+			'DELETE FROM writeleash_v01_state WHERE connection_id = %d AND policy_id = %s',
 			$connection_id,
 			$policy_id
 		) ),
@@ -593,8 +593,8 @@ $error  = cc56_reject(
 			5,
 			function () use ( $writer, $policy ) {
 				cc56_updates( $writer, 'cc_guard_a', array( 1, 2, 3, 4, 5 ) );
-				$writer->query( "CALL commitcap_v01_close('$policy')" );
-				$writer->query( "CALL commitcap_v01_open('$policy')" );
+				$writer->query( "CALL writeleash_v01_close('$policy')" );
+				$writer->query( "CALL writeleash_v01_open('$policy')" );
 				cc56_updates( $writer, 'cc_guard_a', array( 6, 7, 8, 9, 10 ) );
 			},
 			$writer
@@ -617,7 +617,7 @@ $error = cc56_reject(
 			5,
 			function () use ( $writer, $policy ) {
 				cc56_updates( $writer, 'cc_guard_a', array( 1, 2 ) );
-				$writer->query( "CALL commitcap_v01_close('$policy')" );
+				$writer->query( "CALL writeleash_v01_close('$policy')" );
 			},
 			$writer
 		);
@@ -640,7 +640,7 @@ $error = cc56_reject(
 			function () use ( $writer ) {
 				cc56_updates( $writer, 'cc_guard_a', array( 1, 2, 3, 4, 5 ) );
 				$writer->query( 'UPDATE cc_guard_a SET touched = touched + 1 WHERE id = 6' ); // denied, ignored
-				$writer->query( 'SET @commitcap_v01_denied = 0' );
+				$writer->query( 'SET @writeleash_v01_denied = 0' );
 			},
 			$writer
 		);
@@ -720,25 +720,25 @@ echo "  direct unguarded SQL stays outside the guard (trigger-refused): PASS\n";
 // alternate SET forms). Every form must be detected and rolled back.
 $policy        = hash( 'sha256', 'cc_guard_a' );
 $reserved_forms = array(
-	'qualified CALL'                 => "CALL wp_test.commitcap_v01_close('$policy')",
-	'backtick qualified CALL'        => "CALL `wp_test`.`commitcap_v01_close`('$policy')",
-	'inter-token comments CALL'      => "CALL /*a*/ `wp_test`./*b*/`commitcap_v01_close`('$policy')",
-	'leading block comment CALL'     => "/* lead */ CALL wp_test.commitcap_v01_open('$policy')",
-	'leading dash comment CALL'      => "-- lead\nCALL wp_test.commitcap_v01_open('$policy')",
-	'leading hash comment CALL'      => "# lead\nCALL wp_test.commitcap_v01_open('$policy')",
+	'qualified CALL'                 => "CALL wp_test.writeleash_v01_close('$policy')",
+	'backtick qualified CALL'        => "CALL `wp_test`.`writeleash_v01_close`('$policy')",
+	'inter-token comments CALL'      => "CALL /*a*/ `wp_test`./*b*/`writeleash_v01_close`('$policy')",
+	'leading block comment CALL'     => "/* lead */ CALL wp_test.writeleash_v01_open('$policy')",
+	'leading dash comment CALL'      => "-- lead\nCALL wp_test.writeleash_v01_open('$policy')",
+	'leading hash comment CALL'      => "# lead\nCALL wp_test.writeleash_v01_open('$policy')",
 	'mixed case qualified CALL'      => "cAlL wp_test.WriteLeash_V01_Close('$policy')",
-	'qualified OPEN'                 => "CALL wp_test.commitcap_v01_open('$policy')",
-	'qualified COUNT'                => "CALL wp_test.commitcap_v01_count('$policy', @cc56_count)",
-	'qualified POLICY'               => "CALL wp_test.commitcap_v01_policy('cc_guard_a', 'x')",
+	'qualified OPEN'                 => "CALL wp_test.writeleash_v01_open('$policy')",
+	'qualified COUNT'                => "CALL wp_test.writeleash_v01_count('$policy', @cc56_count)",
+	'qualified POLICY'               => "CALL wp_test.writeleash_v01_policy('cc_guard_a', 'x')",
 	'unrelated CALL'                 => 'CALL cc56_innocent_reset(1)',
 	'executable comment'             => '/*! COMMIT */',
 	'mariadb comment COMMIT'         => '/*M! COMMIT */',
 	'mariadb versioned COMMIT'       => '/*M!100000 COMMIT */',
-	'mariadb comment CLOSE'          => "/*M! CALL commitcap_v01_close('$policy') */",
-	'mariadb comment OPEN'           => "/*M! CALL commitcap_v01_open('$policy') */",
-	'mariadb versioned CLOSE'        => "/*M!100000 CALL commitcap_v01_close('$policy') */",
-	'mariadb versioned OPEN'         => "/*M!100000 CALL commitcap_v01_open('$policy') */",
-	'mariadb versioned higher OPEN'  => "/*M!101115 CALL commitcap_v01_open('$policy') */",
+	'mariadb comment CLOSE'          => "/*M! CALL writeleash_v01_close('$policy') */",
+	'mariadb comment OPEN'           => "/*M! CALL writeleash_v01_open('$policy') */",
+	'mariadb versioned CLOSE'        => "/*M!100000 CALL writeleash_v01_close('$policy') */",
+	'mariadb versioned OPEN'         => "/*M!100000 CALL writeleash_v01_open('$policy') */",
+	'mariadb versioned higher OPEN'  => "/*M!101115 CALL writeleash_v01_open('$policy') */",
 	'mariadb mixed leading comment'  => 'SELECT 1 /*M!100000 COMMIT */',
 	'commit'                         => 'COMMIT',
 	'rollback'                       => 'ROLLBACK',
@@ -755,9 +755,12 @@ $reserved_forms = array(
 	'set @@session.autocommit'       => 'SET @@session.autocommit = 0',
 	'set @@local.autocommit'         => 'SET @@local.autocommit = 0',
 	'set @@global.autocommit'        => 'SET @@global.autocommit = 1',
-	'set @writeleash denied'          => 'SET @commitcap_v01_denied = 0',
-	'set @writeleash denied :='       => 'SET @commitcap_v01_denied:=0',
-	'select @writeleash assignment'   => 'SELECT @commitcap_v01_denied := 0',
+	'set @writeleash denied'          => 'SET @writeleash_v01_denied = 0',
+	'set @writeleash denied :='       => 'SET @writeleash_v01_denied:=0',
+	'select @writeleash assignment'   => 'SELECT @writeleash_v01_denied := 0',
+	'set @legacy managed variable'    => 'SET @commitcap_v01_denied = 0',
+	'select @legacy assignment'       => 'SELECT @commitcap_v01_denied := 0',
+	'call legacy managed routine'     => "CALL commitcap_v01_open('x')",
 	'prepare'                        => "PREPARE cc56s FROM 'SELECT 1'",
 	'execute'                        => 'EXECUTE cc56s',
 	'deallocate'                     => 'DEALLOCATE PREPARE cc56s',
@@ -811,9 +814,9 @@ echo "  pinned-engine MariaDB comment execution and LOCAL/GLOBAL autocommit gram
 // 29. BLOCKER 1 critical: a full qualified CLOSE→OPEN reset can never return
 // success with more than the budget durable.
 $call_forms = array(
-	array( "CALL wp_test.commitcap_v01_close('$policy')", "CALL wp_test.commitcap_v01_open('$policy')" ),
-	array( "CALL `wp_test`.`commitcap_v01_close`('$policy')", "CALL `wp_test`.`commitcap_v01_open`('$policy')" ),
-	array( "CALL /*a*/ `wp_test`./*b*/`commitcap_v01_close`('$policy')", "CALL /*a*/ `wp_test`./*b*/`commitcap_v01_open`('$policy')" ),
+	array( "CALL wp_test.writeleash_v01_close('$policy')", "CALL wp_test.writeleash_v01_open('$policy')" ),
+	array( "CALL `wp_test`.`writeleash_v01_close`('$policy')", "CALL `wp_test`.`writeleash_v01_open`('$policy')" ),
+	array( "CALL /*a*/ `wp_test`./*b*/`writeleash_v01_close`('$policy')", "CALL /*a*/ `wp_test`./*b*/`writeleash_v01_open`('$policy')" ),
 );
 foreach ( $call_forms as $call_form ) {
 	cc56_seed( $root, 'cc_guard_a' );
@@ -848,9 +851,9 @@ echo "  qualified/backtick/commented CLOSE→OPEN never returns success: PASS\n"
 // with a five-event grant; neither engine may now return success with excess
 // durable changes, including on MySQL where /*M! */ is ignored by the server.
 $mariadb_reset_forms = array(
-	array( "/*M! CALL commitcap_v01_close('$policy') */", "/*M! CALL commitcap_v01_open('$policy') */" ),
-	array( "/*M!100000 CALL commitcap_v01_close('$policy') */", "/*M!100000 CALL commitcap_v01_open('$policy') */" ),
-	array( "/*M! CALL commitcap_v01_close('$policy') */", "/*M!101115 CALL commitcap_v01_open('$policy') */" ),
+	array( "/*M! CALL writeleash_v01_close('$policy') */", "/*M! CALL writeleash_v01_open('$policy') */" ),
+	array( "/*M!100000 CALL writeleash_v01_close('$policy') */", "/*M!100000 CALL writeleash_v01_open('$policy') */" ),
+	array( "/*M! CALL writeleash_v01_close('$policy') */", "/*M!101115 CALL writeleash_v01_open('$policy') */" ),
 );
 foreach ( $mariadb_reset_forms as $call_form ) {
 	cc56_seed( $root, 'cc_guard_a' );
@@ -902,7 +905,7 @@ echo "  MariaDB comment COMMIT: Guard rejected, MariaDB two already durable / My
 cc56_seed( $root, 'cc_guard_plain' );
 cc56_assert( false !== $writer->query( 'START TRANSACTION' ), 'start caller savepoint tx' );
 cc56_updates( $writer, 'cc_guard_plain', array( 1 ) );
-cc56_assert( false !== $writer->query( 'SAVEPOINT commitcap_v01_tx_probe' ), 'caller savepoint' );
+cc56_assert( false !== $writer->query( 'SAVEPOINT writeleash_v01_tx_probe' ), 'caller savepoint' );
 cc56_updates( $writer, 'cc_guard_plain', array( 2 ) );
 $ran = false;
 $error = cc56_reject(
@@ -915,7 +918,7 @@ $error = cc56_reject(
 cc56_assert( 'existing_transaction' === $error->reason(), 'caller savepoint reason' );
 cc56_assert( false === $ran, 'callback ran in caller savepoint transaction' );
 cc56_assert(
-	false !== $writer->query( 'ROLLBACK TO SAVEPOINT commitcap_v01_tx_probe' ),
+	false !== $writer->query( 'ROLLBACK TO SAVEPOINT writeleash_v01_tx_probe' ),
 	'caller savepoint must survive the guard probe: ' . $writer->last_error
 );
 // The caller transaction is still open, so observe on the caller connection:
@@ -962,7 +965,7 @@ $result = Guard::update(
 	3,
 	function () use ( $writer ) {
 		cc56_updates( $writer, 'cc_guard_b', array( 1, 2 ) );
-		$writer->get_var( "SELECT 'COMMIT', 'CALL commitcap_v01_close', 'SAVEPOINT', '/* x */'" );
+		$writer->get_var( "SELECT 'COMMIT', 'CALL writeleash_v01_close', 'SAVEPOINT', '/* x */'" );
 		return 'clear-sql';
 	},
 	$writer
@@ -974,9 +977,15 @@ echo "  ordinary SQL and reserved-looking string content are not blocked: PASS\n
 
 // Opaque stored procedure bodies: the pre-fix classifier returned CLEAR for
 // unrelated names and allowed a ten-event durable reset on BOTH engines.
-cc56_assert( false !== $root->query( 'CREATE PROCEDURE cc56_innocent_reset(IN p_policy CHAR(64)) SQL SECURITY DEFINER BEGIN CALL commitcap_v01_close(p_policy); CALL commitcap_v01_open(p_policy); END' ), 'create reset wrapper: ' . $root->last_error );
+cc56_assert( false !== $root->query( 'CREATE PROCEDURE cc56_innocent_reset(IN p_policy CHAR(64)) SQL SECURITY DEFINER BEGIN CALL writeleash_v01_close(p_policy); CALL writeleash_v01_open(p_policy); END' ), 'create reset wrapper: ' . $root->last_error );
 cc56_assert( false !== $root->query( "GRANT EXECUTE ON PROCEDURE wp_test.cc56_innocent_reset TO 'cc_writer'@'%'" ), 'grant reset wrapper' );
 cc56_assert( Guard_Sql::RESERVED === Guard_Sql::classify( "CALL cc56_innocent_reset('$policy')" ), 'opaque CALL classification' );
+// Legacy defensive reservation: the pre-rebrand managed-looking names stay
+// classified as reserved so no old-name SQL silently becomes a permitted way to
+// interfere with Guard state. Classification only, never compatibility support.
+cc56_assert( Guard_Sql::RESERVED === Guard_Sql::classify( 'SET @commitcap_v01_denied = 0' ), 'legacy managed variable reservation' );
+cc56_assert( Guard_Sql::RESERVED === Guard_Sql::classify( 'SELECT @commitcap_v01_denied := 0' ), 'legacy managed variable assignment reservation' );
+cc56_assert( Guard_Sql::RESERVED === Guard_Sql::classify( "CALL commitcap_v01_open('$policy')" ), 'legacy managed routine call reservation' );
 cc56_seed( $root, 'cc_guard_a' );
 $error = cc56_reject( function () use ( $writer, $policy ) {
 	Guard::update( 'cc_guard_a', 5, function () use ( $writer, $policy ) {
@@ -1011,7 +1020,7 @@ echo "  unrelated-name CALL COMMIT: DETECTED CONTRACT VIOLATION, two already dur
 // deliberately grants the writer an EXTRA EXECUTE capability, contrary to the
 // supported contract, to pin down the residual limitation rather than claim
 // the Guard can inspect arbitrary stored SQL. Do not remove this counterexample.
-cc56_assert( false !== $root->query( 'CREATE FUNCTION cc56_innocent_function(p_policy CHAR(64)) RETURNS INT DETERMINISTIC MODIFIES SQL DATA SQL SECURITY DEFINER BEGIN CALL commitcap_v01_close(p_policy); CALL commitcap_v01_open(p_policy); RETURN 1; END' ), 'create function wrapper: ' . $root->last_error );
+cc56_assert( false !== $root->query( 'CREATE FUNCTION cc56_innocent_function(p_policy CHAR(64)) RETURNS INT DETERMINISTIC MODIFIES SQL DATA SQL SECURITY DEFINER BEGIN CALL writeleash_v01_close(p_policy); CALL writeleash_v01_open(p_policy); RETURN 1; END' ), 'create function wrapper: ' . $root->last_error );
 cc56_assert( false !== $root->query( "GRANT EXECUTE ON FUNCTION wp_test.cc56_innocent_function TO 'cc_writer'@'%'" ), 'grant function wrapper' );
 cc56_assert( Guard_Sql::CLEAR === Guard_Sql::classify( "SELECT cc56_innocent_function('$policy')" ), 'stored function surface changed' );
 cc56_seed( $root, 'cc_guard_a' );

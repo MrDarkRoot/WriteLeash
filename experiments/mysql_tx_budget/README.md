@@ -60,7 +60,7 @@ CALL cc_start(); -- starts an explicit transaction, initializes own counter
 UPDATE cc_items SET touched = touched + 1 WHERE id = 1; -- one row event
 -- ... up to five row events in the same transaction ...
 UPDATE cc_items SET touched = touched + 1 WHERE id = 6;
--- ERROR 1644 (45000): CommitCap research: UPDATE budget exhausted or no guard
+-- ERROR 1644 (45000): WriteLeash research: UPDATE budget exhausted or no guard
 COMMIT; -- SUCCEEDS; the first five changes are durable
 ```
 
@@ -68,7 +68,7 @@ The trigger increments `cc_state.consumed` only while below five; failure to
 update exactly one counter row invokes `SIGNAL`. A failed UPDATE rolls back its
 own statement's data/counter changes. `GET DIAGNOSTICS CONDITION 1` reads
 `RETURNED_SQLSTATE='45000'` from each server; the client sees error **1644**
-with message `CommitCap research: UPDATE budget exhausted or no guard`.
+with message `WriteLeash research: UPDATE budget exhausted or no guard`.
 Five single-row updates are durable; sixth-row data are not durable. Repeated
 updates of the same row fire the trigger five times; an UPDATE matching zero
 rows fires it zero times. Rolled-back allowed helper changes are transactional.

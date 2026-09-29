@@ -45,7 +45,7 @@ when `Compatibility_Doctor::runtime()` is not PASS for the target policy. In
 all refusal cases no plugin code runs.
 
 Runtime grants stay the accepted PR #86 envelope: EXECUTE on the five reviewed
-managed runtime procedures, SELECT-only on `commitcap_v01_state`, `SELECT, UPDATE` on
+managed runtime procedures, SELECT-only on `writeleash_v01_state`, `SELECT, UPDATE` on
 `wp_redirection_items`, and nothing else. No helper DML, no TRIGGER/DDL/GRANT,
 no unrelated plugin-table access. The adapter adds no grant of its own.
 
@@ -176,8 +176,8 @@ them pass, and they remain executable regressions:
 - the hit/stat writer `Red_Item::visit()` (`UPDATE ... SET
   last_count=last_count+1, last_access=NOW() WHERE id=...`) works;
 - the restricted runtime outside Guard is still denied, including with forged
-  session state (`SET @commitcap_v01_denied = 0`);
-- a direct lifecycle call (`CALL commitcap_v01_open` + unaudited UPDATE) remains
+  session state (`SET @writeleash_v01_denied = 0`);
+- a direct lifecycle call (`CALL writeleash_v01_open` + unaudited UPDATE) remains
   outside the cooperative contract but is still bounded by physical P;
 - an explicitly granted foreign DB principal is outside cooperative
   enforcement and classified as such.

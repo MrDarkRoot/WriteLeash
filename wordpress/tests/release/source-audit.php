@@ -80,13 +80,12 @@ if ( 'edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6' !== hash
 	throw new RuntimeException( 'Staged LICENSE is not the reviewed verbatim GNU GPLv2 text' );
 }
 
-// #96 active-brand audit: inside the WordPress product tree every remaining
-// `commitcap` occurrence must belong to the #97-deferred low-level database
-// object family (`commitcap_v01_*`) or be the canonical #97-deferred helper
-// TABLE_COMMENT literal. The only other allowed occurrences are the finite,
-// exact-name pre-release development cleanup literals in uninstall.php.
-// Internal markdown transition notes are audited by the later global pass.
-$deferred_db_identity_literals = array( 'CommitCap V0.1 cooperative UPDATE state' );
+// #97 canonical DB identity audit: the active low-level database graph is now
+// WriteLeash (`writeleash_v01_*`). Inside the distributed product tree every
+// remaining `commitcap` occurrence must be one of the finite, exact-name
+// pre-release development cleanup literals in uninstall.php. Old-graph and
+// mixed-graph adversarial fixtures live in the test tree, never in the staged
+// distribution; historical evidence lives outside this root.
 $legacy_uninstall_literals = array(
 	'commitcap_version',
 	'commitcap_certified_operation_state',
@@ -99,34 +98,38 @@ foreach ( $brand_files as $file ) {
 		continue;
 	}
 	$content = (string) file_get_contents( $file->getPathname() );
-	$stripped = preg_replace( '/commitcap_v01_[a-z0-9_]*/i', '', $content );
-	if ( null === $stripped ) {
-		throw new RuntimeException( 'Brand audit failed to scan: ' . $file->getPathname() );
-	}
-	$stripped = str_replace( $deferred_db_identity_literals, '', $stripped );
 	if ( 'uninstall.php' === $file->getFilename() ) {
-		$stripped = str_replace( $legacy_uninstall_literals, '', $stripped );
+		$content = str_replace( $legacy_uninstall_literals, '', $content );
 	}
-	if ( preg_match( '/commitcap/i', $stripped ) ) {
-		throw new RuntimeException( '#96 stale CommitCap brand outside the #97-deferred commitcap_v01_* family: ' . $file->getPathname() );
+	if ( 'class-guard-sql.php' === $file->getFilename() ) {
+		// #97 legacy defensive reservation: the classifier intentionally keeps
+		// the pre-rebrand managed session-variable prefix reserved so old-name
+		// SQL never becomes a permitted way to interfere with Guard state.
+		// Classification only; it is not compatibility support, a migration
+		// input or a fallback authority, and it is covered by guard tests.
+		$content = str_replace( 'commitcap_v01_', '', $content );
 	}
-	// #96 DB boundary: the low-level database identity stays pre-#96 canonical
-	// until #97 renames it atomically. No active implementation may introduce
-	// the future low-level `writeleash_v01_*` family early.
-	if ( preg_match( '/@?writeleash_v01_[a-z0-9_]*/i', $content ) ) {
-		throw new RuntimeException( '#96 premature low-level DB rename introduced before #97: ' . $file->getPathname() );
+	if ( preg_match( '/commitcap/i', $content ) ) {
+		throw new RuntimeException( '#97 stale CommitCap low-level brand in the distributed product root: ' . $file->getPathname() );
 	}
 }
-// #96 DB boundary: lock the canonical helper identity that is #97-deferred.
+// #97 canonical DB identity: lock the renamed helper and TABLE_COMMENT values,
+// and prove the old pre-#97 family is entirely absent from the staged product.
 $engine_source = (string) file_get_contents( $root . '/includes/class-update-engine.php' );
 foreach ( array(
-	"public const STATE = 'commitcap_v01_state';",
-	"'CommitCap V0.1 cooperative UPDATE state'",
+	"public const STATE = 'writeleash_v01_state';",
+	"'WriteLeash V0.1 cooperative UPDATE state'",
+	"public static function trigger_name",
 ) as $canonical_db_identity ) {
 	if ( ! str_contains( $engine_source, $canonical_db_identity ) ) {
-		throw new RuntimeException( '#96 canonical low-level DB identity changed before #97: ' . $canonical_db_identity );
+		throw new RuntimeException( '#97 canonical low-level DB identity missing: ' . $canonical_db_identity );
 	}
 }
-echo "#96 DB-boundary audit: canonical commitcap_v01_* helper name/TABLE_COMMENT preserved; premature writeleash_v01_* identifiers introduced: 0 PASS\n";
-echo "#96 active-brand audit: only #97-deferred commitcap_v01_* names and the finite uninstall cleanup literals remain; no stale runtime/package brand PASS\n";
+foreach ( array( $root . '/writeleash.php', $engine_source ) as $canonical_scan ) {
+	if ( preg_match( '/@?commitcap_v01_[a-z0-9_]*/i', $canonical_scan ) ) {
+		throw new RuntimeException( '#97 old commitcap_v01_* low-level DB identity still active in the staged product' );
+	}
+}
+echo "#97 DB-identity audit: canonical writeleash_v01_* helper name/TABLE_COMMENT locked; old commitcap_v01_* identifiers in the staged product: 0 PASS\n";
+echo "#97 active-brand audit: only the finite uninstall cleanup literals may mention the old local option names; no stale low-level brand remains PASS\n";
 echo "#62/#63 source audit: $php_count guarded PHP files; one public header; GPLv2 LICENSE; readme/operator guide staged; no internal docs; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS\n";
