@@ -59,8 +59,10 @@ echo "#57 $host $version: restricted fixture PASS\n";
 // the exact integrated fixture, not merely that a version string exists.
 $wp_pass = cc57_check( $result, 'wordpress', 'PASS' );
 cc57_assert( false !== strpos( $wp_pass['detail'], 'TESTED exact fixture' ), 'exact WordPress fixture label' );
-cc57_assert( 'PASS' === Doctor::wordpress_status( '6.8.3' )[0], 'exact WordPress fixture is not PASS' );
-cc57_assert( 'UNKNOWN' === Doctor::wordpress_status( '6.9.1' )[0] && 'UNKNOWN' === Doctor::wordpress_status( '6.8.2' )[0], 'untested WordPress version is not UNKNOWN' );
+cc57_assert( 'PASS' === Doctor::wordpress_status( '6.8.3' )[0], 'exact WordPress baseline fixture is not PASS' );
+cc57_assert( 'PASS' === Doctor::wordpress_status( '7.1.2' )[0], 'exact current-stable fixture is not PASS' );
+cc57_assert( 'UNKNOWN' === Doctor::wordpress_status( '6.9.1' )[0] && 'UNKNOWN' === Doctor::wordpress_status( '6.8.2' )[0] &&
+	'UNKNOWN' === Doctor::wordpress_status( '7.1.1' )[0] && 'UNKNOWN' === Doctor::wordpress_status( '7.0.9' )[0], 'untested WordPress version is not UNKNOWN' );
 cc57_assert( 'UNKNOWN' === Doctor::wordpress_status( '' )[0], 'unavailable WordPress version is not UNKNOWN' );
 $saved_wp = $GLOBALS['wp_version'];
 $GLOBALS['wp_version'] = '6.9.1';

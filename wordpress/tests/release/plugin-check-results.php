@@ -42,20 +42,6 @@ foreach ( $data as $item ) {
 	$source = file_get_contents( dirname( $argv[3] ) . '/cc87-' . $argv[1] . '/wp-content/plugins/commitcap/' . $path );
 	$lines = is_string( $source ) ? explode( "\n", $source ) : array();
 
-	// A public database-operator guide is intentionally shipped; Plugin Check's
-	// allowed root-markdown list does not include it. It contains no code.
-	if ( 'unexpected_markdown_file' === $code && 'OPERATOR-SETUP.md' === $path &&
-		is_string( $source ) && str_contains( $source, 'CommitCap Free V0.1' ) ) {
-		$reviewed[] = "$code ($path) public database-operator guide, documentation only";
-		continue;
-	}
-	// The certified operation is pinned to the tested WordPress 6.8.3 fixture.
-	// Claiming a newer "Tested up to" value would be a false compatibility claim.
-	if ( 'outdated_tested_upto_header' === $code && 'readme.txt' === $path &&
-		is_string( $source ) && str_contains( $source, 'Tested up to: 6.8' ) ) {
-		$reviewed[] = "$code ($path) plugin certifies the pinned WordPress 6.8.3 fixture only; a newer value would be false";
-		continue;
-	}
 	// PCP's escape sniff treats thrown exception constructors as HTML output.
 	// They are NOT echoed; Admin/REST/CLI paths are exercised independently.
 	$exception_files = array( 'class-guard-transaction.php', 'class-update-engine.php', 'class-provisioning-plan.php', 'class-guard.php', 'class-operation-config.php' );

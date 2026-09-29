@@ -23,7 +23,7 @@ php "$here/package-preflight.php" "$repo/wordpress/commitcap-for-wordpress" "$re
 php "$here/readme-validate.php" "$repo/wordpress/commitcap-for-wordpress"
 php "$here/source-audit.php" "$repo/wordpress/commitcap-for-wordpress"
 linted=0
-for file in "$tests"/*.php "$tests"/adapter/*.php "$tests"/engine/*.php "$tests"/guard/*.php "$tests"/doctor/*.php "$here"/*.php; do
+for file in "$tests"/*.php "$tests"/adapter/*.php "$tests"/current-core/*.php "$tests"/engine/*.php "$tests"/guard/*.php "$tests"/doctor/*.php "$here"/*.php; do
   php -l "$file" >/dev/null
   linted=$((linted + 1))
 done
@@ -37,4 +37,6 @@ echo '#62 both engines: cooperative engine/Guard/Doctor/provisioning research'
 bash "$tests/engine/run.sh"
 echo '#62 both engines: real authenticated Redirection REST, Admin/CLI, lifecycle, #61 overlap, Plugin Check 2.1.0'
 CC62_PLUGIN_CHECK=1 bash "$tests/adapter/run.sh"
-echo '#62 technical release matrix PASS (source-tree preflight only; see RELEASE-MATRIX.md for UNKNOWN/DEFERRED)'
+echo '#63 both engines: current-stable WordPress 7.1.2 compatibility gate'
+bash "$tests/current-core/run.sh"
+echo '#63 technical release matrix PASS (source-tree preflight only; see RELEASE-MATRIX.md for UNKNOWN/DEFERRED)'

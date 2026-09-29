@@ -3,7 +3,6 @@
 # Keep the list sorted; tests/stage-plugin.sh and tests/release/package-preflight.php
 # enforce this list against the source tree.
 LICENSE
-OPERATOR-SETUP.md
 commitcap.php
 includes/class-admin-page.php
 includes/class-budget-denied.php
@@ -30,5 +29,6 @@ includes/class-redirection-bulk-disable-rest.php
 includes/class-redirection-bulk-disable.php
 includes/class-unsupported-transaction-state.php
 includes/class-update-engine.php
+operator-setup.txt
 readme.txt
 uninstall.php

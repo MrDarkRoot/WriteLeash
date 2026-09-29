@@ -61,7 +61,7 @@ if ( 1 !== $headers || $php_count < 20 ||
 
 // #63/#64 staged release files: license, readme and the public operator guide
 // must be present; internal development documents must not be staged.
-foreach ( array( 'readme.txt', 'LICENSE', 'OPERATOR-SETUP.md' ) as $required ) {
+foreach ( array( 'readme.txt', 'LICENSE', 'operator-setup.txt' ) as $required ) {
 	if ( ! is_file( $root . '/' . $required ) ) {
 		throw new RuntimeException( 'Required staged release file missing: ' . $required );
 	}

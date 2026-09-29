@@ -536,18 +536,22 @@ final class Compatibility_Doctor {
 	}
 
 	/**
-	 * Only the exact integrated fixture (WordPress 6.8.3) is TESTED. Observing
-	 * a version string is not compatibility evidence: any other version stays
-	 * UNKNOWN until #62 establishes a wider matrix. Untested is not FAIL.
+	 * Only exact WordPress core builds exercised by the release matrix are
+	 * TESTED: the #62 baseline fixture and the current-stable compatibility
+	 * fixture. Observing a version string is not compatibility evidence; every
+	 * other build (including untested minors in between) stays UNKNOWN and
+	 * therefore NOT_READY. Untested is not FAIL.
 	 */
+	public const TESTED_WORDPRESS_VERSIONS = array( '6.8.3', '7.1.2' );
+
 	public static function wordpress_status( string $version ): array {
 		if ( '' === $version ) {
 			return array( 'UNKNOWN', 'WordPress version unavailable; required compatibility cannot be established.' );
 		}
-		if ( '6.8.3' === $version ) {
+		if ( in_array( $version, self::TESTED_WORDPRESS_VERSIONS, true ) ) {
 			return array( 'PASS', 'WordPress ' . $version . ': TESTED exact fixture.' );
 		}
-		return array( 'UNKNOWN', 'WordPress ' . $version . ': OTHER VERSION BUT UNTESTED; only 6.8.3 is a TESTED exact fixture and no wider supported range is claimed.' );
+		return array( 'UNKNOWN', 'WordPress ' . $version . ': OTHER VERSION BUT UNTESTED; only ' . implode( ' and ', self::TESTED_WORDPRESS_VERSIONS ) . ' are TESTED exact fixtures and no wider supported range is claimed.' );
 	}
 
 	/**

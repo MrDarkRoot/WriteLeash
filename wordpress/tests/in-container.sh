@@ -18,6 +18,25 @@ esac
 echo "Database fixture: $db $server_version; WordPress $(wp --path="$site" core version); PHP $(php -r 'echo PHP_VERSION;')"
 [ "$(wp --path="$site" core version)" = 6.8.3 ]
 [ "$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')" = 8.2 ]
+
+# Requiring Redirection is Core-enforced on activation; lower-level loss must
+# still fail closed at runtime (#63). Redirection is installed after the
+# blocked-activation assertion so both halves are executable.
+CC63_PHASE=block wp --path="$site" eval-file /opt/tests/dependency-63.php
+wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
+wp --path="$site" eval-file /opt/tests/redirection-schema.php
+CC63_PHASE=installed wp --path="$site" eval-file /opt/tests/dependency-63.php
+wp --path="$site" plugin activate commitcap
+CC63_PHASE=dependents wp --path="$site" eval-file /opt/tests/dependency-63.php
+wp --path="$site" plugin deactivate redirection
+CC63_PHASE=lost wp --path="$site" eval-file /opt/tests/dependency-63.php
+wp --path="$site" plugin activate redirection
+wp --path="$site" plugin deactivate commitcap
+CC63_PHASE=released wp --path="$site" eval-file /opt/tests/dependency-63.php
+# The dependency fixture activated CommitCap once; restore the uninstalled
+# baseline that the failure and lifecycle suites assert on.
+wp --path="$site" option delete commitcap_version >/dev/null 2>&1 || true
+
 wp --path="$site" eval-file /opt/tests/identity-62.php
 php /opt/tests/release/source-audit.php "$site/wp-content/plugins/commitcap"
 php /opt/tests/release/readme-validate.php "$site/wp-content/plugins/commitcap"

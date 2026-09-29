@@ -93,7 +93,10 @@ if ( 'seed' === $phase ) {
 } elseif ( 'await_overlap' === $phase ) {
 	$stage = (string) getenv( 'CC61_STAGE' );
 	$needle = 'probe' === $stage ? 'LIMIT 1' : "status='disabled'";
-	$deadline = microtime( true ) + 40;
+	// Both requests are already inside their guarded transactions; this window
+	// only observes them blocked on the held rows. It is generous so that a
+	// loaded CI host cannot turn a real overlap into a false timeout.
+	$deadline = microtime( true ) + 120;
 	$last = array();
 	while ( microtime( true ) < $deadline ) {
 		$rows = $root->get_results( "SELECT ID, USER, STATE, INFO FROM information_schema.PROCESSLIST WHERE USER = 'cc87_writer'", ARRAY_A );
@@ -116,6 +119,12 @@ if ( 'seed' === $phase ) {
 		usleep( 200000 );
 	}
 	fwrite( STDERR, '#61 await_overlap(' . $stage . ') timed out; last=' . json_encode( array_values( $last ) ) . "\n" );
+	foreach ( array( 'CC61_RUN_ERR_A' => 'request A', 'CC61_RUN_ERR_B' => 'request B' ) as $env_name => $label ) {
+		$path = (string) getenv( $env_name );
+		if ( '' !== $path && is_file( $path ) ) {
+			fwrite( STDERR, '#61 ' . $label . " stderr/log:\n" . (string) file_get_contents( $path ) . "\n" );
+		}
+	}
 	exit( 1 );
 } else {
 	$counts = cc87_counts( $root );

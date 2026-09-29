@@ -63,8 +63,8 @@ if ( ! $tags || count( $tags ) > 5 || count( $tags ) !== count( array_unique( $t
 if ( ! preg_match( '/\A\d+\.\d\z/', $headers['requires at least'] ) || '6.8' !== $headers['requires at least'] ) {
 	$fail( 'Requires at least must be the reviewed major/minor value 6.8' );
 }
-if ( ! preg_match( '/\A\d+\.\d\z/', $headers['tested up to'] ) || '6.8' !== $headers['tested up to'] ) {
-	$fail( 'Tested up to must be the tested major/minor fixture 6.8' );
+if ( ! preg_match( '/\A\d+\.\d\z/', $headers['tested up to'] ) || '7.1' !== $headers['tested up to'] ) {
+	$fail( 'Tested up to must be the tested current-stable major/minor 7.1' );
 }
 if ( ! preg_match( '/\A\d+\.\d+\.\d+\z/', $headers['stable tag'] ) || in_array( $headers['stable tag'], array( 'trunk', 'latest', 'dev', 'master', 'main' ), true ) ) {
 	$fail( 'Stable tag must be a stable numeric version' );
@@ -98,10 +98,21 @@ foreach ( array( '== Description ==', '== How it works ==', '== Installation =='
 	}
 }
 
-// No placeholders or unfinished text may ship.
-foreach ( array( 'TBD', 'TODO', 'FIXME', 'XXX', 'lorem ipsum', '<STRONG_GENERATED_PASSWORD_HERE>', 'Stable tag: trunk' ) as $placeholder ) {
+// No placeholders or forbidden text may ship.
+foreach ( array( 'TBD', 'TODO', 'FIXME', 'XXX', 'lorem ipsum', 'Stable tag: trunk' ) as $placeholder ) {
 	if ( false !== stripos( $text, $placeholder ) ) {
 		$fail( 'placeholder or forbidden text in readme: ' . $placeholder );
+	}
+}
+// Exact operation wording: the mistaken name must never reappear.
+if ( false !== stripos( $text, 'Baseline Disable' ) ) {
+	$fail( 'misleading operation wording "Baseline Disable" in readme' );
+}
+// The exact tested WordPress core fixtures must remain explicit so that a
+// major/minor "Tested up to" value is never read as blanket coverage.
+foreach ( array( '6.8.3', '7.1.2' ) as $tested_core ) {
+	if ( ! str_contains( $text, $tested_core ) ) {
+		$fail( 'readme must name the exact tested WordPress core fixture: ' . $tested_core );
 	}
 }
 
@@ -117,11 +128,12 @@ if ( false === strpos( (string) file_get_contents( $main ), "define( 'COMMITCAP_
 	$fail( 'main plugin runtime constant does not match the Version header' );
 }
 
-// Public identity and license must agree with the plugin header.
+// Public identity, dependency and license must agree with the plugin header.
 $main_source = (string) file_get_contents( $main );
 if ( ! preg_match( '/^\s*\*\s*Plugin Name:\s*CommitCap\s*$/m', $main_source ) ||
+	! preg_match( '/^\s*\*\s*Requires Plugins:\s*redirection\s*$/m', $main_source ) ||
 	! preg_match( '/^\s*\*\s*License:\s*GPL v2 or later\s*$/m', $main_source ) ) {
-	$fail( 'main plugin header does not match the readme identity/license' );
+	$fail( 'main plugin header does not match the readme identity/dependency/license' );
 }
 
 echo '#63 readme preflight: title, ' . strlen( $short ) . "-char description, " . count( $tags ) . " tags, Stable tag $version, GPLv2-or-later PASS\n";

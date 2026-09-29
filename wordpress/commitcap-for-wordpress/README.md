@@ -29,9 +29,11 @@ third-party/copyright audit. The package release version is `0.1.0`. The
 distribution allowlist for the `commitcap/` release root is
 `wordpress/release/commitcap-distribution-files.txt`; the public WordPress.org
 listing source is [readme.txt](readme.txt), and the operator guide shipped with
-the distribution is [OPERATOR-SETUP.md](OPERATOR-SETUP.md). The full #63/#64
-contract remains [RELEASE-MATRIX.md](RELEASE-MATRIX.md)'s preflight, and the
-exact-package audit is still a later gate (#77/#76).
+the distribution is [operator-setup.txt](operator-setup.txt). CommitCap declares
+`Requires Plugins: redirection` and still enforces Redirection 5.5.2 exactly at
+runtime. The full #63/#64 contract is in
+[RELEASE-MATRIX.md](RELEASE-MATRIX.md); the exact-package audit remains a later
+gate (#77/#76).
 
 **MySQL/MariaDB does not currently provide the PostgreSQL-equivalent sticky
 transaction boundary demonstrated by CommitCap's PostgreSQL research path.**
@@ -104,9 +106,10 @@ From the repository root with Docker Engine and Compose:
 ```sh
 bash wordpress/tests/run.sh mysql
 bash wordpress/tests/run.sh mariadb
-bash wordpress/tests/engine/run.sh   # #54 engine + #56 Guard + #57 doctor on both pinned DBs
-bash wordpress/tests/adapter/run.sh  # real Redirection, descriptor, demo, Admin and CLI on both pinned DBs
-bash wordpress/tests/release/run.sh  # #62/#63 release matrix, package allowlist, Plugin Check
+bash wordpress/tests/engine/run.sh      # #54 engine + #56 Guard + #57 doctor on both pinned DBs
+bash wordpress/tests/adapter/run.sh     # real Redirection, descriptor, demo, Admin and CLI on both pinned DBs
+bash wordpress/tests/current-core/run.sh # #63 current-stable WordPress 7.1.2 compatibility gate
+bash wordpress/tests/release/run.sh     # #62/#63 release matrix, package allowlist, Plugin Check
 ```
 
 Each foundation run boots WordPress 6.8.3 under PHP 8.2 against a fresh,

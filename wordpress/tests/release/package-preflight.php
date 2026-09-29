@@ -47,7 +47,7 @@ foreach ( $entries as $entry ) {
 }
 
 // Required runtime and release files.
-foreach ( array( 'commitcap.php', 'uninstall.php', 'readme.txt', 'LICENSE', 'OPERATOR-SETUP.md' ) as $required ) {
+foreach ( array( 'commitcap.php', 'uninstall.php', 'readme.txt', 'LICENSE', 'operator-setup.txt' ) as $required ) {
 	if ( ! in_array( $required, $entries, true ) ) {
 		$fail( 'required distribution file missing from allowlist: ' . $required );
 	}
@@ -63,8 +63,8 @@ foreach ( $entries as $entry ) {
 	if ( in_array( basename( $entry ), $forbidden, true ) ) {
 		$fail( 'internal document must not be distributed: ' . $entry );
 	}
-	if ( 'md' === strtolower( pathinfo( $entry, PATHINFO_EXTENSION ) ) && 'OPERATOR-SETUP.md' !== $entry ) {
-		$fail( 'only OPERATOR-SETUP.md may be distributed as markdown: ' . $entry );
+	if ( 'md' === strtolower( pathinfo( $entry, PATHINFO_EXTENSION ) ) ) {
+		$fail( 'markdown is not permitted in the distribution candidate: ' . $entry );
 	}
 }
 
@@ -111,5 +111,16 @@ foreach ( array(
 if ( ! str_contains( $main, "define( 'COMMITCAP_VERSION', '0.1.0' )" ) ) {
 	$fail( 'runtime version constant does not match the release version' );
 }
+if ( ! preg_match( '/^\s*\*\s*Requires Plugins:\s*redirection\s*$/m', $main ) ) {
+	$fail( 'main plugin file must declare the Redirection dependency (Requires Plugins: redirection)' );
+}
 
-echo '#63 distribution allowlist: ' . count( $entries ) . " files, verbatim GPLv2, version 0.1.0, no internal docs PASS\n";
+// The mistaken operation name must never reappear in distribution content.
+foreach ( $entries as $entry ) {
+	$content = (string) file_get_contents( $source . '/' . $entry );
+	if ( false !== stripos( $content, 'Baseline Disable' ) ) {
+		$fail( 'misleading operation wording "Baseline Disable" in ' . $entry );
+	}
+}
+
+echo '#63 distribution allowlist: ' . count( $entries ) . " files, verbatim GPLv2, version 0.1.0, exact operation wording, no internal docs PASS\n";

@@ -1,7 +1,7 @@
 === CommitCap ===
 Tags: database, bulk actions, redirection, safety, rollback
 Requires at least: 6.8
-Tested up to: 6.8
+Tested up to: 7.1
 Stable tag: 0.1.0
 Requires PHP: 7.4
 License: GPLv2 or later
@@ -21,20 +21,20 @@ CommitCap puts an explicit mutation budget around one certified operation: Redir
 
 * Inside your budget: the guarded transaction commits.
 * Over your budget: the request is denied and the guarded transaction is rolled back before CommitCap commits. On the pinned release matrix an independent observer then sees all six rows unchanged.
-* Over the trusted physical ceiling (P = 2000): the database itself stops the excess row event.
+* Over the trusted physical ceiling (P = 2000): the restricted-runtime policy stops the excess row event on that certified path.
 
 CommitCap does not promise to protect everything. It does one job deliberately: put a mutation budget around one reviewed, version-pinned bulk operation.
 
 = What you get =
 
-* An Admin page under Tools → CommitCap: live readiness, logical budget, enable and disable controls, the most recent local outcome, and a disposable demo on CommitCap-owned data.
-* A live Doctor that fails closed: if the restricted runtime, grants, policy trigger or database shape cannot be proven, the dangerous request is refused instead of falling back to an unprotected stock write.
-* WP-CLI diagnostics: `wp commitcap status`, `wp commitcap doctor` and `wp commitcap demo`, with human-readable and JSON output.
-* Local-only operation: no CommitCap account, no cloud service, no telemetry, no quota, no license server, no upsell.
+* Tools → CommitCap: live readiness, logical budget, enable/disable, recent local outcome, and an optional disposable demo.
+* A live Doctor that fails closed: if the restricted runtime, grants, policy trigger or database shape cannot be proven, the dangerous request is refused instead of falling back to a stock write.
+* WP-CLI diagnostics: `wp commitcap status`, `wp commitcap doctor` and `wp commitcap demo`, human-readable or JSON.
+* Local-only operation: no CommitCap account, cloud service, telemetry, quota, license server or upsell.
 
 = Deliberately narrow =
 
-CommitCap Free V0.1 certifies exactly one operation against one exact Redirection build. There is no generic hook registry, no "protect all writes" mode, and no pretend coverage for unreviewed write paths. That narrowness is the point: the supported operation is version-pinned, exercised on both pinned database engines, and fail-closed everywhere else.
+CommitCap Free V0.1 certifies exactly one operation against one exact Redirection build. No generic hook registry, no "protect all writes" mode, no pretend coverage. That narrowness is the point: the supported operation is version-pinned, exercised on both pinned database engines, and fail-closed everywhere else.
 
 == What CommitCap protects ==
 
@@ -46,22 +46,22 @@ One decision: the certified request runs inside a guarded transaction owned by C
 
 == How it works ==
 
-1. CommitCap recognizes the exact certified request: the Redirection 5.5.2 global Baseline Disable route and handler. Anything else stays stock Redirection behavior and is not certified.
+1. CommitCap recognizes the exact certified request: the Redirection 5.5.2 global/select-all Bulk Disable route and handler (Redirects → select all matching → Bulk Actions → Disable). Anything else stays stock Redirection behavior and is not certified.
 2. Readiness is evaluated live: exact Redirection version, restricted runtime connection, exact grants, canonical policy trigger and database shape. A failing or unknown check refuses the certified request; it never silently falls back.
 3. The reviewed UPDATE runs on a restricted secondary database connection. The normal WordPress database account keeps its ordinary broad role and is not used for the certified mutation.
-4. A guarded transaction counts real UPDATE row events. Inside your budget it commits; over budget it is denied and rolled back before CommitCap commits; over the physical ceiling the database policy stops the row event itself.
-5. The most recent certified outcome is recorded locally as bounded, informational evidence. It never controls readiness, and it never claims an independently verified rollback.
+4. A guarded transaction counts real UPDATE row events. Inside your budget it commits; over budget it is denied and rolled back before CommitCap commits; over the physical ceiling the restricted-runtime policy stops the row event.
+5. The most recent certified outcome is recorded locally as bounded, informational evidence. It never controls readiness, and never claims an independently verified rollback.
 
-On the pinned release matrix (WordPress 6.8.3, PHP 8.2, MySQL 8.0.44, MariaDB 10.11.15, Redirection 5.5.2):
+On the release matrix (PHP 8.2; MySQL 8.0.44 and MariaDB 10.11.15; Redirection 5.5.2; exact WordPress core fixtures 6.8.3 and 7.1.2):
 
 * Six matching rows with L=10: HTTP 200, committed, six rows disabled as seen by a fresh independent connection.
 * Six matching rows with L=5: HTTP 409, denied before CommitCap commits, all six rows unchanged as seen by a fresh independent connection.
 
 == Installation ==
 
-1. Install and activate CommitCap.
-2. Install and activate Redirection 5.5.2 — the exact certified build.
-3. Have a trusted database operator provision the CommitCap restricted runtime using the operator instructions included with the plugin (`OPERATOR-SETUP.md`). This is a one-time, trusted setup: it creates one restricted database account, a small helper table, five reviewed routines and one policy trigger, and adds a few constants to `wp-config.php`.
+1. Install and activate Redirection 5.5.2 — the exact certified build.
+2. Install and activate CommitCap. WordPress knows Redirection is a required plugin, but CommitCap itself still verifies the exact supported version 5.5.2 at runtime.
+3. Have a trusted database operator provision the CommitCap restricted runtime using the operator instructions included with the plugin (`operator-setup.txt`). This is a one-time, trusted setup: it creates one restricted database account, a small helper table, five reviewed routines and one policy trigger, and adds a few constants to `wp-config.php`.
 4. Open Tools → CommitCap and confirm the readiness line reports READY.
 5. Choose your logical mutation budget L (0 to 2000) and save it.
 6. Enable the certified operation.
@@ -72,14 +72,15 @@ After the one-time operator setup, normal Admin use needs no PHP or SQL editing.
 
 == Supported configuration ==
 
-* WordPress: tested on the exact 6.8.3 fixture used by the release matrix. Other WordPress versions are not certified in V0.1; the Doctor reports them as unknown rather than pretending they were tested.
-* PHP: tested on the 8.2 fixture. The declared minimum is PHP 7.4; PHP 7.4 itself is a minimum, not a release-matrix-tested runtime.
+* WordPress core: exact tested fixtures 6.8.3 (original baseline) and 7.1.2 (current stable at release). `Tested up to: 7.1` means those exact builds were exercised end to end on both databases. Untested builds, including minors between them, are not certified: the Doctor reports them unknown and refuses to enable.
+* Required dependency: Redirection. WordPress prevents normal activation of CommitCap while Redirection is missing or inactive, but CommitCap still independently requires Redirection 5.5.2 exactly.
+* PHP: tested on 8.2. The declared minimum is PHP 7.4; 7.4 is a minimum, not a release-matrix-tested runtime.
 * Database: MySQL 8.0.44 and MariaDB 10.11.15 are the pinned, tested engines. Other builds are not certified in V0.1.
-* Redirection: 5.5.2 exactly. Other versions are not certified; the certified request fails closed instead of running an unreviewed write.
+* Redirection: 5.5.2 exactly. Other versions are not certified; the certified request fails closed.
 * Certified operation: global/select-all Bulk Disable. Physical ceiling P = 2000; logical budget L from 0 to 2000.
 * Multisite / network activation: not certified in V0.1.
 
-Most fully managed WordPress hosts do not allow extra database users, routines or triggers. Initial setup targets self-managed, VPS, dedicated or cooperative environments where a trusted operator has the required database privileges; see the operator instructions included with the plugin.
+Most fully managed WordPress hosts do not allow extra database users, routines or triggers. Initial setup targets self-managed, VPS, dedicated or cooperative environments; see the operator instructions included with the plugin.
 
 == Frequently Asked Questions ==
 
@@ -97,7 +98,7 @@ On the supported path, the request is denied before CommitCap commits and the gu
 
 = What is the physical ceiling? =
 
-A trusted database policy installed during operator setup stops the 2001st row event of the certified table even if the application layer were bypassed. It bounds the certified path; it is not a general database firewall.
+A trusted database policy installed during operator setup stops the 2001st row event of the certified table on the reviewed restricted-runtime path. It is not a general database firewall and is not a containment claim for hostile plugins, raw database clients, or stolen credentials.
 
 = Does CommitCap need an account, cloud service or quota? =
 
