@@ -22,8 +22,16 @@ demo objects or grants; those remain explicit operator lifecycle tasks under
 [PROVISIONING.md](PROVISIONING.md) and [DEMO.md](DEMO.md). The 120-second Admin
 notice transient is allowed to expire naturally and is never wildcard-scanned.
 Network activation and multisite cleanup have not been validated; network
-activation is refused without writing plugin metadata. The version header is
-developmental; no plugin license decision has been made (#64).
+activation is refused without writing plugin metadata. The #64 founder license
+decision is **GPL version 2 or later** (`GPL-2.0-or-later`); the full GNU GPLv2
+text ships as `LICENSE`, and [LICENSE-AUDIT.md](LICENSE-AUDIT.md) records the
+third-party/copyright audit. The package release version is `0.1.0`. The
+distribution allowlist for the `commitcap/` release root is
+`wordpress/release/commitcap-distribution-files.txt`; the public WordPress.org
+listing source is [readme.txt](readme.txt), and the operator guide shipped with
+the distribution is [OPERATOR-SETUP.md](OPERATOR-SETUP.md). The full #63/#64
+contract remains [RELEASE-MATRIX.md](RELEASE-MATRIX.md)'s preflight, and the
+exact-package audit is still a later gate (#77/#76).
 
 **MySQL/MariaDB does not currently provide the PostgreSQL-equivalent sticky
 transaction boundary demonstrated by CommitCap's PostgreSQL research path.**
@@ -98,11 +106,13 @@ bash wordpress/tests/run.sh mysql
 bash wordpress/tests/run.sh mariadb
 bash wordpress/tests/engine/run.sh   # #54 engine + #56 Guard + #57 doctor on both pinned DBs
 bash wordpress/tests/adapter/run.sh  # real Redirection, descriptor, demo, Admin and CLI on both pinned DBs
+bash wordpress/tests/release/run.sh  # #62/#63 release matrix, package allowlist, Plugin Check
 ```
 
 Each foundation run boots WordPress 6.8.3 under PHP 8.2 against a fresh,
-disposable MySQL 8.0.44 or MariaDB 10.11.15 fixture. It performs real
-activation/deactivation/uninstall calls, checks failure paths and database
-objects, runs PHP lint/direct-access checks, and destroys the fixture on exit.
-This is a foundation lifecycle test, not a compatibility certification or the
-full WordPress matrix (#62).
+disposable MySQL 8.0.44 or MariaDB 10.11.15 fixture. It stages only the
+canonical distribution allowlist into `wp-content/plugins/commitcap/`, performs
+real activation/deactivation/uninstall calls, checks failure paths and database
+objects, runs PHP lint/direct-access/license/readme checks, and destroys the
+fixture on exit. The release matrix composes the existing suites plus the
+package preflight and the official Plugin Check stable/static run.

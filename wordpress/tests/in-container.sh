@@ -20,6 +20,7 @@ echo "Database fixture: $db $server_version; WordPress $(wp --path="$site" core 
 [ "$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')" = 8.2 ]
 wp --path="$site" eval-file /opt/tests/identity-62.php
 php /opt/tests/release/source-audit.php "$site/wp-content/plugins/commitcap"
+php /opt/tests/release/readme-validate.php "$site/wp-content/plugins/commitcap"
 
 for file in "$site"/wp-content/plugins/commitcap/*.php "$site"/wp-content/plugins/commitcap/includes/*.php; do
   php -l "$file"

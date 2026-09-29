@@ -2,7 +2,8 @@
 /**
  * Plugin Name: CommitCap
  * Description: Stop bulk database mistakes before they commit.
- * Version: 0.1.0-dev
+ * Version: 0.1.0
+ * Requires at least: 6.8
  * Requires PHP: 7.4
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -30,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'COMMITCAP_VERSION', '0.1.0-dev' );
+define( 'COMMITCAP_VERSION', '0.1.0' );
 define( 'COMMITCAP_PLUGIN_FILE', __FILE__ );
 
 // Avoid parsing PHP 7.4 class files on older runtimes; activation must fail.
