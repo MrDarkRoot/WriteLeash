@@ -97,9 +97,15 @@ and normal WordPress writes are **not** protected by this claim.
   intact. Logical and physical denials are distinct typed outcomes
   (`test-82-logical-budget.php`, `cases.php`, `cases-78.php`).
 * L is **not** a cross-request wallet: every certified request gets a fresh
-  transaction, connection-scoped accounting and its own decision. Retries and
-  two independent requests are proven in `cases-61-threat-model.php` and
-  `concurrent-61.php`.
+  transaction, connection-scoped accounting and its own decision
+  (`cases-61-threat-model.php`).
+* Bounded overlapping concurrency is proven with a trusted two-stage row-lock
+  barrier (`concurrent-61.php`): two real certified Redirection requests were
+  held concurrently inside distinct restricted DB transactions. Both distinct
+  runtime sessions were observed blocked on the certified target UPDATE before
+  the barrier was released, and both committed independently with
+  per-connection accounting. This covers this bounded tested pattern only; it
+  is not a claim about all concurrent workloads.
 
 ## Fail-closed rules
 
@@ -138,7 +144,7 @@ on this rule.
 | Mid-callback connection death (server rollback) | SUPPORTED + TESTED (typed failure, fresh observer clean) | `cases-61-threat-model.php` |
 | Dropped connection with transparent wpdb reconnect | OUTSIDE CONTRACT (new full path, per-connection accounting) | `cases-61-threat-model.php` |
 | Unrecoverable runtime credential | UNSUPPORTED + REJECTED (typed) | `cases-61-threat-model.php` |
-| Two independent certified requests | SUPPORTED + TESTED (per-request budget) | `concurrent-61.php` |
+| Two overlapping certified requests (trusted row-lock barrier; both distinct runtime sessions observed blocked on the certified UPDATE) | SUPPORTED + TESTED (per-connection accounting) | `concurrent-61.php` |
 | Denied retry then commit | SUPPORTED + TESTED (per-transaction budget) | `cases-61-threat-model.php` |
 | Unsupported Redirection routes (items/global=false/filtered/Enable/Reset/Delete/edits/hits) | SUPPORTED (stock) | `cases.php`, `cases-60.php` |
 | CommitCap deactivated | OUTSIDE CONTRACT (protection inactive; stock) | `cases-61-deactivated.php` |
