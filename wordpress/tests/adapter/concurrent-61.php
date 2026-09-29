@@ -28,7 +28,10 @@ function cc61_hold( $root, string $select, string $ready, string $release, int $
 	$locked = $root->get_col( $select );
 	cc87_assert( is_array( $locked ) && $rows_expected === count( $locked ), 'barrier locked rows: ' . json_encode( $locked ) );
 	cc87_assert( false !== file_put_contents( $ready, 'locked' ), 'barrier ready marker' );
-	$deadline = microtime( true ) + 90;
+	// The barrier is always released by the explicit marker. The deadline only
+	// bounds a pathological failure, and is generous so a loaded CI host cannot
+	// expire the barrier while the certified requests are still in flight.
+	$deadline = microtime( true ) + 300;
 	while ( microtime( true ) < $deadline ) {
 		if ( file_exists( $release ) ) {
 			cc87_assert( false !== $root->query( 'COMMIT' ), 'barrier COMMIT' );
@@ -119,6 +122,8 @@ if ( 'seed' === $phase ) {
 		usleep( 200000 );
 	}
 	fwrite( STDERR, '#61 await_overlap(' . $stage . ') timed out; last=' . json_encode( array_values( $last ) ) . "\n" );
+	$all = $root->get_results( "SELECT ID, STATE, INFO FROM information_schema.PROCESSLIST WHERE USER = 'cc87_writer' ORDER BY ID", ARRAY_A );
+	fwrite( STDERR, '#61 all restricted sessions at timeout: ' . json_encode( (array) $all ) . "\n" );
 	foreach ( array( 'CC61_RUN_ERR_A' => 'request A', 'CC61_RUN_ERR_B' => 'request B' ) as $env_name => $label ) {
 		$path = (string) getenv( $env_name );
 		if ( '' !== $path && is_file( $path ) ) {

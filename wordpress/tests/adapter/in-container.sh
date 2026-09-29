@@ -156,9 +156,13 @@ for host in mysql mariadb; do
   touch "$cc61_release_a"
   # Stage 2: both distinct restricted sessions must now be blocked on the
   # certified Redirection UPDATE while the rows-2-6 barrier is still held.
-  cc61_update_json=$(CC_ENGINE_HOST="$host" CC61_PHASE=await_overlap CC61_STAGE=update \
+  if ! cc61_update_json=$(CC_ENGINE_HOST="$host" CC61_PHASE=await_overlap CC61_STAGE=update \
     CC61_RUN_ERR_A="$cc61_run_a_err" CC61_RUN_ERR_B="$cc61_run_b_err" \
-    wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php)
+    wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php); then
+    echo 'trusted barrier overlap proof failed; request outputs follow' >&2
+    cat "$cc61_run_a_json" "$cc61_run_a_err" "$cc61_run_b_json" "$cc61_run_b_err" >&2
+    exit 1
+  fi
   php -r '$d=json_decode($argv[1], true); $s=$d["sessions"]; if (count($s) < 2 || $s[0]["id"] === $s[1]["id"] || false === stripos($s[0]["info"], "status=\x27disabled\x27") || false === stripos($s[1]["info"], "status=\x27disabled\x27")) exit(1);' "$cc61_update_json"
   cc61_ids=$(printf '%s' "$cc61_update_json" | php -r '$d=json_decode(stream_get_contents(STDIN), true); echo implode(",", array_column($d["sessions"], "id"));')
   echo "#61 $host: concurrent overlap proven: runtime connection ids=$cc61_ids both blocked on certified Redirection UPDATE while rows-2-6 barrier held"
