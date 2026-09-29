@@ -1,7 +1,7 @@
 <?php
 // #60 repair: after the actual uninstall, a fresh WordPress process must not
 // recover old local authorization, budget or production evidence.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 require_once __DIR__ . '/helpers.php';
 if ( ! function_exists( 'activate_plugin' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php';

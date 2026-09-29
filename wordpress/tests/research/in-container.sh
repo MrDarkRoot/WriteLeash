@@ -4,9 +4,8 @@
 set -eu
 
 site=/tmp/cc-research
-mkdir -p "$site/wp-content/plugins/commitcap-for-wordpress"
 cp -R /opt/wp-core/. "$site/"
-cp -R /opt/commitcap-for-wordpress/. "$site/wp-content/plugins/commitcap-for-wordpress/"
+sh /opt/tests/stage-plugin.sh "$site"
 wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost=mysql
 wp --path="$site" core install --url=http://research.test --title=CommitCap-Research \
   --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email

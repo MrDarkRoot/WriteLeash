@@ -1,7 +1,7 @@
 <?php
 // #87 acceptance suite: real pinned Redirection 5.5.2 Bulk Disable through the
 // CommitCap shared restricted runtime on both pinned database engines.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 require_once __DIR__ . '/helpers.php';
 
 use CommitCap\Provisioning_Plan as Plan;

@@ -1,0 +1,37 @@
+name: WordPress V0.1 release matrix
+
+on:
+  pull_request:
+    paths:
+      - 'wordpress/**'
+      - 'experiments/mysql_tx_budget/**'
+      - '.github/workflows/wordpress-release-matrix.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'wordpress/**'
+      - 'experiments/mysql_tx_budget/**'
+      - '.github/workflows/wordpress-release-matrix.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  wordpress-v01-release-matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+      - name: Run #62 source preflight and pinned two-engine matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash wordpress/tests/release/run.sh 2>&1 | tee "$RUNNER_TEMP/wordpress-release-matrix.txt"
+      - name: Preserve #62 matrix transcript
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, pinned
+        with:
+          name: wordpress-v01-release-matrix
+          path: ${{ runner.temp }}/wordpress-release-matrix.txt
+          if-no-files-found: ignore
+          retention-days: 7

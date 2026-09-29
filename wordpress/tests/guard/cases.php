@@ -2,7 +2,7 @@
 // #56 guarded transaction API acceptance tests.
 // Runs through WP-CLI on the pinned MySQL 8.0.44 / MariaDB 10.11.15 fixtures
 // after the #54 engine cases. Fresh trusted connections verify durability.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 
 use CommitCap\Budget_Denied;
 use CommitCap\Guard;

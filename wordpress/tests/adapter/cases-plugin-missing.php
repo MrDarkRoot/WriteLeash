@@ -1,7 +1,7 @@
 <?php
 // #87: a fresh PHP process where Redirection is deactivated. The adapter must
 // refuse before any callback and leave the restricted connection untouched.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 require_once __DIR__ . '/helpers.php';
 
 use CommitCap\Redirection_Bulk_Disable as Adapter;

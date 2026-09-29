@@ -2,9 +2,8 @@
 set -eu
 for host in mysql mariadb; do
   site="/tmp/commitcap-engine-$host"
-  mkdir -p "$site/wp-content/plugins/commitcap-for-wordpress"
   cp -R /opt/wp-core/. "$site/"
-  cp -R /opt/commitcap-for-wordpress/. "$site/wp-content/plugins/commitcap-for-wordpress/"
+  sh /opt/tests/stage-plugin.sh "$site"
   wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost="$host"
   wp --path="$site" core install --url="http://$host.example.test" --title=Engine-Test \
     --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email

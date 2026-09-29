@@ -2,7 +2,7 @@
 // #61 final threat-model adversarial proof on the production surfaces.
 // Everything here attacks the cooperative envelope or records its bounds.
 // It never broadens the runtime's authority or the product claim.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 require_once __DIR__ . '/helpers.php';
 
 use CommitCap\Certified_Operation as Operation;
@@ -326,7 +326,7 @@ echo "#61 $host: no installer/runtime credential material in options, status sna
 // ---------------------------------------------------------------------------
 // Prefix audit: production PHP derives all target names from wpdb->prefix.
 // ---------------------------------------------------------------------------
-foreach ( glob( WP_PLUGIN_DIR . '/commitcap-for-wordpress/includes/*.php' ) as $file ) {
+foreach ( glob( WP_PLUGIN_DIR . '/commitcap/includes/*.php' ) as $file ) {
 	// Comments are stripped; string literals remain, so this detects real
 	// hard-coded target names, not documentation.
 	$source = php_strip_whitespace( $file );
