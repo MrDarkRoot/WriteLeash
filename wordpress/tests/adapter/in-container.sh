@@ -2,6 +2,22 @@
 # #87: install the pinned Redirection 5.5.2 and run the real Bulk Disable
 # adapter suite on each pinned database engine in a disposable WordPress.
 set -eu
+# #61 concurrency safety: always release the trusted row-lock barrier and reap
+# background helpers even when an assertion aborts the suite.
+CC61_PIDS=""
+CC61_MARKERS=""
+CC61_FILES=""
+cc61_cleanup() {
+  for cc61_marker in $CC61_MARKERS; do
+    touch "$cc61_marker" 2>/dev/null || true
+  done
+  for cc61_pid in $CC61_PIDS; do
+    kill "$cc61_pid" 2>/dev/null || true
+  done
+  wait 2>/dev/null || true
+  rm -f $CC61_FILES 2>/dev/null || true
+}
+trap cc61_cleanup EXIT
 for host in mysql mariadb; do
   site="/tmp/cc87-$host"
   echo "=== REDIRECTION ADAPTER: $host ==="
@@ -55,6 +71,88 @@ for host in mysql mariadb; do
     CC_ENGINE_HOST="$host" CC60_PHASE="${failure}_fix" wp --path="$site" eval-file /opt/tests/adapter/cli-fixture-60.php
   done
   echo "#60 $host: CLI doctor rejects live P/grant/policy drift; repaired production READY: PASS"
+  # #61 final threat-model adversarial matrix on the production surfaces.
+  CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-61-threat-model.php
+  # Deactivation boundary: CommitCap inactive -> certified global Disable is stock.
+  wp --path="$site" plugin deactivate commitcap-for-wordpress
+  CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-61-deactivated.php
+  wp --path="$site" plugin activate commitcap-for-wordpress
+  # Deterministic concurrency: trusted two-stage row-lock barrier. Two real
+  # certified Redirection requests must both be observed blocked on the
+  # certified target UPDATE in distinct restricted sessions before release.
+  CC_ENGINE_HOST="$host" CC61_PHASE=seed wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php
+  cc61_ready_a="/tmp/cc61-lock-a-$host.ready"
+  cc61_ready_b="/tmp/cc61-lock-b-$host.ready"
+  cc61_release_a="/tmp/cc61-release-a-$host"
+  cc61_release_b="/tmp/cc61-release-b-$host"
+  cc61_lock_a_log="/tmp/cc61-lock-a-$host.log"
+  cc61_lock_b_log="/tmp/cc61-lock-b-$host.log"
+  cc61_run_a_json="/tmp/cc61-run-1-$host.json"
+  cc61_run_a_err="/tmp/cc61-run-1-$host.err"
+  cc61_run_b_json="/tmp/cc61-run-2-$host.json"
+  cc61_run_b_err="/tmp/cc61-run-2-$host.err"
+  CC61_MARKERS="$cc61_release_a $cc61_release_b"
+  CC61_FILES="$cc61_ready_a $cc61_ready_b $cc61_release_a $cc61_release_b $cc61_lock_a_log $cc61_lock_b_log $cc61_run_a_json $cc61_run_a_err $cc61_run_b_json $cc61_run_b_err"
+  rm -f $CC61_FILES
+  CC_ENGINE_HOST="$host" CC61_PHASE=lock_a CC61_READY="$cc61_ready_a" CC61_RELEASE="$cc61_release_a" \
+    wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php >"$cc61_lock_a_log" 2>&1 &
+  cc61_lock_a_pid=$!
+  CC_ENGINE_HOST="$host" CC61_PHASE=lock_b CC61_READY="$cc61_ready_b" CC61_RELEASE="$cc61_release_b" \
+    wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php >"$cc61_lock_b_log" 2>&1 &
+  cc61_lock_b_pid=$!
+  CC61_PIDS="$cc61_lock_a_pid $cc61_lock_b_pid"
+  cc61_wait_ready() {
+    cc61_attempt=0
+    while [ ! -f "$1" ] && [ "$cc61_attempt" -lt 150 ]; do
+      sleep 0.2
+      cc61_attempt=$((cc61_attempt + 1))
+    done
+    [ -f "$1" ]
+  }
+  if ! cc61_wait_ready "$cc61_ready_a" || ! cc61_wait_ready "$cc61_ready_b"; then
+    echo "trusted barrier locks were not acquired" >&2
+    cat "$cc61_lock_a_log" "$cc61_lock_b_log" >&2
+    exit 1
+  fi
+  CC_ENGINE_HOST="$host" CC61_PHASE=barrier wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php
+  CC_ENGINE_HOST="$host" CC61_PHASE=run wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php >"$cc61_run_a_json" 2>"$cc61_run_a_err" &
+  cc61_run_a_pid=$!
+  CC_ENGINE_HOST="$host" CC61_PHASE=run wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php >"$cc61_run_b_json" 2>"$cc61_run_b_err" &
+  cc61_run_b_pid=$!
+  CC61_PIDS="$CC61_PIDS $cc61_run_a_pid $cc61_run_b_pid"
+  # Stage 1: both restricted sessions must queue on the row-1 barrier before it
+  # is released, so neither can race ahead through the Doctor probe.
+  cc61_probe_json=$(CC_ENGINE_HOST="$host" CC61_PHASE=await_overlap CC61_STAGE=probe wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php)
+  php -r '$d=json_decode($argv[1], true); $s=$d["sessions"]; if (count($s) < 2 || $s[0]["id"] === $s[1]["id"]) exit(1);' "$cc61_probe_json"
+  echo "#61 $host: both restricted requests queued on trusted row-1 barrier (doctor probe): $(printf '%s' "$cc61_probe_json" | php -r '$d=json_decode(stream_get_contents(STDIN), true); echo implode(",", array_column($d["sessions"], "id"));')"
+  touch "$cc61_release_a"
+  # Stage 2: both distinct restricted sessions must now be blocked on the
+  # certified Redirection UPDATE while the rows-2-6 barrier is still held.
+  cc61_update_json=$(CC_ENGINE_HOST="$host" CC61_PHASE=await_overlap CC61_STAGE=update wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php)
+  php -r '$d=json_decode($argv[1], true); $s=$d["sessions"]; if (count($s) < 2 || $s[0]["id"] === $s[1]["id"] || false === stripos($s[0]["info"], "status=\x27disabled\x27") || false === stripos($s[1]["info"], "status=\x27disabled\x27")) exit(1);' "$cc61_update_json"
+  cc61_ids=$(printf '%s' "$cc61_update_json" | php -r '$d=json_decode(stream_get_contents(STDIN), true); echo implode(",", array_column($d["sessions"], "id"));')
+  echo "#61 $host: concurrent overlap proven: runtime connection ids=$cc61_ids both blocked on certified Redirection UPDATE while rows-2-6 barrier held"
+  touch "$cc61_release_b"
+  cc61_status=0
+  wait "$cc61_run_a_pid" || cc61_status=1
+  wait "$cc61_run_b_pid" || cc61_status=1
+  wait "$cc61_lock_a_pid" || cc61_status=1
+  wait "$cc61_lock_b_pid" || cc61_status=1
+  if [ "$cc61_status" -ne 0 ]; then
+    echo "concurrent certified request or barrier release failed" >&2
+    cat "$cc61_run_a_json" "$cc61_run_a_err" "$cc61_run_b_json" "$cc61_run_b_err" "$cc61_lock_a_log" "$cc61_lock_b_log" >&2
+    exit 1
+  fi
+  for cc61_run in "1-$host" "2-$host"; do
+    cc61_json=$(cat "/tmp/cc61-run-$cc61_run.json")
+    php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["status"] !== 200 || $d["outcome"] !== "COMMITTED" || $d["consumed"] !== 6 || $d["logical_budget"] !== 10 || !in_array($d["affected_rows"], array(0, 6, null), true)) exit(1);' "$cc61_json"
+  done
+  echo "#61 $host: barrier released after proof; both requests COMMITTED (consumed 6, L=10)"
+  CC_ENGINE_HOST="$host" CC61_PHASE=verify wp --path="$site" eval-file /opt/tests/adapter/concurrent-61.php
+  CC61_PIDS=""
+  CC61_MARKERS=""
+  CC61_FILES=""
+  rm -f "$cc61_ready_a" "$cc61_ready_b" "$cc61_release_a" "$cc61_release_b" "$cc61_lock_a_log" "$cc61_lock_b_log" "$cc61_run_a_json" "$cc61_run_a_err" "$cc61_run_b_json" "$cc61_run_b_err"
   CC_ENGINE_HOST="$host" CC60_PHASE=begin wp --path="$site" eval-file /opt/tests/adapter/cli-fixture-60.php
   for expected in B A B; do
     demo_json=$(wp --path="$site" commitcap demo --format=json)

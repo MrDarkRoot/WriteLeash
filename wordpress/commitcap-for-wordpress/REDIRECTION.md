@@ -193,7 +193,9 @@ DDL; this is an adversarial subclass test).
 - Cooperative boundary only (see GUARD.md); not hostile-DB-writer containment.
 - Enable, Reset, filtered `global=true` variants, generic Redirection support,
   arbitrary tables/methods and Admin-supplied SQL are out of scope.
-- No Admin UI, packaging, WordPress.org or Pro work in this issue.
+- No packaging, WordPress.org or Pro work in this issue. The Admin/CLI
+  surfaces were added later by #60 ([ADMIN-CLI.md](ADMIN-CLI.md)); the final
+  cooperative threat model is [THREAT-MODEL.md](THREAT-MODEL.md).
 - The item-scoped `items=[...]` path is not intercepted, not routed through
   CommitCap and not budget-protected; it keeps stock behavior by design.
 - The physical policy bounds only the certified runtime identity. An explicitly
