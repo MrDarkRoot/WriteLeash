@@ -3,7 +3,7 @@
 // validated mutable config, live readiness and the no-DDL logical-budget
 // change, exercised against the real pinned fixture. Runs after cases.php on
 // each engine (separate WP-CLI process, same disposable site).
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 require_once __DIR__ . '/helpers.php';
 
 use CommitCap\Certified_Operation;

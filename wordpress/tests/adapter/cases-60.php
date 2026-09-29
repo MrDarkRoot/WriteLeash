@@ -1,6 +1,6 @@
 <?php
 // #60 real Admin controller, REST evidence and demo surface on both engines.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 require_once __DIR__ . '/helpers.php';
 // WP-CLI warns on intentional admin-post redirects; keep the production
 // callback unchanged and disable only the CLI fixture's redirect handler.
@@ -217,7 +217,13 @@ echo "#60 $host: enable preflight version/runtime/P/grants/Doctor failures, READ
 
 // Real authenticated REST path persists only last certified outcome after Guard.
 cc87_seed_bulk( $root, 6 );
-$denied_response = rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+list( $denied_response, $denied_threads ) = cc87_trace_all( $root, static function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+list( $denied_updates, $denied_update_threads ) = cc87_disable_updates( $denied_threads );
+cc87_assert( 1 === $denied_updates && 1 === count( $denied_update_threads ) && $normal_id !== $denied_update_threads[0], 'real DENIED: exactly one restricted target UPDATE, normal target UPDATE=0' );
+$denied_user = (string) $root->get_var( $root->prepare( "SELECT user_host FROM mysql.general_log WHERE thread_id = %d AND command_type = 'Connect'", $denied_update_threads[0] ) );
+cc87_assert( false !== strpos( $denied_user, 'cc87_writer' ), 'real DENIED target UPDATE was not performed by restricted identity' );
 $denied = Last_Outcome::read();
 cc87_assert( 409 === $denied_response->get_status() && array( 6, 0 ) === cc60_observe( $host ), 'real REST six-row denial, fresh observer unchanged: status=' . $denied_response->get_status() . ' data=' . json_encode( $denied_response->get_data() ) . ' counts=' . json_encode( cc60_observe( $host ) ) );
 cc87_assert( is_array( $denied ) && 'DENIED' === $denied['outcome'] && 'logical_budget_exceeded' === $denied['reason'] &&
@@ -231,6 +237,7 @@ ob_start(); Admin::render(); $denied_html = ob_get_clean();
 cc87_assert( false !== strpos( $denied_html, 'Rollback attempted: yes; rollback completion: unknown; independent fresh-observer durability verification: no.' ), 'Admin DENIED wording does not claim verified rollback' );
 cc87_assert( false === strpos( $denied_html, 'cc87_secret' ) && false === strpos( $denied_html, 'disposable_root_password' ), 'DENIED notice secret-free' );
 echo "#60 $host: real REST over-L DENIED, last outcome/Admin truthful, fresh observer unchanged: PASS\n";
+echo "#62 $host real over-L: HTTP 409 logical DENIED L=5 P=2000 consumed=6 fresh-observer=6-enabled normal-UPDATE=0 restricted-UPDATE=1 PASS\n";
 
 // Cross-process CLI status must see the same DENIED record before COMMIT overwrites it.
 $cli_command = 'wp --path=' . escapeshellarg( ABSPATH ) . ' commitcap status --format=json';
@@ -241,11 +248,18 @@ cc87_assert( 0 === $cli_code && is_array( $cli_denied ) && 'DENIED' === $cli_den
 	6 === $cli_denied['last_outcome']['attempted'] && false === $cli_denied['last_outcome']['durability_verified_by_fresh_observer'], 'actual CLI status agrees with DENIED evidence: ' . implode( ' ', $cli_output ) );
 
 cc87_assert( 'OK' === cc60_admin( 'budget', array( 'logical_budget' => '10' ) )['status'], 'Admin raises L10' );
-$committed_response = rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+list( $committed_response, $committed_threads ) = cc87_trace_all( $root, static function () {
+	return rest_do_request( cc87_rest_bulk_request( 'disable', array( 'global' => true ) ) );
+} );
+list( $committed_updates, $committed_update_threads ) = cc87_disable_updates( $committed_threads );
+cc87_assert( 1 === $committed_updates && 1 === count( $committed_update_threads ) && $normal_id !== $committed_update_threads[0], 'real COMMITTED: exactly one restricted target UPDATE, normal target UPDATE=0' );
+$committed_user = (string) $root->get_var( $root->prepare( "SELECT user_host FROM mysql.general_log WHERE thread_id = %d AND command_type = 'Connect'", $committed_update_threads[0] ) );
+cc87_assert( false !== strpos( $committed_user, 'cc87_writer' ), 'real COMMITTED target UPDATE was not performed by restricted identity' );
 $committed = Last_Outcome::read();
 cc87_assert( 200 === $committed_response->get_status() && array( 6, 6 ) === cc60_observe( $host ), 'real REST six-row COMMIT, fresh observer durable' );
 cc87_assert( is_array( $committed ) && 'COMMITTED' === $committed['outcome'] && 10 === $committed['logical_budget'] &&
 	6 === $committed['consumed'] && 6 === $committed['affected_rows'] && false === $committed['durability_verified_by_fresh_observer'], 'last COMMITTED production facts remain truthful' );
+echo "#62 $host real safe: HTTP 200 COMMITTED L=10 P=2000 consumed=6 affected=6 fresh-observer=6-disabled normal-UPDATE=0 restricted-UPDATE=1 PASS\n";
 ob_start(); Admin::render(); $committed_html = ob_get_clean();
 cc87_assert( false !== strpos( $committed_html, 'COMMITTED' ) && false !== strpos( $committed_html, 'consumed: 6' ), 'Admin shows committed evidence' );
 $cli_output = array(); $cli_code = -1;
@@ -263,12 +277,22 @@ $contradictory = $committed;
 $contradictory['outcome'] = 'DENIED';
 update_option( Last_Outcome::OPTION, $contradictory, false );
 cc87_assert( null === Last_Outcome::read(), 'semantically contradictory evidence is not rendered as DENIED' );
+$injected = $committed;
+$injected['reason'] = '<svg/onload=alert(1)>';
+update_option( Last_Outcome::OPTION, $injected, false );
+ob_start(); Admin::render(); $injected_html = ob_get_clean();
+cc87_assert( null === Last_Outcome::read() && false === strpos( $injected_html, '<svg/onload=alert(1)>' ) &&
+	'READY' === Product_Status::snapshot()['operation_status'], 'otherwise valid record with HTML reason ignored; readiness unaffected' );
+$future_schema = $committed;
+$future_schema['schema_version'] = 2;
+update_option( Last_Outcome::OPTION, $future_schema, false );
+cc87_assert( null === Last_Outcome::read() && 'READY' === Product_Status::snapshot()['operation_status'], 'unknown evidence schema ignored; no readiness authority' );
 update_option( Last_Outcome::OPTION, $committed, false ); // Restore validated real evidence after tamper test.
 set_transient( 'commitcap_notice_1', array( 'status' => '<img src=x onerror=alert(1)>', 'reason' => '<script>alert(2)</script>' ), 120 );
 ob_start(); Admin::render(); $escaped_notice = ob_get_clean();
 cc87_assert( false === strpos( $escaped_notice, '<img src=x onerror=alert(1)>' ) && false === strpos( $escaped_notice, '<script>alert(2)</script>' ) &&
 	false !== strpos( $escaped_notice, '&lt;img' ), 'Admin escapes untrusted notice text and never renders raw reason' );
-echo "#60 $host: real REST COMMITTED, Admin/actual CLI status agree, malformed evidence ignored: PASS\n";
+echo "#60 $host: real REST COMMITTED, Admin/actual CLI status agree, malformed/HTML/contradictory/future-schema evidence ignored: PASS\n";
 
 // The informational option is not in the Guard decision path. A failing
 // storage hook must not change either real REST outcome or fresh durability.

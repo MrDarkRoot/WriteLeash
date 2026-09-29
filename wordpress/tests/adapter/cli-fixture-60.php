@@ -1,6 +1,6 @@
 <?php
 // External #60 CI observer/operator only; root never enters normal product PHP.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 require_once __DIR__ . '/helpers.php';
 
 use CommitCap\Certified_Operation;

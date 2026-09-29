@@ -34,7 +34,7 @@ final class Admin_Page {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_action' );
 		}
 		$nonce = isset( $post['_wpnonce'] ) ? $post['_wpnonce'] : null;
-		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, 'commitcap_' . $action ) ) {
+		if ( ! is_string( $nonce ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $nonce ) ), 'commitcap_' . $action ) ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' );
 		}
 		$operation = Certified_Operation::redirection_5_5_2_bulk_disable();
@@ -75,7 +75,8 @@ final class Admin_Page {
 	/** Direct admin-post endpoint obeys the same capability/nonce checks. */
 	public static function handle_post(): array {
 		$post = isset( $_POST ) && is_array( $_POST ) ? $_POST : array();
-		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? (string) $_SERVER['REQUEST_METHOD'] : '';
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
 		$result = self::process( $post, $method );
 		if ( 'POST' === $method && current_user_can( self::CAPABILITY ) &&
 			! in_array( $result['reason'], array( 'invalid_nonce', 'invalid_action' ), true ) ) {

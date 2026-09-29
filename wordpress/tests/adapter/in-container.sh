@@ -22,14 +22,13 @@ for host in mysql mariadb; do
   site="/tmp/cc87-$host"
   echo "=== REDIRECTION ADAPTER: $host ==="
   rm -rf "$site"
-  mkdir -p "$site/wp-content/plugins/commitcap-for-wordpress"
   cp -R /opt/wp-core/. "$site/"
-  cp -R /opt/commitcap-for-wordpress/. "$site/wp-content/plugins/commitcap-for-wordpress/"
+  sh /opt/tests/stage-plugin.sh "$site"
   wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost="$host"
   wp --path="$site" core install --url="http://$host.example.test" --title=Adapter-Test \
     --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
   wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
-  wp --path="$site" plugin activate commitcap-for-wordpress
+  wp --path="$site" plugin activate commitcap
   server_version=$(wp --path="$site" eval 'global $wpdb; echo $wpdb->get_var( "SELECT VERSION()" );')
   plugin_version=$(wp --path="$site" eval 'echo REDIRECTION_VERSION;')
   echo "Adapter fixture: $host $server_version; Redirection $plugin_version; WordPress $(wp --path="$site" core version); PHP $(php -r 'echo PHP_VERSION;')"
@@ -37,6 +36,25 @@ for host in mysql mariadb; do
     mysql:8.0.44:5.5.2|mariadb:10.11.15-MariaDB-ubu2204:5.5.2) ;;
     *) echo "Wrong fixture: $host $server_version Redirection $plugin_version" >&2; exit 1 ;;
   esac
+  [ "$(wp --path="$site" core version)" = 6.8.3 ]
+  [ "$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')" = 8.2 ]
+  wp --path="$site" eval-file /opt/tests/identity-62.php
+  if [ "${CC62_PLUGIN_CHECK:-0}" = 1 ]; then
+    wp --path="$site" plugin install /opt/plugin-zips/plugin-check.2.1.0.zip --activate --force
+    check_version=$(wp --path="$site" plugin get plugin-check --field=version)
+    [ "$check_version" = 2.1.0 ]
+    echo "#62 $host: Plugin Check $check_version stable/static against installed commitcap/"
+    # Capture both output and exit: PCP returns nonzero for findings, classified
+    # by code below (never hidden or passed to --ignore-codes).
+    check_json="/tmp/cc62-plugin-check-$host.json"
+    if wp --path="$site" plugin check commitcap --format=json >"$check_json"; then
+      check_exit=0
+    else
+      check_exit=$?
+    fi
+    php /opt/tests/release/plugin-check-results.php "$host" "$check_exit" "$check_json"
+    rm -f "$check_json"
+  fi
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases.php
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-78.php
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-58.php
@@ -51,6 +69,14 @@ for host in mysql mariadb; do
   wp --path="$site" config set COMMITCAP_DB_PASSWORD cc87_secret --type=constant >/dev/null
   wp --path="$site" config set COMMITCAP_DB_NAME wp_test --type=constant
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-60.php
+  # Debug-enabled *product* requests in their own CLI process. Keep the
+  # adversarial wrong-credential fixture under its original WP_DEBUG setting:
+  # core's wpdb constructor intentionally wp_die()s instead of returning there.
+  wp --path="$site" config set WP_DEBUG true --raw >/dev/null
+  wp --path="$site" config set WP_DEBUG_LOG true --raw >/dev/null
+  CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/debug-62.php
+  php /opt/tests/release/debug-audit.php "$site/wp-content/debug.log" "$host"
+  wp --path="$site" config set WP_DEBUG false --raw >/dev/null
   status_json=$(wp --path="$site" commitcap status --format=json)
   php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["operation_status"] !== "READY" || $d["doctor_state"] !== "PASS" || $d["last_outcome"]["outcome"] !== "COMMITTED" || $d["demo_state"] !== "A") exit(1);' "$status_json"
   doctor_json=$(wp --path="$site" commitcap doctor --format=json)
@@ -74,9 +100,9 @@ for host in mysql mariadb; do
   # #61 final threat-model adversarial matrix on the production surfaces.
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-61-threat-model.php
   # Deactivation boundary: CommitCap inactive -> certified global Disable is stock.
-  wp --path="$site" plugin deactivate commitcap-for-wordpress
+  wp --path="$site" plugin deactivate commitcap
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-61-deactivated.php
-  wp --path="$site" plugin activate commitcap-for-wordpress
+  wp --path="$site" plugin activate commitcap
   # Deterministic concurrency: trusted two-stage row-lock barrier. Two real
   # certified Redirection requests must both be observed blocked on the
   # certified target UPDATE in distinct restricted sessions before release.

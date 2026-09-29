@@ -1,7 +1,7 @@
 <?php
 // #60 repair: the actual WordPress uninstall.php removes only local
 // CommitCap-owned options; trusted DB infrastructure is operator lifecycle.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 require_once __DIR__ . '/helpers.php';
 if ( ! function_exists( 'uninstall_plugin' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -16,7 +16,7 @@ use CommitCap\Update_Engine as Engine;
 
 $host = getenv( 'CC_ENGINE_HOST' );
 cc87_assert( in_array( $host, array( 'mysql', 'mariadb' ), true ), '#60 uninstall pinned host' );
-$plugin = 'commitcap-for-wordpress/commitcap-for-wordpress.php';
+$plugin = 'commitcap/commitcap.php';
 $normal = $GLOBALS['wpdb'];
 $normal->suppress_errors( true );
 $root = new wpdb( 'root', 'disposable_root_password', 'wp_test', $host );
@@ -34,7 +34,7 @@ $owned_options = array(
 
 // Drift regression: exact literals in the standalone uninstall file must match
 // the production class constants (uninstall.php never bootstraps the plugin).
-$uninstall_source = file_get_contents( WP_PLUGIN_DIR . '/commitcap-for-wordpress/uninstall.php' );
+$uninstall_source = file_get_contents( WP_PLUGIN_DIR . '/commitcap/uninstall.php' );
 cc87_assert( is_string( $uninstall_source ) && '' !== $uninstall_source, 'uninstall.php readable' );
 foreach ( $owned_options as $owned_option ) {
 	cc87_assert( false !== strpos( $uninstall_source, "'" . $owned_option . "'" ), 'uninstall.php drift, missing literal: ' . $owned_option );

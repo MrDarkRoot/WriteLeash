@@ -1,6 +1,6 @@
 <?php
 // #58 synthetic proof, run after #78 on the same shared runtime/Redirection site.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 require_once __DIR__ . '/helpers.php';
 
 use CommitCap\Compatibility_Grants;

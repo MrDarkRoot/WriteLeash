@@ -2,7 +2,7 @@
 // #61 deterministic concurrency fixture. A trusted row-lock barrier forces two
 // real certified Redirection requests to overlap inside distinct restricted DB
 // transactions. Phases are driven by the adapter CI script; no production code.
-require_once WP_PLUGIN_DIR . '/commitcap-for-wordpress/commitcap-for-wordpress.php';
+require_once WP_PLUGIN_DIR . '/commitcap/commitcap.php';
 require_once __DIR__ . '/helpers.php';
 
 use CommitCap\Certified_Operation as Operation;

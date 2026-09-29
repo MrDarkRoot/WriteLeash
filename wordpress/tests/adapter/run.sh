@@ -38,4 +38,4 @@ cleanup() {
 }
 trap cleanup EXIT
 "${compose[@]}" up -d --wait mysql mariadb
-"${compose[@]}" run --build --rm tester
+"${compose[@]}" run --build --rm -e CC62_PLUGIN_CHECK="${CC62_PLUGIN_CHECK:-0}" tester
