@@ -42,8 +42,12 @@ require_once __DIR__ . '/includes/class-redirection-bulk-disable.php';
 require_once __DIR__ . '/includes/class-certified-operation.php';
 require_once __DIR__ . '/includes/class-operation-config.php';
 require_once __DIR__ . '/includes/class-certified-operation-status.php';
+require_once __DIR__ . '/includes/class-last-outcome.php';
 require_once __DIR__ . '/includes/class-disposable-demo.php';
 require_once __DIR__ . '/includes/class-disposable-demo-setup.php';
+require_once __DIR__ . '/includes/class-product-status.php';
+require_once __DIR__ . '/includes/class-admin-page.php';
+require_once __DIR__ . '/includes/class-product-cli.php';
 require_once __DIR__ . '/includes/class-redirection-bulk-disable-rest.php';
 require_once __DIR__ . '/includes/class-plugin.php';
 

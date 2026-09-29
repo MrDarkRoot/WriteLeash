@@ -2,18 +2,24 @@
 
 Canonical plugin directory slug: `commitcap-for-wordpress`; WordPress plugin basename: `commitcap-for-wordpress/commitcap-for-wordpress.php`.
 
-This subtree is a WordPress plugin foundation, not a released security control.
+This subtree is a developmental WordPress plugin, not a released security control.
 #55 adds a loadable plugin, baseline activation checks, conservative deactivation,
-and uninstall of one plugin-owned option (`commitcap_version`). Loading the plugin
+and explicit uninstall of the plugin's local WordPress state. Loading the plugin
 registers hooks only; activation reads WordPress/PHP/database version facts and
 stores the version option if the basic runtime checks pass. It does not change
-user data, database objects, or storage engines. Deactivation retains that option
-and makes no database changes: **deactivation is not uninstall**. Explicit
-uninstall removes only `commitcap_version` for the current site; an unrelated
-option with a similar name is never removed. Network activation and multisite
-cleanup have not been validated; network activation is refused without writing
-plugin metadata. The version header is developmental; no plugin license decision
-has been made (#64).
+user data, database objects, or storage engines. Deactivation retains those
+options and makes no database changes: **deactivation is not uninstall**.
+WordPress uninstall removes only CommitCap-owned local WordPress state:
+`commitcap_version`, the certified-operation config option and the last-outcome
+evidence option, plus the stale #87 budget option when present. An unrelated
+option with a similar commitcap_ prefix is never removed, and no wildcard option
+deletion is used. It does **not** remove trusted DB users, triggers, routines,
+demo objects or grants; those remain explicit operator lifecycle tasks under
+[PROVISIONING.md](PROVISIONING.md) and [DEMO.md](DEMO.md). The 120-second Admin
+notice transient is allowed to expire naturally and is never wildcard-scanned.
+Network activation and multisite cleanup have not been validated; network
+activation is refused without writing plugin metadata. The version header is
+developmental; no plugin license decision has been made (#64).
 
 **MySQL/MariaDB does not currently provide the PostgreSQL-equivalent sticky
 transaction boundary demonstrated by CommitCap's PostgreSQL research path.**
@@ -22,7 +28,7 @@ model**. **The guard/engine itself is NOT implemented by #55.** See the [#53
 feasibility experiment](../../experiments/mysql_tx_budget/README.md): event six
 was denied on the pinned test servers, but COMMIT still succeeded after savepoint
 recovery. Autocommit issues separate transaction authority for each statement.
-This plugin therefore does not claim to protect WordPress writes.
+This plugin does not claim to protect arbitrary WordPress writes.
 
 The intended investigation targets are MySQL 8.0+, MariaDB 10.11+, and InnoDB.
 #57 adds a read-only, fail-closed [compatibility doctor](DOCTOR.md) for the
@@ -38,9 +44,13 @@ split-privilege fixture is only a cooperative mechanism, not an adversarial
 database-writer security boundary. Application code must not invoke these
 lifecycle routines directly; only `CommitCap\Guard::update()` owns them for a
 supported job.
-Later issues cover demos and user-facing integrations. No admin UI, WP-CLI
-integration, WooCommerce integration, telemetry, external network requests,
-or cloud feature is present in this foundation.
+The Free V0.1 development surface supports **one** certified operation:
+Redirection 5.5.2 unfiltered global/select-all Bulk Disable. #58's
+[CommitCap-owned disposable demo](DEMO.md) is independent of that real
+operation. #60 adds the restrained [Tools → CommitCap / WP-CLI experience](ADMIN-CLI.md)
+on top of the existing adapter; trusted [operator provisioning](PROVISIONING.md)
+is separate. No general WooCommerce integration, telemetry, external network
+requests or cloud feature is included.
 
 ## Guarded UPDATE example
 
@@ -79,6 +89,7 @@ From the repository root with Docker Engine and Compose:
 bash wordpress/tests/run.sh mysql
 bash wordpress/tests/run.sh mariadb
 bash wordpress/tests/engine/run.sh   # #54 engine + #56 Guard + #57 doctor on both pinned DBs
+bash wordpress/tests/adapter/run.sh  # real Redirection, descriptor, demo, Admin and CLI on both pinned DBs
 ```
 
 Each foundation run boots WordPress 6.8.3 under PHP 8.2 against a fresh,

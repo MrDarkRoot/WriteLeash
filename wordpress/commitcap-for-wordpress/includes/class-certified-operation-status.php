@@ -57,7 +57,28 @@ final class Certified_Operation_Status {
 		if ( ! $operation->supports_logical_budget( $budget ) ) {
 			return self::result( self::MISCONFIGURED, 'logical_budget_invalid', 'The configured logical budget is outside the descriptor range.', $operation );
 		}
+		return self::verify_live( $operation, $budget, $detected_version, $runtime );
+	}
 
+	/**
+	 * Live disabled→enabled preflight. Read the same authoritative config and
+	 * reuse the exact READY checks without briefly enabling the stored option.
+	 * Disabled/no-budget state is not an implicit budget of zero.
+	 */
+	public static function can_enable( Certified_Operation $operation, ?string $detected_version = null, ?\wpdb $runtime = null ): array {
+		$config = Operation_Config::read( $operation );
+		if ( 'invalid' === $config['state'] ) {
+			return self::result( self::MISCONFIGURED, 'config_invalid', $config['detail'], $operation );
+		}
+		$budget = $config['logical_budget'];
+		if ( null === $budget || ! $operation->supports_logical_budget( $budget ) ) {
+			return self::result( self::MISCONFIGURED, 'logical_budget_missing', 'Choose a valid logical budget before enabling.', $operation );
+		}
+		return self::verify_live( $operation, $budget, $detected_version, $runtime );
+	}
+
+	/** Shared canonical live verification for enabled operations and preflight. */
+	private static function verify_live( Certified_Operation $operation, int $budget, ?string $detected_version, ?\wpdb $runtime ): array {
 		$version = $detected_version;
 		if ( $operation->plugin_version() !== $version ) {
 			return self::result( self::UNSUPPORTED, 'redirection_version_unsupported', 'The installed Redirection version is not the certified version.', $operation, array( 'logical_budget' => $budget, 'detected_version' => $version ) );
@@ -87,7 +108,7 @@ final class Certified_Operation_Status {
 		}
 
 		try {
-			$doctor = Compatibility_Doctor::runtime( array( $table => $budget ), $db );
+			$doctor = self::runtime_doctor( $table, $budget, $db );
 		} catch ( \Throwable $error ) {
 			return self::result( self::NOT_READY, 'doctor_not_ready', 'Runtime Doctor could not evaluate the certified operation.', $operation, array( 'logical_budget' => $budget, 'runtime' => $db ) );
 		}
@@ -108,6 +129,32 @@ final class Certified_Operation_Status {
 			'runtime'                 => $db,
 			'doctor'                  => $doctor,
 		) );
+	}
+
+	/** Shared-runtime sibling inventory for both REST preflight and the adapter. */
+	public static function runtime_doctor( string $table, int $budget, \wpdb $db ): array {
+		$schema = $db->get_var( 'SELECT DATABASE()' );
+		$grants = is_string( $schema ) && '' !== $schema && '' === (string) $db->last_error ? Compatibility_Grants::read( $db, $schema ) : null;
+		if ( null === $grants ) {
+			throw new \RuntimeException( 'Shared runtime grants are unavailable.' );
+		}
+		$policies = array( $table => $budget );
+		// The shared account may also reach #58's code-known disposable target.
+		// Verify that sibling without behaviorally UPDATEing disposable data.
+		$demo_table = Disposable_Demo::table( (string) $db->prefix );
+		if ( 'PASS' === $grants->target_access( $demo_table )[0] ) {
+			if ( 'PASS' !== $grants->target_access_exact( $demo_table, array( 'SELECT', 'UPDATE' ) )[0] ) {
+				throw new \RuntimeException( 'Shared disposable demo grants are not exact.' );
+			}
+			$policies[ $demo_table ] = null;
+		}
+		$doctor = Compatibility_Doctor::runtime( $policies, $db, array( $table ) );
+		if ( array_key_exists( $demo_table, $policies ) &&
+			( ! isset( $doctor['integrations'][ $demo_table ] ) ||
+				Disposable_Demo::PHYSICAL_CEILING !== $doctor['integrations'][ $demo_table ]['physical_ceiling'] ) ) {
+			throw new \RuntimeException( 'Shared disposable demo policy ceiling is not canonical.' );
+		}
+		return $doctor;
 	}
 
 	/**

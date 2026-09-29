@@ -56,8 +56,41 @@ cc_assert( '0.1.0-dev' === get_option( 'commitcap_version' ), 'Deactivation dele
 cc_assert( $before === cc_snapshot(), 'Deactivation changed DB objects' );
 echo "Deactivation: PASS\n";
 
+// The merged product owns three local options plus one stale #87 compatibility
+// option. Seed them through the production services, then prove the real
+// uninstall.php removes exactly those and nothing else.
+$owned_operation = \CommitCap\Certified_Operation::redirection_5_5_2_bulk_disable();
+\CommitCap\Operation_Config::set_logical_budget( $owned_operation, 10 );
+\CommitCap\Operation_Config::set_enabled( $owned_operation, true );
+\CommitCap\Last_Outcome::record( array(
+	'operation_id'                     => \CommitCap\Certified_Operation::REDIRECTION_BULK_DISABLE_ID,
+	'outcome'                          => 'COMMITTED',
+	'reason'                           => 'ok',
+	'logical_budget'                   => 10,
+	'physical_ceiling'                 => 2000,
+	'attempted'                        => null,
+	'consumed'                         => 6,
+	'affected_rows'                    => 6,
+	'denial_kind'                      => null,
+	'transaction_rollback_attempted'   => false,
+	'guard_rollback_completed'         => null,
+	'durability_verified_by_fresh_observer' => false,
+) );
+update_option( 'commitcap_operation_budget_redirection_5_5_2_bulk_disable', 1 );
+cc_assert( 'ok' === \CommitCap\Operation_Config::read( $owned_operation )['state'], 'Product config not seeded' );
+cc_assert( null !== \CommitCap\Last_Outcome::read(), 'Product outcome not seeded' );
+
 uninstall_plugin( $plugin );
-cc_assert( false === get_option( 'commitcap_version' ), 'Uninstall left owned metadata' );
+$options_db = $GLOBALS['wpdb'];
+foreach ( array(
+	'commitcap_version',
+	\CommitCap\Operation_Config::STATE_OPTION,
+	\CommitCap\Last_Outcome::OPTION,
+	'commitcap_operation_budget_redirection_5_5_2_bulk_disable',
+) as $owned_option ) {
+	$remaining = (string) $options_db->get_var( $options_db->prepare( 'SELECT COUNT(*) FROM ' . $options_db->options . ' WHERE option_name = %s', $owned_option ) );
+	cc_assert( '0' === $remaining, 'Uninstall left owned state: ' . $owned_option );
+}
 cc_assert( 'keep me' === get_option( 'commitcap_unrelated' ), 'Uninstall removed unrelated metadata' );
 cc_assert( $before === cc_snapshot(), 'Uninstall changed user tables or DB objects' );
 echo "Uninstall: PASS\n";
