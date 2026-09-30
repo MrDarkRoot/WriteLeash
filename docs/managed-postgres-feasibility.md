@@ -2,6 +2,12 @@
 
 **Documentary review snapshot: 2026-09-23.** The analysis was originally performed against `origin/main` `2538963906967f2a7d7ae79e6dfdc992a3b7d199`; PR #13 was later refreshed onto current `main` without changing the substantive feasibility conclusions. Candidate: **Amazon RDS for PostgreSQL 16** (including the 16.4 column in the provider's [extension-version table](https://docs.aws.amazon.com/AmazonRDS/latest/PostgreSQLReleaseNotes/postgresql-extensions.html#postgresql-extensions-16x)). Verdict for the **existing C `.so`/preload mechanism unchanged: BLOCKED by the documented service model**. Real managed deployment: **NOT TESTED** (no authorized instance/access/cost approval). This is a compatibility analysis, not a provider-side failure log or a statement about all architectures/clouds.
 
+> Current product authority is #106: safe WooCommerce bulk price changes,
+> planned but not implemented; #107–#112 remain pending and public release is
+> deferred. This dated assessment covers only the prior PostgreSQL/native
+> research mechanism. Any `CommitCap` wording below is historical terminology
+> from the 2026-09-23 review, not active repository or product identity.
+
 ## Existing mechanism and compatibility/constraint matrix
 
 The local [Dockerfile](../experiments/native_tx_state/Dockerfile) installs an out-of-tree `.so` and `.control`/extension SQL into PostgreSQL's server filesystem. [Compose](../experiments/native_tx_state/docker-compose.yml) starts `postgres -c shared_preload_libraries=writeleash_native_tx_state`. [C source](../experiments/native_tx_state/writeleash_native_tx_state.c) registers `RegisterXactCallback` and `RegisterSubXactCallback` in `_PG_init`, allocates top-memory backend-local state, and enforces sticky `XACT_EVENT_PRE_COMMIT` denial. [Setup](../experiments/native_tx_state/setup.sql) calls `CREATE EXTENSION`, uses a trusted owner for tables/functions and a separate restricted writer. Local PG16.4 [PR #8 evidence](../experiments/native_tx_state/evidence/2026-09-23-cc020-cc022-a996eed.txt) does **not** test RDS.

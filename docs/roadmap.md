@@ -1,10 +1,29 @@
-# CommitCap — Roadmap
+# WriteLeash — Roadmap
 
-Last updated: 2026-09-23
+Last updated: 2026-09-30
+
+## Current product authority and sequence
+
+- [#106](https://github.com/MrDarkRoot/WriteLeash/issues/106) supersedes #67
+  as authority for the intended public Free product. #67 remains historical
+  V0.1 technical/product-development context; preserve its implementation and
+  evidence.
+- The intended Free 1.0 product is safe WooCommerce bulk price changes. It is
+  planned, not implemented. The ordered build/proof sequence is #107 → #108 →
+  #109 → #110 → #111 → #112, from post-#98 main.
+- **Public release is deferred.** After #112, rewrite the old release gates
+  (#77/#76/#65/#66) for the proven product before considering release work.
+- Existing PostgreSQL/native research and advanced WordPress Guard/Doctor/
+  Redirection capabilities remain distinct technical substrates; they do not
+  imply that the WooCommerce Free workflow exists or change Guard semantics.
+
+The roadmap below records the earlier PostgreSQL research sequence. Its Phase 0
+status and product sequence are historical, not the current public-product
+roadmap.
 
 ## Rule
 
-CommitCap advances through evidence gates.
+The PostgreSQL research work advanced through evidence gates.
 
 Do not skip phases.
 
@@ -56,7 +75,7 @@ Why was a narrow API or stored procedure not enough?
 Would database-level denial be operationally acceptable?
 ```
 
-Do not ask only “Would you use CommitCap?”
+Do not ask only “Would you use WriteLeash?”
 
 Also perform an early managed-PostgreSQL feasibility spike against at least one realistic managed environment. Investigate extension installation, available privileges, superuser restrictions, preload requirements, deployment model, and upgrade/operational constraints. The goal is to determine whether the chosen enforcement architecture can realistically run somewhere likely users deploy, not to promise broad cloud support.
 
@@ -166,7 +185,7 @@ Ask people to show a recent task, then investigate:
 - whether database-level denial is acceptable
 - managed-database deployment objections
 
-For every candidate use case, run a “narrow-operation challenge”: try to solve it with one API, one stored procedure, one trigger, or one approval step. CommitCap only wins if broad-but-bounded authority remains materially better or a valuable independent backstop.
+For every candidate use case, run a “narrow-operation challenge”: try to solve it with one API, one stored procedure, one trigger, or one approval step. The former PostgreSQL product thesis only wins if broad-but-bounded authority remains materially better or a valuable independent backstop.
 
 ## Build only repeated needs
 
@@ -309,7 +328,7 @@ Do NOT build early:
 
 ---
 
-# Current status
+# Historical PostgreSQL research status (snapshot from 2026-09-23)
 
 ```text
 CURRENT PHASE:

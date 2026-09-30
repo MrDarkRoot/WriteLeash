@@ -1,6 +1,14 @@
-# CommitCap — Architecture & Product Decisions
+# WriteLeash — PostgreSQL/Advanced Substrate Decision History
 
-Last updated: 2026-09-23
+Decision-history snapshot: 2026-09-23
+
+> These decisions record the earlier PostgreSQL research/product-development
+> thesis and remain technical context for that substrate. They do not set the
+> intended public Free product: #106 supersedes #67 as authority for safe
+> WooCommerce bulk price changes. That product is planned, not implemented;
+> #107–#112 are pending and public release is deferred. The advanced WordPress
+> Guard/Doctor/Redirection substrate remains distinct; these historical
+> decisions do not change its semantics.
 
 This file records decisions so the project does not repeatedly re-litigate settled questions.
 
@@ -23,7 +31,7 @@ REJECTED
 
 ## Decision
 
-CommitCap starts with PostgreSQL only.
+The original technical research started with PostgreSQL only.
 
 ## Why
 
@@ -45,7 +53,7 @@ No MySQL or multi-database abstraction during Phase 0.
 
 ## Decision
 
-CommitCap is centered on:
+The PostgreSQL research mechanism is centered on:
 
 > **finite, measurable, consumable mutation authority**
 
@@ -73,13 +81,13 @@ consumption
 
 ## Decision
 
-CommitCap should enforce supported mutation budgets from measured relational effects rather than relying only on query-text heuristics or estimated blast radius.
+The PostgreSQL research mechanism should enforce supported mutation budgets from measured relational effects rather than relying only on query-text heuristics or estimated blast radius.
 
 ## Why
 
 Intent and actual effect can differ.
 
-CommitCap should complement, not duplicate, pre-execution SQL review.
+The PostgreSQL research mechanism should complement, not duplicate, pre-execution SQL review.
 
 ---
 
@@ -190,7 +198,7 @@ The primitive should first be proven database-side.
 
 ## Decision
 
-When CommitCap cannot safely understand a mutation path touching protected state, prefer denial over silent allowance.
+When the PostgreSQL research mechanism cannot safely understand a mutation path touching protected state, prefer denial over silent allowance.
 
 ## Why
 
@@ -204,11 +212,11 @@ Security claims must not exceed enforcement coverage.
 
 ## Decision
 
-Do not position CommitCap as replacing PostgreSQL RLS or stored procedures.
+Do not position the PostgreSQL research mechanism as replacing PostgreSQL RLS or stored procedures.
 
 If a workload can be expressed cleanly as a stable, narrow API or stored procedure, prefer that simpler architecture.
 
-CommitCap targets workloads where legitimate mutation shape is broad, evolving, or not knowable enough in advance for a fixed operation catalog, or where a database-level quantitative backstop is independently valuable.
+The original technical thesis targeted workloads where legitimate mutation shape is broad, evolving, or not knowable enough in advance for a fixed operation catalog, or where a database-level quantitative backstop is independently valuable.
 
 ## Why
 
@@ -221,7 +229,7 @@ which rows?
 stored procedure / narrow API:
 which predefined operation?
 
-CommitCap:
+PostgreSQL research mechanism:
 how much declared relational effect may a flexible task consume?
 ```
 
@@ -261,7 +269,7 @@ Community edition must demonstrate the core primitive without artificial crippli
 
 ## Why
 
-CommitCap needs:
+The PostgreSQL research mechanism needs:
 
 - trust
 - inspection
@@ -281,11 +289,11 @@ Commercial value should come from operational complexity and organization-scale 
 
 Use the claim:
 
-> **CommitCap governs supported transactional relational mutations.**
+> **The WriteLeash PostgreSQL research mechanism governs supported transactional relational mutations.**
 
 Avoid claims such as:
 
-> “CommitCap controls all PostgreSQL side effects.”
+> “WriteLeash controls all PostgreSQL side effects.”
 
 ## Why
 
@@ -367,7 +375,7 @@ prematurely.
 
 ## Decision
 
-CommitCap enforces explicitly declared **relational effects**.
+The PostgreSQL research mechanism enforces explicitly declared **relational effects**.
 
 It does not claim that a database delta is automatically identical to the complete external business consequence.
 
@@ -377,7 +385,7 @@ Example:
 refunds.amount positive_delta = 100
 ```
 
-means that the declared relational metric increased by 100 according to documented CommitCap semantics.
+means that the declared relational metric increased by 100 according to documented WriteLeash PostgreSQL research semantics.
 
 It does not by itself prove that:
 
@@ -392,7 +400,7 @@ The application or policy issuer owns the mapping between business intent and th
 
 The closer a policy moves toward economic or domain meaning, the more application-specific its semantics become.
 
-CommitCap should be precise about what PostgreSQL can observe and enforce rather than overclaiming business truth.
+The PostgreSQL research mechanism should be precise about what PostgreSQL can observe and enforce rather than overclaiming business truth.
 
 ---
 
@@ -440,7 +448,7 @@ Prioritize interviews with engineers operating:
 - backfills;
 - internal workflows with flexible write surfaces.
 
-For each workflow, first challenge CommitCap with the simpler alternatives:
+For each workflow, first challenge the mutation-budget research model with the simpler alternatives:
 
 ```text
 narrow API
@@ -449,7 +457,7 @@ trigger
 approval step
 ```
 
-Only treat the workflow as evidence for CommitCap if broad-but-bounded authority remains materially useful after that challenge.
+Only treat the workflow as evidence for the historical PostgreSQL thesis if broad-but-bounded authority remains materially useful after that challenge.
 
 ## Why
 

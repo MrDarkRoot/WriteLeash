@@ -1,5 +1,12 @@
 # V0.1 technical release matrix and package preflight (#62/#63/#64)
 
+> This is the regression record for the existing advanced Guard/Doctor/
+> Redirection V0.1 technical substrate. It is not release authorization for
+> the intended public Free product. #106 governs planned safe WooCommerce bulk
+> price changes; that workflow is not implemented, #107–#112 remain pending,
+> and public release is deferred. The old #77/#76/#65/#66 gates must be
+> rewritten after the new product and proof gates before any release decision.
+
 **Identity:** public Plugin Name **WriteLeash**, intended WordPress.org slug and
 Text Domain `writeleash`; installed test root `wp-content/plugins/writeleash/`,
 main file `writeleash.php`. The internal source path remains
@@ -41,7 +48,7 @@ ceiling **P=2000**. PHP **7.4** is the *declared minimum*, not a tested fixture.
 
 **#63 current-stable compatibility gate:** WordPress **7.1.2** (current stable,
 released 2026-09-22) on PHP **8.2**, the same two pinned database builds and the
-same pinned Redirection **5.5.2**. This is deliberately a focused product gate,
+same pinned Redirection **5.5.2**. This is deliberately a focused technical gate,
 not a second full adversarial suite.
 
 Container images are digest-pinned in `wordpress/tests/Dockerfile` and the

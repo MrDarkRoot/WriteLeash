@@ -7,6 +7,14 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
+DEVELOPMENT PACKAGE — NOT FOR PUBLIC RELEASE
+
+This package documents an existing advanced WordPress V0.1 technical
+substrate for one certified Redirection operation. WriteLeash Free 1.0 is
+planned around safe WooCommerce bulk price changes; that workflow is not
+implemented here. Public release is deferred while its separate product and
+proof gates are completed and the release gates are rewritten.
+
 Put a mutation budget on Redirection bulk Disable: inside the budget it commits, over budget it is denied before WriteLeash commits.
 
 == Description ==
@@ -34,7 +42,7 @@ WriteLeash does not promise to protect everything. It does one job deliberately:
 
 = Deliberately narrow =
 
-WriteLeash Free V0.1 certifies exactly one operation against one exact Redirection build. No generic hook registry, no "protect all writes" mode, no pretend coverage. That narrowness is the point: the supported operation is version-pinned, exercised on both pinned database engines, and fail-closed everywhere else.
+This advanced V0.1 technical substrate certifies exactly one operation against one exact Redirection build. No generic hook registry, no "protect all writes" mode, no pretend coverage. That narrowness is the point: the supported operation is version-pinned, exercised on both pinned database engines, and fail-closed everywhere else.
 
 == What WriteLeash protects ==
 
@@ -52,7 +60,7 @@ One decision: the certified request runs inside a guarded transaction owned by W
 4. A guarded transaction counts real UPDATE row events. Inside your budget it commits; over budget it is denied and rolled back before WriteLeash commits; over the physical ceiling the restricted-runtime policy stops the row event.
 5. The most recent certified outcome is recorded locally as bounded, informational evidence. It never controls readiness, and never claims an independently verified rollback.
 
-On the release matrix (PHP 8.2; MySQL 8.0.44 and MariaDB 10.11.15; Redirection 5.5.2; exact WordPress core fixtures 6.8.3 and 7.1.2):
+On the technical regression matrix (PHP 8.2; MySQL 8.0.44 and MariaDB 10.11.15; Redirection 5.5.2; exact WordPress core fixtures 6.8.3 and 7.1.2):
 
 * Six matching rows with L=10: HTTP 200, committed, six rows disabled as seen by a fresh independent connection.
 * Six matching rows with L=5: HTTP 409, denied before WriteLeash commits, all six rows unchanged as seen by a fresh independent connection.
@@ -72,7 +80,7 @@ After the one-time operator setup, normal Admin use needs no PHP or SQL editing.
 
 == Supported configuration ==
 
-* WordPress core: exact tested fixtures 6.8.3 (original baseline) and 7.1.2 (current stable at release). `Tested up to: 7.1` means those exact builds were exercised end to end on both databases. Untested builds, including minors between them, are not certified: the Doctor reports them unknown and refuses to enable.
+* WordPress core: exact tested fixtures 6.8.3 (original baseline) and 7.1.2 (current stable at the last regression). `Tested up to: 7.1` means those exact builds were exercised end to end on both databases. Untested builds, including minors between them, are not certified: the Doctor reports them unknown and refuses to enable.
 * Required dependency: Redirection. WordPress prevents normal activation of WriteLeash while Redirection is missing or inactive, but WriteLeash still independently requires Redirection 5.5.2 exactly.
 * PHP: tested on 8.2. The declared minimum is PHP 7.4; 7.4 is a minimum, not a release-matrix-tested runtime.
 * Database: MySQL 8.0.44 and MariaDB 10.11.15 are the pinned, tested engines. Other builds are not certified in V0.1.
@@ -86,52 +94,29 @@ Most fully managed WordPress hosts do not allow extra database users, routines o
 
 = Does WriteLeash protect every WordPress database write? =
 
-No. It budgets one certified update path: the Redirection 5.5.2 global/select-all Bulk Disable. Other WordPress writes, other Redirection operations, and arbitrary plugin code are outside the claim.
+No. Only Redirection 5.5.2 global/select-all Bulk Disable is certified. Other
+WordPress writes, Redirection operations and arbitrary plugin code are outside
+the claim. Unknown Redirection versions fail closed.
 
-= Does it support every Redirection version? =
+= What happens when the logical budget is exceeded? =
 
-No. V0.1 certifies Redirection 5.5.2 exactly. A different or unknown Redirection build makes the dangerous certified request unavailable instead of letting it run unreviewed.
-
-= What happens if my bulk operation goes over the logical budget? =
-
-On the supported path, the request is denied before WriteLeash commits and the guarded transaction is rolled back. The tested release matrix confirms with a fresh independent database connection that the rows were unchanged.
-
-= What is the physical ceiling? =
-
-A trusted database policy installed during operator setup stops the 2001st row event of the certified table on the reviewed restricted-runtime path. It is not a general database firewall and is not a containment claim for hostile plugins, raw database clients, or stolen credentials.
-
-= Does WriteLeash need an account, cloud service or quota? =
-
-No. There is no WriteLeash account, no SaaS dependency, no telemetry, no quota, no license-key server and no paywall. Everything runs locally in your WordPress installation.
-
-= Can a normal site administrator provision the database runtime? =
-
-Not necessarily. Initial setup requires a trusted database operator with privileges to create a database account, helper table, routines and trigger, and to edit `wp-config.php` once. After that, day-to-day budget and enable/disable work happens in the WordPress Admin with no SQL.
+The request is denied before Guard commits, and the tested matrix confirms the
+rollback using a fresh database connection. The physical ceiling is P=2000;
+neither limit is a general database firewall or hostile-plugin boundary.
 
 = Does uninstall remove the database users, routines or triggers? =
 
 No. WordPress uninstall removes only WriteLeash's local WordPress state. The restricted database account, helper table, routines, grants and policy trigger are managed by the trusted operator lifecycle and are intentionally left in place until an operator removes them.
 
-= Does WriteLeash protect against a stolen database credential or a hostile plugin using raw database access? =
-
-No. That is outside the cooperative contract. WriteLeash assumes a known reviewed plugin path and an operator-managed restricted account.
-
-= Does it roll back email, HTTP or filesystem effects? =
-
-No. Database rollback does not undo external effects. The certified operation is a database update; email, HTTP calls and filesystem writes are outside the rollback guarantee.
-
-= Does it support multisite? =
-
-Multisite is not certified in V0.1. Network activation is refused.
-
 = Is this a "protect everything" security suite? =
 
-No. WriteLeash is a narrow mutation budget for one reviewed operation. That is exactly what makes its claim testable.
+No. The cooperative contract does not contain hostile plugins or stolen
+database credentials, reverse external effects, or certify multisite.
 
 == Changelog ==
 
-= 0.1.0 =
-* Initial public release.
+= 0.1.0 development candidate (not a public release) =
+* Pre-release technical package for the advanced Redirection substrate.
 * Mutation budget for the certified Redirection 5.5.2 global/select-all Bulk Disable operation (physical ceiling 2000).
 * Release-matrix coverage on MySQL 8.0.44 and MariaDB 10.11.15 with fresh-observer durability checks.
 * Admin readiness/budget/outcome interface and WP-CLI status, doctor and demo commands.

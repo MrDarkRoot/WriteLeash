@@ -1,6 +1,11 @@
 # Public mutation-incident evidence corpus (initial pass)
 
-Research for [#37](https://github.com/MrDarkRoot/CommitCap/issues/37), 2026-09-26.
+Research for [#37](https://github.com/MrDarkRoot/WriteLeash/issues/37), 2026-09-26.
+This is a dated PostgreSQL mutation-budget research corpus, not a current Free
+product thesis. #106 governs planned WooCommerce bulk price changes; that work
+is not implemented, #107–#112 remain pending, and public release is deferred.
+References to `CommitCap` in the dated analysis preserve the former product
+name and are not current active identity.
 This is **not** evidence that CommitCap prevented any incident, nor a claim of
 deployment compatibility. All links below are public project-authored issues or
 reporter discussions on project trackers; a reporter's reproduction is not an

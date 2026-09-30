@@ -42,7 +42,7 @@ builds that rely on a different target for `postgres:16.4-alpine`.
 From a clean checkout of the default branch:
 
 ```bash
-git clone https://github.com/MrDarkRoot/CommitCap.git
+git clone https://github.com/MrDarkRoot/WriteLeash.git
 cd WriteLeash
 ./demo.sh
 ```

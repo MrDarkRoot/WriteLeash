@@ -1,16 +1,21 @@
-# Contributing To CommitCap
+# Contributing To WriteLeash
 
-CommitCap is security-sensitive infrastructure. Small, explicit, adversarially
-tested changes are preferred over broad abstractions.
+WriteLeash contains security-sensitive technical substrates. Small, explicit,
+adversarially tested changes are preferred over broad abstractions. The
+intended public Free 1.0 product is governed by #106: safe WooCommerce bulk
+price changes. It is planned, not implemented; #107–#112 are ordered build and
+proof gates, and public release is deferred. Existing PostgreSQL/native
+research and advanced WordPress Guard/Doctor/Redirection capabilities remain
+separate technical assets.
 
 ## Before Making A Change
 
 Contributors MUST read:
 
-1. [docs/spec.md](docs/spec.md), the intended behavior contract.
-2. [docs/test-plan.md](docs/test-plan.md), the canonical current test namespace.
-3. [docs/threat-model.md](docs/threat-model.md), the trust and attacker model.
-4. [docs/decisions.md](docs/decisions.md), the accepted product and architecture boundaries.
+1. [docs/spec.md](docs/spec.md), the PostgreSQL research semantics.
+2. [docs/test-plan.md](docs/test-plan.md), the canonical PostgreSQL research test IDs; WordPress suite coverage is under `wordpress/tests/`.
+3. [docs/threat-model.md](docs/threat-model.md), the PostgreSQL research trust model, and `wordpress/writeleash/THREAT-MODEL.md` for the separate advanced WordPress substrate.
+4. [docs/decisions.md](docs/decisions.md), the historical technical decision record and boundaries.
 5. [SECURITY.md](SECURITY.md), for private vulnerability reporting.
 
 If a proposed change conflicts with `docs/spec.md`, update and review the
@@ -86,18 +91,13 @@ Any `SECURITY DEFINER` function requires focused review of owner identity,
 fixed safe `search_path`, `EXECUTE` grants, dynamic SQL, object shadowing, and
 privilege escalation.
 
-## Scope During Phase 0
+## Scope and current product sequence
 
-Phase 0 implementation work starts with the smallest PostgreSQL experiments
-needed to prove or falsify mutation-authority semantics. The Phase 0 proof
-surface covers row-count, state-transition, and numeric-delta effect classes;
-see [docs/spec.md](docs/spec.md) and [docs/roadmap.md](docs/roadmap.md).
-Parallel market falsification and an early managed-PostgreSQL feasibility
-investigation are also Phase 0 evidence tracks, but must not expand
-implementation scope prematurely. Do not add dashboards, frontend code,
-billing, AI features, MCP controls, queues, microservices, Kubernetes,
-multi-database support, or a generic proxy.
-
-Follow the scope discipline in [docs/role.md](docs/role.md#9-scope-discipline):
-
-> Do not "finish the product." Implement only the requested invariant or test.
+The PostgreSQL/native experiment plan is historical technical context, not the
+current public-product roadmap. Use [docs/roadmap.md](docs/roadmap.md) and
+[#106](https://github.com/MrDarkRoot/WriteLeash/issues/106) for current product
+authority. Implement WooCommerce behavior only in its ordered #107–#112 gates;
+do not add product functionality during unrelated rebrand or Guard work.
+Changes to the existing Guard/Doctor/Redirection security contract require
+their own explicit scope and regression review. Do not change those semantics
+to make a separate product path easier.

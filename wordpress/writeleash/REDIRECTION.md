@@ -1,5 +1,10 @@
 # #87 Redirection 5.5.2 Bulk Disable adapter
 
+> This records the existing advanced V0.1 technical adapter, not the intended
+> public Free 1.0 product. #106 governs planned safe WooCommerce bulk price
+> changes; that workflow is not implemented, #107–#112 remain pending, and
+> public release is deferred.
+
 `WriteLeash\Redirection_Bulk_Disable` is the one certified production operation
 for Free V0.1. Scope is exact: **Redirection 5.5.2, Redirects → select all
 matching → Bulk Actions → Disable only.** Enable and Reset are not certified

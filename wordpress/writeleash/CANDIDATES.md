@@ -5,6 +5,14 @@ It replaces the earlier inferred write-graph claims in this file, which were not
 sufficient evidence (they described plausible graphs without installing or
 running the plugins).
 
+> **Historical selection context:** this candidate study belongs to the earlier
+> #67 V0.1 product-development thesis. #106 now supersedes #67 as authority for
+> the intended public Free product: safe WooCommerce bulk price changes. The
+> old candidate-selection conclusion (including prior WooCommerce research)
+> does not reject or define the new #106 workflow, which remains planned and
+> unimplemented pending #107–#112. Public release is deferred. Preserve this
+> runtime evidence as the record of what that earlier study actually tested.
+
 ## 0. Evidence labels
 
 Every claim below carries one of these labels:

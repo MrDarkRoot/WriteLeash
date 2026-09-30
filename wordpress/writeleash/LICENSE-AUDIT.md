@@ -1,5 +1,11 @@
 # WordPress Free V0.1 licensing and source provenance (#64)
 
+> This records the license/provenance review for the existing advanced V0.1
+> technical substrate; it does not approve a public release or define the
+> intended Free product. #106 governs planned WooCommerce bulk price changes,
+> which are not implemented; #107–#112 and the later rewritten release gates
+> remain, and public release is deferred.
+
 Reviewed 2026-09-29. The founder selected **GPL version 2 or any later
 version** (`GPL-2.0-or-later`) for the **WordPress plugin subtree**. The main
 plugin header and notice make that choice explicit; `LICENSE` is the verbatim

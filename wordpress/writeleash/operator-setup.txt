@@ -1,5 +1,13 @@
-WriteLeash Free V0.1 - trusted database operator setup
-======================================================
+WriteLeash advanced WordPress V0.1 technical substrate - trusted database operator setup
+========================================================================================
+
+DEVELOPMENT PACKAGE — NOT FOR PUBLIC RELEASE
+
+The intended public Free 1.0 product is safe WooCommerce bulk price changes.
+That workflow is planned, not implemented here. Public release is deferred
+while its #107–#112 product and proof gates are completed and release gates are
+rewritten. This guide applies only to the existing advanced Guard/Doctor/
+Redirection technical substrate and does not define the planned Free product.
 
 WriteLeash protects one certified operation: the Redirection 5.5.2
 global/select-all Bulk Disable. The protected runtime needs a trusted, one-time

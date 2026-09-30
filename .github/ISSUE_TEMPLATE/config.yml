@@ -2,5 +2,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Sensitive security or bypass report — read SECURITY.md first
-    url: https://github.com/MrDarkRoot/CommitCap/blob/main/SECURITY.md
+    url: https://github.com/MrDarkRoot/WriteLeash/blob/main/SECURITY.md
     about: Do not publish exploit details, secrets, or private data in an issue. Follow SECURITY.md for private reporting or a non-sensitive request for a private channel.
