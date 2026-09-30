@@ -29,11 +29,15 @@ includes/class-redirection-bulk-disable.php
 includes/class-unsupported-transaction-state.php
 includes/class-update-engine.php
 includes/free/class-change-plan.php
+includes/free/class-price-apply-connection.php
+includes/free/class-price-apply-journal.php
+includes/free/class-price-cache-verifier.php
 includes/free/class-price-decimal.php
 includes/free/class-price-operation.php
 includes/free/class-product-selector.php
 includes/free/class-product-snapshot.php
 includes/free/class-safety-policy.php
+includes/free/class-woo-price-mutator.php
 operator-setup.txt
 readme.txt
 uninstall.php

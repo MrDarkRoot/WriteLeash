@@ -47,3 +47,4 @@ htmlcov/
 dist/
 build/
 wordpress/tests/free/cache/
+wordpress/tests/durable/cache/
