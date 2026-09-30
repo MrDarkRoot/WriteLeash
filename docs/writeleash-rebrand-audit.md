@@ -7,10 +7,10 @@ gate. Repository: [`MrDarkRoot/WriteLeash`](https://github.com/MrDarkRoot/WriteL
 | Revision | SHA |
 | --- | --- |
 | Audit base (live `main`) | `885684bbc147da7deeb0178f8f667d96a799f33c` |
-| Final substantive rebrand/docs audit tree | `28e60672e34c2822ce0e58367717e64b2dcf3ba5` (`docs(rebrand): finish WriteLeash identity and roadmap cleanup`) |
+| Final substantive rebrand/docs audit tree | `cd05e12b5e29766aa1d3b67c122651d2bd00b82d` (readme notice/description corrected after Plugin Check review) |
 
 The stale-name search counts below describe the substantive audit tree at
-`28e60672e34c2822ce0e58367717e64b2dcf3ba5`. This report is the following audit-record-only change and is
+`cd05e12b5e29766aa1d3b67c122651d2bd00b82d`. This report is the following audit-record-only change and is
 excluded from its own scan/counts to avoid self-matching. The PR head records
 the final complete tree including this report.
 
@@ -137,7 +137,7 @@ are not treated as product-name matches by default.
   WordPress distribution allowlist. It contains the WriteLeash main file and
   does not include this report.
 - The maintained package preflight passed with 30 allowlisted files; readme
-  validation passed with `readme.txt` at 8,987 bytes; the staged-source audit
+  validation passed with `readme.txt` at 8,830 bytes; the staged-source audit
   passed and permits only the exact uninstall literals plus the documented
   Guard reservation.
 - The maintained staging script targets `wp-content/plugins/writeleash/`,
@@ -200,6 +200,13 @@ rewrites remain future work.
   later current-core acceptance. This is a pre-existing main regression gate,
   not caused by this documentation-only change. Guard behavior and test
   assertions were not changed to mask it.
+- On the initial #98 candidate heads, the standalone adapter passed but the
+  composed release matrix stopped at Plugin Check: the development notice made
+  the parsed readme short description too long (`errors=37`, `warnings=4`). The
+  notice was moved into a concise first description line; the maintained
+  readme validator now reports a 71-character description. Final-head Actions
+  for `cd05e12b5e29766aa1d3b67c122651d2bd00b82d` are the remaining regression
+  gate at audit-record authoring.
 - The #105 Plugin Check run reported **37 errors, 3 warnings, 40 reviewed, 0
   security/runtime blockers**. These are reviewed exceptions, not “zero
   warnings.” PHP runtime source is unchanged by this audit.
