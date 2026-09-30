@@ -96,4 +96,15 @@ require_once __DIR__ . '/includes/free/class-job-scheduler.php';
 require_once __DIR__ . '/includes/free/class-job-worker.php';
 require_once __DIR__ . '/includes/free/class-job-resume-rest.php';
 
+// #110 conflict-aware Undo, bounded history and retention. No Admin UX.
+require_once __DIR__ . '/includes/free/class-undo-state.php';
+require_once __DIR__ . '/includes/free/class-undo-schema.php';
+require_once __DIR__ . '/includes/free/class-undo-fingerprint.php';
+require_once __DIR__ . '/includes/free/class-undo-transaction-fence.php';
+require_once __DIR__ . '/includes/free/class-woo-undo-mutator.php';
+require_once __DIR__ . '/includes/free/class-undo-repository.php';
+require_once __DIR__ . '/includes/free/class-undo-scheduler.php';
+require_once __DIR__ . '/includes/free/class-undo-worker.php';
+require_once __DIR__ . '/includes/free/class-undo-rest.php';
+
 \WriteLeash\Plugin::boot();

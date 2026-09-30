@@ -51,3 +51,6 @@ wordpress/tests/durable/cache/
 
 # #109 job fixture artifact cache
 wordpress/tests/jobs/cache/
+
+# #110 Undo fixture artifact cache
+wordpress/tests/undo/cache/

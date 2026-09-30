@@ -12,8 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 		Redirection_Bulk_Disable_Rest::boot();
 		Admin_Page::boot();
 		Job_Resume_Rest::boot();
+		Undo_Rest::boot();
 		// Action Scheduler 4.0.0 executes WriteLeash-owned wake-ups only.
 		add_action( Job_Scheduler::HOOK, array( Job_Worker::class, 'callback' ), 10, 1 );
+		add_action( Undo_Scheduler::HOOK, array( Undo_Worker::class, 'callback' ), 10, 1 );
+		add_action( Undo_Scheduler::PURGE_HOOK, array( Undo_Scheduler::class, 'purge_callback' ), 10, 0 );
 		if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( '\\WP_CLI' ) ) {
 			\WP_CLI::add_command( 'writeleash', Product_CLI::class );
 		}

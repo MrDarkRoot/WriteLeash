@@ -20,6 +20,14 @@ delete_option( 'writeleash_operation_budget_redirection_5_5_2_bulk_disable' );
 delete_option( 'writeleash_job_schema' );
 delete_option( 'writeleash_job_setup' );
 delete_option( 'writeleash_runner_state' );
+// #110 Undo/history/retention metadata, deleted by exact name only. Durable
+// Undo tables are retained under the same operator lifecycle as #109: the
+// reviewed uninstall SQL classifier forbids DDL here, so no surviving worker
+// can lose its Undo journal while still holding mutation authority, and no
+// Woo product row is ever touched. Retention expiry (not uninstall)
+// is what honestly disables Restore.
+delete_option( 'writeleash_undo_schema' );
+delete_option( 'writeleash_undo_setup' );
 
 // Pre-release development cleanup (not compatibility support). These four
 // older, exact option names were never a released product state: they are
