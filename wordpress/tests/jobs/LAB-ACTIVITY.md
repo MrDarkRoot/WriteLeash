@@ -63,6 +63,17 @@ conflicts including identical targets and parallel isolation; counter
 tamper/repair; pagination; exhaustive job/item transition tables; direct DB
 tampering; cancel; deactivation; timestamps.
 
-The pinned two-engine/default/Redis CI gate remains the release evidence; final
-results and the maintainer checklist are recorded after that candidate
-completes.
+## Final CI candidate results
+
+Workflow **WordPress Woo durable job engine** run `36716163468` at commit
+`01fd505` exited 0: MySQL 8.0.44 and MariaDB 10.11.15, each with default and
+Redis 7.4.2 persistent object cache, **663 assertions per variant**, ending in
+`#109 durable job engine two-engine/default/Redis gate: PASS`. The `woo-jobs-109`
+artifact contains the full log. The sibling `woo-durable-journal` (#108, 369
+assertions), `woo-plan-107` (#107), `wordpress-foundation` and
+`redirection-adapter` gates are green on the same commit.
+
+`wordpress-v01-release-matrix` fails at the existing `#61 await_overlap(update)
+timed out` step; the same failure is present on `main` at the #115 merge commit
+before this branch, so it is unrelated to #109. All #60 lifecycle, uninstall and
+Plugin Check steps inside that suite pass for this change.
