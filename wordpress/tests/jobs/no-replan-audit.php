@@ -3,6 +3,7 @@
 // Only trusted persisted/frozen item material and the #108 primitive execute.
 $root = $argv[1] ?? __DIR__ . '/../../writeleash';
 $files = array(
+	'includes/free/class-job-transaction-fence.php',
 	'includes/free/class-job-worker.php',
 	'includes/free/class-job-repository.php',
 	'includes/free/class-job-schema.php',

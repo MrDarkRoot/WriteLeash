@@ -7,12 +7,13 @@ use WriteLeash\Job_State as JState;
 use WriteLeash\Job_Worker as Worker;
 use WriteLeash\Price_Apply_Journal as Journal;
 use WriteLeash\Price_Cache_Verifier as Verifier;
+use WriteLeash\Price_Decimal as Decimal;
 use WriteLeash\Price_Operation as Operation;
 use WriteLeash\Price_Selection_Spec as Selection;
 use WriteLeash\Safety_Policy as Policy;
 use WriteLeash\Woo_Price_Planner as Planner;
 
-global $wpdb, $work, $assertions, $hook_log;
+global $wpdb, $work, $assertions, $hook_log, $items_table, $jobs_table;
 $assertions = 0;
 $work = sys_get_temp_dir() . '/wl109-' . bin2hex( random_bytes( 5 ) );
 mkdir( $work );
@@ -868,5 +869,301 @@ ok( ! empty( $paused_row['paused_at'] ), 'paused_at persisted' );
 eq( $paused_row['status'], JState::PAUSED, 'paused state persisted for display' );
 \WriteLeash\Lifecycle::activate();
 marker( 'progress timestamps distinguish lifecycle stages' );
+
+// ---------------------------------------------------------------------------
+// #109 transactional job-row fence. The job lease and the #108 item
+// transaction are mutually exclusive: takeover/cancel/reaper cannot become
+// authoritative while an item transaction holds the job row lock. Lease
+// expiry only makes takeover eligible; the generation bump is the authority.
+// ---------------------------------------------------------------------------
+function fence_facts( string $barrier ): array {
+	$parts = explode( ':', (string) file_get_contents( $barrier ) );
+	return array( 'point' => (string) ( $parts[0] ?? '' ), 'generation' => (int) ( $parts[1] ?? 0 ), 'connection' => (int) ( $parts[2] ?? 0 ) );
+}
+function mutator_facts( string $barrier ): array {
+	$parts = explode( ':', (string) file_get_contents( $barrier ) );
+	return array( 'point' => (string) ( $parts[0] ?? '' ), 'connection' => (int) ( $parts[1] ?? 0 ) );
+}
+function await_session( string $needle, float $timeout = 10 ): bool {
+	$db = Verifier::observer();
+	try {
+		$deadline = microtime( true ) + $timeout;
+		while ( microtime( true ) < $deadline ) {
+			foreach ( $db->get_results( 'SHOW FULL PROCESSLIST', ARRAY_A ) as $process ) {
+				if ( str_contains( (string) ( $process['Info'] ?? '' ), $needle ) ) { return true; }
+			}
+			usleep( 50000 );
+		}
+		return false;
+	} finally { $db->close(); }
+}
+function job_row_locked_nowait( int $job_id ): bool {
+	$db = Verifier::observer();
+	$db->suppress_errors( true );
+	try {
+		$db->get_var( $db->prepare( 'SELECT lease_generation FROM %i WHERE id=%d FOR UPDATE NOWAIT', Schema::jobs_table( $db ), $job_id ) );
+		return '' !== (string) $db->last_error;
+	} finally { $db->close(); }
+}
+function hook_connections( int $id ): array {
+	global $hook_log;
+	if ( ! is_file( $hook_log ) ) { return array(); }
+	$connections = array();
+	foreach ( file( $hook_log, FILE_IGNORE_NEW_LINES ) as $line ) {
+		$entry = json_decode( $line, true );
+		if ( is_array( $entry ) && $id === (int) ( $entry['id'] ?? 0 ) ) { $connections[] = (int) ( $entry['connection'] ?? 0 ); }
+	}
+	return array_values( array_unique( $connections ) );
+}
+function expire_lease( int $job_id ): void {
+	global $wpdb, $jobs_table;
+	$rows = $wpdb->query( $wpdb->prepare( "UPDATE $jobs_table SET lease_expires_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 SECOND) WHERE id=%d", $job_id ) );
+	if ( 1 !== $rows ) { throw new RuntimeException( 'lease expiry failed: rows=' . var_export( $rows, true ) . ' error=' . $wpdb->last_error ); }
+	$expired = $wpdb->get_var( $wpdb->prepare( "SELECT (lease_expires_at<UTC_TIMESTAMP()) FROM $jobs_table WHERE id=%d", $job_id ) );
+	if ( '1' !== (string) $expired ) { throw new RuntimeException( 'lease not expired after update' ); }
+}
+
+// Race A: takeover attempt while an item transaction holds the fence lock.
+$f = job_fixture( array( 'changing' => 2 ) );
+$job_id = (int) $f['job']['id'];
+approves( $f );
+Worker::queue_job( $job_id );
+$prefix = $work . '/fence-a-' . bin2hex( random_bytes( 5 ) );
+$a = start_worker( array(
+	'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 1, 30 ),
+	'checkpoint' => 'AFTER_CLAIM', 'fault' => 'wait', 'barrier' => $prefix . '.barrier', 'release' => $prefix . '.release',
+	'mutator_checkpoint' => 'ITEM_LOCKED', 'mutator_fault' => 'wait', 'mutator_barrier' => $prefix . '.mutbarrier', 'mutator_release' => $prefix . '.mutrelease',
+	'lock_wait_timeout' => 20,
+) );
+await_file( $prefix . '.barrier' );
+$claim_facts = fence_facts( $prefix . '.barrier' );
+eq( $claim_facts['point'], 'AFTER_CLAIM', 'A claimed under its generation before entering the item transaction' );
+expire_lease( $job_id );
+file_put_contents( $prefix . '.release', 'go' );
+await_file( $prefix . '.mutbarrier' );
+$mut_facts = mutator_facts( $prefix . '.mutbarrier' );
+eq( $mut_facts['point'], 'ITEM_LOCKED', 'A paused inside the #108 item transaction after the fence lock' );
+eq( $mut_facts['connection'], $claim_facts['connection'], 'item transaction runs on the claimed writer connection' );
+eq( job_row_locked_nowait( $job_id ), true, 'A holds the job row FOR UPDATE lock inside the item transaction' );
+$b = start_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2, 30 ), 'lock_wait_timeout' => 20 ) );
+await_file( $b['spec']['started'] );
+$takeover_blocked = true;
+$deadline = microtime( true ) + 3;
+while ( microtime( true ) < $deadline ) {
+	if ( (int) Repo::read( $job_id )['lease_generation'] !== $claim_facts['generation'] || is_file( $b['spec']['result'] ) ) { $takeover_blocked = false; break; }
+	usleep( 100000 );
+}
+eq( $takeover_blocked, true, 'takeover cannot become authoritative while A holds the transactional fence' );
+eq( await_session( 'SET lease_owner=', 10 ), true, 'B takeover UPDATE is queued behind the item transaction row lock' );
+file_put_contents( $prefix . '.mutrelease', 'go' );
+$ra = finish_worker( $a );
+$rb = finish_worker( $b );
+eq( $ra['processed'], 1, 'A commits its one claimed item before any takeover' );
+eq( $rb['generation'], $claim_facts['generation'] + 1, 'B generation=N+1 only after A commits' );
+eq( Repo::read( $job_id )['status'], JState::COMPLETED, 'transactional fence race job completes' );
+foreach ( $f['ids'] as $id ) { eq( saves( $id ), 1, 'fence race exactly one save ' . $id ); eq( fresh_price( $id ), '80.00', 'fence race target ' . $id ); }
+$journal = journal_row( $f['plan']->data()['plan_id'], (int) $f['ids'][0] );
+$evidence = json_decode( (string) $journal['evidence'], true );
+eq( $journal['state'], 'APPLIED', 'A committed item is durably APPLIED' );
+eq( (int) $evidence['fence_connection_id'], $claim_facts['connection'], 'job fence lock connection equals item writer connection' );
+eq( (int) $evidence['connection_id'], $claim_facts['connection'], 'journal write connection equals item writer connection' );
+eq( in_array( $claim_facts['connection'], hook_connections( (int) $f['ids'][0] ), true ), true, 'Woo save hooks ran on the item writer connection' );
+echo "#109 transactional fence same connection: fence={$evidence['fence_connection_id']} journal={$evidence['connection_id']} woo=" . implode( ',', hook_connections( (int) $f['ids'][0] ) ) . "\n";
+echo "#109 transactional fence takeover:\nA owns generation={$claim_facts['generation']}\nA holds job row lock inside item transaction\nB takeover blocked\nA commit\nB generation={$rb['generation']} only after commit\nPASS\n";
+marker( 'takeover blocked during item transaction: mutually exclusive job fence and #108 transaction' );
+
+// Race B: a newer generation is already authoritative; the inner fence fails.
+$f = job_fixture( array( 'changing' => 1 ) );
+$job_id = (int) $f['job']['id'];
+approves( $f );
+Worker::queue_job( $job_id );
+$a = start_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 1, 30 ), 'checkpoint' => 'BEFORE_MUTATION', 'fault' => 'wait', 'lock_wait_timeout' => 20 ) );
+await_file( $a['spec']['barrier'] );
+$facts_a = fence_facts( $a['spec']['barrier'] );
+eq( $facts_a['point'], 'BEFORE_MUTATION', 'A passed the outer pre-dispatch fence before B is authoritative' );
+expire_lease( $job_id );
+$b = start_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 1, 30 ), 'checkpoint' => 'AFTER_LEASE', 'fault' => 'wait', 'lock_wait_timeout' => 20 ) );
+await_file( $b['spec']['barrier'] );
+$facts_b = fence_facts( $b['spec']['barrier'] );
+eq( $facts_b['generation'], $facts_a['generation'] + 1, 'B generation=N+1 already authoritative' );
+file_put_contents( $a['spec']['release'], 'go' );
+$stale = finish_worker( $a );
+eq( $stale['stop'], 'FENCE_LOST', 'A inner transactional fence verify fails' );
+eq( $stale['processed'], 0, 'A processed zero items' );
+eq( saves( $f['ids'][0] ), 0, 'A Woo saves zero' );
+eq( journal_row( $f['plan']->data()['plan_id'], (int) $f['ids'][0] )['state'], 'PENDING', 'A journal not APPLIED' );
+echo "#109 transactional fence stale worker:\nB generation={$facts_b['generation']} already authoritative\nA inner fence verify fails\nA Woo saves=0\nPASS\n";
+file_put_contents( $b['spec']['release'], 'go' );
+finish_worker( $b );
+eq( Repo::read( $job_id )['status'], JState::COMPLETED, 'B completes safely after refusing stale A' );
+eq( saves( $f['ids'][0] ), 1, 'B applies exactly once' );
+eq( fresh_price( $f['ids'][0] ), '80.00', 'B durable target' );
+marker( 'new generation wins first: inner transactional fence FENCE_LOST, zero stale save' );
+
+// Race C: stale claim after takeover, exercised past the outer fence check.
+$f = job_fixture( array( 'changing' => 1 ) );
+$job_id = (int) $f['job']['id'];
+approves( $f );
+Worker::queue_job( $job_id );
+$a = start_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 1, 30 ), 'checkpoint' => 'BEFORE_MUTATION', 'fault' => 'wait', 'lock_wait_timeout' => 20 ) );
+await_file( $a['spec']['barrier'] );
+$facts_a = fence_facts( $a['spec']['barrier'] );
+expire_lease( $job_id );
+$b = finish_worker( start_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 1, 30 ), 'lock_wait_timeout' => 20 ) ) );
+eq( $b['generation'], $facts_a['generation'] + 1, 'new generation processes the stale claim first' );
+eq( $b['status'], JState::COMPLETED, 'new generation completes the item' );
+eq( saves( $f['ids'][0] ), 1, 'new generation one save' );
+file_put_contents( $a['spec']['release'], 'go' );
+$stale = finish_worker( $a );
+eq( $stale['stop'], 'FENCE_LOST', 'stale claim past the outer fence is refused by the inner guard' );
+eq( $stale['processed'], 0, 'stale worker performs zero mutations' );
+eq( saves( $f['ids'][0] ), 1, 'stale worker adds no Woo save' );
+eq( journal_row( $f['plan']->data()['plan_id'], (int) $f['ids'][0] )['state'], 'APPLIED', 'journal remains the new generation APPLIED' );
+marker( 'stale claimed item after takeover: inner transactional fence refuses, no replay' );
+
+// Race D: operator cancel while the item transaction holds the fence lock.
+$f = job_fixture( array( 'changing' => 2 ) );
+$job_id = (int) $f['job']['id'];
+approves( $f );
+Worker::queue_job( $job_id );
+$a = start_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 1, 30 ), 'mutator_checkpoint' => 'ITEM_LOCKED', 'mutator_fault' => 'wait', 'lock_wait_timeout' => 20 ) );
+await_file( $a['spec']['barrier'] );
+$mut_facts = mutator_facts( $a['spec']['barrier'] );
+eq( $mut_facts['point'], 'ITEM_LOCKED', 'item transaction paused after the fence lock for cancel' );
+$generation_a = (int) Repo::read( $job_id )['lease_generation'];
+eq( job_row_locked_nowait( $job_id ), true, 'item transaction holds the job row lock before cancel' );
+$cancel = start_worker( array( 'job_id' => $job_id, 'actor' => 1, 'lock_wait_timeout' => 20 ), 'cancel.php' );
+await_file( $cancel['spec']['started'] );
+eq( await_session( "status='CANCELLED'", 10 ), true, 'cancel UPDATE is queued behind the item transaction' );
+$cancel_blocked = true;
+$deadline = microtime( true ) + 2;
+while ( microtime( true ) < $deadline ) {
+	$row = Repo::read( $job_id );
+	if ( JState::RUNNING !== $row['status'] || (int) $row['lease_generation'] !== $generation_a || is_file( $cancel['spec']['result'] ) ) { $cancel_blocked = false; break; }
+	usleep( 100000 );
+}
+eq( $cancel_blocked, true, 'cancel cannot revoke ownership mid-item' );
+file_put_contents( $a['spec']['release'], 'go' );
+finish_worker( $a );
+$rc = finish_worker( $cancel );
+eq( $rc['result'], true, 'cancel completes after the item commits' );
+$row = Repo::read( $job_id );
+eq( $row['status'], JState::CANCELLED, 'cancel is authoritative after the item boundary' );
+eq( $row['status_reason'], 'OPERATOR_CANCELLED', 'cancel typed reason' );
+$counts = assert_counts( $job_id, 'transactional-cancel' );
+eq( $counts['applied'], 1, 'already committed item remains APPLIED' );
+eq( $counts['pending'], 1, 'pending item remains unprocessed' );
+eq( saves( $f['ids'][0] ), 1, 'committed item saved exactly once' );
+eq( saves( $f['ids'][1] ), 0, 'pending item never saved' );
+echo "#109 transactional fence cancel:\ncancel cannot revoke mid-item\napplied item truthful\nno later stale claims\nPASS\n";
+marker( 'cancel during in-flight item: waits for COMMIT, keeps applied facts, stops later claims' );
+
+// Race E: activation-style reaper while the item transaction holds the fence.
+$f = job_fixture( array( 'changing' => 2 ) );
+$job_id = (int) $f['job']['id'];
+approves( $f );
+Worker::queue_job( $job_id );
+$prefix = $work . '/reap-' . bin2hex( random_bytes( 5 ) );
+$a = start_worker( array(
+	'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 1, 30 ),
+	'checkpoint' => 'AFTER_CLAIM', 'fault' => 'wait', 'barrier' => $prefix . '.barrier', 'release' => $prefix . '.release',
+	'mutator_checkpoint' => 'ITEM_LOCKED', 'mutator_fault' => 'wait', 'mutator_barrier' => $prefix . '.mutbarrier', 'mutator_release' => $prefix . '.mutrelease',
+	'lock_wait_timeout' => 20,
+) );
+await_file( $prefix . '.barrier' );
+$claim_facts = fence_facts( $prefix . '.barrier' );
+expire_lease( $job_id );
+$wpdb->query( $wpdb->prepare( "UPDATE $jobs_table SET updated_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 120 SECOND) WHERE id=%d", $job_id ) );
+file_put_contents( $prefix . '.release', 'go' );
+await_file( $prefix . '.mutbarrier' );
+$mut_facts = mutator_facts( $prefix . '.mutbarrier' );
+eq( $mut_facts['point'], 'ITEM_LOCKED', 'item transaction paused after the fence lock for the reaper' );
+$reap = start_worker( array( 'job_id' => $job_id, 'lock_wait_timeout' => 20 ), 'reap.php' );
+await_file( $reap['spec']['started'] );
+eq( await_session( "status_reason='LEASE_RECOVERY'", 10 ), true, 'reaper UPDATE is queued behind the item transaction' );
+$reap_blocked = true;
+$deadline = microtime( true ) + 2;
+while ( microtime( true ) < $deadline ) {
+	$row = Repo::read( $job_id );
+	if ( JState::RUNNING !== $row['status'] || (int) $row['lease_generation'] !== $claim_facts['generation'] || is_file( $reap['spec']['result'] ) ) { $reap_blocked = false; break; }
+	usleep( 100000 );
+}
+eq( $reap_blocked, true, 'reaper cannot revoke ownership mid-item' );
+file_put_contents( $prefix . '.mutrelease', 'go' );
+finish_worker( $a );
+$rr = finish_worker( $reap );
+ok( (int) $rr['reaped'] >= 1, 'reaper completes after the item boundary' );
+$row = Repo::read( $job_id );
+eq( $row['status'], JState::PAUSED, 'reaper is authoritative after the item boundary' );
+eq( $row['status_reason'], 'LEASE_RECOVERY', 'reaper typed reason' );
+$counts = assert_counts( $job_id, 'transactional-reap' );
+eq( $counts['applied'], 1, 'reaper keeps the committed item' );
+eq( $counts['pending'], 1, 'reaper leaves pending items unprocessed' );
+eq( saves( $f['ids'][1] ), 0, 'reaper never mutates' );
+marker( 'reaper/deactivation path waits for the in-flight item transaction' );
+
+// Crash while holding the transactional fence, before COMMIT.
+$f = job_fixture( array( 'changing' => 1 ) );
+$job_id = (int) $f['job']['id'];
+approves( $f );
+Worker::queue_job( $job_id );
+$product_id = (int) $f['ids'][0];
+$plan_id = $f['plan']->data()['plan_id'];
+$prefix = $work . '/crash-' . bin2hex( random_bytes( 5 ) );
+$a = start_worker( array(
+	'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 1, 30 ),
+	'checkpoint' => 'AFTER_CLAIM', 'fault' => 'wait', 'barrier' => $prefix . '.barrier', 'release' => $prefix . '.release',
+	'mutator_checkpoint' => 'AFTER_WOO_SAVE_BEFORE_JOURNAL', 'mutator_fault' => 'wait', 'mutator_barrier' => $prefix . '.mutbarrier', 'mutator_release' => $prefix . '.mutrelease',
+	'lock_wait_timeout' => 20,
+) );
+await_file( $prefix . '.barrier' );
+$claim_facts = fence_facts( $prefix . '.barrier' );
+expire_lease( $job_id );
+file_put_contents( $prefix . '.release', 'go' );
+await_file( $prefix . '.mutbarrier' );
+eq( saves( $product_id ), 1, 'Woo save executed inside the uncommitted item transaction' );
+// Independent connection read: parent-side cache invalidation would touch
+// option rows that the paused worker holds locked and would deadlock the test.
+$observer = Verifier::observer();
+try { $uncommitted = Verifier::storage( $observer, $product_id ); }
+finally { $observer->close(); }
+eq( Decimal::parse( $uncommitted['meta']['_regular_price'][0] ), Decimal::parse( '100.00' ), 'uncommitted Woo save is not durable' );
+eq( journal_row( $plan_id, $product_id )['state'], 'PENDING', 'journal not APPLIED before COMMIT' );
+eq( job_row_locked_nowait( $job_id ), true, 'A holds the fence at the crash point' );
+$probe = start_worker( array( 'job_id' => $job_id, 'owner' => wp_generate_uuid4(), 'manual' => true, 'lock_wait_timeout' => 20 ), 'lease-probe.php' );
+await_file( $probe['spec']['started'] );
+eq( await_session( 'SET lease_owner=', 10 ), true, 'takeover blocked while A holds the crash-point fence' );
+proc_terminate( $a['proc'], 9 );
+finish_worker( $a, true );
+$probe_result = finish_worker( $probe );
+ok( ! empty( $probe_result['lease'] ), 'server rollback released the fence lock after SIGKILL' );
+eq( (int) $probe_result['lease']['generation'], $claim_facts['generation'] + 1, 'takeover generation after crash rollback' );
+eq( fresh_price( $product_id ), '100.00', 'original durable price after rollback' );
+eq( journal_row( $plan_id, $product_id )['state'], 'PENDING', 'journal not APPLIED after rollback' );
+expire_lease( $job_id );
+$b = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 1, 30 ), 'manual' => true, 'lock_wait_timeout' => 20 ) );
+eq( $b['status'], JState::COMPLETED, 'recovery worker completes after crash' );
+eq( fresh_price( $product_id ), '80.00', 'recovery applies the target' );
+eq( journal_row( $plan_id, $product_id )['state'], 'APPLIED', 'recovery journal APPLIED' );
+eq( saves( $product_id ), 2, 'rolled-back Woo save replays once on recovery' );
+echo "#109 transactional fence crash:\nA killed while holding fence\nDB rollback releases lock\nB takeover/recovery PASS\n";
+marker( 'SIGKILL while holding the transactional fence: rollback, release, safe recovery' );
+
+// Deadlock/lock-timeout stress: different jobs on one product overlap in
+// real processes with independent job-row fences and shared Woo rows.
+$product = create_product( '100.00' );
+$j1 = single_job( $product, '80.00' );
+$j2 = single_job( $product, '90.00' );
+$x = start_worker( array( 'job_id' => (int) $j1['job']['id'], 'mode' => 'run', 'limits' => limits( 1, 30 ), 'lock_wait_timeout' => 20 ) );
+$y = start_worker( array( 'job_id' => (int) $j2['job']['id'], 'mode' => 'run', 'limits' => limits( 1, 30 ), 'lock_wait_timeout' => 20 ) );
+finish_worker( $x );
+finish_worker( $y );
+$statuses = array( Repo::read( (int) $j1['job']['id'] )['status'], Repo::read( (int) $j2['job']['id'] )['status'] );
+sort( $statuses );
+eq( $statuses, array( JState::COMPLETED, JState::COMPLETED_WITH_ISSUES ), 'different jobs same product: one applies, one conflicts, no deadlock' );
+eq( saves( $product ), 1, 'different jobs same product: exactly one Woo save' );
+ok( in_array( fresh_price( $product ), array( '80.00', '90.00' ), true ), 'winner target durable' );
+echo "#109 transactional fence deadlock stress: same job duplicate / different jobs same product / cancel / takeover finished without DB deadlock or lock wait timeout\n";
+marker( 'overlapping item transactions: deterministic lock order, no deadlock or timeout outcome' );
 
 echo "#109 complete durable job engine lab: {$assertions} assertions\n";

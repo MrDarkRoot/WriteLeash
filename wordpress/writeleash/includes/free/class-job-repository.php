@@ -9,10 +9,15 @@ defined( 'ABSPATH' ) || exit;
  *
  * Lease model: `acquire_lease()` atomically increments `lease_generation` with
  * a conditional UPDATE. A worker's fence is `(lease_owner, lease_generation)`.
- * Item claims are separate CAS updates; the #108 journal row lock remains the
- * final mutation serialization, so a stale worker that slipped past a fence
- * check can only converge through the journal (ALREADY_APPLIED), never
- * double-apply a product.
+ * Item claims are separate CAS updates; the #108 item transaction additionally
+ * locks this job row (`SELECT ... FOR UPDATE`, same connection) and verifies
+ * the fence before any Woo write. Generation-bumping paths (`acquire_lease`,
+ * `cancel`, `pause_stalled`, `reap_stalled_leases`) update that same row, so
+ * they block until the in-flight item transaction commits or rolls back: a
+ * newer generation cannot become authoritative mid-item. Lease expiry only
+ * makes takeover eligible; the successful generation update is the authority.
+ * The #108 journal row lock remains defense-in-depth for same-product
+ * serialization, and stale claims still converge through the journal.
  */
 final class Job_Repository {
 	public const LEASE_TTL = 60;
@@ -282,7 +287,10 @@ final class Job_Repository {
 	/**
 	 * Atomic job lease acquisition. The generation increase is the fence used by
 	 * every later claim/status write. Expired leases are recoverable; live ones
-	 * are not, regardless of Action Scheduler state.
+	 * are not, regardless of Action Scheduler state. This UPDATE touches the job
+	 * row, so it waits behind any in-flight item transaction holding the
+	 * transactional fence row lock; takeover becomes authoritative only after
+	 * that transaction commits or rolls back.
 	 */
 	public static function acquire_lease( int $job_id, string $owner, bool $manual ): array {
 		if ( ! preg_match( '/\A[a-zA-Z0-9-]{1,64}\z/D', $owner ) ) { throw new Job_Error( 'INVALID_LEASE_OWNER' ); }
@@ -355,7 +363,7 @@ final class Job_Repository {
 		return is_int( $reaped ) ? $reaped : 0;
 	}
 
-	/** Pause a RUNNING job whose worker is gone (expired or absent lease). */
+	/** Pause a RUNNING job whose worker is gone (expired or absent lease). Waits behind an in-flight item fence lock. */
 	public static function pause_stalled( int $job_id, string $reason ): bool {
 		$db = self::db();
 		$jobs = Job_Schema::jobs_table( $db );
@@ -444,7 +452,10 @@ final class Job_Repository {
 		Job_State::assert_transition( $job['status'], Job_State::CANCELLED );
 		$db = self::db();
 		$jobs = Job_Schema::jobs_table( $db );
-		// Revoking the lease generation fences any in-flight worker at its next boundary.
+		// Revoking the lease generation fences any in-flight worker at its next
+		// boundary. This UPDATE waits behind an in-flight item's fence row lock,
+		// so cancel cannot revoke ownership mid-commit; after that item commits
+		// the job is CANCELLED and no later claim is possible.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Operator cancel CAS; values are prepared.
 		return 1 === $db->query( $db->prepare( "UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s", $jobs, Job_State::CANCELLED, 'OPERATOR_CANCELLED', $job_id, $job['status'] ) );
 	}

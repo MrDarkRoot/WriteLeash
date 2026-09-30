@@ -34,9 +34,11 @@ includes/free/class-job-resume-rest.php
 includes/free/class-job-scheduler.php
 includes/free/class-job-schema.php
 includes/free/class-job-state.php
+includes/free/class-job-transaction-fence.php
 includes/free/class-job-worker.php
 includes/free/class-price-apply-connection.php
 includes/free/class-price-apply-journal.php
+includes/free/class-price-apply-transaction-guard.php
 includes/free/class-price-cache-verifier.php
 includes/free/class-price-decimal.php
 includes/free/class-price-operation.php

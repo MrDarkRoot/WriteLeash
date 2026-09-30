@@ -42,6 +42,49 @@ excluded from the distribution allowlist.
 - Plugin Check 2.1.0 against the staged plugin reports zero unreviewed
   findings.
 
+## Transactional fencing repair (blocker from the previous audit)
+
+The audited head `b642ae3` allowed an item already claimed under a valid fence
+to finish committing after lease takeover. The repair makes the job lease and
+the #108 item transaction mutually exclusive at the database level:
+
+- New internal `Price_Apply_Transaction_Guard` interface (#108 extension point,
+  optional parameter; never client input) and `Job_Transaction_Fence` (#109).
+- `Woo_Price_Mutator::apply( plan, product_id, guard )` invokes the guard after
+  `BEGIN` and before the journal row lock, on the same
+  `Price_Apply_Connection`. The guard runs
+  `SELECT lease_owner,lease_generation ... FOR UPDATE` on the job row and
+  verifies `(owner, generation)`; the row lock is held until
+  COMMIT/ROLLBACK. `acquire_lease`, `cancel`, `pause_stalled` and
+  `reap_stalled_leases` update that row, so they wait behind an in-flight item.
+  A mismatch returns typed `FENCE_LOST` with zero Woo writes and no APPLIED
+  transition; the worker stops without retry or another claim. Lease expiry is
+  eligibility only; the generation bump is authority.
+- Lock order is fixed: job fence row -> #108 journal row -> Woo
+  product/meta/lookup rows; no path takes them in reverse, and different jobs
+  keep independent row locks. The lock is held for one item transaction only.
+- APPLIED evidence records `fence_connection_id` when a guard is used; the lab
+  asserts fence == journal writer == Woo hook connection IDs.
+- Test harness: staged job/mutator checkpoints, bounded
+  `innodb_lock_wait_timeout`, `cancel.php`, `reap.php`, `lease-probe.php` and a
+  `FOR UPDATE NOWAIT` lock probe. Two harness bugs found while building the
+  matrix: the eval-scope `$jobs_table` had to be registered as a true global,
+  and the uncommitted-price assertion must read through an independent observer
+  because parent-side `wc_delete_product_transients()` blocks behind the paused
+  worker's option-row locks.
+- No schema change (`Job_Schema::SCHEMA_VERSION` remains 1); no #107 semantics
+  changed; #108 price/journal/cache/ambiguous-COMMIT semantics unchanged (an
+  optional guard parameter and a `FENCE_LOST` journal state are plumbing only);
+  #61 is untouched.
+
+Local two-engine matrix after the repair: MySQL 8.0.44 default/persistent and
+MariaDB 10.11.15 default/persistent each exited 0 with 750/751/750/751
+assertions and the same-connection markers
+`fence=<id> journal=<id> woo=<id>`; the new markers report takeover blocked
+during the item transaction, inner `FENCE_LOST` with zero saves, cancel and
+reaper waiting for the item, and SIGKILL rollback/recovery. The #108 durable
+matrix (all four variants) remained green.
+
 ## Final local candidate results
 
 The local equivalent of the container entrypoint (WordPress 7.1.2, PHP 8.2,

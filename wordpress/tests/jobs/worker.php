@@ -7,12 +7,14 @@ if ( ! is_array( $spec ) || ! isset( $spec['job_id'], $spec['started'], $spec['r
 }
 $GLOBALS['wl108_active'] = ! empty( $spec['hook_log'] );
 $GLOBALS['wl108_log'] = (string) ( $spec['hook_log'] ?? '' );
+global $wpdb;
+if ( ! empty( $spec['lock_wait_timeout'] ) ) { $wpdb->query( 'SET SESSION innodb_lock_wait_timeout = ' . (int) $spec['lock_wait_timeout'] ); }
 file_put_contents( $spec['started'], (string) getmypid() );
 
 if ( ! empty( $spec['checkpoint'] ) ) {
 	add_action( 'writeleash_job_checkpoint', static function ( $point, $job_id, $item_id, $generation, $token ) use ( $spec ) {
 		if ( $point !== $spec['checkpoint'] ) { return; }
-		file_put_contents( $spec['barrier'], $point . ':' . $generation );
+		file_put_contents( $spec['barrier'], $point . ':' . $generation . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
 		if ( 'wait' === ( $spec['fault'] ?? '' ) ) {
 			$deadline = microtime( true ) + 30;
 			while ( ! is_file( $spec['release'] ) ) {
@@ -26,10 +28,14 @@ if ( ! empty( $spec['checkpoint'] ) ) {
 if ( ! empty( $spec['mutator_checkpoint'] ) ) {
 	add_action( 'writeleash_price_apply_checkpoint', static function ( $point, $item_id, $attempt ) use ( $spec ) {
 		if ( $point !== $spec['mutator_checkpoint'] ) { return; }
-		file_put_contents( $spec['barrier'], $point );
+		// Staged fault tests may pause an outer job checkpoint and a mutator
+		// checkpoint in the same process; distinct paths keep them independent.
+		$barrier = (string) ( $spec['mutator_barrier'] ?? $spec['barrier'] );
+		$release = (string) ( $spec['mutator_release'] ?? $spec['release'] );
+		file_put_contents( $barrier, $point . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
 		if ( 'wait' === ( $spec['mutator_fault'] ?? '' ) ) {
 			$deadline = microtime( true ) + 30;
-			while ( ! is_file( $spec['release'] ) ) {
+			while ( ! is_file( $release ) ) {
 				if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'release-timeout' ); }
 				usleep( 10000 );
 			}

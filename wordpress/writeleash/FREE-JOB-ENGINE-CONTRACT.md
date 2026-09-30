@@ -92,19 +92,56 @@ workers cannot double count; `Plan`-derived totals are validated at import.
 - `acquire_lease()` is one conditional `UPDATE` that increments
   `lease_generation` only when the job is executable and the previous lease is
   absent/expired. The tuple `(lease_owner, lease_generation)` is the fence.
+- **Lease expiry and authoritative takeover are different events.**
+  `lease_expires_at` only makes a takeover *eligible*; execution authority
+  changes only when the generation-bumping `UPDATE` on the job row succeeds and
+  commits. An in-flight item transaction is never cancelled by wall-clock
+  expiry.
 - `claim_next_item()` is an optimistic CAS on the item row whose `EXISTS`
   subquery requires the live fence, so a worker whose generation was stolen
   cannot claim even if it skipped its own fence check.
 - `record_item()` is a CAS on `claim_token`; a stale worker cannot overwrite a
   new claim's outcome.
-- Relationship: the **job lease** decides who may claim; the **item row**
-  decides who owns one attempt; the **#108 journal row lock and state** are the
-  final mutation serialization. A stale worker that slipped past the pre-item
-  fence check can therefore at most finish the single item it had already
-  claimed under valid authority (documented safe boundary) and then stops; the
-  next generation observes the journal and never re-saves. The executable test
-  pauses a worker between claim and mutation, takes over its generation, and
-  proves `processed = 0` and one save per product.
+- **Per-item transactional job-row lock.** Every item mutation passes a
+  `Job_Transaction_Fence` guard into the #108 transaction
+  (`Woo_Price_Mutator::apply( plan, product_id, guard )`). The guard runs after
+  `BEGIN` and before the journal row lock, on the same
+  `Price_Apply_Connection`: it executes
+  `SELECT lease_owner, lease_generation FROM <prefix>writeleash_jobs WHERE id = ?
+  FOR UPDATE` and verifies the worker's `(owner, generation)`. A mismatch
+  returns `FENCE_LOST` before any Woo write; the transaction rolls back, the
+  journal never becomes APPLIED, and the worker stops without retrying or
+  claiming another item. A match holds the row lock until #108
+  `COMMIT`/`ROLLBACK`.
+- Because `acquire_lease`, `cancel`, `pause_stalled` and `reap_stalled_leases`
+  bump the generation by updating that same job row, InnoDB blocks them behind
+  the in-flight item transaction. **A newer generation cannot become
+  authoritative while an older worker holds a valid per-item transactional
+  fence lock.** Takeover can only occur between item transactions.
+- Lock order is fixed across every path: (1) begin the #108 transaction,
+  (2) lock/verify the job fence row, (3) lock/verify the #108 journal item,
+  (4) Woo product/meta/lookup writes, (5) journal APPLIED, (6) COMMIT. No path
+  takes the job and journal locks in the opposite order, so no deadlock cycle
+  exists; different jobs lock independent job rows and remain parallel.
+- The job-row fence lock is held for exactly one #108 item transaction, never
+  across a whole worker chunk, so scheduler/manual operations are not
+  serialized behind batches.
+- The #108 journal row lock and state remain defense-in-depth after the job
+  fence: same-product serialization, ALREADY_APPLIED suppression and
+  concurrent-worker convergence are unchanged.
+- Stale-worker rule: before the item transaction the pre-dispatch fence returns
+  `FENCE_LOST` with zero claims; inside the transaction the guard returns
+  `FENCE_LOST` with zero Woo writes and no APPLIED transition. A claimed item
+  that raced a takeover is returned to PENDING best-effort; reconciliation of
+  the new generation owns it.
+- Crash/recovery: process death rolls back the item and releases the job-row
+  lock. Kill before COMMIT leaves the original price and a PENDING journal;
+  kill after a durable COMMIT leaves an APPLIED journal that reconciliation
+  adopts without Woo replay.
+- Cancel/reaper: operator `cancel()` and activation `reap_stalled_leases()`
+  wait for the in-flight item. After that item commits, cancel/reap becomes
+  authoritative, already committed items remain APPLIED, and pending items are
+  never claimed under the revoked generation.
 
 Reconciliation runs at every lease acquisition for stale claims
 (`claim_generation < current`): journal `APPLIED` is adopted as
@@ -198,15 +235,27 @@ pinned WordPress 7.1.2 / PHP 8.2 / WooCommerce 11.1.2 fixture:
 schema fresh/replay/unknown/partial/wrong-engine/no-DDL host; idempotent plan
 import; 17-item mixed E2E (12 applied, 1 conflict, 2 unchanged, 2 unsupported);
 browser-close request exit; 20-item bounded batching; duplicate and concurrent
-callbacks; stale lease takeover with `processed = 0`; real SIGKILL after COMMIT
-and journal reconciliation; controlled exception between items; scheduler
-failure; Woo dependency loss; reactivation lease reaping; REST security
-negatives; permission revocation and actor deletion; multi-job expected-old
-conflicts including identical targets and parallel isolation; counter
-tamper/repair; pagination; exhaustive job and item transition tables; direct DB
-tampering of target/hash/ID/policy/item product; cancel; deactivation; and
-progress timestamps. Plugin Check 2.1.0 and the source/package audits gate the
+callbacks; stale lease takeover with `processed = 0`; transactional fence races
+(takeover blocked while an item transaction holds the job row lock; new
+generation authoritative before mutation with inner `FENCE_LOST` and zero
+saves; stale claim exercised past the outer pre-dispatch fence; cancel and
+reaper waiting for the in-flight item); same-connection evidence
+(`fence_connection_id == connection_id ==` Woo hook connection); SIGKILL while
+holding the transactional fence with server rollback, lock release and safe
+recovery; real SIGKILL after COMMIT and journal reconciliation without Woo
+replay; controlled exception between items; scheduler failure; Woo dependency
+loss; reactivation lease reaping; REST security negatives; permission
+revocation and actor deletion; multi-job expected-old conflicts including
+identical targets, overlap of different jobs on one product without deadlock or
+lock-wait-timeout, and parallel isolation; counter tamper/repair; pagination;
+exhaustive job and item transition tables; direct DB tampering of
+target/hash/ID/policy/item product; cancel; deactivation; and progress
+timestamps. Plugin Check 2.1.0 and the source/package audits gate the
 distribution.
+
+Dedicated #109 markers in the artifact report the transactional fence takeover,
+stale worker, crash and cancel scenarios, plus the same-connection IDs, for
+both MySQL and MariaDB and both cache modes.
 
 This issue does not implement Undo/history retention (#110), the Admin journey
 (#111), scale certification (#112), a custom scheduler, or job-wide atomicity.

@@ -12,10 +12,13 @@ defined( 'ABSPATH' ) || exit;
  * selector queries or arithmetic.
  *
  * Fence boundary: the job lease (owner + generation) is verified before each
- * claim and again before dispatching the #108 mutation. A worker that loses
- * its generation stops at that boundary. An item already claimed under a valid
- * fence may still commit after takeover, but then converges through the #108
- * journal (the next worker observes APPLIED and never re-saves the product).
+ * claim, again before dispatch, and finally inside the #108 item transaction by
+ * a job-row lock held until that transaction COMMIT/ROLLBACK. An item
+ * transaction that successfully acquires the current fence lock may finish
+ * before takeover; takeover cannot become authoritative until it commits or
+ * rolls back. Once a newer generation is authoritative, an older worker cannot
+ * begin or commit a new item mutation: the inner fence returns FENCE_LOST with
+ * zero Woo writes and no journal APPLIED transition.
  */
 final class Job_Worker {
 	public const DEFAULT_MAX_ITEMS = 10;
@@ -150,6 +153,7 @@ final class Job_Worker {
 				break;
 			}
 			$outcome = self::attempt_item( $job_id, $owner, $generation, $plan, $item, $token );
+			if ( ! empty( $outcome['fence_lost'] ) ) { $stop = 'FENCE_LOST'; break; }
 			++$processed;
 			Job_Repository::refresh_counters( $wpdb, $job_id );
 			self::checkpoint( 'AFTER_ITEM', $job_id, (int) $item['id'], $generation, $token );
@@ -169,8 +173,11 @@ final class Job_Worker {
 		$previous_user = get_current_user_id();
 		// The frozen actor is re-authorized fresh inside #108; this is not root.
 		wp_set_current_user( (int) $plan->data()['actor_id'] );
+		self::checkpoint( 'BEFORE_MUTATION', $job_id, (int) $item['id'], $generation, $token );
 		try {
-			$result = Woo_Price_Mutator::apply( $plan, $product_id );
+			// Transactional job-row fence: same connection, same transaction,
+			// held until #108 COMMIT/ROLLBACK. A lost fence writes no Woo data.
+			$result = Woo_Price_Mutator::apply( $plan, $product_id, new Job_Transaction_Fence( $job_id, $owner, $generation ) );
 		} catch ( \Throwable $error ) {
 			$result = array( 'code' => 'NEEDS_REVIEW', 'reason' => 'UNEXPECTED_MUTATION_RESULT' );
 		} finally {
@@ -178,6 +185,13 @@ final class Job_Worker {
 		}
 		$code = is_array( $result ) && isset( $result['code'] ) ? (string) $result['code'] : 'NEEDS_REVIEW';
 		$reason = is_array( $result ) && isset( $result['reason'] ) && preg_match( '/\A[A-Z0-9_]{1,64}\z/D', (string) $result['reason'] ) ? (string) $result['reason'] : 'UNEXPECTED_MUTATION_RESULT';
+		if ( 'FENCE_LOST' === $code ) {
+			// A newer generation is authoritative; this worker must not retry
+			// or claim another item. Returning the item to PENDING is best
+			// effort: the new generation's reconciliation owns it.
+			Job_Repository::record_item( $item, $token, Job_Item_State::PENDING, 'FENCE_LOST' );
+			return array( 'pause' => null, 'review' => false, 'fence_lost' => true );
+		}
 		if ( 'APPLIED' === $code || 'ALREADY_APPLIED' === $code ) {
 			Job_Repository::record_item( $item, $token, Job_Item_State::APPLIED, 'APPLIED' === $code ? 'WOO_CRUD_VERIFIED' : 'DURABLE_APPLIED', self::durable_applied_at( $plan, $product_id ) );
 			return array( 'pause' => null, 'review' => false );
