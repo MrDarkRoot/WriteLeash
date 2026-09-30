@@ -86,3 +86,12 @@ is reported ready. Their results belong to PR checks/artifacts rather than an
 unverified static assertion in this file. The A/B fixture interpretation uses
 two authentic #107 plans because its single-operation contract cannot produce
 80 and 90 from two identical 100 prices in one plan.
+
+## Package audit correction
+
+The initial PR release matrix rejected the journal INSERT's interpolated table
+identifier. Journal statements now use WordPress `%i` identifier placeholders;
+all values remain prepared. Only the unavoidable custom-table INSERT direct-call
+and no-cache style warnings have an exact-line PHPCS rationale. The old Plugin
+Check parser and all maintained test requirements remain unchanged. The revised
+candidate must rerun focused tests and all CI checks.

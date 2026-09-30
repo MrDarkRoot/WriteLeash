@@ -42,18 +42,18 @@ final class Price_Apply_Journal {
 		$table = self::table( $wpdb );
 		foreach ( $plan->data()['items'] as $item ) {
 			if ( 'CHANGING' !== $item['result'] ) { continue; }
-			$sql = $wpdb->prepare( "INSERT INTO $table (schema_version,plan_hash,product_id,plan_json,expected_price,target_price,state,evidence,created_at,updated_at) VALUES (%d,%s,%d,%s,%s,%s,'PENDING','',UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id", self::SCHEMA_VERSION, $plan->hash(), $item['product_id'], $plan->json(), $item['expected_regular_price'], $item['planned_regular_price'] );
+			$sql = $wpdb->prepare( "INSERT INTO %i (schema_version,plan_hash,product_id,plan_json,expected_price,target_price,state,evidence,created_at,updated_at) VALUES (%d,%s,%d,%s,%s,%s,'PENDING','',UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id", $table, self::SCHEMA_VERSION, $plan->hash(), $item['product_id'], $plan->json(), $item['expected_regular_price'], $item['planned_regular_price'] );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A custom journal INSERT has no WordPress object API; durable journal authority cannot use object cache. All identifiers and values are prepared.
 			if ( false === $wpdb->query( $sql ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 		}
 	}
 	public static function read( \wpdb $db, string $hash, int $id, bool $lock = false ): ?array {
 		$table = self::table( $db );
-		$row = $db->get_row( $db->prepare( "SELECT * FROM $table WHERE plan_hash=%s AND product_id=%d" . ( $lock ? ' FOR UPDATE' : '' ), $hash, $id ), ARRAY_A );
+		$row = $db->get_row( $db->prepare( "SELECT * FROM %i WHERE plan_hash=%s AND product_id=%d" . ( $lock ? ' FOR UPDATE' : '' ), $table, $hash, $id ), ARRAY_A );
 		return $row ?: null;
 	}
 	public static function transition( \wpdb $db, string $hash, int $id, string $state, string $reason, string $attempt, string $evidence = '' ): void {
 		$table = self::table( $db );
-		$applied = 'APPLIED' === $state ? 'UTC_TIMESTAMP()' : 'NULL';
-		if ( 1 !== $db->query( $db->prepare( "UPDATE $table SET state=%s,reason=%s,attempt_id=%s,evidence=%s,updated_at=UTC_TIMESTAMP(),applied_at=$applied WHERE plan_hash=%s AND product_id=%d", $state, $reason, $attempt, $evidence, $hash, $id ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+		if ( 1 !== $db->query( $db->prepare( "UPDATE %i SET state=%s,reason=%s,attempt_id=%s,evidence=%s,updated_at=UTC_TIMESTAMP(),applied_at=IF(%s='APPLIED',UTC_TIMESTAMP(),NULL) WHERE plan_hash=%s AND product_id=%d", $table, $state, $reason, $attempt, $evidence, $state, $hash, $id ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 	}
 }
