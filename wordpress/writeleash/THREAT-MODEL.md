@@ -1,6 +1,11 @@
 # WriteLeash for WordPress V0.1 threat model
 
-Final review for [#61](https://github.com/MrDarkRoot/CommitCap/issues/61). This is
+> This threat model covers the existing advanced Guard/Doctor/Redirection
+> substrate. It does not specify the intended public Free product: #106 governs
+> planned safe WooCommerce bulk price changes, not implemented here; #107–#112
+> remain pending and public release is deferred.
+
+Final review for [#61](https://github.com/MrDarkRoot/WriteLeash/issues/61). This is
 the authoritative statement of what the cooperative shared-runtime design does
 and does not protect. It is written from the adversarial suites in
 `wordpress/tests/` and the merged gates #54/#56/#57/#78/#82/#83/#84/#87/#58/#60.

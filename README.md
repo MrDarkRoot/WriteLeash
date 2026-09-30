@@ -1,7 +1,23 @@
-# CommitCap
+# WriteLeash
 
-**Mutation Budgets for PostgreSQL.** Put a hard limit on how much a PostgreSQL
-write transaction can change *within the tested research fixture*.
+**WriteLeash Free 1.0 is planned for safe WooCommerce bulk price changes.** The
+current public-product authority is [#106](https://github.com/MrDarkRoot/WriteLeash/issues/106).
+That WooCommerce workflow is not implemented: its ordered build and proof gates
+are #107–#112. **Public release is deferred.**
+
+This repository also contains two distinct, existing technical assets: a
+PostgreSQL/native mutation-budget research fixture and an advanced WordPress
+V0.1 Guard/Doctor/Redirection substrate. Their tested behavior and limitations
+remain useful engineering evidence; neither is the planned WooCommerce Free
+product, and neither makes the WooCommerce workflow available today. See the
+[advanced WordPress technical documentation](wordpress/writeleash/README.md)
+and the [current product umbrella #106](https://github.com/MrDarkRoot/WriteLeash/issues/106).
+
+## Existing PostgreSQL/native research substrate
+
+**Mutation budgets for PostgreSQL.** The local research fixture puts a hard
+limit on how much a PostgreSQL write transaction can change *within its tested
+envelope*.
 
 A writer with permission to update a table may intend to repair two rows but
 accidentally update many. A **mutation budget** is a finite limit on a declared
@@ -11,7 +27,7 @@ effects across supported writes in **one top-level transaction**; an excess
 attempt denies that entire transaction, including earlier writes in it. It is
 not a limit on a whole job that uses multiple transactions.
 
-## Try the arbitrary-table product demo locally
+## Run the arbitrary-table PostgreSQL research demo locally
 
 With Docker Engine, Docker Compose v2, Bash, and network access to pull the
 pinned PostgreSQL image, run from a checkout:
@@ -21,7 +37,7 @@ pinned PostgreSQL image, run from a checkout:
 ./writeleash demo
 ```
 
-The product demo creates **two new, runtime-named ordinary tables** on a
+The research demo creates **two new, runtime-named ordinary tables** on a
 disposable local PostgreSQL 16.4 fixture. It uses the actual `protect-update`
 command to generate trusted-owner trigger SQL and catalog verification for
 budgets of 5 and 3 UPDATE row events per top-level transaction. It prints each
@@ -112,15 +128,17 @@ See [demo prerequisites, output, and cleanup](demo/phase0/README.md).
 
 ## Exactly what is tested today
 
-**Research mechanism: CURRENT. Public Research Preview: PREPARING — NOT YET
-RELEASED ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31)). Supported
-release: NO. Production-ready security control: NO.** Do not deploy this as a
-production security control.
+**PostgreSQL/native research mechanism: CURRENT, RESEARCH ONLY. PostgreSQL
+Public Research Preview: NOT RELEASED ([#31](https://github.com/MrDarkRoot/WriteLeash/issues/31)
+remains open). WriteLeash Free 1.0 is planned under #106; implementation gates
+#107–#112 are pending. Public release: DEFERRED. Supported release: NO.
+Production-ready security control: NO.** Do not deploy this research fixture as
+a production security control.
 
 The exact tested environment is a local Docker **PostgreSQL 16.4** fixture with
 a restricted, non-owner writer, trusted installer/owner roles, and native
 backend-local transaction state. The historical research demo below uses
-hard-coded test policies; the separate product demo above uses runtime-named
+hard-coded test policies; the separate PostgreSQL research demo above uses runtime-named
 tables and generated #47 UPDATE budgets. Within the historical fixture:
 
 - `subscriptions` and `users` have independently counted `UPDATE` row-event
@@ -161,7 +179,7 @@ The writer must not own the table, trigger or enforcement function. The new
 exercise two independently budgeted arbitrary tables plus same-named tables
 in different schemas. **`./demo.sh` still shows the historical hard-coded
 research fixture**; the first-run arbitrary-table acceptance path is now
-`./writeleash demo` ([#48](https://github.com/MrDarkRoot/CommitCap/issues/48)).
+`./writeleash demo` ([#48](https://github.com/MrDarkRoot/WriteLeash/issues/48)).
 This is a V0 locally reviewed research candidate, not a released or supported
 installer.
 The fixed `users.role` and `refunds.amount` rules remain research-only
@@ -218,7 +236,7 @@ top-level transaction. It does not protect `INSERT`/`DELETE`, transaction
 splitting, retries across committed transactions, or task-wide work; owners and
 superusers are outside the writer threat model. Managed PostgreSQL, other
 versions, partitions, inheritance, and arbitrary trigger graphs are not
-validated. The first-run arbitrary-table product demo is `./writeleash demo`;
+validated. The first-run arbitrary-table PostgreSQL research demo is `./writeleash demo`;
 `./demo.sh` remains the separate historical research fixture.
 
 ## What it does not protect
@@ -237,9 +255,9 @@ validated. The first-run arbitrary-table product demo is `./writeleash demo`;
   work is not managed-service support; the unchanged native mechanism is blocked
   via standard Amazon RDS customer interfaces. See
   [managed feasibility](docs/managed-postgres-feasibility.md) and
-  [#10](https://github.com/MrDarkRoot/CommitCap/issues/10).
-- **Performance: INCONCLUSIVE.** Issue [#15](https://github.com/MrDarkRoot/CommitCap/issues/15)
-  / [PR #22](https://github.com/MrDarkRoot/CommitCap/pull/22) did not establish a
+  [#10](https://github.com/MrDarkRoot/WriteLeash/issues/10).
+- **Performance: INCONCLUSIVE.** Issue [#15](https://github.com/MrDarkRoot/WriteLeash/issues/15)
+  / [PR #22](https://github.com/MrDarkRoot/WriteLeash/pull/22) did not establish a
   stable overhead estimate or PASS threshold. See the
   [performance matrix](docs/support-matrix.md#d-performance).
 
@@ -253,7 +271,7 @@ operation should. AI-driven automation is only one possible writer, not the
 product definition. When a stable, narrow API or stored procedure expresses the
 workflow cleanly, prefer it.
 
-CommitCap is not a SQL linter, IAM/RLS replacement, generic database safety
+The PostgreSQL research substrate is not a SQL linter, IAM/RLS replacement, generic database safety
 system, or workflow engine. The [specification](docs/spec.md) defines intended
 semantics; the [product thesis](docs/product.md) and [roadmap](docs/roadmap.md)
 separate later hypotheses from current research. The first SQL/PLpgSQL
@@ -270,7 +288,7 @@ If you have a real repair/backfill/worker workflow, describe what one run was
 meant to change, what the writer could change, and which simpler guardrails you
 already have. If installation fails, include the exact PostgreSQL version,
 deployment type, attempted commit, documented step, and sanitized error in an
-[issue](https://github.com/MrDarkRoot/CommitCap/issues/new/choose) when intake
+[issue](https://github.com/MrDarkRoot/WriteLeash/issues/new/choose) when intake
 is available. For suspected security bypasses, **do not publish sensitive
 details** in an issue: follow [SECURITY.md](SECURITY.md) for private reporting
 or the non-sensitive fallback. Remove secrets and production data from examples.

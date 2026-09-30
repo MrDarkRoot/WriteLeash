@@ -1,10 +1,14 @@
-# CommitCap — Technical Specification
+# WriteLeash PostgreSQL Research — Technical Semantics
 
 Last updated: 2026-09-23
 
 ## Status
 
-This document defines the intended semantics of CommitCap.
+This document defines intended semantics for the existing WriteLeash PostgreSQL
+research substrate. It does not define the intended public Free product: #106
+is the authority for safe WooCommerce bulk price changes, which remain planned
+and unimplemented pending #107–#112. Public release is deferred. The separate
+advanced WordPress Guard/Doctor/Redirection substrate has its own contract.
 
 Research experiments exist, but no released or supported implementation is
 claimed by this specification.
@@ -30,7 +34,7 @@ The invariant must not silently weaken.
 
 A supported mutation that exceeds remaining authority MUST NOT become durable.
 
-If CommitCap cannot safely account for a mutation class, that class must be:
+If WriteLeash cannot safely account for a mutation class, that class must be:
 
 1. explicitly unsupported;
 2. rejected where practical; or
@@ -42,7 +46,7 @@ If CommitCap cannot safely account for a mutation class, that class must be:
 
 This specification defines the enforcement primitive. It does not replace a
 narrow API or stored procedure when a stable operation can be encoded cleanly.
-CommitCap is relevant where legitimate mutation shape is broad or evolving, a
+The PostgreSQL research substrate is relevant where legitimate mutation shape is broad or evolving, a
 fixed operation catalog is impractical, multiple upstream paths need the same
 database-level backstop, or relational effects must be bounded independently
 of upstream correctness.
@@ -96,7 +100,7 @@ Rolled-back mutations are not durable.
 
 ## Effect
 
-A measurable **relational consequence** of a supported mutation according to explicitly documented CommitCap semantics.
+A measurable **relational consequence** of a supported mutation according to explicitly documented WriteLeash PostgreSQL research semantics.
 
 Initial effect types:
 
@@ -121,7 +125,7 @@ means the declared relational metric increased by 30. It does not by itself prov
 
 The policy issuer is responsible for choosing relational measurements that are meaningful for the protected workflow.
 
-CommitCap's correctness claim stops at the declared relational effect unless an external system is explicitly brought into a future supported enforcement model.
+The PostgreSQL research mechanism's correctness claim stops at the declared relational effect unless an external system is explicitly brought into a future supported enforcement model.
 
 ---
 
@@ -224,7 +228,7 @@ Splitting work across transactions MUST NOT regenerate this authority.
 
 V0 should focus on explicit protected tables.
 
-The first product-surface candidate in [#47](https://github.com/MrDarkRoot/CommitCap/issues/47)
+The first PostgreSQL research-surface candidate in [#47](https://github.com/MrDarkRoot/WriteLeash/issues/47)
 is deliberately narrower than the effect classes below: one transaction-local
 `UPDATE` row-event budget per ordinary, nonpartitioned PG16.4 table, installed
 by a trusted owner. State-transition and numeric-delta implementations remain
@@ -457,7 +461,7 @@ under concurrent sessions.
 
 Client and workflow retries are expected.
 
-CommitCap must eventually define how repeated logical tasks are distinguished from new authority consumption.
+The PostgreSQL research thesis would need to define how repeated logical tasks are distinguished from new authority consumption.
 
 Questions to resolve before capability-wide production use:
 
@@ -525,7 +529,7 @@ Semantics matter more than YAML shape.
 
 # 9. Enforcement boundary
 
-CommitCap protects only when the actor cannot trivially bypass enforcement.
+The PostgreSQL research mechanism protects only when the actor cannot trivially bypass enforcement.
 
 Protected actor roles must not be able to:
 
@@ -537,7 +541,7 @@ Protected actor roles must not be able to:
 - assume a bypass role
 - take ownership of protected objects
 
-CommitCap must clearly document required database role separation.
+The PostgreSQL research mechanism must clearly document required database role separation.
 
 ---
 
@@ -574,15 +578,15 @@ Potentially unsupported or separately handled:
 
 Claims must say:
 
-> **CommitCap governs supported transactional relational mutations and declared relational effects.**
+> **The WriteLeash PostgreSQL research mechanism governs supported transactional relational mutations and declared relational effects.**
 
 Not:
 
-> **CommitCap makes every PostgreSQL side effect reversible.**
+> **WriteLeash makes every PostgreSQL side effect reversible.**
 
 or:
 
-> **CommitCap automatically understands complete external business consequence.**
+> **WriteLeash automatically understands complete external business consequence.**
 
 ---
 
@@ -601,7 +605,7 @@ If fail-closed behavior is not possible:
 
 # 13. Performance requirement
 
-CommitCap must benchmark:
+The PostgreSQL research mechanism must benchmark:
 
 ```text
 baseline workload
@@ -671,4 +675,4 @@ The long-term specification target is:
 
 > **A mutation capability grants a finite amount of authority. Every supported durable effect consumes that authority atomically.**
 
-This is the core abstraction CommitCap should protect.
+This is the core abstraction the PostgreSQL research substrate was designed to explore.

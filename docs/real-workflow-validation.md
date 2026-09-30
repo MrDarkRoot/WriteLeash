@@ -10,6 +10,12 @@ production repair, data remediation, incident-response recovery, DBRE/operator
 scripts and backfills; investigate workflow/AI writers only when actual tasks
 require them. Do not ask hypothetical product-interest questions first.
 
+> This is a historical research protocol for the earlier PostgreSQL mutation-
+> budget thesis, not the current public Free product research plan. #106 now
+> governs safe WooCommerce bulk price changes; that workflow is planned, not
+> implemented, and public release is deferred. Keep any results from this
+> protocol scoped to the PostgreSQL research question.
+
 ## Founder-run interview (20–30 minutes)
 
 Ask permission to take anonymized notes, quote a paraphrase, and follow up to
@@ -23,7 +29,8 @@ and provenance privately to avoid double counting.
 1. “Show me the **last real production repair, remediation, incident recovery,
    backfill or operator write** where your credential could modify more than
    this particular task needed.” Record when it occurred, role and the concrete
-   task in the interviewee's words before introducing CommitCap.
+   task in the interviewee's words before discussing the PostgreSQL research
+   mechanism.
 2. What PostgreSQL role or service identity executed it? What tables/columns,
    tenant scopes and operations **could** it change, and what row/amount/state
    changes did this task actually **need**? How many transactions, sessions and
@@ -115,6 +122,6 @@ Reason, contrary evidence and next falsifiable question: [pending]
 ```
 
 The founder controls access and outreach. This kit supplies no evidence that
-any team wants to install CommitCap, that a staging pilot exists, or that the
+any team wants to install WriteLeash, that a staging pilot exists, or that the
 original six-part Success Checklist has advanced. Leave #16 open for actual
 workflow validation.

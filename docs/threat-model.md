@@ -1,12 +1,19 @@
-# CommitCap — Threat Model
+# WriteLeash PostgreSQL Research — Threat Model
 
 Last updated: 2026-09-23
 
+> This threat model describes the existing PostgreSQL/native research
+> mechanism. It does not specify the planned public Free product: #106 governs
+> safe WooCommerce bulk price changes, whose implementation is pending #107–
+> #112. Public release is deferred. The advanced WordPress Guard/Doctor/
+> Redirection substrate has a separate threat model in
+> `wordpress/writeleash/THREAT-MODEL.md`.
+
 ## 1. Purpose
 
-This document defines what CommitCap is trying to defend, who is considered trusted, and which bypass classes must be tested.
+This document defines what the WriteLeash PostgreSQL research mechanism is designed to defend, who is considered trusted, and which bypass classes must be tested.
 
-CommitCap is a security-sensitive database primitive.
+The PostgreSQL research mechanism is a security-sensitive database primitive.
 
 The threat model is part of the product.
 
@@ -24,7 +31,7 @@ The attacker wins if they can make a supported mutation exceed authority and sti
 
 # 3. Protected assets
 
-CommitCap protects:
+The PostgreSQL research mechanism protects:
 
 - relational data in declared protected tables
 - mutation-budget integrity
@@ -40,7 +47,7 @@ CommitCap protects:
 Initially trusted:
 
 - PostgreSQL engine
-- CommitCap-owned policy schema
+- WriteLeash-owned policy schema
 - trusted enforcement functions
 - trusted installation/admin role
 - policy administrator
@@ -77,7 +84,7 @@ Accidental behavior is sufficient to cause unsafe mutations.
 
 # 6. Explicit non-goal attacker
 
-CommitCap does not initially claim protection against a database superuser.
+The PostgreSQL research mechanism does not claim protection against a database superuser.
 
 A true PostgreSQL superuser can generally bypass database-local enforcement.
 
@@ -447,7 +454,7 @@ The writer must not be able to cycle state to create an unbounded effective budg
 
 # 9. Out of scope for initial claims
 
-CommitCap does not initially claim to safely account for:
+The PostgreSQL research mechanism does not claim to safely account for:
 
 - arbitrary DDL
 - PostgreSQL superuser behavior
@@ -468,7 +475,7 @@ Narrow claims are preferred over false completeness.
 
 # 10. Security posture
 
-CommitCap should prefer:
+The PostgreSQL research mechanism should prefer:
 
 ```text
 fail closed

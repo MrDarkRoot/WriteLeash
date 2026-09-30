@@ -6,15 +6,21 @@
 > the canonical current plan in [test-plan.md](test-plan.md); do not infer
 > current test coverage from those historical results. The state-transition
 > evidence section at the end is separately marked as canonical.
+> Current public Free product authority is #106: safe WooCommerce bulk price
+> changes, planned but not implemented. Build/proof gates #107–#112 are pending
+> and public release is deferred. The PostgreSQL matrix below is historical
+> research context; advanced WordPress Guard/Doctor/Redirection behavior has a
+> separate contract under `wordpress/writeleash/`.
 
 ## Current Status
 
-CommitCap has research implementations and experiment harnesses, but no
-released or supported implementation. No database operation is currently
-claimed to be protected. Current intended semantics live in
-[spec.md](spec.md), canonical tests live in [test-plan.md](test-plan.md),
-accepted boundaries live in [decisions.md](decisions.md), and the research
-status matrix is [support-matrix.md](support-matrix.md).
+WriteLeash has PostgreSQL/native research implementations and an advanced
+WordPress V0.1 Guard/Doctor/Redirection technical substrate. Neither is a
+general supported or released security control, and neither implements the
+planned WooCommerce Free product. PostgreSQL research semantics are recorded
+in [spec.md](spec.md), canonical PostgreSQL research tests in
+[test-plan.md](test-plan.md), technical boundaries in [decisions.md](decisions.md),
+and the research status matrix in [support-matrix.md](support-matrix.md).
 
 The matrix below records the narrower historical row-budget proof. It is
 preserved so its falsification and native feasibility evidence remain readable,

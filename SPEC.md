@@ -1,5 +1,11 @@
 # CommitCap Legacy Phase 0 Specification
 
+> **Historical technical specification:** `CommitCap` references and V0
+> semantics below are preserved from the earlier PostgreSQL research phase.
+> They are not current public product identity or Free 1.0 scope. The current
+> repository is WriteLeash; #106 governs planned safe WooCommerce bulk price
+> changes, pending #107–#112, with public release deferred.
+
 > **Historical document:** This file preserves the original row-budget Phase 0
 > specification and its experiment plan. It is not the current source of truth.
 > Use [docs/spec.md](docs/spec.md) for intended semantics,

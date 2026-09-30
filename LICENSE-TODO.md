@@ -1,6 +1,6 @@
-# License Decision Pending
+# Repository License Status
 
-CommitCap does not yet have a repository-wide selected open-source license.
+WriteLeash does not yet have a repository-wide selected open-source license.
 
 Status update (2026-09-29): the WordPress plugin subtree
 (`wordpress/writeleash/`) has a founder-selected license:

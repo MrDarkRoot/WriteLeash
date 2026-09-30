@@ -1,11 +1,18 @@
 # WriteLeash
 
-## WordPress V0.1 development foundation
+## Existing advanced WordPress V0.1 technical substrate
+
+> **Current public Free direction:** #106 governs safe WooCommerce bulk price
+> changes. That workflow is planned, not implemented; #107–#112 are pending
+> build/proof gates, and public release is deferred. This subtree documents and
+> tests the separate advanced Guard/Doctor/Redirection V0.1 substrate. Its
+> existing behavior is technical evidence, not the planned Free 1.0 workflow.
 
 Brand tagline: "Keep dangerous database writes on a short leash." That is a
-brand-level statement, not a Free V0.1 technical claim. The Free V0.1 claim
-remains narrow: one certified Redirection 5.5.2 global/select-all Bulk Disable
-operation with a logical mutation budget.
+brand-level statement, not a claim about the planned WooCommerce Free product.
+The V0.1 technical contract documented here is narrow: one certified
+Redirection 5.5.2 global/select-all Bulk Disable operation with a logical
+mutation budget.
 
 Naming: the active WordPress/PHP/package/local identity is WriteLeash, and the
 low-level MySQL helper table, routine family, session variables, transaction
@@ -41,19 +48,20 @@ Network activation and multisite cleanup have not been validated; network
 activation is refused without writing plugin metadata. The #64 founder license
 decision is **GPL version 2 or later** (`GPL-2.0-or-later`); the full GNU GPLv2
 text ships as `LICENSE`, and [LICENSE-AUDIT.md](LICENSE-AUDIT.md) records the
-third-party/copyright audit. The package release version is `0.1.0`. The
-distribution allowlist for the `writeleash/` release root is
-`wordpress/release/writeleash-distribution-files.txt`; the public WordPress.org
-listing source is [readme.txt](readme.txt), and the operator guide shipped with
+third-party/copyright audit. The V0.1 package version is `0.1.0`. The
+distribution allowlist for the `writeleash/` technical package root is
+`wordpress/release/writeleash-distribution-files.txt`; the historical V0.1
+package metadata is [readme.txt](readme.txt), and the operator guide shipped with
 the distribution is [operator-setup.txt](operator-setup.txt). WriteLeash declares
 `Requires Plugins: redirection` and still enforces Redirection 5.5.2 exactly at
 runtime. The full #63/#64 contract is in
-[RELEASE-MATRIX.md](RELEASE-MATRIX.md); the exact-package audit remains a later
-gate (#77/#76).
+[RELEASE-MATRIX.md](RELEASE-MATRIX.md); release issues #77/#76 are deferred and
+must be rewritten for #106 after the #107–#112 product gates pass before they
+can be used as release authorization.
 
 **MySQL/MariaDB does not currently provide the PostgreSQL-equivalent sticky
 transaction boundary demonstrated by WriteLeash's PostgreSQL research path.**
-The WordPress V0.1 contract is a **cooperative guarded-transaction
+This advanced WordPress V0.1 contract is a **cooperative guarded-transaction
 model**, implemented and tested in this subtree (#54/#56/#57/#78/#82–#84/#87/#58/#60).
 See the [#53
 feasibility experiment](../../experiments/mysql_tx_budget/README.md): event six
@@ -67,7 +75,7 @@ accepted cooperative path; its PASS requires separate restricted runtime and
 trusted installer evidence. It does not approve generic hosting compatibility.
 #54 adds a lower-level engine candidate and its deliberately narrow contract in
 [`ENGINE.md`](ENGINE.md); #56 adds the cooperative guarded UPDATE transaction
-API in [`GUARD.md`](GUARD.md). #78 adds the single certified Free V0.1
+API in [`GUARD.md`](GUARD.md). #78 adds the single certified V0.1
 operation descriptor and its minimal config: [`OPERATION.md`](OPERATION.md).
 The #54 routines remain callable by a DB writer: CLOSE→OPEN in one transaction
 can reset its own budget, and the session denial signal is writable. The
@@ -78,13 +86,14 @@ supported job.
 [THREAT-MODEL.md](THREAT-MODEL.md) is the final #61 cooperative threat model:
 actors/authorities, reachable DB graph, budget semantics, fail-closed rules, the
 adversarial test matrix and every documented outside-contract/UNKNOWN path.
-The Free V0.1 development surface supports **one** certified operation:
+This V0.1 development surface supports **one** certified operation:
 Redirection 5.5.2 unfiltered global/select-all Bulk Disable. #58's
 [WriteLeash-owned disposable demo](DEMO.md) is independent of that real
 operation. #60 adds the restrained [Tools → WriteLeash / WP-CLI experience](ADMIN-CLI.md)
 on top of the existing adapter; trusted [operator provisioning](PROVISIONING.md)
 is separate. No general WooCommerce integration, telemetry, external network
-requests or cloud feature is included.
+requests or cloud feature is included. WooCommerce bulk-price functionality is
+not implemented in this subtree.
 
 ## Guarded UPDATE example
 

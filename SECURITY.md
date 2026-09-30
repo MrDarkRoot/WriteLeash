@@ -1,9 +1,13 @@
 # Security Policy
 
-CommitCap is intended to become security-sensitive PostgreSQL infrastructure.
-The repository contains Phase 0 research implementations and experiment
-harnesses, but no released or supported enforcement implementation. There is no
-current claim that installing or using this repository protects a database.
+WriteLeash contains PostgreSQL/native research implementations and an advanced
+WordPress V0.1 Guard/Doctor/Redirection technical substrate. These have
+narrowly tested behavior, but are not a generally released or supported
+security control. The intended public Free 1.0 product is safe WooCommerce
+bulk price changes under #106; that workflow is not implemented, #107–#112 are
+pending, and public release is deferred. Installing this repository does not
+make the planned WooCommerce workflow available or imply a general database
+protection claim.
 
 ## Reporting A Vulnerability
 
@@ -72,10 +76,12 @@ Security reports and public claims MUST be evaluated against:
 2. [docs/test-plan.md](docs/test-plan.md), which defines canonical current test
    IDs and required behavior.
 3. [docs/threat-model.md](docs/threat-model.md), which defines trust
-   assumptions.
+   assumptions for the PostgreSQL research mechanism; the separate advanced
+   WordPress substrate is described in
+   [wordpress/writeleash/THREAT-MODEL.md](wordpress/writeleash/THREAT-MODEL.md).
 4. [docs/decisions.md](docs/decisions.md), which records accepted boundaries.
 5. [docs/support-matrix.md](docs/support-matrix.md), which records the current
-   research envelope and Public Research Preview preparation status.
+   PostgreSQL/native research envelope and release status.
 6. Regression tests shipped by the affected release.
 
 Root [SPEC.md](SPEC.md), historical experiment scripts, and the experiment
@@ -86,9 +92,10 @@ Specifications alone are not proof. No operation may be advertised as
 protected until its positive, negative, atomicity, and adversarial tests pass.
 
 The trusted PostgreSQL administrator, superusers, database-host operators, and
-protected-table owners can normally bypass in-database enforcement. CommitCap
-does not claim to defend against them. Granting those privileges to a protected
-writer invalidates the deployment's security assumptions.
+protected-table owners can normally bypass in-database enforcement. The
+PostgreSQL research mechanism does not claim to defend against them. Granting
+those privileges to a protected writer invalidates that deployment's security
+assumptions.
 
 ## Disclosure And Claims
 

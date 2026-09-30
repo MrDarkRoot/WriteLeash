@@ -1,6 +1,6 @@
 # Decision Records
 
-This directory is for reviewed decisions that materially change CommitCap's:
+This directory is for reviewed decisions that materially change WriteLeash's:
 
 - invariant semantics;
 - supported PostgreSQL behavior;

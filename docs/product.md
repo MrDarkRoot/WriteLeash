@@ -1,9 +1,20 @@
-# CommitCap — Product Thesis
+# WriteLeash — Historical PostgreSQL Product Thesis
 
-Last updated: 2026-09-23
+Historical thesis snapshot: 2026-09-23
 
-**Status:** Product thesis and intended semantics. Research experiments exist,
-but there is no released or supported CommitCap implementation.
+> **Current product authority:** this is the preserved PostgreSQL-era thesis,
+> not the current public Free product definition. [#106](https://github.com/MrDarkRoot/WriteLeash/issues/106)
+> supersedes the old thesis as authority for intended Free 1.0: safe WooCommerce
+> bulk price changes. That workflow is planned, not implemented; #107–#112 are
+> its build/proof gates. **Public release is deferred.** Existing PostgreSQL
+> research and advanced WordPress Guard/Doctor/Redirection behavior remain
+> separate technical substrates. The historical `CommitCap` references below
+> are retained to preserve the original thesis wording and are not active
+> product identity.
+
+**Status:** Historical product thesis and intended PostgreSQL semantics.
+Research experiments exist; this document makes no released or supported
+PostgreSQL implementation claim.
 
 ## 1. One-line definition
 

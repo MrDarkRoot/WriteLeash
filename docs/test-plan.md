@@ -1,4 +1,10 @@
-# CommitCap — Security & Correctness Test Plan
+# WriteLeash PostgreSQL Research — Security & Correctness Test Plan
+
+This plan names regression IDs for the existing PostgreSQL/native research
+substrate, not acceptance criteria for the intended public Free product. #106
+governs planned WooCommerce bulk price changes; implementation gates #107–#112
+are pending and public release is deferred. Advanced WordPress Guard/Doctor
+tests remain a separate technical suite.
 
 Last updated: 2026-09-23
 
@@ -8,11 +14,11 @@ The test program exists to answer one question:
 
 > **Can a supported mutation exceed granted authority and still become durable?**
 
-If yes, the test has found a CommitCap security failure.
+If yes, the test has found a WriteLeash PostgreSQL research security failure.
 
 ## Canonical ID namespace
 
-The identifiers in this document are the canonical current CommitCap test IDs.
+The identifiers in this document are the canonical current PostgreSQL research test IDs.
 Earlier Phase 0 experiments used a legacy `CC-*` namespace whose numbers are
 not equivalent to the meanings below. Historical scripts and recorded results
 must retain those identifiers but label them **legacy experiment IDs**; never
@@ -48,7 +54,7 @@ BUG
 Definitions:
 
 - `PASS` — mutation is within authority and commits
-- `DENY` — CommitCap blocks before commit
+- `DENY` — the PostgreSQL research mechanism blocks before commit
 - `ABORT` — transaction is invalidated and protected mutation does not survive
 - `UNSUPPORTED` — operation is deliberately outside product scope
 - `BUG` — actual behavior violates documented semantics
@@ -58,7 +64,7 @@ Definitions:
 # 4. V0 fixture
 
 The historical fixed-table research fixture below is distinct from the
-[#47](https://github.com/MrDarkRoot/CommitCap/issues/47) generic UPDATE-budget
+[#47](https://github.com/MrDarkRoot/WriteLeash/issues/47) generic UPDATE-budget
 security suite on arbitrary tables. A passing fixture case alone is not a
 product-surface result; see
 [`product_update_cases.sh`](../experiments/native_tx_state/product_update_cases.sh)
@@ -552,7 +558,7 @@ No policy bypass.
 
 ## CC-060 — Direct policy table UPDATE
 
-Writer attempts to modify CommitCap policy.
+Writer attempts to modify PostgreSQL research policy.
 
 Expected:
 
@@ -712,7 +718,7 @@ Benchmark at minimum:
 ```text
 baseline PostgreSQL write
 vs
-CommitCap-protected write
+WriteLeash PostgreSQL research-protected write
 ```
 
 Measure:
@@ -814,4 +820,4 @@ or
 NARROW PRODUCT SCOPE
 ```
 
-The test program exists to falsify CommitCap, not protect the idea.
+The test program exists to falsify the WriteLeash PostgreSQL research mechanism, not protect the idea.

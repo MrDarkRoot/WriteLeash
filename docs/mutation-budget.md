@@ -1,12 +1,15 @@
 # Mutation Budgets
 
-This document explains current intended semantics. The repository contains
-research experiments, but no released or supported CommitCap implementation.
+This document preserves PostgreSQL/native research semantics. It does not
+define the intended public Free product: #106 governs planned safe WooCommerce
+bulk price changes, which remain unimplemented pending #107–#112. Public release
+is deferred. The advanced WordPress Guard/Doctor/Redirection substrate is
+separate and is not changed by this research document.
 
 ## Core Model
 
 Database write permission is usually binary: a role may update a relation or it
-may not. CommitCap explores a second dimension:
+may not. The WriteLeash PostgreSQL research mechanism explores a second dimension:
 
 > A writer may have permission to write while possessing only finite mutation
 > authority.
@@ -24,7 +27,7 @@ Row-count authority was the first proof mechanism: the local PostgreSQL 16.4
 V0 candidate attaches an `UPDATE` row-event budget **per ordinary protected
 relation, per top-level transaction**. The generic trigger and #27 plan/preflight
 are exercised on two independently budgeted, runtime-named tables by
-[`./writeleash demo`](../README.md#try-the-arbitrary-table-product-demo-locally).
+[`./writeleash demo`](../README.md#run-the-arbitrary-table-postgresql-research-demo-locally).
 State transitions and numeric deltas are also implemented and tested as
 **fixed research-fixture rules**, not as generic product-facing policy APIs.
 
@@ -86,7 +89,7 @@ statement 6: update 1 row
 ```
 
 If each statement receives a fresh budget, decomposition converts a denied
-six-row update into six allowed one-row updates. CommitCap therefore
+six-row update into six allowed one-row updates. The research mechanism therefore
 accumulates consumption across all supported statements in the same top-level
 transaction.
 
@@ -250,7 +253,7 @@ research fixtures only.
 
 For stable known operations such as `refund_customer(customer_id, amount)` or
 `cancel_subscription(subscription_id)`, prefer a narrow application API or
-stored procedure. CommitCap is relevant only when legitimate mutation shape is
+stored procedure. The PostgreSQL research mechanism is relevant only when legitimate mutation shape is
 broad or evolving, a fixed operation catalog is impractical, multiple upstream
 paths need the same database-level backstop, or actual relational effects must
 be bounded independently of upstream correctness.

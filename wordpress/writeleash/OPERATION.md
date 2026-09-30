@@ -1,5 +1,10 @@
 # Free V0.1 certified operation (exactly one)
 
+> This is the existing advanced V0.1 technical operation, not the intended
+> public Free 1.0 product. #106 governs planned safe WooCommerce bulk price
+> changes; that workflow is not implemented, #107–#112 remain pending, and
+> public release is deferred.
+
 Free V0.1 ships **one** code-known operation. There is no operation registry,
 plugin adapter SDK, dynamic callback registration or Admin-authored policy. The
 operation is the one selected by #85 and certified by #87; #78 adds its

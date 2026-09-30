@@ -1,13 +1,19 @@
-# CommitCap Research Mechanism — Support, Compatibility, Performance and Security Matrix
+# WriteLeash PostgreSQL Research Mechanism — Support, Compatibility, Performance and Security Matrix
 
-Last updated: 2026-09-25.
+Last updated: 2026-09-30.
 
-This is the single public page for the current CommitCap research mechanism.
-The Public Research Preview ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31))
-is **being prepared, not released**. This document summarizes behavior present
-in the reviewed code and linked research evidence. The denial-evidence row
-requires the implementation and tests from [#34's PR
-#39](https://github.com/MrDarkRoot/CommitCap/pull/39) in the base history; it
+This is the technical support matrix for the existing WriteLeash PostgreSQL
+research mechanism. It is not the current public Free product roadmap. The
+intended public Free product is safe WooCommerce bulk price changes under
+[#106](https://github.com/MrDarkRoot/WriteLeash/issues/106); its implementation
+gates #107–#112 remain pending and **public release is deferred**. The separate
+advanced WordPress Guard/Doctor/Redirection substrate remains documented under
+`wordpress/writeleash/`. Neither technical asset implements the planned
+WooCommerce workflow. The PostgreSQL Public Research Preview ([#31](https://github.com/MrDarkRoot/WriteLeash/issues/31))
+is **not released**. This matrix summarizes behavior present in the reviewed
+code and linked research evidence. The denial-evidence row requires the
+implementation and tests from [#34's PR
+#39](https://github.com/MrDarkRoot/WriteLeash/pull/39) in the base history; it
 must not be published without them.
 [README.md](../README.md) is the project overview, [docs/spec.md](spec.md)
 defines intended semantics, [docs/test-plan.md](test-plan.md) defines canonical
@@ -24,8 +30,9 @@ evidence. Nothing here is a production-ready security control.
 | **BLOCKED** | Denied by privileges/configuration for the exact tested topology, or blocked by a documented provider model. |
 | **INCONCLUSIVE** | Evidence exists but does not support a conclusion. |
 
-The current state is **research mechanism**, not a released Research Preview or
-a supported release: see [Product and release status](#e-product-and-release-status).
+The PostgreSQL/native code described below remains **research mechanism**, not
+a released Research Preview or a supported release: see [Product and release
+status](#e-product-and-release-status).
 
 ## A. Enforcement envelope (TESTED only within this envelope)
 
@@ -38,7 +45,7 @@ fixture, with the `postgres:16.4-alpine` image pinned to digest
 every pull request, and an archived integrated transcript from the pre-#34
 suite is
 [evidence/2026-09-23-integrated-audit-e97f19b.txt](../experiments/native_tx_state/evidence/2026-09-23-integrated-audit-e97f19b.txt).
-The product-facing first-run path is [`./writeleash demo`](../writeleash);
+The PostgreSQL research first-run path is [`./writeleash demo`](../writeleash);
 [`./demo.sh`](../demo.sh) and [demo/phase0/README.md](../demo/phase0/README.md)
 remain the deeper historical research fixture.
 
@@ -46,9 +53,9 @@ remain the deeper historical research fixture.
 | --- | --- | --- |
 | PostgreSQL version | **TESTED** | Only 16.4. No other major or minor. The suite and demo print `PostgreSQL: 16.4` and verify the pinned image. |
 | Authority scope | **TESTED (transaction-local)** | Per top-level transaction only. Budgets reset at each new transaction. Splitting work across committed transactions is not prevented by this mechanism. |
-| Generic V0 UPDATE row-budget candidate (#47) | **TESTED locally; merged research candidate** | A trusted owner attaches one unconditional `BEFORE UPDATE FOR EACH ROW` budget trigger to an ordinary nonpartitioned PG16.4 table; backend-local relation-OID state accounts two arbitrary relations independently. Strict decimal argument 0..2147483647; a duplicate product trigger or malformed/unsupported shape fails on invocation. An UPDATE affecting zero rows cannot validate a misinstalled row trigger. Restricted writer lacks ownership/trigger and trusted-schema privileges. [product security suite](../experiments/native_tx_state/product_update_run.sh), [exact limits](../experiments/native_tx_state/README.md#v0-generic-update-row-budget-47). The isolated security suite alone is not a published support claim; the separate #48 first-run product demo is below. |
+| Generic V0 UPDATE row-budget candidate (#47) | **TESTED locally; merged research candidate** | A trusted owner attaches one unconditional `BEFORE UPDATE FOR EACH ROW` budget trigger to an ordinary nonpartitioned PG16.4 table; backend-local relation-OID state accounts two arbitrary relations independently. Strict decimal argument 0..2147483647; a duplicate trigger or malformed/unsupported shape fails on invocation. An UPDATE affecting zero rows cannot validate a misinstalled row trigger. Restricted writer lacks ownership/trigger and trusted-schema privileges. [research security suite](../experiments/native_tx_state/product_update_run.sh), [exact limits](../experiments/native_tx_state/README.md#v0-generic-update-row-budget-47). The isolated security suite alone is not a published support claim; the separate #48 first-run PostgreSQL research demo is below. |
 | V0 protection generator and catalog preflight (#27) | **Local DX only; not an installer** | `./writeleash doctor` checks Bash, Docker, the `docker compose` interface, and daemon reachability. `protect-update` emits reviewable trusted-admin SQL and a `psql` preflight; it does not connect, apply SQL, or manage credentials. The catalog query checks the PostgreSQL 16.4 version, relation kind/inheritance/partitioning, exact extension trigger/function, no other direct user-defined trigger, trigger enabled state/timing/level/operation/WHEN/UPDATE OF shape, argument count and strict budget matching the reviewed plan, plus the supplied writer role's superuser/elevated attributes, ownership, `TRIGGER` and trusted-schema `CREATE` boundaries. It rejects effective `SET` or `ALTER SYSTEM` privileges on `session_replication_role` (which can skip origin triggers), and conservatively rejects **any other SET-able role**, including transitive SET ROLE chains; SET-able group-role topologies are unsupported, and this is not a general group-role privilege verifier. Indirect trigger/cascade graphs are not recursively validated. Only local PostgreSQL 16.4 is the expected fixture; managed PostgreSQL and other versions are not validated. This command does not make the candidate a released or supported protection claim. |
-| Arbitrary-table V0 first-run demo (#48) | **TESTED locally; acceptance candidate** | `./writeleash demo` creates two runtime-named ordinary relations on the pinned PG16.4 Compose fixture. It applies only `protect-update`-generated trusted-admin SQL; each generated catalog preflight must PASS before restricted-writer transactions. One safe transaction consumes 5 + 3 independently and COMMITs; a sixth event on A and a fourth on B each deny COMMIT after attempted savepoint recovery. Fresh trusted-admin sessions compare exact row values after safe and denied transactions. Dedicated project cleanup and two sequential clean CI runs are asserted. [product demo](../demo/product_update_demo.sh), [CI](../.github/workflows/native-pg16-security.yml). Not a supported release, managed installation or broader SQL guarantee. |
+| Arbitrary-table V0 first-run demo (#48) | **TESTED locally; acceptance candidate** | `./writeleash demo` creates two runtime-named ordinary relations on the pinned PG16.4 Compose fixture. It applies only `protect-update`-generated trusted-admin SQL; each generated catalog preflight must PASS before restricted-writer transactions. One safe transaction consumes 5 + 3 independently and COMMITs; a sixth event on A and a fourth on B each deny COMMIT after attempted savepoint recovery. Fresh trusted-admin sessions compare exact row values after safe and denied transactions. Dedicated project cleanup and two sequential clean CI runs are asserted. [research demo](../demo/product_update_demo.sh), [CI](../.github/workflows/native-pg16-security.yml). Not a supported release, managed installation or broader SQL guarantee. |
 | Research-fixture row-count authority | **TESTED (fixed research policies)** | Independently keyed `subscriptions.rows_updated` and `users.rows_updated` limits (fixture: 5). One broad `UPDATE`, statement decomposition, repeated updates of one row, zero-row and no-op updates, writable CTE, prepared `UPDATE`, `EXPLAIN (ANALYZE)` and tested `MERGE ... WHEN MATCHED THEN UPDATE` forms share one transaction budget and abort on excess. The `writeleash_native.test_budget` GUC is **not** the generic policy interface. [evidence](../experiments/native_tx_state/README.md#row-event-definition) |
 | State-transition authority | **TESTED** | One fixed rule: any `UPDATE` of the text `users.role` to `admin` is denied (`* -> admin`); `member -> moderator` is allowed. Bulk and mixed transitions, savepoint recovery and caught exceptions remain sticky. Other columns/roles/rules are not tested. [evidence](../experiments/native_tx_state/README.md#canonical-state-transition-tests-cc-020cc-022) |
 | Numeric positive-delta authority | **TESTED** | `refunds.amount` exact-decimal positive delta with fixture budget `100.00`; values below/at/above budget, decomposed statements, gross-vs-net oscillation, CTE/prepared/`EXPLAIN` forms, and two-session row-lock contention scenarios A/B/C. `numeric` without typmod; server-validated finite, nonnegative, 16 integer / 2 fractional digits. [decision semantics](numeric-delta-decision-proposal.md) |
@@ -85,7 +92,7 @@ suite run is not a claim that arbitrary SQL is protected.
 | Other isolation levels, >2 sessions, deadlock workloads | **NOT TESTED** | Only two-session `READ COMMITTED` evidence exists. |
 | Connection poolers, session reset, role switching | **NOT TESTED** | Same-backend reuse only; PgBouncer/session pooling behavior is unknown. |
 | Two-phase commit with prepared transactions enabled | **NOT TESTED** | Fixture has `max_prepared_transactions = 0` and `PREPARE TRANSACTION` is blocked (`55000`). |
-| Unprotected tables and all other relations | **UNSUPPORTED** | CommitCap governs only declared protected effects. An unprotected sibling mutation can share the same transaction (it is rolled back on tested denials, but it is not itself bounded). |
+| Unprotected tables and all other relations | **UNSUPPORTED** | The WriteLeash PostgreSQL research mechanism governs only declared protected effects. An unprotected sibling mutation can share the same transaction (it is rolled back on tested denials, but it is not itself bounded). |
 
 ## C. Deployment
 
@@ -93,15 +100,15 @@ suite run is not a claim that arbitrary SQL is protected.
 | --- | --- | --- |
 | Local / self-managed research fixture (Docker Compose, PostgreSQL 16.4) | **TESTED** | [demo](../demo/phase0/README.md), [native suite](../experiments/native_tx_state/README.md), pinned image digest. |
 | Amazon RDS for PostgreSQL 16, unchanged native mechanism | **BLOCKED via standard customer interfaces (documentary)** | The current native module requires server-installed files under `$libdir` and preload; current RDS customer interfaces do not offer installation of this unlisted module. This does not rule out a different future architecture or provider packaging. No RDS instance was used. [managed feasibility](managed-postgres-feasibility.md) |
-| CloudNativePG (operator-managed PostgreSQL on GKE, not fully managed DBaaS) | **NOT TESTED (documented mechanism)** | A customer-built image could embed the module and set preload; no cluster, image or managed reproduction exists. Docs establish mechanisms, not CommitCap behavior. [managed feasibility](managed-postgres-feasibility.md#candidate-a-cloudnativepg-128-on-google-kubernetes-engine-gke-standard) |
+| CloudNativePG (operator-managed PostgreSQL on GKE, not fully managed DBaaS) | **NOT TESTED (documented mechanism)** | A customer-built image could embed the module and set preload; no cluster, image or managed reproduction exists. Docs establish mechanisms, not WriteLeash behavior. [managed feasibility](managed-postgres-feasibility.md#candidate-a-cloudnativepg-128-on-google-kubernetes-engine-gke-standard) |
 | Crunchy Bridge provider-packaged module | **NOT TESTED / unverified** | Provider packaging is a research hypothesis, not a support path. [managed feasibility](managed-postgres-feasibility.md#candidate-b-crunchy-bridge-pg16-provider-packaging-request) |
-| **Actual managed PostgreSQL deployment** | **NOT TESTED** | No authorized managed instance, credentials or cloud resources were used. Issue [#10](https://github.com/MrDarkRoot/CommitCap/issues/10) remains open. Do not claim RDS or managed support. |
+| **Actual managed PostgreSQL deployment** | **NOT TESTED** | No authorized managed instance, credentials or cloud resources were used. Issue [#10](https://github.com/MrDarkRoot/WriteLeash/issues/10) remains open. Do not claim RDS or managed support. |
 
 ## D. Performance
 
 | Result | Status | Evidence |
 | --- | --- | --- |
-| Issue [#15](https://github.com/MrDarkRoot/CommitCap/issues/15) enforcement-overhead benchmark | **INCONCLUSIVE** | PR [#22](https://github.com/MrDarkRoot/CommitCap/pull/22) contains two complete, exit-0 measured runs on PostgreSQL 16.4. Both verified durable state and 30 denial trials per denied class, but baseline throughput shifted sharply and paired changes reversed direction across rounds. No stable overhead estimate, no PASS threshold and no production claim is derived. Raw data: `benchmarks/phase0/evidence/REPORT.md`, `raw-run*.csv`, `summary-run*.json`, `metadata-run*.json` on the PR branch. |
+| Issue [#15](https://github.com/MrDarkRoot/WriteLeash/issues/15) enforcement-overhead benchmark | **INCONCLUSIVE** | PR [#22](https://github.com/MrDarkRoot/WriteLeash/pull/22) contains two complete, exit-0 measured runs on PostgreSQL 16.4. Both verified durable state and 30 denial trials per denied class, but baseline throughput shifted sharply and paired changes reversed direction across rounds. No stable overhead estimate, no PASS threshold and no production claim is derived. Raw data: `benchmarks/phase0/evidence/REPORT.md`, `raw-run*.csv`, `summary-run*.json`, `metadata-run*.json` on the PR branch. |
 | Denied-path client timings | **INCONCLUSIVE** | PR #22 also reports protected-only client-observed denial durations. They are not comparable to accepted baseline transactions and are not an overhead claim. |
 
 Do not quote a single favorable number from these runs. A controlled-host
@@ -109,23 +116,25 @@ rerun is required before any overhead statement is published.
 
 ## E. Product and release status
 
-Exactly one product stage is current. A runnable research fixture is **not** a
-released Public Research Preview:
+For the PostgreSQL/native substrate, the local research mechanism is current
+technical work, not a released Public Research Preview. Separately, the public
+Free product direction is the planned WooCommerce workflow in #106:
 
 | Status | Current | Reason |
 | --- | --- | --- |
 | Research mechanism | **CURRENT** | Native backend-local transaction-state experiment exists and passes its research suite. |
-| Public Research Preview ([#31](https://github.com/MrDarkRoot/CommitCap/issues/31)) | **PREPARING — NOT YET RELEASED** | The umbrella issue remains open; demo/docs/PR work prepares for it but is not a launch. |
-| Supported release | **NO** | No release, support envelope or published support interface exists. |
-| Production-ready security control | **NO** | Do not deploy CommitCap as a security control; see [README](../README.md) and [SECURITY.md](../SECURITY.md). |
+| PostgreSQL Public Research Preview ([#31](https://github.com/MrDarkRoot/WriteLeash/issues/31)) | **NOT RELEASED** | The historical research-preview issue remains open; this local evidence does not authorize publication. |
+| Intended WriteLeash Free 1.0 product ([#106](https://github.com/MrDarkRoot/WriteLeash/issues/106)) | **PLANNED; implementation pending** | Safe WooCommerce bulk price changes are the intended public Free product. Build/proof gates #107–#112 must complete first; **public release is deferred**. |
+| Supported public Free release | **NO — DEFERRED** | #106's WooCommerce workflow is not implemented; #107–#112 and later rewritten release gates remain. |
+| Production-ready security control | **NO** | Do not deploy this PostgreSQL research mechanism as a security control; see [README](../README.md) and [SECURITY.md](../SECURITY.md). |
 
 Open research gates, none of them passed and none claimed here: real managed
-deployment ([#10](https://github.com/MrDarkRoot/CommitCap/issues/10)),
+deployment ([#10](https://github.com/MrDarkRoot/WriteLeash/issues/10)),
 reproducible enforcement-overhead measurement
-([#15](https://github.com/MrDarkRoot/CommitCap/issues/15)), real-workflow
-validation ([#16](https://github.com/MrDarkRoot/CommitCap/issues/16)), and the
+([#15](https://github.com/MrDarkRoot/WriteLeash/issues/15)), real-workflow
+validation ([#16](https://github.com/MrDarkRoot/WriteLeash/issues/16)), and the
 local prototype acceptance/deployment gate
-([#19](https://github.com/MrDarkRoot/CommitCap/issues/19)).
+([#19](https://github.com/MrDarkRoot/WriteLeash/issues/19)).
 
 ## F. Trust model
 
@@ -143,12 +152,12 @@ local prototype acceptance/deployment gate
 
 The correct claim is:
 
-> **CommitCap governs supported transactional relational mutations and declared
+> **WriteLeash's PostgreSQL research mechanism governs supported transactional relational mutations and declared
 > relational effects.**
 
 Not:
 
-> ~~CommitCap controls all PostgreSQL side effects.~~
+> ~~WriteLeash controls all PostgreSQL side effects.~~
 
 Also preserve that distinction: a declared relational metric such as
 `refunds.amount positive_delta = 100` means the measured PostgreSQL value moved

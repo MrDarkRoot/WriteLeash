@@ -1,5 +1,10 @@
 # WriteLeash for WordPress Free V0.1: Admin and WP-CLI surfaces (#60)
 
+> This documents the existing advanced V0.1 technical substrate, not the
+> intended public Free 1.0 product. #106 governs planned safe WooCommerce bulk
+> price changes; that workflow is not implemented, #107–#112 remain pending,
+> and public release is deferred.
+
 Tools → WriteLeash presents **one** certified production operation:
 Redirection **5.5.2** → Redirects → select all matching → Bulk Actions →
 Disable (`redirection-5.5.2-bulk-disable-global`). The real mutation remains
