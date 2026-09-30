@@ -8,6 +8,7 @@ gate. Repository: [`MrDarkRoot/WriteLeash`](https://github.com/MrDarkRoot/WriteL
 | --- | --- |
 | Audit base (live `main`) | `885684bbc147da7deeb0178f8f667d96a799f33c` |
 | Final substantive rebrand/docs audit tree | `cd05e12b5e29766aa1d3b67c122651d2bd00b82d` (readme notice/description corrected after Plugin Check review) |
+| CI-verified PR head before this report update | `fc5d64c7ea50320f0fc16299fdfb5c980a656933` |
 
 The stale-name search counts below describe the substantive audit tree at
 `cd05e12b5e29766aa1d3b67c122651d2bd00b82d`. This report is the following audit-record-only change and is
@@ -188,27 +189,47 @@ rewrites remain future work.
   WordPress package preflight/readme validation/source audit **PASS**.
 - Local Docker-backed DB regression could not run: `/var/run/docker.sock` is
   absent. `tests/writeleash_catalog.sh` stopped before fixture startup for that
-  reason. The MySQL/MariaDB, Redirection, plugin-research, current-core,
-  release-matrix, MySQL/MariaDB feasibility, and native PG16 suites require
-  Docker and are not claimed as locally passed.
+  reason. Docker-backed suites were run by GitHub Actions on the PR head.
 - Existing live-main CI at #105 SHA `885684bbc147da7deeb0178f8f667d96a799f33c`
   had the Native PG16, MySQL/MariaDB feasibility, WordPress foundation, engine
   research, and plugin research workflows **success**. The Redirection adapter
   and composed V0.1 release matrix **failed** in the #61 concurrent overlap
   proof: the trusted barrier queued both requests, but `await_overlap(update)`
   timed out; responses were HTTP 503/500. The release matrix stopped before
-  later current-core acceptance. This is a pre-existing main regression gate,
-  not caused by this documentation-only change. Guard behavior and test
-  assertions were not changed to mask it.
-- On the initial #98 candidate heads, the standalone adapter passed but the
-  composed release matrix stopped at Plugin Check: the development notice made
-  the parsed readme short description too long (`errors=37`, `warnings=4`). The
-  notice was moved into a concise first description line; the maintained
-  readme validator now reports a 71-character description. Final-head Actions
-  for `cd05e12b5e29766aa1d3b67c122651d2bd00b82d` are the remaining regression
-  gate at audit-record authoring.
-- The #105 Plugin Check run reported **37 errors, 3 warnings, 40 reviewed, 0
-  security/runtime blockers**. These are reviewed exceptions, not “zero
-  warnings.” PHP runtime source is unchanged by this audit.
+  later current-core acceptance. This did not reproduce on the final PR head.
+  Guard behavior and test assertions were not changed to mask it.
+- An initial #98 candidate readme notice caused Plugin Check to report one
+  additional `readme_parser_warnings_trimmed_short_description` warning
+  (`errors=37`, `warnings=4`); the notice was shortened and moved so the
+  maintained validator reports a 71-character short description. The final
+  PR-head Plugin Check result returned to the established reviewed inventory:
+  **37 errors, 3 warnings, 40 reviewed, 0 security/runtime blockers**, on both
+  database engines. These are reviewed exceptions, not “zero warnings.”
+- The final PR head
+  `fc5d64c7ea50320f0fc16299fdfb5c980a656933` completed all seven maintained
+  GitHub check runs with `completed / success`:
+
+  | Workflow/check | Run | Result |
+  | --- | ---: | --- |
+  | WordPress plugin foundation (MySQL + MariaDB) | [36672828700](https://github.com/MrDarkRoot/WriteLeash/actions/runs/36672828700) | PASS |
+  | WordPress plugin research | [36672828692](https://github.com/MrDarkRoot/WriteLeash/actions/runs/36672828692) | PASS |
+  | WordPress MySQL/MariaDB engine research (includes the maintained feasibility script) | [36672828766](https://github.com/MrDarkRoot/WriteLeash/actions/runs/36672828766) | PASS |
+  | WordPress Redirection adapter | [36672828684](https://github.com/MrDarkRoot/WriteLeash/actions/runs/36672828684) | PASS |
+  | WordPress V0.1 regression/release matrix | [36672828735](https://github.com/MrDarkRoot/WriteLeash/actions/runs/36672828735) | PASS |
+  | Native PG16 security research | [36672828728](https://github.com/MrDarkRoot/WriteLeash/actions/runs/36672828728) | PASS |
+
+- The final-head matrix records Doctor READY and the certified Redirection
+  operation on both MySQL 8.0.44 and MariaDB 10.11.15: safe HTTP 200 / COMMITTED,
+  over-L HTTP 409 / logical DENIED with a fresh observer, normal DB identity
+  performs no protected UPDATE while the restricted identity does, old-only and
+  mixed graphs refuse readiness, trusted reprovision restores READY, and
+  deactivation/uninstall boundaries remain unchanged. The #97 matrix proves
+  old-only NOT_READY and mixed A–F NOT_READY on both engines. The #61 concurrency
+  overlap is proven on both engines with zero stale accounting and READY after.
+- Current-core acceptance passed on WordPress 7.1.2 / PHP 8.2 with MySQL 8.0.44,
+  MariaDB 10.11.15, and Redirection 5.5.2. Both engines reached Doctor READY
+  and passed safe/denied real operations with fresh-observer checks.
+- Plugin Check and package preflight ran in the final-head matrix. PHP runtime
+  source is unchanged by this audit.
 - Security semantics changed: **NO**. WooCommerce product code added: **NO**.
   Production behavior changed: **NO**.
