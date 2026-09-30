@@ -46,3 +46,4 @@ coverage/
 htmlcov/
 dist/
 build/
+wordpress/tests/free/cache/

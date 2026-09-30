@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - 'experiments/mysql_tx_budget/**'
+      - 'wordpress/**'
       - '.github/workflows/mysql-mariadb-feasibility.yml'
   push:
     branches: [main]
     paths:
       - 'experiments/mysql_tx_budget/**'
+      - 'wordpress/**'
       - '.github/workflows/mysql-mariadb-feasibility.yml'
 
 permissions:
