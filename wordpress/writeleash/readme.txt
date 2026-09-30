@@ -7,15 +7,15 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Development-only Redirection V0.1 substrate; WooCommerce Free 1.0 is planned,
-not implemented, and public release is deferred.
-
-This package documents one existing advanced technical operation. It is not
-the intended WooCommerce Free 1.0 product.
-
-Put a mutation budget on Redirection bulk Disable: inside the budget it commits, over budget it is denied before WriteLeash commits.
+Development-only technical package. Planned WooCommerce Free 1.0 is not
+implemented; public release is deferred.
 
 == Description ==
+
+This package documents the existing advanced Redirection V0.1 technical
+substrate, not the intended WooCommerce Free 1.0 product. It applies a mutation
+budget to Redirection bulk Disable: inside budget it commits; over budget it is
+denied before WriteLeash commits.
 
 Bulk changes are useful because one click can change hundreds of rows.
 
