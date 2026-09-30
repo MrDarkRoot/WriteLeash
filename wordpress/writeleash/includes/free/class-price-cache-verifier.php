@@ -56,11 +56,12 @@ final class Price_Cache_Verifier {
 		$db = self::observer();
 		$original = $GLOBALS['wpdb'];
 		try {
-			$row = Price_Apply_Journal::read( $db, $plan->hash(), $id );
+			$row = Price_Apply_Journal::read( $db, $plan->data()['plan_id'], $id );
 			$item = $plan->item( $id )->data();
-			if ( ! $row || 'APPLIED' !== $row['state'] || $row['plan_json'] !== $plan->json() || $row['expected_price'] !== $item['expected_regular_price'] || $row['target_price'] !== $item['planned_regular_price'] || ! $row['applied_at'] || ! $row['attempt_id'] ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			if ( ! $row || 'APPLIED' !== $row['state'] || ! $row['applied_at'] || ! $row['attempt_id'] ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			Price_Apply_Journal::assert_binding( $row, $plan, $id );
 			$evidence = json_decode( $row['evidence'], true );
-			if ( ! is_array( $evidence ) || ( $evidence['attempt_id'] ?? '' ) !== $row['attempt_id'] || ( $evidence['plan_hash'] ?? '' ) !== $plan->hash() || ( $evidence['target'] ?? '' ) !== $row['target_price'] || ( $evidence['product_id'] ?? 0 ) !== $id || ( $evidence['connection_id'] ?? 0 ) < 1 ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			if ( ! is_array( $evidence ) || ( $evidence['plan_id'] ?? '' ) !== $row['plan_id'] || ( $evidence['plan_schema_version'] ?? 0 ) !== (int) $row['plan_schema_version'] || ( $evidence['plan_hash_version'] ?? '' ) !== $row['plan_hash_version'] || ( $evidence['attempt_id'] ?? '' ) !== $row['attempt_id'] || ( $evidence['plan_hash'] ?? '' ) !== $row['plan_hash'] || ( $evidence['target'] ?? '' ) !== $row['target_price'] || ( $evidence['product_id'] ?? 0 ) !== $id || ( $evidence['connection_id'] ?? 0 ) < 1 ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 			foreach ( array( 'regular', 'active', 'lookup_min', 'lookup_max' ) as $key ) {
 				try { $match = isset( $evidence[$key] ) && Price_Decimal::parse( $evidence[$key] ) === Price_Decimal::parse( $row['target_price'] ); }
 				catch ( \Throwable $error ) { $match = false; }

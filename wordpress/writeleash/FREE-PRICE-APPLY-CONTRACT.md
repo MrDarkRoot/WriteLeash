@@ -9,7 +9,8 @@ invariants before adding scheduling. Guard/Strict and Redirection are separate.
 
 `Woo_Price_Mutator::apply(Change_Plan, product_id)` accepts the existing #107
 immutable object and a trusted seeded journal row. The row retains the exact
-canonical plan JSON/hash, schema version, product ID, expected canonical string
+canonical plan ID/JSON/hash, plan schema/hash versions, journal schema version,
+product ID, expected canonical string
 and planned absolute string. Blocked and nonchanging items cannot execute. The
 executor uses #107's `precondition()` and `Price_Decimal::parse()` comparison; it
 contains no operation arithmetic, target recalculation or selection query.
@@ -36,6 +37,40 @@ public read, and refuses all three cases without saving.
 
 The actual lookup's decimal representation must compare equal; incompatible
 lookup precision fails verification rather than manufacturing an APPLIED result.
+
+## Plan instance identity and fingerprint
+
+`(plan_id, product_id)` is execution identity, with a case-sensitive ASCII plan
+ID column matching #107's ID grammar. `plan_hash` is the immutable material
+fingerprint. #107 intentionally excludes identity ID/time from material hashing;
+two independently created plan instances may share the same hash. They receive
+separate journal rows, row locks, attempts and outcomes. The existing A/B fixture
+continues to use two authentic single-item plans in a test-only two-item worker.
+
+After locating by identity, seed, mutator and observer verify journal schema,
+plan ID/product, plan schema/hash versions (using `Change_Plan::SCHEMA_VERSION`
+and `HASH_VERSION`), fingerprint, full trusted JSON and expected/target strings.
+An exact repeated seed preserves the row and execution state. Its nondestructive
+INSERT collision handling always performs full binding validation afterward;
+same-ID changed material raises JOURNAL_MISMATCH. Diagnostic refusal must not
+rewrite a legitimate row belonging to different material under that same ID.
+
+APPLIED evidence includes both plan ID and hash, plan schema/hash versions,
+product, target and attempt. Observation verifies them against both the row and
+supplied plan. An identical hash never permits observation of another instance.
+Same-plan APPLIED retries suppress save. A fresh plan after a legitimate external
+reset from 80 to 100 can independently apply 100 to 80 despite sharing a hash.
+
+Journal schema **2** replaces the branch-local schema-1 fingerprint unique key.
+Install backfills identity/version columns from validated stored plan JSON,
+reuses #107's material hasher, and attaches identity/version to historical
+APPLIED evidence. It preserves row IDs, states, attempts and timestamps. Reviewed
+ALTER statements tighten NOT NULL constraints and remove the obsolete index;
+`dbDelta` installs/verifies the new shape. Mutation/seed refuse incomplete schema
+or wrong identity collation/index. Malformed legacy bindings are refused rather
+than assigned an invented identity. Upgrade/repeated install and historical
+APPLIED recovery are tested on both engines/cache modes. This is a narrow
+branch-local upgrade, not a public migration or #109 job schema.
 
 ## Source ownership evidence
 
@@ -82,7 +117,7 @@ This tests ownership rather than inferring it from the variable name `$wpdb`.
    users/usermeta and taxonomy tables. Installation uses versioned `dbDelta` and
    InnoDB; only a small nonautoloaded schema option is created.
 2. Start a short transaction on the original WP connection; install its ownership
-   sentinel. Lock journal `(plan_hash,product_id)` via `SELECT ... FOR UPDATE`.
+   sentinel. Lock journal `(plan_id,product_id)` via `SELECT ... FOR UPDATE`.
 3. Match full frozen JSON and price strings. If APPLIED, release transaction and
    independently verify evidence; return ALREADY_APPLIED without a product save.
    Other terminal states do not re-enter mutation.
@@ -112,10 +147,10 @@ connection. WriteLeash does not own every Woo write in the installation.
 
 ## Journal and typed results
 
-`<prefix>writeleash_price_items`: numeric primary key; unique plan_hash/product_id;
+`<prefix>writeleash_price_items`: numeric primary key; unique plan_id/product_id;
 version, immutable JSON, old/target prices, PENDING/APPLYING/APPLIED/CONFLICT/FAILED/
 NEEDS_REVIEW, attempt UUID, UTC timestamps, reason and JSON evidence. APPLIED
-records plan hash/product/attempt, writer connection, target, raw regular/active
+records plan ID/hash/versions/product/attempt, writer connection, target, raw regular/active
 and min/max lookup values. Other sessions see it only after COMMIT.
 
 Stable returned `code` and `reason` are separate from human display copy:

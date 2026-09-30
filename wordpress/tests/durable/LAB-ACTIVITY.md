@@ -95,3 +95,35 @@ all values remain prepared. Only the unavoidable custom-table INSERT direct-call
 and no-cache style warnings have an exact-line PHPCS rationale. The old Plugin
 Check parser and all maintained test requirements remain unchanged. The revised
 candidate must rerun focused tests and all CI checks.
+
+
+## Maintainer plan-identity blocker repair
+
+Audited old head: `fe4abd4957f75c9fd0c46caa224380e83fc5ebf3`.
+Live PR #115/base matched; #107 completed; #108/#109 OPEN; previous checks green.
+Untracked icons preserved.
+
+Before repair, the concrete collision reproduced on MySQL/MariaDB with default
+cache and Redis: P1 applied 100→80; trusted external reset to 100; a new real #107
+P2 had a different plan ID and the same material hash. Seed retained only one row;
+P2 returned NEEDS_REVIEW/JOURNAL_MISMATCH and zero saves. Reproduction is bounded
+lab evidence, not a supported PASS.
+
+Schema 2 uses plan_id/product_id identity, retaining and strictly verifying the
+material fingerprint, existing #107 schema/hash versions, JSON and price strings.
+APPLIED evidence includes identity as well as fingerprint. New tests cover
+sequential same-material instances, exact seed/retry idempotence, same-ID changed
+material, each immutable binding column, evidence identity, case-sensitive IDs,
+independent concurrent plan claims, and preserved schema-1 history on upgrade.
+Existing crash/cache/A-B tests remain intact. #107 files/semantics and the A/B
+two-plan interpretation remain unchanged; no #109 implementation.
+
+The exact repaired candidate must pass the full four-variant fixture and all nine
+maintained workflows. New-head CI artifacts and PR validation are authoritative;
+previous-head workflow success does not certify this repair.
+
+Local repaired matrix: MySQL 8.0.44 and MariaDB 10.11.15 each passed **369 default /
+371 Redis assertions** (1,480 total), including unchanged original fault coverage.
+The v1 upgrade test uses an isolated, fixture-owned journal table to avoid treating
+intentional tamper cases from the preceding cache variant as valid upgrade data.
+No previous negative controls were removed or repaired silently.

@@ -10,6 +10,7 @@ final class Woo_Price_Mutator {
 	}
 	private static function schema( \wpdb $db ): void {
 		if ( ! defined( 'WC_VERSION' ) || ! function_exists( 'wc_get_product' ) || ! did_action( 'woocommerce_init' ) || is_multisite() || 'wpdb' !== get_class( $db ) || '11.1.2' !== WC_VERSION ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+		Price_Apply_Journal::assert_schema( $db );
 		foreach ( array( $db->posts, $db->postmeta, $db->wc_product_meta_lookup, Price_Apply_Journal::table( $db ), $db->options, $db->users, $db->usermeta, $db->term_relationships, $db->term_taxonomy, $db->terms ) as $table ) {
 			if ( ! preg_match( '/\A[a-zA-Z0-9_]+\z/D', $table ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 			$engine = $db->get_var( $db->prepare( 'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) );
@@ -29,8 +30,12 @@ final class Woo_Price_Mutator {
 		$db = Price_Cache_Verifier::observer();
 		try {
 			$db->query( 'START TRANSACTION' );
-			$row = Price_Apply_Journal::read( $db, $plan->hash(), $id, true );
-			if ( $row && 'PENDING' === $row['state'] ) { Price_Apply_Journal::transition( $db, $plan->hash(), $id, $state, $reason, $attempt ); }
+			$row = Price_Apply_Journal::read( $db, $plan->data()['plan_id'], $id, true );
+			if ( $row ) {
+				try { Price_Apply_Journal::assert_binding( $row, $plan, $id ); }
+				catch ( Price_Apply_Error $error ) { $db->query( 'ROLLBACK' ); return; }
+			}
+			if ( $row && 'PENDING' === $row['state'] ) { Price_Apply_Journal::transition( $db, $plan->data()['plan_id'], $id, $state, $reason, $attempt ); }
 			if ( false === $db->query( 'COMMIT' ) ) { throw new Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
 		} finally { $db->close(); }
 	}
@@ -49,8 +54,9 @@ final class Woo_Price_Mutator {
 			$tx = new Price_Apply_Connection( $original );
 			$tx->begin();
 			$wpdb = $tx;
-			$row = Price_Apply_Journal::read( $tx, $plan->hash(), $id, true );
-			if ( ! $row || (int) $row['schema_version'] !== Price_Apply_Journal::SCHEMA_VERSION || $row['plan_json'] !== $plan->json() || $row['expected_price'] !== $item['expected_regular_price'] || $row['target_price'] !== $item['planned_regular_price'] ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			$row = Price_Apply_Journal::read( $tx, $plan->data()['plan_id'], $id, true );
+			if ( ! $row ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			Price_Apply_Journal::assert_binding( $row, $plan, $id );
 			self::checkpoint( 'ITEM_LOCKED', $id, $attempt );
 			if ( 'APPLIED' === $row['state'] ) {
 				$tx->rollback();
@@ -62,7 +68,7 @@ final class Woo_Price_Mutator {
 				$tx->rollback();
 				return array( 'code' => $row['state'], 'reason' => $row['reason'], 'attempt_id' => $row['attempt_id'] );
 			}
-			Price_Apply_Journal::transition( $tx, $plan->hash(), $id, 'APPLYING', 'ITEM_LOCKED', $attempt );
+			Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, 'APPLYING', 'ITEM_LOCKED', $attempt );
 			$post = $tx->get_row( $tx->prepare( "SELECT ID FROM {$tx->posts} WHERE ID=%d FOR UPDATE", $id ) );
 			if ( ! $post ) { throw new Price_Apply_Error( 'CONFLICT' ); }
 			// Lock all product meta (including absent-key ranges), lookup and type terms.
@@ -91,8 +97,8 @@ final class Woo_Price_Mutator {
 			$tx->assert_owned();
 			$after = Price_Cache_Verifier::storage( $tx, $id );
 			Price_Cache_Verifier::matches( $after, $item['planned_regular_price'] );
-			$evidence = Plan_Hasher::canonical_json( array( 'attempt_id' => $attempt, 'plan_hash' => $plan->hash(), 'product_id' => $id, 'target' => $item['planned_regular_price'], 'connection_id' => $tx->id(), 'regular' => $after['meta']['_regular_price'][0], 'active' => $after['meta']['_price'][0], 'lookup_min' => $after['lookup']['min_price'], 'lookup_max' => $after['lookup']['max_price'] ) );
-			Price_Apply_Journal::transition( $tx, $plan->hash(), $id, 'APPLIED', 'WOO_CRUD_VERIFIED', $attempt, $evidence );
+			$evidence = Plan_Hasher::canonical_json( array( 'attempt_id' => $attempt, 'plan_id' => $plan->data()['plan_id'], 'plan_schema_version' => Change_Plan::SCHEMA_VERSION, 'plan_hash_version' => Change_Plan::HASH_VERSION, 'plan_hash' => $plan->hash(), 'product_id' => $id, 'target' => $item['planned_regular_price'], 'connection_id' => $tx->id(), 'regular' => $after['meta']['_regular_price'][0], 'active' => $after['meta']['_price'][0], 'lookup_min' => $after['lookup']['min_price'], 'lookup_max' => $after['lookup']['max_price'] ) );
+			Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, 'APPLIED', 'WOO_CRUD_VERIFIED', $attempt, $evidence );
 			self::checkpoint( 'AFTER_JOURNAL_BEFORE_COMMIT', $id, $attempt );
 			$tx->commit();
 			$committed = true;

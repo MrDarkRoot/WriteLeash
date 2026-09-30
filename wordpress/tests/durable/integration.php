@@ -64,7 +64,7 @@ function truth( array $f, string $price, string $state, bool $fresh_woo = true )
 	$db = V::observer();
 	$original = $GLOBALS['wpdb'];
 	try {
-		$row = J::read( $db, $f['object']->hash(), $f['id'] );
+		$row = J::read( $db, $f['object']->data()['plan_id'], $f['id'] );
 		eq( $row['state'], $state, 'independent durable journal' );
 		$storage = V::storage( $db, $f['id'] );
 		V::matches( $storage, $price );
@@ -104,6 +104,8 @@ update_option( 'woocommerce_currency', 'USD' );
 update_option( 'woocommerce_price_num_decimals', 2 );
 J::install(); J::install();
 $wpdb->query( "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}wl108_hook_events (id bigint unsigned AUTO_INCREMENT PRIMARY KEY, product_id bigint unsigned NOT NULL, hook varchar(100) NOT NULL) ENGINE=InnoDB" );
+
+require __DIR__ . '/identity.php';
 
 // Reproduce before fixing: post/meta cleanup alone is insufficient.
 $f = fixture();
@@ -308,7 +310,7 @@ marker( 'fresh observer Woo read hook disagrees with durable truth: CACHE_VERIFI
 
 $f = fixture();
 eq( run_item( $f )['code'], 'APPLIED', 'journal tamper fixture' );
-$wpdb->update( J::table( $wpdb ), array( 'evidence' => '' ), array( 'plan_hash' => $f['object']->hash(), 'product_id' => $f['id'] ) );
+$wpdb->update( J::table( $wpdb ), array( 'evidence' => '' ), array( 'plan_id' => $f['object']->data()['plan_id'], 'product_id' => $f['id'] ) );
 $result = run_item( $f );
 eq( $result['code'], 'NEEDS_REVIEW', 'journal evidence mismatch cannot claim APPLIED' );
 eq( $result['reason'], 'JOURNAL_MISMATCH', 'typed journal mismatch' );
