@@ -5,6 +5,7 @@
 // each engine (separate WP-CLI process, same disposable site).
 require_once WP_PLUGIN_DIR . '/writeleash/writeleash.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/../old-identity-fixture.php';
 
 use WriteLeash\Certified_Operation;
 use WriteLeash\Certified_Operation_Status as Status;
@@ -253,13 +254,40 @@ foreach ( Engine::routine_names() as $cc78_routine ) {
 cc87_query( $root, 'DROP TABLE writeleash_v01_state' );
 cc87_query( $root, 'CREATE TABLE `commitcap_v01_state` (connection_id BIGINT UNSIGNED NOT NULL, policy_id CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, consumed BIGINT UNSIGNED NOT NULL, PRIMARY KEY (connection_id, policy_id)) ENGINE=InnoDB COMMENT=' . $root->prepare( '%s', str_replace( 'WriteLeash', 'CommitCap', $cc78_canonical_comment ) ) );
 foreach ( $cc78_canonical_routines as $cc78_name => $cc78_body ) {
-	cc87_query( $root, "CREATE PROCEDURE `" . $cc78_old_name( $cc78_name ) . '` ' . Engine::routine_params( $cc78_name ) . ' SQL SECURITY DEFINER ' . $cc78_body );
+	cc87_query( $root, "CREATE PROCEDURE `" . $cc78_old_name( $cc78_name ) . '` ' . Engine::routine_params( $cc78_name ) . ' SQL SECURITY DEFINER ' . cc97_old_identity_sql( $cc78_body ) );
 }
-cc87_query( $root, 'CREATE TRIGGER `' . $cc78_old_name( $cc78_canonical_trigger ) . '` BEFORE UPDATE ON `' . CC78_TABLE . '` FOR EACH ROW ' . Engine::trigger_body( CC78_TABLE, 2000, CC78_RUNTIME_USER ) );
+cc87_query( $root, 'CREATE TRIGGER `' . $cc78_old_name( $cc78_canonical_trigger ) . '` BEFORE UPDATE ON `' . CC78_TABLE . '` FOR EACH ROW ' . cc97_old_identity_sql( Engine::trigger_body( CC78_TABLE, 2000, CC78_RUNTIME_USER ) ) );
 foreach ( Engine::routine_names() as $cc78_routine ) {
 	cc87_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test." . $cc78_old_name( $cc78_routine ) . " TO 'cc87_writer'@'%'" );
 }
 cc87_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc87_writer'@'%'" );
+
+// #97 regression assertions: the old fixture bodies must be the exact old
+// identity, not old names wrapping canonical WriteLeash internals.
+$cc78_old_body_expectations = array(
+	'writeleash_v01_open'   => array( 'commitcap_v01_state' ),
+	'writeleash_v01_close'  => array( 'commitcap_v01_state', '@commitcap_v01_denied' ),
+	'writeleash_v01_count'  => array( 'commitcap_v01_state' ),
+	'writeleash_v01_policy' => array( 'commitcap_v01_state' ),
+	'writeleash_v01_attest' => array( 'commitcap_v01_open' ),
+);
+foreach ( $cc78_old_body_expectations as $cc78_routine => $cc78_expected ) {
+	$cc78_old_def = (string) $root->get_var( $root->prepare(
+		"SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = %s",
+		$cc78_old_name( $cc78_routine )
+	) );
+	cc87_assert( '' !== $cc78_old_def, 'old routine fixture exists: ' . $cc78_routine );
+	foreach ( $cc78_expected as $cc78_token ) {
+		cc87_assert( false !== strpos( $cc78_old_def, $cc78_token ), 'old routine body uses the old identity: ' . $cc78_routine . ' missing ' . $cc78_token );
+	}
+	cc87_assert( false === strpos( $cc78_old_def, 'writeleash_v01_' ), 'old routine body leaked the canonical identity: ' . $cc78_routine );
+}
+$cc78_old_trigger_body = (string) $root->get_var( $root->prepare(
+	"SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s",
+	$cc78_old_name( $cc78_canonical_trigger )
+) );
+cc87_assert( false !== strpos( $cc78_old_trigger_body, '@commitcap_v01_denied' ) && false !== strpos( $cc78_old_trigger_body, 'commitcap_v01_state' ), 'old trigger body uses the old identity' );
+cc87_assert( false === strpos( $cc78_old_trigger_body, 'writeleash_v01_' ), 'old trigger body leaked the canonical identity' );
 
 cc87_seed_bulk( $root, 2 );
 $cc78_old_graph = Status::check( $operation, '5.5.2', $runtime );
