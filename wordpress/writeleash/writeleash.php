@@ -80,4 +80,10 @@ require_once __DIR__ . '/includes/free/class-product-snapshot.php';
 require_once __DIR__ . '/includes/free/class-product-selector.php';
 require_once __DIR__ . '/includes/free/class-change-plan.php';
 
+// #108 controlled item primitive. No public mutation endpoint or automatic installer.
+require_once __DIR__ . '/includes/free/class-price-apply-connection.php';
+require_once __DIR__ . '/includes/free/class-price-apply-journal.php';
+require_once __DIR__ . '/includes/free/class-price-cache-verifier.php';
+require_once __DIR__ . '/includes/free/class-woo-price-mutator.php';
+
 \WriteLeash\Plugin::boot();
