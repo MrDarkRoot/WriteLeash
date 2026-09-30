@@ -1,0 +1,27 @@
+name: WordPress Woo immutable plan
+on:
+  pull_request:
+    paths: ['wordpress/**', '.github/workflows/wordpress-woo-plan.yml']
+  push:
+    branches: [main, free/107-woo-price-contract-plan]
+    paths: ['wordpress/**', '.github/workflows/wordpress-woo-plan.yml']
+permissions:
+  contents: read
+jobs:
+  woo-plan-107:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Pinned Woo read-only planning, pure arithmetic and two-engine fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash wordpress/tests/free/run.sh 2>&1 | tee "$RUNNER_TEMP/woo-plan-107.txt"
+      - name: Preserve contract evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: woo-plan-107
+          path: ${{ runner.temp }}/woo-plan-107.txt
+          retention-days: 7
