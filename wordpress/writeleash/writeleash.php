@@ -84,6 +84,16 @@ require_once __DIR__ . '/includes/free/class-change-plan.php';
 require_once __DIR__ . '/includes/free/class-price-apply-connection.php';
 require_once __DIR__ . '/includes/free/class-price-apply-journal.php';
 require_once __DIR__ . '/includes/free/class-price-cache-verifier.php';
+require_once __DIR__ . '/includes/free/class-price-apply-transaction-guard.php';
 require_once __DIR__ . '/includes/free/class-woo-price-mutator.php';
+
+// #109 durable job engine. Action Scheduler is only the wake-up mechanism.
+require_once __DIR__ . '/includes/free/class-job-state.php';
+require_once __DIR__ . '/includes/free/class-job-schema.php';
+require_once __DIR__ . '/includes/free/class-job-transaction-fence.php';
+require_once __DIR__ . '/includes/free/class-job-repository.php';
+require_once __DIR__ . '/includes/free/class-job-scheduler.php';
+require_once __DIR__ . '/includes/free/class-job-worker.php';
+require_once __DIR__ . '/includes/free/class-job-resume-rest.php';
 
 \WriteLeash\Plugin::boot();

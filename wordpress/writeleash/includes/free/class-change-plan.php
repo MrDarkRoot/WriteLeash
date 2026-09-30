@@ -5,8 +5,54 @@ defined( 'ABSPATH' ) || exit;
 
 final class Change_Plan_Item {
 	use Immutable_Price_Value;
+	public const RESULTS = array( 'CHANGING', 'UNCHANGED', 'UNSUPPORTED' );
 	private array $values;
-	public function __construct( Product_Price_Snapshot $snapshot, Price_Store_Context $context, Price_Operation $operation, Safety_Policy $policy ) {
+	private function __construct( array $values ) { $this->values = $values; }
+	/** Trusted persistence rehydration. Validates stored shape; never recomputes a target. */
+	public static function hydrate( array $values ): self {
+		foreach ( array( 'product_id', 'snapshot', 'expected_regular_price', 'planned_regular_price', 'result', 'eligibility', 'blockers', 'warnings', 'absolute_delta', 'percentage_delta' ) as $key ) {
+			if ( ! array_key_exists( $key, $values ) ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+		}
+		$s = $values['snapshot'];
+		if ( ! is_int( $values['product_id'] ) || $values['product_id'] < 1 || ! is_array( $s ) || ( $s['product_id'] ?? null ) !== $values['product_id'] ||
+			! is_bool( $s['exists'] ?? null ) || ! is_string( $s['type'] ?? null ) || ! is_bool( $s['core_simple'] ?? null ) || ! is_string( $s['status'] ?? null ) ||
+			! is_string( $s['regular_price'] ?? null ) || ! is_string( $s['sale_price'] ?? null ) ||
+			! ( null === ( $s['sale_from'] ?? null ) || is_string( $s['sale_from'] ) ) || ! ( null === ( $s['sale_to'] ?? null ) || is_string( $s['sale_to'] ) ) ) {
+			throw new Price_Validation_Error( 'invalid_plan_item' );
+		}
+		// Expected prices are stored in parse() canonical form; planned targets
+		// keep the store-decimal formatting from Price_Calculator::target().
+		if ( null !== $values['expected_regular_price'] && ( ! is_string( $values['expected_regular_price'] ) || Price_Decimal::parse( $values['expected_regular_price'] ) !== $values['expected_regular_price'] ) ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+		if ( null !== $values['planned_regular_price'] ) {
+			try { Price_Decimal::parse( $values['planned_regular_price'] ); }
+			catch ( \Throwable $error ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+		}
+		$eligibility = $values['eligibility'];
+		if ( ! in_array( $values['result'], self::RESULTS, true ) || ! is_array( $eligibility ) ||
+			! in_array( $eligibility['state'] ?? null, array( Eligibility_Result::ELIGIBLE, Eligibility_Result::UNSUPPORTED ), true ) ||
+			! ( null === ( $eligibility['reason'] ?? null ) || is_string( $eligibility['reason'] ) ) ||
+			! self::reason_list( $values['blockers'] ) || ! self::reason_list( $values['warnings'] ) ||
+			! ( null === $values['absolute_delta'] || is_string( $values['absolute_delta'] ) ) ) {
+			throw new Price_Validation_Error( 'invalid_plan_item' );
+		}
+		$percentage = $values['percentage_delta'];
+		if ( null !== $percentage && ( ! is_array( $percentage ) || ! is_string( $percentage['numerator'] ?? null ) || ! is_string( $percentage['denominator'] ?? null ) || ! is_string( $percentage['display'] ?? null ) ) ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+		$expected = $values['expected_regular_price'];
+		$planned = $values['planned_regular_price'];
+		if ( 'UNSUPPORTED' === $values['result'] ) {
+			if ( null !== $planned ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+		} elseif ( null === $expected || null === $planned || ( 'CHANGING' === $values['result'] ) === ( Price_Decimal::parse( $expected ) === Price_Decimal::parse( $planned ) ) ) {
+			throw new Price_Validation_Error( 'invalid_plan_item' );
+		}
+		return new self( $values );
+	}
+	private static function reason_list( $value ): bool {
+		if ( ! is_array( $value ) ) { return false; }
+		foreach ( $value as $reason ) { if ( ! is_string( $reason ) ) { return false; } }
+		return true;
+	}
+	/** Trusted #107 factory arithmetic. The only place a target price is computed. */
+	public static function compute( Product_Price_Snapshot $snapshot, Price_Store_Context $context, Price_Operation $operation, Safety_Policy $policy ): self {
 		$s = $snapshot->data();
 		$eligibility = Product_Price_Eligibility::evaluate( $snapshot, $context )->data();
 		$target = null;
@@ -25,11 +71,11 @@ final class Change_Plan_Item {
 				$eligibility = ( new Eligibility_Result( $e->reason() ) )->data();
 			}
 		}
-		$this->values = array_merge( array(
+		return new self( array_merge( array(
 			'product_id' => $s['product_id'], 'snapshot' => $s, 'expected_regular_price' => $expected,
 			'planned_regular_price' => $target, 'result' => $result, 'eligibility' => $eligibility,
 			'blockers' => $p->data()['blockers'], 'warnings' => $p->data()['warnings'],
-		), $delta );
+		), $delta ) );
 	}
 	public function data(): array { return $this->values; }
 }
@@ -76,22 +122,14 @@ final class Change_Plan {
 			if ( ! $snapshot instanceof Product_Price_Snapshot ) { throw new Price_Validation_Error( 'invalid_snapshot' ); }
 			$product_id = $snapshot->data()['product_id'];
 			if ( isset( $plan->items[$product_id] ) ) { throw new Price_Validation_Error( 'duplicate_selection' ); }
-			$plan->items[$product_id] = new Change_Plan_Item( $snapshot, $context, $operation, $policy );
+			$plan->items[$product_id] = Change_Plan_Item::compute( $snapshot, $context, $operation, $policy );
 		}
 		ksort( $plan->items, SORT_NUMERIC );
 		if ( 'IDS' === $selection->data()['type'] && array_keys( $plan->items ) !== $selection->data()['ids'] ) { throw new Price_Validation_Error( 'selection_snapshot_mismatch' ); }
 		$decision = Policy_Evaluator::plan( $plan->items, $policy )->data();
-		$plan->summary = array( 'selected' => count( $plan->items ), 'eligible' => 0, 'changing' => 0, 'unchanged' => 0, 'unsupported' => 0, 'blocked' => 0, 'conflicted' => 0, 'warning_items' => 0, 'warning_count' => count( $decision['warnings'] ), 'selection_warning_count' => count( $selection->data()['warnings'] ) );
+		$plan->summary = self::summarize( $plan->items, $decision, $selection->data()['warnings'] );
 		$item_data = array();
-		foreach ( $plan->items as $item ) {
-			$d = $item->data();
-			$item_data[] = $d;
-			++$plan->summary[ strtolower( $d['result'] ) ];
-			if ( 'UNSUPPORTED' !== $d['result'] ) { ++$plan->summary['eligible']; }
-			if ( $d['warnings'] ) { ++$plan->summary['warning_items']; }
-		}
-		// A plan-level blocker authorizes none of the changing items, including clean ones.
-		$plan->summary['blocked'] = Policy_Result::BLOCKED === $decision['state'] ? $plan->summary['changing'] : 0;
+		foreach ( $plan->items as $item ) { $item_data[] = $item->data(); }
 		$plan->material = array(
 			'schema_version' => self::SCHEMA_VERSION, 'hash_version' => self::HASH_VERSION, 'actor_id' => $actor,
 			'store' => $context->data(), 'selection' => $selection->data(), 'resolved_product_ids' => array_keys( $plan->items ),
@@ -100,6 +138,61 @@ final class Change_Plan {
 		);
 		$plan->hash = Plan_Hasher::hash( $plan->material );
 		return $plan;
+	}
+	/**
+	 * Trusted persistence rehydration of previously stored canonical material.
+	 * This is not an import or authorization boundary: the supplied fingerprint is
+	 * verified against the recomputed material, but a writer who controls both is
+	 * outside this threat model. Execution consumes only rehydrated frozen values.
+	 */
+	public static function hydrate( array $data ): self {
+		foreach ( array( 'plan_id', 'created_at', 'schema_version', 'hash_version', 'actor_id', 'store', 'selection', 'resolved_product_ids', 'operation', 'policy_snapshot', 'policy_result', 'status', 'items', 'plan_hash' ) as $key ) {
+			if ( ! array_key_exists( $key, $data ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		}
+		if ( ! preg_match( '/\A[a-zA-Z0-9_-]{1,64}\z/D', $data['plan_id'] ) || ! preg_match( '/\A[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\z/D', $data['created_at'] ) ||
+			! is_int( $data['actor_id'] ) || $data['actor_id'] < 1 || $data['schema_version'] !== self::SCHEMA_VERSION || $data['hash_version'] !== self::HASH_VERSION ||
+			! is_string( $data['plan_hash'] ) || ! preg_match( '/\A[0-9a-f]{64}\z/D', $data['plan_hash'] ) ) {
+			throw new Price_Validation_Error( 'invalid_plan_material' );
+		}
+		$material = $data;
+		unset( $material['plan_id'], $material['created_at'], $material['plan_hash'], $material['summary'] );
+		if ( ! hash_equals( $data['plan_hash'], Plan_Hasher::hash( $material ) ) ) { throw new Price_Validation_Error( 'plan_hash_mismatch' ); }
+		if ( ! is_array( $material['items'] ) || array_values( $material['items'] ) !== $material['items'] || ! is_array( $material['resolved_product_ids'] ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		$decision = $material['policy_result'];
+		if ( ! is_array( $decision ) || ! in_array( $decision['state'] ?? null, array( Policy_Result::ALLOW, Policy_Result::ALLOW_WITH_WARNINGS, Policy_Result::BLOCKED ), true ) || ! is_array( $decision['warnings'] ?? null ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		$expected_status = Policy_Result::BLOCKED === $decision['state'] ? 'BLOCKED' : 'PREVIEW';
+		if ( $expected_status !== ( $material['status'] ?? null ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		$selection = $material['selection'];
+		if ( ! is_array( $selection ) || ! is_array( $selection['warnings'] ?? null ) || ! is_array( $material['store'] ?? null ) || ! is_array( $material['operation'] ?? null ) || ! is_array( $material['policy_snapshot'] ?? null ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		$plan = new self();
+		$plan->identity = array( 'plan_id' => $data['plan_id'], 'created_at' => $data['created_at'] );
+		$plan->material = $material;
+		$plan->items = array();
+		foreach ( $material['items'] as $stored ) {
+			if ( ! is_array( $stored ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+			$item = Change_Plan_Item::hydrate( $stored );
+			$product_id = $stored['product_id'];
+			if ( isset( $plan->items[$product_id] ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+			$plan->items[$product_id] = $item;
+		}
+		ksort( $plan->items, SORT_NUMERIC );
+		if ( array_keys( $plan->items ) !== $material['resolved_product_ids'] ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		$plan->summary = self::summarize( $plan->items, $decision, $selection['warnings'] );
+		if ( isset( $data['summary'] ) && Plan_Hasher::canonical_json( $data['summary'] ) !== Plan_Hasher::canonical_json( $plan->summary ) ) { throw new Price_Validation_Error( 'plan_summary_mismatch' ); }
+		$plan->hash = $data['plan_hash'];
+		return $plan;
+	}
+	private static function summarize( array $items, array $decision, array $selection_warnings ): array {
+		$summary = array( 'selected' => count( $items ), 'eligible' => 0, 'changing' => 0, 'unchanged' => 0, 'unsupported' => 0, 'blocked' => 0, 'conflicted' => 0, 'warning_items' => 0, 'warning_count' => count( $decision['warnings'] ), 'selection_warning_count' => count( $selection_warnings ) );
+		foreach ( $items as $item ) {
+			$d = $item->data();
+			++$summary[ strtolower( $d['result'] ) ];
+			if ( 'UNSUPPORTED' !== $d['result'] ) { ++$summary['eligible']; }
+			if ( $d['warnings'] ) { ++$summary['warning_items']; }
+		}
+		// A plan-level blocker authorizes none of the changing items, including clean ones.
+		$summary['blocked'] = Policy_Result::BLOCKED === $decision['state'] ? $summary['changing'] : 0;
+		return $summary;
 	}
 	public function hash(): string { return $this->hash; }
 	public function data(): array { return array_merge( $this->identity, $this->material, array( 'plan_hash' => $this->hash, 'summary' => $this->summary ) ); }

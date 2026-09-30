@@ -39,7 +39,7 @@ final class Woo_Price_Mutator {
 			if ( false === $db->query( 'COMMIT' ) ) { throw new Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
 		} finally { $db->close(); }
 	}
-	public static function apply( Change_Plan $plan, int $id ): array {
+	public static function apply( Change_Plan $plan, int $id, ?Price_Apply_Transaction_Guard $guard = null ): array {
 		global $wpdb;
 		$original = $wpdb;
 		$tx = null;
@@ -54,6 +54,9 @@ final class Woo_Price_Mutator {
 			$tx = new Price_Apply_Connection( $original );
 			$tx->begin();
 			$wpdb = $tx;
+			// Optional fenced guard: acquires its row lock on this same
+			// connection before any journal/Woo write and holds it to COMMIT.
+			if ( $guard ) { $guard->acquire( $tx ); }
 			$row = Price_Apply_Journal::read( $tx, $plan->data()['plan_id'], $id, true );
 			if ( ! $row ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 			Price_Apply_Journal::assert_binding( $row, $plan, $id );
@@ -97,7 +100,9 @@ final class Woo_Price_Mutator {
 			$tx->assert_owned();
 			$after = Price_Cache_Verifier::storage( $tx, $id );
 			Price_Cache_Verifier::matches( $after, $item['planned_regular_price'] );
-			$evidence = Plan_Hasher::canonical_json( array( 'attempt_id' => $attempt, 'plan_id' => $plan->data()['plan_id'], 'plan_schema_version' => Change_Plan::SCHEMA_VERSION, 'plan_hash_version' => Change_Plan::HASH_VERSION, 'plan_hash' => $plan->hash(), 'product_id' => $id, 'target' => $item['planned_regular_price'], 'connection_id' => $tx->id(), 'regular' => $after['meta']['_regular_price'][0], 'active' => $after['meta']['_price'][0], 'lookup_min' => $after['lookup']['min_price'], 'lookup_max' => $after['lookup']['max_price'] ) );
+			$evidence = array( 'attempt_id' => $attempt, 'plan_id' => $plan->data()['plan_id'], 'plan_schema_version' => Change_Plan::SCHEMA_VERSION, 'plan_hash_version' => Change_Plan::HASH_VERSION, 'plan_hash' => $plan->hash(), 'product_id' => $id, 'target' => $item['planned_regular_price'], 'connection_id' => $tx->id(), 'regular' => $after['meta']['_regular_price'][0], 'active' => $after['meta']['_price'][0], 'lookup_min' => $after['lookup']['min_price'], 'lookup_max' => $after['lookup']['max_price'] );
+			if ( $guard && $guard->connection_id() > 0 ) { $evidence['fence_connection_id'] = $guard->connection_id(); }
+			$evidence = Plan_Hasher::canonical_json( $evidence );
 			Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, 'APPLIED', 'WOO_CRUD_VERIFIED', $attempt, $evidence );
 			self::checkpoint( 'AFTER_JOURNAL_BEFORE_COMMIT', $id, $attempt );
 			$tx->commit();
@@ -114,14 +119,15 @@ final class Woo_Price_Mutator {
 			if ( $had_transaction && ! $rolled_back && 'AMBIGUOUS_COMMIT' !== $reason ) { $reason = 'TRANSACTION_LOST'; }
 			$wpdb = $original;
 			$review = $committed || in_array( $reason, array( 'TRANSACTION_LOST', 'AMBIGUOUS_COMMIT', 'CACHE_VERIFICATION_FAILED', 'LOOKUP_MISMATCH', 'JOURNAL_MISMATCH' ), true );
-			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'CONFLICT', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE' ), true ) ? $reason : 'FAILED' );
+			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'CONFLICT', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'FENCE_LOST' ), true ) ? $reason : 'FAILED' );
 			try {
 				// Connection loss: cleanup uses independent live DB, never a dead writer.
 				$observer = Price_Cache_Verifier::observer();
 				try { $wpdb = $observer; Price_Cache_Verifier::invalidate( $id ); } finally { $wpdb = $original; $observer->close(); }
 				if ( $tx && ( $rolled_back || $review ) ) {
-					// Known rollback FAILED remains PENDING for explicit retry. Review never auto-retries.
-					$state = $review ? 'NEEDS_REVIEW' : ( 'FAILED' === $code ? 'PENDING' : ( 'CONFLICT' === $code ? 'CONFLICT' : 'FAILED' ) );
+					// Known rollback FAILED/FENCE_LOST remains PENDING for an explicit retry or
+					// for the authoritative newer generation. Review never auto-retries.
+					$state = $review ? 'NEEDS_REVIEW' : ( in_array( $code, array( 'FAILED', 'FENCE_LOST' ), true ) ? 'PENDING' : ( 'CONFLICT' === $code ? 'CONFLICT' : 'FAILED' ) );
 					self::refusal( $plan, $id, $state, $reason, $attempt );
 				}
 			} catch ( \Throwable $cleanup ) { $code = 'NEEDS_REVIEW'; $reason = 'CACHE_VERIFICATION_FAILED'; }

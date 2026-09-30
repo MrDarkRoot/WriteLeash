@@ -23,7 +23,7 @@ php "$here/package-preflight.php" "$repo/wordpress/writeleash" "$repo/wordpress/
 php "$here/readme-validate.php" "$repo/wordpress/writeleash"
 php "$here/source-audit.php" "$repo/wordpress/writeleash"
 linted=0
-for file in "$tests"/*.php "$tests"/adapter/*.php "$tests"/current-core/*.php "$tests"/engine/*.php "$tests"/guard/*.php "$tests"/doctor/*.php "$here"/*.php; do
+for file in "$tests"/*.php "$tests"/adapter/*.php "$tests"/current-core/*.php "$tests"/engine/*.php "$tests"/guard/*.php "$tests"/doctor/*.php "$tests"/jobs/*.php "$here"/*.php; do
   php -l "$file" >/dev/null
   linted=$((linted + 1))
 done
