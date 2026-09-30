@@ -6,19 +6,19 @@ set -euo pipefail
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-ADMIN_PASSWORD='commitcap_admin_experiment_only'
-WRITER_PASSWORD='commitcap_writer_experiment_only'
+ADMIN_PASSWORD='writeleash_admin_experiment_only'
+WRITER_PASSWORD='writeleash_writer_experiment_only'
 
 admin_psql() {
     docker compose exec -T \
         -e "PGPASSWORD=$ADMIN_PASSWORD" \
-        postgres psql -X -h 127.0.0.1 -U commitcap_admin -d commitcap "$@"
+        postgres psql -X -h 127.0.0.1 -U writeleash_admin -d writeleash "$@"
 }
 
 writer_psql() {
     docker compose exec -T \
         -e "PGPASSWORD=$WRITER_PASSWORD" \
-        postgres psql -X -h 127.0.0.1 -U commitcap_writer -d commitcap "$@"
+        postgres psql -X -h 127.0.0.1 -U writeleash_writer -d writeleash "$@"
 }
 
 fail() {
@@ -27,7 +27,7 @@ fail() {
 }
 
 admin_psql -v ON_ERROR_STOP=1 -c \
-    "TRUNCATE TABLE commitcap.update_budget_state, public.subscriptions; INSERT INTO public.subscriptions (id, status) SELECT id, 'baseline' FROM generate_series(1, 10) AS ids(id);" \
+    "TRUNCATE TABLE writeleash.update_budget_state, public.subscriptions; INSERT INTO public.subscriptions (id, status) SELECT id, 'baseline' FROM generate_series(1, 10) AS ids(id);" \
     >/dev/null
 
 set +e
@@ -38,10 +38,10 @@ DO $block$
 BEGIN
     BEGIN
         UPDATE public.subscriptions SET status = 'cc024_excess' WHERE id = 6;
-        RAISE EXCEPTION 'CC-024 harness expected CommitCap denial';
+        RAISE EXCEPTION 'CC-024 harness expected WriteLeash denial';
     EXCEPTION
         WHEN OTHERS THEN
-            IF SQLERRM NOT LIKE 'CommitCap mutation budget exceeded%' THEN
+            IF SQLERRM NOT LIKE 'WriteLeash mutation budget exceeded%' THEN
                 RAISE;
             END IF;
             RAISE NOTICE 'CC024_CAUGHT: %', SQLERRM;
@@ -55,15 +55,15 @@ SQL
 psql_status=$?
 set -e
 
-[[ "$output" == *"CC024_CAUGHT: CommitCap mutation budget exceeded"* ]] || \
-    fail "the PL/pgSQL handler did not catch the CommitCap denial"
+[[ "$output" == *"CC024_CAUGHT: WriteLeash mutation budget exceeded"* ]] || \
+    fail "the PL/pgSQL handler did not catch the WriteLeash denial"
 [[ "$output" == *"attempted 6"* ]] || \
     fail "the caught denial did not identify event six"
 
 protected_state="$(admin_psql -At -v ON_ERROR_STOP=1 -c \
     "SELECT count(*) FILTER (WHERE status = 'baseline') || ':' || count(*) FILTER (WHERE status = 'cc024_allowed') || ':' || count(*) FILTER (WHERE status = 'cc024_excess') FROM public.subscriptions;")"
 accounting_state="$(admin_psql -At -v ON_ERROR_STOP=1 -c \
-    "SELECT count(*) || ':' || COALESCE(max(row_updates), 0) FROM commitcap.update_budget_state;")"
+    "SELECT count(*) || ':' || COALESCE(max(row_updates), 0) FROM writeleash.update_budget_state;")"
 commit_count="$(printf '%s\n' "$output" | grep -c '^COMMIT$' || true)"
 
 printf 'PostgreSQL: %s\n' "$(admin_psql -At -v ON_ERROR_STOP=1 -c 'SHOW server_version;')"

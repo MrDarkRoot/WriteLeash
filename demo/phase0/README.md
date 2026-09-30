@@ -43,7 +43,7 @@ From a clean checkout of the default branch:
 
 ```bash
 git clone https://github.com/MrDarkRoot/CommitCap.git
-cd CommitCap
+cd WriteLeash
 ./demo.sh
 ```
 
@@ -51,9 +51,9 @@ cd CommitCap
 same fixture and assertions.
 
 The script builds and starts an isolated Compose project
-(`COMPOSE_PROJECT_NAME=commitcap_demo` by default), applies the **unchanged**
+(`COMPOSE_PROJECT_NAME=writeleash_demo` by default), applies the **unchanged**
 `experiments/native_tx_state/setup.sql`, then drives six real SQL transactions
-as `commitcap_writer`. Each case resets *only disposable synthetic fixture
+as `writeleash_writer`. Each case resets *only disposable synthetic fixture
 rows* through the trusted admin. Every durable assertion opens a **new**
 trusted-admin connection after the writer connection exits; it compares every
 row in all three protected tables and the exact sibling audit-row count.
@@ -87,14 +87,14 @@ down -v`). It refuses to touch an existing project with that name. If another
 local Compose project uses the default name, choose a free one:
 
 ```bash
-COMPOSE_PROJECT_NAME=commitcap_demo_other ./demo/phase0/run.sh
+COMPOSE_PROJECT_NAME=writeleash_demo_other ./demo/phase0/run.sh
 ```
 
 If interrupted or Docker teardown fails, from the checkout root clean up
 **only the project name you selected** (this deletes its disposable database):
 
 ```bash
-COMPOSE_PROJECT_NAME=commitcap_demo docker compose -f experiments/native_tx_state/docker-compose.yml down -v
+COMPOSE_PROJECT_NAME=writeleash_demo docker compose -f experiments/native_tx_state/docker-compose.yml down -v
 ```
 
 If `docker info` fails, start Docker / fix access to the daemon; if Compose is

@@ -10,19 +10,19 @@ set -euo pipefail
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-ADMIN_PASSWORD='commitcap_admin_experiment_only'
-WRITER_PASSWORD='commitcap_writer_experiment_only'
+ADMIN_PASSWORD='writeleash_admin_experiment_only'
+WRITER_PASSWORD='writeleash_writer_experiment_only'
 
 admin_psql() {
     docker compose exec -T \
         -e "PGPASSWORD=$ADMIN_PASSWORD" \
-        postgres psql -X -h 127.0.0.1 -U commitcap_admin -d commitcap "$@"
+        postgres psql -X -h 127.0.0.1 -U writeleash_admin -d writeleash "$@"
 }
 
 writer_psql() {
     docker compose exec -T \
         -e "PGPASSWORD=$WRITER_PASSWORD" \
-        postgres psql -X -h 127.0.0.1 -U commitcap_writer -d commitcap "$@"
+        postgres psql -X -h 127.0.0.1 -U writeleash_writer -d writeleash "$@"
 }
 
 fail() {
@@ -45,7 +45,7 @@ initialize_experiment() {
     local existing_objects
 
     existing_objects="$(admin_psql -At -v ON_ERROR_STOP=1 -c \
-        "SELECT count(*) + CASE WHEN to_regclass('public.subscriptions') IS NULL THEN 0 ELSE 1 END FROM pg_roles WHERE rolname IN ('commitcap_owner', 'commitcap_writer');")"
+        "SELECT count(*) + CASE WHEN to_regclass('public.subscriptions') IS NULL THEN 0 ELSE 1 END FROM pg_roles WHERE rolname IN ('writeleash_owner', 'writeleash_writer');")"
 
     if [[ "$existing_objects" != "0" ]]; then
         fail "experiment state already exists; run: docker compose down -v --remove-orphans"
@@ -56,7 +56,7 @@ initialize_experiment() {
 
 reset_fixture() {
     admin_psql -v ON_ERROR_STOP=1 -c \
-        "TRUNCATE TABLE commitcap.update_budget_state, public.subscriptions; INSERT INTO public.subscriptions (id, status) SELECT id, 'baseline' FROM generate_series(1, 10) AS ids(id);" \
+        "TRUNCATE TABLE writeleash.update_budget_state, public.subscriptions; INSERT INTO public.subscriptions (id, status) SELECT id, 'baseline' FROM generate_series(1, 10) AS ids(id);" \
         >/dev/null
 }
 
@@ -77,80 +77,80 @@ assert_baseline() {
 
 assert_privilege_envelope() {
     assert_scalar "writer elevated role attributes" \
-        "SELECT rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls FROM pg_roles WHERE rolname = 'commitcap_writer';" \
+        "SELECT rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls FROM pg_roles WHERE rolname = 'writeleash_writer';" \
         "f"
     assert_scalar "writer membership in trusted owner" \
-        "SELECT pg_has_role('commitcap_writer', 'commitcap_owner', 'MEMBER');" \
+        "SELECT pg_has_role('writeleash_writer', 'writeleash_owner', 'MEMBER');" \
         "f"
 
     assert_scalar "writer CONNECT privilege" \
-        "SELECT has_database_privilege('commitcap_writer', 'commitcap', 'CONNECT');" \
+        "SELECT has_database_privilege('writeleash_writer', 'writeleash', 'CONNECT');" \
         "t"
     assert_scalar "writer TEMPORARY privilege" \
-        "SELECT has_database_privilege('commitcap_writer', 'commitcap', 'TEMPORARY');" \
+        "SELECT has_database_privilege('writeleash_writer', 'writeleash', 'TEMPORARY');" \
         "f"
     assert_scalar "writer public schema USAGE" \
-        "SELECT has_schema_privilege('commitcap_writer', 'public', 'USAGE');" \
+        "SELECT has_schema_privilege('writeleash_writer', 'public', 'USAGE');" \
         "t"
     assert_scalar "writer public schema CREATE" \
-        "SELECT has_schema_privilege('commitcap_writer', 'public', 'CREATE');" \
+        "SELECT has_schema_privilege('writeleash_writer', 'public', 'CREATE');" \
         "f"
     assert_scalar "writer trusted schema USAGE" \
-        "SELECT has_schema_privilege('commitcap_writer', 'commitcap', 'USAGE');" \
+        "SELECT has_schema_privilege('writeleash_writer', 'writeleash', 'USAGE');" \
         "f"
     assert_scalar "writer trusted schema CREATE" \
-        "SELECT has_schema_privilege('commitcap_writer', 'commitcap', 'CREATE');" \
+        "SELECT has_schema_privilege('writeleash_writer', 'writeleash', 'CREATE');" \
         "f"
 
     assert_scalar "writer SELECT(id) privilege" \
-        "SELECT has_column_privilege('commitcap_writer', 'public.subscriptions', 'id', 'SELECT');" \
+        "SELECT has_column_privilege('writeleash_writer', 'public.subscriptions', 'id', 'SELECT');" \
         "t"
     assert_scalar "writer UPDATE(status) privilege" \
-        "SELECT has_column_privilege('commitcap_writer', 'public.subscriptions', 'status', 'UPDATE');" \
+        "SELECT has_column_privilege('writeleash_writer', 'public.subscriptions', 'status', 'UPDATE');" \
         "t"
     assert_scalar "writer table-wide SELECT privilege" \
-        "SELECT has_table_privilege('commitcap_writer', 'public.subscriptions', 'SELECT');" \
+        "SELECT has_table_privilege('writeleash_writer', 'public.subscriptions', 'SELECT');" \
         "f"
     assert_scalar "writer table-wide UPDATE privilege" \
-        "SELECT has_table_privilege('commitcap_writer', 'public.subscriptions', 'UPDATE');" \
+        "SELECT has_table_privilege('writeleash_writer', 'public.subscriptions', 'UPDATE');" \
         "f"
     assert_scalar "writer SELECT(status) privilege" \
-        "SELECT has_column_privilege('commitcap_writer', 'public.subscriptions', 'status', 'SELECT');" \
+        "SELECT has_column_privilege('writeleash_writer', 'public.subscriptions', 'status', 'SELECT');" \
         "f"
     assert_scalar "writer UPDATE(id) privilege" \
-        "SELECT has_column_privilege('commitcap_writer', 'public.subscriptions', 'id', 'UPDATE');" \
+        "SELECT has_column_privilege('writeleash_writer', 'public.subscriptions', 'id', 'UPDATE');" \
         "f"
     assert_scalar "writer INSERT privilege" \
-        "SELECT has_table_privilege('commitcap_writer', 'public.subscriptions', 'INSERT');" \
+        "SELECT has_table_privilege('writeleash_writer', 'public.subscriptions', 'INSERT');" \
         "f"
     assert_scalar "writer DELETE privilege" \
-        "SELECT has_table_privilege('commitcap_writer', 'public.subscriptions', 'DELETE');" \
+        "SELECT has_table_privilege('writeleash_writer', 'public.subscriptions', 'DELETE');" \
         "f"
     assert_scalar "writer TRUNCATE privilege" \
-        "SELECT has_table_privilege('commitcap_writer', 'public.subscriptions', 'TRUNCATE');" \
+        "SELECT has_table_privilege('writeleash_writer', 'public.subscriptions', 'TRUNCATE');" \
         "f"
     assert_scalar "writer TRIGGER privilege" \
-        "SELECT has_table_privilege('commitcap_writer', 'public.subscriptions', 'TRIGGER');" \
+        "SELECT has_table_privilege('writeleash_writer', 'public.subscriptions', 'TRIGGER');" \
         "f"
 
     assert_scalar "subscriptions owner" \
         "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'subscriptions';" \
-        "commitcap_owner"
+        "writeleash_owner"
     assert_scalar "accounting-state owner" \
-        "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'commitcap' AND c.relname = 'update_budget_state';" \
-        "commitcap_owner"
+        "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'writeleash' AND c.relname = 'update_budget_state';" \
+        "writeleash_owner"
     assert_scalar "trusted schema owner" \
-        "SELECT pg_get_userbyid(nspowner) FROM pg_namespace WHERE nspname = 'commitcap';" \
-        "commitcap_owner"
+        "SELECT pg_get_userbyid(nspowner) FROM pg_namespace WHERE nspname = 'writeleash';" \
+        "writeleash_owner"
     assert_scalar "enforcement function owner" \
-        "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap' AND p.proname = 'enforce_update_budget';" \
-        "commitcap_owner"
+        "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'writeleash' AND p.proname = 'enforce_update_budget';" \
+        "writeleash_owner"
 
     assert_scalar "writer accounting-state access" \
-        "SELECT has_any_column_privilege('commitcap_writer', 'commitcap.update_budget_state', 'SELECT') OR has_any_column_privilege('commitcap_writer', 'commitcap.update_budget_state', 'INSERT') OR has_any_column_privilege('commitcap_writer', 'commitcap.update_budget_state', 'UPDATE') OR has_table_privilege('commitcap_writer', 'commitcap.update_budget_state', 'DELETE') OR has_table_privilege('commitcap_writer', 'commitcap.update_budget_state', 'TRUNCATE');" \
+        "SELECT has_any_column_privilege('writeleash_writer', 'writeleash.update_budget_state', 'SELECT') OR has_any_column_privilege('writeleash_writer', 'writeleash.update_budget_state', 'INSERT') OR has_any_column_privilege('writeleash_writer', 'writeleash.update_budget_state', 'UPDATE') OR has_table_privilege('writeleash_writer', 'writeleash.update_budget_state', 'DELETE') OR has_table_privilege('writeleash_writer', 'writeleash.update_budget_state', 'TRUNCATE');" \
         "f"
     assert_scalar "writer direct enforcement-function EXECUTE" \
-        "SELECT has_function_privilege('commitcap_writer', 'commitcap.enforce_update_budget()', 'EXECUTE');" \
+        "SELECT has_function_privilege('writeleash_writer', 'writeleash.enforce_update_budget()', 'EXECUTE');" \
         "f"
 
     printf 'privilege-envelope checks: PASS\n'
@@ -159,7 +159,7 @@ assert_privilege_envelope() {
 initialize_experiment
 printf 'PostgreSQL: %s\n' "$(admin_psql -At -v ON_ERROR_STOP=1 -c 'SHOW server_version;')"
 assert_privilege_envelope
-printf 'Roles: commitcap_admin (setup), commitcap_owner (NOLOGIN owner), commitcap_writer (non-superuser writer)\n'
+printf 'Roles: writeleash_admin (setup), writeleash_owner (NOLOGIN owner), writeleash_writer (non-superuser writer)\n'
 printf 'Writer grants: CONNECT, public USAGE, SELECT(id), and UPDATE(status); no direct enforcement-function EXECUTE\n'
 
 reset_fixture
@@ -178,7 +178,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc002_output" == *"CommitCap mutation budget exceeded"* ]] || fail "CC-002 did not report the budget denial"
+[[ "$cc002_output" == *"WriteLeash mutation budget exceeded"* ]] || fail "CC-002 did not report the budget denial"
 [[ "$cc002_output" == *"attempted 6"* ]] || fail "CC-002 denial did not identify the sixth event"
 [[ "$cc002_output" == *"ROLLBACK"* ]] || fail "CC-002 did not show transaction rollback"
 assert_baseline
@@ -198,7 +198,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc003_output" == *"CommitCap mutation budget exceeded"* ]] || fail "CC-003 did not report the cumulative budget denial"
+[[ "$cc003_output" == *"WriteLeash mutation budget exceeded"* ]] || fail "CC-003 did not report the cumulative budget denial"
 [[ "$cc003_output" == *"attempted 6"* ]] || fail "CC-003 denial did not identify the sixth event"
 cc003_success_count="$(printf '%s\n' "$cc003_output" | grep -c '^UPDATE 1$' || true)"
 [[ "$cc003_success_count" == "5" ]] || fail "CC-003 completed $cc003_success_count statements before denial, expected 5"

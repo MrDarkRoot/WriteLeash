@@ -38,9 +38,9 @@ $engine = new Engine( $root );
 cc57_query( $root, "REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'cc_writer'@'%'" );
 $engine->install_infrastructure();
 foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
-	cc57_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$routine TO 'cc_writer'@'%'" );
+	cc57_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.writeleash_v01_$routine TO 'cc_writer'@'%'" );
 }
-cc57_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc_writer'@'%'" );
+cc57_query( $root, "GRANT SELECT ON wp_test.writeleash_v01_state TO 'cc_writer'@'%'" );
 cc57_query( $root, 'CREATE TABLE cc57_target (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB' );
 cc57_query( $root, "GRANT SELECT, UPDATE ON wp_test.cc57_target TO 'cc_writer'@'%'" );
 $engine->install_policy( 'cc57_target', 5, 'cc_writer' );
@@ -93,7 +93,7 @@ cc57_query( $root, 'CREATE TABLE `cc57sidecar`.`cc57_hidden` (id INT PRIMARY KEY
 cc57_query( $root, 'INSERT INTO `cc57sidecar`.`cc57_hidden` (id, touched) VALUES (1, 0)' );
 cc57_query( $root, "GRANT SELECT, UPDATE, TRIGGER ON `cc57sidecar`.* TO 'cc_writer'@'%'" );
 $policy = hash( 'sha256', 'cc57_target' );
-$hidden_body = "BEGIN CALL wp_test.commitcap_v01_close('$policy'); CALL wp_test.commitcap_v01_open('$policy'); END";
+$hidden_body = "BEGIN CALL wp_test.writeleash_v01_close('$policy'); CALL wp_test.writeleash_v01_open('$policy'); END";
 $writer_created = false !== $writer->query( "CREATE TRIGGER `cc57sidecar`.`cc57_reset` BEFORE UPDATE ON `cc57sidecar`.`cc57_hidden` FOR EACH ROW $hidden_body" );
 if ( 'mysql' === $host ) {
 	// MySQL 8.0.44 pins binary logging with log_bin_trust_function_creators=0,
@@ -126,7 +126,7 @@ $bypass = Guard::update(
 );
 cc57_assert( 'bypass' === $bypass, 'hidden-trigger bypass did not reach guarded COMMIT' );
 cc57_assert( 10 === (int) $fresh->get_var( 'SELECT COALESCE(SUM(touched), 0) FROM cc57_target' ), 'hidden-trigger durable-event count changed' );
-cc57_assert( 0 === (int) $fresh->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state' ), 'hidden-trigger left accounting state' );
+cc57_assert( 0 === (int) $fresh->get_var( 'SELECT COUNT(*) FROM writeleash_v01_state' ), 'hidden-trigger left accounting state' );
 echo "#57 $host: cross-schema TRIGGER CLOSE→OPEN bypass: CONFIRMED, ten durable events under budget 5\n";
 
 $refuse = Doctor::run( 'cc57_target', 5, $writer, $root );
@@ -211,13 +211,13 @@ cc57_assert( $cc57_ambiguous && array() === $cc57_scopes, 'pattern write scope n
 
 // Malformed same-name infrastructure must not pass structural verification or
 // be rewritten, even though a restricted writer can still see a routine name.
-cc57_query( $root, 'DROP PROCEDURE commitcap_v01_count' );
-cc57_query( $root, 'CREATE PROCEDURE commitcap_v01_count(IN p_policy CHAR(64)) SELECT 1' );
+cc57_query( $root, 'DROP PROCEDURE writeleash_v01_count' );
+cc57_query( $root, 'CREATE PROCEDURE writeleash_v01_count(IN p_policy CHAR(64)) SELECT 1' );
 cc57_check( Doctor::run( 'cc57_target', 5, $writer, $root ), 'objects', 'FAIL' );
-cc57_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'commitcap_v01_count'" ), 'doctor modified conflicting routine' );
-cc57_query( $root, 'DROP PROCEDURE commitcap_v01_count' );
+cc57_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'writeleash_v01_count'" ), 'doctor modified conflicting routine' );
+cc57_query( $root, 'DROP PROCEDURE writeleash_v01_count' );
 $engine->install_infrastructure();
-cc57_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_count TO 'cc_writer'@'%'" );
+cc57_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.writeleash_v01_count TO 'cc_writer'@'%'" );
 cc57_check( Doctor::run( 'cc57_target', 5, $writer, $root ), 'objects', 'PASS' );
 
 cc57_query( $writer, 'START TRANSACTION' );
@@ -262,17 +262,18 @@ cc57_query( $root, 'DROP TABLE cc57_myisam' );
 $engine->remove_owned_policy( 'cc57_target', 5, 'cc_writer' );
 cc57_query( $root, 'DROP TABLE cc57_target' );
 foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
-	cc57_query( $root, 'DROP PROCEDURE commitcap_v01_' . $routine );
+	cc57_query( $root, 'DROP PROCEDURE writeleash_v01_' . $routine );
 }
-cc57_query( $root, 'DROP TABLE commitcap_v01_state' );
+cc57_query( $root, 'DROP TABLE writeleash_v01_state' );
 cc57_check( Doctor::run( null, null, $writer, $root ), 'objects', 'FAIL' );
-cc57_query( $root, 'CREATE TABLE commitcap_v01_state (id INT) ENGINE=InnoDB' );
+cc57_query( $root, 'CREATE TABLE writeleash_v01_state (id INT) ENGINE=InnoDB' );
 cc57_check( Doctor::run( null, null, $writer, $root ), 'objects', 'FAIL' );
-cc57_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commitcap_v01_state'" ), 'doctor changed unknown helper collision' );
-cc57_query( $root, 'DROP TABLE commitcap_v01_state' );
+cc57_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'writeleash_v01_state'" ), 'doctor changed unknown helper collision' );
+cc57_query( $root, 'DROP TABLE writeleash_v01_state' );
 $engine->install_infrastructure(); // Restore exact fixture-owned infrastructure.
 cc57_check( Doctor::run( null, null, $writer, $root ), 'objects', 'PASS' );
 echo "#57 $host: ALL EXPECTED DOCTOR ASSERTIONS PASS\n";
 
 require_once __DIR__ . '/test-83-shared-runtime-doctor.php';
 require_once __DIR__ . '/test-84-provisioning-plan.php';
+require_once __DIR__ . '/test-97-graph-boundary.php';

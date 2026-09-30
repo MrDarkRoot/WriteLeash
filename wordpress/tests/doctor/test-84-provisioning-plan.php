@@ -190,11 +190,11 @@ $writer_tamper = new wpdb( 'cc84_writer', 'cc84_initial_secret', 'wp_test', $hos
 $writer_tamper->suppress_errors( true );
 
 // Probe 1: Helper DML attempted directly by writer -> fails
-$probe_helper = $writer_tamper->query( "INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (99999, 'bad', 0)" );
+$probe_helper = $writer_tamper->query( "INSERT INTO writeleash_v01_state (connection_id, policy_id, consumed) VALUES (99999, 'bad', 0)" );
 cc84_assert( false === $probe_helper, '#84.5 probe 1: helper DML must fail' );
 
 // Probe 2: Routine DDL attempted directly by writer -> fails
-$probe_ddl = $writer_tamper->query( 'DROP PROCEDURE commitcap_v01_open' );
+$probe_ddl = $writer_tamper->query( 'DROP PROCEDURE writeleash_v01_open' );
 cc84_assert( false === $probe_ddl, '#84.5 probe 2: routine DDL must fail' );
 
 // Probe 3: Target trigger DROP/CREATE attempted by writer -> fails
@@ -239,14 +239,14 @@ echo "  #84.6 conflict refusal on unreviewed target trigger: PASS\n";
 // ---------------------------------------------------------------------------
 function cc84_reset_grants( $root ) {
 	foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $r ) {
-		cc84_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$r TO 'cc84_writer'@'%'" );
+		cc84_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.writeleash_v01_$r TO 'cc84_writer'@'%'" );
 	}
-	cc84_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc84_writer'@'%'" );
+	cc84_query( $root, "GRANT SELECT ON wp_test.writeleash_v01_state TO 'cc84_writer'@'%'" );
 }
 
 // (a) Foreign helper table shape refuses the install plan before any statement.
-cc84_query( $root, 'DROP TABLE commitcap_v01_state' );
-cc84_query( $root, 'CREATE TABLE commitcap_v01_state (id INT) ENGINE=InnoDB' );
+cc84_query( $root, 'DROP TABLE writeleash_v01_state' );
+cc84_query( $root, 'CREATE TABLE writeleash_v01_state (id INT) ENGINE=InnoDB' );
 $helper_refused = false;
 try {
 	Plan::install( 'wp_test', 'cc84_probe_user', '%', 'cc84_probe_secret' )->apply( $root );
@@ -255,13 +255,13 @@ try {
 	cc84_assert( false !== stripos( $e->getMessage(), 'helper' ), '#84.6b helper refusal message' );
 }
 cc84_assert( $helper_refused, '#84.6b foreign helper shape must refuse install' );
-cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME='commitcap_v01_state'" ), '#84.6b foreign helper overwritten' );
+cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME='writeleash_v01_state'" ), '#84.6b foreign helper overwritten' );
 cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM mysql.user WHERE user='cc84_probe_user'" ), '#84.6b install created user after refusal' );
-cc84_query( $root, 'DROP TABLE commitcap_v01_state' );
+cc84_query( $root, 'DROP TABLE writeleash_v01_state' );
 
 // (b) Foreign-bodied managed runtime routine refuses install/replacement.
-cc84_query( $root, 'DROP PROCEDURE commitcap_v01_count' );
-cc84_query( $root, 'CREATE PROCEDURE commitcap_v01_count(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin, OUT p_count BIGINT UNSIGNED) SQL SECURITY DEFINER BEGIN SET p_count = 999; END' );
+cc84_query( $root, 'DROP PROCEDURE writeleash_v01_count' );
+cc84_query( $root, 'CREATE PROCEDURE writeleash_v01_count(IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin, OUT p_count BIGINT UNSIGNED) SQL SECURITY DEFINER BEGIN SET p_count = 999; END' );
 $routine_refused = false;
 try {
 	Plan::install( 'wp_test', 'cc84_probe_user', '%', 'cc84_probe_secret' )->apply( $root );
@@ -270,8 +270,8 @@ try {
 	cc84_assert( false !== stripos( $e->getMessage(), 'foreign body' ), '#84.6b routine refusal message: ' . $e->getMessage() );
 }
 cc84_assert( $routine_refused, '#84.6b foreign-bodied routine must refuse install' );
-cc84_assert( false !== strpos( (string) $root->get_var( "SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA='wp_test' AND ROUTINE_NAME='commitcap_v01_count'" ), '999' ), '#84.6b foreign routine overwritten' );
-cc84_query( $root, 'DROP PROCEDURE commitcap_v01_count' );
+cc84_assert( false !== strpos( (string) $root->get_var( "SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA='wp_test' AND ROUTINE_NAME='writeleash_v01_count'" ), '999' ), '#84.6b foreign routine overwritten' );
+cc84_query( $root, 'DROP PROCEDURE writeleash_v01_count' );
 
 // (c) Pre-existing runtime account with unknown grants refuses install.
 cc84_query( $root, "CREATE USER 'cc84_foreign_user'@'%' IDENTIFIED BY 'foreign_secret'" );
@@ -321,8 +321,8 @@ $installer->install_infrastructure();
 cc84_reset_grants( $root );
 
 // (e) Uninstall refuses when a managed runtime routine has a foreign body.
-cc84_query( $root, 'DROP PROCEDURE commitcap_v01_attest' );
-cc84_query( $root, 'CREATE PROCEDURE commitcap_v01_attest() SQL SECURITY DEFINER BEGIN SELECT 1; END' );
+cc84_query( $root, 'DROP PROCEDURE writeleash_v01_attest' );
+cc84_query( $root, 'CREATE PROCEDURE writeleash_v01_attest() SQL SECURITY DEFINER BEGIN SELECT 1; END' );
 $uninstall_refused = false;
 try {
 	Plan::uninstall( 'wp_test', 'cc84_writer', '%', array( 'cc84_b' ) )->apply( $root );
@@ -332,10 +332,10 @@ try {
 }
 cc84_assert( $uninstall_refused, '#84.6b foreign-bodied attest must refuse uninstall' );
 foreach ( array( 'open', 'close', 'count', 'policy' ) as $routine ) {
-	cc84_assert( 1 === (int) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA='wp_test' AND ROUTINE_NAME=%s", 'commitcap_v01_' . $routine ) ), '#84.6b uninstall dropped objects despite refusal' );
+	cc84_assert( 1 === (int) $root->get_var( $root->prepare( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA='wp_test' AND ROUTINE_NAME=%s", 'writeleash_v01_' . $routine ) ), '#84.6b uninstall dropped objects despite refusal' );
 }
-cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME='commitcap_v01_state'" ), '#84.6b uninstall dropped helper despite refusal' );
-cc84_query( $root, 'DROP PROCEDURE commitcap_v01_attest' );
+cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME='writeleash_v01_state'" ), '#84.6b uninstall dropped helper despite refusal' );
+cc84_query( $root, 'DROP PROCEDURE writeleash_v01_attest' );
 foreach ( Engine::routine_names() as $routine ) {
 	cc84_query( $root, "DROP PROCEDURE IF EXISTS `$routine`" );
 }
@@ -355,9 +355,9 @@ cc84_query( $root, 'CREATE TABLE cc84_ambig_t1 (id INT PRIMARY KEY, touched INT 
 cc84_query( $root, 'CREATE TABLE cc84_ambig_t2 (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB' );
 cc84_query( $root, "CREATE USER 'cc84_ambig'@'%' IDENTIFIED BY 'cc84_ambig_secret'" );
 foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
-	cc84_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$routine TO 'cc84_ambig'@'%'" );
+	cc84_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.writeleash_v01_$routine TO 'cc84_ambig'@'%'" );
 }
-cc84_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc84_ambig'@'%'" );
+cc84_query( $root, "GRANT SELECT ON wp_test.writeleash_v01_state TO 'cc84_ambig'@'%'" );
 Plan::add_target( 'wp_test', 'cc84_ambig', '%', 'cc84_ambig_t1', 5 )->apply( $root );
 
 $ambig_writer = new wpdb( 'cc84_ambig', 'cc84_ambig_secret', 'wp_test', $host );
@@ -418,9 +418,9 @@ cc84_query( $root, 'DROP TABLE IF EXISTS cc84_rot_tbl' );
 cc84_query( $root, 'CREATE TABLE cc84_rot_tbl (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB' );
 cc84_query( $root, "CREATE USER 'cc84_rot_ambig'@'%' IDENTIFIED BY 'rot_v1_secret'" );
 foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
-	cc84_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$routine TO 'cc84_rot_ambig'@'%'" );
+	cc84_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.writeleash_v01_$routine TO 'cc84_rot_ambig'@'%'" );
 }
-cc84_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc84_rot_ambig'@'%'" );
+cc84_query( $root, "GRANT SELECT ON wp_test.writeleash_v01_state TO 'cc84_rot_ambig'@'%'" );
 Plan::add_target( 'wp_test', 'cc84_rot_ambig', '%', 'cc84_rot_tbl', 5 )->apply( $root );
 
 $rot_v1 = new wpdb( 'cc84_rot_ambig', 'rot_v1_secret', 'wp_test', $host );
@@ -431,7 +431,7 @@ $rot_trig_before = (string) $root->get_var( $root->prepare(
 	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s',
 	$rot_trig
 ) );
-$rot_helper_before = (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state' );
+$rot_helper_before = (int) $root->get_var( 'SELECT COUNT(*) FROM writeleash_v01_state' );
 $rot_hash_before = (string) $root->get_var( "SELECT authentication_string FROM mysql.user WHERE User = 'cc84_rot_ambig' AND Host = '%'" );
 
 cc84_query( $root, "CREATE USER 'cc84_rot_ambig'@'localhost' IDENTIFIED BY 'rot_collision_secret'" );
@@ -466,8 +466,8 @@ $rot_trig_after = (string) $root->get_var( $root->prepare(
 	$rot_trig
 ) );
 cc84_assert( $rot_trig_before === $rot_trig_after, '#84.6d refusal changed the policy trigger' );
-cc84_assert( $rot_helper_before === (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state' ), '#84.6d refusal changed helper state' );
-cc84_assert( 0 === (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = 0' ), '#84.6d refusal created a rotation marker' );
+cc84_assert( $rot_helper_before === (int) $root->get_var( 'SELECT COUNT(*) FROM writeleash_v01_state' ), '#84.6d refusal changed helper state' );
+cc84_assert( 0 === (int) $root->get_var( 'SELECT COUNT(*) FROM writeleash_v01_state WHERE connection_id = 0' ), '#84.6d refusal created a rotation marker' );
 
 // Remove the collision; the same plan shape must now succeed without DDL.
 cc84_query( $root, "DROP USER 'cc84_rot_ambig'@'localhost'" );
@@ -769,7 +769,7 @@ function cc84_preflight_unchanged( $root, $host, $operator, $label, $victim_id, 
 	$new->suppress_errors( true );
 	cc84_assert( ! $new->ready, "$label installed V2 despite preflight refusal" );
 	cc84_assert( $initial_hash === (string) $root->get_var( "SELECT authentication_string FROM mysql.user WHERE User='cc84_drain' AND Host='%'" ), "$label mutated credential hash" );
-	cc84_assert( 0 === (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = 0' ), "$label left partial rotation marker state" );
+	cc84_assert( 0 === (int) $root->get_var( 'SELECT COUNT(*) FROM writeleash_v01_state WHERE connection_id = 0' ), "$label left partial rotation marker state" );
 	cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $victim_id" ), "$label killed existing V1 session" );
 	cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = $unrelated_id" ), "$label killed unrelated session" );
 }
@@ -829,7 +829,7 @@ cc84_query( $root, "CREATE USER 'cc84_op_combined'@'%' IDENTIFIED BY 'op_secret'
 cc84_query( $root, "GRANT CREATE USER, PROCESS ON *.* TO 'cc84_op_combined'@'%'" );
 cc84_query( $root, "GRANT SELECT ON mysql.user TO 'cc84_op_combined'@'%'" );
 cc84_query( $root, "GRANT SELECT ON wp_test.cc84_b TO 'cc84_op_combined'@'%'" );
-cc84_query( $root, "GRANT SELECT, INSERT, UPDATE, DELETE ON wp_test.commitcap_v01_state TO 'cc84_op_combined'@'%'" );
+cc84_query( $root, "GRANT SELECT, INSERT, UPDATE, DELETE ON wp_test.writeleash_v01_state TO 'cc84_op_combined'@'%'" );
 cc84_query( $root, "GRANT " . ( $is_mysql ? 'CONNECTION_ADMIN' : 'CONNECTION ADMIN' ) . " ON *.* TO 'cc84_op_combined'@'%'" );
 $combined = new wpdb( 'cc84_op_combined', 'op_secret', 'wp_test', $host );
 $combined->suppress_errors( true );
@@ -876,10 +876,10 @@ cc84_assert( 10 === (int) $root->get_var( 'SELECT COUNT(*) FROM cc84_a' ), '#84.
 cc84_assert( 20 === (int) $root->get_var( 'SELECT COUNT(*) FROM cc84_b' ), '#84.9 cc84_b data survives uninstall' );
 
 // WriteLeash infrastructure objects are gone
-$routines_left = (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'wp_test' AND ROUTINE_NAME LIKE 'commitcap_v01_%'" );
+$routines_left = (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'wp_test' AND ROUTINE_NAME LIKE 'writeleash_v01_%'" );
 cc84_assert( 0 === $routines_left, '#84.9 all routines dropped' );
 
-$state_tbl_left = (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'wp_test' AND TABLE_NAME = 'commitcap_v01_state'" );
+$state_tbl_left = (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'wp_test' AND TABLE_NAME = 'writeleash_v01_state'" );
 cc84_assert( 0 === $state_tbl_left, '#84.9 helper table dropped' );
 
 // User cc84_writer is dropped
@@ -917,7 +917,7 @@ try {
 }
 cc84_assert( '' !== $install_failure, '#84.10a install with missing CREATE ROUTINE must fail' );
 cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM mysql.user WHERE user='cc84_partial_user'" ), '#84.10a account not created before failure' );
-cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME='commitcap_v01_state'" ), '#84.10a helper not created before failure' );
+cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME='writeleash_v01_state'" ), '#84.10a helper not created before failure' );
 $partial_writer = new wpdb( 'cc84_partial_user', 'cc84_partial_secret', 'wp_test', $host );
 $partial_writer->suppress_errors( true );
 $partial_verify = Plan::verify( array(), $partial_writer );
@@ -982,7 +982,7 @@ cc84_query( $root, "DROP USER IF EXISTS 'cc84_op_rotate'@'%'" );
 cc84_query( $root, "CREATE USER 'cc84_op_rotate'@'%' IDENTIFIED BY 'cc84_op_secret'" );
 cc84_query( $root, "GRANT SELECT ON wp_test.* TO 'cc84_op_rotate'@'%'" ); // connection must be ready
 cc84_query( $root, "GRANT SELECT ON mysql.* TO 'cc84_op_rotate'@'%'" ); // identity preflight must pass so ALTER is the failing step
-cc84_query( $root, "GRANT SELECT, INSERT, UPDATE, DELETE ON wp_test.commitcap_v01_state TO 'cc84_op_rotate'@'%'" ); // rotation marker write/clear, no ALTER USER
+cc84_query( $root, "GRANT SELECT, INSERT, UPDATE, DELETE ON wp_test.writeleash_v01_state TO 'cc84_op_rotate'@'%'" ); // rotation marker write/clear, no ALTER USER
 $op_rotate = new wpdb( 'cc84_op_rotate', 'cc84_op_secret', 'wp_test', $host );
 $op_rotate->suppress_errors( true );
 $rotate_failure = '';
@@ -993,7 +993,7 @@ try {
 }
 cc84_assert( '' !== $rotate_failure, '#84.10c rotation without ALTER USER must fail' );
 cc84_assert( false !== strpos( $rotate_failure, 'withheld' ), '#84.10c failed credential DDL must withhold SQL: ' . $rotate_failure );
-cc84_assert( 0 === (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = 0' ), '#84.10c failed rotation left an unsafe marker' );
+cc84_assert( 0 === (int) $root->get_var( 'SELECT COUNT(*) FROM writeleash_v01_state WHERE connection_id = 0' ), '#84.10c failed rotation left an unsafe marker' );
 $unchanged = new wpdb( 'cc84_part_user', 'cc84_part_v1_secret', 'wp_test', $host );
 $unchanged->suppress_errors( true );
 cc84_assert( 1 === (int) $unchanged->get_var( 'SELECT 1' ), '#84.10c failed rotation changed the account secret' );
@@ -1025,8 +1025,8 @@ try {
 }
 cc84_assert( '' !== $uninstall_failure, '#84.10d uninstall without DROP authority must fail' );
 cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM mysql.user WHERE user='cc84_part_user'" ), '#84.10d runtime account vanished before failing step' );
-cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA='wp_test' AND ROUTINE_NAME LIKE 'commitcap_v01_%'" ), '#84.10d routines not dropped before failing step: ' . $uninstall_failure );
-cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME='commitcap_v01_state'" ), '#84.10d helper unexpectedly dropped before failing step' );
+cc84_assert( 0 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA='wp_test' AND ROUTINE_NAME LIKE 'writeleash_v01_%'" ), '#84.10d routines not dropped before failing step: ' . $uninstall_failure );
+cc84_assert( 1 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wp_test' AND TABLE_NAME='writeleash_v01_state'" ), '#84.10d helper unexpectedly dropped before failing step' );
 $partial_uninstall_writer = new wpdb( 'cc84_part_user', 'cc84_part_v2_secret', 'wp_test', $host );
 $partial_uninstall_writer->suppress_errors( true );
 $partial_uninstall = Plan::verify( array(), $partial_uninstall_writer );

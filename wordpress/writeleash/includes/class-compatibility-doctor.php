@@ -139,8 +139,8 @@ final class Compatibility_Doctor {
 			$doctor->check( 'objects', 'UNKNOWN', true, 'WriteLeash infrastructure', 'Cannot verify helper shape, routine bodies, signatures and trusted definers from the restricted runtime connection.' );
 		} else {
 			$engine = new Update_Engine( $installer );
-			$present = $installer->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commitcap_v01_state'" );
-			$routines = $installer->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('commitcap_v01_open','commitcap_v01_close','commitcap_v01_count','commitcap_v01_policy','commitcap_v01_attest')" );
+			$present = $installer->get_var( "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'writeleash_v01_state'" );
+			$routines = $installer->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('writeleash_v01_open','writeleash_v01_close','writeleash_v01_count','writeleash_v01_policy','writeleash_v01_attest')" );
 			if ( null === $present || null === $routines || '' !== (string) $installer->last_error ) {
 				$doctor->check( 'objects', 'UNKNOWN', true, 'WriteLeash infrastructure', 'Object inventory unavailable.' );
 			} elseif ( '0' === (string) $present && '0' === (string) $routines ) {
@@ -652,7 +652,7 @@ final class Compatibility_Doctor {
 			$engine = new Update_Engine( $installer );
 			$info = $engine->inspect_table( $name );
 			if ( null === $budget && $info['triggers'] ) {
-				$expected = 'commitcap_v01_' . substr( hash( 'sha256', $name ), 0, 16 );
+				$expected = 'writeleash_v01_' . substr( hash( 'sha256', $name ), 0, 16 );
 				$status = 1 === count( $info['triggers'] ) && $expected === $info['triggers'][0]->TRIGGER_NAME ? 'UNKNOWN' : 'FAIL';
 				$this->check( 'target_table', $status, true, 'Target table/policy', 'Existing trigger or policy; provide the expected budget to verify an installed policy. Unrelated triggers conflict.' );
 				return;

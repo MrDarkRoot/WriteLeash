@@ -24,7 +24,7 @@ Row-count authority was the first proof mechanism: the local PostgreSQL 16.4
 V0 candidate attaches an `UPDATE` row-event budget **per ordinary protected
 relation, per top-level transaction**. The generic trigger and #27 plan/preflight
 are exercised on two independently budgeted, runtime-named tables by
-[`./commitcap demo`](../README.md#try-the-arbitrary-table-product-demo-locally).
+[`./writeleash demo`](../README.md#try-the-arbitrary-table-product-demo-locally).
 State transitions and numeric deltas are also implemented and tested as
 **fixed research-fixture rules**, not as generic product-facing policy APIs.
 
@@ -34,7 +34,7 @@ subscriptions:
 ```
 
 This YAML illustrates a finite row-update budget; it is **not** the V0 policy
-installation syntax. The reviewed V0 surface is `./commitcap protect-update`
+installation syntax. The reviewed V0 surface is `./writeleash protect-update`
 and a trusted-owner `CREATE TRIGGER` with a canonical decimal budget.
 Neither representation grants `UPDATE` permission; PostgreSQL privileges remain
 responsible for that. The budget narrows already-granted permission.

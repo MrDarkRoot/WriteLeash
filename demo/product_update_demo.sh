@@ -7,10 +7,10 @@ ROOT="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT/demo/product_plan.sh"
 FIXTURE="$ROOT/experiments/native_tx_state"
 PIN='postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c'
-PROJECT='commitcap_product_demo'
+PROJECT='writeleash_product_demo'
 export COMPOSE_PROJECT_NAME="$PROJECT"
 COMPOSE=(docker compose -f "$FIXTURE/docker-compose.yml")
-WRITER='commitcap_demo_writer'
+WRITER='writeleash_demo_writer'
 started=false
 
 fail() { printf 'Product demo FAIL: %s\n' "$*" >&2; exit 1; }
@@ -18,12 +18,12 @@ line() {
     [[ $'\n'"$1"$'\n' == *$'\n'"$2"$'\n'* ]] || fail "missing exact line [$2] in: $1"
 }
 admin_psql() {
-    "${COMPOSE[@]}" exec -T -e PGPASSWORD=commitcap_native_admin_experiment_only postgres \
-        psql -X -A -t -h 127.0.0.1 -U commitcap_native_admin -d commitcap_native -v ON_ERROR_STOP=1 "$@"
+    "${COMPOSE[@]}" exec -T -e PGPASSWORD=writeleash_native_admin_experiment_only postgres \
+        psql -X -A -t -h 127.0.0.1 -U writeleash_native_admin -d writeleash_native -v ON_ERROR_STOP=1 "$@"
 }
 writer_psql() {
-    "${COMPOSE[@]}" exec -T -e PGPASSWORD=commitcap_demo_writer_experiment_only postgres \
-        psql -X -A -t -h 127.0.0.1 -U "$WRITER" -d commitcap_native "$@"
+    "${COMPOSE[@]}" exec -T -e PGPASSWORD=writeleash_demo_writer_experiment_only postgres \
+        psql -X -A -t -h 127.0.0.1 -U "$WRITER" -d writeleash_native "$@"
 }
 
 project_resources() {
@@ -79,7 +79,7 @@ cleanup() {
 
 install_policy() {
     local table="$1" budget="$2" plan install_sql verify_sql result
-    plan="$("$ROOT/commitcap" protect-update --table "public.$table" --budget "$budget" --writer-role "$WRITER")" || fail "could not generate #27 plan for $table"
+    plan="$("$ROOT/writeleash" protect-update --table "public.$table" --budget "$budget" --writer-role "$WRITER")" || fail "could not generate #27 plan for $table"
     install_sql="$(extract_plan_section "$plan" install)" || fail "invalid #27 installation section for $table"
     verify_sql="$(extract_plan_section "$plan" verify)" || fail "invalid #27 verification section for $table"
     admin_psql -c "$install_sql" >/dev/null || fail "trusted-admin installation failed for $table"
@@ -110,7 +110,7 @@ SQL
     assert_snapshot 'baseline reset' "$BASELINE"
 }
 
-doctor_output="$("$ROOT/commitcap" doctor 2>&1)" || fail "local prerequisites unavailable; run ./commitcap doctor: $doctor_output"
+doctor_output="$("$ROOT/writeleash" doctor 2>&1)" || fail "local prerequisites unavailable; run ./writeleash doctor: $doctor_output"
 trap cleanup EXIT
 if ! project_resources; then
     fail "dedicated Compose project $PROJECT is already occupied or Docker could not be inspected; no resources removed"
@@ -134,12 +134,12 @@ TABLE_B="cc_demo_flags_$suffix"
 [[ "$TABLE_A" =~ ^cc_demo_repair_[0-9a-f]{8}$ && "$TABLE_B" =~ ^cc_demo_flags_[0-9a-f]{8}$ &&
    ${#TABLE_A} -le 63 && ${#TABLE_B} -le 63 ]] || fail 'generated relation name is invalid'
 for table in "$TABLE_A" "$TABLE_B"; do
-    if grep -Fq -- "$table" "$FIXTURE/commitcap_native_tx_state.c"; then
+    if grep -Fq -- "$table" "$FIXTURE/writeleash_native_tx_state.c"; then
         fail "generated relation name is compiled into native C: $table"
     fi
 done
 
-printf 'CommitCap V0 Research Preview\n\nPostgreSQL:\n%s\n\nwriter:\n%s\n' "$version" "$WRITER"
+printf 'WriteLeash V0 Research Preview\n\nPostgreSQL:\n%s\n\nwriter:\n%s\n' "$version" "$WRITER"
 printf '\nCreating arbitrary demo relations:\npublic.%s\npublic.%s\n' "$TABLE_A" "$TABLE_B"
 printf '\nProtection:\nUPDATE row events; transaction-local authority\n'
 printf 'public.%s budget: 5\npublic.%s budget: 3\n' "$TABLE_A" "$TABLE_B"
@@ -147,8 +147,8 @@ printf 'public.%s budget: 5\npublic.%s budget: 3\n' "$TABLE_A" "$TABLE_B"
 admin_psql >/dev/null <<SQL
 CREATE TABLE public.$TABLE_A (id integer PRIMARY KEY, status text NOT NULL);
 CREATE TABLE public.$TABLE_B (id integer PRIMARY KEY, status text NOT NULL);
-ALTER TABLE public.$TABLE_A OWNER TO commitcap_owner;
-ALTER TABLE public.$TABLE_B OWNER TO commitcap_owner;
+ALTER TABLE public.$TABLE_A OWNER TO writeleash_owner;
+ALTER TABLE public.$TABLE_B OWNER TO writeleash_owner;
 REVOKE ALL ON public.$TABLE_A, public.$TABLE_B FROM PUBLIC;
 GRANT SELECT(id), UPDATE(status) ON public.$TABLE_A, public.$TABLE_B TO $WRITER;
 SQL
@@ -165,7 +165,7 @@ SELECT w.rolcanlogin
     AND NOT has_any_column_privilege(w.oid, 'public.$TABLE_B', 'INSERT')
     AND NOT has_table_privilege(w.oid, 'public.$TABLE_A', 'INSERT, DELETE, TRUNCATE')
     AND NOT has_table_privilege(w.oid, 'public.$TABLE_B', 'INSERT, DELETE, TRUNCATE')
-    AND NOT has_function_privilege(w.oid, 'commitcap_native.enforce_rows_updated()', 'EXECUTE')
+    AND NOT has_function_privilege(w.oid, 'writeleash_native.enforce_rows_updated()', 'EXECUTE')
 FROM pg_roles AS w WHERE w.rolname='$WRITER';
 SQL
 )" || fail 'writer trust query failed'
@@ -225,8 +225,8 @@ line "$denied" 'granted: 5'
 line "$denied" 'consumed before attempt: 5'
 line "$denied" 'attempted effect: 6 row-update events'
 line "$denied" 'result: ABORTED'
-[[ "$denied" == *'CommitCap mutation budget exceeded (limit 5, attempted 6)'* &&
-   "$denied" == *'CommitCap top-level transaction denied after mutation authority violation'* &&
+[[ "$denied" == *'WriteLeash mutation budget exceeded (limit 5, attempted 6)'* &&
+   "$denied" == *'WriteLeash top-level transaction denied after mutation authority violation'* &&
    "$denied" != *$'\nCOMMIT\n'* ]] || fail "sticky A denial did not reject COMMIT: $denied"
 assert_snapshot 'A denial' "$BASELINE"
 printf 'policy:\npublic.%s.rows_updated\ngranted:\n5\nconsumed before attempt:\n5\nattempted:\n6\n' "$TABLE_A"
@@ -261,8 +261,8 @@ line "$b_denied" 'granted: 3'
 line "$b_denied" 'consumed before attempt: 3'
 line "$b_denied" 'attempted effect: 4 row-update events'
 line "$b_denied" 'result: ABORTED'
-[[ "$b_denied" == *'CommitCap mutation budget exceeded (limit 3, attempted 4)'* &&
-   "$b_denied" == *'CommitCap top-level transaction denied after mutation authority violation'* &&
+[[ "$b_denied" == *'WriteLeash mutation budget exceeded (limit 3, attempted 4)'* &&
+   "$b_denied" == *'WriteLeash top-level transaction denied after mutation authority violation'* &&
    "$b_denied" != *$'\nCOMMIT\n'* ]] || fail "policy B denial did not reject COMMIT: $b_denied"
 assert_snapshot 'B denial' "$BASELINE"
 printf '\nSECOND POLICY\npublic.%s budget: 3; event 4 DENIED; COMMIT REJECTED\n' "$TABLE_B"

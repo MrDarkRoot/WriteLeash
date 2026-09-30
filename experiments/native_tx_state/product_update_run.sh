@@ -4,7 +4,7 @@ set -euo pipefail
 EXPERIMENT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE=(docker compose -f "$EXPERIMENT_DIR/docker-compose.yml")
 PIN='postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c'
-export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-commitcap_product_47}"
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-writeleash_product_47}"
 started=false
 cleanup() {
     local status=$?
@@ -25,7 +25,7 @@ docker tag "$PIN" postgres:16.4-alpine
 trap cleanup EXIT
 started=true
 "${COMPOSE[@]}" up -d --build --wait >/dev/null
-"${COMPOSE[@]}" exec -T -e PGPASSWORD=commitcap_native_admin_experiment_only postgres \
-    psql -X -h 127.0.0.1 -U commitcap_native_admin -d commitcap_native -v ON_ERROR_STOP=1 \
+"${COMPOSE[@]}" exec -T -e PGPASSWORD=writeleash_native_admin_experiment_only postgres \
+    psql -X -h 127.0.0.1 -U writeleash_native_admin -d writeleash_native -v ON_ERROR_STOP=1 \
     < "$EXPERIMENT_DIR/setup.sql" >/dev/null
 source "$EXPERIMENT_DIR/product_update_cases.sh"

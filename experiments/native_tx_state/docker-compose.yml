@@ -5,13 +5,13 @@ services:
       dockerfile: Dockerfile
     # Preloaded so the experiment's test-only configuration GUCs are defined
     # and validated in every session. This is experiment infrastructure only.
-    command: ["postgres", "-c", "shared_preload_libraries=commitcap_native_tx_state"]
+    command: ["postgres", "-c", "shared_preload_libraries=writeleash_native_tx_state"]
     environment:
-      POSTGRES_DB: commitcap_native
-      POSTGRES_USER: commitcap_native_admin
-      POSTGRES_PASSWORD: commitcap_native_admin_experiment_only
+      POSTGRES_DB: writeleash_native
+      POSTGRES_USER: writeleash_native_admin
+      POSTGRES_PASSWORD: writeleash_native_admin_experiment_only
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U commitcap_native_admin -d commitcap_native"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U writeleash_native_admin -d writeleash_native"]
       start_period: 5s
       interval: 1s
       timeout: 5s

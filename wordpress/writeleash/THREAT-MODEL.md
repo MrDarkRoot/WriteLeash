@@ -1,6 +1,6 @@
 # WriteLeash for WordPress V0.1 threat model
 
-Final review for [#61](https://github.com/MrDarkRoot/WriteLeash/issues/61). This is
+Final review for [#61](https://github.com/MrDarkRoot/CommitCap/issues/61). This is
 the authoritative statement of what the cooperative shared-runtime design does
 and does not protect. It is written from the adversarial suites in
 `wordpress/tests/` and the merged gates #54/#56/#57/#78/#82/#83/#84/#87/#58/#60.
@@ -71,11 +71,11 @@ and normal WordPress writes are **not** protected by this claim.
 | --- | --- | --- |
 | Installer/operator | privileged lifecycle DDL/DCL, rotation/drain | `test-84-provisioning-plan.php` |
 | Normal WordPress | ordinary application grants; no WriteLeash constraint | `cases.php`, `cases-61-threat-model.php` |
-| Restricted runtime | EXECUTE on open/close/count/policy/attest; SELECT on `commitcap_v01_state`; exactly SELECT, UPDATE on each certified target; no DDL/TRIGGER/GRANT; no WordPress options | `cases-78.php`, `cases-61-threat-model.php`, `test-83-shared-runtime-doctor.php` |
+| Restricted runtime | EXECUTE on open/close/count/policy/attest; SELECT on `writeleash_v01_state`; exactly SELECT, UPDATE on each certified target; no DDL/TRIGGER/GRANT; no WordPress options | `cases-78.php`, `cases-61-threat-model.php`, `test-83-shared-runtime-doctor.php` |
 
 ## Reachable DB graph (pinned fixture)
 
-* Reviewed helper `commitcap_v01_state` and five DEFINER routines.
+* Reviewed helper `writeleash_v01_state` and five DEFINER routines.
 * Redirection target `wp_redirection_items` with one canonical BEFORE UPDATE
   trigger (P=2000).
 * Optional WriteLeash-owned disposable demo target `wp_writeleash_demo_rows` with

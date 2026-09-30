@@ -156,10 +156,10 @@ Review the printed SQL before continuing. The review output never contains a
 password: secrets are shown as [REDACTED_SECRET]. The plan creates exactly:
 
 * one restricted runtime account;
-* the commitcap_v01_state helper table;
-* five reviewed SQL SECURITY DEFINER routines (commitcap_v01_open,
-  commitcap_v01_close, commitcap_v01_count, commitcap_v01_policy,
-  commitcap_v01_attest);
+* the writeleash_v01_state helper table;
+* five reviewed SQL SECURITY DEFINER routines (writeleash_v01_open,
+  writeleash_v01_close, writeleash_v01_count, writeleash_v01_policy,
+  writeleash_v01_attest);
 * EXECUTE on exactly those five routines and read-only SELECT on the helper;
 * SELECT, UPDATE and one identity-scoped BEFORE UPDATE policy trigger with
   physical ceiling 2000 on the certified target table.
@@ -205,7 +205,7 @@ EXACT RUNTIME PRIVILEGE SURFACE
 The restricted account holds, in total:
 
 * EXECUTE on exactly the five reviewed routines;
-* SELECT on the helper table commitcap_v01_state;
+* SELECT on the helper table writeleash_v01_state;
 * SELECT, UPDATE on the certified target table only.
 
 The runtime account has no INSERT, DELETE, DROP, ALTER, CREATE, TRIGGER, GRANT

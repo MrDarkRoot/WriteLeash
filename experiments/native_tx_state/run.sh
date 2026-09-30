@@ -3,25 +3,25 @@ set -euo pipefail
 
 EXPERIMENT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE=(docker compose -f "$EXPERIMENT_DIR/docker-compose.yml")
-ADMIN_PASSWORD='commitcap_native_admin_experiment_only'
-WRITER_PASSWORD='commitcap_writer_experiment_only'
+ADMIN_PASSWORD='writeleash_native_admin_experiment_only'
+WRITER_PASSWORD='writeleash_writer_experiment_only'
 CC_SESSION_DIR=""
 
 # Optional complete transcript for a pinned tested-commit evidence run.
-if [[ -n "${COMMITCAP_LOG:-}" ]]; then
-    exec > >(tee "$COMMITCAP_LOG") 2>&1
+if [[ -n "${WRITELEASH_LOG:-}" ]]; then
+    exec > >(tee "$WRITELEASH_LOG") 2>&1
 fi
 
 admin_psql() {
     "${COMPOSE[@]}" exec -T \
         -e "PGPASSWORD=$ADMIN_PASSWORD" \
-        postgres psql -X -h 127.0.0.1 -U commitcap_native_admin -d commitcap_native "$@"
+        postgres psql -X -h 127.0.0.1 -U writeleash_native_admin -d writeleash_native "$@"
 }
 
 writer_psql() {
     "${COMPOSE[@]}" exec -T \
         -e "PGPASSWORD=$WRITER_PASSWORD" \
-        postgres psql -X -h 127.0.0.1 -U commitcap_writer -d commitcap_native "$@"
+        postgres psql -X -h 127.0.0.1 -U writeleash_writer -d writeleash_native "$@"
 }
 
 fail() {
@@ -86,65 +86,65 @@ assert_five_updated() {
 
 assert_privilege_envelope() {
     assert_scalar "writer elevated role attributes" \
-        "SELECT rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls FROM pg_roles WHERE rolname = 'commitcap_writer';" \
+        "SELECT rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls FROM pg_roles WHERE rolname = 'writeleash_writer';" \
         "f"
     assert_scalar "writer membership in trusted owner" \
-        "SELECT pg_has_role('commitcap_writer', 'commitcap_owner', 'MEMBER');" \
+        "SELECT pg_has_role('writeleash_writer', 'writeleash_owner', 'MEMBER');" \
         "f"
     assert_scalar "writer trusted schema access" \
-        "SELECT has_schema_privilege('commitcap_writer', 'commitcap_native', 'USAGE') OR has_schema_privilege('commitcap_writer', 'commitcap_native', 'CREATE');" \
+        "SELECT has_schema_privilege('writeleash_writer', 'writeleash_native', 'USAGE') OR has_schema_privilege('writeleash_writer', 'writeleash_native', 'CREATE');" \
         "f"
     assert_scalar "writer direct enforcement-function EXECUTE" \
-        "SELECT has_function_privilege('commitcap_writer', 'commitcap_native.enforce_update_budget()', 'EXECUTE');" \
+        "SELECT has_function_privilege('writeleash_writer', 'writeleash_native.enforce_update_budget()', 'EXECUTE');" \
         "f"
     assert_scalar "writer required column privileges" \
-        "SELECT has_column_privilege('commitcap_writer', 'public.subscriptions', 'id', 'SELECT') AND has_column_privilege('commitcap_writer', 'public.subscriptions', 'status', 'UPDATE');" \
+        "SELECT has_column_privilege('writeleash_writer', 'public.subscriptions', 'id', 'SELECT') AND has_column_privilege('writeleash_writer', 'public.subscriptions', 'status', 'UPDATE');" \
         "t"
     assert_scalar "writer table-wide or unsupported DML privileges" \
-        "SELECT has_table_privilege('commitcap_writer', 'public.subscriptions', 'SELECT') OR has_table_privilege('commitcap_writer', 'public.subscriptions', 'UPDATE') OR has_table_privilege('commitcap_writer', 'public.subscriptions', 'INSERT') OR has_table_privilege('commitcap_writer', 'public.subscriptions', 'DELETE') OR has_table_privilege('commitcap_writer', 'public.subscriptions', 'TRUNCATE') OR has_table_privilege('commitcap_writer', 'public.subscriptions', 'TRIGGER');" \
+        "SELECT has_table_privilege('writeleash_writer', 'public.subscriptions', 'SELECT') OR has_table_privilege('writeleash_writer', 'public.subscriptions', 'UPDATE') OR has_table_privilege('writeleash_writer', 'public.subscriptions', 'INSERT') OR has_table_privilege('writeleash_writer', 'public.subscriptions', 'DELETE') OR has_table_privilege('writeleash_writer', 'public.subscriptions', 'TRUNCATE') OR has_table_privilege('writeleash_writer', 'public.subscriptions', 'TRIGGER');" \
         "f"
     assert_scalar "writer unprotected-audit INSERT column privilege" \
-        "SELECT has_column_privilege('commitcap_writer', 'public.unprotected_audit', 'message', 'INSERT');" \
+        "SELECT has_column_privilege('writeleash_writer', 'public.unprotected_audit', 'message', 'INSERT');" \
         "t"
     assert_scalar "writer unprotected-audit SELECT privilege" \
-        "SELECT has_any_column_privilege('commitcap_writer', 'public.unprotected_audit', 'SELECT');" \
+        "SELECT has_any_column_privilege('writeleash_writer', 'public.unprotected_audit', 'SELECT');" \
         "f"
     assert_scalar "writer unprotected-audit extra table privileges" \
-        "SELECT has_table_privilege('commitcap_writer', 'public.unprotected_audit', 'UPDATE') OR has_table_privilege('commitcap_writer', 'public.unprotected_audit', 'DELETE') OR has_table_privilege('commitcap_writer', 'public.unprotected_audit', 'TRUNCATE') OR has_table_privilege('commitcap_writer', 'public.unprotected_audit', 'REFERENCES') OR has_table_privilege('commitcap_writer', 'public.unprotected_audit', 'TRIGGER');" \
+        "SELECT has_table_privilege('writeleash_writer', 'public.unprotected_audit', 'UPDATE') OR has_table_privilege('writeleash_writer', 'public.unprotected_audit', 'DELETE') OR has_table_privilege('writeleash_writer', 'public.unprotected_audit', 'TRUNCATE') OR has_table_privilege('writeleash_writer', 'public.unprotected_audit', 'REFERENCES') OR has_table_privilege('writeleash_writer', 'public.unprotected_audit', 'TRIGGER');" \
         "f"
     assert_scalar "protected relation owner" \
         "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'subscriptions';" \
-        "commitcap_owner"
+        "writeleash_owner"
     assert_scalar "users relation owner" \
         "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'users';" \
-        "commitcap_owner"
+        "writeleash_owner"
     assert_scalar "writer users required column privileges" \
-        "SELECT has_column_privilege('commitcap_writer', 'public.users', 'id', 'SELECT') AND has_column_privilege('commitcap_writer', 'public.users', 'role', 'UPDATE');" \
+        "SELECT has_column_privilege('writeleash_writer', 'public.users', 'id', 'SELECT') AND has_column_privilege('writeleash_writer', 'public.users', 'role', 'UPDATE');" \
         "t"
     assert_scalar "writer users table-wide or unsupported DML privileges" \
-        "SELECT has_table_privilege('commitcap_writer', 'public.users', 'SELECT') OR has_table_privilege('commitcap_writer', 'public.users', 'UPDATE') OR has_table_privilege('commitcap_writer', 'public.users', 'INSERT') OR has_table_privilege('commitcap_writer', 'public.users', 'DELETE') OR has_table_privilege('commitcap_writer', 'public.users', 'TRUNCATE') OR has_table_privilege('commitcap_writer', 'public.users', 'TRIGGER');" \
+        "SELECT has_table_privilege('writeleash_writer', 'public.users', 'SELECT') OR has_table_privilege('writeleash_writer', 'public.users', 'UPDATE') OR has_table_privilege('writeleash_writer', 'public.users', 'INSERT') OR has_table_privilege('writeleash_writer', 'public.users', 'DELETE') OR has_table_privilege('writeleash_writer', 'public.users', 'TRUNCATE') OR has_table_privilege('writeleash_writer', 'public.users', 'TRIGGER');" \
         "f"
     assert_scalar "enforcement function owner" \
-        "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_native' AND p.proname = 'enforce_update_budget';" \
-        "commitcap_owner"
+        "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'writeleash_native' AND p.proname = 'enforce_update_budget';" \
+        "writeleash_owner"
     assert_scalar "transition function owner" \
-        "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_native' AND p.proname = 'enforce_role_transition';" \
-        "commitcap_owner"
+        "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'writeleash_native' AND p.proname = 'enforce_role_transition';" \
+        "writeleash_owner"
     assert_scalar "writer direct transition-function EXECUTE" \
-        "SELECT has_function_privilege('commitcap_writer', 'commitcap_native.enforce_role_transition()', 'EXECUTE');" \
+        "SELECT has_function_privilege('writeleash_writer', 'writeleash_native.enforce_role_transition()', 'EXECUTE');" \
         "f"
     assert_scalar "writer read-only probe EXECUTE" \
-        "SELECT has_function_privilege('commitcap_writer', 'commitcap_probe.cc_native_probe()', 'EXECUTE');" \
+        "SELECT has_function_privilege('writeleash_writer', 'writeleash_probe.writeleash_native_probe()', 'EXECUTE');" \
         "t"
     assert_scalar "writer probe schema CREATE" \
-        "SELECT has_schema_privilege('commitcap_writer', 'commitcap_probe', 'CREATE');" \
+        "SELECT has_schema_privilege('writeleash_writer', 'writeleash_probe', 'CREATE');" \
         "f"
     assert_scalar "probe function SECURITY DEFINER" \
-        "SELECT prosecdef FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_probe' AND p.proname = 'cc_native_probe';" \
+        "SELECT prosecdef FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'writeleash_probe' AND p.proname = 'writeleash_native_probe';" \
         "f"
     assert_scalar "probe function owner" \
-        "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_probe' AND p.proname = 'cc_native_probe';" \
-        "commitcap_owner"
+        "SELECT pg_get_userbyid(p.proowner) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'writeleash_probe' AND p.proname = 'writeleash_native_probe';" \
+        "writeleash_owner"
 
     printf 'privilege-envelope checks: PASS\n'
 }
@@ -186,16 +186,16 @@ SQL
 # Trusted-admin-only test configuration for CC-030/CC-031. The module is
 # preloaded, so these GUCs are defined and validated in every session.
 cc_config_set() {
-    admin_psql -v ON_ERROR_STOP=1 -c "ALTER ROLE commitcap_writer SET $1 = $2;" >/dev/null
+    admin_psql -v ON_ERROR_STOP=1 -c "ALTER ROLE writeleash_writer SET $1 = $2;" >/dev/null
 }
 
 cc_config_reset() {
-    admin_psql -v ON_ERROR_STOP=1 -c "ALTER ROLE commitcap_writer RESET $1;" >/dev/null
+    admin_psql -v ON_ERROR_STOP=1 -c "ALTER ROLE writeleash_writer RESET $1;" >/dev/null
 }
 
 cc_config_stored() {
     admin_psql -At -v ON_ERROR_STOP=1 -c \
-        "SELECT COALESCE((SELECT string_agg(s, ',' ORDER BY s) FROM unnest(rolconfig) AS s WHERE s LIKE 'commitcap_native.%'), '(none)') FROM pg_roles WHERE rolname = 'commitcap_writer';"
+        "SELECT COALESCE((SELECT string_agg(s, ',' ORDER BY s) FROM unnest(rolconfig) AS s WHERE s LIKE 'writeleash_native.%'), '(none)') FROM pg_roles WHERE rolname = 'writeleash_writer';"
 }
 
 cc_config_attempt() {
@@ -221,36 +221,36 @@ SQL
 
 assert_privilege_audit() {
     assert_scalar "writer database CONNECT" \
-        "SELECT has_database_privilege('commitcap_writer', current_database(), 'CONNECT');" \
+        "SELECT has_database_privilege('writeleash_writer', current_database(), 'CONNECT');" \
         "t"
     assert_scalar "writer database CREATE" \
-        "SELECT has_database_privilege('commitcap_writer', current_database(), 'CREATE');" \
+        "SELECT has_database_privilege('writeleash_writer', current_database(), 'CREATE');" \
         "f"
     assert_scalar "writer database TEMPORARY" \
-        "SELECT has_database_privilege('commitcap_writer', current_database(), 'TEMPORARY');" \
+        "SELECT has_database_privilege('writeleash_writer', current_database(), 'TEMPORARY');" \
         "f"
     assert_scalar "writer direct memberships" \
-        "SELECT count(*) FROM pg_auth_members AS m JOIN pg_roles AS r ON r.oid = m.member WHERE r.rolname = 'commitcap_writer';" \
+        "SELECT count(*) FROM pg_auth_members AS m JOIN pg_roles AS r ON r.oid = m.member WHERE r.rolname = 'writeleash_writer';" \
         "0"
     assert_scalar "writer reachable roles" \
-        "SELECT count(*) FROM pg_roles WHERE rolname <> 'commitcap_writer' AND pg_has_role('commitcap_writer', oid, 'USAGE');" \
+        "SELECT count(*) FROM pg_roles WHERE rolname <> 'writeleash_writer' AND pg_has_role('writeleash_writer', oid, 'USAGE');" \
         "0"
     assert_scalar "extension owner" \
-        "SELECT pg_get_userbyid(extowner) FROM pg_extension WHERE extname = 'commitcap_native_tx_state';" \
-        "commitcap_native_admin"
+        "SELECT pg_get_userbyid(extowner) FROM pg_extension WHERE extname = 'writeleash_native_tx_state';" \
+        "writeleash_native_admin"
     # #47 adds exactly one trusted product trigger function; assert identities,
     # not just a lower total that could hide an unexpected extension function.
     assert_scalar "extension-owned functions" \
-        "SELECT string_agg(p.proname, ',' ORDER BY p.proname) FROM pg_depend AS d JOIN pg_extension AS e ON e.oid = d.refobjid JOIN pg_proc AS p ON p.oid = d.objid WHERE e.extname = 'commitcap_native_tx_state' AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e';" \
+        "SELECT string_agg(p.proname, ',' ORDER BY p.proname) FROM pg_depend AS d JOIN pg_extension AS e ON e.oid = d.refobjid JOIN pg_proc AS p ON p.oid = d.objid WHERE e.extname = 'writeleash_native_tx_state' AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e';" \
         "enforce_refund_delta,enforce_role_transition,enforce_rows_updated,enforce_update_budget"
     assert_scalar "trusted schema owners" \
-        "SELECT count(*) FROM pg_namespace WHERE nspname IN ('commitcap_native', 'commitcap_probe') AND pg_get_userbyid(nspowner) <> 'commitcap_owner';" \
+        "SELECT count(*) FROM pg_namespace WHERE nspname IN ('writeleash_native', 'writeleash_probe') AND pg_get_userbyid(nspowner) <> 'writeleash_owner';" \
         "0"
     assert_scalar "trusted relational state" \
-        "SELECT count(*) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname IN ('commitcap_native', 'commitcap_probe') AND c.relkind IN ('r', 'p', 'S');" \
+        "SELECT count(*) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname IN ('writeleash_native', 'writeleash_probe') AND c.relkind IN ('r', 'p', 'S');" \
         "0"
     assert_scalar "trusted SECURITY DEFINER functions" \
-        "SELECT count(*) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname IN ('commitcap_native', 'commitcap_probe') AND p.prosecdef;" \
+        "SELECT count(*) FROM pg_proc AS p JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname IN ('writeleash_native', 'writeleash_probe') AND p.prosecdef;" \
         "0"
     assert_scalar "enforcement trigger enabled" \
         "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'subscriptions_update_budget';" \
@@ -259,10 +259,10 @@ assert_privilege_audit() {
         "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'users_role_transition';" \
         "O"
     assert_scalar "test budget GUC context" \
-        "SELECT context FROM pg_settings WHERE name = 'commitcap_native.test_budget';" \
+        "SELECT context FROM pg_settings WHERE name = 'writeleash_native.test_budget';" \
         "superuser"
     assert_scalar "test seed GUC context" \
-        "SELECT context FROM pg_settings WHERE name = 'commitcap_native.test_seed_consumed';" \
+        "SELECT context FROM pg_settings WHERE name = 'writeleash_native.test_seed_consumed';" \
         "superuser"
 
     printf 'privilege-audit checks: PASS\n'
@@ -280,7 +280,7 @@ cc_session_start() {
     : > "$CC_SESSION_DIR/$name.out"
     "${COMPOSE[@]}" exec -T \
         -e "PGPASSWORD=$WRITER_PASSWORD" \
-        postgres psql -X -A -t -h 127.0.0.1 -U commitcap_writer -d commitcap_native -v ON_ERROR_STOP=0 \
+        postgres psql -X -A -t -h 127.0.0.1 -U writeleash_writer -d writeleash_native -v ON_ERROR_STOP=0 \
         < "$CC_SESSION_DIR/$name.in" > "$CC_SESSION_DIR/$name.out" 2>&1 &
 }
 
@@ -340,7 +340,7 @@ cc_probe_line() {
     local name="$1"
     local marker="$2"
 
-    cc_send "$name" "SELECT '$marker:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END || '|' || backend_pid FROM commitcap_probe.cc_native_probe();"
+    cc_send "$name" "SELECT '$marker:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END || '|' || backend_pid FROM writeleash_probe.writeleash_native_probe();"
     cc_wait_output "$name" "$marker:" "probe $marker"
     grep -F "$marker:" "$CC_SESSION_DIR/$name.out" | tail -n 1
 }
@@ -394,14 +394,14 @@ cc_event_count() {
     local pid="$1"
 
     "${COMPOSE[@]}" logs --no-color postgres 2>&1 | \
-        grep -c "commitcap_native_tx_state event pid=$pid " || true
+        grep -c "writeleash_native_tx_state event pid=$pid " || true
 }
 
 cc_lifecycle_count() {
     local pid="$1"
 
     "${COMPOSE[@]}" logs --no-color postgres 2>&1 | \
-        grep -c "commitcap_native_tx_state lifecycle event=.* pid=$pid " || true
+        grep -c "writeleash_native_tx_state lifecycle event=.* pid=$pid " || true
 }
 
 cc_lifecycle_since() {
@@ -414,7 +414,7 @@ cc_lifecycle_since() {
     new_count=$((after - before))
     [[ "$new_count" -gt 0 ]] || fail "no lifecycle callbacks recorded for pid $pid"
     "${COMPOSE[@]}" logs --no-color postgres 2>&1 | \
-        grep "commitcap_native_tx_state lifecycle event=.* pid=$pid " | tail -n "$new_count"
+        grep "writeleash_native_tx_state lifecycle event=.* pid=$pid " | tail -n "$new_count"
 }
 
 cc_count_tag() {
@@ -480,9 +480,9 @@ cc_lifecycle_probe() {
     set +e
     output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<SQL
 BEGIN;
-SELECT '${label}_START:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT '${label}_START:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 UPDATE public.subscriptions SET status = '$status' WHERE id BETWEEN 1 AND 5;
-SELECT '${label}_END:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT '${label}_END:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 COMMIT;
 SQL
 )"
@@ -524,37 +524,37 @@ cc_denied_attempt alter_disable_trigger_all 42501 "ALTER TABLE public.subscripti
 cc_denied_attempt alter_disable_trigger_user 42501 "ALTER TABLE public.subscriptions DISABLE TRIGGER USER"
 cc_denied_attempt alter_enable_replica_trigger 42501 "ALTER TABLE public.subscriptions ENABLE REPLICA TRIGGER subscriptions_update_budget"
 cc_denied_attempt drop_trigger 42501 "DROP TRIGGER subscriptions_update_budget ON public.subscriptions"
-cc_denied_attempt alter_table_owner 42501 "ALTER TABLE public.subscriptions OWNER TO commitcap_writer"
+cc_denied_attempt alter_table_owner 42501 "ALTER TABLE public.subscriptions OWNER TO writeleash_writer"
 cc_denied_attempt drop_table 42501 "DROP TABLE public.subscriptions"
 cc_denied_attempt alter_drop_column 42501 "ALTER TABLE public.subscriptions DROP COLUMN status"
 cc_denied_attempt truncate_table 42501 "TRUNCATE public.subscriptions"
 cc_denied_attempt insert_row 42501 "INSERT INTO public.subscriptions (id, status) VALUES (99, 'x')"
-cc_denied_attempt drop_function 42501 "DROP FUNCTION commitcap_native.enforce_update_budget()"
-cc_denied_attempt alter_function 42501 "ALTER FUNCTION commitcap_native.enforce_update_budget() SET search_path = public"
-cc_denied_attempt replace_function 42501 "CREATE OR REPLACE FUNCTION commitcap_native.enforce_update_budget() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'"
-cc_denied_attempt create_in_trusted_schema 42501 "CREATE TABLE commitcap_native.steal (x int)"
-cc_denied_attempt drop_trusted_schema 42501 "DROP SCHEMA commitcap_native"
-cc_denied_attempt alter_schema_owner 42501 "ALTER SCHEMA commitcap_native OWNER TO commitcap_writer"
-cc_denied_attempt drop_probe_schema 42501 "DROP SCHEMA commitcap_probe"
-cc_denied_attempt alter_probe_function 42501 "ALTER FUNCTION commitcap_probe.cc_native_probe() SET search_path = public"
-cc_denied_attempt create_shadow_schema 42501 "CREATE SCHEMA commitcap_writer_shadow"
+cc_denied_attempt drop_function 42501 "DROP FUNCTION writeleash_native.enforce_update_budget()"
+cc_denied_attempt alter_function 42501 "ALTER FUNCTION writeleash_native.enforce_update_budget() SET search_path = public"
+cc_denied_attempt replace_function 42501 "CREATE OR REPLACE FUNCTION writeleash_native.enforce_update_budget() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'"
+cc_denied_attempt create_in_trusted_schema 42501 "CREATE TABLE writeleash_native.steal (x int)"
+cc_denied_attempt drop_trusted_schema 42501 "DROP SCHEMA writeleash_native"
+cc_denied_attempt alter_schema_owner 42501 "ALTER SCHEMA writeleash_native OWNER TO writeleash_writer"
+cc_denied_attempt drop_probe_schema 42501 "DROP SCHEMA writeleash_probe"
+cc_denied_attempt alter_probe_function 42501 "ALTER FUNCTION writeleash_probe.writeleash_native_probe() SET search_path = public"
+cc_denied_attempt create_shadow_schema 42501 "CREATE SCHEMA writeleash_writer_shadow"
 cc_denied_attempt create_shadow_function 42501 "CREATE FUNCTION public.enforce_update_budget() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'"
 cc_denied_attempt create_shadow_table 42501 "CREATE TABLE public.subscriptions_shadow (id int)"
 cc_denied_attempt set_replication_role 42501 "SET session_replication_role = replica"
-cc_denied_attempt alter_extension_update 42501 "ALTER EXTENSION commitcap_native_tx_state UPDATE"
-cc_denied_attempt alter_extension_set_schema 42501 "ALTER EXTENSION commitcap_native_tx_state SET SCHEMA commitcap_probe"
-cc_denied_attempt drop_extension 42501 "DROP EXTENSION commitcap_native_tx_state"
+cc_denied_attempt alter_extension_update 42501 "ALTER EXTENSION writeleash_native_tx_state UPDATE"
+cc_denied_attempt alter_extension_set_schema 42501 "ALTER EXTENSION writeleash_native_tx_state SET SCHEMA writeleash_probe"
+cc_denied_attempt drop_extension 42501 "DROP EXTENSION writeleash_native_tx_state"
 cc_denied_attempt create_extension_pgcrypto 42501 "CREATE EXTENSION pgcrypto"
-cc_denied_attempt create_extension_existing 42710 "CREATE EXTENSION commitcap_native_tx_state WITH SCHEMA public"
-cc_denied_attempt insert_accounting_state 42501 "INSERT INTO commitcap_native.update_budget_state (transaction_id, row_updates) VALUES (1, 1)"
+cc_denied_attempt create_extension_existing 42710 "CREATE EXTENSION writeleash_native_tx_state WITH SCHEMA public"
+cc_denied_attempt insert_accounting_state 42501 "INSERT INTO writeleash_native.update_budget_state (transaction_id, row_updates) VALUES (1, 1)"
 cc_denied_attempt drop_users_trigger 42501 "DROP TRIGGER users_role_transition ON public.users"
 cc_denied_attempt alter_users_disable_trigger 42501 "ALTER TABLE public.users DISABLE TRIGGER ALL"
-cc_denied_attempt drop_transition_function 42501 "DROP FUNCTION commitcap_native.enforce_role_transition()"
-cc_denied_attempt replace_transition_function 42501 "CREATE OR REPLACE FUNCTION commitcap_native.enforce_role_transition() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'"
+cc_denied_attempt drop_transition_function 42501 "DROP FUNCTION writeleash_native.enforce_role_transition()"
+cc_denied_attempt replace_transition_function 42501 "CREATE OR REPLACE FUNCTION writeleash_native.enforce_role_transition() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'"
 
 assert_scalar "CC-027 protected relation owner after attempts" \
     "SELECT pg_get_userbyid(c.relowner) FROM pg_class AS c JOIN pg_namespace AS n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'subscriptions';" \
-    "commitcap_owner"
+    "writeleash_owner"
 assert_scalar "CC-027 trigger state after attempts" \
     "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'subscriptions_update_budget';" \
     "O"
@@ -562,13 +562,13 @@ assert_scalar "CC-027 users trigger state after attempts" \
     "SELECT tgenabled::text FROM pg_trigger WHERE tgname = 'users_role_transition';" \
     "O"
 assert_scalar "CC-027 enforcement function after attempts" \
-    "SELECT pg_get_userbyid(p.proowner) || ':' || l.lanname FROM pg_proc AS p JOIN pg_language AS l ON l.oid = p.prolang JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_native' AND p.proname = 'enforce_update_budget';" \
-    "commitcap_owner:c"
+    "SELECT pg_get_userbyid(p.proowner) || ':' || l.lanname FROM pg_proc AS p JOIN pg_language AS l ON l.oid = p.prolang JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'writeleash_native' AND p.proname = 'enforce_update_budget';" \
+    "writeleash_owner:c"
 assert_scalar "CC-027 transition function after attempts" \
-    "SELECT pg_get_userbyid(p.proowner) || ':' || l.lanname FROM pg_proc AS p JOIN pg_language AS l ON l.oid = p.prolang JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'commitcap_native' AND p.proname = 'enforce_role_transition';" \
-    "commitcap_owner:c"
+    "SELECT pg_get_userbyid(p.proowner) || ':' || l.lanname FROM pg_proc AS p JOIN pg_language AS l ON l.oid = p.prolang JOIN pg_namespace AS n ON n.oid = p.pronamespace WHERE n.nspname = 'writeleash_native' AND p.proname = 'enforce_role_transition';" \
+    "writeleash_owner:c"
 assert_scalar "CC-027 extension after attempts" \
-    "SELECT count(*) FROM pg_extension WHERE extname = 'commitcap_native_tx_state';" \
+    "SELECT count(*) FROM pg_extension WHERE extname = 'writeleash_native_tx_state';" \
     "1"
 assert_baseline
 set +e
@@ -579,7 +579,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc027_regression_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc027_regression_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-027 post-attack enforcement regression did not deny event six"
 assert_baseline
 set +e
@@ -590,21 +590,21 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc027_transition_output" == *"CommitCap forbidden state transition (* -> admin)"* ]] || \
+[[ "$cc027_transition_output" == *"WriteLeash forbidden state transition (* -> admin)"* ]] || \
     fail "CC-027 post-attack transition enforcement did not deny the admin transition"
 assert_users_baseline
 printf 'CC-027: PASS (all attempts denied; trusted objects unchanged; enforcement intact)\n'
 
 printf '\nCC-028 role transition attempts:\n'
 cc028_roles="$(admin_psql -At -v ON_ERROR_STOP=1 -c \
-    "SELECT rolname FROM pg_roles WHERE rolname <> 'commitcap_writer' ORDER BY rolname;")"
+    "SELECT rolname FROM pg_roles WHERE rolname <> 'writeleash_writer' ORDER BY rolname;")"
 cc028_role_count=0
 while IFS= read -r cc028_role; do
     [[ -n "$cc028_role" ]] || continue
     cc_denied_attempt "set_role_$cc028_role" 42501 "SET ROLE $cc028_role"
     cc028_role_count=$((cc028_role_count + 1))
 done <<<"$cc028_roles"
-cc_denied_attempt set_session_authorization 42501 "SET SESSION AUTHORIZATION commitcap_owner"
+cc_denied_attempt set_session_authorization 42501 "SET SESSION AUTHORIZATION writeleash_owner"
 set +e
 cc028_identity="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 SET ROLE NONE;
@@ -612,9 +612,9 @@ SELECT 'CC028_IDENTITY:' || session_user || ':' || current_user;
 SQL
 )"
 set -e
-[[ "$cc028_identity" == *"CC028_IDENTITY:commitcap_writer:commitcap_writer"* ]] || \
+[[ "$cc028_identity" == *"CC028_IDENTITY:writeleash_writer:writeleash_writer"* ]] || \
     fail "CC-028 writer identity changed unexpectedly: $cc028_identity"
-printf '  %-44s %s\n' "set_role_none" "identity unchanged (commitcap_writer:commitcap_writer)"
+printf '  %-44s %s\n' "set_role_none" "identity unchanged (writeleash_writer:writeleash_writer)"
 printf 'CC-028: PASS (no reachable role; %s other roles attempted)\n' "$cc028_role_count"
 
 printf '\nCC-029 two-phase commit exclusion:\n'
@@ -668,7 +668,7 @@ MERGE INTO public.subscriptions AS target
 USING (VALUES (1, 'cc026_allowed'), (2, 'cc026_allowed'), (3, 'cc026_allowed'), (4, 'cc026_allowed'), (5, 'cc026_allowed')) AS source(id, status)
 ON target.id = source.id
 WHEN MATCHED THEN UPDATE SET status = source.status;
-SELECT 'CC026_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC026_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 COMMIT;
 SQL
 )"
@@ -694,7 +694,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc026_six_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc026_six_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-026 six-event MERGE did not report event-six denial"
 [[ "$cc026_six_output" == *"ROLLBACK"* ]] || \
     fail "CC-026 six-event MERGE did not abort the transaction"
@@ -710,7 +710,7 @@ MERGE INTO public.subscriptions AS target
 USING (VALUES (4, 'cc026_mixed'), (5, 'cc026_mixed')) AS source(id, status)
 ON target.id = source.id
 WHEN MATCHED THEN UPDATE SET status = source.status;
-SELECT 'CC026_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC026_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 MERGE INTO public.subscriptions AS target
 USING (VALUES (6, 'cc026_mixed')) AS source(id, status)
 ON target.id = source.id
@@ -721,7 +721,7 @@ SQL
 set -e
 [[ "$cc026_mixed_output" == *"CC026_STATE:t|5|f"* ]] || \
     fail "CC-026 mixed UPDATE+MERGE did not share the budget (output: $cc026_mixed_output)"
-[[ "$cc026_mixed_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc026_mixed_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-026 mixed UPDATE+MERGE did not deny the sixth event"
 [[ "$cc026_mixed_output" == *"ROLLBACK"* ]] || \
     fail "CC-026 mixed UPDATE+MERGE did not abort the transaction"
@@ -740,7 +740,7 @@ MERGE INTO public.subscriptions AS target
 USING (VALUES (4, 'cc026_multi'), (5, 'cc026_multi')) AS source(id, status)
 ON target.id = source.id
 WHEN MATCHED THEN UPDATE SET status = source.status;
-SELECT 'CC026_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC026_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 MERGE INTO public.subscriptions AS target
 USING (VALUES (6, 'cc026_multi')) AS source(id, status)
 ON target.id = source.id
@@ -751,7 +751,7 @@ SQL
 set -e
 [[ "$cc026_multi_output" == *"CC026_STATE:t|5|f"* ]] || \
     fail "CC-026 multiple MERGE statements did not share the budget (output: $cc026_multi_output)"
-[[ "$cc026_multi_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc026_multi_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-026 multiple MERGE statements did not deny the sixth event"
 [[ "$cc026_multi_output" == *"ROLLBACK"* ]] || \
     fail "CC-026 multiple MERGE statements did not abort the transaction"
@@ -771,7 +771,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc004_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc004_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-004 did not report the event-six denial"
 [[ "$cc004_output" == *"ROLLBACK"* ]] || \
     fail "CC-004 denied transaction did not abort"
@@ -786,9 +786,9 @@ set +e
 cc005_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
 UPDATE public.subscriptions SET status = 'cc005_zero' WHERE id = 999999;
-SELECT 'CC005_ZERO:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC005_ZERO:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 UPDATE public.subscriptions SET status = 'cc005_allowed' WHERE id BETWEEN 1 AND 5;
-SELECT 'CC005_FIVE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC005_FIVE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 COMMIT;
 SQL
 )"
@@ -813,7 +813,7 @@ UPDATE public.subscriptions SET status = 'cc006_2' WHERE id = 1;
 UPDATE public.subscriptions SET status = 'cc006_3' WHERE id = 1;
 UPDATE public.subscriptions SET status = 'cc006_4' WHERE id = 1;
 UPDATE public.subscriptions SET status = 'cc006_5' WHERE id = 1;
-SELECT 'CC006_FIVE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC006_FIVE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 UPDATE public.subscriptions SET status = 'cc006_6' WHERE id = 1;
 COMMIT;
 SQL
@@ -824,7 +824,7 @@ cc006_update_count="$(printf '%s\n' "$cc006_output" | grep -c '^UPDATE 1$' || tr
     fail "CC-006 completed $cc006_update_count same-row updates before denial, expected 5"
 [[ "$cc006_output" == *"CC006_FIVE:t|5|f"* ]] || \
     fail "CC-006 five same-row events did not consume five units (output: $cc006_output)"
-[[ "$cc006_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc006_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-006 sixth same-row event was not denied"
 [[ "$cc006_output" == *"ROLLBACK"* ]] || \
     fail "CC-006 denied transaction did not abort"
@@ -837,7 +837,7 @@ set +e
 cc007_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
 EXPLAIN (ANALYZE, COSTS OFF) UPDATE public.subscriptions SET status = 'baseline' WHERE id BETWEEN 1 AND 5;
-SELECT 'CC007_FIVE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC007_FIVE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 UPDATE public.subscriptions SET status = 'baseline' WHERE id = 6;
 COMMIT;
 SQL
@@ -847,7 +847,7 @@ set -e
     fail "CC-007 no-op instrumentation did not report five enforcement-trigger calls"
 [[ "$cc007_output" == *"CC007_FIVE:t|5|f"* ]] || \
     fail "CC-007 five no-op events did not consume five units (output: $cc007_output)"
-[[ "$cc007_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc007_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-007 sixth no-op event was not denied"
 [[ "$cc007_output" == *"ROLLBACK"* ]] || \
     fail "CC-007 denied transaction did not abort"
@@ -856,19 +856,19 @@ cc_lifecycle_probe CC007 cc007_life
 printf 'CC-007: PASS (no-op assignments consumed authority; sixth denied)\n'
 
 printf '\nCC-030 / CC-031: budget bounds and overflow safety:\n'
-cc_config_reset commitcap_native.test_budget
-cc_config_reset commitcap_native.test_seed_consumed
+cc_config_reset writeleash_native.test_budget
+cc_config_reset writeleash_native.test_seed_consumed
 assert_value "test configuration clean start" "$(cc_config_stored)" "(none)"
 
 printf '\nCC-030 zero budget:\n'
-cc_config_set commitcap_native.test_budget 0
-assert_value "CC-030 stored budget" "$(cc_config_stored)" "commitcap_native.test_budget=0"
+cc_config_set writeleash_native.test_budget 0
+assert_value "CC-030 stored budget" "$(cc_config_stored)" "writeleash_native.test_budget=0"
 reset_fixture
 set +e
 cc030_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
-SELECT 'CC030_BUDGET:' || current_setting('commitcap_native.test_budget');
-SELECT 'CC030_START:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC030_BUDGET:' || current_setting('writeleash_native.test_budget');
+SELECT 'CC030_START:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 UPDATE public.subscriptions SET status = 'cc030' WHERE id = 1;
 COMMIT;
 SQL
@@ -878,15 +878,15 @@ set -e
     fail "CC-030 writer session did not see budget 0 (output: $cc030_output)"
 [[ "$cc030_output" == *"CC030_START:f|0|f"* ]] || \
     fail "CC-030 transaction did not start at consumed=0 denied=false"
-[[ "$cc030_output" == *"CommitCap mutation budget exceeded (limit 0, attempted 1)"* ]] || \
+[[ "$cc030_output" == *"WriteLeash mutation budget exceeded (limit 0, attempted 1)"* ]] || \
     fail "CC-030 first event was not denied under budget 0"
 [[ "$cc030_output" == *"ROLLBACK"* ]] || \
     fail "CC-030 denied transaction did not abort"
 printf '  zero-budget: %s; %s\n' \
     "$(printf '%s\n' "$cc030_output" | grep -F 'CC030_BUDGET:' | head -n 1)" \
-    "$(printf '%s\n' "$cc030_output" | grep -F 'CommitCap mutation budget exceeded' | head -n 1 | sed 's/^ERROR:  //')"
+    "$(printf '%s\n' "$cc030_output" | grep -F 'WriteLeash mutation budget exceeded' | head -n 1 | sed 's/^ERROR:  //')"
 assert_baseline
-cc_config_reset commitcap_native.test_budget
+cc_config_reset writeleash_native.test_budget
 assert_value "CC-030 restored configuration" "$(cc_config_stored)" "(none)"
 cc_lifecycle_probe CC030 cc030_life
 reset_fixture
@@ -898,20 +898,20 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc030_restored_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc030_restored_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-030 restored budget did not deny the sixth event"
 assert_baseline
 printf 'CC-030: PASS (budget 0 denies the first event; default budget restored)\n'
 
 printf '\nCC-031 budget validation and overflow safety:\n'
-cc_config_set commitcap_native.test_budget 5
-assert_value "CC-031 stored valid budget" "$(cc_config_stored)" "commitcap_native.test_budget=5"
-cc_config_attempt negative "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = -1" 22023
-cc_config_attempt max_plus_one "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = 2147483648" 22023
-cc_config_attempt huge "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = 999999999999999999999999" 22023
-cc_config_attempt non_numeric "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = 'not-a-number'" 22023
-cc_config_attempt out_of_range_fraction "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = '2147483647.9'" 22023
-assert_value "CC-031 configuration after invalid attempts" "$(cc_config_stored)" "commitcap_native.test_budget=5"
+cc_config_set writeleash_native.test_budget 5
+assert_value "CC-031 stored valid budget" "$(cc_config_stored)" "writeleash_native.test_budget=5"
+cc_config_attempt negative "ALTER ROLE writeleash_writer SET writeleash_native.test_budget = -1" 22023
+cc_config_attempt max_plus_one "ALTER ROLE writeleash_writer SET writeleash_native.test_budget = 2147483648" 22023
+cc_config_attempt huge "ALTER ROLE writeleash_writer SET writeleash_native.test_budget = 999999999999999999999999" 22023
+cc_config_attempt non_numeric "ALTER ROLE writeleash_writer SET writeleash_native.test_budget = 'not-a-number'" 22023
+cc_config_attempt out_of_range_fraction "ALTER ROLE writeleash_writer SET writeleash_native.test_budget = '2147483647.9'" 22023
+assert_value "CC-031 configuration after invalid attempts" "$(cc_config_stored)" "writeleash_native.test_budget=5"
 reset_fixture
 cc_lifecycle_probe CC031 cc031_life
 reset_fixture
@@ -923,33 +923,33 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc031_unchanged_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc031_unchanged_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-031 prior valid budget was not preserved after rejected inputs"
 assert_baseline
 printf '  prior valid budget preserved and still enforced\n'
-cc_config_attempt in_range_fraction "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = '1.5'" 00000
-assert_value "CC-031 fractional stored form" "$(cc_config_stored)" "commitcap_native.test_budget=1.5"
+cc_config_attempt in_range_fraction "ALTER ROLE writeleash_writer SET writeleash_native.test_budget = '1.5'" 00000
+assert_value "CC-031 fractional stored form" "$(cc_config_stored)" "writeleash_native.test_budget=1.5"
 assert_value "CC-031 fractional activated value" \
-    "$(writer_psql -At -v ON_ERROR_STOP=1 -c "SHOW commitcap_native.test_budget;")" "2"
-cc_config_reset commitcap_native.test_budget
-cc_config_attempt negative_fraction "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = '-0.5'" 00000
-assert_value "CC-031 negative fractional stored form" "$(cc_config_stored)" "commitcap_native.test_budget=-0.5"
+    "$(writer_psql -At -v ON_ERROR_STOP=1 -c "SHOW writeleash_native.test_budget;")" "2"
+cc_config_reset writeleash_native.test_budget
+cc_config_attempt negative_fraction "ALTER ROLE writeleash_writer SET writeleash_native.test_budget = '-0.5'" 00000
+assert_value "CC-031 negative fractional stored form" "$(cc_config_stored)" "writeleash_native.test_budget=-0.5"
 assert_value "CC-031 negative fractional activated value" \
-    "$(writer_psql -At -v ON_ERROR_STOP=1 -c "SHOW commitcap_native.test_budget;")" "0"
+    "$(writer_psql -At -v ON_ERROR_STOP=1 -c "SHOW writeleash_native.test_budget;")" "0"
 printf '  PostgreSQL integer GUC grammar rounds in-range fractions; activated values stay in [0, 2147483647]\n'
-cc_config_reset commitcap_native.test_budget
-cc_config_set commitcap_native.test_budget 2147483647
-assert_value "CC-031 stored maximum budget" "$(cc_config_stored)" "commitcap_native.test_budget=2147483647"
-cc_config_set commitcap_native.test_seed_consumed 2147483646
+cc_config_reset writeleash_native.test_budget
+cc_config_set writeleash_native.test_budget 2147483647
+assert_value "CC-031 stored maximum budget" "$(cc_config_stored)" "writeleash_native.test_budget=2147483647"
+cc_config_set writeleash_native.test_seed_consumed 2147483646
 assert_value "CC-031 stored near-maximum seed" "$(cc_config_stored)" \
-    "commitcap_native.test_budget=2147483647,commitcap_native.test_seed_consumed=2147483646"
+    "writeleash_native.test_budget=2147483647,writeleash_native.test_seed_consumed=2147483646"
 reset_fixture
 set +e
 cc031_max_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
-SELECT 'CC031_BUDGET:' || current_setting('commitcap_native.test_budget') || ':' || current_setting('commitcap_native.test_seed_consumed');
+SELECT 'CC031_BUDGET:' || current_setting('writeleash_native.test_budget') || ':' || current_setting('writeleash_native.test_seed_consumed');
 UPDATE public.subscriptions SET status = 'cc031_max' WHERE id = 1;
-SELECT 'CC031_AFTER1:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC031_AFTER1:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 UPDATE public.subscriptions SET status = 'cc031_max' WHERE id = 2;
 COMMIT;
 SQL
@@ -959,7 +959,7 @@ set -e
     fail "CC-031 near-maximum configuration was not active in the writer session"
 [[ "$cc031_max_output" == *"CC031_AFTER1:t|2147483647|f"* ]] || \
     fail "CC-031 first near-maximum event did not consume exactly to the maximum"
-[[ "$cc031_max_output" == *"CommitCap mutation budget exceeded (limit 2147483647, attempted 2147483648)"* ]] || \
+[[ "$cc031_max_output" == *"WriteLeash mutation budget exceeded (limit 2147483647, attempted 2147483648)"* ]] || \
     fail "CC-031 second near-maximum event was not denied without wrap"
 [[ "$cc031_max_output" == *"ROLLBACK"* ]] || \
     fail "CC-031 near-maximum denied transaction did not abort"
@@ -967,13 +967,13 @@ printf '  near-maximum: %s; %s\n' \
     "$(printf '%s\n' "$cc031_max_output" | grep -F 'CC031_BUDGET:' | head -n 1)" \
     "$(printf '%s\n' "$cc031_max_output" | grep -F 'CC031_AFTER1:' | head -n 1)"
 printf '  near-maximum denial: %s\n' \
-    "$(printf '%s\n' "$cc031_max_output" | grep -F 'CommitCap mutation budget exceeded' | head -n 1 | sed 's/^ERROR:  //')"
+    "$(printf '%s\n' "$cc031_max_output" | grep -F 'WriteLeash mutation budget exceeded' | head -n 1 | sed 's/^ERROR:  //')"
 assert_baseline
 set +e
 cc031_commit_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
 UPDATE public.subscriptions SET status = 'cc031_commit' WHERE id = 1;
-SELECT 'CC031_COMMIT:t|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC031_COMMIT:t|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 COMMIT;
 SQL
 )"
@@ -985,15 +985,15 @@ printf '  near-maximum commit: %s\n' \
 assert_scalar "CC-031 near-maximum commit durable" \
     "SELECT count(*) FILTER (WHERE id = 1 AND status = 'cc031_commit') || ':' || count(*) FILTER (WHERE status <> 'baseline') FROM public.subscriptions;" \
     "1:1"
-cc_config_reset commitcap_native.test_seed_consumed
-cc_config_reset commitcap_native.test_budget
+cc_config_reset writeleash_native.test_seed_consumed
+cc_config_reset writeleash_native.test_budget
 assert_value "CC-031 restored configuration" "$(cc_config_stored)" "(none)"
 reset_fixture
 cc_lifecycle_probe CC031R cc031_restored
-cc_denied_attempt config_writer_set 42501 "SET commitcap_native.test_budget = 100"
-cc_denied_attempt config_writer_reset 42501 "RESET commitcap_native.test_budget"
-cc_denied_attempt config_writer_alter_role 42501 "ALTER ROLE commitcap_writer SET commitcap_native.test_budget = 100"
-cc_denied_attempt config_writer_alter_database 42501 "ALTER DATABASE commitcap_native SET commitcap_native.test_budget = 100"
+cc_denied_attempt config_writer_set 42501 "SET writeleash_native.test_budget = 100"
+cc_denied_attempt config_writer_reset 42501 "RESET writeleash_native.test_budget"
+cc_denied_attempt config_writer_alter_role 42501 "ALTER ROLE writeleash_writer SET writeleash_native.test_budget = 100"
+cc_denied_attempt config_writer_alter_database 42501 "ALTER DATABASE writeleash_native SET writeleash_native.test_budget = 100"
 printf 'CC-031: PASS (bounds rejected before activation; near-maximum counter did not wrap)\n'
 printf 'Regression suite follows; all of it runs after the privilege, MERGE, row-event, and budget experiments.\n'
 
@@ -1013,7 +1013,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc002_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc002_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-002 did not report event-six denial"
 [[ "$cc002_output" == *"ROLLBACK"* ]] || fail "CC-002 did not abort"
 assert_baseline
@@ -1033,7 +1033,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc003_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc003_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-003 did not report cumulative event-six denial"
 cc003_success_count="$(printf '%s\n' "$cc003_output" | grep -c '^UPDATE 1$' || true)"
 [[ "$cc003_success_count" == "5" ]] || \
@@ -1054,11 +1054,11 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc008_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc008_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-008 did not report event-six denial"
 [[ "$cc008_output" == *"cc008_after_recovery"* ]] || \
     fail "CC-008 did not recover execution after ROLLBACK TO"
-[[ "$cc008_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+[[ "$cc008_output" == *"WriteLeash top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-008 final COMMIT was not rejected"
 cc008_commit_count="$(printf '%s\n' "$cc008_output" | grep -c '^COMMIT$' || true)"
 [[ "$cc008_commit_count" == "0" ]] || fail "CC-008 emitted a COMMIT command tag"
@@ -1095,10 +1095,10 @@ DO $block$
 BEGIN
     BEGIN
         UPDATE public.subscriptions SET status = 'cc024_excess' WHERE id = 6;
-        RAISE EXCEPTION 'CC-024 harness expected CommitCap denial';
+        RAISE EXCEPTION 'CC-024 harness expected WriteLeash denial';
     EXCEPTION
         WHEN OTHERS THEN
-            IF SQLERRM NOT LIKE 'CommitCap mutation budget exceeded%' THEN
+            IF SQLERRM NOT LIKE 'WriteLeash mutation budget exceeded%' THEN
                 RAISE;
             END IF;
             RAISE NOTICE 'CC024_CAUGHT: %', SQLERRM;
@@ -1110,13 +1110,13 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc024_output" == *"CC024_CAUGHT: CommitCap mutation budget exceeded"* ]] || \
+[[ "$cc024_output" == *"CC024_CAUGHT: WriteLeash mutation budget exceeded"* ]] || \
     fail "CC-024 handler did not catch event-six denial"
 [[ "$cc024_output" == *"cc024_after_recovery"* ]] || \
     fail "CC-024 did not continue after exception recovery"
-[[ "$cc024_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+[[ "$cc024_output" == *"WriteLeash top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-024 final COMMIT was not rejected"
-cc024_commit_evidence="$(printf '%s\n' "$cc024_output" | grep -A3 -F 'CommitCap top-level transaction denied after mutation authority violation' | head -n 4)"
+cc024_commit_evidence="$(printf '%s\n' "$cc024_output" | grep -A3 -F 'WriteLeash top-level transaction denied after mutation authority violation' | head -n 4)"
 [[ "$cc024_commit_evidence" == *"policy / metric: subscriptions.rows_updated"* && \
    "$cc024_commit_evidence" == *"result: ABORTED"* ]] || \
     fail "CC-024 rejected COMMIT did not carry policy-scoped ABORTED evidence: $cc024_commit_evidence"
@@ -1142,11 +1142,11 @@ SQL
 set -e
 [[ "$cc032_output" == *"INSERT 0 1"* ]] || \
     fail "CC-032 did not execute the unprotected mutation before denial"
-[[ "$cc032_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc032_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-032 did not report event-six denial"
 [[ "$cc032_output" == *"cc032_after_recovery"* ]] || \
     fail "CC-032 did not recover execution after ROLLBACK TO"
-[[ "$cc032_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+[[ "$cc032_output" == *"WriteLeash top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-032 final COMMIT was not rejected"
 cc032_commit_count="$(printf '%s\n' "$cc032_output" | grep -c '^COMMIT$' || true)"
 [[ "$cc032_commit_count" == "0" ]] || fail "CC-032 emitted a COMMIT command tag"
@@ -1173,7 +1173,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc032_cleanup_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc032_cleanup_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-032 cleanup probe did not report denial"
 cc032_cleanup_commit_count="$(printf '%s\n' "$cc032_cleanup_output" | grep -c '^COMMIT$' || true)"
 [[ "$cc032_cleanup_commit_count" == "1" ]] || \
@@ -1208,7 +1208,7 @@ cc025_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
 PREPARE cc025(bigint, text) AS
 UPDATE public.subscriptions SET status = $2 WHERE id = $1;
-SELECT 'CC025_START:' || active || ':' || consumed || ':' || denied FROM commitcap_probe.cc_native_probe();
+SELECT 'CC025_START:' || active || ':' || consumed || ':' || denied FROM writeleash_probe.writeleash_native_probe();
 \echo CC025_EXEC_BEGIN
 EXECUTE cc025(1, 'cc025');
 EXECUTE cc025(2, 'cc025');
@@ -1219,7 +1219,7 @@ EXECUTE cc025(6, 'cc025');
 \echo CC025_EXEC_END
 COMMIT;
 BEGIN;
-SELECT 'CC025_CLEAN_START:' || active || ':' || consumed || ':' || denied FROM commitcap_probe.cc_native_probe();
+SELECT 'CC025_CLEAN_START:' || active || ':' || consumed || ':' || denied FROM writeleash_probe.writeleash_native_probe();
 UPDATE public.subscriptions SET status = 'cc025_cleanup' WHERE id BETWEEN 1 AND 5;
 COMMIT;
 SQL
@@ -1228,7 +1228,7 @@ set -e
 [[ "$cc025_output" == *"CC025_START:false:0:false"* && \
    "$cc025_output" == *"CC025_CLEAN_START:false:0:false"* ]] || \
     fail "CC-025 writer did not begin both transactions with fresh authority"
-[[ "$cc025_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc025_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-025 did not report event-six denial"
 [[ "$cc025_output" == *"policy / metric: subscriptions.rows_updated"* && \
    "$cc025_output" == *"granted: 5"* && \
@@ -1293,7 +1293,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc011_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc011_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-011 did not report event-six denial"
 cc011_commit_count="$(printf '%s\n' "$cc011_output" | grep -c '^COMMIT$' || true)"
 [[ "$cc011_commit_count" == "1" ]] || \
@@ -1333,7 +1333,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$cc033_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc033_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-033 did not report event-six denial"
 cc033_commit_count="$(printf '%s\n' "$cc033_output" | grep -c '^COMMIT$' || true)"
 [[ "$cc033_commit_count" == "1" ]] || \
@@ -1345,7 +1345,7 @@ printf 'CC-033: PASS (EXPLAIN ANALYZE shared one budget; denial rolled back at C
 
 printf '\n--- CC-019 / CC-020: concurrent sessions ---\n'
 reset_fixture
-CC_SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/commitcap_native_sessions.XXXXXX")"
+CC_SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/writeleash_native_sessions.XXXXXX")"
 cc_session_start a
 cc_session_start b
 cc_session_attach a
@@ -1401,7 +1401,7 @@ cc_send a "UPDATE public.subscriptions SET status = 'cc019_deny_a' WHERE id BETW
 cc_send a "UPDATE public.subscriptions SET status = 'cc019_deny_a' WHERE id = 5;"
 cc_send a "SAVEPOINT before_denial;"
 cc_send a "UPDATE public.subscriptions SET status = 'cc019_deny_a' WHERE id = 6;"
-cc_wait_output a "CommitCap mutation budget exceeded" "session A event-six denial"
+cc_wait_output a "WriteLeash mutation budget exceeded" "session A event-six denial"
 cc_send a "ROLLBACK TO SAVEPOINT before_denial;"
 cc_probe_assert a CCP19D_A1 t 5 t
 cc_send b "BEGIN;"
@@ -1427,7 +1427,7 @@ cc_send b "BEGIN;"
 cc_send b "UPDATE public.subscriptions SET status = 'cc019_rev_b' WHERE id BETWEEN 1 AND 5;"
 cc_send b "SAVEPOINT before_denial;"
 cc_send b "UPDATE public.subscriptions SET status = 'cc019_rev_b' WHERE id = 6;"
-cc_wait_output b "CommitCap mutation budget exceeded" "session B event-six denial"
+cc_wait_output b "WriteLeash mutation budget exceeded" "session B event-six denial"
 cc_send b "ROLLBACK TO SAVEPOINT before_denial;"
 cc_probe_assert b CCP19R_B1 t 5 t
 cc_send a "BEGIN;"
@@ -1521,7 +1521,7 @@ cc_b_events_blocked="$(cc_event_count "$cc_b_pid")"
 printf 'CC-020 scenario B: B trigger events while blocked=%s\n' \
     "$((cc_b_events_blocked - cc_b_events_before))"
 cc_send a "UPDATE public.subscriptions SET status = 'cc020b_a' WHERE id = 6;"
-cc_wait_output a "CommitCap mutation budget exceeded" "session A event-six denial under contention"
+cc_wait_output a "WriteLeash mutation budget exceeded" "session A event-six denial under contention"
 cc_a_rollbacks_before="$(cc_count_tag a ROLLBACK)"
 cc_send a "COMMIT;"
 cc_sync a CCP20B_A_ENDED
@@ -1568,7 +1568,7 @@ printf 'CC-019 / CC-020 concurrent sessions: all requested cases PASS\n'
 
 printf '\n--- CC-021: backend reuse across top-level transactions ---\n'
 rm -rf "$CC_SESSION_DIR"
-CC_SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/commitcap_native_reuse.XXXXXX")"
+CC_SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/writeleash_native_reuse.XXXXXX")"
 reset_fixture
 cc_session_start a
 cc_session_attach a
@@ -1639,11 +1639,11 @@ cc21_rollbacks_before="$(cc_count_tag a ROLLBACK)"
 cc_send a "BEGIN;"
 cc_send a "UPDATE public.subscriptions SET status = 'cc021_c_denied' WHERE id BETWEEN 1 AND 5;"
 cc_probe_assert a CC21_C_TX1 t 5 f "$cc21_pid"
-cc21_denials_before="$(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true)"
+cc21_denials_before="$(grep -cF 'WriteLeash mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true)"
 cc_send a "UPDATE public.subscriptions SET status = 'cc021_c_denied' WHERE id = 6;"
 cc_send a "COMMIT;"
 cc_sync a CC21_C_TX1_END
-[[ "$(( $(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true) - cc21_denials_before ))" == "1" ]] || \
+[[ "$(( $(grep -cF 'WriteLeash mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true) - cc21_denials_before ))" == "1" ]] || \
     fail "CC-021 scenario C did not report the event-six denial"
 [[ "$(( $(cc_count_tag a ROLLBACK) - cc21_rollbacks_before ))" == "1" ]] || \
     fail "CC-021 scenario C COMMIT was not converted to ROLLBACK"
@@ -1672,11 +1672,11 @@ cc_life_before="$(cc_lifecycle_count "$cc21_pid")"
 cc_send a "BEGIN;"
 cc_send a "UPDATE public.subscriptions SET status = 'cc021_d_denied' WHERE id BETWEEN 1 AND 5;"
 cc_send a "SAVEPOINT before_denial;"
-cc21_denials_before="$(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true)"
+cc21_denials_before="$(grep -cF 'WriteLeash mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true)"
 cc_send a "UPDATE public.subscriptions SET status = 'cc021_d_denied' WHERE id = 6;"
 cc_send a "ROLLBACK TO SAVEPOINT before_denial;"
 cc_probe_assert a CC21_D_TX1_RECOVERED t 5 t "$cc21_pid"
-[[ "$(( $(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true) - cc21_denials_before ))" == "1" ]] || \
+[[ "$(( $(grep -cF 'WriteLeash mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true) - cc21_denials_before ))" == "1" ]] || \
     fail "CC-021 scenario D did not report the event-six denial"
 cc21_rejections_before="$(grep -cF 'denied after mutation authority violation' "$CC_SESSION_DIR/a.out" || true)"
 cc_send a "COMMIT;"
@@ -1709,8 +1709,8 @@ reset_fixture
 cc_life_before="$(cc_lifecycle_count "$cc21_pid")"
 cc_send a "BEGIN;"
 cc_send a "UPDATE public.subscriptions SET status = 'cc021_e_denied' WHERE id BETWEEN 1 AND 5;"
-cc_send a "DO \$cc21\$ BEGIN BEGIN UPDATE public.subscriptions SET status = 'cc021_e_denied' WHERE id = 6; RAISE EXCEPTION 'expected CommitCap denial'; EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE 'CommitCap mutation budget exceeded%' THEN RAISE; END IF; RAISE NOTICE 'CC21_E_CAUGHT: %', SQLERRM; END; END \$cc21\$;"
-cc_wait_output a "CC21_E_CAUGHT: CommitCap mutation budget exceeded" "CC-021 scenario E caught denial"
+cc_send a "DO \$cc21\$ BEGIN BEGIN UPDATE public.subscriptions SET status = 'cc021_e_denied' WHERE id = 6; RAISE EXCEPTION 'expected WriteLeash denial'; EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE 'WriteLeash mutation budget exceeded%' THEN RAISE; END IF; RAISE NOTICE 'CC21_E_CAUGHT: %', SQLERRM; END; END \$cc21\$;"
+cc_wait_output a "CC21_E_CAUGHT: WriteLeash mutation budget exceeded" "CC-021 scenario E caught denial"
 cc_probe_assert a CC21_E_TX1 t 5 t "$cc21_pid"
 cc21_rejections_before="$(grep -cF 'denied after mutation authority violation' "$CC_SESSION_DIR/a.out" || true)"
 cc_send a "COMMIT;"
@@ -1751,10 +1751,10 @@ cc_probe_assert a CC21_F_AFTER2 f 0 f "$cc21_pid"
 assert_scalar "CC-021 autocommit two transactions durable" \
     "SELECT string_agg(id || '=' || status, ',' ORDER BY id) FROM public.subscriptions;" \
     "1=cc021_f1,2=cc021_f1,3=cc021_f1,4=cc021_f1,5=cc021_f1,6=cc021_f2,7=cc021_f2,8=cc021_f2,9=cc021_f2,10=cc021_f2"
-cc21_denials_before="$(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true)"
+cc21_denials_before="$(grep -cF 'WriteLeash mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true)"
 cc_send a "UPDATE public.subscriptions SET status = 'cc021_f3' WHERE id BETWEEN 1 AND 6;"
 cc_sync a CC21_F_TX3_DENIED
-[[ "$(( $(grep -cF 'CommitCap mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true) - cc21_denials_before ))" == "1" ]] || \
+[[ "$(( $(grep -cF 'WriteLeash mutation budget exceeded' "$CC_SESSION_DIR/a.out" || true) - cc21_denials_before ))" == "1" ]] || \
     fail "CC-021 autocommit six-event statement was not denied"
 cc_probe_assert a CC21_F_AFTER_DENIAL f 0 f "$cc21_pid"
 assert_scalar "CC-021 autocommit denial durable" \
@@ -1833,7 +1833,7 @@ set +e
 ccst020_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN;
 UPDATE public.users SET role = 'moderator' WHERE id = 1;
-SELECT 'CCST020_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CCST020_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 COMMIT;
 SQL
 )"
@@ -1862,7 +1862,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$ccst021_output" == *"CommitCap forbidden state transition (* -> admin)"* ]] || \
+[[ "$ccst021_output" == *"WriteLeash forbidden state transition (* -> admin)"* ]] || \
     fail "CC-021 did not deny the admin transition"
 [[ "$ccst021_output" == *"ROLLBACK"* ]] || \
     fail "CC-021 did not abort the top-level transaction"
@@ -1877,16 +1877,16 @@ BEGIN;
 SAVEPOINT ccst021_sp;
 UPDATE public.users SET role = 'admin' WHERE id = 1;
 ROLLBACK TO SAVEPOINT ccst021_sp;
-SELECT 'CCST021_RECOVERY_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CCST021_RECOVERY_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 COMMIT;
 SQL
 )"
 set -e
-[[ "$ccst021_recovery_output" == *"CommitCap forbidden state transition (* -> admin)"* ]] || \
+[[ "$ccst021_recovery_output" == *"WriteLeash forbidden state transition (* -> admin)"* ]] || \
     fail "CC-021 recovery case did not report the forbidden transition denial"
 [[ "$ccst021_recovery_output" == *"CCST021_RECOVERY_STATE:t|0|t"* ]] || \
     fail "CC-021 recovery case did not keep denied=true with no consumption (output: $ccst021_recovery_output)"
-[[ "$ccst021_recovery_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+[[ "$ccst021_recovery_output" == *"WriteLeash top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-021 recovery case did not reject COMMIT at pre-commit"
 assert_users_baseline
 printf 'CC-021 savepoint recovery: PASS (denial sticky; COMMIT rejected; no durable change)\n'
@@ -1904,9 +1904,9 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$ccst021_later_output" == *"CommitCap forbidden state transition (* -> admin)"* ]] || \
+[[ "$ccst021_later_output" == *"WriteLeash forbidden state transition (* -> admin)"* ]] || \
     fail "CC-021 later-event case did not report the forbidden transition denial"
-[[ "$ccst021_later_output" == *"CommitCap top-level transaction already denied"* ]] || \
+[[ "$ccst021_later_output" == *"WriteLeash top-level transaction already denied"* ]] || \
     fail "CC-021 later-event case did not reject the following protected event"
 assert_users_baseline
 printf 'CC-021 later event: PASS (sticky denial rejects further protected mutation)\n'
@@ -1920,9 +1920,9 @@ DO $ccst021$
 BEGIN
     BEGIN
         UPDATE public.users SET role = 'admin' WHERE id = 1;
-        RAISE EXCEPTION 'expected CommitCap denial';
+        RAISE EXCEPTION 'expected WriteLeash denial';
     EXCEPTION WHEN OTHERS THEN
-        IF SQLERRM NOT LIKE 'CommitCap forbidden state transition%' THEN
+        IF SQLERRM NOT LIKE 'WriteLeash forbidden state transition%' THEN
             RAISE;
         END IF;
         RAISE NOTICE 'CCST021_CAUGHT: %', SQLERRM;
@@ -1933,9 +1933,9 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$ccst021_caught_output" == *"CCST021_CAUGHT: CommitCap forbidden state transition (* -> admin)"* ]] || \
+[[ "$ccst021_caught_output" == *"CCST021_CAUGHT: WriteLeash forbidden state transition (* -> admin)"* ]] || \
     fail "CC-021 caught-exception case did not observe the forbidden transition denial"
-[[ "$ccst021_caught_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+[[ "$ccst021_caught_output" == *"WriteLeash top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-021 caught-exception case did not reject COMMIT at pre-commit"
 assert_users_baseline
 printf 'CC-021 PL/pgSQL caught denial: PASS (denial sticky; COMMIT rejected; no durable change)\n'
@@ -1953,9 +1953,9 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$ccst022_output" == *"CommitCap forbidden state transition (* -> admin)"* ]] || \
+[[ "$ccst022_output" == *"WriteLeash forbidden state transition (* -> admin)"* ]] || \
     fail "CC-022 bulk transition did not deny the admin row"
-if [[ "$ccst022_output" == *"CommitCap mutation budget exceeded"* ]]; then
+if [[ "$ccst022_output" == *"WriteLeash mutation budget exceeded"* ]]; then
     fail "CC-022 denial was caused by row-count budget, not transition authority"
 fi
 [[ "$ccst022_output" == *"ROLLBACK"* ]] || \
@@ -1972,14 +1972,14 @@ UPDATE public.users SET role = 'moderator' WHERE id IN (1, 2);
 SAVEPOINT ccst022_sp;
 UPDATE public.users SET role = 'admin' WHERE id = 3;
 ROLLBACK TO SAVEPOINT ccst022_sp;
-SELECT 'CCST022_RECOVERY_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CCST022_RECOVERY_STATE:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 COMMIT;
 SQL
 )"
 set -e
 [[ "$ccst022_recovery_output" == *"CCST022_RECOVERY_STATE:t|2|t"* ]] || \
     fail "CC-022 recovery case did not preserve consumed=2 denied=true (output: $ccst022_recovery_output)"
-[[ "$ccst022_recovery_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+[[ "$ccst022_recovery_output" == *"WriteLeash top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-022 recovery case did not reject COMMIT"
 assert_users_baseline
 printf 'CC-022 sibling rollback: PASS (allowed events consumed; forbidden row denied; all rolled back)\n'
@@ -1999,7 +1999,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$ccst_budget_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$ccst_budget_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "row-count composition did not deny the sixth allowed transition event"
 assert_users_baseline
 printf 'allowed transitions consume the shared transaction-wide budget: PASS\n'
@@ -2010,7 +2010,7 @@ BEGIN;
 UPDATE public.users SET role = 'admin' WHERE id = 1;
 COMMIT;
 BEGIN;
-SELECT 'CCST_CLEANUP_START:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CCST_CLEANUP_START:' || CASE WHEN active THEN 't' ELSE 'f' END || '|' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 UPDATE public.users SET role = 'moderator' WHERE id BETWEEN 1 AND 2;
 COMMIT;
 SQL
@@ -2055,17 +2055,17 @@ SAVEPOINT inner_denial;
 UPDATE public.subscriptions SET status = 'cc012_denied' WHERE id = 6;
 ROLLBACK TO SAVEPOINT inner_denial;
 ROLLBACK TO SAVEPOINT outer_denial;
-SELECT 'CC012_DENIED:' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_probe();
+SELECT 'CC012_DENIED:' || consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_probe();
 INSERT INTO public.unprotected_audit (message) VALUES ('cc012_sibling');
 COMMIT;
 SQL
 )"
 set -e
-[[ "$cc012_denial_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc012_denial_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "CC-012 nested denial did not reject sixth event"
 [[ "$cc012_denial_output" == *"CC012_DENIED:5|t"* ]] || \
     fail "CC-012 inner and outer rollback erased sticky denial"
-[[ "$cc012_denial_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+[[ "$cc012_denial_output" == *"WriteLeash top-level transaction denied after mutation authority violation"* ]] || \
     fail "CC-012 nested denial was not rejected at COMMIT"
 assert_baseline
 assert_scalar "CC-012 nested denied sibling audit" \
@@ -2107,17 +2107,17 @@ UPDATE public.refunds SET amount = 40.00 WHERE id = 1;
 SAVEPOINT exceed_row_policy;
 UPDATE public.subscriptions SET status = 'cc_indep_violation' WHERE id BETWEEN 4 AND 6;
 ROLLBACK TO SAVEPOINT exceed_row_policy;
-SELECT 'CC_POLICY_VIOLATION_STATE:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_policy_probe();
+SELECT 'CC_POLICY_VIOLATION_STATE:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_policy_probe();
 INSERT INTO public.unprotected_audit (message) VALUES ('cc_policy_violation_sibling');
 COMMIT;
 SQL
 )"
 set -e
-[[ "$cc_policy_violation_output" == *"CommitCap mutation budget exceeded (limit 5, attempted 6)"* ]] || \
+[[ "$cc_policy_violation_output" == *"WriteLeash mutation budget exceeded (limit 5, attempted 6)"* ]] || \
     fail "independent-policy violation did not deny the row-policy excess: $cc_policy_violation_output"
 [[ "$cc_policy_violation_output" == *"CC_POLICY_VIOLATION_STATE:3|1|40.00|t"* ]] || \
     fail "independent-policy violation lost independent accounting or sticky denial: $cc_policy_violation_output"
-[[ "$cc_policy_violation_output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+[[ "$cc_policy_violation_output" == *"WriteLeash top-level transaction denied after mutation authority violation"* ]] || \
     fail "independent-policy poisoned COMMIT was not rejected"
 printf '  writer state: %s\n' \
     "$(printf '%s\n' "$cc_policy_violation_output" | grep -F 'CC_POLICY_VIOLATION_STATE:' | head -n 1)"
@@ -2140,7 +2140,7 @@ printf 'independent-policy individual violation: PASS (3|1|40.00 independently a
 printf '\n--- issue #34 human-readable denial evidence ---\n'
 
 evidence_commit_block() {
-    printf '%s\n' "$1" | grep -A3 -F 'CommitCap top-level transaction denied after mutation authority violation' | head -n 4
+    printf '%s\n' "$1" | grep -A3 -F 'WriteLeash top-level transaction denied after mutation authority violation' | head -n 4
 }
 
 evidence_assert() {
@@ -2166,8 +2166,8 @@ SQL
 )"
 set -e
 evidence_assert "row" "$cc_ev_row_output" \
-    'CommitCap mutation budget exceeded (limit 5, attempted 6)' \
-    'DETAIL:  CommitCap denied transaction' \
+    'WriteLeash mutation budget exceeded (limit 5, attempted 6)' \
+    'DETAIL:  WriteLeash denied transaction' \
     'policy / metric: subscriptions.rows_updated' \
     'granted: 5' \
     'consumed before attempt: 5' \
@@ -2199,8 +2199,8 @@ SQL
 )"
 set -e
 evidence_assert "transition" "$cc_ev_transition_output" \
-    'CommitCap forbidden state transition (* -> admin)' \
-    'DETAIL:  CommitCap denied transaction' \
+    'WriteLeash forbidden state transition (* -> admin)' \
+    'DETAIL:  WriteLeash denied transaction' \
     'policy / metric: users.role (* -> admin)' \
     'attempted effect: 1 forbidden row transition to admin' \
     'result: DENIED; top-level COMMIT will be rejected'
@@ -2228,8 +2228,8 @@ SQL
 )"
 set -e
 evidence_assert "numeric" "$cc_ev_numeric_output" \
-    'CommitCap numeric delta budget exceeded' \
-    'DETAIL:  CommitCap denied transaction' \
+    'WriteLeash numeric delta budget exceeded' \
+    'DETAIL:  WriteLeash denied transaction' \
     'policy / metric: refunds.amount positive_delta' \
     'granted: 100.00' \
     'consumed before attempt: 80.00' \
@@ -2253,7 +2253,7 @@ set +e
 cc_ev_tamper_output="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 SET client_min_messages = 'error';
 SET search_path = public;
-SELECT set_config('commitcap_native.test_budget', '100', true);
+SELECT set_config('writeleash_native.test_budget', '100', true);
 \echo tamper_config_SQLSTATE :SQLSTATE
 BEGIN;
 UPDATE public.subscriptions SET status = 'cc_evidence_tamper' WHERE id BETWEEN 1 AND 5;
@@ -2263,7 +2263,7 @@ ROLLBACK TO SAVEPOINT tamper_probe;
 SAVEPOINT tamper_other_policy;
 UPDATE public.users SET role = 'moderator' WHERE id = 1;
 ROLLBACK TO SAVEPOINT tamper_other_policy;
-SELECT 'TAMPER_STATE:' || subscriptions_consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_policy_probe();
+SELECT 'TAMPER_STATE:' || subscriptions_consumed || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_policy_probe();
 COMMIT;
 \echo tamper_commit_SQLSTATE :SQLSTATE
 SQL
@@ -2271,17 +2271,17 @@ SQL
 set -e
 evidence_assert "tamper" "$cc_ev_tamper_output" \
     'tamper_config_SQLSTATE 42501' \
-    'CommitCap mutation budget exceeded (limit 5, attempted 6)' \
+    'WriteLeash mutation budget exceeded (limit 5, attempted 6)' \
     'policy / metric: subscriptions.rows_updated' \
     'granted: 5' \
     'consumed before attempt: 5' \
     'attempted effect: 6 row-update events' \
-    'CommitCap top-level transaction already denied' \
+    'WriteLeash top-level transaction already denied' \
     'TAMPER_STATE:5|t' \
     'tamper_commit_SQLSTATE 54000'
 # The later users-policy event must report the original subscriptions denial,
 # not a fabricated or misattributed policy.
-cc_ev_tamper_repeat="$(printf '%s\n' "$cc_ev_tamper_output" | grep -A2 -F 'CommitCap top-level transaction already denied' | head -n 3)"
+cc_ev_tamper_repeat="$(printf '%s\n' "$cc_ev_tamper_output" | grep -A2 -F 'WriteLeash top-level transaction already denied' | head -n 3)"
 [[ "$cc_ev_tamper_repeat" == *"policy / metric: subscriptions.rows_updated"* ]] || \
     fail "already-denied evidence did not retain the original policy: $cc_ev_tamper_repeat"
 cc_ev_tamper_commit="$(evidence_commit_block "$cc_ev_tamper_output")"
@@ -2312,7 +2312,7 @@ SAVEPOINT later_transition;
 UPDATE public.users SET role = 'admin' WHERE id = 1;
 \echo transition_SQLSTATE :SQLSTATE
 ROLLBACK TO SAVEPOINT later_transition;
-SELECT 'FIRST_CAUSE_STATE:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_policy_probe();
+SELECT 'FIRST_CAUSE_STATE:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_policy_probe();
 COMMIT;
 \echo commit_SQLSTATE :SQLSTATE
 SQL
@@ -2320,12 +2320,12 @@ SQL
 set -e
 evidence_assert "first-cause row then transition" "$cc_ev_first_cause_output" \
     'first_SQLSTATE 54000' \
-    'CommitCap mutation budget exceeded (limit 5, attempted 6)' \
+    'WriteLeash mutation budget exceeded (limit 5, attempted 6)' \
     'transition_SQLSTATE 54000' \
-    'CommitCap top-level transaction already denied' \
+    'WriteLeash top-level transaction already denied' \
     'FIRST_CAUSE_STATE:5|0|0.00|t' \
     'commit_SQLSTATE 54000'
-cc_ev_later_transition="$(printf '%s\n' "$cc_ev_first_cause_output" | grep -A3 -F 'CommitCap top-level transaction already denied' | head -n 4)"
+cc_ev_later_transition="$(printf '%s\n' "$cc_ev_first_cause_output" | grep -A3 -F 'WriteLeash top-level transaction already denied' | head -n 4)"
 [[ "$cc_ev_later_transition" == *'policy / metric: subscriptions.rows_updated'* && \
    "$cc_ev_later_transition" == *'result: DENIED; top-level COMMIT will be rejected'* && \
    "$cc_ev_first_cause_output" != *'policy / metric: users.role (* -> admin)'* ]] || \
@@ -2344,7 +2344,7 @@ assert_scalar 'first-cause sibling audit durable' \
 printf 'first-cause attribution: row denial remains authoritative across later transition: PASS (immediate and PRE_COMMIT evidence; fresh-admin protected baselines and audit=0)\n'
 printf 'denial evidence (issue #34): PASS\n'
 
-lifecycle_logs="$("${COMPOSE[@]}" logs --no-color postgres 2>&1 | grep 'commitcap_native_tx_state lifecycle' || true)"
+lifecycle_logs="$("${COMPOSE[@]}" logs --no-color postgres 2>&1 | grep 'writeleash_native_tx_state lifecycle' || true)"
 for required_event in \
     XACT_PRE_COMMIT XACT_COMMIT XACT_ABORT \
     SUBXACT_START SUBXACT_PRE_COMMIT SUBXACT_COMMIT SUBXACT_ABORT

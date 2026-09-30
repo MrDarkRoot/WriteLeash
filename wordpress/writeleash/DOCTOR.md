@@ -64,7 +64,7 @@ Before using Guard on a real table, rerun with its table name and budget.
   WordPress user with schema-wide UPDATE, CREATE or ALTER grants is not a
   restricted runtime account.
   The exact grant surface is EXECUTE on open/close/count/policy/attest, SELECT
-  **only** on `commitcap_v01_state` (no helper INSERT/UPDATE/DELETE), and
+  **only** on `writeleash_v01_state` (no helper INSERT/UPDATE/DELETE), and
   SELECT/UPDATE only on certified target tables. No runtime DDL/TRIGGER/GRANT
   authority. The helper SELECT is necessary because Guard makes the logical
   pre-COMMIT decision from direct state and Doctor's behavioral probes inspect
@@ -112,7 +112,7 @@ counterexample remains: extra EXECUTE on a side-effecting stored function lets
 `SELECT function(...)` reset CLOSE→OPEN and commit ten events under a budget of
 five on both pinned engines. A second retained counterexample is the
 cross-schema trigger: `wordpress/tests/doctor/cases.php` creates a writable
-sidecar table whose trigger `CALL`s `commitcap_v01_close`/`open`, invokes it
+sidecar table whose trigger `CALL`s `writeleash_v01_close`/`open`, invokes it
 through an ordinary sidecar `UPDATE` inside `Guard::update(..., 5, ...)`, and
 proves ten durable target events. On MariaDB 10.11.15 the restricted writer can
 create that trigger itself (log_bin=0). On MySQL 8.0.44 the same writer is
@@ -141,23 +141,23 @@ provides point-in-time shared runtime verification for normal web requests where
 ### 1. Evidence Channel Evaluation
 - **Signed manifest / `wp_options`**: Disqualified. Options and local files are mutable by WordPress plugins, can fall out of sync with actual database state, and cannot detect database-level tampering or drift.
 - **Dedicated metadata table**: Disqualified. A state table duplicates `information_schema` data, requires synchronization DDL, and risks silent desynchronization from the real DB schema.
-- **One `SQL SECURITY DEFINER` evidence procedure**: Insufficient. A single reporter that only returned counts/signatures and whose own body was never checked could not distinguish a replaced body (proved by adversarial test: the previous Doctor PASSed a body-only tampered `commitcap_v01_count`).
-- **Two mutually cross-attesting `SQL SECURITY DEFINER` procedures plus unmediated metadata**: **Adopted** (`commitcap_v01_policy` and `commitcap_v01_attest`). Each reports the live `ROUTINE_DEFINITION` of all five reviewed routines. A body replaced in any single object is reported by the other canonical object and compared against the canonical body shipped in the plugin.
+- **One `SQL SECURITY DEFINER` evidence procedure**: Insufficient. A single reporter that only returned counts/signatures and whose own body was never checked could not distinguish a replaced body (proved by adversarial test: the previous Doctor PASSed a body-only tampered `writeleash_v01_count`).
+- **Two mutually cross-attesting `SQL SECURITY DEFINER` procedures plus unmediated metadata**: **Adopted** (`writeleash_v01_policy` and `writeleash_v01_attest`). Each reports the live `ROUTINE_DEFINITION` of all five reviewed routines. A body replaced in any single object is reported by the other canonical object and compared against the canonical body shipped in the plugin.
 
 ### 2. Runtime evidence trust root (exact)
 The runtime does not trust any single routine. `runtime_attestation()` combines:
-1. **Cross-attestation**: `commitcap_v01_policy` and `commitcap_v01_attest` each return the live body of every reviewed routine (including the other evidence routine). Each body must normalize-equal both the other report and the canonical body in `Update_Engine::routines()`. All five must be `SQL SECURITY DEFINER` with one shared DEFINER.
+1. **Cross-attestation**: `writeleash_v01_policy` and `writeleash_v01_attest` each return the live body of every reviewed routine (including the other evidence routine). Each body must normalize-equal both the other report and the canonical body in `Update_Engine::routines()`. All five must be `SQL SECURITY DEFINER` with one shared DEFINER.
 2. **Unmediated `information_schema` metadata**: the restricted account reads `ROUTINES.SECURITY_TYPE/DEFINER/CREATED/LAST_ALTERED` itself (definitions are NULL for it). Reports must match these rows, and all five `CREATED` values must fall inside one install batch (10 s tolerance) — replacing a body changes `CREATED`, and on MySQL `DROP`+`CREATE` also removes the runtime's EXECUTE grant.
-3. **Unmediated grant evidence**: `SHOW GRANTS` must show exactly the reviewed surface: EXECUTE on the five procedures and read-only SELECT on `commitcap_v01_state`.
+3. **Unmediated grant evidence**: `SHOW GRANTS` must show exactly the reviewed surface: EXECUTE on the five procedures and read-only SELECT on `writeleash_v01_state`.
 4. **Unmediated helper shape**: `information_schema` table/column/index/trigger reads prove the helper table shape with no routine involved.
 5. **Behavioral probes**: the runtime calls `open`, reads the helper row directly, calls `count` and compares with the direct read, sets the denial signal and requires `close` to reject, then closes and requires the row gone. `runtime_trigger_probe()` opens accounting on a target, issues one **data-preserving no-op `UPDATE ... SET col = col LIMIT 1`** (the pinned engines fire `BEFORE UPDATE` triggers for it), and requires the direct helper read and `count` to both report exactly one event before rolling back.
 
-`commitcap_v01_policy` therefore attests the live bodies of all five routines; it is not trusted by its own report — its body is attested by `commitcap_v01_attest` and vice versa, and a replacement of either changes `CREATED` and (on MySQL) drops its EXECUTE grant. **UNKNOWN is never upgraded to PASS.**
+`writeleash_v01_policy` therefore attests the live bodies of all five routines; it is not trusted by its own report — its body is attested by `writeleash_v01_attest` and vice versa, and a replacement of either changes `CREATED` and (on MySQL) drops its EXECUTE grant. **UNKNOWN is never upgraded to PASS.**
 
 **Residual (explicit):** a principal that can coherently replace *both* evidence routines *and* the enforcement objects (installer-equivalent / full DB control) is not distinguishable by any database-resident check without an external secret. The Doctor's checks are single-object-tamper proof; against an installer-equivalent adversary the operator must re-run `Doctor::run()` with trusted credentials. This is the documented boundary, not a PASS claim.
 
 ### 3. Guard is not dependent on routine bodies
-`Guard::update()` reads the accounting state for the stale pre-check, the logical pre-COMMIT decision, denial attribution and the post-COMMIT state check **directly from `commitcap_v01_state`** (reviewed SELECT grant). A replaced `commitcap_v01_count` body cannot cause an over-budget COMMIT; it is detected by the Doctor and the direct-state denial still fires and rolls back (tested as `#83.10`).
+`Guard::update()` reads the accounting state for the stale pre-check, the logical pre-COMMIT decision, denial attribution and the post-COMMIT state check **directly from `writeleash_v01_state`** (reviewed SELECT grant). A replaced `writeleash_v01_count` body cannot cause an over-budget COMMIT; it is detected by the Doctor and the direct-state denial still fires and rolls back (tested as `#83.10`).
 
 ### 4. Multi-Policy Sibling Recognition
 When multiple code integrations share the same restricted database connection, passing an array of known policies (e.g. `array('table_a' => 10, 'table_b' => 20)`) allows the Doctor to:

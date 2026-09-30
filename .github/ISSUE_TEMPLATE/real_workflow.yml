@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Describe a real or attempted workflow, not a feature wishlist. Sanitize examples: do not post production secrets, credentials, customer data, sensitive SQL dumps, or personal contact details. You do not need to know CommitCap terminology.
+        Describe a real or attempted workflow, not a feature wishlist. Sanitize examples: do not post production secrets, credentials, customer data, sensitive SQL dumps, or personal contact details. You do not need to know WriteLeash terminology.
   - type: dropdown
     id: category
     attributes:

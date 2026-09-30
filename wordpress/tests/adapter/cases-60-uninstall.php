@@ -91,8 +91,8 @@ $trigger_columns = 'TRIGGER_NAME, ACTION_STATEMENT, ACTION_TIMING, EVENT_MANIPUL
 $redirection_trigger_before = $root->get_row( $root->prepare( "SELECT $trigger_columns FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s", Engine::trigger_name( $table ) ), ARRAY_A );
 $demo_trigger_before = $root->get_row( $root->prepare( "SELECT $trigger_columns FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s", Engine::trigger_name( $demo_table ) ), ARRAY_A );
 $routine_columns = 'ROUTINE_NAME, ROUTINE_DEFINITION, SECURITY_TYPE, DEFINER, CREATED, LAST_ALTERED';
-$routines_before = $root->get_results( "SELECT $routine_columns FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('commitcap_v01_open','commitcap_v01_close','commitcap_v01_count','commitcap_v01_policy','commitcap_v01_attest') ORDER BY ROUTINE_NAME", ARRAY_A );
-$helper_before = $root->get_row( "SELECT TABLE_TYPE, ENGINE, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commitcap_v01_state'", ARRAY_A );
+$routines_before = $root->get_results( "SELECT $routine_columns FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('writeleash_v01_open','writeleash_v01_close','writeleash_v01_count','writeleash_v01_policy','writeleash_v01_attest') ORDER BY ROUTINE_NAME", ARRAY_A );
+$helper_before = $root->get_row( "SELECT TABLE_TYPE, ENGINE, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'writeleash_v01_state'", ARRAY_A );
 $redirection_options_before = $root->get_results( "SELECT option_name, option_value FROM `$options_table` WHERE option_name LIKE 'redirection%' ORDER BY option_name", ARRAY_A );
 cc87_assert( is_array( $redirection_trigger_before ) && is_array( $demo_trigger_before ), 'canonical triggers present before uninstall' );
 cc87_assert( is_array( $helper_before ) && 5 === count( $routines_before ), 'helper and five routines present before uninstall' );
@@ -127,7 +127,7 @@ foreach ( $expected_deletes as $option_name => $count ) {
 foreach ( $threads as $statements ) {
 	foreach ( $statements as $sql ) {
 		cc87_assert( ! preg_match( '/\b(CREATE|ALTER|DROP|GRANT|REVOKE|TRUNCATE)\b/i', $sql ), 'uninstall DDL/DCL: ' . $sql );
-		cc87_assert( false === stripos( $sql, 'commitcap_v01_' ), 'uninstall runtime object statement: ' . $sql );
+		cc87_assert( false === stripos( $sql, 'writeleash_v01_' ), 'uninstall runtime object statement: ' . $sql );
 		cc87_assert( false === stripos( $sql, $table ) && false === stripos( $sql, $demo_table ), 'uninstall application/demo statement: ' . $sql );
 	}
 }
@@ -143,8 +143,8 @@ cc87_assert( 'keep me too' === get_option( 'commitcap_unrelated' ), 'uninstall w
 // Trusted DB infrastructure must be byte-identical and still canonical.
 $redirection_trigger_after = $root->get_row( $root->prepare( "SELECT $trigger_columns FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s", Engine::trigger_name( $table ) ), ARRAY_A );
 $demo_trigger_after = $root->get_row( $root->prepare( "SELECT $trigger_columns FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s", Engine::trigger_name( $demo_table ) ), ARRAY_A );
-$routines_after = $root->get_results( "SELECT $routine_columns FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('commitcap_v01_open','commitcap_v01_close','commitcap_v01_count','commitcap_v01_policy','commitcap_v01_attest') ORDER BY ROUTINE_NAME", ARRAY_A );
-$helper_after = $root->get_row( "SELECT TABLE_TYPE, ENGINE, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commitcap_v01_state'", ARRAY_A );
+$routines_after = $root->get_results( "SELECT $routine_columns FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('writeleash_v01_open','writeleash_v01_close','writeleash_v01_count','writeleash_v01_policy','writeleash_v01_attest') ORDER BY ROUTINE_NAME", ARRAY_A );
+$helper_after = $root->get_row( "SELECT TABLE_TYPE, ENGINE, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'writeleash_v01_state'", ARRAY_A );
 cc87_assert( $grants_before === $root->get_results( "SHOW GRANTS FOR 'cc87_writer'@'%'", ARRAY_N ), 'uninstall changed runtime grants' );
 cc87_assert( $redirection_trigger_before === $redirection_trigger_after, 'uninstall changed the Redirection policy trigger' );
 cc87_assert( $demo_trigger_before === $demo_trigger_after, 'uninstall changed the demo policy trigger' );

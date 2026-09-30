@@ -123,10 +123,10 @@ cc87_assert( false !== $normal->query( 'UPDATE cc61_normal_probe SET v = 1 WHERE
 // Honest boundary: the normal WordPress identity holds ordinary broad
 // application grants in this fixture (schema-wide EXECUTE), so it is outside
 // the cooperative envelope and not constrained by WriteLeash.
-cc87_assert( false !== $normal->query( "CALL commitcap_v01_open('cc61_probe')" ), 'fixture normal identity has schema-wide routine EXECUTE' );
-cc87_query( $root, "DELETE FROM commitcap_v01_state WHERE policy_id = 'cc61_probe'" ); // trusted cleanup of the identity probe row
+cc87_assert( false !== $normal->query( "CALL writeleash_v01_open('cc61_probe')" ), 'fixture normal identity has schema-wide routine EXECUTE' );
+cc87_query( $root, "DELETE FROM writeleash_v01_state WHERE policy_id = 'cc61_probe'" ); // trusted cleanup of the identity probe row
 cc87_assert( false === $runtime->query( "SELECT option_value FROM {$normal->options} LIMIT 1" ), 'runtime identity cannot read WordPress options' );
-cc87_assert( false === $runtime->query( 'UPDATE commitcap_v01_state SET consumed = 99 WHERE connection_id = 0' ), 'runtime identity cannot write helper state directly' );
+cc87_assert( false === $runtime->query( 'UPDATE writeleash_v01_state SET consumed = 99 WHERE connection_id = 0' ), 'runtime identity cannot write helper state directly' );
 cc87_query( $root, 'DROP TABLE cc61_normal_probe' );
 echo "#61 $host: normal identity retains broad ordinary authority (outside contract); restricted identity cannot reach options/helper: PASS\n";
 
@@ -134,15 +134,15 @@ echo "#61 $host: normal identity retains broad ordinary authority (outside contr
 // Runtime direct tamper probes: no extra authority, no state change.
 // ---------------------------------------------------------------------------
 $grants_before_probe = $root->get_results( "SHOW GRANTS FOR 'cc87_writer'@'%'", ARRAY_N );
-$helper_before_probe = (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state' );
+$helper_before_probe = (int) $root->get_var( 'SELECT COUNT(*) FROM writeleash_v01_state' );
 $probes = array(
-	'helper INSERT'       => "INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (99999, 'cc61', 0)",
-	'helper UPDATE'       => 'UPDATE commitcap_v01_state SET consumed = 99 WHERE connection_id = 0',
-	'helper DELETE'       => 'DELETE FROM commitcap_v01_state WHERE connection_id = 0',
-	'helper DROP'         => 'DROP TABLE commitcap_v01_state',
-	'helper ALTER'        => 'ALTER TABLE commitcap_v01_state ADD COLUMN cc61 INT',
-	'routine DROP'        => 'DROP PROCEDURE commitcap_v01_open',
-	'routine ALTER'       => 'ALTER PROCEDURE commitcap_v01_open SQL SECURITY INVOKER',
+	'helper INSERT'       => "INSERT INTO writeleash_v01_state (connection_id, policy_id, consumed) VALUES (99999, 'cc61', 0)",
+	'helper UPDATE'       => 'UPDATE writeleash_v01_state SET consumed = 99 WHERE connection_id = 0',
+	'helper DELETE'       => 'DELETE FROM writeleash_v01_state WHERE connection_id = 0',
+	'helper DROP'         => 'DROP TABLE writeleash_v01_state',
+	'helper ALTER'        => 'ALTER TABLE writeleash_v01_state ADD COLUMN cc61 INT',
+	'routine DROP'        => 'DROP PROCEDURE writeleash_v01_open',
+	'routine ALTER'       => 'ALTER PROCEDURE writeleash_v01_open SQL SECURITY INVOKER',
 	'routine CREATE'      => 'CREATE PROCEDURE cc61_malicious() SELECT 1',
 	'function CREATE'     => 'CREATE FUNCTION cc61_malicious() RETURNS INT RETURN 1',
 	'trigger DROP'        => 'DROP TRIGGER ' . Engine::trigger_name( $table ),
@@ -154,8 +154,8 @@ foreach ( $probes as $label => $sql ) {
 	cc87_assert( false === $runtime->query( $sql ), 'runtime probe must fail: ' . $label . ' ' . $runtime->last_error );
 }
 cc87_assert( $grants_before_probe === $root->get_results( "SHOW GRANTS FOR 'cc87_writer'@'%'", ARRAY_N ), 'runtime probes changed grants' );
-cc87_assert( $helper_before_probe === (int) $root->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state' ), 'runtime probes changed helper state' );
-cc87_assert( 5 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'commitcap_v01_%'" ), 'runtime probes changed routine count' );
+cc87_assert( $helper_before_probe === (int) $root->get_var( 'SELECT COUNT(*) FROM writeleash_v01_state' ), 'runtime probes changed helper state' );
+cc87_assert( 5 === (int) $root->get_var( "SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'writeleash_v01_%'" ), 'runtime probes changed routine count' );
 // Unguarded direct target UPDATE is physically denied for the runtime identity.
 cc87_seed_bulk( $root, 3 );
 cc87_assert( false === $runtime->query( "UPDATE `$table` SET status = 'disabled'" ), 'runtime must not bypass Guard on the target' );

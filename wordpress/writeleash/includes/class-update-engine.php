@@ -10,15 +10,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * restricted writer; transaction ownership and immediate rollback belong to #56.
  */
 final class Update_Engine {
-	public const STATE = 'commitcap_v01_state';
-	// #97 owns the low-level database-object rename. Until then the canonical
-	// helper table, its TABLE_COMMENT and the routine/trigger family keep the
-	// pre-#96 names exactly, so the attestation shape stays unchanged.
-	public const COMMENT = 'CommitCap V0.1 cooperative UPDATE state';
+	public const STATE = 'writeleash_v01_state';
+	// The helper table, its TABLE_COMMENT and the routine/trigger family are the
+	// canonical WriteLeash low-level identity. There is no migration path from
+	// the pre-rebrand development graph: old-only or mixed graphs are NOT_READY.
+	public const COMMENT = 'WriteLeash V0.1 cooperative UPDATE state';
 	private const MAX_BUDGET = '2147483647';
 	private const ROUTINE_NAMES = array(
-		'commitcap_v01_open', 'commitcap_v01_close', 'commitcap_v01_count',
-		'commitcap_v01_policy', 'commitcap_v01_attest',
+		'writeleash_v01_open', 'writeleash_v01_close', 'writeleash_v01_count',
+		'writeleash_v01_policy', 'writeleash_v01_attest',
 	);
 	private $db;
 
@@ -73,7 +73,7 @@ final class Update_Engine {
 	}
 
 	public static function trigger_name( string $table ): string {
-		return 'commitcap_v01_' . substr( self::policy_id( $table ), 0, 16 );
+		return 'writeleash_v01_' . substr( self::policy_id( $table ), 0, 16 );
 	}
 
 	private function execute( string $sql ): void {
@@ -135,17 +135,17 @@ final class Update_Engine {
 	private static function signature( string $name ): array {
 		$policy = array( 'p_policy', 'IN', 'char(64)', 'ascii', 'ascii_bin' );
 		switch ( $name ) {
-			case 'commitcap_v01_open':
-			case 'commitcap_v01_close':
+			case 'writeleash_v01_open':
+			case 'writeleash_v01_close':
 				return array( $policy );
-			case 'commitcap_v01_count':
+			case 'writeleash_v01_count':
 				return array( $policy, array( 'p_count', 'OUT', 'bigint unsigned', null, null ) );
-			case 'commitcap_v01_policy':
+			case 'writeleash_v01_policy':
 				return array(
 					array( 'p_table', 'IN', 'varchar(64)', 'ascii', 'ascii_bin' ),
 					array( 'p_trigger', 'IN', 'varchar(64)', 'ascii', 'ascii_bin' ),
 				);
-			case 'commitcap_v01_attest':
+			case 'writeleash_v01_attest':
 				return array();
 		}
 		throw new \InvalidArgumentException( 'Unknown routine signature.' );
@@ -154,14 +154,14 @@ final class Update_Engine {
 	public static function routine_params( string $name ): string {
 		$policy = 'IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin';
 		switch ( $name ) {
-			case 'commitcap_v01_open':
-			case 'commitcap_v01_close':
+			case 'writeleash_v01_open':
+			case 'writeleash_v01_close':
 				return '(' . $policy . ')';
-			case 'commitcap_v01_count':
+			case 'writeleash_v01_count':
 				return '(' . $policy . ', OUT p_count BIGINT UNSIGNED)';
-			case 'commitcap_v01_policy':
+			case 'writeleash_v01_policy':
 				return '(IN p_table VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin, IN p_trigger VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin)';
-			case 'commitcap_v01_attest':
+			case 'writeleash_v01_attest':
 				return '()';
 		}
 		throw new \InvalidArgumentException( 'Unknown routine declaration.' );
@@ -174,11 +174,11 @@ final class Update_Engine {
 
 	public static function routines(): array {
 		return array(
-			'commitcap_v01_open' => 'BEGIN INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (CONNECTION_ID(), p_policy, 0); END',
-			'commitcap_v01_close' => "BEGIN IF COALESCE(@commitcap_v01_denied, 1) != 0 THEN SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED_PRECOMMIT'; END IF; DELETE FROM commitcap_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = p_policy; IF ROW_COUNT() != 1 THEN SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_STATE_MISSING'; END IF; END",
-			'commitcap_v01_count' => 'BEGIN SELECT consumed INTO p_count FROM commitcap_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = p_policy; END',
-			'commitcap_v01_policy' => "BEGIN IF p_trigger != '' THEN SELECT t.TRIGGER_NAME, t.ACTION_STATEMENT, t.ACTION_TIMING, t.EVENT_MANIPULATION, t.DEFINER = CURRENT_USER() AS TRUSTED_DEFINER, (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE (TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = p_table) OR (p_table LIKE '%.%' AND TRIGGER_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND EVENT_OBJECT_TABLE = SUBSTRING_INDEX(p_table, '.', -1))) AS TRIGGER_COUNT, (SELECT ENGINE FROM information_schema.TABLES WHERE (TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND TABLE_TYPE = 'BASE TABLE') OR (p_table LIKE '%.%' AND TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1) AND TABLE_TYPE = 'BASE TABLE')) AS TABLE_ENGINE, (SELECT COUNT(*) FROM information_schema.PARTITIONS WHERE (TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND PARTITION_NAME IS NOT NULL) OR (p_table LIKE '%.%' AND TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1) AND PARTITION_NAME IS NOT NULL)) AS PARTITION_COUNT, (SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_NAME IS NOT NULL AND (((TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table) OR (REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = p_table)) OR (p_table LIKE '%.%' AND ((TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1)) OR (REFERENCED_TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND REFERENCED_TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1)))))) AS FOREIGN_KEY_COUNT FROM information_schema.TRIGGERS t WHERE ((t.TRIGGER_SCHEMA = DATABASE() AND t.EVENT_OBJECT_TABLE = p_table) OR (p_table LIKE '%.%' AND t.TRIGGER_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND t.EVENT_OBJECT_TABLE = SUBSTRING_INDEX(p_table, '.', -1))) AND t.TRIGGER_NAME = p_trigger; ELSEIF p_table != '' THEN SELECT '' AS TRIGGER_NAME, '' AS ACTION_STATEMENT, '' AS ACTION_TIMING, '' AS EVENT_MANIPULATION, 1 AS TRUSTED_DEFINER, (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE (TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = p_table) OR (p_table LIKE '%.%' AND TRIGGER_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND EVENT_OBJECT_TABLE = SUBSTRING_INDEX(p_table, '.', -1))) AS TRIGGER_COUNT, (SELECT ENGINE FROM information_schema.TABLES WHERE (TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND TABLE_TYPE = 'BASE TABLE') OR (p_table LIKE '%.%' AND TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1) AND TABLE_TYPE = 'BASE TABLE')) AS TABLE_ENGINE, 0 AS PARTITION_COUNT, 0 AS FOREIGN_KEY_COUNT; ELSE SELECT (SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('commitcap_v01_open','commitcap_v01_close','commitcap_v01_count','commitcap_v01_policy','commitcap_v01_attest') AND DEFINER = CURRENT_USER() AND SECURITY_TYPE = 'DEFINER') AS ROUTINE_COUNT, (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commitcap_v01_state' AND TABLE_TYPE = 'BASE TABLE' AND ENGINE = 'InnoDB') AS HELPER_COUNT, (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commitcap_v01_state') AS COLUMN_COUNT, (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = 'commitcap_v01_state') AS HELPER_TRIGGER_COUNT, (SELECT COUNT(*) FROM information_schema.PARAMETERS WHERE SPECIFIC_SCHEMA = DATABASE() AND SPECIFIC_NAME IN ('commitcap_v01_open','commitcap_v01_close','commitcap_v01_count','commitcap_v01_policy','commitcap_v01_attest')) AS PARAMETER_COUNT, (SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'commitcap_v01_open') AS OPEN_DEFINITION, (SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'commitcap_v01_close') AS CLOSE_DEFINITION, (SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'commitcap_v01_count') AS COUNT_DEFINITION, (SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'commitcap_v01_policy') AS POLICY_DEFINITION, (SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'commitcap_v01_attest') AS ATTEST_DEFINITION; END IF; END",
-			'commitcap_v01_attest' => "BEGIN SELECT r.ROUTINE_NAME, r.ROUTINE_DEFINITION, r.SECURITY_TYPE, r.DEFINER, r.CREATED, r.LAST_ALTERED FROM information_schema.ROUTINES r WHERE r.ROUTINE_SCHEMA = DATABASE() AND r.ROUTINE_NAME IN ('commitcap_v01_open','commitcap_v01_close','commitcap_v01_count','commitcap_v01_policy','commitcap_v01_attest') ORDER BY r.ROUTINE_NAME; END",
+			'writeleash_v01_open' => 'BEGIN INSERT INTO writeleash_v01_state (connection_id, policy_id, consumed) VALUES (CONNECTION_ID(), p_policy, 0); END',
+			'writeleash_v01_close' => "BEGIN IF COALESCE(@writeleash_v01_denied, 1) != 0 THEN SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED_PRECOMMIT'; END IF; DELETE FROM writeleash_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = p_policy; IF ROW_COUNT() != 1 THEN SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_STATE_MISSING'; END IF; END",
+			'writeleash_v01_count' => 'BEGIN SELECT consumed INTO p_count FROM writeleash_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = p_policy; END',
+			'writeleash_v01_policy' => "BEGIN IF p_trigger != '' THEN SELECT t.TRIGGER_NAME, t.ACTION_STATEMENT, t.ACTION_TIMING, t.EVENT_MANIPULATION, t.DEFINER = CURRENT_USER() AS TRUSTED_DEFINER, (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE (TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = p_table) OR (p_table LIKE '%.%' AND TRIGGER_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND EVENT_OBJECT_TABLE = SUBSTRING_INDEX(p_table, '.', -1))) AS TRIGGER_COUNT, (SELECT ENGINE FROM information_schema.TABLES WHERE (TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND TABLE_TYPE = 'BASE TABLE') OR (p_table LIKE '%.%' AND TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1) AND TABLE_TYPE = 'BASE TABLE')) AS TABLE_ENGINE, (SELECT COUNT(*) FROM information_schema.PARTITIONS WHERE (TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND PARTITION_NAME IS NOT NULL) OR (p_table LIKE '%.%' AND TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1) AND PARTITION_NAME IS NOT NULL)) AS PARTITION_COUNT, (SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_NAME IS NOT NULL AND (((TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table) OR (REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = p_table)) OR (p_table LIKE '%.%' AND ((TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1)) OR (REFERENCED_TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND REFERENCED_TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1)))))) AS FOREIGN_KEY_COUNT FROM information_schema.TRIGGERS t WHERE ((t.TRIGGER_SCHEMA = DATABASE() AND t.EVENT_OBJECT_TABLE = p_table) OR (p_table LIKE '%.%' AND t.TRIGGER_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND t.EVENT_OBJECT_TABLE = SUBSTRING_INDEX(p_table, '.', -1))) AND t.TRIGGER_NAME = p_trigger; ELSEIF p_table != '' THEN SELECT '' AS TRIGGER_NAME, '' AS ACTION_STATEMENT, '' AS ACTION_TIMING, '' AS EVENT_MANIPULATION, 1 AS TRUSTED_DEFINER, (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE (TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = p_table) OR (p_table LIKE '%.%' AND TRIGGER_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND EVENT_OBJECT_TABLE = SUBSTRING_INDEX(p_table, '.', -1))) AS TRIGGER_COUNT, (SELECT ENGINE FROM information_schema.TABLES WHERE (TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND TABLE_TYPE = 'BASE TABLE') OR (p_table LIKE '%.%' AND TABLE_SCHEMA = SUBSTRING_INDEX(p_table, '.', 1) AND TABLE_NAME = SUBSTRING_INDEX(p_table, '.', -1) AND TABLE_TYPE = 'BASE TABLE')) AS TABLE_ENGINE, 0 AS PARTITION_COUNT, 0 AS FOREIGN_KEY_COUNT; ELSE SELECT (SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME IN ('writeleash_v01_open','writeleash_v01_close','writeleash_v01_count','writeleash_v01_policy','writeleash_v01_attest') AND DEFINER = CURRENT_USER() AND SECURITY_TYPE = 'DEFINER') AS ROUTINE_COUNT, (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'writeleash_v01_state' AND TABLE_TYPE = 'BASE TABLE' AND ENGINE = 'InnoDB') AS HELPER_COUNT, (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'writeleash_v01_state') AS COLUMN_COUNT, (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = 'writeleash_v01_state') AS HELPER_TRIGGER_COUNT, (SELECT COUNT(*) FROM information_schema.PARAMETERS WHERE SPECIFIC_SCHEMA = DATABASE() AND SPECIFIC_NAME IN ('writeleash_v01_open','writeleash_v01_close','writeleash_v01_count','writeleash_v01_policy','writeleash_v01_attest')) AS PARAMETER_COUNT, (SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'writeleash_v01_open') AS OPEN_DEFINITION, (SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'writeleash_v01_close') AS CLOSE_DEFINITION, (SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'writeleash_v01_count') AS COUNT_DEFINITION, (SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'writeleash_v01_policy') AS POLICY_DEFINITION, (SELECT ROUTINE_DEFINITION FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME = 'writeleash_v01_attest') AS ATTEST_DEFINITION; END IF; END",
+			'writeleash_v01_attest' => "BEGIN SELECT r.ROUTINE_NAME, r.ROUTINE_DEFINITION, r.SECURITY_TYPE, r.DEFINER, r.CREATED, r.LAST_ALTERED FROM information_schema.ROUTINES r WHERE r.ROUTINE_SCHEMA = DATABASE() AND r.ROUTINE_NAME IN ('writeleash_v01_open','writeleash_v01_close','writeleash_v01_count','writeleash_v01_policy','writeleash_v01_attest') ORDER BY r.ROUTINE_NAME; END",
 		);
 	}
 
@@ -189,7 +189,7 @@ final class Update_Engine {
 			'SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s', self::STATE
 		) );
 		if ( ! $existing ) {
-			$this->execute( 'CREATE TABLE `commitcap_v01_state` (connection_id BIGINT UNSIGNED NOT NULL, policy_id CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, consumed BIGINT UNSIGNED NOT NULL, PRIMARY KEY (connection_id, policy_id)) ENGINE=InnoDB COMMENT=' . $this->db->prepare( '%s', self::COMMENT ) );
+			$this->execute( 'CREATE TABLE `writeleash_v01_state` (connection_id BIGINT UNSIGNED NOT NULL, policy_id CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, consumed BIGINT UNSIGNED NOT NULL, PRIMARY KEY (connection_id, policy_id)) ENGINE=InnoDB COMMENT=' . $this->db->prepare( '%s', self::COMMENT ) );
 		}
 		$this->verify_infrastructure_table();
 		foreach ( self::routines() as $name => $body ) {
@@ -333,11 +333,11 @@ final class Update_Engine {
 	}
 
 	private static function trigger_prefix( string $policy_id, string $runtime_user ): string {
-		return "BEGIN IF LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('" . $runtime_user . "') THEN UPDATE commitcap_v01_state SET consumed = consumed + 1 WHERE connection_id = CONNECTION_ID() AND policy_id = '$policy_id' AND consumed < ";
+		return "BEGIN IF LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('" . $runtime_user . "') THEN UPDATE writeleash_v01_state SET consumed = consumed + 1 WHERE connection_id = CONNECTION_ID() AND policy_id = '$policy_id' AND consumed < ";
 	}
 
 	private static function trigger_suffix(): string {
-		return "; IF ROW_COUNT() != 1 THEN SET @commitcap_v01_denied = 1; SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED'; END IF; END IF; END";
+		return "; IF ROW_COUNT() != 1 THEN SET @writeleash_v01_denied = 1; SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED'; END IF; END IF; END";
 	}
 
 	/**
@@ -392,7 +392,7 @@ final class Update_Engine {
 		$this->require_target_server();
 		$trigger = self::trigger_name( $name );
 		$found = $this->rows( $this->db->prepare(
-			'CALL commitcap_v01_policy(%s, %s)', $name, $trigger
+			'CALL writeleash_v01_policy(%s, %s)', $name, $trigger
 		) );
 		if ( 1 !== count( $found ) || $trigger !== $found[0]->TRIGGER_NAME ||
 			'BEFORE' !== $found[0]->ACTION_TIMING || 'UPDATE' !== $found[0]->EVENT_MANIPULATION ||
@@ -455,8 +455,8 @@ final class Update_Engine {
 	 * Restricted writer: full runtime evidence verification with no installer secret.
 	 *
 	 * Trust model (see DOCTOR.md, "Runtime evidence trust root"):
-	 *  1. Cross-attested DEFINER routines: commitcap_v01_policy and
-	 *     commitcap_v01_attest each report the live body of all five routines.
+	 *  1. Cross-attested DEFINER routines: writeleash_v01_policy and
+	 *     writeleash_v01_attest each report the live body of all five routines.
 	 *     A single replaced body is reported by the other canonical routine.
 	 *  2. Unmediated metadata the restricted account reads itself:
 	 *     information_schema.ROUTINES (DEFINER/SECURITY_TYPE/CREATED) and SHOW GRANTS.
@@ -483,7 +483,7 @@ final class Update_Engine {
 		$names     = self::ROUTINE_NAMES;
 		$canonical = self::routines();
 
-		$attested = $this->rows( 'CALL commitcap_v01_attest()' );
+		$attested = $this->rows( 'CALL writeleash_v01_attest()' );
 		if ( count( $attested ) !== count( $names ) ) {
 			throw new \RuntimeException( 'WriteLeash runtime attestation did not return every reviewed routine.' );
 		}
@@ -497,7 +497,7 @@ final class Update_Engine {
 			$by_name[ $row->ROUTINE_NAME ] = $row;
 		}
 
-		$infrastructure = $this->rows( "CALL commitcap_v01_policy('', '')" );
+		$infrastructure = $this->rows( "CALL writeleash_v01_policy('', '')" );
 		if ( 1 !== count( $infrastructure ) ||
 			5 !== (int) $infrastructure[0]->ROUTINE_COUNT ||
 			1 !== (int) $infrastructure[0]->HELPER_COUNT ||
@@ -510,7 +510,7 @@ final class Update_Engine {
 		$definers = array();
 		foreach ( $names as $name ) {
 			$attested_body = $by_name[ $name ]->ROUTINE_DEFINITION;
-			$reported = $infrastructure[0]->{ strtoupper( str_replace( 'commitcap_v01_', '', $name ) ) . '_DEFINITION' } ?? null;
+			$reported = $infrastructure[0]->{ strtoupper( str_replace( 'writeleash_v01_', '', $name ) ) . '_DEFINITION' } ?? null;
 			if ( ! is_string( $reported ) || ! self::same_sql( $attested_body, $reported ) ) {
 				throw new \RuntimeException( 'WriteLeash runtime evidence cross-attestation mismatch for ' . $name . '.' );
 			}
@@ -596,23 +596,23 @@ final class Update_Engine {
 		$nonce = bin2hex( random_bytes( 32 ) );
 		$out   = '@cc_runtime_probe_count';
 		try {
-			$this->execute( $this->db->prepare( 'CALL commitcap_v01_open(%s)', $nonce ) );
+			$this->execute( $this->db->prepare( 'CALL writeleash_v01_open(%s)', $nonce ) );
 			if ( 0 !== $this->state_consumed_by_policy( $nonce ) ) {
 				throw new \RuntimeException( 'WriteLeash runtime open probe did not create clean accounting state.' );
 			}
-			$this->execute( $this->db->prepare( 'CALL commitcap_v01_count(%s, ' . $out . ')', $nonce ) );
+			$this->execute( $this->db->prepare( 'CALL writeleash_v01_count(%s, ' . $out . ')', $nonce ) );
 			$reported = $this->db->get_var( 'SELECT ' . $out );
 			if ( null === $reported || 0 !== (int) $reported ) {
 				throw new \RuntimeException( 'WriteLeash runtime count probe disagrees with direct helper state.' );
 			}
-			$this->execute( 'SET @commitcap_v01_denied = 1' );
-			$denied = $this->db->query( $this->db->prepare( 'CALL commitcap_v01_close(%s)', $nonce ) );
+			$this->execute( 'SET @writeleash_v01_denied = 1' );
+			$denied = $this->db->query( $this->db->prepare( 'CALL writeleash_v01_close(%s)', $nonce ) );
 			if ( false !== $denied ) {
 				throw new \RuntimeException( 'WriteLeash runtime close probe did not enforce the session denial signal.' );
 			}
 			$this->db->query( 'SELECT 1' );
-			$this->execute( 'SET @commitcap_v01_denied = 0' );
-			$this->execute( $this->db->prepare( 'CALL commitcap_v01_close(%s)', $nonce ) );
+			$this->execute( 'SET @writeleash_v01_denied = 0' );
+			$this->execute( $this->db->prepare( 'CALL writeleash_v01_close(%s)', $nonce ) );
 			if ( null !== $this->state_consumed_by_policy( $nonce ) ) {
 				throw new \RuntimeException( 'WriteLeash runtime close probe left accounting state behind.' );
 			}
@@ -624,8 +624,8 @@ final class Update_Engine {
 
 	private function cleanup_probe_state( string $nonce ): void {
 		$this->db->query( 'SELECT 1' );
-		$this->db->query( 'SET @commitcap_v01_denied = 0' );
-		$this->db->query( $this->db->prepare( 'CALL commitcap_v01_close(%s)', $nonce ) );
+		$this->db->query( 'SET @writeleash_v01_denied = 0' );
+		$this->db->query( $this->db->prepare( 'CALL writeleash_v01_close(%s)', $nonce ) );
 	}
 
 	/**
@@ -633,7 +633,7 @@ final class Update_Engine {
 	 *
 	 * Opens accounting, issues one data-preserving no-op UPDATE that still fires
 	 * the BEFORE UPDATE trigger on both pinned engines, and requires the direct
-	 * helper read and commitcap_v01_count to both report exactly one event.
+	 * helper read and writeleash_v01_count to both report exactly one event.
 	 * The whole probe is rolled back; `col = col` changes no application value.
 	 *
 	 * @return string 'probed' or 'empty_table'
@@ -662,8 +662,8 @@ final class Update_Engine {
 			if ( false === $this->db->query( 'START TRANSACTION' ) ) {
 				throw new \RuntimeException( 'WriteLeash runtime trigger probe could not start a probe transaction.' );
 			}
-			$this->execute( 'SET @commitcap_v01_denied = 0' );
-			$this->execute( $this->db->prepare( 'CALL commitcap_v01_open(%s)', $policy ) );
+			$this->execute( 'SET @writeleash_v01_denied = 0' );
+			$this->execute( $this->db->prepare( 'CALL writeleash_v01_open(%s)', $policy ) );
 			$updated = $this->db->query( 'UPDATE `' . $name . '` SET `' . $column . '` = `' . $column . '` LIMIT 1' );
 			if ( false === $updated ) {
 				throw new \RuntimeException( 'WriteLeash runtime trigger probe no-op UPDATE failed.' );
@@ -671,12 +671,12 @@ final class Update_Engine {
 			if ( 1 !== $this->state_consumed_by_policy( $policy ) ) {
 				throw new \RuntimeException( 'WriteLeash runtime trigger probe observed incorrect physical accounting for one row event.' );
 			}
-			$this->execute( $this->db->prepare( 'CALL commitcap_v01_count(%s, @cc_trigger_probe_count)', $policy ) );
+			$this->execute( $this->db->prepare( 'CALL writeleash_v01_count(%s, @cc_trigger_probe_count)', $policy ) );
 			$reported = $this->db->get_var( 'SELECT @cc_trigger_probe_count' );
 			if ( null === $reported || 1 !== (int) $reported ) {
 				throw new \RuntimeException( 'WriteLeash runtime trigger probe count routine disagrees with direct accounting.' );
 			}
-			$this->execute( $this->db->prepare( 'CALL commitcap_v01_close(%s)', $policy ) );
+			$this->execute( $this->db->prepare( 'CALL writeleash_v01_close(%s)', $policy ) );
 			$this->db->query( 'ROLLBACK' );
 			if ( null !== $this->state_consumed_by_policy( $policy ) ) {
 				throw new \RuntimeException( 'WriteLeash runtime trigger probe left accounting state behind.' );
@@ -697,7 +697,7 @@ final class Update_Engine {
 
 	/** Any trusted rotation with an unverified drain blocks ALL shared policies. */
 	public function rotation_unsafe(): bool {
-		$value = $this->db->get_var( 'SELECT COUNT(*) FROM commitcap_v01_state WHERE connection_id = 0' );
+		$value = $this->db->get_var( 'SELECT COUNT(*) FROM writeleash_v01_state WHERE connection_id = 0' );
 		if ( null === $value || '' !== (string) $this->db->last_error ) {
 			throw new \RuntimeException( 'Cannot inspect trusted rotation safety state.' );
 		}
@@ -706,7 +706,7 @@ final class Update_Engine {
 
 	private function state_consumed_by_policy( string $policy_id ): ?int {
 		$value = $this->db->get_var( $this->db->prepare(
-			'SELECT consumed FROM commitcap_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = %s', $policy_id
+			'SELECT consumed FROM writeleash_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = %s', $policy_id
 		) );
 		if ( '' !== (string) $this->db->last_error ) {
 			throw new \RuntimeException( 'WriteLeash direct helper state read failed: ' . $this->db->last_error );
@@ -784,7 +784,7 @@ final class Update_Engine {
 	/** Restricted writer: check trigger count on non-target or foreign table via trusted procedure. */
 	public function runtime_table_triggers( string $table ): int {
 		$this->require_target_server();
-		$rows = $this->rows( $this->db->prepare( "CALL commitcap_v01_policy(%s, '')", $table ) );
+		$rows = $this->rows( $this->db->prepare( "CALL writeleash_v01_policy(%s, '')", $table ) );
 		if ( 1 !== count( $rows ) ) {
 			throw new \RuntimeException( 'WriteLeash runtime trigger inspection failed for table: ' . $table );
 		}
@@ -802,11 +802,11 @@ final class Update_Engine {
 	/** #56 must invoke ONCE after START TRANSACTION, before any protected SQL. */
 	public function begin_guard_state(): void {
 		// Nontransactional on purpose: survives SIGNAL and savepoint recovery.
-		$this->execute( 'SET @commitcap_v01_denied = 0' );
+		$this->execute( 'SET @writeleash_v01_denied = 0' );
 	}
 
 	public function denial_seen(): bool {
-		$value = $this->db->get_var( 'SELECT @commitcap_v01_denied' );
+		$value = $this->db->get_var( 'SELECT @writeleash_v01_denied' );
 		if ( null === $value ) {
 			throw new \RuntimeException( 'Unknown WriteLeash session denial state.' );
 		}
@@ -821,19 +821,19 @@ final class Update_Engine {
 		} else {
 			$this->runtime_ceiling( $name );
 		}
-		$this->execute( $this->db->prepare( 'CALL commitcap_v01_open(%s)', self::policy_id( $name ) ) );
+		$this->execute( $this->db->prepare( 'CALL writeleash_v01_open(%s)', self::policy_id( $name ) ) );
 	}
 
 	/** Call before the PHP guard's final COMMIT; never after it. */
 	public function end_accounting( $table ): void {
 		$name = self::table( $table );
-		$this->execute( $this->db->prepare( 'CALL commitcap_v01_close(%s)', self::policy_id( $name ) ) );
+		$this->execute( $this->db->prepare( 'CALL writeleash_v01_close(%s)', self::policy_id( $name ) ) );
 	}
 
 	public function consumed( $table ): ?int {
 		$name = self::table( $table );
-		$this->execute( $this->db->prepare( 'CALL commitcap_v01_count(%s, @commitcap_v01_consumed)', self::policy_id( $name ) ) );
-		$value = $this->db->get_var( 'SELECT @commitcap_v01_consumed' );
+		$this->execute( $this->db->prepare( 'CALL writeleash_v01_count(%s, @writeleash_v01_consumed)', self::policy_id( $name ) ) );
+		$value = $this->db->get_var( 'SELECT @writeleash_v01_consumed' );
 		return null === $value ? null : (int) $value;
 	}
 

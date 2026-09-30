@@ -27,8 +27,8 @@ PG_MODULE_MAGIC;
  * check-before-increment comparison or the attempted-count diagnostic
  * (which is at most INT_MAX + 1).
  */
-#define COMMITCAP_EXPERIMENT_DEFAULT_BUDGET 5
-#define COMMITCAP_EXPERIMENT_MAX_BUDGET INT_MAX
+#define WRITELEASH_EXPERIMENT_DEFAULT_BUDGET 5
+#define WRITELEASH_EXPERIMENT_MAX_BUDGET INT_MAX
 
 /*
  * Test-only state-transition rule. Any UPDATE of a text/varchar column named
@@ -36,8 +36,8 @@ PG_MODULE_MAGIC;
  * representation needed to prove the CC-020/CC-021/CC-022 semantics; it is
  * not a policy language and it is not a product interface.
  */
-#define COMMITCAP_EXPERIMENT_DENIED_ROLE "admin"
-#define COMMITCAP_EXPERIMENT_NUMERIC_BUDGET "100.00"
+#define WRITELEASH_EXPERIMENT_DENIED_ROLE "admin"
+#define WRITELEASH_EXPERIMENT_NUMERIC_BUDGET "100.00"
 
 typedef enum RowPolicy
 {
@@ -62,9 +62,9 @@ typedef enum DenialKind
     DENIAL_PRODUCT_ROW
 } DenialKind;
 
-static int  commitcap_experiment_budget = COMMITCAP_EXPERIMENT_DEFAULT_BUDGET;
-static int  commitcap_experiment_seed_consumed = -1;
-static char *commitcap_experiment_numeric_budget = NULL;
+static int  writeleash_experiment_budget = WRITELEASH_EXPERIMENT_DEFAULT_BUDGET;
+static int  writeleash_experiment_seed_consumed = -1;
+static char *writeleash_experiment_numeric_budget = NULL;
 
 /* The product policy identity is the relation OID, never the display name or
  * an argument provided by the writer. All nodes live through PRE_COMMIT. */
@@ -115,12 +115,12 @@ static ExperimentState state = {0};
 void        _PG_init(void);
 void        _PG_fini(void);
 
-PG_FUNCTION_INFO_V1(commitcap_native_enforce_update_budget);
-PG_FUNCTION_INFO_V1(commitcap_native_enforce_rows_updated);
-PG_FUNCTION_INFO_V1(commitcap_native_enforce_role_transition);
-PG_FUNCTION_INFO_V1(commitcap_native_enforce_refund_delta);
-PG_FUNCTION_INFO_V1(commitcap_native_probe);
-PG_FUNCTION_INFO_V1(commitcap_native_policy_probe);
+PG_FUNCTION_INFO_V1(writeleash_native_enforce_update_budget);
+PG_FUNCTION_INFO_V1(writeleash_native_enforce_rows_updated);
+PG_FUNCTION_INFO_V1(writeleash_native_enforce_role_transition);
+PG_FUNCTION_INFO_V1(writeleash_native_enforce_refund_delta);
+PG_FUNCTION_INFO_V1(writeleash_native_probe);
+PG_FUNCTION_INFO_V1(writeleash_native_policy_probe);
 
 static ConsumptionFrame *find_frame(SubTransactionId subid);
 static ConsumptionFrame *ensure_frame(SubTransactionId subid);
@@ -151,34 +151,34 @@ static void subxact_callback(SubXactEvent event, SubTransactionId mySubid,
 void
 _PG_init(void)
 {
-    DefineCustomIntVariable("commitcap_native.test_budget",
-                            "Test-only CommitCap experiment budget.",
+    DefineCustomIntVariable("writeleash_native.test_budget",
+                            "Test-only WriteLeash experiment budget.",
                             "Applies to top-level transactions in this session. "
                             "This is an experimental control, not a product interface.",
-                            &commitcap_experiment_budget,
-                            COMMITCAP_EXPERIMENT_DEFAULT_BUDGET,
+                            &writeleash_experiment_budget,
+                            WRITELEASH_EXPERIMENT_DEFAULT_BUDGET,
                             0,
-                            COMMITCAP_EXPERIMENT_MAX_BUDGET,
+                            WRITELEASH_EXPERIMENT_MAX_BUDGET,
                             PGC_SUSET,
                             0,
                             NULL, NULL, NULL);
 
-    DefineCustomIntVariable("commitcap_native.test_seed_consumed",
-                            "Test-only initial consumed count for the next CommitCap experiment transaction.",
+    DefineCustomIntVariable("writeleash_native.test_seed_consumed",
+                            "Test-only initial consumed count for the next WriteLeash experiment transaction.",
                             "-1 disables seeding. This is an experimental control, not a product interface.",
-                            &commitcap_experiment_seed_consumed,
+                            &writeleash_experiment_seed_consumed,
                             -1,
                             -1,
-                            COMMITCAP_EXPERIMENT_MAX_BUDGET,
+                            WRITELEASH_EXPERIMENT_MAX_BUDGET,
                             PGC_SUSET,
                             0,
                              NULL, NULL, NULL);
 
-    DefineCustomStringVariable("commitcap_native.test_numeric_budget",
+    DefineCustomStringVariable("writeleash_native.test_numeric_budget",
                                "Test-only exact refund positive-delta budget.",
                                "Nonnegative decimal with exactly two fractional digits and at most 16 integer digits.",
-                               &commitcap_experiment_numeric_budget,
-                               COMMITCAP_EXPERIMENT_NUMERIC_BUDGET,
+                               &writeleash_experiment_numeric_budget,
+                               WRITELEASH_EXPERIMENT_NUMERIC_BUDGET,
                                PGC_SUSET,
                                0,
                                check_numeric_budget, NULL, NULL);
@@ -195,14 +195,14 @@ _PG_fini(void)
 }
 
 Datum
-commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
+writeleash_native_enforce_update_budget(PG_FUNCTION_ARGS)
 {
     TriggerData *trigger_data;
 
     if (!CALLED_AS_TRIGGER(fcinfo))
         ereport(ERROR,
                 (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
-                 errmsg("CommitCap native experiment must be called as a trigger")));
+                 errmsg("WriteLeash native experiment must be called as a trigger")));
 
     trigger_data = (TriggerData *) fcinfo->context;
     if (!TRIGGER_FIRED_BEFORE(trigger_data->tg_event) ||
@@ -210,7 +210,7 @@ commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
         !TRIGGER_FIRED_BY_UPDATE(trigger_data->tg_event))
         ereport(ERROR,
                 (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
-                 errmsg("CommitCap native experiment requires a BEFORE UPDATE row trigger")));
+                 errmsg("WriteLeash native experiment requires a BEFORE UPDATE row trigger")));
 
     activate_state();
     record_protected_event(ROW_SUBSCRIPTIONS);
@@ -221,14 +221,14 @@ commitcap_native_enforce_update_budget(PG_FUNCTION_ARGS)
 /* V0 product path: only a plain BEFORE UPDATE FOR EACH ROW trigger installed by
  * the trusted table owner. The writer cannot change the trigger or its args. */
 Datum
-commitcap_native_enforce_rows_updated(PG_FUNCTION_ARGS)
+writeleash_native_enforce_rows_updated(PG_FUNCTION_ARGS)
 {
     TriggerData *trigger_data;
 
     if (!CALLED_AS_TRIGGER(fcinfo))
         ereport(ERROR,
                 (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
-                 errmsg("CommitCap row budget must be called as a trigger")));
+                 errmsg("WriteLeash row budget must be called as a trigger")));
 
     trigger_data = (TriggerData *) fcinfo->context;
     activate_state();
@@ -239,7 +239,7 @@ commitcap_native_enforce_rows_updated(PG_FUNCTION_ARGS)
         mark_product_denied(trigger_data->tg_relation, false, 0, 0);
         ereport(ERROR,
                 (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
-                 errmsg("CommitCap row budget requires a BEFORE UPDATE row trigger")));
+                 errmsg("WriteLeash row budget requires a BEFORE UPDATE row trigger")));
     }
 
     record_product_event(trigger_data, fcinfo->flinfo->fn_oid);
@@ -300,8 +300,8 @@ record_product_event(TriggerData *trigger_data, Oid function_oid)
     if (state.denied)
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap top-level transaction already denied"),
-                 errdetail("CommitCap denied transaction\n"
+                 errmsg("WriteLeash top-level transaction already denied"),
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(state.denial_kind))));
@@ -318,7 +318,7 @@ record_product_event(TriggerData *trigger_data, Oid function_oid)
         mark_product_denied(relation, false, 0, 0);
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("CommitCap row budget requires an unconditional trigger on an ordinary nonpartitioned table")));
+                 errmsg("WriteLeash row budget requires an unconditional trigger on an ordinary nonpartitioned table")));
     }
 
     if (desc != NULL)
@@ -333,7 +333,7 @@ record_product_event(TriggerData *trigger_data, Oid function_oid)
                 mark_product_denied(relation, false, 0, 0);
                 ereport(ERROR,
                         (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                         errmsg("CommitCap product row budget cannot share a relation with another CommitCap trigger")));
+                         errmsg("WriteLeash product row budget cannot share a relation with another WriteLeash trigger")));
             }
         }
     if (matches != 1)
@@ -341,7 +341,7 @@ record_product_event(TriggerData *trigger_data, Oid function_oid)
         mark_product_denied(relation, false, 0, 0);
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("CommitCap requires exactly one UPDATE row-budget trigger per relation")));
+                 errmsg("WriteLeash requires exactly one UPDATE row-budget trigger per relation")));
     }
 
     if (trigger_data->tg_trigger->tgnargs != 1)
@@ -349,7 +349,7 @@ record_product_event(TriggerData *trigger_data, Oid function_oid)
         mark_product_denied(relation, false, 0, 0);
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("CommitCap row budget requires exactly one decimal argument")));
+                 errmsg("WriteLeash row budget requires exactly one decimal argument")));
     }
 
     if (!parse_product_budget(trigger_data->tg_trigger->tgargs[0], &budget))
@@ -357,7 +357,7 @@ record_product_event(TriggerData *trigger_data, Oid function_oid)
         mark_product_denied(relation, false, 0, 0);
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("CommitCap row budget must be a canonical decimal integer from 0 to %d", INT_MAX)));
+                 errmsg("WriteLeash row budget must be a canonical decimal integer from 0 to %d", INT_MAX)));
     }
 
     policy = find_product_policy(relid);
@@ -379,7 +379,7 @@ record_product_event(TriggerData *trigger_data, Oid function_oid)
         mark_product_denied(relation, false, 0, 0);
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("CommitCap row budget configuration changed inside a transaction")));
+                 errmsg("WriteLeash row budget configuration changed inside a transaction")));
     }
 
     if (policy->consumed >= policy->budget)
@@ -387,9 +387,9 @@ record_product_event(TriggerData *trigger_data, Oid function_oid)
         mark_product_denied(relation, true, policy->budget, policy->consumed);
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap mutation budget exceeded (limit " UINT64_FORMAT ", attempted " UINT64_FORMAT ")",
+                 errmsg("WriteLeash mutation budget exceeded (limit " UINT64_FORMAT ", attempted " UINT64_FORMAT ")",
                         policy->budget, policy->consumed + 1),
-                 errdetail("CommitCap denied transaction\n"
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "granted: " UINT64_FORMAT "\n"
                            "consumed before attempt: " UINT64_FORMAT "\n"
@@ -414,7 +414,7 @@ record_product_event(TriggerData *trigger_data, Oid function_oid)
  * subtransaction recovery, and rejects commit at XACT_EVENT_PRE_COMMIT.
  */
 Datum
-commitcap_native_enforce_role_transition(PG_FUNCTION_ARGS)
+writeleash_native_enforce_role_transition(PG_FUNCTION_ARGS)
 {
     TriggerData *trigger_data;
     char       *new_role = NULL;
@@ -422,7 +422,7 @@ commitcap_native_enforce_role_transition(PG_FUNCTION_ARGS)
     if (!CALLED_AS_TRIGGER(fcinfo))
         ereport(ERROR,
                 (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
-                 errmsg("CommitCap native experiment must be called as a trigger")));
+                 errmsg("WriteLeash native experiment must be called as a trigger")));
 
     trigger_data = (TriggerData *) fcinfo->context;
     if (!TRIGGER_FIRED_BEFORE(trigger_data->tg_event) ||
@@ -430,7 +430,7 @@ commitcap_native_enforce_role_transition(PG_FUNCTION_ARGS)
         !TRIGGER_FIRED_BY_UPDATE(trigger_data->tg_event))
         ereport(ERROR,
                 (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
-                 errmsg("CommitCap native experiment requires a BEFORE UPDATE row trigger")));
+                 errmsg("WriteLeash native experiment requires a BEFORE UPDATE row trigger")));
 
     activate_state();
 
@@ -439,8 +439,8 @@ commitcap_native_enforce_role_transition(PG_FUNCTION_ARGS)
     if (state.denied)
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap top-level transaction already denied"),
-                 errdetail("CommitCap denied transaction\n"
+                 errmsg("WriteLeash top-level transaction already denied"),
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(state.denial_kind))));
@@ -449,19 +449,19 @@ commitcap_native_enforce_role_transition(PG_FUNCTION_ARGS)
     {
         mark_denied(DENIAL_TRANSITION);
         elog(LOG,
-             "commitcap_native_tx_state transition_denial pid=%d to=%s",
+             "writeleash_native_tx_state transition_denial pid=%d to=%s",
              MyProcPid, new_role);
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap forbidden state transition (* -> %s)",
-                        COMMITCAP_EXPERIMENT_DENIED_ROLE),
-                 errdetail("CommitCap denied transaction\n"
+                 errmsg("WriteLeash forbidden state transition (* -> %s)",
+                        WRITELEASH_EXPERIMENT_DENIED_ROLE),
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "attempted effect: 1 forbidden row transition to %s\n"
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(DENIAL_TRANSITION),
-                           COMMITCAP_EXPERIMENT_DENIED_ROLE),
-                 errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
+                           WRITELEASH_EXPERIMENT_DENIED_ROLE),
+                 errhint("WriteLeash research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
     }
 
     record_protected_event(ROW_USERS);
@@ -470,14 +470,14 @@ commitcap_native_enforce_role_transition(PG_FUNCTION_ARGS)
 }
 
 Datum
-commitcap_native_enforce_refund_delta(PG_FUNCTION_ARGS)
+writeleash_native_enforce_refund_delta(PG_FUNCTION_ARGS)
 {
     TriggerData *trigger_data;
 
     if (!CALLED_AS_TRIGGER(fcinfo))
         ereport(ERROR,
                 (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
-                 errmsg("CommitCap native experiment must be called as a trigger")));
+                 errmsg("WriteLeash native experiment must be called as a trigger")));
 
     trigger_data = (TriggerData *) fcinfo->context;
     if (!TRIGGER_FIRED_BEFORE(trigger_data->tg_event) ||
@@ -485,7 +485,7 @@ commitcap_native_enforce_refund_delta(PG_FUNCTION_ARGS)
         !TRIGGER_FIRED_BY_UPDATE(trigger_data->tg_event))
         ereport(ERROR,
                 (errcode(ERRCODE_E_R_I_E_TRIGGER_PROTOCOL_VIOLATED),
-                 errmsg("CommitCap refund experiment requires a BEFORE UPDATE row trigger")));
+                 errmsg("WriteLeash refund experiment requires a BEFORE UPDATE row trigger")));
 
     activate_state();
     record_numeric_delta(trigger_data);
@@ -671,8 +671,8 @@ numeric_operation(Numeric a, Numeric b, bool subtract)
         mark_denied(DENIAL_NUMERIC);
         ereport(ERROR,
                 (errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-                 errmsg("CommitCap unsafe numeric arithmetic"),
-                 errdetail("CommitCap denied transaction\n"
+                 errmsg("WriteLeash unsafe numeric arithmetic"),
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(DENIAL_NUMERIC))));
@@ -707,8 +707,8 @@ record_numeric_delta(TriggerData *trigger_data)
     if (state.denied)
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap top-level transaction already denied"),
-                 errdetail("CommitCap denied transaction\n"
+                 errmsg("WriteLeash top-level transaction already denied"),
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(state.denial_kind))));
@@ -729,8 +729,8 @@ record_numeric_delta(TriggerData *trigger_data)
         mark_denied(DENIAL_NUMERIC);
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("CommitCap refund fixture requires a numeric amount column"),
-                 errdetail("CommitCap denied transaction\n"
+                 errmsg("WriteLeash refund fixture requires a numeric amount column"),
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(DENIAL_NUMERIC))));
@@ -747,8 +747,8 @@ record_numeric_delta(TriggerData *trigger_data)
         mark_denied(DENIAL_NUMERIC);
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("CommitCap invalid refund amount (finite, nonnegative, 16 integer and 2 fractional digits maximum)"),
-                 errdetail("CommitCap denied transaction\n"
+                 errmsg("WriteLeash invalid refund amount (finite, nonnegative, 16 integer and 2 fractional digits maximum)"),
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(DENIAL_NUMERIC))));
@@ -785,8 +785,8 @@ record_numeric_delta(TriggerData *trigger_data)
         pfree(delta);
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap numeric delta budget exceeded"),
-                 errdetail("CommitCap denied transaction\n"
+                 errmsg("WriteLeash numeric delta budget exceeded"),
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "granted: %s\n"
                            "consumed before attempt: %s\n"
@@ -794,7 +794,7 @@ record_numeric_delta(TriggerData *trigger_data)
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(DENIAL_NUMERIC),
                            granted_text, consumed_text, attempted_text),
-                 errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
+                 errhint("WriteLeash research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
     }
     pfree(remaining);
     replace_numeric(&state.positive_delta,
@@ -824,14 +824,14 @@ activate_state(void)
         state.active = true;
         state.denied = false;
         state.denial_kind = DENIAL_NONE;
-        state.consumed[ROW_SUBSCRIPTIONS] = (commitcap_experiment_seed_consumed >= 0)
-            ? (uint64) commitcap_experiment_seed_consumed
+        state.consumed[ROW_SUBSCRIPTIONS] = (writeleash_experiment_seed_consumed >= 0)
+            ? (uint64) writeleash_experiment_seed_consumed
             : 0;
         state.consumed[ROW_USERS] = 0;
-        state.budget[ROW_SUBSCRIPTIONS] = (uint64) commitcap_experiment_budget;
-        state.budget[ROW_USERS] = (uint64) commitcap_experiment_budget;
+        state.budget[ROW_SUBSCRIPTIONS] = (uint64) writeleash_experiment_budget;
+        state.budget[ROW_USERS] = (uint64) writeleash_experiment_budget;
         state.positive_delta = numeric_in_top("0.00");
-        state.numeric_budget = numeric_in_top(commitcap_experiment_numeric_budget);
+        state.numeric_budget = numeric_in_top(writeleash_experiment_numeric_budget);
         state.frames = NULL;
     }
 }
@@ -846,8 +846,8 @@ record_protected_event(RowPolicy policy)
     if (state.denied)
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap top-level transaction already denied"),
-                 errdetail("CommitCap denied transaction\n"
+                 errmsg("WriteLeash top-level transaction already denied"),
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "result: DENIED; top-level COMMIT will be rejected",
                            denial_metric_text(state.denial_kind))));
@@ -861,15 +861,15 @@ record_protected_event(RowPolicy policy)
     {
         mark_denied(kind);
         elog(LOG,
-             "commitcap_native_tx_state denial pid=%d consumed=" UINT64_FORMAT
+             "writeleash_native_tx_state denial pid=%d consumed=" UINT64_FORMAT
              " attempted=" UINT64_FORMAT " budget=" UINT64_FORMAT,
               MyProcPid, state.consumed[policy], state.consumed[policy] + 1,
               state.budget[policy]);
         ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("CommitCap mutation budget exceeded (limit " UINT64_FORMAT ", attempted " UINT64_FORMAT ")",
+                 errmsg("WriteLeash mutation budget exceeded (limit " UINT64_FORMAT ", attempted " UINT64_FORMAT ")",
                          state.budget[policy], state.consumed[policy] + 1),
-                 errdetail("CommitCap denied transaction\n"
+                 errdetail("WriteLeash denied transaction\n"
                            "policy / metric: %s\n"
                            "granted: " UINT64_FORMAT "\n"
                            "consumed before attempt: " UINT64_FORMAT "\n"
@@ -878,7 +878,7 @@ record_protected_event(RowPolicy policy)
                            denial_metric_text(kind),
                            state.budget[policy], state.consumed[policy],
                            state.consumed[policy] + 1),
-                 errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
+                 errhint("WriteLeash research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
     }
 
     state.consumed[policy]++;
@@ -889,7 +889,7 @@ record_protected_event(RowPolicy policy)
     }
 
     elog(LOG,
-         "commitcap_native_tx_state event pid=%d consumed=" UINT64_FORMAT
+         "writeleash_native_tx_state event pid=%d consumed=" UINT64_FORMAT
          " denied=%s",
           MyProcPid, state.consumed[policy], state.denied ? "true" : "false");
 }
@@ -930,7 +930,7 @@ forbidden_role_transition(TriggerData *trigger_data, char **new_role)
         return false;
 
     *new_role = TextDatumGetCString(new_datum);
-    return strcmp(*new_role, COMMITCAP_EXPERIMENT_DENIED_ROLE) == 0;
+    return strcmp(*new_role, WRITELEASH_EXPERIMENT_DENIED_ROLE) == 0;
 }
 
 /*
@@ -938,7 +938,7 @@ forbidden_role_transition(TriggerData *trigger_data, char **new_role)
  * counters to the caller's own session; it cannot modify enforcement state.
  */
 Datum
-commitcap_native_probe(PG_FUNCTION_ARGS)
+writeleash_native_probe(PG_FUNCTION_ARGS)
 {
     TupleDesc   tupdesc;
     Datum       values[4];
@@ -964,7 +964,7 @@ commitcap_native_probe(PG_FUNCTION_ARGS)
 }
 
 Datum
-commitcap_native_policy_probe(PG_FUNCTION_ARGS)
+writeleash_native_policy_probe(PG_FUNCTION_ARGS)
 {
     TupleDesc   tupdesc;
     Datum       values[4];
@@ -1132,15 +1132,15 @@ xact_callback(XactEvent event, void *arg)
     {
         case XACT_EVENT_PRE_COMMIT:
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=%d consumed=" UINT64_FORMAT
+                 "writeleash_native_tx_state lifecycle event=XACT_PRE_COMMIT pid=%d consumed=" UINT64_FORMAT
                  " denied=%s",
                   MyProcPid, state.consumed[ROW_SUBSCRIPTIONS] + state.consumed[ROW_USERS], state.denied ? "true" : "false");
             if (state.denied && state.denial_kind == DENIAL_PRODUCT_ROW &&
                 state.product_denial_has_counts)
                 ereport(ERROR,
                         (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                         errmsg("CommitCap top-level transaction denied after mutation authority violation"),
-                         errdetail("CommitCap denied transaction\n"
+                         errmsg("WriteLeash top-level transaction denied after mutation authority violation"),
+                         errdetail("WriteLeash denied transaction\n"
                                    "policy / metric: %s\n"
                                    "granted: " UINT64_FORMAT "\n"
                                    "consumed before attempt: " UINT64_FORMAT "\n"
@@ -1153,17 +1153,17 @@ xact_callback(XactEvent event, void *arg)
             if (state.denied)
                 ereport(ERROR,
                         (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                         errmsg("CommitCap top-level transaction denied after mutation authority violation"),
-                         errdetail("CommitCap denied transaction\n"
+                         errmsg("WriteLeash top-level transaction denied after mutation authority violation"),
+                         errdetail("WriteLeash denied transaction\n"
                                    "policy / metric: %s\n"
                                    "result: ABORTED",
                                    denial_metric_text(state.denial_kind)),
-                          errhint("CommitCap research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
+                          errhint("WriteLeash research mechanism; see docs/limitations.md and docs/test-plan.md for the tested envelope.")));
             break;
 
         case XACT_EVENT_COMMIT:
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=XACT_COMMIT pid=%d consumed=" UINT64_FORMAT
+                 "writeleash_native_tx_state lifecycle event=XACT_COMMIT pid=%d consumed=" UINT64_FORMAT
                  " denied=%s",
                   MyProcPid, state.consumed[ROW_SUBSCRIPTIONS] + state.consumed[ROW_USERS], state.denied ? "true" : "false");
             reset_state();
@@ -1171,7 +1171,7 @@ xact_callback(XactEvent event, void *arg)
 
         case XACT_EVENT_ABORT:
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=XACT_ABORT pid=%d consumed=" UINT64_FORMAT
+                 "writeleash_native_tx_state lifecycle event=XACT_ABORT pid=%d consumed=" UINT64_FORMAT
                  " denied=%s",
                   MyProcPid, state.consumed[ROW_SUBSCRIPTIONS] + state.consumed[ROW_USERS], state.denied ? "true" : "false");
             reset_state();
@@ -1198,7 +1198,7 @@ subxact_callback(SubXactEvent event, SubTransactionId mySubid,
         case SUBXACT_EVENT_START_SUB:
             ensure_frame(mySubid);
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=SUBXACT_START pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
+                 "writeleash_native_tx_state lifecycle event=SUBXACT_START pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
                  " denied=%s",
                   MyProcPid, mySubid, parentSubid, state.consumed[ROW_SUBSCRIPTIONS] + state.consumed[ROW_USERS],
                  state.denied ? "true" : "false");
@@ -1206,7 +1206,7 @@ subxact_callback(SubXactEvent event, SubTransactionId mySubid,
 
         case SUBXACT_EVENT_PRE_COMMIT_SUB:
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
+                 "writeleash_native_tx_state lifecycle event=SUBXACT_PRE_COMMIT pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
                  " denied=%s",
                   MyProcPid, mySubid, parentSubid, state.consumed[ROW_SUBSCRIPTIONS] + state.consumed[ROW_USERS],
                  state.denied ? "true" : "false");
@@ -1241,7 +1241,7 @@ subxact_callback(SubXactEvent event, SubTransactionId mySubid,
             }
             remove_frame(mySubid);
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=SUBXACT_COMMIT pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
+                 "writeleash_native_tx_state lifecycle event=SUBXACT_COMMIT pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
                  " denied=%s",
                   MyProcPid, mySubid, parentSubid, state.consumed[ROW_SUBSCRIPTIONS] + state.consumed[ROW_USERS],
                  state.denied ? "true" : "false");
@@ -1271,7 +1271,7 @@ subxact_callback(SubXactEvent event, SubTransactionId mySubid,
                 remove_frame(mySubid);
             }
             elog(LOG,
-                 "commitcap_native_tx_state lifecycle event=SUBXACT_ABORT pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
+                 "writeleash_native_tx_state lifecycle event=SUBXACT_ABORT pid=%d subid=%u parent=%u consumed=" UINT64_FORMAT
                  " denied=%s",
                   MyProcPid, mySubid, parentSubid, state.consumed[ROW_SUBSCRIPTIONS] + state.consumed[ROW_USERS],
                  state.denied ? "true" : "false");

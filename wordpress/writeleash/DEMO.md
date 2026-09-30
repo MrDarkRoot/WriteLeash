@@ -102,7 +102,7 @@ from noncanonical/corrupt owned data. If a callback/DB error occurs, Guard
 fails closed and the verified table remains for inspection or repair. A partial
 nontransactional DDL/DCL setup or cleanup remains actionable: rerun the same
 operator step after resolving a conflict. Foreign shape/trigger/grant drift is
-refused, not automatically destroyed. Cleanup never drops `commitcap_v01_state`,
+refused, not automatically destroyed. Cleanup never drops `writeleash_v01_state`,
 the five routines, the shared runtime user or the Redirection policy/data.
 Ordinary plugin **deactivation performs no privileged database cleanup**;
 explicit trusted demo cleanup is a separate lifecycle action.

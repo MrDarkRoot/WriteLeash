@@ -2,12 +2,12 @@
 # Sourced by the integrated suite and the isolated #47 runner. All assertions
 # use a new trusted-admin connection; no writer snapshot is a durability oracle.
 product_admin() {
-    "${COMPOSE[@]}" exec -T -e PGPASSWORD=commitcap_native_admin_experiment_only postgres \
-        psql -X -A -t -h 127.0.0.1 -U commitcap_native_admin -d commitcap_native -v ON_ERROR_STOP=1 "$@"
+    "${COMPOSE[@]}" exec -T -e PGPASSWORD=writeleash_native_admin_experiment_only postgres \
+        psql -X -A -t -h 127.0.0.1 -U writeleash_native_admin -d writeleash_native -v ON_ERROR_STOP=1 "$@"
 }
 product_writer() {
-    "${COMPOSE[@]}" exec -T -e PGPASSWORD=commitcap_writer_experiment_only postgres \
-        psql -X -A -t -h 127.0.0.1 -U commitcap_writer -d commitcap_native "$@"
+    "${COMPOSE[@]}" exec -T -e PGPASSWORD=writeleash_writer_experiment_only postgres \
+        psql -X -A -t -h 127.0.0.1 -U writeleash_writer -d writeleash_native "$@"
 }
 product_fail() { printf 'PRODUCT #47 FAIL: %s\n' "$*" >&2; exit 1; }
 product_equal() {
@@ -55,13 +55,13 @@ COMMIT;
 \\echo PRODUCT_COMMIT_SQLSTATE :SQLSTATE
 SQL
 )" || product_fail "$name psql exited unexpectedly: $output"
-    [[ "$output" == *"CommitCap mutation budget exceeded (limit $budget, attempted $attempted)"* &&
+    [[ "$output" == *"WriteLeash mutation budget exceeded (limit $budget, attempted $attempted)"* &&
        "$output" == *"policy / metric: $metric"* &&
        "$output" == *"granted: $budget"* &&
        "$output" == *"consumed before attempt: $consumed"* &&
        "$output" == *"attempted effect: $attempted row-update events"* &&
        "$output" == *'PRODUCT_DENIAL_SQLSTATE 54000'* &&
-       "$output" == *'CommitCap top-level transaction denied after mutation authority violation'* &&
+       "$output" == *'WriteLeash top-level transaction denied after mutation authority violation'* &&
        "$output" == *'result: ABORTED'* &&
        "$output" == *'PRODUCT_COMMIT_SQLSTATE 54000'* ]] || product_fail "$name missing denial evidence: $output"
     product_assert_baseline "$name"
@@ -72,27 +72,27 @@ CREATE TABLE public.cc_product_alpha (id bigint PRIMARY KEY, status text NOT NUL
 CREATE TABLE public.cc_product_beta (id bigint PRIMARY KEY, status text NOT NULL);
 CREATE TABLE public.cc_product_zero (id bigint PRIMARY KEY, status text NOT NULL);
 CREATE TABLE public.cc_product_invalid (id bigint PRIMARY KEY, status text NOT NULL);
-CREATE SCHEMA cc_product_other AUTHORIZATION commitcap_owner;
+CREATE SCHEMA cc_product_other AUTHORIZATION writeleash_owner;
 CREATE TABLE cc_product_other.cc_product_alpha (id bigint PRIMARY KEY, status text NOT NULL);
-ALTER TABLE public.cc_product_alpha OWNER TO commitcap_owner;
-ALTER TABLE public.cc_product_beta OWNER TO commitcap_owner;
-ALTER TABLE public.cc_product_zero OWNER TO commitcap_owner;
-ALTER TABLE public.cc_product_invalid OWNER TO commitcap_owner;
-ALTER TABLE cc_product_other.cc_product_alpha OWNER TO commitcap_owner;
-GRANT USAGE ON SCHEMA cc_product_other TO commitcap_writer;
-GRANT SELECT(id), UPDATE(status) ON public.cc_product_beta, public.cc_product_zero, public.cc_product_invalid TO commitcap_writer;
-GRANT SELECT(id,status), UPDATE(status) ON public.cc_product_alpha TO commitcap_writer;
-GRANT SELECT(id), UPDATE(status) ON cc_product_other.cc_product_alpha TO commitcap_writer;
-CREATE TRIGGER cc_alpha BEFORE UPDATE ON public.cc_product_alpha FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('5');
-CREATE TRIGGER cc_beta BEFORE UPDATE ON public.cc_product_beta FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('3');
-CREATE TRIGGER cc_zero BEFORE UPDATE ON public.cc_product_zero FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('0');
-CREATE TRIGGER cc_other BEFORE UPDATE ON cc_product_other.cc_product_alpha FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('1');
+ALTER TABLE public.cc_product_alpha OWNER TO writeleash_owner;
+ALTER TABLE public.cc_product_beta OWNER TO writeleash_owner;
+ALTER TABLE public.cc_product_zero OWNER TO writeleash_owner;
+ALTER TABLE public.cc_product_invalid OWNER TO writeleash_owner;
+ALTER TABLE cc_product_other.cc_product_alpha OWNER TO writeleash_owner;
+GRANT USAGE ON SCHEMA cc_product_other TO writeleash_writer;
+GRANT SELECT(id), UPDATE(status) ON public.cc_product_beta, public.cc_product_zero, public.cc_product_invalid TO writeleash_writer;
+GRANT SELECT(id,status), UPDATE(status) ON public.cc_product_alpha TO writeleash_writer;
+GRANT SELECT(id), UPDATE(status) ON cc_product_other.cc_product_alpha TO writeleash_writer;
+CREATE TRIGGER cc_alpha BEFORE UPDATE ON public.cc_product_alpha FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated('5');
+CREATE TRIGGER cc_beta BEFORE UPDATE ON public.cc_product_beta FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated('3');
+CREATE TRIGGER cc_zero BEFORE UPDATE ON public.cc_product_zero FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated('0');
+CREATE TRIGGER cc_other BEFORE UPDATE ON cc_product_other.cc_product_alpha FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated('1');
 INSERT INTO public.cc_product_invalid VALUES (1, 'baseline');
 SQL
 
-product_equal 'generic trigger function private to writer' "SELECT has_function_privilege('commitcap_writer','commitcap_native.enforce_rows_updated()','EXECUTE');" 'f'
-product_equal 'generic writer nonowner' "SELECT (SELECT relowner FROM pg_class WHERE oid='public.cc_product_alpha'::regclass) <> (SELECT oid FROM pg_roles WHERE rolname='commitcap_writer');" 't'
-product_equal 'generic writer narrow grants' "SELECT has_column_privilege('commitcap_writer','public.cc_product_alpha','status','UPDATE') AND NOT has_table_privilege('commitcap_writer','public.cc_product_alpha','TRIGGER') AND NOT has_table_privilege('commitcap_writer','public.cc_product_alpha','INSERT') AND NOT has_table_privilege('commitcap_writer','public.cc_product_alpha','DELETE');" 't'
+product_equal 'generic trigger function private to writer' "SELECT has_function_privilege('writeleash_writer','writeleash_native.enforce_rows_updated()','EXECUTE');" 'f'
+product_equal 'generic writer nonowner' "SELECT (SELECT relowner FROM pg_class WHERE oid='public.cc_product_alpha'::regclass) <> (SELECT oid FROM pg_roles WHERE rolname='writeleash_writer');" 't'
+product_equal 'generic writer narrow grants' "SELECT has_column_privilege('writeleash_writer','public.cc_product_alpha','status','UPDATE') AND NOT has_table_privilege('writeleash_writer','public.cc_product_alpha','TRIGGER') AND NOT has_table_privilege('writeleash_writer','public.cc_product_alpha','INSERT') AND NOT has_table_privilege('writeleash_writer','public.cc_product_alpha','DELETE');" 't'
 
 for product_iteration in $(seq 1 "${PRODUCT_REPETITIONS:-1}"); do
     product_safe 'zero events' 'BEGIN; UPDATE public.cc_product_alpha SET status=status WHERE id=999; COMMIT;' \
@@ -177,7 +177,7 @@ COMMIT;
 SELECT 'PRODUCT_REUSE:' || count(*) FROM public.cc_product_alpha WHERE id<=5;
 SQL
 )"
-    [[ "$product_reuse" == *'CommitCap mutation budget exceeded'* && "$product_reuse" == *'PRODUCT_REUSE:5'* && "$product_reuse" == *'COMMIT'* ]] || product_fail "same-backend denial reuse: $product_reuse"
+    [[ "$product_reuse" == *'WriteLeash mutation budget exceeded'* && "$product_reuse" == *'PRODUCT_REUSE:5'* && "$product_reuse" == *'COMMIT'* ]] || product_fail "same-backend denial reuse: $product_reuse"
     product_equal 'same-backend fresh-admin state' "SELECT count(*) FROM public.cc_product_alpha WHERE status='good';" '5'
     product_reset
     product_safe 'new backend after rollback' "BEGIN; UPDATE public.cc_product_alpha SET status='temp' WHERE id<=5; ROLLBACK; BEGIN; UPDATE public.cc_product_alpha SET status='new' WHERE id<=5; COMMIT;" \
@@ -208,7 +208,7 @@ done
 # including after SAVEPOINT recovery; invalid configuration is not a writer GUC.
 for product_bad in 'NO_ARGUMENT' "''" "'-1'" "'01'" "'1.5'" "'garbage'" "'2147483648'" "'99999999999999999999999'" "'5','extra'"; do
     if [[ "$product_bad" == NO_ARGUMENT ]]; then product_bad=''; fi
-    product_admin -c "DROP TRIGGER IF EXISTS cc_invalid ON public.cc_product_invalid; CREATE TRIGGER cc_invalid BEFORE UPDATE ON public.cc_product_invalid FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated($product_bad);" >/dev/null
+    product_admin -c "DROP TRIGGER IF EXISTS cc_invalid ON public.cc_product_invalid; CREATE TRIGGER cc_invalid BEFORE UPDATE ON public.cc_product_invalid FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated($product_bad);" >/dev/null
     product_invalid="$(product_writer -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN; SAVEPOINT s;
 UPDATE public.cc_product_invalid SET status='invalid' WHERE id=1;
@@ -222,7 +222,7 @@ SQL
     product_equal 'invalid policy fresh-admin baseline' "SELECT status FROM public.cc_product_invalid WHERE id=1;" 'baseline'
 done
 product_admin -c 'DROP TRIGGER cc_invalid ON public.cc_product_invalid;' >/dev/null
-product_admin -c "CREATE TRIGGER cc_invalid BEFORE UPDATE ON public.cc_product_invalid FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('2147483647');" >/dev/null
+product_admin -c "CREATE TRIGGER cc_invalid BEFORE UPDATE ON public.cc_product_invalid FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated('2147483647');" >/dev/null
 product_max="$(product_writer -v ON_ERROR_STOP=1 2>&1 <<'SQL'
 BEGIN; UPDATE public.cc_product_invalid SET status='max' WHERE id=1; COMMIT;
 SQL
@@ -232,7 +232,7 @@ product_equal 'maximum canonical budget fresh admin' "SELECT status FROM public.
 product_admin -c 'DROP TRIGGER cc_invalid ON public.cc_product_invalid;' >/dev/null
 product_admin -c "UPDATE public.cc_product_invalid SET status='baseline' WHERE id=1;" >/dev/null
 
-product_admin -c "CREATE TRIGGER cc_alpha_duplicate BEFORE UPDATE ON public.cc_product_alpha FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('2');" >/dev/null
+product_admin -c "CREATE TRIGGER cc_alpha_duplicate BEFORE UPDATE ON public.cc_product_alpha FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated('2');" >/dev/null
 product_reset
 product_duplicate="$(product_writer -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN; SAVEPOINT s;
@@ -248,7 +248,7 @@ product_admin -c 'DROP TRIGGER cc_alpha_duplicate ON public.cc_product_alpha;' >
 
 # A trusted installer must not silently compose the legacy research row-budget
 # trigger with the generic product policy on the same relation.
-product_admin -c 'CREATE TRIGGER aa_legacy_budget BEFORE UPDATE ON public.cc_product_alpha FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_update_budget();' >/dev/null
+product_admin -c 'CREATE TRIGGER aa_legacy_budget BEFORE UPDATE ON public.cc_product_alpha FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_update_budget();' >/dev/null
 product_reset
 product_mixed="$(product_writer -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN; SAVEPOINT s; UPDATE public.cc_product_alpha SET status='bad' WHERE id=1;
@@ -266,12 +266,12 @@ for product_attack in \
     'ALTER TABLE public.cc_product_alpha DISABLE TRIGGER cc_alpha' \
     'ALTER TABLE public.cc_product_alpha DISABLE TRIGGER ALL' \
     'ALTER TRIGGER cc_alpha ON public.cc_product_alpha RENAME TO cc_writer_budget' \
-    'ALTER TABLE public.cc_product_alpha OWNER TO commitcap_writer' \
-    'ALTER FUNCTION commitcap_native.enforce_rows_updated() OWNER TO commitcap_writer' \
-    "CREATE OR REPLACE FUNCTION commitcap_native.enforce_rows_updated() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'" \
-    'CREATE TABLE commitcap_native.writer_policy (id int)' \
+    'ALTER TABLE public.cc_product_alpha OWNER TO writeleash_writer' \
+    'ALTER FUNCTION writeleash_native.enforce_rows_updated() OWNER TO writeleash_writer' \
+    "CREATE OR REPLACE FUNCTION writeleash_native.enforce_rows_updated() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'" \
+    'CREATE TABLE writeleash_native.writer_policy (id int)' \
     'ALTER TABLE public.cc_product_alpha ENABLE REPLICA TRIGGER cc_alpha' \
-    'CREATE TRIGGER cc_writer_budget BEFORE UPDATE ON public.cc_product_alpha FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('\''999'\'')' \
+    'CREATE TRIGGER cc_writer_budget BEFORE UPDATE ON public.cc_product_alpha FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated('\''999'\'')' \
     'ALTER TABLE public.cc_product_alpha RENAME TO writer_owned' \
     'SET session_replication_role = replica'; do
     product_tamper="$(product_writer -v ON_ERROR_STOP=0 2>&1 <<SQL
@@ -282,7 +282,7 @@ SQL
     [[ "$product_tamper" == *'PRODUCT_TAMPER 42501'* ]] || product_fail "writer tamper [$product_attack]: $product_tamper"
 done
 product_direct="$(product_admin -v ON_ERROR_STOP=0 2>&1 <<'SQL'
-SELECT commitcap_native.enforce_rows_updated();
+SELECT writeleash_native.enforce_rows_updated();
 \echo PRODUCT_DIRECT :SQLSTATE
 SQL
 )"
@@ -290,7 +290,7 @@ SQL
 
 # A trusted admin can define an unsupported shape, but execution must error;
 # a zero-row UPDATE does not fire a row trigger and cannot validate its shape.
-product_admin -c "CREATE TRIGGER cc_wrong_time AFTER UPDATE ON public.cc_product_invalid FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('1');" >/dev/null
+product_admin -c "CREATE TRIGGER cc_wrong_time AFTER UPDATE ON public.cc_product_invalid FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated('1');" >/dev/null
 product_wrong="$(product_writer -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN; SAVEPOINT s; UPDATE public.cc_product_invalid SET status='wrong' WHERE id=1;
 \echo PRODUCT_WRONG :SQLSTATE
@@ -300,7 +300,7 @@ SQL
 )"
 [[ "$product_wrong" == *'PRODUCT_WRONG 39P01'* && "$product_wrong" == *'PRODUCT_WRONG_COMMIT 54000'* ]] || product_fail "wrong timing: $product_wrong"
 product_admin -c 'DROP TRIGGER cc_wrong_time ON public.cc_product_invalid;' >/dev/null
-product_admin -c "CREATE TRIGGER cc_wrong_level AFTER UPDATE ON public.cc_product_invalid FOR EACH STATEMENT EXECUTE FUNCTION commitcap_native.enforce_rows_updated('1');" >/dev/null
+product_admin -c "CREATE TRIGGER cc_wrong_level AFTER UPDATE ON public.cc_product_invalid FOR EACH STATEMENT EXECUTE FUNCTION writeleash_native.enforce_rows_updated('1');" >/dev/null
 product_wrong="$(product_writer -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN; SAVEPOINT s; UPDATE public.cc_product_invalid SET status='wrong' WHERE id=1;
 \echo PRODUCT_WRONG :SQLSTATE
@@ -310,7 +310,7 @@ SQL
 )"
 [[ "$product_wrong" == *'PRODUCT_WRONG 39P01'* && "$product_wrong" == *'PRODUCT_WRONG_COMMIT 54000'* ]] || product_fail "wrong level: $product_wrong"
 product_admin -c 'DROP TRIGGER cc_wrong_level ON public.cc_product_invalid;' >/dev/null
-product_admin -c "CREATE TRIGGER cc_wrong_op BEFORE INSERT ON public.cc_product_invalid FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('1');" >/dev/null
+product_admin -c "CREATE TRIGGER cc_wrong_op BEFORE INSERT ON public.cc_product_invalid FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated('1');" >/dev/null
 product_wrong="$(product_admin -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN; SAVEPOINT s; INSERT INTO public.cc_product_invalid VALUES (2,'wrong');
 \echo PRODUCT_WRONG :SQLSTATE
@@ -322,8 +322,8 @@ SQL
 product_admin -c 'DROP TRIGGER cc_wrong_op ON public.cc_product_invalid;' >/dev/null
 product_equal 'wrong shape fresh-admin baseline' "SELECT count(*) FROM public.cc_product_invalid WHERE status='baseline';" '1'
 for product_conditional in \
-    "CREATE TRIGGER cc_cond BEFORE UPDATE OF status ON public.cc_product_invalid FOR EACH ROW EXECUTE FUNCTION commitcap_native.enforce_rows_updated('1')" \
-    "CREATE TRIGGER cc_cond BEFORE UPDATE ON public.cc_product_invalid FOR EACH ROW WHEN (NEW.status = 'conditional') EXECUTE FUNCTION commitcap_native.enforce_rows_updated('1')"; do
+    "CREATE TRIGGER cc_cond BEFORE UPDATE OF status ON public.cc_product_invalid FOR EACH ROW EXECUTE FUNCTION writeleash_native.enforce_rows_updated('1')" \
+    "CREATE TRIGGER cc_cond BEFORE UPDATE ON public.cc_product_invalid FOR EACH ROW WHEN (NEW.status = 'conditional') EXECUTE FUNCTION writeleash_native.enforce_rows_updated('1')"; do
     product_admin -c "$product_conditional;" >/dev/null
     product_wrong="$(product_writer -v ON_ERROR_STOP=0 2>&1 <<'SQL'
 BEGIN; SAVEPOINT s; UPDATE public.cc_product_invalid SET status='conditional' WHERE id=1;

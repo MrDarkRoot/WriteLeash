@@ -8,8 +8,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Conservative interpretation of SHOW GRANTS for the authenticated account. */
 final class Compatibility_Grants {
 	private const ROUTINES = array(
-		'commitcap_v01_open', 'commitcap_v01_close',
-		'commitcap_v01_count', 'commitcap_v01_policy', 'commitcap_v01_attest',
+		'writeleash_v01_open', 'writeleash_v01_close',
+		'writeleash_v01_count', 'writeleash_v01_policy', 'writeleash_v01_attest',
 	);
 	private const DDL = array(
 		'CREATE', 'ALTER', 'DROP', 'TRIGGER', 'CREATE ROUTINE',
@@ -141,12 +141,12 @@ final class Compatibility_Grants {
 				), true ) ) && in_array( $privilege, self::DDL, true ) ) {
 					return array( 'FAIL', 'Runtime account can modify enforcement objects or delegate authority.' );
 				}
-				if ( $this->applies( $grant ) && 'commitcap_v01_state' === $grant['object'] &&
+				if ( $this->applies( $grant ) && 'writeleash_v01_state' === $grant['object'] &&
 					'SELECT' === $privilege ) {
 					// Reviewed unmediated read used by the runtime evidence probes.
 					$helper_select = true;
 				}
-				if ( $this->applies( $grant ) && 'commitcap_v01_state' === $grant['object'] &&
+				if ( $this->applies( $grant ) && 'writeleash_v01_state' === $grant['object'] &&
 					in_array( $privilege, array( 'INSERT', 'UPDATE', 'DELETE', 'REFERENCES' ), true ) ) {
 					return array( 'FAIL', 'Runtime account can modify the helper table.' );
 				}
@@ -198,7 +198,7 @@ final class Compatibility_Grants {
 			if ( '*' === $database || ( $this->applies( $grant ) && '*' === $object ) ) {
 				continue; // Global/schema-wide writes already FAIL runtime().
 			}
-			if ( $this->applies( $grant ) && 'commitcap_v01_state' === $object ) {
+			if ( $this->applies( $grant ) && 'writeleash_v01_state' === $object ) {
 				continue; // Helper writes already FAIL runtime().
 			}
 			if ( $this->applies( $grant ) && in_array( $object, $targets, true ) ) {

@@ -150,7 +150,7 @@ list( , $rejected_queries ) = cc87_trace_all( $root, static function () use ( $s
 } );
 foreach ( $rejected_queries as $queries ) {
 	foreach ( $queries as $sql ) {
-		cc87_assert( ! preg_match( '/^UPDATE `?' . preg_quote( $table, '/' ) . '`?|^CALL commitcap_v01_/i', $sql ), 'rejected Admin action reached demo callback/Doctor' );
+		cc87_assert( ! preg_match( '/^UPDATE `?' . preg_quote( $table, '/' ) . '`?|^CALL writeleash_v01_/i', $sql ), 'rejected Admin action reached demo callback/Doctor' );
 	}
 }
 echo "#60 $host: subscriber, direct endpoint, GET, missing/invalid/wrong-action nonces -> zero config/demo mutation: PASS\n";

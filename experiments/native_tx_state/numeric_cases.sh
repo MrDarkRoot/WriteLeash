@@ -16,13 +16,13 @@ refunds_100='1=100.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00'
 
 numeric_state() {
     # For use in writer SQL: subscriptions|users|refunds positive|denied.
-    printf "SELECT 'NUMERIC_STATE:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_policy_probe();"
+    printf "SELECT 'NUMERIC_STATE:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_policy_probe();"
 }
 
 assert_numeric_denial() {
     local label="$1" output="$2" message="$3"
     [[ "$output" == *"$message"* ]] || fail "$label missing immediate denial: $output"
-    [[ "$output" == *"ROLLBACK"* || "$output" == *"CommitCap top-level transaction denied after mutation authority violation"* ]] || \
+    [[ "$output" == *"ROLLBACK"* || "$output" == *"WriteLeash top-level transaction denied after mutation authority violation"* ]] || \
         fail "$label did not abort at COMMIT: $output"
     assert_refunds "$label" "$refunds_baseline"
     printf '%s: PASS (denied; fresh admin observed all eight baseline amounts)\n' "$label"
@@ -30,15 +30,15 @@ assert_numeric_denial() {
 
 printf '\n--- independent transaction-local policy counters ---\n'
 assert_scalar 'numeric writer privilege envelope' \
-    "SELECT has_column_privilege('commitcap_writer','public.refunds','id','SELECT') AND has_column_privilege('commitcap_writer','public.refunds','amount','UPDATE') AND NOT has_table_privilege('commitcap_writer','public.refunds','INSERT') AND NOT has_table_privilege('commitcap_writer','public.refunds','DELETE') AND NOT has_table_privilege('commitcap_writer','public.refunds','TRUNCATE') AND NOT has_table_privilege('commitcap_writer','public.refunds','TRIGGER');" 't'
+    "SELECT has_column_privilege('writeleash_writer','public.refunds','id','SELECT') AND has_column_privilege('writeleash_writer','public.refunds','amount','UPDATE') AND NOT has_table_privilege('writeleash_writer','public.refunds','INSERT') AND NOT has_table_privilege('writeleash_writer','public.refunds','DELETE') AND NOT has_table_privilege('writeleash_writer','public.refunds','TRUNCATE') AND NOT has_table_privilege('writeleash_writer','public.refunds','TRIGGER');" 't'
 assert_scalar 'numeric trusted owner' \
-    "SELECT pg_get_userbyid(relowner) FROM pg_class WHERE oid='public.refunds'::regclass;" 'commitcap_owner'
+    "SELECT pg_get_userbyid(relowner) FROM pg_class WHERE oid='public.refunds'::regclass;" 'writeleash_owner'
 assert_scalar 'numeric trigger installed' \
     "SELECT tgenabled FROM pg_trigger WHERE tgname='refunds_positive_delta';" 'O'
 assert_scalar 'numeric enforcement function not callable by writer' \
-    "SELECT has_function_privilege('commitcap_writer','commitcap_native.enforce_refund_delta()','EXECUTE');" 'f'
+    "SELECT has_function_privilege('writeleash_writer','writeleash_native.enforce_refund_delta()','EXECUTE');" 'f'
 assert_scalar 'numeric probe SECURITY INVOKER' \
-    "SELECT prosecdef FROM pg_proc WHERE oid='commitcap_probe.cc_native_policy_probe()'::regprocedure;" 'f'
+    "SELECT prosecdef FROM pg_proc WHERE oid='writeleash_probe.writeleash_native_policy_probe()'::regprocedure;" 'f'
 
 reset_fixture; reset_users_fixture; reset_refunds
 independent_forward="$(writer_psql -v ON_ERROR_STOP=1 <<SQL
@@ -87,7 +87,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$isolation_deny" == *'CommitCap mutation budget exceeded (limit 5, attempted 6)'* && "$isolation_deny" == *'NUMERIC_STATE:5|1|20.00|t'* && "$isolation_deny" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail "row policy denial not sticky/isolated: $isolation_deny"
+[[ "$isolation_deny" == *'WriteLeash mutation budget exceeded (limit 5, attempted 6)'* && "$isolation_deny" == *'NUMERIC_STATE:5|1|20.00|t'* && "$isolation_deny" == *'WriteLeash top-level transaction denied after mutation authority violation'* ]] || fail "row policy denial not sticky/isolated: $isolation_deny"
 assert_baseline; assert_users_baseline; assert_refunds 'row policy poisoned COMMIT' "$refunds_baseline"
 printf 'subscription policy over budget: PASS (sticky denial; fresh admin all three baselines)\n'
 
@@ -101,7 +101,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$users_deny" == *'CommitCap mutation budget exceeded (limit 5, attempted 6)'* ]] || fail "users policy sixth event not denied: $users_deny"
+[[ "$users_deny" == *'WriteLeash mutation budget exceeded (limit 5, attempted 6)'* ]] || fail "users policy sixth event not denied: $users_deny"
 assert_baseline; assert_users_baseline; assert_refunds 'users policy denial' "$refunds_baseline"
 printf 'users policy over budget: PASS (subscription event cannot consume users budget; fresh baselines)\n'
 
@@ -141,7 +141,7 @@ COMMIT;
 SQL
 )"
 set -e
-assert_numeric_denial 'canonical CC-032 single' "$cc_numeric032" 'CommitCap numeric delta budget exceeded'
+assert_numeric_denial 'canonical CC-032 single' "$cc_numeric032" 'WriteLeash numeric delta budget exceeded'
 reset_refunds
 set +e
 cc_numeric032="$(writer_psql -v ON_ERROR_STOP=0 2>&1 <<'SQL'
@@ -154,7 +154,7 @@ COMMIT;
 SQL
 )"
 set -e
-assert_numeric_denial 'canonical CC-032 decomposed' "$cc_numeric032" 'CommitCap numeric delta budget exceeded'
+assert_numeric_denial 'canonical CC-032 decomposed' "$cc_numeric032" 'WriteLeash numeric delta budget exceeded'
 
 reset_refunds
 cc_numeric033="$(writer_psql -v ON_ERROR_STOP=1 <<SQL
@@ -179,7 +179,7 @@ COMMIT;
 SQL
 )"
 set -e
-assert_numeric_denial 'CC-033 same-transaction oscillation +21' "$oscillation" 'CommitCap numeric delta budget exceeded'
+assert_numeric_denial 'CC-033 same-transaction oscillation +21' "$oscillation" 'WriteLeash numeric delta budget exceeded'
 
 printf '\n--- numeric boundaries, recovery, alternate SQL paths ---\n'
 reset_refunds
@@ -234,7 +234,7 @@ COMMIT;
 SQL
 )"
 set -e
-[[ "$denial_recovered" == *'CommitCap numeric delta budget exceeded'* && "$denial_recovered" == *'NUMERIC_STATE:1|1|80.00|t'* && "$denial_recovered" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail "nested numeric denial recovery: $denial_recovered"
+[[ "$denial_recovered" == *'WriteLeash numeric delta budget exceeded'* && "$denial_recovered" == *'NUMERIC_STATE:1|1|80.00|t'* && "$denial_recovered" == *'WriteLeash top-level transaction denied after mutation authority violation'* ]] || fail "nested numeric denial recovery: $denial_recovered"
 assert_baseline; assert_users_baseline; assert_refunds 'nested numeric denial' "$refunds_baseline"
 assert_scalar 'numeric poisoned sibling audit' "SELECT count(*) FROM public.unprotected_audit WHERE message='numeric_poisoned';" '0'
 printf 'numeric nested denial: PASS (precommit ABORT, fresh admin three protected baselines + sibling audit=0)\n'
@@ -248,14 +248,14 @@ DO $caught$ BEGIN BEGIN
   UPDATE public.refunds SET amount=101.00 WHERE id=2;
   RAISE EXCEPTION 'expected numeric denial';
 EXCEPTION WHEN OTHERS THEN
-  IF SQLERRM NOT LIKE 'CommitCap numeric delta budget exceeded%' THEN RAISE; END IF;
+  IF SQLERRM NOT LIKE 'WriteLeash numeric delta budget exceeded%' THEN RAISE; END IF;
   RAISE NOTICE 'CC_NUMERIC_CAUGHT: %', SQLERRM;
 END; END $caught$;
 COMMIT;
 SQL
 )"
 set -e
-[[ "$caught_numeric" == *'CC_NUMERIC_CAUGHT: CommitCap numeric delta budget exceeded'* && "$caught_numeric" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail "caught numeric denial: $caught_numeric"
+[[ "$caught_numeric" == *'CC_NUMERIC_CAUGHT: WriteLeash numeric delta budget exceeded'* && "$caught_numeric" == *'WriteLeash top-level transaction denied after mutation authority violation'* ]] || fail "caught numeric denial: $caught_numeric"
 assert_refunds 'caught numeric denial' "$refunds_baseline"
 printf 'numeric caught exception: PASS (sticky precommit rejection; fresh admin baseline)\n'
 
@@ -325,7 +325,7 @@ COMMIT;
 SQL
 )"
     set -e
-    [[ "$invalid_output" == *'CommitCap invalid refund amount'* && "$invalid_output" == *'NUMERIC_STATE:0|0|10.00|t'* && "$invalid_output" == *'CommitCap top-level transaction denied after mutation authority violation'* ]] || fail "invalid $invalid_case was not sticky: $invalid_output"
+    [[ "$invalid_output" == *'WriteLeash invalid refund amount'* && "$invalid_output" == *'NUMERIC_STATE:0|0|10.00|t'* && "$invalid_output" == *'WriteLeash top-level transaction denied after mutation authority violation'* ]] || fail "invalid $invalid_case was not sticky: $invalid_output"
     assert_refunds "invalid $invalid_case" "$refunds_baseline"
     printf 'invalid refund value %s: PASS (sticky deny; fresh baseline)\n' "$invalid_case"
 done
@@ -336,19 +336,19 @@ for bad_budget in "'-0.01'" "'NaN'" "'Infinity'" "'-Infinity'" "'100.001'" \
     "'10000000000000000.00'" "'1e2'" "'garbage'" "'100'"
 do
     cc_config_attempt "numeric_${bad_budget//[^A-Za-z0-9]/_}" \
-        "ALTER ROLE commitcap_writer SET commitcap_native.test_numeric_budget = $bad_budget" 22023
+        "ALTER ROLE writeleash_writer SET writeleash_native.test_numeric_budget = $bad_budget" 22023
 done
-cc_denied_attempt numeric_budget_writer_set 42501 "SET commitcap_native.test_numeric_budget = '9999999999999999.99'"
-cc_denied_attempt numeric_budget_writer_reset 42501 'RESET commitcap_native.test_numeric_budget'
+cc_denied_attempt numeric_budget_writer_set 42501 "SET writeleash_native.test_numeric_budget = '9999999999999999.99'"
+cc_denied_attempt numeric_budget_writer_reset 42501 'RESET writeleash_native.test_numeric_budget'
 cc_denied_attempt numeric_disable_trigger 42501 'ALTER TABLE public.refunds DISABLE TRIGGER refunds_positive_delta'
 cc_denied_attempt numeric_drop_trigger 42501 'DROP TRIGGER refunds_positive_delta ON public.refunds'
-cc_denied_attempt numeric_replace_function 42501 "CREATE OR REPLACE FUNCTION commitcap_native.enforce_refund_delta() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'"
+cc_denied_attempt numeric_replace_function 42501 "CREATE OR REPLACE FUNCTION writeleash_native.enforce_refund_delta() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END'"
 cc_denied_attempt numeric_insert 42501 'INSERT INTO public.refunds(id,customer_id,amount) VALUES (99,10,1.00)'
 cc_denied_attempt numeric_upsert 42501 "INSERT INTO public.refunds(id,customer_id,amount) VALUES (1,10,101.00) ON CONFLICT (id) DO UPDATE SET amount=EXCLUDED.amount"
 cc_denied_attempt numeric_delete 42501 'DELETE FROM public.refunds WHERE id=1'
 cc_denied_attempt numeric_truncate 42501 'TRUNCATE public.refunds'
 
-cc_config_set commitcap_native.test_numeric_budget "'9999999999999999.99'"
+cc_config_set writeleash_native.test_numeric_budget "'9999999999999999.99'"
 reset_refunds
 max_numeric="$(writer_psql -v ON_ERROR_STOP=1 <<SQL
 BEGIN;
@@ -371,11 +371,11 @@ COMMIT;
 SQL
 )"
 set -e
-assert_numeric_denial 'max numeric over-budget' "$max_over" 'CommitCap numeric delta budget exceeded'
-cc_config_reset commitcap_native.test_numeric_budget
-assert_value 'restored numeric test budget' "$(writer_psql -At -v ON_ERROR_STOP=1 -c 'SHOW commitcap_native.test_numeric_budget;')" '100.00'
+assert_numeric_denial 'max numeric over-budget' "$max_over" 'WriteLeash numeric delta budget exceeded'
+cc_config_reset writeleash_native.test_numeric_budget
+assert_value 'restored numeric test budget' "$(writer_psql -At -v ON_ERROR_STOP=1 -c 'SHOW writeleash_native.test_numeric_budget;')" '100.00'
 
-cc_config_set commitcap_native.test_numeric_budget "'0.00'"
+cc_config_set writeleash_native.test_numeric_budget "'0.00'"
 reset_refunds
 zero_numeric="$(writer_psql -v ON_ERROR_STOP=1 <<SQL
 BEGIN;
@@ -395,8 +395,8 @@ COMMIT;
 SQL
 )"
 set -e
-assert_numeric_denial 'zero budget first positive event' "$zero_denial" 'CommitCap numeric delta budget exceeded'
-cc_config_reset commitcap_native.test_numeric_budget
+assert_numeric_denial 'zero budget first positive event' "$zero_denial" 'WriteLeash numeric delta budget exceeded'
+cc_config_reset writeleash_native.test_numeric_budget
 printf 'zero numeric budget: PASS (no-op COMMIT, +0.01 denied, fresh admin baselines)\n'
 
 # A denied transaction may be followed by a clean independent one in a reused
@@ -413,7 +413,7 @@ $(numeric_state)
 COMMIT;
 SQL
 )"
-[[ "$numeric_reuse" == *'CommitCap numeric delta budget exceeded'* && "$numeric_reuse" == *'NUMERIC_STATE:0|0|100.00|f'* && "$numeric_reuse" == *'COMMIT'* ]] || fail "numeric next-transaction cleanup: $numeric_reuse"
+[[ "$numeric_reuse" == *'WriteLeash numeric delta budget exceeded'* && "$numeric_reuse" == *'NUMERIC_STATE:0|0|100.00|f'* && "$numeric_reuse" == *'COMMIT'* ]] || fail "numeric next-transaction cleanup: $numeric_reuse"
 assert_refunds 'numeric next transaction' "$refunds_100"
 printf 'numeric next-transaction cleanup: PASS (fresh admin amount=100.00)\n'
 printf 'canonical numeric CC-030/031/032/033 and approved boundary probes: PASS IN PG16.4 RESEARCH FIXTURE\n'
@@ -429,13 +429,13 @@ printf '\n--- numeric-delta concurrent row-lock contention ---\n'
 # UPDATE command tag, unchanged pg_stat_database.deadlocks, and fresh-admin
 # durable rows instead of the log event counts used for row events.
 assert_value 'numeric contention default numeric budget' \
-    "$(writer_psql -At -v ON_ERROR_STOP=1 -c 'SHOW commitcap_native.test_numeric_budget;')" '100.00'
+    "$(writer_psql -At -v ON_ERROR_STOP=1 -c 'SHOW writeleash_native.test_numeric_budget;')" '100.00'
 
 nc_state_assert() {
     local name="$1" marker="$2" expected="$3"
     local line value
 
-    cc_send "$name" "SELECT '$marker:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM commitcap_probe.cc_native_policy_probe();"
+    cc_send "$name" "SELECT '$marker:' || subscriptions_consumed || '|' || users_consumed || '|' || refunds_positive_delta || '|' || CASE WHEN denied THEN 't' ELSE 'f' END FROM writeleash_probe.writeleash_native_policy_probe();"
     cc_wait_output "$name" "$marker:" "numeric policy state $marker"
     line="$(grep -F "$marker:" "$CC_SESSION_DIR/$name.out" | tail -n 1)"
     value="${line##*"$marker:"}"
@@ -458,7 +458,7 @@ nc_update1_delta() {
 }
 
 rm -rf "$CC_SESSION_DIR"
-CC_SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/commitcap_native_numeric_sessions.XXXXXX")"
+CC_SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/writeleash_native_numeric_sessions.XXXXXX")"
 cc_session_start a
 cc_session_start b
 cc_session_attach a
@@ -546,7 +546,7 @@ cc_sync a NC_B_A_COMMIT
 [[ "$(( $(cc_count_tag a COMMIT) - nc_a_commits_before ))" == "1" ]] || \
     fail "numeric contention scenario B: session A did not commit"
 
-cc_wait_output b 'CommitCap numeric delta budget exceeded' 'numeric contention scenario B over-budget denial'
+cc_wait_output b 'WriteLeash numeric delta budget exceeded' 'numeric contention scenario B over-budget denial'
 [[ "$(nc_update1_delta b "$nc_b_update1_before")" == "0" ]] || \
     fail "numeric contention scenario B: denied contended update reported a successful UPDATE tag"
 
@@ -554,10 +554,10 @@ cc_send b "ROLLBACK TO SAVEPOINT nc_b_sp;"
 nc_state_assert b NC_B_B2 '0|0|50.00|t'
 
 cc_send b "UPDATE public.subscriptions SET status='nc_b_sibling' WHERE id=1;"
-cc_wait_output b 'CommitCap top-level transaction already denied' 'numeric contention scenario B sibling rejection'
+cc_wait_output b 'WriteLeash top-level transaction already denied' 'numeric contention scenario B sibling rejection'
 cc_send b '\echo NC_B_SIBLING_OUTPUT_COMPLETE'
 cc_wait_output b 'NC_B_SIBLING_OUTPUT_COMPLETE' 'numeric contention scenario B sibling error detail'
-nc_b_repeat="$(grep -A2 -F 'CommitCap top-level transaction already denied' "$CC_SESSION_DIR/b.out" | head -n 3)"
+nc_b_repeat="$(grep -A2 -F 'WriteLeash top-level transaction already denied' "$CC_SESSION_DIR/b.out" | head -n 3)"
 [[ "$nc_b_repeat" == *'policy / metric: refunds.amount positive_delta'* ]] || \
     fail "numeric contention scenario B: later subscriptions event lost the original numeric policy: $nc_b_repeat"
 
@@ -567,10 +567,10 @@ cc_send b "ROLLBACK TO SAVEPOINT nc_b_sp;"
 # CC-024/CC-032 convention) rather than converting to a top-level ROLLBACK.
 nc_b_commits_before="$(cc_count_tag b COMMIT)"
 cc_send b "COMMIT;"
-cc_wait_output b 'CommitCap top-level transaction denied after mutation authority violation' 'numeric contention scenario B COMMIT rejection'
+cc_wait_output b 'WriteLeash top-level transaction denied after mutation authority violation' 'numeric contention scenario B COMMIT rejection'
 cc_send b '\echo NC_B_COMMIT_OUTPUT_COMPLETE'
 cc_wait_output b 'NC_B_COMMIT_OUTPUT_COMPLETE' 'numeric contention scenario B COMMIT error detail'
-nc_b_commit_evidence="$(grep -A3 -F 'CommitCap top-level transaction denied after mutation authority violation' "$CC_SESSION_DIR/b.out" | head -n 4)"
+nc_b_commit_evidence="$(grep -A3 -F 'WriteLeash top-level transaction denied after mutation authority violation' "$CC_SESSION_DIR/b.out" | head -n 4)"
 [[ "$nc_b_commit_evidence" == *'policy / metric: refunds.amount positive_delta'* && \
    "$nc_b_commit_evidence" == *'result: ABORTED'* ]] || \
     fail "numeric contention scenario B: COMMIT lost original numeric denial: $nc_b_commit_evidence"

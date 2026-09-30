@@ -42,8 +42,8 @@ distinct trusted installer connection. The installer needs CREATE for the helper
 CREATE ROUTINE for the five SQL SECURITY DEFINER routines, and TRIGGER for
 each protected table. Removal requires TRIGGER privilege. The restricted
 runtime writer needs only UPDATE/SELECT on the protected tables and EXECUTE on
-the named `commitcap_v01_open`, `commitcap_v01_close`,
-`commitcap_v01_count`, and read-only `commitcap_v01_policy` routines; the
+the named `writeleash_v01_open`, `writeleash_v01_close`,
+`writeleash_v01_count`, and read-only `writeleash_v01_policy` routines; the
 definer needs access to the helper table and trigger metadata. `OPEN` first
 checks the actual table engine, trigger count/body, budget, foreign-key shape
 and trusted definer through this metadata routine; a missing/altered policy

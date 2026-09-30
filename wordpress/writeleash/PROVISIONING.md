@@ -34,7 +34,7 @@ or retained in normal-request PHP memory.
 | Normal Web Request (WordPress Admin & Scheduled Jobs)                         |
 | - Restricted runtime wpdb connection only                                     |
 | - EXECUTE on exactly 5 DEFINER routines (open/close/count/policy/attest)      |
-| - Read-only SELECT on commitcap_v01_state (unmediated accounting evidence)    |
+| - Read-only SELECT on writeleash_v01_state (unmediated accounting evidence)    |
 | - SELECT, UPDATE on exact declared target tables only                         |
 | - NO helper INSERT/UPDATE/DELETE, runtime DDL/TRIGGER/GRANT authority       |
 | - Guard-owned cooperative UPDATE transactions within logical budget L <= P   |
@@ -67,7 +67,7 @@ All database modifications are generated as inspectable, version-pinned SQL plan
    ```
 2. Create helper state table:
    ```sql
-   CREATE TABLE IF NOT EXISTS `wp_db`.`commitcap_v01_state` (
+   CREATE TABLE IF NOT EXISTS `wp_db`.`writeleash_v01_state` (
      connection_id BIGINT UNSIGNED NOT NULL,
      policy_id CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
      consumed BIGINT UNSIGNED NOT NULL,
@@ -75,26 +75,26 @@ All database modifications are generated as inspectable, version-pinned SQL plan
    ) ENGINE=InnoDB COMMENT='WriteLeash V0.1 cooperative UPDATE state';
    ```
 3. Create 5 `SQL SECURITY DEFINER` routines:
-   - `commitcap_v01_open(IN p_policy CHAR(64))`
-   - `commitcap_v01_close(IN p_policy CHAR(64))`
-   - `commitcap_v01_count(IN p_policy CHAR(64), OUT p_count BIGINT UNSIGNED)`
-   - `commitcap_v01_policy(IN p_table VARCHAR(64), IN p_trigger VARCHAR(64))`
-   - `commitcap_v01_attest()` (cross-attesting live routine bodies)
+   - `writeleash_v01_open(IN p_policy CHAR(64))`
+   - `writeleash_v01_close(IN p_policy CHAR(64))`
+   - `writeleash_v01_count(IN p_policy CHAR(64), OUT p_count BIGINT UNSIGNED)`
+   - `writeleash_v01_policy(IN p_table VARCHAR(64), IN p_trigger VARCHAR(64))`
+   - `writeleash_v01_attest()` (cross-attesting live routine bodies)
 4. Revoke inherited or broad privileges:
    ```sql
    REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'cc_writer'@'localhost';
    ```
 5. Grant explicit `EXECUTE` on the 5 routines plus the reviewed read-only helper state grant:
    ```sql
-   GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_open` TO 'cc_writer'@'localhost';
-   GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_close` TO 'cc_writer'@'localhost';
-   GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_count` TO 'cc_writer'@'localhost';
-   GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_policy` TO 'cc_writer'@'localhost';
-   GRANT EXECUTE ON PROCEDURE `wp_db`.`commitcap_v01_attest` TO 'cc_writer'@'localhost';
-   GRANT SELECT ON `wp_db`.`commitcap_v01_state` TO 'cc_writer'@'localhost';
+   GRANT EXECUTE ON PROCEDURE `wp_db`.`writeleash_v01_open` TO 'cc_writer'@'localhost';
+   GRANT EXECUTE ON PROCEDURE `wp_db`.`writeleash_v01_close` TO 'cc_writer'@'localhost';
+   GRANT EXECUTE ON PROCEDURE `wp_db`.`writeleash_v01_count` TO 'cc_writer'@'localhost';
+   GRANT EXECUTE ON PROCEDURE `wp_db`.`writeleash_v01_policy` TO 'cc_writer'@'localhost';
+   GRANT EXECUTE ON PROCEDURE `wp_db`.`writeleash_v01_attest` TO 'cc_writer'@'localhost';
+   GRANT SELECT ON `wp_db`.`writeleash_v01_state` TO 'cc_writer'@'localhost';
    ```
    **Exact runtime surface:** EXECUTE on exactly open, close, count, policy,
-   attest; SELECT only on `commitcap_v01_state` (no helper
+   attest; SELECT only on `writeleash_v01_state` (no helper
    INSERT/UPDATE/DELETE); SELECT/UPDATE only on certified target tables; no
    runtime DDL, TRIGGER or GRANT authority. Guard decides logical L by reading
    helper state directly and Doctor's behavioral probes independently read it.
@@ -115,17 +115,17 @@ All database modifications are generated as inspectable, version-pinned SQL plan
    broadening or weakening the reviewed boundary.
 2. Create the identity-scoped physical ceiling `BEFORE UPDATE` trigger:
    ```sql
-   CREATE TRIGGER `wp_db`.`commitcap_v01_<hash>` BEFORE UPDATE ON `wp_db`.`target_table`
+   CREATE TRIGGER `wp_db`.`writeleash_v01_<hash>` BEFORE UPDATE ON `wp_db`.`target_table`
    FOR EACH ROW
    BEGIN
      IF LOWER(SUBSTRING_INDEX(USER(), '@', 1)) = LOWER('cc_writer') THEN
-       UPDATE commitcap_v01_state
+       UPDATE writeleash_v01_state
           SET consumed = consumed + 1
         WHERE connection_id = CONNECTION_ID()
           AND policy_id = '<policy_hash>'
           AND consumed < <physical_ceiling>;
        IF ROW_COUNT() != 1 THEN
-         SET @commitcap_v01_denied = 1;
+         SET @writeleash_v01_denied = 1;
          SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1644, MESSAGE_TEXT = 'CC54_DENIED';
        END IF;
      END IF;
@@ -150,7 +150,7 @@ All database modifications are generated as inspectable, version-pinned SQL plan
 ### 3.3 Remove Target (`Provisioning_Plan::remove_target`)
 1. Drop canonical trigger:
    ```sql
-   DROP TRIGGER IF EXISTS `wp_db`.`commitcap_v01_<hash>`;
+   DROP TRIGGER IF EXISTS `wp_db`.`writeleash_v01_<hash>`;
    ```
 2. Revoke table rights:
    ```sql
@@ -243,7 +243,7 @@ requires `SELECT` on the `mysql` schema. `root` satisfies all of these.
 1. Drop triggers on all active target tables (only canonical managed triggers;
    a foreign-bodied expected-name trigger refuses the plan).
 2. Drop the 5 stored procedures (only canonical bodies; foreign bodies refuse).
-3. Drop helper table `commitcap_v01_state`.
+3. Drop helper table `writeleash_v01_state`.
 4. Revoke all remaining privileges from `cc_writer`.
 5. Drop user `cc_writer`.
 *(Application tables and data rows are NEVER dropped).*

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this form for focused Phase 0 experiments. A result must not expand CommitCap's support claims until the current specification, canonical test plan, threat model, and decisions are updated.
+        Use this form for focused Phase 0 experiments. A result must not expand WriteLeash's support claims until the current specification, canonical test plan, threat model, and decisions are updated.
 
   - type: textarea
     id: question

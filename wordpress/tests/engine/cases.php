@@ -93,10 +93,10 @@ cc54_assert( 0 === Engine::budget( '0' ) && 1 === Engine::budget( 1 ) &&
 	2147483647 === Engine::budget( '2147483647' ), 'canonical budgets' );
 
 // Unknown helper collision must not be overwritten or dropped.
-cc54_query( $root, 'CREATE TABLE commitcap_v01_state (id INT) ENGINE=InnoDB' );
+cc54_query( $root, 'CREATE TABLE writeleash_v01_state (id INT) ENGINE=InnoDB' );
 cc54_reject( static function () use ( $installer ) { $installer->install_infrastructure(); }, 'unknown helper' );
-cc54_assert( (int) $root->get_var( 'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "commitcap_v01_state"' ) === 1, 'helper collision overwritten' );
-cc54_query( $root, 'DROP TABLE commitcap_v01_state' ); // This exact fixture-created collision only.
+cc54_assert( (int) $root->get_var( 'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "writeleash_v01_state"' ) === 1, 'helper collision overwritten' );
+cc54_query( $root, 'DROP TABLE writeleash_v01_state' ); // This exact fixture-created collision only.
 
 foreach ( array( 'cc_alpha', 'cc_beta', 'cc_zero', 'cc_one', 'cc_max', 'cc_conflict', 'cc_malformed' ) as $table ) {
 	cc54_query( $root, "CREATE TABLE `$table` (id INT PRIMARY KEY, touched INT NOT NULL DEFAULT 0) ENGINE=InnoDB" );
@@ -114,31 +114,31 @@ cc54_reject( static function () use ( $installer ) { $installer->inspect_table( 
 cc54_reject( static function () use ( $installer ) { $installer->inspect_table( 'cc_alpha' ); }, 'parent FK' );
 cc54_reject( static function () use ( $installer ) { $installer->inspect_table( 'cc_child' ); }, 'child FK' );
 cc54_query( $root, 'DROP TABLE cc_child' ); // Exact test-owned unsupported fixture.
-cc54_query( $root, 'CREATE PROCEDURE commitcap_v01_open(IN p_policy CHAR(64)) SELECT 1' );
+cc54_query( $root, 'CREATE PROCEDURE writeleash_v01_open(IN p_policy CHAR(64)) SELECT 1' );
 cc54_reject( static function () use ( $installer ) { $installer->install_infrastructure(); }, 'unknown routine' );
-cc54_query( $root, 'DROP PROCEDURE commitcap_v01_open' ); // Only this test-created conflicting routine.
-$open_body = 'BEGIN INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (CONNECTION_ID(), p_policy, 0); END';
-$count_body = 'BEGIN SELECT consumed INTO p_count FROM commitcap_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = p_policy; END';
+cc54_query( $root, 'DROP PROCEDURE writeleash_v01_open' ); // Only this test-created conflicting routine.
+$open_body = 'BEGIN INSERT INTO writeleash_v01_state (connection_id, policy_id, consumed) VALUES (CONNECTION_ID(), p_policy, 0); END';
+$count_body = 'BEGIN SELECT consumed INTO p_count FROM writeleash_v01_state WHERE connection_id = CONNECTION_ID() AND policy_id = p_policy; END';
 $ascii_policy = 'IN p_policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin';
-cc54_bad_routine( $root, $installer, 'commitcap_v01_open',
+cc54_bad_routine( $root, $installer, 'writeleash_v01_open',
 	'(IN p_policy CHAR(63) CHARACTER SET ascii COLLATE ascii_bin)', $open_body, 'wrong lifecycle parameter length' );
-cc54_bad_routine( $root, $installer, 'commitcap_v01_open',
+cc54_bad_routine( $root, $installer, 'writeleash_v01_open',
 	'(IN p_Policy CHAR(64) CHARACTER SET ascii COLLATE ascii_bin)', $open_body, 'wrong lifecycle parameter name' );
-cc54_bad_routine( $root, $installer, 'commitcap_v01_open',
+cc54_bad_routine( $root, $installer, 'writeleash_v01_open',
 	'(' . $ascii_policy . ', IN p_extra INT)', $open_body, 'extra lifecycle parameter' );
-cc54_bad_routine( $root, $installer, 'commitcap_v01_count',
+cc54_bad_routine( $root, $installer, 'writeleash_v01_count',
 	'(' . $ascii_policy . ', IN p_count BIGINT UNSIGNED)', $count_body, 'wrong IN instead of OUT' );
-cc54_bad_routine( $root, $installer, 'commitcap_v01_count',
+cc54_bad_routine( $root, $installer, 'writeleash_v01_count',
 	'(' . $ascii_policy . ', OUT p_count BIGINT)', $count_body, 'wrong signedness' );
-cc54_bad_routine( $root, $installer, 'commitcap_v01_count',
+cc54_bad_routine( $root, $installer, 'writeleash_v01_count',
 	'(OUT p_count BIGINT UNSIGNED, ' . $ascii_policy . ')', $count_body, 'wrong parameter order' );
 $installer->install_infrastructure();
 $installer->install_infrastructure(); // Idempotent verified infrastructure, no silent replacement.
 foreach ( array( 'open', 'close', 'count', 'policy', 'attest' ) as $routine ) {
-	cc54_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.commitcap_v01_$routine TO 'cc_writer'@'%'" );
+	cc54_query( $root, "GRANT EXECUTE ON PROCEDURE wp_test.writeleash_v01_$routine TO 'cc_writer'@'%'" );
 }
 // Reviewed unmediated helper-state read for the runtime evidence probes (#83).
-cc54_query( $root, "GRANT SELECT ON wp_test.commitcap_v01_state TO 'cc_writer'@'%'" );
+cc54_query( $root, "GRANT SELECT ON wp_test.writeleash_v01_state TO 'cc_writer'@'%'" );
 
 cc54_query( $root, 'CREATE TRIGGER cc_unrelated BEFORE UPDATE ON cc_conflict FOR EACH ROW SET @cc_fixture=1' );
 cc54_reject( static function () use ( $installer ) { $installer->install_policy( 'cc_conflict', 5, 'cc_writer' ); }, 'existing user trigger' );
@@ -153,35 +153,34 @@ foreach ( array( 'cc_alpha' => 5, 'cc_beta' => 1, 'cc_zero' => 0, 'cc_one' => 1,
 cc54_reject( static function () use ( $installer ) { $installer->verify_policy( 'cc_alpha', 4, 'cc_writer' ); }, 'wrong budget' );
 echo "  installation, verification, identity grammar and object conflicts: PASS\n";
 
-// #96 DB-boundary regression: the low-level attestation identity is #97-deferred
-// and must still be the exact pre-#96 canonical graph. No compatibility path is
-// involved: nothing renamed the helper TABLE_COMMENT, routine family or trigger
-// prefix, so the unchanged WriteLeash runtime verifies the unchanged objects.
-cc54_assert( 'commitcap_v01_state' === Engine::STATE, 'canonical helper name changed before #97' );
-cc54_assert( 'CommitCap V0.1 cooperative UPDATE state' === Engine::COMMENT, 'canonical helper TABLE_COMMENT changed before #97' );
+// #97 DB-identity regression: the low-level attestation identity is now the
+// canonical WriteLeash graph. There is no migration path and no compatibility
+// alias; the old pre-rebrand family must not exist in the active schema.
+cc54_assert( 'writeleash_v01_state' === Engine::STATE, 'canonical helper name changed after #97' );
+cc54_assert( 'WriteLeash V0.1 cooperative UPDATE state' === Engine::COMMENT, 'canonical helper TABLE_COMMENT changed after #97' );
 $canonical_routines = Engine::routine_names();
 sort( $canonical_routines );
 cc54_assert( array(
-	'commitcap_v01_attest', 'commitcap_v01_close', 'commitcap_v01_count',
-	'commitcap_v01_open', 'commitcap_v01_policy',
-) === $canonical_routines, 'canonical routine family changed before #97' );
+	'writeleash_v01_attest', 'writeleash_v01_close', 'writeleash_v01_count',
+	'writeleash_v01_open', 'writeleash_v01_policy',
+) === $canonical_routines, 'canonical routine family changed after #97' );
 $installed_comment = (string) $root->get_var( $root->prepare(
 	'SELECT TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s', Engine::STATE
 ) );
-cc54_assert( 'CommitCap V0.1 cooperative UPDATE state' === $installed_comment,
-	'installed helper TABLE_COMMENT is not the pre-#96 canonical value: ' . $installed_comment );
+cc54_assert( 'WriteLeash V0.1 cooperative UPDATE state' === $installed_comment,
+	'installed helper TABLE_COMMENT is not the canonical WriteLeash value: ' . $installed_comment );
 $installer->verify_infrastructure_objects(); // Helper shape + cross-attested routine bodies.
 $installed_routines = array_values( (array) $root->get_col( $root->prepare(
-	'SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE %s ORDER BY ROUTINE_NAME', 'commitcap_v01\_%'
+	'SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE %s ORDER BY ROUTINE_NAME', 'writeleash_v01\_%'
 ) ) );
 cc54_assert( $canonical_routines === $installed_routines, 'canonical routines are missing or renamed: ' . json_encode( $installed_routines ) );
-$premature = (int) $root->get_var(
-	"SELECT (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'writeleash_v01\\_%')" .
-	" + (SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'writeleash_v01\\_%')" .
-	" + (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME LIKE 'writeleash_v01\\_%')"
+$legacy = (int) $root->get_var(
+	"SELECT (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'commitcap_v01\\_%')" .
+	" + (SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_NAME LIKE 'commitcap_v01\\_%')" .
+	" + (SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME LIKE 'commitcap_v01\\_%')"
 );
-cc54_assert( 0 === $premature, 'premature writeleash_v01_* database objects introduced: ' . $premature );
-echo "  canonical pre-#96 DB identity preserved; helper shape, attestation and zero premature writeleash_v01_* objects: PASS\n";
+cc54_assert( 0 === $legacy, 'pre-rebrand writeleash_v01_* database objects still active: ' . $legacy );
+echo "  canonical WriteLeash DB identity active; helper shape, attestation and zero pre-rebrand writeleash_v01_* objects: PASS\n";
 
 $writer = new wpdb( 'cc_writer', 'disposable_writer_password', 'wp_test', $host );
 $other = new wpdb( 'cc_writer', 'disposable_writer_password', 'wp_test', $host );
@@ -197,22 +196,22 @@ cc54_reject( static function () use ( $engine ) { $engine->begin_accounting( 'cc
 // Reviewed #83 change: the runtime holds a read-only SELECT grant on the helper
 // state table so the pre-commit safety decision is an unmediated read, never a
 // routine body. The writer must still be unable to modify it.
-cc54_assert( false !== $writer->query( 'SELECT * FROM commitcap_v01_state' ), 'reviewed helper SELECT must work' );
+cc54_assert( false !== $writer->query( 'SELECT * FROM writeleash_v01_state' ), 'reviewed helper SELECT must work' );
 foreach ( array(
-	'INSERT INTO commitcap_v01_state (connection_id, policy_id, consumed) VALUES (1, "bad", 0)',
-	'UPDATE commitcap_v01_state SET consumed=0',
-	'DELETE FROM commitcap_v01_state',
-	'DROP TABLE commitcap_v01_state',
-	'DROP TRIGGER commitcap_v01_' . substr( hash( 'sha256', 'cc_alpha' ), 0, 16 ),
+	'INSERT INTO writeleash_v01_state (connection_id, policy_id, consumed) VALUES (1, "bad", 0)',
+	'UPDATE writeleash_v01_state SET consumed=0',
+	'DELETE FROM writeleash_v01_state',
+	'DROP TABLE writeleash_v01_state',
+	'DROP TRIGGER writeleash_v01_' . substr( hash( 'sha256', 'cc_alpha' ), 0, 16 ),
 	'ALTER TABLE cc_alpha DISABLE KEYS',
 ) as $attack ) {
 	cc54_assert( false === $writer->query( $attack ), 'writer changed enforcement: ' . $attack );
 }
 cc54_assert( cc54_rows( $root, 'cc_alpha' ) === array_fill( 0, 10, 0 ), 'privilege test touched user rows' );
 // This signal is writable by the SQL caller; it is cooperative evidence only.
-cc54_query( $writer, 'SET @commitcap_v01_denied = 1' );
+cc54_query( $writer, 'SET @writeleash_v01_denied = 1' );
 cc54_assert( $engine->denial_seen(), 'direct session signal SET not observed' );
-cc54_query( $writer, 'SET @commitcap_v01_denied = 0' );
+cc54_query( $writer, 'SET @writeleash_v01_denied = 0' );
 cc54_assert( ! $engine->denial_seen(), 'direct session signal RESET not observed' );
 echo "  direct SQL can SET/RESET session denial signal: CONFIRMED ($host)\n";
 // Direct UPDATE with no open guard fails; no stale row after successful COMMIT.
@@ -332,7 +331,7 @@ cc54_assert( array_slice( cc54_rows( $root, 'cc_alpha' ), 0, 6 ) === array( 1, 1
 cc54_query( $writer, 'START TRANSACTION' );
 cc54_reject( static function () use ( $engine ) { $engine->begin_accounting( 'cc_alpha', 5 ); }, 'stale helper must block new guard' );
 cc54_query( $writer, 'ROLLBACK' );
-cc54_query( $root, 'DELETE FROM commitcap_v01_state' );
+cc54_query( $root, 'DELETE FROM writeleash_v01_state' );
 cc54_seed( $root, 'cc_alpha' );
 cc54_open( $writer, $engine, 'cc_alpha', 5 );
 for ( $i = 1; $i <= 5; ++$i ) { cc54_update( $writer, 'cc_alpha', $i ); }
@@ -351,7 +350,7 @@ cc54_assert( 1 === cc54_row( $root, 'cc_alpha', 1 ), 'new transaction not fresh'
 echo "  two sessions, fresh authority, structured denial, nonsticky DB counterexample: PASS\n";
 
 // A structurally wrong same-name trigger must never be removed or overwritten.
-$fake = 'commitcap_v01_' . substr( hash( 'sha256', 'cc_malformed' ), 0, 16 );
+$fake = 'writeleash_v01_' . substr( hash( 'sha256', 'cc_malformed' ), 0, 16 );
 $original_body = $root->get_var( $root->prepare(
 	'SELECT ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s', $fake
 ) );

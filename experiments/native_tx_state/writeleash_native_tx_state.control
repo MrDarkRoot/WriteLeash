@@ -1,4 +1,4 @@
 comment = 'PG16.4 transaction-local UPDATE row budget and Phase 0 research fixtures'
 default_version = '0.0.1'
-module_pathname = '$libdir/commitcap_native_tx_state'
+module_pathname = '$libdir/writeleash_native_tx_state'
 relocatable = true

@@ -17,8 +17,8 @@ With Docker Engine, Docker Compose v2, Bash, and network access to pull the
 pinned PostgreSQL image, run from a checkout:
 
 ```bash
-./commitcap doctor
-./commitcap demo
+./writeleash doctor
+./writeleash demo
 ```
 
 The product demo creates **two new, runtime-named ordinary tables** on a
@@ -34,7 +34,7 @@ and network. Expect `Product Demo: PASS` and `Product Demo exit status: 0`.
 To inspect the trusted-owner SQL for **your own** table, next run:
 
 ```bash
-./commitcap protect-update \
+./writeleash protect-update \
   --table public.orders \
   --budget 50 \
   --writer-role app_writer
@@ -68,7 +68,7 @@ audit=0
   ✓ fresh trusted verification: exact expected durable state confirmed
 
 2. DENIED: six small subscriptions statements; savepoint cannot clear denial
-ERROR:  CommitCap mutation budget exceeded (limit 5, attempted 6)
+ERROR:  WriteLeash mutation budget exceeded (limit 5, attempted 6)
 policy / metric: subscriptions.rows_updated
 granted: 5
 consumed before attempt: 5
@@ -77,7 +77,7 @@ result: DENIED; top-level COMMIT will be rejected
 sixth_SQLSTATE 54000
 ROLLBACK
 policy=5|1|20.00|true
-ERROR:  CommitCap top-level transaction denied after mutation authority violation
+ERROR:  WriteLeash top-level transaction denied after mutation authority violation
 result: ABORTED
 commit_SQLSTATE 54000
 fresh trusted-admin durable state:
@@ -147,10 +147,10 @@ module**. For a trusted-owner table `public.repair_items`, the reviewed SQL
 surface is:
 
 ```sql
-CREATE TRIGGER commitcap_rows_updated
+CREATE TRIGGER writeleash_rows_updated
 BEFORE UPDATE ON public.repair_items
 FOR EACH ROW
-EXECUTE FUNCTION commitcap_native.enforce_rows_updated('5');
+EXECUTE FUNCTION writeleash_native.enforce_rows_updated('5');
 ```
 
 The argument is a strict decimal integer from `0` through `2147483647`, fixed
@@ -161,7 +161,7 @@ The writer must not own the table, trigger or enforcement function. The new
 exercise two independently budgeted arbitrary tables plus same-named tables
 in different schemas. **`./demo.sh` still shows the historical hard-coded
 research fixture**; the first-run arbitrary-table acceptance path is now
-`./commitcap demo` ([#48](https://github.com/MrDarkRoot/CommitCap/issues/48)).
+`./writeleash demo` ([#48](https://github.com/MrDarkRoot/CommitCap/issues/48)).
 This is a V0 locally reviewed research candidate, not a released or supported
 installer.
 The fixed `users.role` and `refunds.amount` rules remain research-only
@@ -170,18 +170,18 @@ boundary](experiments/native_tx_state/README.md#v0-generic-update-row-budget-47)
 
 ### Generate a V0 table-protection plan
 
-The root `./commitcap` Bash command gives the reviewed #47 SQL surface a small,
+The root `./writeleash` Bash command gives the reviewed #47 SQL surface a small,
 local entry point. On the supported preview path, first check the local tools:
 
 ```bash
-./commitcap doctor
+./writeleash doctor
 ```
 
 Then generate (but do not apply) the trusted-admin SQL and catalog verification
 script for one table and budget:
 
 ```bash
-./commitcap protect-update \
+./writeleash protect-update \
   --table public.orders \
   --budget 50 \
   --writer-role app_writer
@@ -196,7 +196,7 @@ must say `OVERALL | PASS` before describing the table as protected. It checks
 the PostgreSQL 16.4 version and relation/trigger catalog shape (including no
 other direct user-defined trigger), exact reviewed budget, and the supplied
 writer's role attributes, ownership, `TRIGGER` privilege, and access to the
-trusted CommitCap schema. It also checks effective `SET` and `ALTER SYSTEM`
+trusted WriteLeash native schema. It also checks effective `SET` and `ALTER SYSTEM`
 privileges on `session_replication_role`: setting it to `replica` skips an
 ordinary origin trigger. This conservative V0 preflight fails if the writer can
 `SET ROLE` to **any** other role, including one reached through a membership
@@ -208,7 +208,7 @@ writers or mutation paths.
 
 Without `--writer-role`, the trust checks intentionally fail. The command does
 not connect to a database, store credentials, replace an existing trigger, or
-apply SQL. See [the #27 CLI/catalog tests](tests/commitcap_catalog.sh) for the
+apply SQL. See [the #27 CLI/catalog tests](tests/writeleash_catalog.sh) for the
 catalog cases exercised on the disposable PG16.4 fixture.
 
 This remains a **local PostgreSQL 16.4 V0 research generator**, not an
@@ -218,7 +218,7 @@ top-level transaction. It does not protect `INSERT`/`DELETE`, transaction
 splitting, retries across committed transactions, or task-wide work; owners and
 superusers are outside the writer threat model. Managed PostgreSQL, other
 versions, partitions, inheritance, and arbitrary trigger graphs are not
-validated. The first-run arbitrary-table product demo is `./commitcap demo`;
+validated. The first-run arbitrary-table product demo is `./writeleash demo`;
 `./demo.sh` remains the separate historical research fixture.
 
 ## What it does not protect

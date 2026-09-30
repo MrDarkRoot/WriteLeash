@@ -40,12 +40,18 @@ final class Guard_Sql {
 		}
 
 		// Any reference to a managed runtime session variable is reserved, whether it
-		// reads or writes the variable (for example SELECT @commitcap_v01_denied := 0).
+		// reads or writes the variable (for example SELECT @writeleash_v01_denied := 0).
+		// The pre-rebrand @commitcap_v01_* prefix stays defensively reserved as
+		// legacy managed-looking state. That is classification only: it is never
+		// compatibility support, a migration input or a fallback authority.
 		foreach ( $tokens as $index => $token ) {
 			if ( 'symbol' === $token['type'] && '@' === $token['value'] ) {
 				$next = isset( $tokens[ $index + 1 ] ) ? $tokens[ $index + 1 ] : null;
-				if ( null !== $next && self::is_identifier_token( $next ) && 0 === strpos( strtolower( $next['value'] ), 'commitcap_v01_' ) ) {
-					return self::RESERVED;
+				if ( null !== $next && self::is_identifier_token( $next ) ) {
+					$value = strtolower( $next['value'] );
+					if ( 0 === strpos( $value, 'writeleash_v01_' ) || 0 === strpos( $value, 'commitcap_v01_' ) ) {
+						return self::RESERVED;
+					}
 				}
 			}
 		}
