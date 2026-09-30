@@ -13,6 +13,13 @@ delete_option( 'writeleash_certified_operation_state' );
 delete_option( 'writeleash_last_certified_outcome' );
 // Stale #87 writeleash budget option; not an authority since #78 but removed if present.
 delete_option( 'writeleash_operation_budget_redirection_5_5_2_bulk_disable' );
+// #109 small schema/lifecycle metadata. Durable job tables and any
+// already-scheduled Action Scheduler rows are retained for the operator
+// lifecycle; deactivation is what cancels WriteLeash-owned wake-ups. No DDL
+// runs here, so uninstall never drops or rewrites job evidence.
+delete_option( 'writeleash_job_schema' );
+delete_option( 'writeleash_job_setup' );
+delete_option( 'writeleash_runner_state' );
 
 // Pre-release development cleanup (not compatibility support). These four
 // older, exact option names were never a released product state: they are

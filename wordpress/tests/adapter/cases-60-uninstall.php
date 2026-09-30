@@ -30,6 +30,10 @@ $owned_options = array(
 	Config::STATE_OPTION,
 	Last_Outcome::OPTION,
 	'writeleash_operation_budget_redirection_5_5_2_bulk_disable',
+	// #109 schema/lifecycle metadata, deleted by exact name only.
+	'writeleash_job_schema',
+	'writeleash_job_setup',
+	'writeleash_runner_state',
 );
 // Finite pre-release development cleanup: exact old CommitCap option names only.
 $legacy_cleanup = array(
@@ -162,4 +166,4 @@ $runtime->suppress_errors( true );
 $runtime->set_prefix( (string) $normal->prefix );
 cc87_assert( $runtime->ready && 2000 === ( new Engine( $runtime ) )->runtime_ceiling( $table ), 'shared runtime account unusable after uninstall' );
 cc87_assert( Demo::PHYSICAL_CEILING === ( new Engine( $runtime ) )->runtime_ceiling( $demo_table ), 'demo policy P=6 unusable after uninstall' );
-echo "#60 $host: actual uninstall removed only 8 exact options (4 canonical + 4 pre-release development cleanup); runtime/grants/routines/helper/Redirection+demo policy and data unchanged; zero privileged SQL: PASS\n";
+echo "#60 $host: actual uninstall removed only 11 exact options (4 canonical + 3 #109 schema/lifecycle + 4 pre-release development cleanup); runtime/grants/routines/helper/Redirection+demo policy and data unchanged; zero privileged SQL: PASS\n";

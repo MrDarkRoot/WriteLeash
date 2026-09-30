@@ -145,6 +145,10 @@ $deleted = array(
 	\WriteLeash\Operation_Config::STATE_OPTION,
 	\WriteLeash\Last_Outcome::OPTION,
 	'writeleash_operation_budget_redirection_5_5_2_bulk_disable',
+	// #109 schema/setup/lifecycle metadata.
+	'writeleash_job_schema',
+	'writeleash_job_setup',
+	'writeleash_runner_state',
 	// Finite pre-release development cleanup list, deleted by exact name only.
 	'commitcap_version',
 	'commitcap_certified_operation_state',

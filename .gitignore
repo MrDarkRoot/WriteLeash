@@ -48,3 +48,6 @@ dist/
 build/
 wordpress/tests/free/cache/
 wordpress/tests/durable/cache/
+
+# #109 job fixture artifact cache
+wordpress/tests/jobs/cache/

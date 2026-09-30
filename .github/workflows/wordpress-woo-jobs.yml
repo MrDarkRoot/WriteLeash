@@ -1,0 +1,31 @@
+name: WordPress Woo durable job engine
+on:
+  pull_request:
+    paths:
+      - 'wordpress/**'
+      - '.github/workflows/wordpress-woo-jobs.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'wordpress/**'
+      - '.github/workflows/wordpress-woo-jobs.yml'
+permissions:
+  contents: read
+jobs:
+  woo-durable-jobs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Actual Woo 11.1.2 job engine crash/lease/scheduler matrix on MySQL and MariaDB
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash wordpress/tests/jobs/run.sh 2>&1 | tee "$RUNNER_TEMP/woo-jobs-109.txt"
+      - name: Preserve lab activity
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: woo-jobs-109
+          path: ${{ runner.temp }}/woo-jobs-109.txt
+          retention-days: 7

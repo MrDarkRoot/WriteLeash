@@ -25,15 +25,37 @@ final class Lifecycle {
 		}
 
 		// This is the only persistent state created by the plugin foundation.
-		if ( WRITELEASH_VERSION === get_option( 'writeleash_version' ) ) {
-			return;
+		if ( WRITELEASH_VERSION !== get_option( 'writeleash_version' ) ) {
+			if ( ! update_option( 'writeleash_version', WRITELEASH_VERSION, false ) ) {
+				wp_die( 'WriteLeash could not save its version metadata.' );
+			}
 		}
-		if ( ! update_option( 'writeleash_version', WRITELEASH_VERSION, false ) ) {
-			wp_die( 'WriteLeash could not save its version metadata.' );
-		}
+		// Activation never creates job tables: plugin-owned durable schema is
+		// installed idempotently on first job/setup use. Reactivation only
+		// reconciles stale leases; it never mutates products.
+		update_option( 'writeleash_runner_state', 'active', false );
+		self::reconcile_stale_jobs();
 	}
 
 	public static function deactivate(): void {
-		// No runtime state or DB objects are installed by this foundation.
+		// Durable truth is retained: jobs and applied item facts stay readable.
+		update_option( 'writeleash_runner_state', 'deactivated', false );
+		try {
+			Job_Scheduler::unschedule_all();
+		} catch ( \Throwable $error ) {
+			// A scheduler that is not loaded cannot own scheduled callbacks anyway.
+		}
+	}
+
+	/** Inspect active/paused jobs and release dead leases without touching products. */
+	private static function reconcile_stale_jobs(): void {
+		try {
+			if ( ! function_exists( 'get_option' ) ) { return; }
+			global $wpdb;
+			if ( ! ( $wpdb instanceof \wpdb ) || 'wpdb' !== get_class( $wpdb ) || ! Job_Schema::ready( $wpdb ) ) { return; }
+			Job_Repository::reap_stalled_leases();
+		} catch ( \Throwable $error ) {
+			// Activation must remain usable; the worker re-checks schema before any claim.
+		}
 	}
 }

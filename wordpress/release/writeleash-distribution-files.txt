@@ -29,6 +29,12 @@ includes/class-redirection-bulk-disable.php
 includes/class-unsupported-transaction-state.php
 includes/class-update-engine.php
 includes/free/class-change-plan.php
+includes/free/class-job-repository.php
+includes/free/class-job-resume-rest.php
+includes/free/class-job-scheduler.php
+includes/free/class-job-schema.php
+includes/free/class-job-state.php
+includes/free/class-job-worker.php
 includes/free/class-price-apply-connection.php
 includes/free/class-price-apply-journal.php
 includes/free/class-price-cache-verifier.php
