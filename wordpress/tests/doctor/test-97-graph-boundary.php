@@ -183,7 +183,7 @@ echo "  #97 mixed B (old helper + canonical routines): NOT_READY PASS\n";
 // C. canonical graph + old CommitCap trigger on the target table.
 $engine->remove_owned_policy( $cc97_table, 5, 'cc_writer' );
 $cc97_old_trigger = cc97_old_identity_name( Engine::trigger_name( $cc97_table ) );
-$cc97_query( $root, "CREATE TRIGGER `$cc97_old_trigger` BEFORE UPDATE ON `$cc97_table` FOR EACH ROW " . cc97_old_identity_sql( Engine::trigger_body( $cc97_table, 5, 'cc_writer' ) ) );
+cc97_query( $root, "CREATE TRIGGER `$cc97_old_trigger` BEFORE UPDATE ON `$cc97_table` FOR EACH ROW " . cc97_old_identity_sql( Engine::trigger_body( $cc97_table, 5, 'cc_writer' ) ) );
 $mixed_c = Doctor::run( $cc97_table, 5, $cc97_writer, $root );
 cc97_assert( 'PASS' !== $mixed_c['overall'], 'new graph + old trigger became PASS' );
 cc97_query( $root, "DROP TRIGGER `$cc97_old_trigger`" );
