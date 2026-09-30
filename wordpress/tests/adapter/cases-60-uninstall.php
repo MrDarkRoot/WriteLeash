@@ -75,6 +75,11 @@ Last_Outcome::record( array(
 	'durability_verified_by_fresh_observer' => false,
 ) );
 update_option( 'writeleash_operation_budget_redirection_5_5_2_bulk_disable', 1 );
+// #109 schema/setup/lifecycle metadata exactly as a used site would have it;
+// delete_option() only issues a DELETE when the row exists.
+update_option( 'writeleash_job_schema', 1, false );
+update_option( 'writeleash_job_setup', 'READY', false );
+update_option( 'writeleash_runner_state', 'active', false );
 update_option( 'writeleash_unrelated', 'keep me' );
 update_option( 'commitcap_unrelated', 'keep me too' );
 // Adversarial old-brand state: deleted by exact name, never read as authority.
