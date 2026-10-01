@@ -149,6 +149,9 @@ $deleted = array(
 	'writeleash_job_schema',
 	'writeleash_job_setup',
 	'writeleash_runner_state',
+	// #110 Undo/history/retention metadata, deleted by exact name only.
+	'writeleash_undo_schema',
+	'writeleash_undo_setup',
 	// Finite pre-release development cleanup list, deleted by exact name only.
 	'commitcap_version',
 	'commitcap_certified_operation_state',

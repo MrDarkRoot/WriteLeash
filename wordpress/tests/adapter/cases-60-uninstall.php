@@ -34,6 +34,9 @@ $owned_options = array(
 	'writeleash_job_schema',
 	'writeleash_job_setup',
 	'writeleash_runner_state',
+	// #110 Undo/history/retention metadata, deleted by exact name only.
+	'writeleash_undo_schema',
+	'writeleash_undo_setup',
 );
 // Finite pre-release development cleanup: exact old CommitCap option names only.
 $legacy_cleanup = array(
@@ -50,6 +53,20 @@ cc87_assert( is_string( $uninstall_source ) && '' !== $uninstall_source, 'uninst
 foreach ( array_merge( $owned_options, $legacy_cleanup ) as $owned_option ) {
 	cc87_assert( false !== strpos( $uninstall_source, "'" . $owned_option . "'" ), 'uninstall.php drift, missing literal: ' . $owned_option );
 }
+$owned_scheduler_groups = array(
+	\WriteLeash\Job_Scheduler::GROUP,
+	\WriteLeash\Undo_Scheduler::GROUP,
+	\WriteLeash\Undo_Scheduler::PURGE_GROUP,
+);
+foreach ( $owned_scheduler_groups as $owned_group ) {
+	cc87_assert( false !== strpos( $uninstall_source, "'" . $owned_group . "'" ), 'uninstall.php drift, missing owned AS group literal: ' . $owned_group );
+}
+
+// This fixture intentionally has no WooCommerce/Action Scheduler. The owned
+// Action Scheduler cancellation behavior (including the unrelated sentinel)
+// is proved in the Woo fixture at tests/undo/integration.php; here the
+// uninstall path must fail safely with no scheduler present.
+$as_available = class_exists( '\ActionScheduler' ) && method_exists( '\ActionScheduler', 'is_initialized' ) && \ActionScheduler::is_initialized();
 
 // Trusted fixture provisions the demo so its DB objects can be proven preserved.
 $setup = new Setup( $root, 'cc87_writer', '%' );
@@ -80,6 +97,8 @@ update_option( 'writeleash_operation_budget_redirection_5_5_2_bulk_disable', 1 )
 update_option( 'writeleash_job_schema', 1, false );
 update_option( 'writeleash_job_setup', 'READY', false );
 update_option( 'writeleash_runner_state', 'active', false );
+update_option( 'writeleash_undo_schema', 1, false );
+update_option( 'writeleash_undo_setup', 'READY', false );
 update_option( 'writeleash_unrelated', 'keep me' );
 update_option( 'commitcap_unrelated', 'keep me too' );
 // Adversarial old-brand state: deleted by exact name, never read as authority.
@@ -113,8 +132,11 @@ list( $returned, $threads ) = cc87_trace_all( $root, static function () use ( $p
 cc87_assert( true === $returned, 'uninstall_plugin() did not execute uninstall.php' );
 cc87_assert( defined( 'WP_UNINSTALL_PLUGIN' ) && $plugin === WP_UNINSTALL_PLUGIN, 'uninstall ran under the WordPress uninstall guard' );
 
-// Strict SQL classification: only bootstrap SELECTs, session SETs and the four
-// exact wp_options deletions are allowed in the uninstall window.
+// Strict SQL classification: only bootstrap SELECTs, session SETs and the
+// exact wp_options deletions are allowed in the uninstall window. This fixture
+// has no WooCommerce/Action Scheduler, so the owned-group cancellation path
+// must never issue SQL here; that behavior (with an unrelated sentinel) is
+// proved in the Woo fixture at tests/undo/integration.php.
 $expected_deletes = array_fill_keys( array_merge( $owned_options, $legacy_cleanup ), 0 );
 $unexpected = array();
 foreach ( $threads as $statements ) {
@@ -140,6 +162,8 @@ foreach ( $threads as $statements ) {
 		cc87_assert( false === stripos( $sql, $table ) && false === stripos( $sql, $demo_table ), 'uninstall application/demo statement: ' . $sql );
 	}
 }
+cc87_assert( false === $as_available, 'adapter fixture unexpectedly has Action Scheduler; owned-group proof belongs to the Woo fixture' );
+echo "#60 $host: uninstall without Action Scheduler issues zero scheduler SQL and stays fail-closed: PASS\n";
 
 // Exact local state removal, with existence checks against wp_options rows.
 foreach ( array_merge( $owned_options, $legacy_cleanup ) as $owned_option ) {
@@ -171,4 +195,4 @@ $runtime->suppress_errors( true );
 $runtime->set_prefix( (string) $normal->prefix );
 cc87_assert( $runtime->ready && 2000 === ( new Engine( $runtime ) )->runtime_ceiling( $table ), 'shared runtime account unusable after uninstall' );
 cc87_assert( Demo::PHYSICAL_CEILING === ( new Engine( $runtime ) )->runtime_ceiling( $demo_table ), 'demo policy P=6 unusable after uninstall' );
-echo "#60 $host: actual uninstall removed only 11 exact options (4 canonical + 3 #109 schema/lifecycle + 4 pre-release development cleanup); runtime/grants/routines/helper/Redirection+demo policy and data unchanged; zero privileged SQL: PASS\n";
+echo "#60 $host: actual uninstall removed only 13 exact options (4 canonical + 3 #109 schema/lifecycle + 2 #110 Undo/history + 4 pre-release development cleanup); runtime/grants/routines/helper/Redirection+demo policy and data unchanged; zero privileged SQL: PASS\n";

@@ -89,6 +89,16 @@ final class Woo_Price_Mutator {
 			if ( ! $product || 'WC_Product_Data_Store_CPT' !== $product->get_data_store()->get_current_class_name() ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
 			$precondition = $plan->precondition( $id, Product_Price_Snapshot::read( $id, $product ), Price_Store_Context::current() );
 			if ( 'MATCH' !== $precondition['state'] ) { throw new Price_Apply_Error( 'CONFLICT' ); }
+			// A concurrent, supported Woo edit may commit while this process has
+			// cached its previous Woo object. Even after targeted eviction, the
+			// newly locked storage can be newer than the public object. Only a
+			// coherent stored regular/active/lookup triple at a DIFFERENT price
+			// is an optimistic CONFLICT; malformed/duplicate/lookup-divergent
+			// storage still takes #108's JOURNAL_MISMATCH/NEEDS_REVIEW path.
+			if ( Price_Decimal::parse( $truth['meta']['_regular_price'][0] ) !== Price_Decimal::parse( $item['expected_regular_price'] ) ) {
+				Price_Cache_Verifier::matches( $truth, $truth['meta']['_regular_price'][0] );
+				throw new Price_Apply_Error( 'CONFLICT' );
+			}
 			Price_Cache_Verifier::matches( $truth, $item['expected_regular_price'] );
 			// Recheck capabilities at the mutation boundary, not as WP root.
 			self::authorize( $plan, $id, $tx );
@@ -119,7 +129,7 @@ final class Woo_Price_Mutator {
 			if ( $had_transaction && ! $rolled_back && 'AMBIGUOUS_COMMIT' !== $reason ) { $reason = 'TRANSACTION_LOST'; }
 			$wpdb = $original;
 			$review = $committed || in_array( $reason, array( 'TRANSACTION_LOST', 'AMBIGUOUS_COMMIT', 'CACHE_VERIFICATION_FAILED', 'LOOKUP_MISMATCH', 'JOURNAL_MISMATCH' ), true );
-			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'CONFLICT', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'FENCE_LOST' ), true ) ? $reason : 'FAILED' );
+			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'CONFLICT', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' );
 			try {
 				// Connection loss: cleanup uses independent live DB, never a dead writer.
 				$observer = Price_Cache_Verifier::observer();
@@ -127,7 +137,7 @@ final class Woo_Price_Mutator {
 				if ( $tx && ( $rolled_back || $review ) ) {
 					// Known rollback FAILED/FENCE_LOST remains PENDING for an explicit retry or
 					// for the authoritative newer generation. Review never auto-retries.
-					$state = $review ? 'NEEDS_REVIEW' : ( in_array( $code, array( 'FAILED', 'FENCE_LOST' ), true ) ? 'PENDING' : ( 'CONFLICT' === $code ? 'CONFLICT' : 'FAILED' ) );
+					$state = $review ? 'NEEDS_REVIEW' : ( in_array( $code, array( 'FAILED', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? 'PENDING' : ( 'CONFLICT' === $code ? 'CONFLICT' : 'FAILED' ) );
 					self::refusal( $plan, $id, $state, $reason, $attempt );
 				}
 			} catch ( \Throwable $cleanup ) { $code = 'NEEDS_REVIEW'; $reason = 'CACHE_VERIFICATION_FAILED'; }

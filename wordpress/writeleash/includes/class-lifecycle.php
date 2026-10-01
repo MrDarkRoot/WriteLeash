@@ -38,24 +38,34 @@ final class Lifecycle {
 	}
 
 	public static function deactivate(): void {
-		// Durable truth is retained: jobs and applied item facts stay readable.
-		update_option( 'writeleash_runner_state', 'deactivated', false );
+		// Durable truth is retained: jobs, applied item facts and Undo
+		// operations/items stay readable. No new apply or Undo claim may
+		// start; any in-flight item completes only at its transactional
+		// fence boundary.
+		try { Runner_Authority::deactivate(); }
+		catch ( \Throwable $error ) { wp_die( 'WriteLeash could not establish the deactivation boundary.' ); }
 		try {
 			Job_Scheduler::unschedule_all();
 		} catch ( \Throwable $error ) {
 			// A scheduler that is not loaded cannot own scheduled callbacks anyway.
 		}
+		try {
+			Undo_Scheduler::unschedule_all();
+		} catch ( \Throwable $error ) {
+			// A scheduler that is not loaded cannot own scheduled callbacks anyway.
+		}
 	}
 
-	/** Inspect active/paused jobs and release dead leases without touching products. */
+	/** Inspect active/paused jobs and Undo operations; release dead leases without touching products. */
 	private static function reconcile_stale_jobs(): void {
 		try {
 			if ( ! function_exists( 'get_option' ) ) { return; }
 			global $wpdb;
 			if ( ! ( $wpdb instanceof \wpdb ) || 'wpdb' !== get_class( $wpdb ) || ! Job_Schema::ready( $wpdb ) ) { return; }
 			Job_Repository::reap_stalled_leases();
+			if ( Undo_Schema::ready( $wpdb ) ) { Undo_Repository::reap_stalled_leases(); }
 		} catch ( \Throwable $error ) {
-			// Activation must remain usable; the worker re-checks schema before any claim.
+			// Activation must remain usable; the workers re-check schema before any claim.
 		}
 	}
 }

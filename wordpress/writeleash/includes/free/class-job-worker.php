@@ -109,6 +109,13 @@ final class Job_Worker {
 			Job_Repository::finish_chunk( $current, $owner, $generation, $status, $loop['pause'] );
 			return self::result( $job_id, $loop['pause'], $processed, null, $generation );
 		}
+		// Budget/limit can expire immediately after an in-flight item commits.
+		// Preserve any review outcome above; otherwise shutdown wins before
+		// scheduling another chunk, even when the budget ran out first.
+		if ( ! self::runner_active() ) {
+			Job_Repository::finish_chunk( $current, $owner, $generation, Job_State::PAUSED, 'DEACTIVATED' );
+			return self::result( $job_id, 'DEACTIVATED', $processed, null, $generation );
+		}
 		$counts = Job_Repository::counts( $job_id );
 		if ( 0 === $counts['pending'] && 0 === $counts['applying'] ) {
 			$terminal = Job_Repository::derive_terminal_status( $counts );
@@ -138,10 +145,14 @@ final class Job_Worker {
 			if ( $processed >= $limits['max_items'] ) { $stop = 'BATCH_LIMIT'; break; }
 			if ( microtime( true ) - $started >= $limits['budget_seconds'] ) { $stop = 'BUDGET_EXHAUSTED'; break; }
 			if ( ! self::runner_active() ) { $pause = 'DEACTIVATED'; break; }
+			// An early active read is diagnostic, not claim authority. The
+			// repository locks/rechecks the lifecycle row inside its claim CAS.
+			self::checkpoint( 'AFTER_RUNNER_ACTIVE_BEFORE_CLAIM', $job_id, 0, $generation, '' );
 			if ( ! Job_Repository::renew_lease( $job_id, $owner, $generation ) ) { $stop = 'FENCE_LOST'; break; }
 			$token = wp_generate_uuid4();
 			$item = Job_Repository::claim_next_item( $job_id, $owner, $token, $generation );
 			if ( ! $item ) {
+				if ( ! self::runner_active() ) { $pause = 'DEACTIVATED'; break; }
 				$stop = Job_Repository::fence( $job_id, $owner, $generation ) ? 'NO_ITEMS' : 'FENCE_LOST';
 				break;
 			}
@@ -153,6 +164,11 @@ final class Job_Worker {
 				break;
 			}
 			$outcome = self::attempt_item( $job_id, $owner, $generation, $plan, $item, $token );
+			if ( ! empty( $outcome['lifecycle_lost'] ) ) {
+				Job_Repository::refresh_counters( $wpdb, $job_id );
+				$pause = 'DEACTIVATED';
+				break;
+			}
 			if ( ! empty( $outcome['fence_lost'] ) ) { $stop = 'FENCE_LOST'; break; }
 			++$processed;
 			Job_Repository::refresh_counters( $wpdb, $job_id );
@@ -185,6 +201,14 @@ final class Job_Worker {
 		}
 		$code = is_array( $result ) && isset( $result['code'] ) ? (string) $result['code'] : 'NEEDS_REVIEW';
 		$reason = is_array( $result ) && isset( $result['reason'] ) && preg_match( '/\A[A-Z0-9_]{1,64}\z/D', (string) $result['reason'] ) ? (string) $result['reason'] : 'UNEXPECTED_MUTATION_RESULT';
+		if ( 'DEACTIVATED' === $code ) {
+			// The mutator acquired NO lifecycle fence and performed zero Woo
+			// writes. A claim is not a mutation attempt: refund its retry slot.
+			if ( ! Job_Repository::release_lifecycle_claim( $item, $token ) ) {
+				return array( 'pause' => null, 'review' => false, 'fence_lost' => true );
+			}
+			return array( 'pause' => 'DEACTIVATED', 'review' => false, 'lifecycle_lost' => true );
+		}
 		if ( 'FENCE_LOST' === $code ) {
 			// A newer generation is authoritative; this worker must not retry
 			// or claim another item. Returning the item to PENDING is best
@@ -310,12 +334,21 @@ final class Job_Worker {
 		return defined( 'WC_VERSION' ) && '11.1.2' === WC_VERSION && function_exists( 'wc_get_product' ) && did_action( 'woocommerce_init' ) && ! is_multisite();
 	}
 
-	/** Deactivation is observable across processes; read it without option cache. */
+	/**
+	 * Durable lifecycle authority, read uncached directly from the options
+	 * table. Fail-closed by design: only an explicit `active` value
+	 * authorizes a new claim or mutation boundary. Missing (for example after
+	 * uninstall removed the option), empty, `deactivated`, malformed and
+	 * unknown values all return false, so a surviving worker stops before its
+	 * next claim. An item transaction that already acquired its authoritative
+	 * fence may still finish that one boundary, exactly as reviewed in
+	 * #108/#109.
+	 */
 	private static function runner_active(): bool {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lifecycle gate; uncached read is intentional.
 		$value = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1", 'writeleash_runner_state' ) );
-		return 'deactivated' !== $value;
+		return 'active' === $value;
 	}
 
 	private static function pause_unleased( int $job_id, string $reason ): void {
