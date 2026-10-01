@@ -6,7 +6,8 @@ for host in mysql mariadb; do
   sh /opt/tests/stage-plugin.sh "$site"
   wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost="$host"
   wp --path="$site" config set WP_HTTP_BLOCK_EXTERNAL true --raw
-  wp --path="$site" core install --url="http://$host.example.test" --title=Free-Admin --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
+  wp --path="$site" config set WP_ACCESSIBLE_HOSTS 127.0.0.1
+  wp --path="$site" core install --url="http://127.0.0.1:8080" --title=Free-Admin --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
   wp --path="$site" config set DISABLE_WP_CRON true --raw
   # No Redirection: the default Free product must activate and work with Woo only.
   wp --path="$site" plugin install /opt/woo-zips/woocommerce.11.1.2.zip --activate
@@ -25,6 +26,12 @@ for host in mysql mariadb; do
   echo "#111 pinned DB version: $server_version"
   php /opt/tests/admin/admin-audit.php "$site/wp-content/plugins/writeleash"
   php /opt/tests/jobs/no-replan-audit.php "$site/wp-content/plugins/writeleash"
+  # Read-only proof on the fresh schema: empty states stay silent, zero DDL.
+  wp --path="$site" eval-file /opt/tests/admin/sql-audit.php
+  # Local HTTP stack for the real-browser Admin E2E (default permalinks need
+  # no rewrites; admin.php/admin-post.php/wp-login.php resolve as files).
+  php -S 127.0.0.1:8080 -t "$site" >"/tmp/wl111-web-$host.log" 2>&1 &
+  web_pid=$!
   for cache in default persistent; do
     if [ "$cache" = persistent ]; then
       wp --path="$site" redis enable
@@ -32,7 +39,10 @@ for host in mysql mariadb; do
     fi
     echo "#111 engine=$host cache=$cache"
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/integration.php
+    WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/sql-audit.php
+    WL111_CACHE="$cache" WL111_BASE_URL=http://127.0.0.1:8080 WL111_ADMIN_PASSWORD=disposable_admin_password wp --path="$site" eval-file /opt/tests/admin/browser-e2e.php
   done
+  kill "$web_pid"
   php /opt/tests/release/source-audit.php "$site/wp-content/plugins/writeleash"
   php /opt/tests/release/debug-audit.php "$site/wp-content/debug.log" "$host"
 done

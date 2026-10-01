@@ -67,6 +67,30 @@ if ( ! is_file( $manifest ) ) {
 if ( is_file( $manifest ) && ! str_contains( (string) file_get_contents( $manifest ), 'includes/free/class-free-admin.php' ) ) {
 	$fail( 'Free Admin missing from the distribution allowlist' );
 }
+// Blocker 1: history reads never install schema. The History section of the
+// Undo repository must contain no ensure_schema/install call; installation
+// stays on explicit state-changing paths (initiate/import/approval).
+$repository = (string) file_get_contents( $root . '/includes/free/class-undo-repository.php' );
+$history_start = strpos( $repository, 'History: backend view models' );
+$history_end = strpos( $repository, 'Retention: bounded, terminal-only' );
+if ( false === $history_start || false === $history_end || $history_end <= $history_start ) {
+	$fail( 'history section markers missing' );
+}
+$history_section = substr( $repository, $history_start, $history_end - $history_start );
+foreach ( array( 'ensure_schema', 'Schema::install', 'dbDelta', 'update_option' ) as $token ) {
+	if ( str_contains( $history_section, $token ) ) {
+		$fail( 'history read path can mutate schema/options: ' . $token );
+	}
+}
+// Blocker 2: the jobs history query is actor-scoped before pagination.
+if ( ! str_contains( $repository, 'history_jobs( int $offset = 0, int $limit = 20, int $viewer_id' ) ) {
+	$fail( 'history_jobs is not viewer-scoped' );
+}
+foreach ( array( 'creator_id=%d OR approver_id=%d', "'total' =>", "'next_offset' =>" ) as $token ) {
+	if ( ! str_contains( $history_section, $token ) ) {
+		$fail( 'scoped history pagination missing: ' . $token );
+	}
+}
 $plugin_boot = (string) file_get_contents( $root . '/includes/class-plugin.php' );
 if ( ! str_contains( $plugin_boot, 'Free_Admin::boot' ) ) {
 	$fail( 'Free Admin not booted from the plugin' );

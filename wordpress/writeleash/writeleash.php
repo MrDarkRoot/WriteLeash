@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: WriteLeash
- * Description: Put a mutation budget on the certified Redirection bulk Disable path.
+ * Description: WooCommerce bulk regular-price changes with frozen previews, safety limits and Undo.
  * Version: 0.1.0
  * Requires at least: 6.8
  * Requires PHP: 7.4

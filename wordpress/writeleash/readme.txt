@@ -46,7 +46,7 @@ WriteLeash does not promise to protect everything. It does one job deliberately:
 
 = What you get =
 
-* Tools → WriteLeash: live readiness, logical budget, enable/disable, recent local outcome, and an optional disposable demo.
+* Tools → WriteLeash Advanced: live readiness, logical budget, enable/disable, recent local outcome, and an optional disposable demo.
 * A live Doctor that fails closed: if the restricted runtime, grants, policy trigger or database shape cannot be proven, the dangerous request is refused instead of falling back to a stock write.
 * WP-CLI diagnostics: `wp writeleash status`, `wp writeleash doctor` and `wp writeleash demo`, human-readable or JSON.
 * Local-only operation: no WriteLeash account, cloud service, telemetry, quota, license server or upsell.
@@ -83,11 +83,11 @@ On the technical regression matrix (PHP 8.2; MySQL 8.0.44 and MariaDB 10.11.15; 
 3. Open Products → Bulk Prices and build a frozen preview. No SSH, database operator setup, custom database users, triggers, routines, grants or manual SQL is needed for the Free workflow.
 4. The advanced Redirection substrate below remains optional: install and activate Redirection 5.5.2 — the exact certified build — only to use the guarded bulk Disable path.
 3. Have a trusted database operator provision the WriteLeash restricted runtime using the operator instructions included with the plugin (`operator-setup.txt`). This is a one-time, trusted setup: it creates one restricted database account, a small helper table, five reviewed routines and one policy trigger, and adds a few constants to `wp-config.php`.
-4. Open Tools → WriteLeash and confirm the readiness line reports READY.
+4. Open Tools → WriteLeash Advanced and confirm the readiness line reports READY.
 5. Choose your logical mutation budget L (0 to 2000) and save it.
 6. Enable the certified operation.
 7. Use Redirection normally: Redirects → select all matching → Bulk Actions → Disable. The certified request is intercepted and budgeted.
-8. Review the most recent local outcome on Tools → WriteLeash.
+8. Review the most recent local outcome on Tools → WriteLeash Advanced.
 
 After the one-time operator setup, normal Admin use needs no PHP or SQL editing.
 

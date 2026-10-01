@@ -84,8 +84,12 @@ final class Free_Admin {
 	// ------------------------------------------------------------------
 
 	private static function request_method(): string {
-		$method = filter_input( INPUT_SERVER, 'REQUEST_METHOD' );
-		return is_string( $method ) ? $method : '';
+		// $_SERVER is routing metadata, not processed input; unslash and
+		// sanitize exactly like the reviewed legacy Admin handler.
+		if ( isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] ) ) {
+			return sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) );
+		}
+		return '';
 	}
 
 	private static function post_field( string $key ): ?string {
@@ -584,9 +588,40 @@ final class Free_Admin {
 		echo '</div>';
 	}
 
+	/**
+	 * Counts large/zero outcomes from frozen plan material only: warning
+	 * codes are read, never re-evaluated, and zero is a canonical string
+	 * comparison, never recomputed arithmetic.
+	 */
+	public static function preview_extra_counts( array $items ): array {
+		$counts = array( 'large_increase' => 0, 'large_decrease' => 0, 'zero_target' => 0 );
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			foreach ( (array) ( $item['warnings'] ?? array() ) as $warning ) {
+				if ( 'large_price_increase' === $warning ) {
+					++$counts['large_increase'];
+				} elseif ( 'large_price_decrease' === $warning ) {
+					++$counts['large_decrease'];
+				}
+			}
+			$planned = $item['planned_regular_price'] ?? null;
+			if ( 'CHANGING' === ( $item['result'] ?? '' ) && is_string( $planned ) ) {
+				try {
+					if ( '0' === Price_Decimal::parse( $planned ) ) {
+						++$counts['zero_target'];
+					}
+				} catch ( \Throwable $error ) {
+					// Unparseable planned prices cannot be changing items; ignore.
+				}
+			}
+		}
+		return $counts;
+	}
+
 	/** Display copy is separate from stable machine reason codes. */
-	public static function reason_message( string $reason ): string {
-		$messages = array(
+	public static function reason_message( string $reason ): string {		$messages = array(
 			'capability_required' => 'You need WooCommerce product management capabilities for this action.',
 			'post_required' => 'This action requires an authenticated POST request.',
 			'invalid_nonce' => 'The security token is missing or invalid. Reload the page and try again.',
@@ -737,28 +772,27 @@ final class Free_Admin {
 			echo '<p>' . esc_html( 'No jobs yet. Build a frozen preview above to start.' ) . '</p>';
 			return;
 		}
+		$user_id = get_current_user_id();
 		try {
-			$page = Undo_Repository::history_jobs( 0, 5 );
+			// Actor-scoped in SQL: the page contains only caller-visible jobs.
+			$page = Undo_Repository::history_jobs( 0, 5, $user_id );
 		} catch ( \Throwable $error ) {
 			echo '<p>' . esc_html( 'Job history is unavailable; the job tables may not be installed yet.' ) . '</p>';
 			return;
 		}
-		$user_id = get_current_user_id();
-		$visible = 0;
 		echo '<table class="widefat striped"><thead><tr><th scope="col">' . esc_html( 'Job' ) . '</th><th scope="col">' . esc_html( 'Status' ) . '</th><th scope="col">' . esc_html( 'Applied' ) . '</th><th scope="col">' . esc_html( 'Undo' ) . '</th></tr></thead><tbody>';
+		if ( ! $page['jobs'] ) {
+			echo '<tr><td colspan="4">' . esc_html( 'No jobs visible to your account yet.' ) . '</td></tr>';
+		}
 		foreach ( $page['jobs'] as $entry ) {
 			$job = Job_Repository::read( (int) $entry['job_id'] );
-			if ( null === $job || ! self::authorized_for_job( $job, $user_id ) ) {
+			if ( null === $job ) {
 				continue;
 			}
-			++$visible;
 			echo '<tr><td><a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( substr( (string) $job['public_id'], 0, 8 ) ) . '</a></td>';
 			echo '<td>' . esc_html( $job['status'] ) . ' (' . esc_html( $job['status_reason'] ) . ')</td>';
 			echo '<td>' . esc_html( (string) $job['applied'] . ' / ' . (string) $job['planned'] ) . '</td>';
 			echo '<td>' . esc_html( $entry['undo_eligible'] ? 'eligible' : 'not eligible' ) . '</td></tr>';
-		}
-		if ( 0 === $visible ) {
-			echo '<tr><td colspan="4">' . esc_html( 'No jobs visible to your account yet.' ) . '</td></tr>';
 		}
 		echo '</tbody></table>';
 	}
@@ -799,6 +833,8 @@ final class Free_Admin {
 		echo '<h2>' . esc_html( 'Frozen preview' ) . '</h2>';
 		echo '<p>' . esc_html( 'Plan ' . $data['plan_id'] . ' · fingerprint ' . substr( $plan->hash(), 0, 12 ) . ' · operation ' . $data['operation']['type'] . ' ' . $data['operation']['input'] . '.' ) . '</p>';
 		echo '<p>' . esc_html( 'Selected ' . $summary['selected'] . ' · eligible ' . $summary['eligible'] . ' · changing ' . $summary['changing'] . ' · unchanged ' . $summary['unchanged'] . ' · unsupported ' . $summary['unsupported'] . ' · blocked ' . $summary['blocked'] . ' · warning items ' . $summary['warning_items'] . '.' ) . '</p>';
+		$extra_counts = self::preview_extra_counts( $data['items'] );
+		echo '<p>' . esc_html( 'Large increases ' . $extra_counts['large_increase'] . ' · large decreases ' . $extra_counts['large_decrease'] . ' · zero-price targets ' . $extra_counts['zero_target'] . ' · conflicts ' . $summary['conflicted'] . ' (a preview never carries conflicts; they surface during execution).' ) . '</p>';
 		if ( $blocked ) {
 			echo '<div class="notice notice-error" role="alert"><p><strong>' . esc_html( 'BLOCKED' ) . '</strong>: ' . esc_html( 'the safety policy blocks every changing product. Approval and execution are impossible for this plan; build a new preview with different inputs.' ) . '</p>';
 			foreach ( $data['policy_result']['blockers'] as $blocker ) {
@@ -814,7 +850,7 @@ final class Free_Admin {
 			echo '<div class="notice notice-error"><p>' . esc_html( 'Invalid preview page; use a nonnegative offset.' ) . '</p></div>';
 			return;
 		}
-		echo '<table class="widefat striped"><thead><tr><th scope="col">' . esc_html( 'Product' ) . '</th><th scope="col">' . esc_html( 'SKU' ) . '</th><th scope="col">' . esc_html( 'Before' ) . '</th><th scope="col">' . esc_html( 'After' ) . '</th><th scope="col">' . esc_html( 'Delta' ) . '</th><th scope="col">' . esc_html( 'State / reason' ) . '</th></tr></thead><tbody>';
+		echo '<table class="widefat striped"><thead><tr><th scope="col">' . esc_html( 'Product' ) . '</th><th scope="col">' . esc_html( 'SKU' ) . '</th><th scope="col">' . esc_html( 'Before' ) . '</th><th scope="col">' . esc_html( 'After' ) . '</th><th scope="col">' . esc_html( 'Delta' ) . '</th><th scope="col">' . esc_html( 'Change %' ) . '</th><th scope="col">' . esc_html( 'State / reason' ) . '</th></tr></thead><tbody>';
 		foreach ( $page['items'] as $item ) {
 			$state = (string) $item['result'];
 			$detail = array();
@@ -827,11 +863,15 @@ final class Free_Admin {
 			foreach ( $item['warnings'] as $warning ) {
 				$detail[] = (string) $warning;
 			}
+			// The percentage figure is the frozen plan display value, shown as-is.
+			$ratio = $item['percentage_delta'] ?? null;
+			$ratio_text = ( is_array( $ratio ) && isset( $ratio['display'] ) && is_string( $ratio['display'] ) ) ? $ratio['display'] . '%' : '—';
 			echo '<tr><td>' . esc_html( (string) $item['product_id'] . ' · ' . (string) ( $item['name'] ?? '' ) ) . '</td>';
 			echo '<td>' . esc_html( (string) ( $item['sku'] ?? '' ) ) . '</td>';
 			echo '<td>' . esc_html( (string) $item['stored_regular_price'] ) . '</td>';
 			echo '<td>' . esc_html( null === $item['planned_regular_price'] ? '—' : (string) $item['planned_regular_price'] ) . '</td>';
 			echo '<td>' . esc_html( null === $item['absolute_delta'] ? '—' : (string) $item['absolute_delta'] ) . '</td>';
+			echo '<td>' . esc_html( $ratio_text ) . '</td>';
 			echo '<td>' . esc_html( $state . ( $detail ? ' (' . implode( ', ', $detail ) . ')' : '' ) ) . '</td></tr>';
 		}
 		echo '</tbody></table>';
@@ -956,20 +996,20 @@ final class Free_Admin {
 			return;
 		}
 		try {
-			$page = Undo_Repository::history_jobs( $offset, self::HISTORY_PAGE_SIZE );
+			$page = Undo_Repository::history_jobs( $offset, self::HISTORY_PAGE_SIZE, get_current_user_id() );
 		} catch ( \Throwable $error ) {
 			echo '<p>' . esc_html( 'Job history is unavailable; the job tables may not be installed yet.' ) . '</p>';
 			return;
 		}
-		$user_id = get_current_user_id();
-		$visible = 0;
 		echo '<table class="widefat striped"><thead><tr><th scope="col">' . esc_html( 'Job' ) . '</th><th scope="col">' . esc_html( 'Status' ) . '</th><th scope="col">' . esc_html( 'Apply counts' ) . '</th><th scope="col">' . esc_html( 'Undo' ) . '</th><th scope="col">' . esc_html( 'Expires' ) . '</th></tr></thead><tbody>';
+		if ( ! $page['jobs'] ) {
+			echo '<tr><td colspan="5">' . esc_html( 'No jobs visible to your account yet.' ) . '</td></tr>';
+		}
 		foreach ( $page['jobs'] as $entry ) {
 			$job = Job_Repository::read( (int) $entry['job_id'] );
-			if ( null === $job || ! self::authorized_for_job( $job, $user_id ) ) {
+			if ( null === $job ) {
 				continue;
 			}
-			++$visible;
 			$apply = $entry['apply'];
 			echo '<tr><td><a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( substr( (string) $job['public_id'], 0, 8 ) ) . '</a></td>';
 			echo '<td>' . esc_html( $job['status'] ) . ' (' . esc_html( $job['status_reason'] ) . ')</td>';
@@ -977,11 +1017,7 @@ final class Free_Admin {
 			echo '<td>' . esc_html( $entry['undo_eligible'] ? 'eligible' : 'not eligible' ) . '</td>';
 			echo '<td>' . esc_html( null === $entry['undo_expires_at'] ? '—' : (string) $entry['undo_expires_at'] ) . '</td></tr>';
 		}
-		if ( 0 === $visible ) {
-			echo '<tr><td colspan="5">' . esc_html( 'No jobs visible to your account yet.' ) . '</td></tr>';
-		}
 		echo '</tbody></table>';
-		$next = count( $page['jobs'] ) < self::HISTORY_PAGE_SIZE ? null : $offset + self::HISTORY_PAGE_SIZE;
-		self::render_pager( 'history', '', $offset, self::HISTORY_PAGE_SIZE, $next );
+		self::render_pager( 'history', '', $offset, self::HISTORY_PAGE_SIZE, $page['next_offset'] );
 	}
 }

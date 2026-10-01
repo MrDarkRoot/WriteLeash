@@ -190,6 +190,50 @@ $html = render_view( 'preview', $pjob['public_id'], 2 );
 ok( str_contains( $html, 'Next page' ) && str_contains( $html, 'Previous page' ), 'preview pager renders' );
 marker( 'unchanged items and preview pagination' );
 
+// Complete preview information contract: one plan carrying a large
+// decrease pair plus zero targets, and one plan with large increases.
+// Summary counts and per-row absolute/percentage deltas must equal the
+// frozen plan truth exactly; conflicts read 0 at preview by plan semantics.
+$zd_ids = array( make_product( '100.00' ), make_product( '50.00' ), make_product( '0.00' ), make_product( '100.00', 'draft' ) );
+$res = Admin::process_preview( preview_post( array( 'ids' => implode( ',', $zd_ids ), 'operation' => Operation::SET, 'amount' => '0.00', 'max_increase' => '500', 'max_decrease' => '500', 'warning_threshold' => '20' ) ), 'POST' );
+eq( $res['status'], 'OK', 'zero-target preview' );
+$zjob = Repo::read_by_public_id( $res['public_id'] );
+$zplan = Repo::hydrate_plan( $zjob );
+$zsummary = $zplan->summary();
+eq( $zsummary['changing'], 2, 'two changing to zero' );
+eq( $zsummary['unchanged'], 1, 'zero-to-zero unchanged' );
+eq( $zsummary['unsupported'], 1, 'draft unsupported' );
+eq( $zsummary['conflicted'], 0, 'previews carry no conflicts' );
+$zextra = Admin::preview_extra_counts( $zplan->data()['items'] );
+eq( $zextra, array( 'large_increase' => 0, 'large_decrease' => 2, 'zero_target' => 2 ), 'zero-plan extra counts' );
+$zhtml = render_view( 'preview', $zjob['public_id'], 0 );
+ok( str_contains( $zhtml, 'Large increases 0' ), 'rendered large increases' );
+ok( str_contains( $zhtml, 'large decreases 2' ), 'rendered large decreases' );
+ok( str_contains( $zhtml, 'zero-price targets 2' ), 'rendered zero targets' );
+ok( str_contains( $zhtml, 'conflicts 0' ), 'rendered preview conflicts' );
+ok( str_contains( $zhtml, '-100.000000%' ), 'rendered full-decrease percentage' );
+$li_ids = array( make_product( '100.00' ), make_product( '150.00' ), make_product( '200.00' ) );
+$res = Admin::process_preview( preview_post( array( 'ids' => implode( ',', $li_ids ), 'operation' => Operation::SET, 'amount' => '200.00', 'max_increase' => '500', 'max_decrease' => '500', 'warning_threshold' => '20' ) ), 'POST' );
+eq( $res['status'], 'OK', 'large-increase preview' );
+$lijob = Repo::read_by_public_id( $res['public_id'] );
+$liplan = Repo::hydrate_plan( $lijob );
+$liextra = Admin::preview_extra_counts( $liplan->data()['items'] );
+eq( $liextra, array( 'large_increase' => 2, 'large_decrease' => 0, 'zero_target' => 0 ), 'increase-plan extra counts' );
+$lihtml = render_view( 'preview', $lijob['public_id'], 0 );
+ok( str_contains( $lihtml, 'Large increases 2' ), 'rendered large increases 2' );
+ok( str_contains( $lihtml, '100.000000%' ), 'rendered full-increase percentage' );
+// Every rendered row matches its frozen plan row exactly.
+foreach ( $liplan->preview_page( 0, 20 )['items'] as $prow ) {
+	ok( str_contains( $lihtml, (string) $prow['stored_regular_price'] ), 'row before matches plan' );
+	ok( str_contains( $lihtml, (string) $prow['planned_regular_price'] ), 'row after matches plan' );
+	ok( str_contains( $lihtml, (string) $prow['absolute_delta'] ), 'row delta matches plan' );
+	$disp = $prow['percentage_delta']['display'] ?? null;
+	if ( is_string( $disp ) ) {
+		ok( str_contains( $lihtml, $disp . '%' ), 'row percentage matches plan' );
+	}
+}
+marker( 'complete preview information contract' );
+
 // Selector kinds: exact SKU and direct category (no descendants).
 $term = wp_insert_term( 'WL111 Cat ' . wp_generate_uuid4(), 'product_cat' );
 ok( ! is_wp_error( $term ), 'category created' );
@@ -327,9 +371,9 @@ ok( str_contains( $html, 'conflict 1' ), 'progress shows conflict count' );
 marker( 'conflict preserves later edits' );
 
 // History reads, pagination and per-user scoping.
-$page = UndoRepo::history_jobs( 0, 2 );
+$page = UndoRepo::history_jobs( 0, 2, 1 );
 eq( count( $page['jobs'] ), 2, 'history page size' );
-$full = UndoRepo::history_jobs( 0, 100 );
+$full = UndoRepo::history_jobs( 0, 100, 1 );
 ok( count( $full['jobs'] ) >= 8, 'history accumulates' );
 $items = UndoRepo::history_items( (int) $job['id'], null, null, 0, 1 );
 eq( $items['total'], 2, 'items total' );
@@ -342,6 +386,55 @@ $html = render_view( 'history', '', 0 );
 ok( str_contains( $html, 'History' ), 'history view renders' );
 ok( str_contains( $html, substr( $job['public_id'], 0, 8 ) ), 'history links the job' );
 marker( 'history pagination and filters' );
+
+// Actor-scoped history pagination: interleaved jobs from two managers with
+// more than one page each. Scoping happens in SQL before LIMIT/OFFSET, so a
+// page never hides behind another actor's newer rows.
+$scoped_a = wp_insert_user( array( 'user_login' => 'wl111-sca-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );
+$scoped_b = wp_insert_user( array( 'user_login' => 'wl111-scb-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );
+$scoped_ids = array();
+for ( $i = 0; $i < 7; ++$i ) {
+	foreach ( array( $scoped_a, $scoped_b ) as $owner ) {
+		wp_set_current_user( $owner );
+		$pid = make_product( '100.00' );
+		$res = Admin::process_preview( preview_post( array( 'ids' => (string) $pid, 'amount' => '90.00' ) ), 'POST' );
+		eq( $res['status'], 'OK', 'scoped preview for owner ' . $owner );
+		$scoped_ids[ $owner ][] = (int) Repo::read_by_public_id( $res['public_id'] )['id'];
+	}
+}
+wp_set_current_user( 1 );
+foreach ( array( $scoped_a, $scoped_b, 1 ) as $viewer ) {
+	$seen = array();
+	$offset = 0;
+	do {
+		$pg = UndoRepo::history_jobs( $offset, 5, (int) $viewer );
+		foreach ( $pg['jobs'] as $entry ) {
+			$seen[] = (int) $entry['job_id'];
+			if ( 1 !== (int) $viewer ) {
+				$jr = Repo::read( (int) $entry['job_id'] );
+				eq( (int) $jr['creator_id'], (int) $viewer, 'no foreign job leaks to viewer ' . $viewer );
+			}
+		}
+		$offset = $pg['next_offset'];
+	} while ( null !== $offset );
+	if ( 1 === (int) $viewer ) {
+		ok( count( $seen ) >= 14, 'admin override sees the global set' );
+	} else {
+		$expected = $scoped_ids[ $viewer ];
+		rsort( $expected, SORT_NUMERIC );
+		eq( $seen, $expected, 'viewer sees every own job newest-first' );
+	}
+}
+// Recent jobs is actor-scoped as well: B's five newest hide none of A's own.
+$recent_a = UndoRepo::history_jobs( 0, 5, (int) $scoped_a );
+eq( count( $recent_a['jobs'] ), 5, 'scoped recent page full' );
+foreach ( $recent_a['jobs'] as $entry ) {
+	eq( (int) Repo::read( (int) $entry['job_id'] )['creator_id'], (int) $scoped_a, 'recent has zero foreign rows' );
+}
+// Unknown viewers see an empty page with no queries against hidden rows.
+$anon = UndoRepo::history_jobs( 0, 20, 0 );
+eq( $anon, array( 'offset' => 0, 'limit' => 20, 'total' => 0, 'jobs' => array(), 'next_offset' => null ), 'anonymous history empty' );
+marker( 'actor-scoped history pagination' );
 
 // Undo: eligible restore, conflict stays conflict, expired hides Restore.
 $undo_ids = array( make_product( '100.00' ), make_product( '100.00' ) );
