@@ -11,19 +11,28 @@ if (( $# != 1 )); then
 fi
 
 here="$(cd "$(dirname "$0")" && pwd)"
+fetch_zip() {
+  local file="$1" sha="$2"
+  if [ -z "$sha" ]; then
+    printf 'No pinned checksum for %s\n' "$file" >&2
+    exit 1
+  fi
+  mkdir -p "$here/research/.cache"
+  local zip="$here/research/.cache/$file.zip"
+  if [ ! -f "$zip" ] || [ "$(sha256sum "$zip" | cut -d' ' -f1)" != "$sha" ]; then
+    curl -fsSL -o "$zip.tmp" "https://downloads.wordpress.org/plugin/$file.zip"
+    mv "$zip.tmp" "$zip"
+  fi
+  echo "$sha  $zip" | sha256sum -c - >/dev/null
+}
 file="redirection.5.5.2"
-sha="$(awk -v f="$file" '$2 == f { print $1 }' "$here/research/checksums.txt")"
-if [ -z "$sha" ]; then
-  printf 'No pinned checksum for %s\n' "$file" >&2
-  exit 1
-fi
-mkdir -p "$here/research/.cache"
-zip="$here/research/.cache/$file.zip"
-if [ ! -f "$zip" ] || [ "$(sha256sum "$zip" | cut -d' ' -f1)" != "$sha" ]; then
-  curl -fsSL -o "$zip.tmp" "https://downloads.wordpress.org/plugin/$file.zip"
-  mv "$zip.tmp" "$zip"
-fi
-echo "$sha  $zip" | sha256sum -c - >/dev/null
+fetch_zip "$file" "$(awk -v f="$file" '$2 == f { print $1 }' "$here/research/checksums.txt")"
+# 6.8.3 baseline activation shim: the newest Woo that still installs on
+# WordPress 6.8 (Woo 11.1.2 requires WP 7.0). This satisfies the Core
+# dependency gate for the Guard regression leg only; it is not a Free
+# product pin. Free evidence stays WooCommerce 11.1.2 on WordPress 7.1.2.
+file="woocommerce.9.9.7"
+fetch_zip "$file" "96facedd12e32b6e0b120dcaa4a62b9c6b1ae12159d32510ea416c8e9b44f4dd"
 
 project="writeleash_wordpress_foundation_$db"
 compose_file="$(dirname "$0")/docker-compose.yml"

@@ -7,13 +7,26 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Development-only technical package. Planned WooCommerce Free 1.0 is not
-implemented; public release is deferred.
+Development-only technical package. The WooCommerce Free bulk-price workflow
+is functional; public release is deferred.
 
 == Description ==
 
-This package documents the existing advanced Redirection V0.1 technical
-substrate, not the intended WooCommerce Free 1.0 product. It applies a mutation
+WriteLeash Free changes stored regular prices for published core simple
+products in the base store currency, with a frozen preview, safety limits,
+durable background execution and conflict-aware Undo.
+
+Open Products → Bulk Prices: select products by category, exact SKU or
+explicit IDs, choose one of Set / +fixed / -fixed / +percent / -percent,
+review the server-side paginated preview with exclusions and warnings,
+approve the exact frozen plan, then follow durable progress. A closed
+browser never loses truth, and a protected Resume action continues stalled
+work. Undo restores eligible prices changed by WriteLeash; later
+WooCommerce edits are never overwritten, and orders, sales, email, webhook
+and other plugin side effects are outside Undo.
+
+This package also documents the existing advanced Redirection V0.1
+technical substrate, not the intended WooCommerce Free 1.0 product. It applies a mutation
 budget to Redirection bulk Disable: inside budget it commits; over budget it is
 denied before WriteLeash commits.
 
@@ -65,8 +78,10 @@ On the technical regression matrix (PHP 8.2; MySQL 8.0.44 and MariaDB 10.11.15; 
 
 == Installation ==
 
-1. Install and activate Redirection 5.5.2 — the exact certified build.
-2. Install and activate WriteLeash. WordPress knows Redirection is a required plugin, but WriteLeash itself still verifies the exact supported version 5.5.2 at runtime.
+1. Install and activate WooCommerce — the tested fixture is 11.1.2. WordPress knows WooCommerce is a required plugin.
+2. Install and activate WriteLeash.
+3. Open Products → Bulk Prices and build a frozen preview. No SSH, database operator setup, custom database users, triggers, routines, grants or manual SQL is needed for the Free workflow.
+4. The advanced Redirection substrate below remains optional: install and activate Redirection 5.5.2 — the exact certified build — only to use the guarded bulk Disable path.
 3. Have a trusted database operator provision the WriteLeash restricted runtime using the operator instructions included with the plugin (`operator-setup.txt`). This is a one-time, trusted setup: it creates one restricted database account, a small helper table, five reviewed routines and one policy trigger, and adds a few constants to `wp-config.php`.
 4. Open Tools → WriteLeash and confirm the readiness line reports READY.
 5. Choose your logical mutation budget L (0 to 2000) and save it.
@@ -79,10 +94,10 @@ After the one-time operator setup, normal Admin use needs no PHP or SQL editing.
 == Supported configuration ==
 
 * WordPress core: exact tested fixtures 6.8.3 (original baseline) and 7.1.2 (current stable at the last regression). `Tested up to: 7.1` means those exact builds were exercised end to end on both databases. Untested builds, including minors between them, are not certified: the Doctor reports them unknown and refuses to enable.
-* Required dependency: Redirection. WordPress prevents normal activation of WriteLeash while Redirection is missing or inactive, but WriteLeash still independently requires Redirection 5.5.2 exactly.
+* Required dependency: WooCommerce. WordPress prevents normal activation of WriteLeash while WooCommerce is missing or inactive. The tested fixture is WooCommerce 11.1.2; untested builds are not certified for the Free bulk-price workflow.
 * PHP: tested on 8.2. The declared minimum is PHP 7.4; 7.4 is a minimum, not a release-matrix-tested runtime.
 * Database: MySQL 8.0.44 and MariaDB 10.11.15 are the pinned, tested engines. Other builds are not certified in V0.1.
-* Redirection: 5.5.2 exactly. Other versions are not certified; the certified request fails closed.
+* Redirection: 5.5.2 exactly, only for the optional advanced Guard substrate. Other versions are not certified; the certified request fails closed.
 * Certified operation: global/select-all Bulk Disable. Physical ceiling P = 2000; logical budget L from 0 to 2000.
 * Multisite / network activation: not certified in V0.1.
 

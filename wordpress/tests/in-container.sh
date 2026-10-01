@@ -19,18 +19,24 @@ echo "Database fixture: $db $server_version; WordPress $(wp --path="$site" core 
 [ "$(wp --path="$site" core version)" = 6.8.3 ]
 [ "$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')" = 8.2 ]
 
-# Requiring Redirection is Core-enforced on activation; lower-level loss must
-# still fail closed at runtime (#63). Redirection is installed after the
-# blocked-activation assertion so both halves are executable.
+# The default Free product requires WooCommerce, not Redirection: Core
+# enforcement is asserted with WooCommerce missing, then the pinned Woo build
+# satisfies the dependency. Redirection stays installed for the Guard
+# regression schema check; it is no longer an activation prerequisite.
 CC63_PHASE=block wp --path="$site" eval-file /opt/tests/dependency-63.php
 wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
 wp --path="$site" eval-file /opt/tests/redirection-schema.php
+# 6.8.3-leg activation shim (see run.sh): Woo 9.9.7 satisfies Core's slug
+# gate so the Guard regression leg can activate. Free behavior is never
+# exercised against this build; #111 evidence stays 11.1.2 on WP 7.1.2.
+export CC63_WOO_VERSION=9.9.7
+wp --path="$site" plugin install /opt/plugin-zips/woocommerce.9.9.7.zip --activate
 CC63_PHASE=installed wp --path="$site" eval-file /opt/tests/dependency-63.php
 wp --path="$site" plugin activate writeleash
 CC63_PHASE=dependents wp --path="$site" eval-file /opt/tests/dependency-63.php
-wp --path="$site" plugin deactivate redirection
+wp --path="$site" plugin deactivate woocommerce
 CC63_PHASE=lost wp --path="$site" eval-file /opt/tests/dependency-63.php
-wp --path="$site" plugin activate redirection
+wp --path="$site" plugin activate woocommerce
 wp --path="$site" plugin deactivate writeleash
 CC63_PHASE=released wp --path="$site" eval-file /opt/tests/dependency-63.php
 # The dependency fixture activated WriteLeash once; restore the uninstalled

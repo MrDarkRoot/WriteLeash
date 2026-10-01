@@ -1,0 +1,48 @@
+services:
+  mysql:
+    image: mysql@sha256:9c3380eac945af0736031b200027f581925927c81e010056214a4bd6b6693714 # 8.0.44
+    environment:
+      MYSQL_ROOT_PASSWORD: disposable_root_password
+      MYSQL_DATABASE: wp_test
+      MYSQL_USER: wp_test
+      MYSQL_PASSWORD: disposable_wp_password
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+  mariadb:
+    image: mariadb@sha256:85c39719200637250bb8abe3ccd239239d6f175156fc1698141409fcf8e01a38 # 10.11.15
+    environment:
+      MARIADB_ROOT_PASSWORD: disposable_root_password
+      MARIADB_DATABASE: wp_test
+      MARIADB_USER: wp_test
+      MARIADB_PASSWORD: disposable_wp_password
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p$$MARIADB_ROOT_PASSWORD --silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+  redis:
+    image: redis@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952 # 7.4.2-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  tester:
+    build:
+      context: ../..
+      dockerfile: tests/Dockerfile
+      args:
+        CORE_IMAGE: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./cache:/opt/woo-zips:ro
+    command: ["sh", "/opt/tests/admin/in-container.sh"]

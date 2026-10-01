@@ -111,8 +111,8 @@ foreach ( array(
 if ( ! str_contains( $main, "define( 'WRITELEASH_VERSION', '0.1.0' )" ) ) {
 	$fail( 'runtime version constant does not match the release version' );
 }
-if ( ! preg_match( '/^\s*\*\s*Requires Plugins:\s*redirection\s*$/m', $main ) ) {
-	$fail( 'main plugin file must declare the Redirection dependency (Requires Plugins: redirection)' );
+if ( ! preg_match( '/^\s*\*\s*Requires Plugins:\s*woocommerce\s*$/m', $main ) ) {
+	$fail( 'main plugin file must declare the WooCommerce dependency (Requires Plugins: woocommerce)' );
 }
 
 // The mistaken operation name must never reappear in distribution content.

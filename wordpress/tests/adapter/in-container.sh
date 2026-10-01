@@ -28,6 +28,7 @@ for host in mysql mariadb; do
   wp --path="$site" core install --url="http://$host.example.test" --title=Adapter-Test \
     --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
   wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
+  wp --path="$site" plugin install /opt/plugin-zips/woocommerce.9.9.7.zip --activate
   wp --path="$site" plugin activate writeleash
   server_version=$(wp --path="$site" eval 'global $wpdb; echo $wpdb->get_var( "SELECT VERSION()" );')
   plugin_version=$(wp --path="$site" eval 'echo REDIRECTION_VERSION;')
@@ -204,6 +205,12 @@ for host in mysql mariadb; do
   php -r '$d=json_decode($argv[1], true); if (!is_array($d) || $d["operation_status"] !== "UNSUPPORTED" || $d["operation_reason"] !== "redirection_version_unsupported") exit(1);' "$unsupported_json"
   if wp --path="$site" writeleash doctor --format=json >/dev/null; then echo "CLI Doctor accepted missing Redirection version" >&2; exit 1; fi
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-plugin-missing.php
+  # Restore the no-Action-Scheduler fixture premise for the strict uninstall
+  # SQL classifier below: WooCommerce was needed only to satisfy Core's
+  # activation gate. With Woo inactive its scheduler API is unavailable, so
+  # uninstall.php skips owned-group cancellation safely (proved with a
+  # sentinel in the Woo fixture at tests/undo/integration.php).
+  wp --path="$site" plugin deactivate woocommerce
   # Actual WordPress uninstall: local options removed, trusted DB objects kept.
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-60-uninstall.php
   CC_ENGINE_HOST="$host" wp --path="$site" eval-file /opt/tests/adapter/cases-60-reinstall.php

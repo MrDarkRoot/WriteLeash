@@ -17,7 +17,7 @@ $license_header = get_file_data(
 	'plugin'
 );
 if ( 'WriteLeash' !== $data['Name'] || 'writeleash' !== $data['TextDomain'] || '0.1.0' !== $data['Version'] ||
-	'6.8' !== $data['RequiresWP'] || '7.4' !== $data['RequiresPHP'] || 'redirection' !== $data['RequiresPlugins'] ||
+	'6.8' !== $data['RequiresWP'] || '7.4' !== $data['RequiresPHP'] || 'woocommerce' !== $data['RequiresPlugins'] ||
 	'GPL v2 or later' !== $license_header['License'] || 'https://www.gnu.org/licenses/gpl-2.0.html' !== $license_header['LicenseURI'] ||
 	'writeleash/writeleash.php' !== plugin_basename( $file ) ||
 	'commitcap/commitcap.php' === plugin_basename( $file ) ) {

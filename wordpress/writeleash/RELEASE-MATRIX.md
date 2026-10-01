@@ -14,12 +14,13 @@ main file `writeleash.php`. The internal source path remains
 the WordPress.org listing source is `readme.txt` with `Stable tag: 0.1.0` and
 `Tested up to: 7.1`.
 
-**Dependency:** the main plugin header declares `Requires Plugins: redirection`.
-WordPress Core refuses normal activation while Redirection is missing or
+**Dependency:** the main plugin header declares `Requires Plugins: woocommerce`.
+WordPress Core refuses normal activation while WooCommerce is missing or
 inactive and withholds normal dependency deactivation while WriteLeash is active.
-Core's dependency header carries no version constraint, so WriteLeash still
-independently requires Redirection **5.5.2 exactly** at runtime and fails closed
-when the dependency disappears through lower-level paths.
+Core's dependency header carries no version constraint, so the Free workflow
+targets the tested WooCommerce **11.1.2** fixture and fails closed
+when the dependency disappears through lower-level paths. The advanced Guard
+substrate still independently requires Redirection **5.5.2 exactly** at runtime.
 
 **License (#64):** founder-selected **GPL version 2 or later**
 (`GPL-2.0-or-later`). The main plugin header declares `GPL v2 or later` with the
@@ -120,7 +121,7 @@ bundled vendor libraries, or test directories occur in production source.
 description, 1–5 unique tags, `Tested up to: 7.1`, `Requires at least: 6.8`,
 `Requires PHP: 7.4`, `Stable tag: 0.1.0` matching the plugin header and runtime
 constant, explicit exact tested WordPress core fixtures (6.8.3 and 7.1.2),
-`GPLv2 or later`, `Requires Plugins: redirection`, recognizable sections, no
+`GPLv2 or later`, `Requires Plugins: woocommerce`, recognizable sections, no
 placeholders, no `Baseline Disable` wording and the 10k size guidance. The
 official readme validator is a web-only form; the deterministic local equivalent
 runs in CI and the same file is staged for Plugin Check.

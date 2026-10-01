@@ -660,10 +660,16 @@ final class Undo_Repository {
 	/**
 	 * Recent jobs page: apply truth plus Undo progress, eligibility and
 	 * expiry. Deterministic newest-first ordering, bounded page size.
+	 *
+	 * The #111 history screen is reachable before any Undo exists, so the
+	 * read installs the (empty) Undo schema lazily instead of querying a
+	 * missing table. Installation uses the normal WordPress connection and
+	 * fails closed with a typed reason when it is unavailable.
 	 */
 	public static function history_jobs( int $offset = 0, int $limit = 20 ): array {
 		$db = self::db();
 		if ( $offset < 0 || $limit < 1 || $limit > self::PAGE_LIMIT ) { throw new Undo_Error( 'INVALID_PAGE' ); }
+		self::ensure_schema();
 		$jobs = Job_Schema::jobs_table( $db );
 		$rows = $db->get_results( $db->prepare( 'SELECT * FROM %i ORDER BY id DESC LIMIT %d OFFSET %d', $jobs, $limit, $offset ), ARRAY_A );
 		$jobs_page = array();
@@ -677,6 +683,7 @@ final class Undo_Repository {
 	public static function history_job( int $job_id ): array {
 		$job = Job_Repository::read( $job_id );
 		if ( ! $job ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }
+		self::ensure_schema();
 		$operation = self::read_operation_by_job( $job_id );
 		$undo_counts = $operation ? self::counts( (int) $operation['id'] ) : array( 'eligible' => 0, 'pending' => 0, 'applying' => 0, 'undone' => 0, 'conflict' => 0, 'failed' => 0, 'needs_review' => 0 );
 		return array(
@@ -738,6 +745,7 @@ final class Undo_Repository {
 		if ( null !== $undo_state && ! in_array( $undo_state, self::item_states(), true ) ) { throw new Undo_Error( 'INVALID_UNDO_ITEM_STATE' ); }
 		$job = Job_Repository::read( $job_id );
 		if ( ! $job ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }
+		self::ensure_schema();
 		$job_items = Job_Schema::items_table( $db );
 		$undo_items = Undo_Schema::items_table( $db );
 		$where = 'i.job_id=%d';
