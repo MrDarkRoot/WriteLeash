@@ -84,8 +84,9 @@ final class Woo_Undo_Mutator {
 			$tx = new Price_Apply_Connection( $original );
 			$tx->begin();
 			$wpdb = $tx;
-			// Fenced guard first: Undo-operation row lock, then the shared apply
-			// job-row lock, both held to COMMIT. See Undo_Transaction_Fence.
+			// Fenced guard first: the shared apply job-row lock, then the Undo
+			// operation row lock (deterministic job -> operation order; see
+			// Undo_Transaction_Fence), both held to COMMIT.
 			if ( $guard ) { $guard->acquire( $tx ); }
 			$undo = Undo_Repository::read_item_locked( $tx, $job_id, $product_id );
 			if ( ! $undo ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }

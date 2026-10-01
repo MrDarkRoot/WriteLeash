@@ -295,12 +295,21 @@ final class Undo_Worker {
 		return defined( 'WC_VERSION' ) && '11.1.2' === WC_VERSION && function_exists( 'wc_get_product' ) && did_action( 'woocommerce_init' ) && ! is_multisite();
 	}
 
-	/** Deactivation is observable across processes; read it without option cache. */
+	/**
+	 * Durable lifecycle authority, read uncached directly from the options
+	 * table. Fail-closed by design: only an explicit `active` value
+	 * authorizes a new claim or mutation boundary. Missing (for example after
+	 * uninstall removed the option), empty, `deactivated`, malformed and
+	 * unknown values all return false, so a surviving Undo worker stops
+	 * before its next claim. An item transaction that already acquired its
+	 * authoritative fence may still finish that one boundary, exactly as
+	 * reviewed in #108/#109/#110.
+	 */
 	private static function runner_active(): bool {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lifecycle gate; uncached read is intentional.
 		$value = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1", 'writeleash_runner_state' ) );
-		return 'deactivated' !== $value;
+		return 'active' === $value;
 	}
 
 	private static function pause_unleased( int $undo_id, string $reason ): void {

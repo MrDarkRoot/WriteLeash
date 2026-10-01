@@ -199,8 +199,10 @@ Retention is 30 days by default, filterable internally through
 `writeleash_history_retention_days` (clamped 1..3650). The clock basis is
 terminal apply `completed_at`, extended by Undo `completed_at`; never
 `created_at`. After expiry, `undo_eligible` is false and no Restore action
-is exposed. Storage evidence (row counts and table bytes for 100/1000-item
-jobs) justifies the bound; see the lab activity record.
+is exposed. Storage evidence for the justified bound is a measured
+**100-item** fixture (exact row counts and table bytes; see the lab output
+line `#110 storage:`); 1000-item scale/host certification is deliberately
+deferred to #112 and is not claimed here.
 
 Purge is bounded, idempotent (two concurrent purge workers are harmless),
 and restricted to terminal, expiry-crossed history: apply `COMPLETED`/
@@ -233,7 +235,22 @@ durable timestamps.
 
 ## Lifecycle, deactivation, uninstall and table retention
 
-The three lifecycle stages are deliberately distinct:
+### Fail-closed runner authority
+
+Both `Job_Worker` and `Undo_Worker` read the durable
+`writeleash_runner_state` option uncached, directly from the options table,
+and authorize a new claim or mutation boundary **only** for an explicit
+`active` value. Missing (including after uninstall deleted the option),
+empty, `deactivated`, malformed and unknown values all return false. A
+worker whose item transaction already acquired its authoritative fence may
+finish that one boundary under the reviewed #108/#109/#110 semantics, then
+stops before the next claim. Activation durably writes `active`;
+deactivation durably writes `deactivated`. This is intentional fail-closed
+behavior: a missing lifecycle authority never enables a price mutation.
+
+### Lifecycle stages
+
+The lifecycle stages are deliberately distinct:
 
 1. **Deactivation** sets `writeleash_runner_state = deactivated` and cancels
    only the owned scheduler groups (`writeleash-jobs`, `writeleash-undo`,
@@ -241,17 +258,28 @@ The three lifecycle stages are deliberately distinct:
    items finish at their transactional fence boundary, and all durable
    facts stay readable. Reactivation verifies schema, reconciles stale
    apply leases and stale Undo leases, and never mutates products by itself.
-2. **Uninstall option cleanup** removes exactly the owned option names
-   (including `writeleash_undo_schema` and `writeleash_undo_setup`) through
-   `uninstall.php`, which is DDL-free by the reviewed uninstall SQL
-   classifier. Uninstall performs no product deletion, no `_regular_price`
-   rewrite, no Action Scheduler table touch and no Guard/Strict object
-   removal; it never auto-restores a price (`100 -> 80` stays `80`).
+2. **Uninstall** cancels only the same three WriteLeash-owned Action
+   Scheduler groups through the public `ActionScheduler::store()` API
+   (`cancel_actions_by_group`; unrelated groups/actions and all Action
+   Scheduler tables are untouched), then removes exactly the owned option
+   names (including `writeleash_undo_schema` and `writeleash_undo_setup`)
+   through `uninstall.php`, which is DDL-free by the reviewed uninstall SQL
+   classifier. Deleting `writeleash_runner_state` is the durable fail-closed
+   shutdown signal: a surviving worker stops before its next claim even if
+   scheduler cancellation never ran or failed. Uninstall performs no
+   product deletion, no `_regular_price` rewrite, no Action Scheduler table
+   touch and no Guard/Strict object removal; it never auto-restores a price
+   (`100 -> 80` stays `80`).
 3. **Durable table retention.** The plugin-owned Free tables (`jobs`, job
    items, price journal, Undo operations/items) are intentionally **not
    dropped** by uninstall. They remain until the operator lifecycle, and
    their rows are removed only by the bounded retention purge once they are
    terminal, expiry-crossed and not active/review/incomplete.
+
+Uninstall sequencing is safe in both success and failure modes: scheduler
+cleanup is defense-in-depth, while the durable fail-closed lifecycle
+authority is what prevents new claims. An uninitialized or unavailable
+Action Scheduler cannot enable mutation.
 
 **Explicit acknowledgment for maintainer review:** issue #110's candidate
 wording asked uninstall to "remove only plugin-owned tables/options". The
@@ -309,9 +337,23 @@ intact evidence still completes the Undo; purge wins => complete deletion
 with zero orphan rows and a clean `UNDO_NOT_ELIGIBLE` refusal), with no
 lock timeout and no product mutation in either outcome.
 
+Lifecycle/uninstall regressions: explicit `absent`, `''`, `deactivated` and
+unknown runner states stop both the real Apply worker loop and the real Undo
+worker loop with zero claims, zero Woo saves, zero price mutation and typed
+`DEACTIVATED` pauses; uninstall seeds one pending wake-up per owned AS group
+plus an unrelated sentinel and proves only the owned actions are canceled
+while the sentinel and all AS tables survive; and both real-process
+surviving-worker races use two items so that the in-flight item completes
+its already-fenced boundary and the lifecycle gate then blocks the next
+claim (Undo: item 1 UNDONE / item 2 pending with zero second save; Apply:
+item 1 APPLIED / item 2 PENDING with journal still `PENDING`), verified by
+fresh DB observers. The durable fail-closed gate, not scheduler
+cancellation, is what stops the worker.
+
 Dedicated #110 markers in the artifact report clean Undo, external-edit
-conflict, duplicate Undo, crash-before/after COMMIT, the uninstall race and
-the blocker-repair sections for both engines and both cache modes.
+conflict, duplicate Undo, crash-before/after COMMIT, the missing-state
+fail-closed proof, the owned-AS-only uninstall proof, and the Undo/Apply
+multi-item uninstall races for both engines and both cache modes.
 
 This issue does not build the #111 Admin screens, preview wizard, history
 page or progress dashboard; one narrow POST-only initiation endpoint
