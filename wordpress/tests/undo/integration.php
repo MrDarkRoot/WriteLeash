@@ -165,6 +165,7 @@ function finish_worker( array $worker, bool $killed = false ): array {
 	return json_decode( file_get_contents( $worker['spec']['result'] ), true );
 }
 function run_worker( array $spec, string $script = 'worker.php' ): array { return finish_worker( start_worker( $spec, $script ) ); }
+function start_shutdown( string $mode ): array { return start_worker( array( 'mode' => $mode ), 'lifecycle-process.php' ); }
 function limits( int $items, int $seconds = 20 ): array { return array( 'max_items' => $items, 'budget_seconds' => $seconds ); }
 /** Real WordPress uninstall in its own process (uninstall_plugin uses include_once). */
 function run_uninstall_process(): void {
@@ -182,6 +183,30 @@ function run_uninstall_process(): void {
 function option_rows( string $option_name ): int {
 	global $wpdb;
 	return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name=%s", $option_name ) );
+}
+/** FOR UPDATE NOWAIT must fail while an item holds a shared lifecycle lock. */
+function lifecycle_row_locked_nowait(): bool {
+	$db = Verifier::observer();
+	$db->suppress_errors( true );
+	try {
+		$db->get_var( $db->prepare( 'SELECT option_value FROM %i WHERE option_name=%s FOR UPDATE NOWAIT', $db->options, 'writeleash_runner_state' ) );
+		return '' !== (string) $db->last_error;
+	} finally { $db->close(); }
+}
+/** The real shutdown connection must reach the indexed DELETE/UPDATE waiter. */
+function await_shutdown_sql( array $shutdown ): bool {
+	$db = Verifier::observer();
+	try {
+		$thread = (int) file_get_contents( $shutdown['spec']['started'] );
+		$deadline = microtime( true ) + 10;
+		while ( microtime( true ) < $deadline ) {
+			foreach ( $db->get_results( 'SHOW FULL PROCESSLIST', ARRAY_A ) as $row ) {
+				if ( $thread === (int) $row['Id'] && preg_match( '/\b(?:DELETE FROM|UPDATE)\b.*writeleash_runner_state/i', (string) ( $row['Info'] ?? '' ) ) ) { return true; }
+			}
+			usleep( 50000 );
+		}
+		return false;
+	} finally { $db->close(); }
 }
 /** Real uninstall runs in another process; drop this process's option cache. */
 function forget_uninstall_option_cache(): void {
@@ -804,11 +829,19 @@ $de = apply_fixture( array( 'changing' => 2 ) );
 $de_job = (int) $de['job']['id'];
 $de_op = start_undo( $de_job );
 $de_undo = (int) $de_op['id'];
-$w = start_worker( array( 'undo_id' => $de_undo, 'mode' => 'undo', 'limits' => limits( 5 ), 'undo_checkpoint' => 'UNDO_BEFORE_WOO_SAVE', 'fault' => 'wait' ) );
+$de_after = $work . '/de-after-' . wp_generate_uuid4();
+$de_release = $work . '/de-release-' . wp_generate_uuid4();
+$w = start_worker( array( 'undo_id' => $de_undo, 'mode' => 'undo', 'limits' => limits( 5, 60 ), 'undo_checkpoint' => 'UNDO_BEFORE_WOO_SAVE', 'fault' => 'wait', 'after_item_barrier' => $de_after, 'after_item_release' => $de_release ) );
 await_file( $w['spec']['barrier'] );
-update_option( 'writeleash_runner_state', 'deactivated', false );
-UScheduler::unschedule_all();
+$shutdown = start_shutdown( 'deactivate' );
+await_file( $shutdown['spec']['started'] );
+ok( lifecycle_row_locked_nowait(), 'Undo item holds the indexed shared lifecycle record lock' );
+ok( await_shutdown_sql( $shutdown ), 'deactivation UPDATE waits on lifecycle record' );
+ok( ! is_file( $shutdown['spec']['result'] ), 'deactivation waits for fenced Undo transaction' );
 file_put_contents( $w['spec']['release'], 'go' );
+await_file( $de_after );
+finish_worker( $shutdown );
+file_put_contents( $de_release, 'go' );
 $de_result = finish_worker( $w );
 eq( $de_result['status'], UState::PAUSED, 'deactivation pauses at the item boundary' );
 $de_counts = undo_counts( $de_undo );
@@ -816,6 +849,7 @@ eq( $de_counts['undone'], 1, 'in-flight undo item completes its boundary' );
 eq( $de_counts['pending'], 1, 'no next undo claim after deactivation' );
 $de_off = run_worker( array( 'undo_id' => $de_undo, 'mode' => 'undo', 'limits' => limits( 5 ) ) );
 eq( $de_off['stop'], 'DEACTIVATED', 'deactivated worker claims nothing' );
+wp_cache_delete( 'writeleash_runner_state', 'options' ); // deactivation ran in another process.
 update_option( 'writeleash_runner_state', 'active', false );
 WriteLeash\Lifecycle::activate();
 $de_resume = run_worker( array( 'undo_id' => $de_undo, 'mode' => 'undo', 'limits' => limits( 5 ), 'manual' => true ) );
@@ -909,6 +943,98 @@ eq( rest_undo_start( $rt_public, 1 )->get_status(), 409, 'terminal undo start de
 marker( 'undo REST: strict POST/auth/capability/ownership, zero-mutation negatives' );
 
 // ---------------------------------------------------------------------------
+// Lifecycle race A: the early PHP read returned active, but uninstall wins
+// BEFORE the claim transaction locks the lifecycle row. A stale read cannot
+// make an APPLYING/UNDO_APPLYING row or reach Woo. Race B: the claim commits
+// while active, but uninstall wins BEFORE the item transaction acquires its
+// independent lifecycle fence. The claim must be refunded, not retried or
+// left applying. These are distinct from an already-fenced item transaction.
+// ---------------------------------------------------------------------------
+foreach ( array( 'BEFORE_CLAIM', 'AFTER_CLAIM', 'AFTER_CLAIM_DEACTIVATE' ) as $race_stage ) {
+	foreach ( array( 'apply', 'undo' ) as $race_family ) {
+		$before_claim = 'BEFORE_CLAIM' === $race_stage;
+		$shutdown_mode = 'AFTER_CLAIM_DEACTIVATE' === $race_stage ? 'deactivate' : 'uninstall';
+		forget_uninstall_option_cache();
+		WriteLeash\Lifecycle::activate();
+		wp_set_current_user( 1 );
+		if ( 'apply' === $race_family ) {
+			$race_f = planned_fixture( 1 );
+			$race_job = Repo::approve( (int) $race_f['job']['id'], 1 );
+			$race_job_id = (int) $race_job['id'];
+			$race_pid = (int) $race_f['ids'][0];
+			$race_op_id = 0;
+			$race_spec = array( 'job_id' => $race_job_id, 'mode' => 'apply', 'job_checkpoint' => $before_claim ? 'AFTER_RUNNER_ACTIVE_BEFORE_CLAIM' : 'AFTER_CLAIM' );
+		} else {
+			$race_f = apply_fixture( array( 'changing' => 1 ) );
+			$race_job_id = (int) $race_f['job']['id'];
+			$race_pid = (int) $race_f['ids'][0];
+			$race_op = start_undo( $race_job_id );
+			$race_op_id = (int) $race_op['id'];
+			$race_spec = array( 'undo_id' => $race_op_id, 'mode' => 'undo', 'undo_checkpoint' => $before_claim ? 'AFTER_RUNNER_ACTIVE_BEFORE_CLAIM' : 'AFTER_CLAIM' );
+		}
+		$race_spec['limits'] = limits( 5, 60 );
+		$race_spec['fault'] = 'wait';
+		$race_spec['lock_wait_timeout'] = 25;
+		$baseline_saves = saves( $race_pid );
+		$actor_worker = start_worker( $race_spec );
+		await_file( $actor_worker['spec']['barrier'] );
+		$authority = 'apply' === $race_family ? Repo::read( $race_job_id ) : URepo::read_operation( $race_op_id );
+		eq( $authority['status'], 'apply' === $race_family ? JState::RUNNING : UState::RUNNING, 'worker has live lease before shutdown ' . $race_family . $race_stage );
+		ok( '' !== $authority['lease_owner'] && (int) $authority['lease_generation'] > 0, 'valid generation before lifecycle race' );
+		$observer = Verifier::observer();
+		try {
+			if ( 'apply' === $race_family ) {
+				$pre = $observer->get_row( $observer->prepare( 'SELECT state,attempt_count FROM %i WHERE job_id=%d AND product_id=%d', Schema::items_table( $observer ), $race_job_id, $race_pid ), ARRAY_A );
+			} else {
+				$pre = URepo::read_item( $observer, $race_job_id, $race_pid );
+			}
+			eq( $pre['state'], $before_claim ? ( 'apply' === $race_family ? IState::PENDING : UItem::PENDING ) : ( 'apply' === $race_family ? IState::APPLYING : UItem::APPLYING ), 'durable pre-shutdown claim boundary ' . $race_family . $race_stage );
+		} finally { $observer->close(); }
+		// This completes BEFORE the worker is released. No item transaction
+		// owns the lifecycle lock at either barrier.
+		if ( 'uninstall' === $shutdown_mode ) { run_uninstall_process(); }
+		else { finish_worker( start_shutdown( 'deactivate' ) ); }
+		forget_uninstall_option_cache();
+		if ( 'uninstall' === $shutdown_mode ) { eq( 0, option_rows( 'writeleash_runner_state' ), 'uninstall wins before next mutation boundary' ); }
+		else {
+			$observer = Verifier::observer();
+			try { eq( $observer->get_var( $observer->prepare( 'SELECT option_value FROM %i WHERE option_name=%s', $observer->options, 'writeleash_runner_state' ) ), 'deactivated', 'indexed lifecycle row remains deactivated' ); }
+			finally { $observer->close(); }
+		}
+		file_put_contents( $actor_worker['spec']['release'], 'go' );
+		$race_result = finish_worker( $actor_worker );
+		eq( $race_result['stop'], 'DEACTIVATED', 'typed lifecycle stop ' . $race_family . $race_stage );
+		eq( $race_result['processed'], 0, 'zero mutation attempts after shutdown ' . $race_family . $race_stage );
+		eq( saves( $race_pid ), $baseline_saves, 'zero post-shutdown Woo saves ' . $race_family . $race_stage );
+		eq( Decimal::parse( fresh_price( $race_pid ) ), Decimal::parse( 'apply' === $race_family ? '100.00' : '80.00' ), 'fresh price unchanged ' . $race_family . $race_stage );
+		$observer = Verifier::observer();
+		try {
+			if ( 'apply' === $race_family ) {
+				$final = $observer->get_row( $observer->prepare( 'SELECT state,attempt_count,claim_token FROM %i WHERE job_id=%d AND product_id=%d', Schema::items_table( $observer ), $race_job_id, $race_pid ), ARRAY_A );
+				eq( Journal::read( $observer, $race_f['plan']->data()['plan_id'], $race_pid )['state'], 'PENDING', 'apply journal not APPLIED after shutdown' );
+			} else {
+				$final = URepo::read_item( $observer, $race_job_id, $race_pid );
+				eq( $final['evidence'], '', 'no UNDONE evidence after shutdown' );
+			}
+			eq( $final['state'], 'apply' === $race_family ? IState::PENDING : UItem::PENDING, 'claim safely PENDING after shutdown' );
+			eq( (int) $final['attempt_count'], 0, 'lifecycle refusal refunds claim retry budget' );
+			eq( $final['claim_token'], '', 'no orphaned claim token' );
+		} finally { $observer->close(); }
+		$paused = 'apply' === $race_family ? Repo::read( $race_job_id ) : URepo::read_operation( $race_op_id );
+		eq( $paused['status_reason'], 'DEACTIVATED', 'durable paused lifecycle reason' );
+		if ( $before_claim ) {
+			echo 'apply' === $race_family ? "#109/#110 lifecycle race before claim: stale active read cannot authorize Apply PASS\n" : "#110 lifecycle race before Undo claim: stale active read cannot authorize Undo PASS\n";
+		} elseif ( 'deactivate' === $shutdown_mode ) {
+			echo 'apply' === $race_family ? "#109/#110 claimed Apply item refuses deactivated lifecycle row PASS\n" : "#110 claimed Undo item refuses deactivated lifecycle row PASS\n";
+		} else {
+			echo 'apply' === $race_family ? "#109/#110 claimed Apply item loses lifecycle authority before mutation PASS\n" : "#110 claimed Undo item loses lifecycle authority before mutation PASS\n";
+		}
+	}
+}
+forget_uninstall_option_cache();
+WriteLeash\Lifecycle::activate();
+
+// ---------------------------------------------------------------------------
 // Uninstall: owned Action Scheduler cleanup, fail-closed lifecycle and real
 // surviving-worker races. Woo data always survives.
 // ---------------------------------------------------------------------------
@@ -930,10 +1056,19 @@ $un_undo = (int) $un_op['id'];
 // A sibling applied price that is never undone: uninstall must not restore it.
 $un_sibling_price = fresh_price( $pr_id );
 eq( $un_sibling_price, '80.00', 'sibling applied price before uninstall' );
-$w = start_worker( array( 'undo_id' => $un_undo, 'mode' => 'undo', 'limits' => limits( 5 ), 'undo_checkpoint' => 'UNDO_AFTER_WOO_SAVE_BEFORE_JOURNAL', 'fault' => 'wait' ) );
+$un_after = $work . '/un-after-' . wp_generate_uuid4();
+$un_release = $work . '/un-release-' . wp_generate_uuid4();
+$w = start_worker( array( 'undo_id' => $un_undo, 'mode' => 'undo', 'limits' => limits( 5, 60 ), 'undo_checkpoint' => 'UNDO_AFTER_WOO_SAVE_BEFORE_JOURNAL', 'fault' => 'wait', 'after_item_barrier' => $un_after, 'after_item_release' => $un_release ) );
 await_file( $w['spec']['barrier'] );
 // Real uninstall while a worker holds the Undo fence: evidence and AS tables survive.
-run_uninstall_process();
+$shutdown = start_shutdown( 'uninstall' );
+await_file( $shutdown['spec']['started'] );
+ok( lifecycle_row_locked_nowait(), 'single-item Undo fence holds the indexed lifecycle lock' );
+ok( await_shutdown_sql( $shutdown ), 'uninstall DELETE waits on lifecycle record' );
+ok( ! is_file( $shutdown['spec']['result'] ), 'uninstall waits for fenced Undo item' );
+file_put_contents( $w['spec']['release'], 'go' );
+await_file( $un_after );
+finish_worker( $shutdown );
 forget_uninstall_option_cache();
 foreach ( array( 'writeleash_version', 'writeleash_job_schema', 'writeleash_job_setup', 'writeleash_runner_state', 'writeleash_undo_schema', 'writeleash_undo_setup' ) as $option ) {
 	eq( 0, option_rows( $option ), 'uninstall removes owned option ' . $option );
@@ -957,7 +1092,7 @@ try {
 	}
 } finally { $observer->close(); }
 echo "#110 uninstall owned AS groups only PASS\n";
-file_put_contents( $w['spec']['release'], 'go' );
+file_put_contents( $un_release, 'go' );
 $un_result = finish_worker( $w );
 eq( $un_result['status'], UState::PAUSED, 'surviving worker pauses after its in-flight boundary' );
 eq( $un_result['stop'], 'DEACTIVATED', 'stop caused by fail-closed lifecycle authority, not item exhaustion' );
@@ -980,14 +1115,23 @@ $ru_op = start_undo( $ru_job );
 $ru_undo = (int) $ru_op['id'];
 $ru_base1 = saves( $ru_id1 );
 $ru_base2 = saves( $ru_id2 );
-$w = start_worker( array( 'undo_id' => $ru_undo, 'mode' => 'undo', 'limits' => limits( 5 ), 'undo_checkpoint' => 'UNDO_BEFORE_WOO_SAVE', 'fault' => 'wait', 'lock_wait_timeout' => 30 ) );
+$ru_after = $work . '/ru-after-' . wp_generate_uuid4();
+$ru_release = $work . '/ru-release-' . wp_generate_uuid4();
+$w = start_worker( array( 'undo_id' => $ru_undo, 'mode' => 'undo', 'limits' => limits( 5, 60 ), 'undo_checkpoint' => 'UNDO_BEFORE_WOO_SAVE', 'fault' => 'wait', 'after_item_barrier' => $ru_after, 'after_item_release' => $ru_release, 'lock_wait_timeout' => 30 ) );
 await_file( $w['spec']['barrier'] ); // item 1 fenced, Woo save not yet issued
 eq( undo_row( $ru_job, $ru_id1 )['state'], UItem::APPLYING, 'undo item 1 is in flight behind its fence' );
 eq( saves( $ru_id1 ), $ru_base1, 'no Woo save before the barrier' );
-run_uninstall_process();
+$shutdown = start_shutdown( 'uninstall' );
+await_file( $shutdown['spec']['started'] );
+ok( lifecycle_row_locked_nowait(), 'Undo transaction holds indexed lifecycle row' );
+ok( await_shutdown_sql( $shutdown ), 'uninstall DELETE waits for Undo lifecycle lock' );
+ok( ! is_file( $shutdown['spec']['result'] ), 'uninstall blocks behind Undo lifecycle fence' );
+file_put_contents( $w['spec']['release'], 'go' );
+await_file( $ru_after );
+finish_worker( $shutdown );
 forget_uninstall_option_cache();
 eq( 0, option_rows( 'writeleash_runner_state' ), 'uninstall removed durable runner authority' );
-file_put_contents( $w['spec']['release'], 'go' );
+file_put_contents( $ru_release, 'go' );
 $ru_result = finish_worker( $w );
 eq( $ru_result['status'], UState::PAUSED, 'undo worker pauses after its boundary' );
 eq( $ru_result['stop'], 'DEACTIVATED', 'undo worker stop reason is the lifecycle gate' );
@@ -1009,6 +1153,7 @@ $ru_counts = undo_counts( $ru_undo );
 eq( $ru_counts['undone'], 1, 'exactly one durable UNDONE outcome' );
 eq( $ru_counts['pending'], 1, 'item 2 never claimed after uninstall' );
 echo "#110 uninstall Undo multi-item race: in-flight item finishes, next item blocked PASS\n";
+echo "#110 lifecycle fence: Undo transaction wins, uninstall waits PASS\n";
 marker( 'uninstall Undo multi-item race: item 1 boundary completes, item 2 blocked by lifecycle gate' );
 
 // ---------------------------------------------------------------------------
@@ -1023,18 +1168,28 @@ $ra_plan = $ra['plan']->data()['plan_id'];
 list( $ra_id1, $ra_id2 ) = $ra['ids'];
 $ra_base1 = saves( $ra_id1 );
 $ra_base2 = saves( $ra_id2 );
+$ra_after = $work . '/ra-after-' . wp_generate_uuid4();
+$ra_release = $work . '/ra-release-' . wp_generate_uuid4();
 $w = start_worker( array(
-	'job_id' => $ra_job_id, 'mode' => 'apply', 'limits' => limits( 5 ),
+	'job_id' => $ra_job_id, 'mode' => 'apply', 'limits' => limits( 5, 60 ),
 	'apply_checkpoint' => 'AFTER_WOO_SAVE_BEFORE_JOURNAL', 'fault' => 'wait',
+	'after_item_barrier' => $ra_after, 'after_item_release' => $ra_release,
 	'lock_wait_timeout' => 30,
 ) );
 await_file( $w['spec']['barrier'] ); // item 1 Woo save executed inside the open transaction
 eq( saves( $ra_id1 ) - $ra_base1, 1, 'item 1 Woo save executed inside the uncommitted transaction' );
 eq( journal_row( $ra_plan, $ra_id1 )['state'], 'PENDING', 'item 1 journal not APPLIED before commit' );
-run_uninstall_process();
+$shutdown = start_shutdown( 'uninstall' );
+await_file( $shutdown['spec']['started'] );
+ok( lifecycle_row_locked_nowait(), 'Apply transaction holds indexed lifecycle row' );
+ok( await_shutdown_sql( $shutdown ), 'uninstall DELETE waits for Apply lifecycle lock' );
+ok( ! is_file( $shutdown['spec']['result'] ), 'uninstall blocks behind Apply lifecycle fence' );
+file_put_contents( $w['spec']['release'], 'go' );
+await_file( $ra_after );
+finish_worker( $shutdown );
 forget_uninstall_option_cache();
 eq( 0, option_rows( 'writeleash_runner_state' ), 'uninstall removed durable runner authority' );
-file_put_contents( $w['spec']['release'], 'go' );
+file_put_contents( $ra_release, 'go' );
 $ra_result = finish_worker( $w );
 eq( $ra_result['status'], JState::PAUSED, 'apply worker pauses after its boundary' );
 eq( $ra_result['stop'], 'DEACTIVATED', 'apply worker stop reason is the lifecycle gate' );
@@ -1052,6 +1207,7 @@ eq( Decimal::parse( fresh_price( $ra_id1 ) ), Decimal::parse( '80.00' ), 'item 1
 eq( Decimal::parse( fresh_price( $ra_id2 ) ), Decimal::parse( '100.00' ), 'item 2 keeps its original price' );
 eq( Repo::read( $ra_job_id )['status_reason'], 'DEACTIVATED', 'apply job durable pause reason' );
 echo "#109/#110 uninstall Apply multi-item race: in-flight item finishes, next item blocked PASS\n";
+echo "#109/#110 lifecycle fence: Apply transaction wins, uninstall waits PASS\n";
 marker( 'uninstall Apply multi-item race: item 1 boundary completes, item 2 blocked by lifecycle gate' );
 
 echo "#110 Woo 11.1.2 / MySQL+MariaDB / default+Redis matrix: PASS\n";

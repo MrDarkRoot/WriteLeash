@@ -113,26 +113,30 @@ returns `ALREADY_UNDONE` with no Woo save and no hook replay.
 
 ## Transaction, fence and mutual exclusion
 
-Deterministic global lock order (repaired for #110 blocker 3): every path
-that needs the authoritative rows takes the parent **apply job row first**,
+Deterministic global lock order: every new item claim and mutation transaction
+locks the existing indexed **lifecycle option row first**, then the parent
+**apply job row**,
 then the **Undo operation row**, then the Undo item row, then the apply job
 item / #108 journal row, then Woo product/context rows:
 
 ```
-apply job row -> Undo operation row -> Undo item row
-             -> apply job item / journal row -> Woo rows
+lifecycle option row -> apply job row -> Undo operation row
+                     -> Undo item / apply job item / journal -> Woo rows
 ```
 
-Conceptual order per Undo item: `BEGIN`, lock/verify the parent apply job
+Conceptual order per Undo item: `BEGIN`, lock/verify the active lifecycle
+option row, lock/verify the parent apply job
 row, lock the Undo operation row and verify `(lease_owner,
 lease_generation)`, lock the Undo item row, verify APPLIED evidence, fresh
 precondition plus fingerprint, Woo CRUD restore, durable UNDONE result,
-`COMMIT`. `Undo_Repository::initiate()` and the retention purge take the
-same job row first, so initiation, purge, apply workers and Undo mutation
-workers have a single serialization point and no path takes these locks in
-the opposite order (the #109 apply order job -> journal -> Woo is a
-subsequence). No deadlock cycle exists; different jobs lock independent
-rows and remain parallel.
+`COMMIT`. Initiation and purge never hold the lifecycle row: they still
+start at the parent job row; lease takeover and cancel/reaper update only
+their job/operation row; shutdown touches ONLY lifecycle, releases it and
+then cancels AS. Activation writes `active` before lease reconciliation,
+in separate autocommit operations. Thus no path takes job -> lifecycle
+while holding both, and the #109 apply order remains lifecycle -> job ->
+journal -> Woo. Shared lifecycle record locks allow different jobs to
+remain parallel; no new lock cycle exists.
 
 Initiation re-evaluates terminal status, plan binding and retention under
 the locked job row and creates the operation/items in that same
@@ -248,6 +252,33 @@ stops before the next claim. Activation durably writes `active`;
 deactivation durably writes `deactivated`. This is intentional fail-closed
 behavior: a missing lifecycle authority never enables a price mutation.
 
+The PHP read is **not** transaction authority. The same normal WordPress
+InnoDB `options` table has an exact `option_name='writeleash_runner_state'`
+predicate over the stock UNIQUE `option_name` index (engine/index verified
+before each locking read). The claim transaction and the separate Woo
+mutation transaction each issue `SELECT option_value ... WHERE
+option_name=? LOCK IN SHARE MODE` and require `active`. On both pinned
+MySQL/MariaDB engines that is a shared lock on the EXISTING indexed option
+record held to COMMIT/ROLLBACK. The item claim UPDATE additionally requires
+both the live owner/generation and `EXISTS` on that same active option row.
+Uninstall's `delete_option()` DELETE or deactivation's direct indexed UPDATE
+requires an exclusive lock on that record: if it commits first, a later
+locking read sees missing/nonactive and refuses; if the item transaction's
+shared lock wins first, shutdown waits until that item's COMMIT/ROLLBACK.
+Missing rows are never claimed to provide gap-lock exclusion: a missing
+locking read returns false and is immediately rolled back. A direct uncached
+check after uninstall's DELETE refuses to continue cleanup if `active`
+survived (or the read fails). The shutdown transition is short and precedes
+owned-AS cancellation; it does not span a batch or all of uninstall.
+
+A claim committed while active but fenced out by shutdown before Woo starts
+returns typed `DEACTIVATED`: journal remains PENDING, the claim token is
+CAS-released to PENDING, and its attempt counter is refunded (shutdown
+consumes no retry budget). Worker pauses `DEACTIVATED`, with no Woo save or
+APPLIED/UNDONE evidence. A stale generation still returns `FENCE_LOST`;
+ambiguous commits still require review. Budget exhaustion immediately
+after an item boundary also checks lifecycle before scheduling a new chunk.
+
 ### Lifecycle stages
 
 The lifecycle stages are deliberately distinct:
@@ -258,17 +289,21 @@ The lifecycle stages are deliberately distinct:
    items finish at their transactional fence boundary, and all durable
    facts stay readable. Reactivation verifies schema, reconciles stale
    apply leases and stale Undo leases, and never mutates products by itself.
-2. **Uninstall** cancels only the same three WriteLeash-owned Action
-   Scheduler groups through the public `ActionScheduler::store()` API
-   (`cancel_actions_by_group`; unrelated groups/actions and all Action
-   Scheduler tables are untouched), then removes exactly the owned option
-   names (including `writeleash_undo_schema` and `writeleash_undo_setup`)
+2. **Uninstall** deletes the runner option FIRST (waiting for any held
+   lifecycle record locks), verifies the DB row is no longer `active`, then
+   removes exactly the other owned option names (including
+   `writeleash_undo_schema` and `writeleash_undo_setup`) and cancels only
+   the same three WriteLeash-owned Action Scheduler groups through the
+   public `ActionScheduler::store()` API (`cancel_actions_by_group`);
+   unrelated actions and all Action Scheduler tables survive. The option
+   deletion/verification is the short authority transition; scheduler
+   cancellation is defense in depth. All of this runs
    through `uninstall.php`, which is DDL-free by the reviewed uninstall SQL
    classifier. Deleting `writeleash_runner_state` is the durable fail-closed
    shutdown signal: a surviving worker stops before its next claim even if
    scheduler cancellation never ran or failed. Uninstall performs no
    product deletion, no `_regular_price` rewrite, no Action Scheduler table
-   touch and no Guard/Strict object removal; it never auto-restores a price
+   deletion and no Guard/Strict object removal; it never auto-restores a price
    (`100 -> 80` stays `80`).
 3. **Durable table retention.** The plugin-owned Free tables (`jobs`, job
    items, price journal, Undo operations/items) are intentionally **not
@@ -286,8 +321,9 @@ wording asked uninstall to "remove only plugin-owned tables/options". The
 table-removal half of that candidate is deliberately superseded here and
 must **not** be claimed as satisfied. The reasons are structural, not
 cosmetic: (a) the reviewed uninstall SQL classifier forbids DDL in
-`uninstall.php`, and uninstall runs in a separate PHP request with no way
-to fence in-flight command transactions; (b) `DROP TABLE` while a surviving
+`uninstall.php`, and a short lifecycle-row shutdown fence does not justify
+dropping durable evidence that surviving/recovery workers still need;
+(b) `DROP TABLE` while a surviving
 worker still holds mutation authority is exactly the kill condition
 "uninstall can delete evidence while a surviving worker can still mutate";
 (c) dropping the tables cannot be shown to preserve #109's invariant that
@@ -352,8 +388,14 @@ cancellation, is what stops the worker.
 
 Dedicated #110 markers in the artifact report clean Undo, external-edit
 conflict, duplicate Undo, crash-before/after COMMIT, the missing-state
-fail-closed proof, the owned-AS-only uninstall proof, and the Undo/Apply
-multi-item uninstall races for both engines and both cache modes.
+fail-closed proof, owned-AS-only cleanup, and the Undo/Apply multi-item
+uninstall races. The lifecycle TOCTOU matrix adds real-process barriers
+AFTER the ordinary active read BEFORE claim (uninstall wins), AFTER the
+durable claim BEFORE mutation (uninstall wins; CAS release/refund), and
+INSIDE the fenced Woo transaction (item wins; indexed DELETE/UPDATE waits).
+Both Apply and Undo outcomes are independently checked by fresh DB and
+Woo observers on both engines and both cache modes; no timeout is a
+correctness mechanism.
 
 This issue does not build the #111 Admin screens, preview wizard, history
 page or progress dashboard; one narrow POST-only initiation endpoint

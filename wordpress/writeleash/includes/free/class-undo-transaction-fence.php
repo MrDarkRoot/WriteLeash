@@ -14,7 +14,8 @@ defined( 'ABSPATH' ) || exit;
  * that needs both rows takes the apply job row first and the Undo operation
  * row second:
  *
- *   parent apply job row -> Undo operation row -> Undo item row
+ *   indexed lifecycle option row -> parent apply job row
+ *   -> Undo operation row -> Undo item row
  *   -> apply job item / #108 journal row -> Woo product/context rows
  *
  * `Undo_Repository::initiate()` and the retention purge take the same job
@@ -42,6 +43,9 @@ final class Undo_Transaction_Fence implements Price_Apply_Transaction_Guard {
 	}
 
 	public function acquire( \wpdb $tx ): void {
+		// Shutdown contends on this existing indexed option row before any
+		// job/operation lock. The lock lives until COMMIT or ROLLBACK.
+		if ( ! Runner_Authority::lock_active( $tx ) ) { throw new Price_Apply_Error( 'DEACTIVATED' ); }
 		// 1. Parent apply job row: serializes against #109 apply workers, #110
 		// initiation and #110 retention purge (all lock this row first).
 		$jobs = Job_Schema::jobs_table( $tx );

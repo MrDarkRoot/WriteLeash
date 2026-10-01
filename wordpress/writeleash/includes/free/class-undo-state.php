@@ -30,7 +30,7 @@ final class Undo_State {
 
 	private const TRANSITIONS = array(
 		self::PENDING => array( self::RUNNING, self::PAUSED, self::CANCELLED ),
-		self::RUNNING => array( self::RUNNING, self::PAUSED, self::COMPLETED, self::COMPLETED_WITH_ISSUES, self::NEEDS_REVIEW, self::CANCELLED ),
+		self::RUNNING => array( self::RUNNING, self::PENDING, self::PAUSED, self::COMPLETED, self::COMPLETED_WITH_ISSUES, self::NEEDS_REVIEW, self::CANCELLED ),
 		self::PAUSED => array( self::PAUSED, self::RUNNING, self::CANCELLED ),
 		self::NEEDS_REVIEW => array( self::NEEDS_REVIEW, self::PAUSED, self::RUNNING, self::CANCELLED ),
 		self::COMPLETED => array(),

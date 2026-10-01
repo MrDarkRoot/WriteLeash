@@ -32,6 +32,22 @@ if ( ! empty( $spec['undo_checkpoint'] ) ) {
 		}
 	}, 10, 6 );
 }
+// A second boundary after COMMIT lets the shutdown contender acquire the
+// lifecycle row before the worker reaches its next loop/claim. This is
+// separate from the in-transaction barrier above.
+if ( ! empty( $spec['after_item_barrier'] ) ) {
+	foreach ( array( 'writeleash_job_checkpoint', 'writeleash_undo_checkpoint' ) as $hook ) {
+		add_action( $hook, static function ( $point ) use ( $spec ) {
+			if ( 'AFTER_ITEM' !== $point ) { return; }
+			file_put_contents( $spec['after_item_barrier'], (string) $GLOBALS['wpdb']->dbh->thread_id );
+			$deadline = microtime( true ) + 30;
+			while ( ! is_file( $spec['after_item_release'] ) ) {
+				if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'after-item-release-timeout' ); }
+				usleep( 10000 );
+			}
+		}, 20, 6 );
+	}
+}
 if ( ! empty( $spec['initiate_checkpoint'] ) ) {
 	add_action( 'writeleash_undo_initiate_checkpoint', static function ( $point ) use ( $spec ) {
 		if ( $point !== $spec['initiate_checkpoint'] ) { return; }

@@ -421,30 +421,54 @@ final class Undo_Repository {
 
 	/**
 	 * Claim the next bounded Undo item with a CAS that is itself fenced to the
-	 * live Undo lease. A worker whose generation was stolen cannot claim even
-	 * if it skipped its own fence check.
+	 * live Undo lease AND the locked, indexed lifecycle option row. Shutdown
+	 * cannot delete/update the row between the check and the claim COMMIT.
 	 */
 	public static function claim_next_item( int $undo_id, string $owner, string $token, int $generation ): ?array {
 		if ( ! preg_match( '/\A[a-zA-Z0-9-]{1,64}\z/D', $token ) ) { throw new Undo_Error( 'INVALID_CLAIM_TOKEN' ); }
+		$original = self::db();
+		$tx = null;
+		try {
+			$tx = new Price_Apply_Connection( $original );
+			$tx->begin();
+			if ( ! Runner_Authority::lock_active( $tx ) ) { $tx->rollback(); return null; }
+			$items = Undo_Schema::items_table( $tx );
+			$operations = Undo_Schema::operations_table( $tx );
+			$source = $tx->get_row( $tx->prepare( 'SELECT job_id FROM %i WHERE id=%d', $operations, $undo_id ), ARRAY_A );
+			if ( ! $source ) { $tx->rollback(); return null; }
+			$jobs = Job_Schema::jobs_table( $tx );
+			$job = $tx->get_row( $tx->prepare( 'SELECT id FROM %i WHERE id=%d FOR UPDATE', $jobs, (int) $source['job_id'] ), ARRAY_A );
+			if ( ! $job ) { $tx->rollback(); return null; }
+			$lease = $tx->get_row( $tx->prepare( 'SELECT lease_owner,lease_generation FROM %i WHERE id=%d FOR UPDATE', $operations, $undo_id ), ARRAY_A );
+			if ( ! $lease || $lease['lease_owner'] !== $owner || (int) $lease['lease_generation'] !== $generation ) { $tx->rollback(); return null; }
+			$tx->query( $tx->prepare( "UPDATE %i SET state=%s,reason=%s,updated_at=UTC_TIMESTAMP() WHERE undo_id=%d AND state=%s AND attempt_count>=%d", $items, Undo_Item_State::FAILED, 'RETRY_BUDGET_EXHAUSTED', $undo_id, Undo_Item_State::PENDING, self::MAX_ATTEMPTS ) );
+			for ( $attempt = 0; $attempt < 5; ++$attempt ) {
+				$candidate = $tx->get_row( $tx->prepare( "SELECT id FROM %i WHERE undo_id=%d AND state=%s AND attempt_count<%d AND (next_attempt_after IS NULL OR next_attempt_after<=UTC_TIMESTAMP()) ORDER BY sequence ASC, product_id ASC LIMIT 1", $items, $undo_id, Undo_Item_State::PENDING, self::MAX_ATTEMPTS ), ARRAY_A );
+				if ( ! $candidate ) { $tx->commit(); return null; }
+				$claimed = $tx->query( $tx->prepare(
+					"UPDATE %i SET state=%s,claim_token=%s,claim_generation=%d,attempt_count=attempt_count+1,last_attempt_at=UTC_TIMESTAMP(),next_attempt_after=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND attempt_count<%d AND EXISTS (SELECT 1 FROM %i o WHERE o.id=%d AND o.lease_owner=%s AND o.lease_generation=%d) AND EXISTS (SELECT 1 FROM %i r WHERE r.option_name=%s AND r.option_value=%s)",
+					$items, Undo_Item_State::APPLYING, $token, $generation, (int) $candidate['id'], Undo_Item_State::PENDING, self::MAX_ATTEMPTS, $operations, $undo_id, $owner, $generation, $tx->options, Runner_Authority::OPTION, 'active'
+				) );
+				if ( 1 === $claimed ) {
+					$row = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE id=%d', $items, (int) $candidate['id'] ), ARRAY_A );
+					if ( ! $row ) { throw new Undo_Error( 'CLAIM_UNAVAILABLE' ); }
+					$tx->commit();
+					return $row;
+				}
+			}
+			$tx->commit();
+			return null;
+		} catch ( \Throwable $error ) {
+			if ( $tx ) { $tx->rollback(); }
+			throw new Undo_Error( 'CLAIM_UNAVAILABLE' );
+		} finally { if ( $tx ) { $tx->rollback(); } }
+	}
+
+	/** Known lifecycle refusal BEFORE Woo restore: refund only our own claim. */
+	public static function release_lifecycle_claim( array $item, string $token ): bool {
 		$db = self::db();
 		$items = Undo_Schema::items_table( $db );
-		$operations = Undo_Schema::operations_table( $db );
-		// Bounded automatic retries: retire exhausted pending items before selecting.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded Undo retry retirement; values are prepared.
-		$db->query( $db->prepare( "UPDATE %i SET state=%s,reason=%s,updated_at=UTC_TIMESTAMP() WHERE undo_id=%d AND state=%s AND attempt_count>=%d", $items, Undo_Item_State::FAILED, 'RETRY_BUDGET_EXHAUSTED', $undo_id, Undo_Item_State::PENDING, self::MAX_ATTEMPTS ) );
-		for ( $attempt = 0; $attempt < 5; ++$attempt ) {
-			$candidate = $db->get_row( $db->prepare( "SELECT id FROM %i WHERE undo_id=%d AND state=%s AND attempt_count<%d AND (next_attempt_after IS NULL OR next_attempt_after<=UTC_TIMESTAMP()) ORDER BY sequence ASC, product_id ASC LIMIT 1", $items, $undo_id, Undo_Item_State::PENDING, self::MAX_ATTEMPTS ), ARRAY_A );
-			if ( ! $candidate ) { return null; }
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced Undo item claim CAS; identifiers and values are prepared.
-			$claimed = $db->query( $db->prepare(
-				"UPDATE %i SET state=%s,claim_token=%s,claim_generation=%d,attempt_count=attempt_count+1,last_attempt_at=UTC_TIMESTAMP(),next_attempt_after=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND attempt_count<%d AND EXISTS (SELECT 1 FROM %i o WHERE o.id=%d AND o.lease_owner=%s AND o.lease_generation=%d)",
-				$items, Undo_Item_State::APPLYING, $token, $generation, (int) $candidate['id'], Undo_Item_State::PENDING, self::MAX_ATTEMPTS, $operations, $undo_id, $owner, $generation
-			) );
-			if ( 1 === $claimed ) {
-				return $db->get_row( $db->prepare( 'SELECT * FROM %i WHERE id=%d', $items, (int) $candidate['id'] ), ARRAY_A );
-			}
-		}
-		return null;
+		return 1 === $db->query( $db->prepare( "UPDATE %i SET state=%s,reason=%s,claim_token='',claim_generation=0,attempt_count=IF(attempt_count>0,attempt_count-1,0),next_attempt_after=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d AND state IN (%s,%s) AND claim_token=%s AND claim_generation=%d", $items, Undo_Item_State::PENDING, 'DEACTIVATED', (int) $item['id'], Undo_Item_State::PENDING, Undo_Item_State::APPLYING, $token, (int) $item['claim_generation'] ) );
 	}
 
 	/** Terminal or retry transition for an Undo item under this worker's claim token. */

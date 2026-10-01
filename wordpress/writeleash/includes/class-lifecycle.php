@@ -42,7 +42,8 @@ final class Lifecycle {
 		// operations/items stay readable. No new apply or Undo claim may
 		// start; any in-flight item completes only at its transactional
 		// fence boundary.
-		update_option( 'writeleash_runner_state', 'deactivated', false );
+		try { Runner_Authority::deactivate(); }
+		catch ( \Throwable $error ) { wp_die( 'WriteLeash could not establish the deactivation boundary.' ); }
 		try {
 			Job_Scheduler::unschedule_all();
 		} catch ( \Throwable $error ) {

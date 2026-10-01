@@ -373,30 +373,54 @@ final class Job_Repository {
 
 	/**
 	 * Claim the next bounded item with a CAS that is itself fenced to the live
-	 * job lease. A worker whose generation was stolen cannot claim an item even
-	 * if it skipped its own pre-claim fence check. Returns null when none is claimable.
+	 * job lease AND the durable active lifecycle row. The claim transaction
+	 * locks lifecycle first, then evaluates the lease/job CAS, then writes the
+	 * item. Shutdown cannot delete/update the lifecycle row between the check
+	 * and the claim COMMIT. Returns null without claiming when shutdown won.
 	 */
 	public static function claim_next_item( int $job_id, string $owner, string $token, int $generation ): ?array {
 		if ( ! preg_match( '/\A[a-zA-Z0-9-]{1,64}\z/D', $token ) ) { throw new Job_Error( 'INVALID_CLAIM_TOKEN' ); }
+		$original = self::db();
+		$tx = null;
+		try {
+			$tx = new Price_Apply_Connection( $original );
+			$tx->begin();
+			if ( ! Runner_Authority::lock_active( $tx ) ) { $tx->rollback(); return null; }
+			$items = Job_Schema::items_table( $tx );
+			$jobs = Job_Schema::jobs_table( $tx );
+			$lease = $tx->get_row( $tx->prepare( 'SELECT lease_owner,lease_generation FROM %i WHERE id=%d FOR UPDATE', $jobs, $job_id ), ARRAY_A );
+			if ( ! $lease || $lease['lease_owner'] !== $owner || (int) $lease['lease_generation'] !== $generation ) { $tx->rollback(); return null; }
+			// Retirement and claim share the same lifecycle transaction.
+			$tx->query( $tx->prepare( "UPDATE %i SET state=%s,reason=%s,updated_at=UTC_TIMESTAMP() WHERE job_id=%d AND state=%s AND attempt_count>=%d", $items, Job_Item_State::FAILED, 'RETRY_BUDGET_EXHAUSTED', $job_id, Job_Item_State::PENDING, self::MAX_ATTEMPTS ) );
+			for ( $attempt = 0; $attempt < 5; ++$attempt ) {
+				$candidate = $tx->get_row( $tx->prepare( "SELECT id FROM %i WHERE job_id=%d AND state=%s AND attempt_count<%d AND (next_attempt_after IS NULL OR next_attempt_after<=UTC_TIMESTAMP()) ORDER BY sequence ASC, product_id ASC LIMIT 1", $items, $job_id, Job_Item_State::PENDING, self::MAX_ATTEMPTS ), ARRAY_A );
+				if ( ! $candidate ) { $tx->commit(); return null; }
+				// Both the live lease and the SAME durable active lifecycle row
+				// must still be present in the CAS at its transaction COMMIT.
+				$claimed = $tx->query( $tx->prepare(
+					"UPDATE %i SET state=%s,claim_token=%s,claim_generation=%d,attempt_count=attempt_count+1,last_attempt_at=UTC_TIMESTAMP(),next_attempt_after=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND attempt_count<%d AND EXISTS (SELECT 1 FROM %i j WHERE j.id=%d AND j.lease_owner=%s AND j.lease_generation=%d) AND EXISTS (SELECT 1 FROM %i r WHERE r.option_name=%s AND r.option_value=%s)",
+					$items, Job_Item_State::APPLYING, $token, $generation, (int) $candidate['id'], Job_Item_State::PENDING, self::MAX_ATTEMPTS, $jobs, $job_id, $owner, $generation, $tx->options, Runner_Authority::OPTION, 'active'
+				) );
+				if ( 1 === $claimed ) {
+					$row = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE id=%d', $items, (int) $candidate['id'] ), ARRAY_A );
+					if ( ! $row ) { throw new Job_Error( 'CLAIM_UNAVAILABLE' ); }
+					$tx->commit();
+					return $row;
+				}
+			}
+			$tx->commit();
+			return null;
+		} catch ( \Throwable $error ) {
+			if ( $tx ) { $tx->rollback(); }
+			throw new Job_Error( 'CLAIM_UNAVAILABLE' );
+		} finally { if ( $tx ) { $tx->rollback(); } }
+	}
+
+	/** Known lifecycle refusal BEFORE Woo save: release only our own claim, refund its attempt. */
+	public static function release_lifecycle_claim( array $item, string $token ): bool {
 		$db = self::db();
 		$items = Job_Schema::items_table( $db );
-		$jobs = Job_Schema::jobs_table( $db );
-		// Bounded automatic retries: retire exhausted pending items before selecting.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded retry retirement; values are prepared.
-		$db->query( $db->prepare( "UPDATE %i SET state=%s,reason=%s,updated_at=UTC_TIMESTAMP() WHERE job_id=%d AND state=%s AND attempt_count>=%d", $items, Job_Item_State::FAILED, 'RETRY_BUDGET_EXHAUSTED', $job_id, Job_Item_State::PENDING, self::MAX_ATTEMPTS ) );
-		for ( $attempt = 0; $attempt < 5; ++$attempt ) {
-			$candidate = $db->get_row( $db->prepare( "SELECT id FROM %i WHERE job_id=%d AND state=%s AND attempt_count<%d AND (next_attempt_after IS NULL OR next_attempt_after<=UTC_TIMESTAMP()) ORDER BY sequence ASC, product_id ASC LIMIT 1", $items, $job_id, Job_Item_State::PENDING, self::MAX_ATTEMPTS ), ARRAY_A );
-			if ( ! $candidate ) { return null; }
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced item claim CAS; identifiers and values are prepared.
-			$claimed = $db->query( $db->prepare(
-				"UPDATE %i SET state=%s,claim_token=%s,claim_generation=%d,attempt_count=attempt_count+1,last_attempt_at=UTC_TIMESTAMP(),next_attempt_after=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND attempt_count<%d AND EXISTS (SELECT 1 FROM %i j WHERE j.id=%d AND j.lease_owner=%s AND j.lease_generation=%d)",
-				$items, Job_Item_State::APPLYING, $token, $generation, (int) $candidate['id'], Job_Item_State::PENDING, self::MAX_ATTEMPTS, $jobs, $job_id, $owner, $generation
-			) );
-			if ( 1 === $claimed ) {
-				return $db->get_row( $db->prepare( 'SELECT * FROM %i WHERE id=%d', $items, (int) $candidate['id'] ), ARRAY_A );
-			}
-		}
-		return null;
+		return 1 === $db->query( $db->prepare( "UPDATE %i SET state=%s,reason=%s,claim_token='',claim_generation=0,attempt_count=IF(attempt_count>0,attempt_count-1,0),next_attempt_after=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND claim_token=%s AND claim_generation=%d", $items, Job_Item_State::PENDING, 'DEACTIVATED', (int) $item['id'], Job_Item_State::APPLYING, $token, (int) $item['claim_generation'] ) );
 	}
 
 	/** Terminal or retry transition for an item under this worker's claim token. */

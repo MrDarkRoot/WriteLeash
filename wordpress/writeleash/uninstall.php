@@ -20,6 +20,20 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) || ! defined( 'ABSPATH' ) ) {
 // cleanup is skipped safely and the fail-closed runner gate still stops new
 // claims. No Action Scheduler table is dropped, truncated or deleted.
 
+// Shutdown must be the FIRST write. delete_option() issues the indexed DELETE
+// against the very record locked by an in-flight claim/item transaction. It
+// waits for that transaction to finish; once deleted, later locking reads
+// find no active row and refuse. A missing row is already fail-closed. Check
+// DB truth independently because a stale WP option cache could make
+// delete_option() return without issuing a DELETE.
+global $wpdb;
+delete_option( 'writeleash_runner_state' );
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Independent uncached DB verification of the safety-critical shutdown; the option cache can be stale across processes.
+$writeleash_state = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name=%s LIMIT 1', $wpdb->options, 'writeleash_runner_state' ) );
+if ( '' !== (string) $wpdb->last_error || 'active' === $writeleash_state ) {
+	wp_die( 'WriteLeash uninstall could not establish the runner shutdown boundary.' );
+}
+
 // Exact-name deletion only: no wildcard or LIKE-based option cleanup runs here.
 delete_option( 'writeleash_version' );
 delete_option( 'writeleash_certified_operation_state' );
@@ -32,7 +46,6 @@ delete_option( 'writeleash_operation_budget_redirection_5_5_2_bulk_disable' );
 // fail-closed shutdown signal.
 delete_option( 'writeleash_job_schema' );
 delete_option( 'writeleash_job_setup' );
-delete_option( 'writeleash_runner_state' );
 // #110 Undo/history/retention metadata, deleted by exact name only. Durable
 // Undo tables are retained under the same operator lifecycle as #109: the
 // reviewed uninstall SQL classifier forbids DDL here, so no surviving worker

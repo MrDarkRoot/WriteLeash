@@ -16,7 +16,10 @@ defined( 'ABSPATH' ) || exit;
  *
  * Lease expiry alone only makes takeover eligible; it never revokes an
  * in-flight transaction. Lock order across the item path is:
- * job fence row -> #108 journal row -> Woo product/meta/lookup rows.
+ * indexed lifecycle option row -> job fence row -> #108 journal row
+ * -> Woo product/meta/lookup rows. Shutdown's indexed UPDATE/DELETE waits
+ * for the lifecycle lock through COMMIT/ROLLBACK; a missing row refuses
+ * before Woo mutation (no gap-lock authorization).
  * No path takes these locks in the opposite order, so no lock cycle exists.
  */
 final class Job_Transaction_Fence implements Price_Apply_Transaction_Guard {
@@ -33,6 +36,7 @@ final class Job_Transaction_Fence implements Price_Apply_Transaction_Guard {
 	}
 
 	public function acquire( \wpdb $tx ): void {
+		if ( ! Runner_Authority::lock_active( $tx ) ) { throw new Price_Apply_Error( 'DEACTIVATED' ); }
 		$table = Job_Schema::jobs_table( $tx );
 		$row = $tx->get_row( $tx->prepare( 'SELECT lease_owner,lease_generation FROM %i WHERE id=%d FOR UPDATE', $table, $this->job_id ), ARRAY_A );
 		$this->connection_id = (int) $tx->dbh->thread_id;

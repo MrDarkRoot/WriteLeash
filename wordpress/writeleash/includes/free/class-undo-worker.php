@@ -116,6 +116,10 @@ final class Undo_Worker {
 			Undo_Repository::finish_chunk( $current, $owner, $generation, $status, $loop['pause'] );
 			return self::result( $undo_id, $loop['pause'], $processed, null, $generation );
 		}
+		if ( ! self::runner_active() ) {
+			Undo_Repository::finish_chunk( $current, $owner, $generation, Undo_State::PAUSED, 'DEACTIVATED' );
+			return self::result( $undo_id, 'DEACTIVATED', $processed, null, $generation );
+		}
 		$counts = Undo_Repository::counts( $undo_id );
 		if ( 0 === $counts['pending'] && 0 === $counts['applying'] ) {
 			$terminal = Undo_Repository::derive_terminal_status( $counts );
@@ -143,10 +147,12 @@ final class Undo_Worker {
 			if ( $processed >= $limits['max_items'] ) { $stop = 'UNDO_BATCH_LIMIT'; break; }
 			if ( microtime( true ) - $started >= $limits['budget_seconds'] ) { $stop = 'UNDO_BUDGET_EXHAUSTED'; break; }
 			if ( ! self::runner_active() ) { $pause = 'DEACTIVATED'; break; }
+			self::checkpoint( 'AFTER_RUNNER_ACTIVE_BEFORE_CLAIM', $undo_id, $job_id, 0, $generation, '' );
 			if ( ! Undo_Repository::renew_lease( $undo_id, $owner, $generation ) ) { $stop = 'FENCE_LOST'; break; }
 			$token = wp_generate_uuid4();
 			$item = Undo_Repository::claim_next_item( $undo_id, $owner, $token, $generation );
 			if ( ! $item ) {
+				if ( ! self::runner_active() ) { $pause = 'DEACTIVATED'; break; }
 				$stop = Undo_Repository::fence( $undo_id, $owner, $generation ) ? 'NO_ITEMS' : 'FENCE_LOST';
 				break;
 			}
@@ -157,6 +163,11 @@ final class Undo_Worker {
 				break;
 			}
 			$outcome = self::attempt_item( $undo_id, $job_id, $owner, $generation, $plan, $item, $token );
+			if ( ! empty( $outcome['lifecycle_lost'] ) ) {
+				Undo_Repository::refresh_counters( $wpdb, $undo_id );
+				$pause = 'DEACTIVATED';
+				break;
+			}
 			if ( ! empty( $outcome['fence_lost'] ) ) { $stop = 'FENCE_LOST'; break; }
 			++$processed;
 			Undo_Repository::refresh_counters( $wpdb, $undo_id );
@@ -193,6 +204,12 @@ final class Undo_Worker {
 		// The mutator persists terminal states itself; adopt durable truth.
 		$fresh = Undo_Repository::read_item( self::db(), $job_id, $product_id );
 		$own_attempt = is_array( $result ) && isset( $result['attempt_id'] ) ? (string) $result['attempt_id'] : '';
+		if ( 'DEACTIVATED' === $code ) {
+			if ( ! $fresh || ! Undo_Repository::release_lifecycle_claim( $fresh, $token ) ) {
+				return array( 'pause' => null, 'review' => false, 'fence_lost' => true );
+			}
+			return array( 'pause' => 'DEACTIVATED', 'review' => false, 'lifecycle_lost' => true );
+		}
 		if ( $fresh && Undo_Item_State::UNDONE === $fresh['state'] ) {
 			Undo_Repository::clear_claim( (int) $fresh['id'], $token );
 			// Our own commit with a lost acknowledgement is ambiguous, never

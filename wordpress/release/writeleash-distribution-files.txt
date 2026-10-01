@@ -44,6 +44,7 @@ includes/free/class-price-decimal.php
 includes/free/class-price-operation.php
 includes/free/class-product-selector.php
 includes/free/class-product-snapshot.php
+includes/free/class-runner-authority.php
 includes/free/class-safety-policy.php
 includes/free/class-undo-fingerprint.php
 includes/free/class-undo-repository.php

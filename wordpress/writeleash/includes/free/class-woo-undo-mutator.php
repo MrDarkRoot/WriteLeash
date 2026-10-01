@@ -173,7 +173,7 @@ final class Woo_Undo_Mutator {
 			if ( $had_transaction && ! $rolled_back && 'AMBIGUOUS_COMMIT' !== $reason ) { $reason = 'TRANSACTION_LOST'; }
 			$wpdb = $original;
 			$review = $committed || in_array( $reason, array( 'TRANSACTION_LOST', 'AMBIGUOUS_COMMIT', 'CACHE_VERIFICATION_FAILED', 'LOOKUP_MISMATCH', 'JOURNAL_MISMATCH', 'UNDO_PROVENANCE_MISMATCH' ), true );
-			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'UNDO_CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED', 'UNDO_EXPIRED', 'UNDO_NOT_ELIGIBLE', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'FENCE_LOST' ), true ) ? $reason : 'FAILED' );
+			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'UNDO_CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED', 'UNDO_EXPIRED', 'UNDO_NOT_ELIGIBLE', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' );
 			if ( in_array( $code, array( 'UNDO_CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED' ), true ) ) { $code = 'UNDO_CONFLICT'; }
 			try {
 				// Connection loss: cleanup uses independent live DB, never a dead writer.
@@ -184,7 +184,7 @@ final class Woo_Undo_Mutator {
 					// UNDO_PENDING for an explicit retry or the authoritative newer
 					// generation. Review never auto-retries. Conflict is terminal
 					// with zero overwrite.
-					$state = $review ? Undo_Item_State::NEEDS_REVIEW : ( in_array( $code, array( 'FAILED', 'FENCE_LOST', 'TRANSACTION_UNAVAILABLE' ), true ) ? Undo_Item_State::PENDING : ( 'UNDO_CONFLICT' === $code ? Undo_Item_State::CONFLICT : Undo_Item_State::FAILED ) );
+					$state = $review ? Undo_Item_State::NEEDS_REVIEW : ( in_array( $code, array( 'FAILED', 'FENCE_LOST', 'DEACTIVATED', 'TRANSACTION_UNAVAILABLE' ), true ) ? Undo_Item_State::PENDING : ( 'UNDO_CONFLICT' === $code ? Undo_Item_State::CONFLICT : Undo_Item_State::FAILED ) );
 					self::refusal( $job_id, $undo_id, $product_id, $state, $reason, $attempt );
 				}
 			} catch ( \Throwable $cleanup ) { $code = 'NEEDS_REVIEW'; $reason = 'CACHE_VERIFICATION_FAILED'; }
