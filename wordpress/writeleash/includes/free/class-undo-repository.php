@@ -23,6 +23,8 @@ final class Undo_Repository {
 	public const RETRY_BACKOFF = 5;
 	public const PAGE_LIMIT = 100;
 	public const PURGE_BATCH = 100;
+	/** Hard ceiling of the frozen #107 selection contract (1000 products). */
+	public const MAX_EVIDENCE_ROWS = 1000;
 	public const PUBLIC_ID_REGEX = '/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/D';
 
 	/** Bounded retention in days. Filterable internally; 30 is the justified initial value. */
@@ -105,6 +107,15 @@ final class Undo_Repository {
 	 * POST-only callers must authenticate, check capabilities and bind a
 	 * nonce before reaching this method. Idempotent per job.
 	 *
+	 * Concurrency (repair for #110 blocker 3): the authoritative creation
+	 * transaction locks the parent apply job row first, then the Undo
+	 * operation row, then re-evaluates terminal status, plan binding and
+	 * retention under those locks. The retention purge takes the same job
+	 * row first, so initiation and purge have exactly one serialized
+	 * outcome: either initiation commits its operation/items and purge
+	 * observes them and removes nothing, or purge commits complete deletion
+	 * and initiation refuses cleanly because the job row is gone.
+	 *
 	 * @return array the Undo operation row.
 	 */
 	public static function initiate( int $job_id, int $initiator_id ): array {
@@ -126,17 +137,37 @@ final class Undo_Repository {
 		}
 		if ( self::retention_expired_for( $job, null ) ) { throw new Undo_Error( 'UNDO_EXPIRED' ); }
 
+		global $wpdb;
 		$original = self::db();
 		$tx = null;
+		$committed = false;
 		try {
 			$tx = new Price_Apply_Connection( $original );
 			$tx->begin();
+			$wpdb = $tx;
+			self::initiate_checkpoint( 'INITIATE_BEFORE_LOCK', $job_id );
+			// 1. Parent apply job row first: the deterministic lock shared
+			// with purge and the Undo/apply mutation fences.
+			$jobs = Job_Schema::jobs_table( $tx );
+			$locked_job = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE id=%d FOR UPDATE', $jobs, $job_id ), ARRAY_A );
+			if ( ! $locked_job ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }
+			if ( ! in_array( $locked_job['status'], array( Job_State::COMPLETED, Job_State::COMPLETED_WITH_ISSUES ), true ) ) { throw new Undo_Error( 'UNDO_JOB_RUNNING' ); }
+			try { Job_Repository::assert_binding( $locked_job, $plan ); }
+			catch ( Job_Error $error ) { throw new Undo_Error( 'JOB_MATERIAL_MISMATCH' ); }
+			// 2. Undo operation row under the same lock (idempotent re-read).
 			$again = self::read_operation_by_job_locked( $tx, $job_id );
 			if ( $again ) {
 				if ( $again['plan_id'] !== $plan->data()['plan_id'] ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
 				$tx->commit();
+				$committed = true;
+				$wpdb = $original;
 				return self::read_operation_by_job( $job_id );
 			}
+			// 3. Re-evaluate retention under the lock. A winning purge either
+			// committed before this lock (job row already gone, refused above)
+			// or waits behind it and will observe the committed operation.
+			if ( self::retention_expired_for( $locked_job, null ) ) { throw new Undo_Error( 'UNDO_EXPIRED' ); }
+			self::initiate_checkpoint( 'INITIATE_AFTER_JOB_LOCK', $job_id );
 			$operations = Undo_Schema::operations_table( $tx );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable Undo initiation INSERT requires DB authority; identifiers and values are prepared.
 			if ( 1 !== $tx->query( $tx->prepare(
@@ -147,24 +178,30 @@ final class Undo_Repository {
 			}
 			$undo_id = (int) $tx->insert_id;
 			if ( $undo_id < 1 ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }
-			$eligible = self::insert_items( $tx, $undo_id, $job, $plan, $initiator_id );
+			// Reads inside insert_items use the pinned transaction connection:
+			// `$wpdb` is `$tx` here, so the frozen apply evidence is read
+			// while the job row lock excludes a concurrent purge.
+			$eligible = self::insert_items( $tx, $undo_id, $locked_job, $plan, $initiator_id );
 			if ( 0 === $eligible ) {
-				$tx->rollback();
 				throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' );
 			}
 			self::refresh_counters( $tx, $undo_id );
 			$tx->commit();
+			$committed = true;
+			$wpdb = $original;
 			$undo = self::read_operation( $undo_id );
 			if ( ! $undo ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }
 			return $undo;
 		} catch ( \Throwable $error ) {
-			if ( $tx && $tx->owns_attempt() ) { $tx->rollback(); }
+			$wpdb = $original;
+			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
 			if ( $plan ) {
 				$existing = self::read_operation_by_job( $job_id );
 				if ( $existing && $existing['plan_id'] === $plan->data()['plan_id'] ) { return $existing; }
 			}
 			throw $error instanceof Undo_Error ? $error : new Undo_Error( 'UNDO_NOT_ELIGIBLE' );
 		} finally {
+			$wpdb = $original;
 			if ( $tx ) { $tx->rollback(); }
 		}
 	}
@@ -173,6 +210,14 @@ final class Undo_Repository {
 		$table = Undo_Schema::operations_table( $db );
 		$row = $db->get_row( $db->prepare( 'SELECT * FROM %i WHERE job_id=%d FOR UPDATE', $table, $job_id ), ARRAY_A );
 		return $row ?: null;
+	}
+
+	private static function initiate_checkpoint( string $point, int $job_id ): void {
+		do_action( 'writeleash_undo_initiate_checkpoint', $point, $job_id );
+	}
+
+	private static function purge_checkpoint( string $point, int $job_id ): void {
+		do_action( 'writeleash_purge_checkpoint', $point, $job_id );
 	}
 
 	/**
@@ -652,39 +697,65 @@ final class Undo_Repository {
 
 	/**
 	 * Item page for one job: frozen apply facts joined with Undo facts and
-	 * typed reasons. Bounded, deterministic frozen-sequence order, filterable
-	 * by apply state or Undo state.
+	 * typed reasons.
+	 *
+	 * Pagination is evaluated over the complete logical result set. The #107
+	 * supported selection range reaches 1000 products, so filtering and
+	 * slicing an in-memory first page would silently truncate both plain and
+	 * filtered pages. `apply_state`/`undo_state` predicates run inside the
+	 * database query instead, and `total`/`next_offset` describe the filtered
+	 * logical set. Deterministic frozen `sequence ASC, product_id ASC` order,
+	 * bounded `limit <= 100`.
 	 */
 	public static function history_items( int $job_id, ?string $apply_state = null, ?string $undo_state = null, int $offset = 0, int $limit = 50 ): array {
 		$db = self::db();
 		if ( $offset < 0 || $limit < 1 || $limit > self::PAGE_LIMIT ) { throw new Undo_Error( 'INVALID_PAGE' ); }
+		if ( null !== $apply_state && ! in_array( $apply_state, self::apply_states(), true ) ) { throw new Undo_Error( 'INVALID_ITEM_STATE' ); }
+		if ( null !== $undo_state && ! in_array( $undo_state, self::item_states(), true ) ) { throw new Undo_Error( 'INVALID_UNDO_ITEM_STATE' ); }
 		$job = Job_Repository::read( $job_id );
 		if ( ! $job ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }
-		$operation = self::read_operation_by_job( $job_id );
-		$items = Job_Repository::items( $job_id, $apply_state, 0, self::PAGE_LIMIT );
-		// Job_Repository::items() pages from zero; slice the requested window here.
-		$items = array_slice( $items, $offset, $limit );
-		$rows = array();
-		foreach ( $items as $item ) {
-			$undo = $operation ? self::read_item( $db, $job_id, (int) $item['product_id'] ) : null;
-			if ( null !== $undo_state && ( ! $undo || $undo['state'] !== $undo_state ) ) { continue; }
-			if ( null !== $undo_state && ! in_array( $undo_state, self::item_states(), true ) ) { throw new Undo_Error( 'INVALID_UNDO_ITEM_STATE' ); }
-			$rows[] = array(
-				'product_id' => (int) $item['product_id'],
-				'sequence' => (int) $item['sequence'],
-				'expected_price' => $item['expected_price'],
-				'planned_price' => $item['planned_price'],
-				'apply_state' => $item['state'],
-				'apply_reason' => $item['reason'],
-				'applied_at' => $item['applied_at'],
-				'undo_state' => $undo ? $undo['state'] : null,
-				'undo_reason' => $undo ? $undo['reason'] : null,
-				'undo_reason_message' => $undo ? Undo_Reason::message( $undo['reason'] ) : null,
-				'restored_price' => $undo && Undo_Item_State::UNDONE === $undo['state'] ? $undo['expected_price'] : null,
-				'undone_at' => $undo ? $undo['undone_at'] : null,
+		$job_items = Job_Schema::items_table( $db );
+		$undo_items = Undo_Schema::items_table( $db );
+		$where = 'i.job_id=%d';
+		$args = array( $job_id );
+		if ( null !== $apply_state ) { $where .= ' AND i.state=%s'; $args[] = $apply_state; }
+		if ( null !== $undo_state ) { $where .= ' AND u.state=%s'; $args[] = $undo_state; }
+		$join = 'FROM %i i LEFT JOIN %i u ON u.job_id=i.job_id AND u.product_id=i.product_id WHERE ' . $where;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier-qualified join over plugin-owned tables; identifiers and values are prepared.
+		$total = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) ' . $join, $job_items, $undo_items, ...$args ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier-qualified join over plugin-owned tables; identifiers and values are prepared.
+		$rows = $db->get_results( $db->prepare( 'SELECT i.product_id,i.sequence,i.expected_price,i.planned_price,i.state AS apply_state,i.reason AS apply_reason,i.applied_at,u.state AS undo_state,u.reason AS undo_reason,u.undone_at ' . $join . ' ORDER BY i.sequence ASC, i.product_id ASC LIMIT %d OFFSET %d', $job_items, $undo_items, ...array_merge( $args, array( $limit, $offset ) ) ), ARRAY_A );
+		$items = array();
+		foreach ( $rows as $row ) {
+			$items[] = array(
+				'product_id' => (int) $row['product_id'],
+				'sequence' => (int) $row['sequence'],
+				'expected_price' => $row['expected_price'],
+				'planned_price' => $row['planned_price'],
+				'apply_state' => $row['apply_state'],
+				'apply_reason' => $row['apply_reason'],
+				'applied_at' => $row['applied_at'],
+				'undo_state' => $row['undo_state'],
+				'undo_reason' => $row['undo_reason'],
+				'undo_reason_message' => null !== $row['undo_reason'] ? Undo_Reason::message( (string) $row['undo_reason'] ) : null,
+				'restored_price' => Undo_Item_State::UNDONE === $row['undo_state'] ? $row['expected_price'] : null,
+				'undone_at' => $row['undone_at'],
 			);
 		}
-		return array( 'job_id' => $job_id, 'offset' => $offset, 'limit' => $limit, 'items' => $rows );
+		$returned = count( $items );
+		return array(
+			'job_id' => $job_id,
+			'offset' => $offset,
+			'limit' => $limit,
+			'total' => $total,
+			'items' => $items,
+			'next_offset' => $offset + $returned < $total ? $offset + $returned : null,
+		);
+	}
+
+	/** Apply item states, used only to validate history filters before querying. */
+	private static function apply_states(): array {
+		return array( Job_Item_State::PENDING, Job_Item_State::APPLYING, Job_Item_State::APPLIED, Job_Item_State::UNCHANGED, Job_Item_State::CONFLICT, Job_Item_State::FAILED, Job_Item_State::NEEDS_REVIEW, Job_Item_State::UNSUPPORTED );
 	}
 
 	// ------------------------------------------------------------------
@@ -729,17 +800,25 @@ final class Undo_Repository {
 	 * in safe logical order (Undo items, Undo operations, job items, price
 	 * journal rows, jobs). Never purges apply RUNNING/QUEUED/PAUSED/
 	 * NEEDS_REVIEW, active Undo, incomplete items, or any NEEDS_REVIEW /
-	 * UNDO_NEEDS_REVIEW evidence. Two concurrent purge workers are harmless:
-	 * every statement is idempotent and bounded.
+	 * UNDO_NEEDS_REVIEW evidence.
+	 *
+	 * Each candidate is removed in one short transaction
+	 * (`purge_job_atomic()`), so a failure can never leave partially deleted
+	 * authoritative evidence and can never be reported as success. Two
+	 * concurrent purge workers are harmless: the parent job row lock
+	 * serializes them and a candidate already gone is a no-op.
 	 *
 	 * Fresh (non-expired) rows never starve expired ones: candidates are
-	 * scanned newest-last in bounded pages until the batch is filled or no
-	 * candidates remain.
+	 * scanned oldest-first with bounded keyset pagination (`id > last`, never
+	 * `OFFSET`, which deletions would shift) until the purge batch is filled
+	 * or candidates run out.
 	 *
-	 * @return array purged counts.
+	 * @return array purged counts plus `purge_failed` (candidates whose
+	 *               transaction rolled back) and `skipped_active` (expired
+	 *               candidates still holding active/review evidence).
 	 */
 	public static function purge_expired( int $batch = 20 ): array {
-		$purged = array( 'jobs' => 0, 'job_items' => 0, 'journal_rows' => 0, 'undo_operations' => 0, 'undo_items' => 0, 'skipped_active' => 0 );
+		$purged = array( 'jobs' => 0, 'job_items' => 0, 'journal_rows' => 0, 'undo_operations' => 0, 'undo_items' => 0, 'skipped_active' => 0, 'purge_failed' => 0 );
 		if ( $batch < 1 || $batch > self::PURGE_BATCH ) { throw new Undo_Error( 'INVALID_PAGE' ); }
 		$db = self::db();
 		if ( ! Job_Schema::ready( $db ) || ! Undo_Schema::ready( $db ) ) { return $purged; }
@@ -747,9 +826,12 @@ final class Undo_Repository {
 		$processed = 0;
 		$last_id = 0;
 		while ( $processed < $batch ) {
+			$scan = max( 2, ( $batch - $processed ) * 2 );
 			// Keyset pagination: deletions shift OFFSET windows and would skip
 			// unexamined rows, while `id > last` never skips and stays bounded.
-			$candidates = $db->get_results( $db->prepare( "SELECT id FROM %i WHERE status IN ('COMPLETED','COMPLETED_WITH_ISSUES','CANCELLED') AND id>%d ORDER BY id ASC LIMIT %d", $jobs, $last_id, $batch * 2 ), ARRAY_A );
+			// Non-expired/fresh candidates never consume the purge batch, so
+			// they cannot starve older expired history.
+			$candidates = $db->get_results( $db->prepare( "SELECT id FROM %i WHERE status IN ('COMPLETED','COMPLETED_WITH_ISSUES','CANCELLED') AND id>%d ORDER BY id ASC LIMIT %d", $jobs, $last_id, $scan ), ARRAY_A );
 			if ( ! $candidates ) { break; }
 			foreach ( $candidates as $candidate ) {
 				$last_id = max( $last_id, (int) $candidate['id'] );
@@ -761,7 +843,8 @@ final class Undo_Repository {
 					if ( self::retention_expired_for( $job, $operation ) ) { ++$purged['skipped_active']; }
 					continue;
 				}
-				$purged_job = self::purge_job( $job, $operation );
+				$purged_job = self::purge_job_atomic( (int) $job['id'] );
+				if ( null === $purged_job ) { ++$purged['purge_failed']; continue; }
 				foreach ( $purged_job as $key => $count ) { $purged[$key] += $count; }
 				++$processed;
 			}
@@ -769,7 +852,12 @@ final class Undo_Repository {
 		return $purged;
 	}
 
-	/** Terminal apply status, expiry crossed, no live or ambiguous evidence anywhere. */
+	/**
+	 * Unlocked pre-check: terminal apply status, expiry crossed, no live or
+	 * ambiguous evidence anywhere. This decides whether a candidate is worth
+	 * locking; the authoritative eligibility decision is re-evaluated from
+	 * locked rows inside `purge_job_atomic()`.
+	 */
 	private static function purgeable( array $job, ?array $operation ): bool {
 		if ( ! in_array( $job['status'], array( Job_State::COMPLETED, Job_State::COMPLETED_WITH_ISSUES, Job_State::CANCELLED ), true ) ) { return false; }
 		if ( ! self::retention_expired_for( $job, $operation ) ) { return false; }
@@ -784,34 +872,101 @@ final class Undo_Repository {
 		return true;
 	}
 
-	/** Safe logical order: Undo items, Undo operations, job items, journal rows, jobs. */
-	private static function purge_job( array $job, ?array $operation ): array {
-		$purged = array( 'jobs' => 0, 'job_items' => 0, 'journal_rows' => 0, 'undo_operations' => 0, 'undo_items' => 0 );
-		$db = self::db();
-		$job_id = (int) $job['id'];
-		if ( $operation ) {
-			$undo_items = Undo_Schema::items_table( $db );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded terminal-only retention delete; values are prepared.
-			$deleted = $db->query( $db->prepare( 'DELETE FROM %i WHERE undo_id=%d LIMIT 1000', $undo_items, (int) $operation['id'] ) );
-			$purged['undo_items'] += is_int( $deleted ) ? $deleted : 0;
-			$operations = Undo_Schema::operations_table( $db );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded terminal-only retention delete; values are prepared.
-			$deleted = $db->query( $db->prepare( 'DELETE FROM %i WHERE id=%d LIMIT 1', $operations, (int) $operation['id'] ) );
-			$purged['undo_operations'] += is_int( $deleted ) ? $deleted : 0;
+	/**
+	 * One purge candidate = one short bounded transaction (repair for #110
+	 * blocker 2). Lock order, shared with initiation and the Undo mutation
+	 * fence: parent apply job row -> Undo operation row -> Undo item rows ->
+	 * apply job item rows -> journal rows. Eligibility is re-evaluated from
+	 * the locked rows; every DELETE must affect exactly the locked row count;
+	 * any SQL error, invariant mismatch, lost transaction or unexpected
+	 * state rolls the complete candidate back. The parent job row is deleted
+	 * last, so a failed child/evidence delete can never orphan or half-purge
+	 * history.
+	 *
+	 * @return array deletion counts, or `null` for a real failure that the
+	 *               caller must report as `purge_failed`, never as success.
+	 */
+	private static function purge_job_atomic( int $job_id ): ?array {
+		global $wpdb;
+		$original = $wpdb;
+		$tx = null;
+		$committed = false;
+		$zero = array( 'jobs' => 0, 'job_items' => 0, 'journal_rows' => 0, 'undo_operations' => 0, 'undo_items' => 0 );
+		try {
+			$tx = new Price_Apply_Connection( $original );
+			$tx->begin();
+			$wpdb = $tx;
+			self::purge_checkpoint( 'PURGE_AFTER_BEGIN', $job_id );
+			// 1. Parent apply job row first: the deterministic lock shared
+			// with Undo initiation and the Undo/apply mutation fences.
+			$jobs = Job_Schema::jobs_table( $tx );
+			$locked_job = $tx->get_row( $tx->prepare( 'SELECT id,schema_version,status,plan_id,completed_at,updated_at FROM %i WHERE id=%d FOR UPDATE', $jobs, $job_id ), ARRAY_A );
+			if ( ! $locked_job ) { return $zero; }
+			self::purge_checkpoint( 'PURGE_AFTER_JOB_LOCK', $job_id );
+			// 2. Undo operation row (unique by job_id) under the same lock.
+			$operations = Undo_Schema::operations_table( $tx );
+			$locked_operation = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE job_id=%d FOR UPDATE', $operations, $job_id ), ARRAY_A );
+			// 3. Authoritative eligibility from the locked rows.
+			if ( ! in_array( $locked_job['status'], array( Job_State::COMPLETED, Job_State::COMPLETED_WITH_ISSUES, Job_State::CANCELLED ), true ) ) { return $zero; }
+			if ( ! self::retention_expired_for( $locked_job, $locked_operation ) ) { return $zero; }
+			if ( $locked_operation && ( ! Undo_State::is_terminal( $locked_operation['status'] ) || Undo_State::NEEDS_REVIEW === $locked_operation['status'] ) ) { return $zero; }
+			// 4. Lock the dependent authoritative evidence.
+			$job_items = Job_Schema::items_table( $tx );
+			$locked_items = $tx->get_results( $tx->prepare( 'SELECT id,state FROM %i WHERE job_id=%d FOR UPDATE', $job_items, $job_id ), ARRAY_A );
+			if ( count( $locked_items ) > self::MAX_EVIDENCE_ROWS ) { return null; }
+			foreach ( $locked_items as $row ) {
+				if ( in_array( $row['state'], array( Job_Item_State::PENDING, Job_Item_State::APPLYING, Job_Item_State::NEEDS_REVIEW ), true ) ) { return $zero; }
+			}
+			$locked_undo_items = array();
+			if ( $locked_operation ) {
+				$undo_items = Undo_Schema::items_table( $tx );
+				$locked_undo_items = $tx->get_results( $tx->prepare( 'SELECT id,state FROM %i WHERE undo_id=%d FOR UPDATE', $undo_items, (int) $locked_operation['id'] ), ARRAY_A );
+				if ( count( $locked_undo_items ) > self::MAX_EVIDENCE_ROWS ) { return null; }
+				foreach ( $locked_undo_items as $row ) {
+					if ( in_array( $row['state'], array( Undo_Item_State::PENDING, Undo_Item_State::APPLYING, Undo_Item_State::NEEDS_REVIEW ), true ) ) { return $zero; }
+				}
+			}
+			$journal = Price_Apply_Journal::table( $tx );
+			$locked_journal = $tx->get_results( $tx->prepare( 'SELECT id FROM %i WHERE plan_id=%s FOR UPDATE', $journal, $locked_job['plan_id'] ), ARRAY_A );
+			if ( count( $locked_journal ) > self::MAX_EVIDENCE_ROWS ) { return null; }
+			// 5. Delete in the reviewed logical order; each statement must
+			// affect exactly the locked set or the whole candidate rolls back.
+			$purged = $zero;
+			if ( $locked_operation ) {
+				$undo_items = Undo_Schema::items_table( $tx );
+				self::purge_checkpoint( 'PURGE_BEFORE_UNDO_ITEMS_DELETE', $job_id );
+				if ( count( $locked_undo_items ) !== (int) $tx->query( $tx->prepare( 'DELETE FROM %i WHERE undo_id=%d', $undo_items, (int) $locked_operation['id'] ) ) ) { throw new Undo_Error( 'PURGE_INVARIANT' ); }
+				self::purge_checkpoint( 'PURGE_AFTER_UNDO_ITEMS_DELETE', $job_id );
+				self::purge_checkpoint( 'PURGE_BEFORE_UNDO_OPERATION_DELETE', $job_id );
+				if ( 1 !== (int) $tx->query( $tx->prepare( 'DELETE FROM %i WHERE id=%d', $operations, (int) $locked_operation['id'] ) ) ) { throw new Undo_Error( 'PURGE_INVARIANT' ); }
+				self::purge_checkpoint( 'PURGE_AFTER_UNDO_OPERATION_DELETE', $job_id );
+				$purged['undo_items'] = count( $locked_undo_items );
+				$purged['undo_operations'] = 1;
+			}
+			self::purge_checkpoint( 'PURGE_BEFORE_JOB_ITEMS_DELETE', $job_id );
+			if ( count( $locked_items ) !== (int) $tx->query( $tx->prepare( 'DELETE FROM %i WHERE job_id=%d', $job_items, $job_id ) ) ) { throw new Undo_Error( 'PURGE_INVARIANT' ); }
+			self::purge_checkpoint( 'PURGE_AFTER_JOB_ITEMS_DELETE', $job_id );
+			self::purge_checkpoint( 'PURGE_BEFORE_JOURNAL_DELETE', $job_id );
+			if ( count( $locked_journal ) !== (int) $tx->query( $tx->prepare( 'DELETE FROM %i WHERE plan_id=%s', $journal, $locked_job['plan_id'] ) ) ) { throw new Undo_Error( 'PURGE_INVARIANT' ); }
+			self::purge_checkpoint( 'PURGE_AFTER_JOURNAL_DELETE', $job_id );
+			self::purge_checkpoint( 'PURGE_BEFORE_JOB_DELETE', $job_id );
+			if ( 1 !== (int) $tx->query( $tx->prepare( 'DELETE FROM %i WHERE id=%d', $jobs, $job_id ) ) ) { throw new Undo_Error( 'PURGE_INVARIANT' ); }
+			self::purge_checkpoint( 'PURGE_AFTER_JOB_DELETE', $job_id );
+			$purged['jobs'] = 1;
+			$purged['job_items'] = count( $locked_items );
+			$purged['journal_rows'] = count( $locked_journal );
+			$tx->commit();
+			$committed = true;
+			$wpdb = $original;
+			return $purged;
+		} catch ( \Throwable $error ) {
+			$wpdb = $original;
+			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
+			return null;
+		} finally {
+			$wpdb = $original;
+			if ( $tx ) { $tx->rollback(); }
 		}
-		$job_items = Job_Schema::items_table( $db );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded terminal-only retention delete; values are prepared.
-		$deleted = $db->query( $db->prepare( 'DELETE FROM %i WHERE job_id=%d LIMIT 1000', $job_items, $job_id ) );
-		$purged['job_items'] += is_int( $deleted ) ? $deleted : 0;
-		$journal = Price_Apply_Journal::table( $db );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded terminal-only retention delete of this plan instance; values are prepared.
-		$deleted = $db->query( $db->prepare( 'DELETE FROM %i WHERE plan_id=%s LIMIT 1000', $journal, $job['plan_id'] ) );
-		$purged['journal_rows'] += is_int( $deleted ) ? $deleted : 0;
-		$jobs = Job_Schema::jobs_table( $db );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded terminal-only retention delete; values are prepared.
-		$deleted = $db->query( $db->prepare( 'DELETE FROM %i WHERE id=%d LIMIT 1', $jobs, $job_id ) );
-		$purged['jobs'] += is_int( $deleted ) ? $deleted : 0;
-		return $purged;
 	}
 
 	/**

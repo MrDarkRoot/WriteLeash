@@ -73,6 +73,35 @@ function start_undo( int $job_id, int $initiator = 1 ): array {
 	wp_set_current_user( $initiator );
 	return URepo::initiate( $job_id, $initiator );
 }
+/** Frozen plan + job with N changing items, deliberately not approved/applied. */
+function planned_fixture( int $count ): array {
+	wp_set_current_user( 1 );
+	$ids = array();
+	for ( $i = 0; $i < $count; ++$i ) { $ids[] = create_product( '100.00', 'publish' ); }
+	sort( $ids, SORT_NUMERIC );
+	$plan = Planner::preview( Selection::ids( $ids ), new Operation( Operation::SET, '80.00' ), new Policy( 1000, '100', '100', true, '100' ) );
+	$job = Repo::create_from_plan( $plan, 1 );
+	return array( 'plan' => $plan, 'job' => $job, 'ids' => $ids );
+}
+/** Applied terminal job with no Undo operation, already past retention expiry. */
+function expired_applied_job(): array {
+	global $wpdb;
+	$f = apply_fixture( array( 'changing' => 1 ) );
+	$job_id = (int) $f['job']['id'];
+	$wpdb->query( $wpdb->prepare( 'UPDATE %i SET completed_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 31 DAY) WHERE id=%d', Schema::jobs_table( $wpdb ), $job_id ) );
+	return array( 'job_id' => $job_id, 'product_id' => (int) $f['ids'][0], 'plan_id' => $f['plan']->data()['plan_id'] );
+}
+/** Applied job plus completed Undo operation, expired so purge may remove it. */
+function expired_undone_job( int $items = 2 ): array {
+	global $wpdb;
+	$f = apply_fixture( array( 'changing' => $items ) );
+	$job_id = (int) $f['job']['id'];
+	$operation = start_undo( $job_id );
+	run_worker( array( 'undo_id' => (int) $operation['id'], 'mode' => 'undo', 'limits' => limits( 10 ) ) );
+	$wpdb->query( $wpdb->prepare( 'UPDATE %i SET completed_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 31 DAY) WHERE id=%d', Schema::jobs_table( $wpdb ), $job_id ) );
+	$wpdb->query( $wpdb->prepare( 'UPDATE %i SET completed_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 31 DAY) WHERE id=%d', USchema::operations_table( $wpdb ), (int) $operation['id'] ) );
+	return array( 'job_id' => $job_id, 'undo_id' => (int) $operation['id'], 'ids' => $f['ids'], 'plan_id' => $f['plan']->data()['plan_id'] );
+}
 function undo_counts( int $undo_id ): array { return URepo::counts( $undo_id ); }
 function undo_row( int $job_id, int $product_id ): ?array {
 	global $wpdb;
@@ -498,6 +527,78 @@ eq( URepo::authorized( $job_row, 1 ), true, 'admin history authorized' );
 eq( UReason::message( 'UNDO_CONFLICT' ), 'The product changed after WriteLeash applied its price; the stored price was not overwritten.', 'typed reason copy' );
 marker( 'history model: pagination, filters, authorization, eligibility, expiry' );
 
+// ---------------------------------------------------------------------------
+// Blocker 1: history item pagination over the complete logical result set.
+// #107 supports up to 1000 products; a 170-item job crosses the former
+// internal 100-row window and must page/filter correctly beyond it.
+// ---------------------------------------------------------------------------
+$big = planned_fixture( 170 );
+$big_job = (int) $big['job']['id'];
+$big_ids = $big['ids'];
+$page0 = URepo::history_items( $big_job, null, null, 0, 50 );
+eq( count( $page0['items'] ), 50, 'large job page 0 has 50 items' );
+eq( $page0['total'], 170, 'large job logical total is 170' );
+eq( array_column( $page0['items'], 'product_id' ), array_slice( $big_ids, 0, 50 ), 'page 0 frozen sequence order' );
+eq( array_column( $page0['items'], 'sequence' ), range( 1, 50 ), 'page 0 frozen sequences' );
+$page1 = URepo::history_items( $big_job, null, null, 50, 50 );
+eq( array_column( $page1['items'], 'product_id' ), array_slice( $big_ids, 50, 50 ), 'page 1 frozen sequence order' );
+$page2 = URepo::history_items( $big_job, null, null, 100, 50 );
+eq( count( $page2['items'] ), 50, 'offset 100 returns items 101-150 (no hidden 100-row truncation)' );
+eq( array_column( $page2['items'], 'product_id' ), array_slice( $big_ids, 100, 50 ), 'page 2 frozen sequence order' );
+eq( array_column( $page2['items'], 'sequence' ), range( 101, 150 ), 'page 2 sequences 101-150' );
+$page3 = URepo::history_items( $big_job, null, null, 150, 50 );
+eq( count( $page3['items'] ), 20, 'offset 150 returns the remaining 20 items' );
+eq( array_column( $page3['items'], 'sequence' ), range( 151, 170 ), 'page 3 sequences 151-170' );
+eq( $page3['next_offset'], null, 'last page has no next offset' );
+$page4 = URepo::history_items( $big_job, null, null, 160, 100 );
+eq( count( $page4['items'] ), 10, 'upper supported range returns exactly the remaining rows' );
+eq( URepo::history_items( $big_job, null, null, 170, 50 )['items'], array(), 'page past the end is empty' );
+$page5 = URepo::history_items( $big_job, null, null, 150, 50 );
+eq( $page5['next_offset'], null, 'filtered envelope exposes next_offset' );
+eq( URepo::history_items( $big_job, null, null, 50, 50 )['next_offset'], 100, 'middle page exposes the next filtered offset' );
+
+// Apply-state filter runs inside the query, not over the first internal page.
+$wpdb->query( $wpdb->prepare( 'UPDATE %i SET state=%s WHERE job_id=%d AND sequence IN (120,150)', Schema::items_table( $wpdb ), IState::APPLIED, $big_job ) );
+$applied_page = URepo::history_items( $big_job, IState::APPLIED, null, 0, 50 );
+eq( count( $applied_page['items'] ), 2, 'apply-state filter is evaluated in-query' );
+eq( array_column( $applied_page['items'], 'sequence' ), array( 120, 150 ), 'apply-state matches beyond item 100' );
+eq( $applied_page['total'], 2, 'apply-state total is the filtered logical set' );
+$applied_step = URepo::history_items( $big_job, IState::APPLIED, null, 1, 1 );
+eq( $applied_step['items'][0]['sequence'], 150, 'apply-state pagination steps through the filtered set' );
+
+// Undo-state match located after item 100.
+$big_undo_public = wp_generate_uuid4();
+$wpdb->query( $wpdb->prepare(
+	"INSERT INTO $undo_ops (schema_version,job_id,plan_id,public_id,initiator_id,status,status_reason,created_at,updated_at) VALUES (%d,%d,%s,%s,1,%s,'UNDO_INITIATED',UTC_TIMESTAMP(),UTC_TIMESTAMP())",
+	USchema::SCHEMA_VERSION, $big_job, $big['plan']->data()['plan_id'], $big_undo_public, UState::PENDING
+) );
+$big_undo_id = (int) $wpdb->insert_id;
+ok( $big_undo_id > 0, 'seeded undo operation for the large job' );
+$seeded = array( 120 => UItem::UNDONE, 150 => UItem::UNDONE, 160 => UItem::CONFLICT );
+foreach ( $seeded as $sequence => $state ) {
+	$wpdb->query( $wpdb->prepare(
+		"INSERT INTO $undo_items (schema_version,job_id,undo_id,plan_id,product_id,sequence,expected_price,applied_price,apply_attempt_id,state,reason,attempt_id,attempt_count,claim_token,claim_generation,provenance,fingerprint,evidence,created_at,updated_at) VALUES (%d,%d,%d,%s,%d,%d,'100.00','80.00','seeded-attempt',%s,%s,'seeded-attempt',0,'',0,'{}',%s,'',UTC_TIMESTAMP(),UTC_TIMESTAMP())",
+		USchema::SCHEMA_VERSION, $big_job, $big_undo_id, $big['plan']->data()['plan_id'], (int) $big_ids[$sequence - 1], $sequence, $state, $state, str_repeat( '0', 64 )
+	) );
+}
+$undone_page = URepo::history_items( $big_job, null, UItem::UNDONE, 0, 50 );
+eq( count( $undone_page['items'] ), 2, 'undo-state matches beyond item 100 are not truncated' );
+eq( array_column( $undone_page['items'], 'sequence' ), array( 120, 150 ), 'undo-state matches preserve frozen order' );
+eq( $undone_page['total'], 2, 'undo-state total is the filtered logical set' );
+eq( $undone_page['items'][0]['undo_reason_message'], UReason::message( UItem::UNDONE ), 'undo-state rows join typed reason copy' );
+eq( Decimal::parse( $undone_page['items'][0]['restored_price'] ), Decimal::parse( '100.00' ), 'undo-state rows join restored price' );
+$undone_step = URepo::history_items( $big_job, null, UItem::UNDONE, 1, 1 );
+eq( $undone_step['items'][0]['sequence'], 150, 'undo-state pagination is based on the filtered logical set' );
+eq( $undone_step['next_offset'], null, 'undo-state filtered envelope next_offset' );
+$conflict_page = URepo::history_items( $big_job, null, UItem::CONFLICT, 0, 50 );
+eq( count( $conflict_page['items'] ), 1, 'undo-state conflict filter beyond item 100' );
+eq( $conflict_page['items'][0]['sequence'], 160, 'conflict match sequence' );
+$combined_page = URepo::history_items( $big_job, IState::APPLIED, UItem::UNDONE, 0, 50 );
+eq( count( $combined_page['items'] ), 2, 'apply+undo filters combine in-query' );
+eq( array_column( $combined_page['items'], 'sequence' ), array( 120, 150 ), 'combined filter matches beyond item 100' );
+eq( URepo::history_items( $big_job, IState::CONFLICT, UItem::UNDONE, 0, 50 )['items'], array(), 'non-overlapping filters return an empty filtered set' );
+marker( 'blocker 1: full-range history pagination and in-query filters beyond item 100' );
+
 // Retention expiry disables Undo honestly.
 $exp = apply_fixture( array( 'changing' => 1 ) );
 $exp_job = (int) $exp['job']['id'];
@@ -548,6 +649,124 @@ $bulk = apply_fixture( array( 'changing' => 100 ) );
 $bulk_estimate = URepo::storage_estimate();
 echo "#110 storage: rows=" . $bulk_estimate['total_rows'] . ' bytes=' . $bulk_estimate['total_bytes'] . " retention_days=" . $bulk_estimate['retention_days'] . "\n";
 marker( 'bounded purge: terminal expired only, active/review/fresh survive, concurrent safe' );
+
+// ---------------------------------------------------------------------------
+// Blocker 2: retention purge is atomic per job.
+// An injected failure at any deletion stage rolls the complete candidate
+// back; the failure is reported as purge_failed and never as success, and a
+// later clean purge removes the complete history.
+// ---------------------------------------------------------------------------
+$fault_point = '';
+$purge_fault = static function ( $point ) use ( &$fault_point ) {
+	if ( $point === $fault_point ) { throw new RuntimeException( 'injected purge failure at ' . $point ); }
+};
+add_action( 'writeleash_purge_checkpoint', $purge_fault, 10, 2 );
+$fault_points = array(
+	'PURGE_BEFORE_UNDO_ITEMS_DELETE', 'PURGE_AFTER_UNDO_ITEMS_DELETE',
+	'PURGE_BEFORE_UNDO_OPERATION_DELETE', 'PURGE_AFTER_UNDO_OPERATION_DELETE',
+	'PURGE_BEFORE_JOB_ITEMS_DELETE', 'PURGE_AFTER_JOB_ITEMS_DELETE',
+	'PURGE_BEFORE_JOURNAL_DELETE', 'PURGE_AFTER_JOURNAL_DELETE',
+	'PURGE_BEFORE_JOB_DELETE', 'PURGE_AFTER_JOB_DELETE',
+);
+foreach ( $fault_points as $point ) {
+	$fx = expired_undone_job( 2 );
+	$fault_point = $point;
+	$failed = URepo::purge_expired( 5 );
+	eq( $failed['purge_failed'], 1, 'injected failure reported as purge_failed at ' . $point );
+	eq( $failed['jobs'], 0, 'failed purge reports zero successful job deletions at ' . $point );
+	$observer = Verifier::observer();
+	try {
+		ok( null !== Repo::read( $fx['job_id'] ), 'parent job survives injected failure ' . $point );
+		eq( 2, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE job_id=%d', Schema::items_table( $observer ), $fx['job_id'] ) ), 'job items survive ' . $point );
+		eq( 2, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE plan_id=%s', Journal::table( $observer ), $fx['plan_id'] ) ), 'journal evidence survives ' . $point );
+		eq( 1, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE id=%d', USchema::operations_table( $observer ), $fx['undo_id'] ) ), 'undo operation survives ' . $point );
+		eq( 2, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE undo_id=%d', USchema::items_table( $observer ), $fx['undo_id'] ) ), 'undo items survive ' . $point );
+	} finally { $observer->close(); }
+	$fault_point = '';
+	$clean = URepo::purge_expired( 5 );
+	eq( $clean['purge_failed'], 0, 'clean purge succeeds after ' . $point );
+	ok( $clean['jobs'] >= 1, 'clean purge removes the complete eligible history after ' . $point );
+	eq( Repo::read( $fx['job_id'] ), null, 'parent job removed only by the clean purge ' . $point );
+	$observer = Verifier::observer();
+	try {
+		eq( 0, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE job_id=%d', Schema::items_table( $observer ), $fx['job_id'] ) ), 'job items removed completely ' . $point );
+		eq( 0, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE plan_id=%s', Journal::table( $observer ), $fx['plan_id'] ) ), 'journal removed completely ' . $point );
+		eq( 0, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE id=%d', USchema::operations_table( $observer ), $fx['undo_id'] ) ), 'undo operation removed completely ' . $point );
+		eq( 0, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE undo_id=%d', USchema::items_table( $observer ), $fx['undo_id'] ) ), 'undo items removed completely ' . $point );
+	} finally { $observer->close(); }
+}
+remove_action( 'writeleash_purge_checkpoint', $purge_fault, 10 );
+marker( 'blocker 2: per-job atomic purge, injected failures roll back completely' );
+
+// ---------------------------------------------------------------------------
+// Blocker 3: purge serializes safely against concurrent Undo initiation.
+// Two real processes: one initiates Undo while considering the job in
+// retention (365-day filter), the other purges while considering it expired
+// (default 30-day retention). The shared parent job row lock gives exactly
+// one serialized outcome.
+// ---------------------------------------------------------------------------
+URepo::purge_expired( 20 ); // drain any remaining expired fixtures before the race
+
+// Outcome A: Undo initiation wins; purge observes the operation and removes nothing.
+$race_a = expired_applied_job();
+$a = start_worker( array(
+	'mode' => 'initiate', 'job_id' => $race_a['job_id'], 'actor' => 1, 'retention_days' => 365,
+	'initiate_checkpoint' => 'INITIATE_AFTER_JOB_LOCK', 'fault' => 'wait', 'lock_wait_timeout' => 30,
+) );
+await_file( $a['spec']['barrier'] ); // A holds the parent job row lock inside its transaction
+$b = start_worker( array( 'mode' => 'purge', 'batch' => 5, 'lock_wait_timeout' => 30 ) );
+await_file( $b['spec']['started'] );
+usleep( 500000 );
+ok( ! is_file( $b['spec']['result'] ), 'purge is blocked behind the initiation job-row lock' );
+$observer = Verifier::observer();
+try {
+	eq( 1, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE id=%d', Schema::jobs_table( $observer ), $race_a['job_id'] ) ), 'job intact while initiation holds the lock' );
+	eq( 1, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE plan_id=%s AND product_id=%d', Journal::table( $observer ), $race_a['plan_id'], $race_a['product_id'] ) ), 'journal intact while initiation holds the lock' );
+} finally { $observer->close(); }
+file_put_contents( $a['spec']['release'], 'go' );
+$a_result = finish_worker( $a );
+ok( ! empty( $a_result['operation'] ), 'initiation commits the Undo operation' );
+$b_result = finish_worker( $b );
+eq( (int) $b_result['purged']['jobs'], 0, 'purge removes nothing when initiation won' );
+eq( (int) $b_result['purged']['purge_failed'], 0, 'no purge failure or lock timeout when initiation won' );
+$op_a = URepo::read_operation_by_job( $race_a['job_id'] );
+ok( null !== $op_a, 'undo operation exists after initiation win' );
+eq( 1, URepo::counts( (int) $op_a['id'] )['eligible'], 'undo item created from intact source evidence' );
+ok( null !== Repo::read( $race_a['job_id'] ), 'apply job evidence intact after initiation win' );
+eq( Decimal::parse( fresh_price( $race_a['product_id'] ) ), Decimal::parse( '80.00' ), 'initiation and purge mutate no product' );
+$done_a = run_worker( array( 'undo_id' => (int) $op_a['id'], 'mode' => 'undo', 'limits' => limits( 5 ), 'retention_days' => 365 ) );
+eq( $done_a['status'], UState::COMPLETED, 'source evidence intact enough to finish the Undo' );
+eq( Decimal::parse( fresh_price( $race_a['product_id'] ) ), Decimal::parse( '100.00' ), 'undo restores after the race' );
+marker( 'blocker 3 outcome A: initiation wins, purge leaves authoritative evidence alone' );
+
+// Outcome B: purge wins completely; later initiation refuses cleanly.
+$race_b = expired_applied_job();
+$b = start_worker( array(
+	'mode' => 'purge', 'batch' => 5, 'purge_checkpoint' => 'PURGE_AFTER_JOB_LOCK', 'fault' => 'wait', 'lock_wait_timeout' => 30,
+) );
+await_file( $b['spec']['barrier'] ); // B holds the parent job row lock inside its transaction
+$a = start_worker( array(
+	'mode' => 'initiate', 'job_id' => $race_b['job_id'], 'actor' => 1, 'retention_days' => 365, 'lock_wait_timeout' => 30,
+) );
+await_file( $a['spec']['started'] );
+usleep( 500000 );
+ok( ! is_file( $a['spec']['result'] ), 'initiation is blocked behind the purge job-row lock' );
+file_put_contents( $b['spec']['release'], 'go' );
+$b_result = finish_worker( $b );
+eq( (int) $b_result['purged']['jobs'], 1, 'purge wins completely' );
+eq( (int) $b_result['purged']['purge_failed'], 0, 'no purge failure or lock timeout when purge won' );
+$a_result = finish_worker( $a );
+eq( $a_result['error'] ?? null, 'UNDO_NOT_ELIGIBLE', 'initiation refuses cleanly after complete purge' );
+$observer = Verifier::observer();
+try {
+	eq( 0, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE id=%d', Schema::jobs_table( $observer ), $race_b['job_id'] ) ), 'job removed completely after purge win' );
+	eq( 0, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE plan_id=%s', Journal::table( $observer ), $race_b['plan_id'] ) ), 'journal removed completely after purge win' );
+	eq( 0, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE job_id=%d', Schema::items_table( $observer ), $race_b['job_id'] ) ), 'job items removed completely after purge win' );
+	eq( 0, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE job_id=%d', USchema::operations_table( $observer ), $race_b['job_id'] ) ), 'no orphan undo operation after purge win' );
+	eq( 0, (int) $observer->get_var( $observer->prepare( 'SELECT COUNT(*) FROM %i WHERE job_id=%d', USchema::items_table( $observer ), $race_b['job_id'] ) ), 'no orphan undo items after purge win' );
+} finally { $observer->close(); }
+eq( Decimal::parse( fresh_price( $race_b['product_id'] ) ), Decimal::parse( '80.00' ), 'purge and refused initiation mutate no product' );
+marker( 'blocker 3 outcome B: purge wins completely, initiation refuses with zero orphans' );
 
 // ---------------------------------------------------------------------------
 // Deactivation during Undo, then reactivation resumes without auto-mutation.

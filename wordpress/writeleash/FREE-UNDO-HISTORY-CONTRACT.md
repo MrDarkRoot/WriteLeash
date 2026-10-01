@@ -113,14 +113,40 @@ returns `ALREADY_UNDONE` with no Woo save and no hook replay.
 
 ## Transaction, fence and mutual exclusion
 
-Conceptual order per Undo item: `BEGIN`, lock Undo operation row and verify
-`(lease_owner, lease_generation)`, lock the parent apply job row (shared
-with the #109 fence), lock the Undo item row, verify APPLIED evidence,
-fresh precondition plus fingerprint, Woo CRUD restore, durable UNDONE
-result, `COMMIT`. Deterministic lock order across the Undo path is
-operation row -> job row -> Undo item row -> journal row -> Woo rows; the
-apply path order (job row -> journal row -> Woo rows) is a subsequence, so
-no lock cycle exists.
+Deterministic global lock order (repaired for #110 blocker 3): every path
+that needs the authoritative rows takes the parent **apply job row first**,
+then the **Undo operation row**, then the Undo item row, then the apply job
+item / #108 journal row, then Woo product/context rows:
+
+```
+apply job row -> Undo operation row -> Undo item row
+             -> apply job item / journal row -> Woo rows
+```
+
+Conceptual order per Undo item: `BEGIN`, lock/verify the parent apply job
+row, lock the Undo operation row and verify `(lease_owner,
+lease_generation)`, lock the Undo item row, verify APPLIED evidence, fresh
+precondition plus fingerprint, Woo CRUD restore, durable UNDONE result,
+`COMMIT`. `Undo_Repository::initiate()` and the retention purge take the
+same job row first, so initiation, purge, apply workers and Undo mutation
+workers have a single serialization point and no path takes these locks in
+the opposite order (the #109 apply order job -> journal -> Woo is a
+subsequence). No deadlock cycle exists; different jobs lock independent
+rows and remain parallel.
+
+Initiation re-evaluates terminal status, plan binding and retention under
+the locked job row and creates the operation/items in that same
+transaction. The authoritative purge transaction takes the same locks and
+re-evaluates eligibility from the locked rows before deleting. Concurrent
+initiation vs purge therefore has exactly two safe, serializable outcomes:
+(A) initiation wins and commits the operation/items; purge observes the
+non-terminal operation and removes nothing; or (B) purge wins and commits
+complete deletion; initiation then finds no job row and refuses cleanly
+with `UNDO_NOT_ELIGIBLE`. Partial purge, orphan Undo rows and Undo created
+against missing journal evidence are structurally impossible. The race is
+tested with two real processes and a deterministic barrier at the job-row
+lock, in both orderings, on both engines/cache modes; neither mutates a
+product.
 
 A job is Undo-eligible only in `COMPLETED`/`COMPLETED_WITH_ISSUES`: states
 in which no apply worker can acquire a lease or claim an item. A `RUNNING`
@@ -159,10 +185,15 @@ Backend history models (no #111 UI): a recent-jobs page (`job ID/public
 ID`, created/approved/completed timestamps, apply counts, Undo counts,
 `undo_eligible`, `undo_expires_at`, typed reasons), a job summary, and an
 item page with apply and Undo states plus reason messages. Pagination is
-bounded (`limit <= 100`) with deterministic ordering; item reads filter by
-apply or Undo state. History reads are scoped by creator/approver/admin
-policy; possession of a public ID grants nothing. No sensitive data is
-stored.
+bounded (`limit <= 100`) with deterministic ordering. History item pages are
+evaluated over the **complete logical result set** (repaired for #110
+blocker 1): `apply_state` and `undo_state` filters run inside one
+identifier-qualified `LEFT JOIN` query and the page envelope exposes
+`total`/`next_offset` for the filtered set, so offsets through the full
+1000-product #107 selection range and matches beyond item 100 are never
+truncated by an internal read window. History reads are scoped by
+creator/approver/admin policy; possession of a public ID grants nothing. No
+sensitive data is stored.
 
 Retention is 30 days by default, filterable internally through
 `writeleash_history_retention_days` (clamped 1..3650). The clock basis is
@@ -171,46 +202,74 @@ terminal apply `completed_at`, extended by Undo `completed_at`; never
 is exposed. Storage evidence (row counts and table bytes for 100/1000-item
 jobs) justifies the bound; see the lab activity record.
 
-Purge is bounded (`LIMIT` deletes, at most 100 jobs per call), idempotent
-(two concurrent purge workers are harmless), and restricted to terminal,
-expiry-crossed history: apply `COMPLETED`/`COMPLETED_WITH_ISSUES`/
-`CANCELLED` with no pending/applying/review items, and (if present) a
-terminal non-review Undo operation with no pending/applying/review items.
-`RUNNING`, `QUEUED`, `PAUSED`, `NEEDS_REVIEW`, active Undo, incomplete
-apply/Undo and any `*_NEEDS_REVIEW` evidence are never purged. Safe logical
-order: Undo items, Undo operations, job items, price journal rows of that
-plan instance, jobs. Fresh rows never starve expired ones: candidates are
-scanned oldest-first with bounded keyset pagination (`id > last`, never
-`OFFSET`, which deletions would shift) until the batch fills or candidates
-run out. Row accounting uses exact `COUNT(*)` per table, never stale
-InnoDB estimates. Action Scheduler (group `writeleash-maintenance`) is
-the wake-up only; purge eligibility comes from durable timestamps.
+Purge is bounded, idempotent (two concurrent purge workers are harmless),
+and restricted to terminal, expiry-crossed history: apply `COMPLETED`/
+`COMPLETED_WITH_ISSUES`/`CANCELLED` with no pending/applying/review items,
+and (if present) a terminal non-review Undo operation with no
+pending/applying/review items. `RUNNING`, `QUEUED`, `PAUSED`,
+`NEEDS_REVIEW`, active Undo, incomplete apply/Undo and any
+`*_NEEDS_REVIEW` evidence are never purged.
 
-## Lifecycle, uninstall and side-effect boundary
+One purge candidate = one short bounded transaction (repaired for #110
+blocker 2). The transaction locks the parent job row first, then the Undo
+operation row, then all Undo item/job item/journal rows, re-evaluates the
+complete eligibility decision from those locked rows, deletes in the
+reviewed logical order (Undo items, Undo operations, job items, journal
+rows of that plan instance, job row last), requires every `DELETE` to
+affect exactly the locked row count, and commits only when all deletes
+succeed. Any SQL error, invariant mismatch, lost transaction or unexpected
+state rolls the whole candidate back; the failure is reported as
+`purge_failed`, never as success, and the parent job row is never deleted
+after a failed child/evidence delete. A later clean purge removes the
+complete history. No global transaction spans multiple jobs. Evidence
+counts are bounded by the frozen #107 selection ceiling before any delete,
+so no unbounded `DELETE` runs. Fresh rows never starve expired ones:
+candidates are scanned oldest-first with bounded keyset pagination
+(`id > last`, never `OFFSET`, which deletions would shift) until the batch
+fills or candidates run out; row accounting uses exact `COUNT(*)` per
+table, never stale InnoDB estimates. Action Scheduler (group
+`writeleash-maintenance`) is the wake-up only; purge eligibility comes from
+durable timestamps.
 
-Deactivation sets `writeleash_runner_state = deactivated` and cancels only
-the owned scheduler groups (`writeleash-jobs`, `writeleash-undo`,
-`writeleash-maintenance`); workers stop at the next boundary, in-flight
-items finish at their transactional fence boundary, and all durable facts
-stay readable. Reactivation verifies schema, reconciles stale apply leases
-and stale Undo leases, and never mutates products by itself.
+## Lifecycle, deactivation, uninstall and table retention
 
-Uninstall removes exactly the owned option names (including
-`writeleash_undo_schema` and `writeleash_undo_setup`) and cancels nothing
-beyond what deactivation already cancelled. Deliberate, reviewed deviation
-from the issue's candidate sketch: durable Free tables (jobs, job items,
-price journal, Undo operations/items) are NOT dropped by `uninstall.php`.
-The reviewed uninstall SQL classifier forbids DDL there, and dropping
-tables from the uninstall process cannot be fenced against a surviving
-worker; retaining tables keeps the kill condition (evidence deleted while
-a worker still mutates) structurally false, preserves Woo product rows,
-Action Scheduler tables and Guard/Strict objects untouched, and leaves no
-worker changing prices without its journal. A product applied `100 -> 80`
-stays `80` after uninstall; uninstall never auto-restores. The safe
-shutdown barrier (no new claims after deactivation authority, in-flight
-drain at the fence boundary, owned-action cancellation, evidence-first
-conservatism) is implemented and race-tested; table removal remains
-operator lifecycle, exactly as #109 established for job tables.
+The three lifecycle stages are deliberately distinct:
+
+1. **Deactivation** sets `writeleash_runner_state = deactivated` and cancels
+   only the owned scheduler groups (`writeleash-jobs`, `writeleash-undo`,
+   `writeleash-maintenance`); no new apply or Undo claim starts, in-flight
+   items finish at their transactional fence boundary, and all durable
+   facts stay readable. Reactivation verifies schema, reconciles stale
+   apply leases and stale Undo leases, and never mutates products by itself.
+2. **Uninstall option cleanup** removes exactly the owned option names
+   (including `writeleash_undo_schema` and `writeleash_undo_setup`) through
+   `uninstall.php`, which is DDL-free by the reviewed uninstall SQL
+   classifier. Uninstall performs no product deletion, no `_regular_price`
+   rewrite, no Action Scheduler table touch and no Guard/Strict object
+   removal; it never auto-restores a price (`100 -> 80` stays `80`).
+3. **Durable table retention.** The plugin-owned Free tables (`jobs`, job
+   items, price journal, Undo operations/items) are intentionally **not
+   dropped** by uninstall. They remain until the operator lifecycle, and
+   their rows are removed only by the bounded retention purge once they are
+   terminal, expiry-crossed and not active/review/incomplete.
+
+**Explicit acknowledgment for maintainer review:** issue #110's candidate
+wording asked uninstall to "remove only plugin-owned tables/options". The
+table-removal half of that candidate is deliberately superseded here and
+must **not** be claimed as satisfied. The reasons are structural, not
+cosmetic: (a) the reviewed uninstall SQL classifier forbids DDL in
+`uninstall.php`, and uninstall runs in a separate PHP request with no way
+to fence in-flight command transactions; (b) `DROP TABLE` while a surviving
+worker still holds mutation authority is exactly the kill condition
+"uninstall can delete evidence while a surviving worker can still mutate";
+(c) dropping the tables cannot be shown to preserve #109's invariant that
+journal evidence outlives any writer. Retaining tables makes that kill
+condition structurally false and preserves Woo product rows, Action
+Scheduler tables and Guard/Strict objects untouched. The maintainer decides
+whether to amend the issue text before merge; the Free cleanup never
+becomes unsafe `DROP TABLE` behavior merely to match old wording.
+
+### External side-effect boundary
 
 Hook/external side effects: the Undo Woo save fires hooks once (synthetic
 hook fixture: apply 1, Undo 1, `ALREADY_UNDONE` retry 0). The original
@@ -236,9 +295,23 @@ evidence; deactivation during Undo; uninstall idle and uninstall-vs-worker
 races; history pagination/authorization/expiry; bounded purge that skips
 active/review/incomplete evidence; retention storage bounds.
 
+Blocker-repair regressions: a 170-item job pages `offset=0/50/100/150` and
+`offset=160,limit=100` over the complete logical set with in-query
+`apply_state`/`undo_state` filters whose matches sit beyond item 100 and
+whose paginated `total`/`next_offset` describe the filtered set; ten
+deterministic purge failure-injection points (before/after each of the five
+deletion stages) each report `purge_failed` with a fresh-observer oracle
+proving job/job-items/journal/Undo-operation/Undo-items all survive, and a
+later clean purge removes the complete history; and the initiation-vs-purge
+race runs as two real processes with a deterministic job-row-lock barrier
+in both orderings (initiation wins => purge removes nothing and the
+intact evidence still completes the Undo; purge wins => complete deletion
+with zero orphan rows and a clean `UNDO_NOT_ELIGIBLE` refusal), with no
+lock timeout and no product mutation in either outcome.
+
 Dedicated #110 markers in the artifact report clean Undo, external-edit
-conflict, duplicate Undo, crash-before/after COMMIT and the uninstall race
-for both engines and both cache modes.
+conflict, duplicate Undo, crash-before/after COMMIT, the uninstall race and
+the blocker-repair sections for both engines and both cache modes.
 
 This issue does not build the #111 Admin screens, preview wizard, history
 page or progress dashboard; one narrow POST-only initiation endpoint

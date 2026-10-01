@@ -11,6 +11,13 @@ global $wpdb;
 if ( ! empty( $spec['lock_wait_timeout'] ) ) { $wpdb->query( 'SET SESSION innodb_lock_wait_timeout = ' . (int) $spec['lock_wait_timeout'] ); }
 file_put_contents( $spec['started'], (string) getmypid() );
 
+// Per-process retention override for the initiation-vs-purge race test: one
+// process legitimately considers a job in retention while another considers
+// it expired, so both race for the same authoritative job row.
+if ( ! empty( $spec['retention_days'] ) ) {
+	add_filter( 'writeleash_history_retention_days', static function () use ( $spec ) { return (int) $spec['retention_days']; } );
+}
+
 if ( ! empty( $spec['undo_checkpoint'] ) ) {
 	add_action( 'writeleash_undo_checkpoint', static function ( $point ) use ( $spec ) {
 		if ( $point !== $spec['undo_checkpoint'] ) { return; }
@@ -24,6 +31,34 @@ if ( ! empty( $spec['undo_checkpoint'] ) ) {
 			}
 		}
 	}, 10, 6 );
+}
+if ( ! empty( $spec['initiate_checkpoint'] ) ) {
+	add_action( 'writeleash_undo_initiate_checkpoint', static function ( $point ) use ( $spec ) {
+		if ( $point !== $spec['initiate_checkpoint'] ) { return; }
+		file_put_contents( $spec['barrier'], $point . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
+		if ( 'throw' === ( $spec['fault'] ?? '' ) ) { throw new RuntimeException( 'controlled-initiate-fault' ); }
+		if ( 'wait' === ( $spec['fault'] ?? '' ) ) {
+			$deadline = microtime( true ) + 30;
+			while ( ! is_file( $spec['release'] ) ) {
+				if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'release-timeout' ); }
+				usleep( 10000 );
+			}
+		}
+	}, 10, 2 );
+}
+if ( ! empty( $spec['purge_checkpoint'] ) ) {
+	add_action( 'writeleash_purge_checkpoint', static function ( $point ) use ( $spec ) {
+		if ( $point !== $spec['purge_checkpoint'] ) { return; }
+		file_put_contents( $spec['barrier'], $point . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
+		if ( 'throw' === ( $spec['fault'] ?? '' ) ) { throw new RuntimeException( 'controlled-purge-fault' ); }
+		if ( 'wait' === ( $spec['fault'] ?? '' ) ) {
+			$deadline = microtime( true ) + 30;
+			while ( ! is_file( $spec['release'] ) ) {
+				if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'release-timeout' ); }
+				usleep( 10000 );
+			}
+		}
+	}, 10, 2 );
 }
 if ( ! empty( $spec['job_checkpoint'] ) ) {
 	add_action( 'writeleash_job_checkpoint', static function ( $point ) use ( $spec ) {
@@ -59,6 +94,13 @@ if ( 'undo-callback' === $mode ) {
 	$result = array( 'callback' => true );
 } elseif ( 'apply' === $mode ) {
 	$result = WriteLeash\Job_Worker::run( (int) $spec['job_id'], $limits, ! empty( $spec['manual'] ) );
+} elseif ( 'initiate' === $mode ) {
+	try {
+		$operation = WriteLeash\Undo_Repository::initiate( (int) $spec['job_id'], (int) ( $spec['actor'] ?? 1 ) );
+		$result = array( 'operation' => (int) $operation['id'], 'status' => $operation['status'] );
+	} catch ( \Throwable $error ) {
+		$result = array( 'error' => $error instanceof WriteLeash\Undo_Error ? $error->reason() : 'EXCEPTION' );
+	}
 } elseif ( 'purge' === $mode ) {
 	$result = array( 'purged' => WriteLeash\Undo_Repository::purge_expired( (int) ( $spec['batch'] ?? 20 ) ) );
 } else {
