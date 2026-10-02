@@ -11,7 +11,7 @@ global $wpdb, $wl112_cookies, $result_file;
 $wl112_cookies = array();
 $size = (int) getenv( 'WL112_SIZE' );
 $result_file = '/evidence/' . DB_HOST . '-' . $size . '.json';
-$facts = array( 'git_sha' => getenv( 'WL112_SHA' ), 'wp' => get_bloginfo( 'version' ), 'woo' => WC_VERSION, 'php' => PHP_VERSION, 'db' => $wpdb->get_var( 'SELECT VERSION()' ), 'cache' => wp_using_ext_object_cache() ? 'Redis 7.4.2 / Redis Object Cache 2.7.0 / Predis' : 'default', 'catalog_size' => $size, 'requested_job_size' => $size, 'outcome' => 'STARTED', 'fixture_php_memory_limit' => ini_get( 'memory_limit' ) );
+$facts = array( 'git_sha' => getenv( 'WL112_SHA' ), 'wp' => get_bloginfo( 'version' ), 'woo' => WC_VERSION, 'php' => PHP_VERSION, 'db' => $wpdb->get_var( 'SELECT VERSION()' ), 'cache' => wp_using_ext_object_cache() ? 'Redis 7.4.2 / Redis Object Cache 2.7.0 / Predis' : 'default', 'fixture_product_count' => $size, 'catalog_size' => null, 'requested_job_size' => $size, 'outcome' => 'STARTED', 'fixture_php_memory_limit' => ini_get( 'memory_limit' ) );
 function wl112_save( array $facts ): void {
     global $result_file;
     $facts['request_end_line'] = is_file( getenv( 'WL112_METRICS' ) ) ? count( file( getenv( 'WL112_METRICS' ) ) ) : 0;
@@ -95,6 +95,10 @@ try {
     $facts['fixture_seconds'] = microtime( true ) - $t;
     $facts['fixture_queries'] = $wpdb->num_queries - $fixture_queries;
     $facts['fixture_peak_php_bytes'] = memory_get_peak_usage( true );
+    // Earlier fixtures and the one no-CREATE probe remain in this disposable
+    // shop. Record the whole catalog truthfully, separately from selected size.
+    $catalog = new WP_Query( array( 'post_type' => 'product', 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'update_post_meta_cache' => false, 'update_post_term_cache' => false ) );
+    $facts['catalog_size'] = (int) $catalog->found_posts;
     $facts['db_after_fixture'] = wl112_sizes();
     wl112_save( $facts );
     wl112_login();

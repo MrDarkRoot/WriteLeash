@@ -35,6 +35,10 @@ query counts. The JSON request start/end line indices attribute metrics to
 each actual size. Logical field bytes and exact row counts are measured per
 job, alongside explicitly approximate physical table allocations. None of
 these metrics is a measurement of process RSS or graphical-browser render time.
+The selected fixtures contain exactly 100/1,000/10,000 products. Earlier
+fixtures plus the one first-use refusal product remain in the shop, so the
+whole catalog count is recorded separately (101/1,101/11,101 in the scale
+sequence). These are not mislabeled as empty-shop catalogs of the selected size.
 
 The test DB identity has only schema-local SELECT/INSERT/UPDATE/DELETE/
 CREATE/ALTER/DROP/INDEX. Root is used solely to construct disposable lab

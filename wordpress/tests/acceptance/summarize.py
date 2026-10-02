@@ -29,7 +29,7 @@ def summarize(path):
                 if requests_path.exists() else [])
     requests = requests[data.get("request_start_line", 0):data.get("request_end_line", 0)]
     row = {key: data.get(key) for key in (
-        "git_sha", "wp", "woo", "php", "db", "cache", "catalog_size",
+        "git_sha", "wp", "woo", "php", "db", "cache", "catalog_size", "fixture_product_count",
         "actual_job_size", "requested_job_size", "outcome", "error",
         "classification_reason", "fixture_seconds", "fixture_queries",
         "fixture_peak_php_bytes", "plan_post_seconds", "first_plan_journey_seconds",
