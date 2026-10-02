@@ -40,6 +40,7 @@ for host in mysql mariadb; do
     wp --path="$site" eval-file /opt/tests/acceptance/support-boundaries.php
     wp --path="$site" eval-file /opt/tests/acceptance/torture.php
   fi
+  wp --path="$site" eval-file /opt/tests/acceptance/legacy-recovery.php
   kill "$web_pid"
   if [ "$WL112_WOO" = 11.1.2 ]; then wp --path="$site" eval-file /opt/tests/acceptance/lifecycle.php; fi
   php /opt/tests/acceptance/diagnostics.php "$site/wp-content/debug.log" "$host"

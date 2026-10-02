@@ -73,6 +73,22 @@ try {
     $items = WriteLeash\Undo_Repository::history_items( (int) $stale['id'], null, null, 100, 50 );
     wl112_assert( 101 === $items['total'] && 1 === count( $items['items'] ) && null === $items['next_offset'], 'historical engineering job pagination beyond 100 remains truthful' );
 
+    $blocked_plan = WriteLeash\Woo_Price_Planner::preview( WriteLeash\Price_Selection_Spec::ids( $ids ), new WriteLeash\Price_Operation( 'SET', '80' ), new WriteLeash\Safety_Policy( 0, '50', '50', false, '10' ) );
+    $blocked = R::create_from_plan( $blocked_plan, 1 );
+    foreach ( array( $stale, $blocked ) as $unapproved ) {
+        $before = wl112_evidence_rows();
+        $job_url = $base . '&wl_view=job&wl_job=' . $unapproved['public_id'];
+        $page = wl112_get( $job_url );
+        wl112_assert( false === strpos( $page['body'], 'Legacy oversized job' ), 'unapproved oversized job cannot be called grandfathered' );
+        foreach ( array( A::ACTION_RESUME, A::ACTION_UNDO ) as $action ) {
+            wl112_assert( false === strpos( $page['body'], 'value="' . $action . '"' ), 'unapproved oversized job exposes recovery mutation' );
+            $response = wl112_post( array( 'action' => $action, 'job' => $unapproved['public_id'], '_wpnonce' => wl112_nonce( $action . '_' . $unapproved['public_id'] ) ) );
+            wl112_get( $response['location'] );
+        }
+        wl112_assert( $before === wl112_evidence_rows() && 0 === R::counts( (int) $unapproved['id'] )['applied'], 'unapproved oversized job seeded/executed/recovered' );
+    }
+    $report['unapproved_oversized_states'] = 'PASS: PLANNED/BLOCKED expose no recovery/Undo actions; crafted authenticated requests execute nothing and add zero journal/Undo rows';
+
     // Positive 100 explicit IDs: exact frozen preview and ordinary approval.
     $fields['ids'] = implode( ',', array_slice( $ids, 0, 100 ) );
     $fields['_wpnonce'] = wl112_nonce( A::ACTION_PREVIEW );

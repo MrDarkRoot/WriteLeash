@@ -1,13 +1,14 @@
 # PR #119 repair: shipping boundary matches #112 evidence
 
 Audited predecessor: `39bf91bcf60c566cee68b304984aff7057aa5c6b`.
+Recovery-semantics audit: `ce3ae08ba1359469f06450d8c9d80ef7829c6f08`.
 Base main: `061d5f5ff4e1867327495c8ca07dd903f1f16b06`.
 
 ## Authoritative boundaries
 
 ```text
 ENGINEERING SELECTOR MAX:             1000 internally (#107 unchanged)
-FREE 1.0 SUPPORTED/RUNTIME ADMIN MAX:   100
+FREE 1.0 NEW-JOB SUPPORTED MAX:         100
 FREE WOO VERSION:                     11.1.2 exactly
 ```
 
@@ -19,7 +20,7 @@ No older-Woo private metadata SQL fallback was added.
 
 The predecessor measured implementation could execute 1,000, but #112
 discovered quadratic journal amplification and long approval latency.
-The final Free 1.0 Admin boundary therefore refuses >100 before journal seeding.
+The final Free 1.0 Admin boundary therefore refuses NEW >100 work before journal seeding.
 The [pre-cap record](EVIDENCE.md), its precise source/run references and checked
 CSV are preserved. No historical measurements are erased or relabeled.
 
@@ -36,9 +37,18 @@ CSV are preserved. No historical measurements are erased or relabeled.
 * Approval: the authorized, nonce-bound controller hydrates/verifies frozen
   material, then independently refuses >100 **before** calling repository
   approval/`Price_Apply_Journal::seed()`. It does not trust `total_selected` alone.
-* Old oversized previews expose no approval form. Admin resume/Undo controllers
-  also check the frozen population before invoking bounded workers/initiation;
-  oversized history remains readable, without actionable mutation controls.
+* Oversized PLANNED/BLOCKED previews expose no approval form and cannot execute
+  or seed new journals. History remains readable. They are not grandfathered.
+* Grandfathered >100 jobs are **not a new support claim**. Durable post-approval
+  state (READY/QUEUED/RUNNING/PAUSED/NEEDS_REVIEW where #109 permits) retains
+  ordinary bounded Resume; COMPLETED/COMPLETED_WITH_ISSUES retains #110 eligible,
+  conflict-aware Undo and continuation of the existing nonterminal operation.
+  The new-work size predicate is not a generic execution-validity predicate.
+  No fake migration flag, re-plan, new Apply journal seed, unbounded worker or
+  bypass of lease/generation/fence/lifecycle/fresh-permission rules is introduced.
+* Legacy warnings derive from the hydrated frozen size and durable lifecycle
+  state, not `total_selected`. Already-approved old preview links route to
+  existing progress/Undo; new approval remains prohibited.
 * Unsupported Woo: the page reports the exact installed/supported versions and
   exposes no preview/approval/resume form. Preview POST rejects before planning
   or schema import. Crafted approval/resume/Undo requests fail at the version
@@ -69,6 +79,19 @@ WriteLeash Free 1.0 currently supports WooCommerce 11.1.2 for price mutations.
 Installed version: 11.0.1. No job was created and no product was changed.
 ```
 
+Legacy warning (shown on executable/completed oversized historical jobs):
+
+```text
+Legacy oversized job
+This existing durable job was already approved. The current Free 1.0 limit of 100
+products applies to new work: new jobs above 100 cannot be created or approved.
+Bounded recovery and conflict-aware eligible Undo remain available only to safely
+finish or restore this existing job.
+```
+
+The warning does not say 1,000 is supported. Current Woo must still be exactly
+11.1.2. Size grandfathering never grandfathers software/runtime safety.
+
 ## Final-head verification artifacts
 
 The existing seven-profile/two-engine workflow remains seven jobs; all existing
@@ -91,6 +114,28 @@ workflow runs / 20 jobs, all completed/success**, at the exact repaired head.
   preview/approval seeding exactly 100 journal rows.
 * Existing `*-torture.json`, `*-lifecycle.json`, diagnostics, request metrics,
   debug/source audits and #107–#111/Guard/Redirection suites are retained.
+* `*-legacy-recovery.json` and its test-only save trace exercise an actual
+  immutable 101-item trusted predecessor `create_from_plan()`/`approve()`:
+  - 101 Apply journal rows exist **before** recovery. The registered Action
+    Scheduler worker callback executes one normal default bounded chunk, then
+    production transitions pause it. Real authenticated Admin HTTP sees the
+    warning and Resume, runs <=10 per POST, and completes all 101 at frozen 80.
+  - Scheduler and HTTP Resume both refuse the same competing live #109 lease;
+    its release uses the production fenced transition, not a forged expiry or
+    generation. Both paths consume the same worker/transaction-fence authority.
+  - Frozen material/hash/population and journal immutable bindings remain
+    unchanged; save trace proves each product saved once and an outside sentinel
+    untouched. No additional Apply rows are seeded during recovery.
+  - Completed Apply retains Undo eligibility with all 101 APPLIED rows as
+    authority. One later Woo edit to 75 conflicts; the other 100 restore to 100.
+    First Undo POST remains nonterminal; fresh-session reopen continues the
+    same operation ID in bounded leased chunks. Apply evidence is unchanged.
+  - On Woo 11.0.1 a trusted historical READY plan frozen for Woo 11.1.2 remains
+    visible only as early unsupported-runtime copy, with no actionable form;
+    crafted Resume/Undo requests add zero evidence and mutate zero products.
+
+The probe's `wl112_legacy_probe_active` option is **test-only instrumentation**,
+never read by production and never grants authority; it is not a migration flag.
 
 Exact PHP 7.4.33/8.0.30/8.1.34/8.2.34, WP 7.0.1/7.1.2, MySQL 8.0.44,
 MariaDB 10.11.15 and Redis 7.4.2 / Redis Object Cache 2.7.0 pins are unchanged.
@@ -104,8 +149,10 @@ must retain attempt evidence and rerun the same SHA.
 The journal still copies one full frozen `plan_json` into every changing row:
 **O(N²) duplication remains documented technical debt**. No normalization,
 evidence weakening or journal redesign is part of this repair. The 100 boundary
-prevents the default Admin path from seeding the measured ~596 MB 1,000-item
-journal. A separate redesign can preserve immutable material/evidence binding.
+prevents NEW Admin work from seeding the measured ~596 MB 1,000-item journal.
+Already-approved old work retains bounded recovery/eligible restoration so an
+upgrade cannot strand partial mutations. A separate redesign can preserve
+immutable material/evidence binding.
 
 Emails, webhooks, remote HTTP, orders, external queues and arbitrary plugin
 side effects remain **OUTSIDE CONTRACT**. Real-host pilot: **NOT TESTED**.

@@ -20,7 +20,7 @@ final class Free_Support_Contract {
 		return null === self::woocommerce_reason();
 	}
 
-	/** Selected products, not just changing products or the caller's policy. */
+	/** NEW selected work, not execution validity or historical recovery authority. */
 	public static function assert_job_size( int $selected ): void {
 		if ( $selected > self::MAX_JOB_PRODUCTS ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Typed integer data, not an exception/output message; Admin renders the derived notice through esc_html().

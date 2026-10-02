@@ -2,10 +2,12 @@
 
 > **Historical pre-cap measurement record.** The tables, CSV and original
 > results below are preserved decision evidence from the predecessor. PR #119's
-> repair now enforces **100** server-side in the Free Admin boundary, while the
+> repair now enforces **100 for new work** server-side in the Free Admin boundary, while the
 > internal #107 engineering selector maximum remains **1,000**. See
 > [SUPPORT-REPAIR.md](SUPPORT-REPAIR.md) for post-cap behavior and final-head
-> refusal evidence. The pre-cap 1,000 timings are not post-cap throughput claims.
+> refusal/recovery evidence. Already-approved >100 durable jobs retain bounded
+> recovery and conflict-aware eligible Undo, without new approval or a support
+> claim for creating larger jobs. The pre-cap 1,000 timings are not post-cap throughput claims.
 
 Authoritative base main: `061d5f5ff4e1867327495c8ca07dd903f1f16b06`.
 The #111 product from merged PR #118 is the subject. Product implementation,

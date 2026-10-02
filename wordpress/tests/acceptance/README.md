@@ -65,7 +65,7 @@ not a release ZIP, SVN submission or release authorization.
 
 ## Interpretation
 
-The final Free Admin boundary is **100**, distinct from the unchanged internal
+The final Free Admin **new-work** boundary is **100**, distinct from the unchanged internal
 engineering selector maximum **1,000**. `100` runs a complete workflow; `101`,
 `1,000` and `10,000` run actual category/ID requests and record
 `REFUSED_BEFORE_JOURNAL`, exact unchanged evidence counts and zero Woo saves.
@@ -81,6 +81,16 @@ valid internal 101-selected PLANNED job refused by the Admin approval controller
 before journal seed—even when its stored convenience counter says 100. Its
 historical item pagination beyond 100 remains readable. The lower-level plan
 contract is preserved, not weakened to manufacture this fixture.
+
+`legacy-recovery.php` uses trusted internal predecessor construction/approval
+of 101 items before any recovery assertion. The registered scheduler callback
+and real HTTP protected Resume consume the same #109 lease/generation/fence
+authority (including a common live-lease refusal), with frozen/journal bindings
+unchanged. Existing completed work keeps conflict-aware Undo; a partial Undo
+continues the same operation after fresh-session reopen. Legacy warnings are
+not new >100 support claims. Current unsupported Woo still refuses recovery.
+PLANNED/BLOCKED oversized work remains non-executable/unapprovable. The fixture
+does not install a public bypass or a production migration flag.
 
 Failed/partial results and logs are uploaded on **every attempt**, with the
 attempt number. CI artifacts carry detailed batch/request data; checked

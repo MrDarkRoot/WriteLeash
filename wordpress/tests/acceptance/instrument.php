@@ -1,6 +1,13 @@
 <?php
 // Test-only request instrumentation. No cookies, nonces, credentials, URLs,
 // product names or provider identifiers are retained.
+// Test-only observer across CLI scheduler callback and HTTP manual recovery.
+// This flag is never read by production and grants no migration/execution authority.
+add_action( 'woocommerce_before_product_object_save', static function ( $p ) {
+    if ( get_option( 'wl112_legacy_probe_active' ) ) {
+        file_put_contents( '/evidence/' . DB_HOST . '-legacy-probe.jsonl', json_encode( array( 'event' => 'save', 'product_id' => $p->get_id() ) ) . "\n", FILE_APPEND );
+    }
+} );
 if ( PHP_SAPI === 'cli-server' ) {
     $GLOBALS['wl112_started'] = microtime( true );
     $GLOBALS['wl112_queries'] = 0;

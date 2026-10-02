@@ -446,9 +446,8 @@ final class Free_Admin {
 		}
 		try {
 			$plan = Job_Repository::hydrate_plan( $job );
-			Free_Support_Contract::assert_job_size( $plan->summary()['selected'] );
-		} catch ( Free_Job_Limit_Error $error ) {
-			return self::invalid( $error );
+			// can_manual_run() already requires a post-approval state. Size
+			// limits new work, not recovery of this verified historical plan.
 		} catch ( \Throwable $error ) {
 			return array( 'status' => 'INVALID', 'reason' => 'job_material_mismatch', 'public_id' => $job['public_id'] );
 		}
@@ -500,11 +499,11 @@ final class Free_Admin {
 			return array( 'status' => 'FORBIDDEN', 'reason' => 'not_authorized' );
 		}
 		try {
-			$plan = Job_Repository::hydrate_plan( $job );
-			Free_Support_Contract::assert_job_size( $plan->summary()['selected'] );
+			// Keep immutable binding verification. #110's durable state,
+			// provenance, expiry and conflict checks authorize restoration;
+			// a new-work support ceiling must not strand historical Undo.
+			Job_Repository::hydrate_plan( $job );
 			$operation = Undo_Repository::initiate( (int) $job['id'], $user_id );
-		} catch ( Free_Job_Limit_Error $error ) {
-			return self::invalid( $error );
 		} catch ( Undo_Error $error ) {
 			return array( 'status' => 'INVALID', 'reason' => $error->reason(), 'public_id' => $job['public_id'] );
 		} catch ( \Throwable $error ) {
@@ -865,7 +864,12 @@ final class Free_Admin {
 		$data = $plan->data();
 		$summary = $plan->summary();
 		if ( $summary['selected'] > Free_Support_Contract::MAX_JOB_PRODUCTS ) {
-			echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $summary['selected'] ) ) . '</p></div>';
+			if ( self::is_legacy_oversized_job( $job, $summary['selected'] ) ) {
+				self::render_legacy_oversize_warning();
+				echo '<p><a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( 'Open existing durable progress and eligible Undo' ) . '</a></p>';
+			} else {
+				echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $summary['selected'] ) ) . '</p></div>';
+			}
 			return;
 		}
 		$blocked = 'BLOCKED' === $data['status'];
@@ -978,11 +982,12 @@ final class Free_Admin {
 		if ( in_array( $effective, array( Job_State::COMPLETED_WITH_ISSUES, Job_State::NEEDS_REVIEW ), true ) ) {
 			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( 'This job finished with conflicts or items needing review. Review the item list below; partial results are never reported as generic success.' ) . '</p></div>';
 		}
-		$supported_size = $selected <= Free_Support_Contract::MAX_JOB_PRODUCTS;
-		if ( ! $supported_size ) {
+		if ( self::is_legacy_oversized_job( $job, $selected ) ) {
+			self::render_legacy_oversize_warning();
+		} elseif ( $selected > Free_Support_Contract::MAX_JOB_PRODUCTS ) {
 			echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $selected ) ) . '</p></div>';
 		}
-		if ( $supported_size && Job_State::can_manual_run( $job['status'] ) && self::can_mutate() ) {
+		if ( Job_State::can_manual_run( $job['status'] ) && self::can_mutate() ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_RESUME ) . '">';
 			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
@@ -1010,10 +1015,28 @@ final class Free_Admin {
 			self::render_pager( 'job', $job['public_id'], $offset, self::ITEM_PAGE_SIZE, $items['next_offset'] );
 		}
 		echo '<h2>' . esc_html( 'Undo' ) . '</h2>';
-		self::render_undo_section( $job, $history, $supported_size );
+		self::render_undo_section( $job, $history );
 	}
 
-	private static function render_undo_section( array $job, array $history, bool $supported_size ): void {
+	/** Post-approval states are durable authority, not a new size certification. */
+	private static function is_legacy_oversized_job( array $job, int $selected ): bool {
+		return $selected > Free_Support_Contract::MAX_JOB_PRODUCTS && (
+			Job_State::is_executable( $job['status'] ) ||
+			in_array( $job['status'], array( Job_State::COMPLETED, Job_State::COMPLETED_WITH_ISSUES ), true )
+		);
+	}
+
+	public static function legacy_oversize_message(): string {
+		return 'This existing durable job was already approved. The current Free 1.0 limit of ' . Free_Support_Contract::MAX_JOB_PRODUCTS
+			. ' products applies to new work: new jobs above ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' cannot be created or approved. '
+			. 'Bounded recovery and conflict-aware eligible Undo remain available only to safely finish or restore this existing job.';
+	}
+
+	private static function render_legacy_oversize_warning(): void {
+		echo '<div class="notice notice-warning" role="alert"><p><strong>' . esc_html( 'Legacy oversized job' ) . '</strong></p><p>' . esc_html( self::legacy_oversize_message() ) . '</p></div>';
+	}
+
+	private static function render_undo_section( array $job, array $history ): void {
 		echo '<p>' . esc_html( 'Undo restores eligible stored regular-price values changed by WriteLeash. Undo does not reverse: orders, completed sales, email, webhook, HTTP side effects, or arbitrary plugin side effects.' ) . '</p>';
 		if ( ! empty( $history['undo_expires_at'] ) ) {
 			echo '<p>' . esc_html( 'History expires: ' . (string) $history['undo_expires_at'] . '.' ) . '</p>';
@@ -1021,7 +1044,7 @@ final class Free_Admin {
 		if ( ! empty( $history['undo']['operation_status'] ) ) {
 			echo '<p>' . esc_html( 'Undo operation: ' . (string) $history['undo']['operation_status'] . ' (' . (string) $history['undo']['operation_reason'] . ') · undone ' . (int) $history['undo']['undone'] . ' · conflict ' . (int) $history['undo']['conflict'] . ' · failed ' . (int) $history['undo']['failed'] . ' · needs review ' . (int) $history['undo']['needs_review'] . '.' ) . '</p>';
 		}
-		if ( $supported_size && $history['undo_eligible'] && self::can_mutate() ) {
+		if ( $history['undo_eligible'] && self::can_mutate() ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_UNDO ) . '">';
 			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
