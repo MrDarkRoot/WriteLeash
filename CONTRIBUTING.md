@@ -10,6 +10,14 @@ separate technical assets.
 
 ## Before Making A Change
 
+Run `bash .github/ci/pr-fast.sh` locally before pushing. Listing/readme/assets
+changes run cheap PR_FAST and CI_COVERAGE checks only. Runtime/test changes must
+have explicit owners in `.github/ci/path-ownership.json`; new production PHP
+without an owner fails the gate. Expensive fork integrations require maintainer
+review and promotion of the exact audited SHA to a same-repository PR branch.
+Full release evidence is an intentional exact-SHA dispatch. See
+[CI policy](.github/ci/CI-POLICY.md) for requirements and contributor approval.
+
 Contributors MUST read:
 
 1. [docs/spec.md](docs/spec.md), the PostgreSQL research semantics.

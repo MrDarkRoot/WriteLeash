@@ -1,0 +1,87 @@
+name: RELEASE_FULL exact-SHA evidence
+run-name: RELEASE_FULL ${{ inputs.sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full 40-character SHA; must equal the selected ref at dispatch
+        required: true
+        type: string
+      acknowledge_research_toolchain:
+        description: Explicitly accept documented unpinned Alpine build-base packages in PG research only
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+# Intentionally no concurrency cancellation: every exact-SHA attempt is evidence.
+jobs:
+  preflight:
+    name: RELEASE_FULL preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Reject moving-ref / requested-SHA mismatch before expensive work
+        env:
+          REQUESTED_SHA: ${{ inputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$REQUESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$REQUESTED_SHA" = "$GITHUB_SHA"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - run: bash .github/ci/pr-fast.sh
+      - run: bash .github/ci/workflow-lint.sh
+      - name: Refuse unreviewed floating release dependencies
+        env:
+          ACKNOWLEDGE_RESEARCH_TOOLCHAIN: ${{ inputs.acknowledge_research_toolchain }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--release)
+          if [[ "$ACKNOWLEDGE_RESEARCH_TOOLCHAIN" == true ]]; then
+            args+=(--acknowledge-research-toolchain)
+          fi
+          python3 .github/ci/dependency-audit.py "${args[@]}"
+  feasibility:
+    needs: preflight
+    uses: ./.github/workflows/mysql-mariadb-feasibility.yml
+  native:
+    needs: preflight
+    uses: ./.github/workflows/native-pg16-security.yml
+  engine:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-engine.yml
+  foundation:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-foundation.yml
+  research:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-plugin-research.yml
+  adapter:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-redirection-adapter.yml
+  historical:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-release-matrix.yml
+  plan:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-woo-plan.yml
+  journal:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-woo-journal.yml
+  jobs:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-woo-jobs.yml
+  undo:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-woo-undo.yml
+  admin:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-woo-admin.yml
+  acceptance:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-woo-acceptance.yml

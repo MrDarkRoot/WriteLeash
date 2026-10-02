@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16.4-alpine
+    image: postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
     environment:
       POSTGRES_DB: writeleash
       POSTGRES_USER: writeleash_admin

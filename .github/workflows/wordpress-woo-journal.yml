@@ -1,14 +1,6 @@
 name: WordPress Woo durable price journal
 on:
-  pull_request:
-    paths:
-      - 'wordpress/**'
-      - '.github/workflows/wordpress-woo-journal.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'wordpress/**'
-      - '.github/workflows/wordpress-woo-journal.yml'
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -17,6 +9,9 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - name: Actual Woo 11.1.2 crash/concurrency/cache matrix on MySQL and MariaDB
         shell: bash
         run: |
@@ -28,4 +23,4 @@ jobs:
         with:
           name: woo-journal-108
           path: ${{ runner.temp }}/woo-journal-108.txt
-          retention-days: 7
+          retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}

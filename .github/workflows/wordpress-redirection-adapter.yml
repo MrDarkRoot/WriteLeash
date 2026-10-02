@@ -1,15 +1,7 @@
 name: WordPress Redirection adapter
 
 on:
-  pull_request:
-    paths:
-      - 'wordpress/**'
-      - '.github/workflows/wordpress-redirection-adapter.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'wordpress/**'
-      - '.github/workflows/wordpress-redirection-adapter.yml'
+  workflow_call:
 
 permissions:
   contents: read
@@ -20,6 +12,9 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - name: Run pinned Redirection 5.5.2 Bulk Disable adapter on both engines
         shell: bash
         run: |
