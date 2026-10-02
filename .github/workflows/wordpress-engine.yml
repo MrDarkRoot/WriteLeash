@@ -1,17 +1,7 @@
 name: WordPress MySQL MariaDB engine research
 
 on:
-  pull_request:
-    paths:
-      - 'wordpress/**'
-      - '.github/workflows/wordpress-engine.yml'
-      - '.github/workflows/wordpress-foundation.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'wordpress/**'
-      - '.github/workflows/wordpress-engine.yml'
-      - '.github/workflows/wordpress-foundation.yml'
+  workflow_call:
 
 permissions:
   contents: read
@@ -22,6 +12,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - name: Exercise cooperative engine on exact pinned servers
         shell: bash
         run: |
@@ -39,4 +32,4 @@ jobs:
           name: wordpress-engine-core
           path: ${{ runner.temp }}/wordpress-engine-core.txt
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}

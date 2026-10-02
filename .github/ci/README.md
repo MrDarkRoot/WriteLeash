@@ -1,10 +1,19 @@
-# Native PostgreSQL 16.4 research CI (#17)
+# CI architecture
+
+Start with [CI-POLICY.md](CI-POLICY.md) for PR_FAST, path-owned integration,
+exact-SHA RELEASE_FULL and public-fork/required-check settings. The
+[pre-public audit](PUBLIC-AUDIT-133.md) records all 13 original workflows,
+observed costs, all-ref secret scans and representative log/artifact review.
+
+## Native PostgreSQL 16.4 research CI (#17)
 
 The [native-pg16-security workflow](../workflows/native-pg16-security.yml)
-runs on pull requests and pushes to `main`. It uses a disposable GitHub-hosted
+runs as an owned-code PR integration or intentional RELEASE_FULL reusable suite.
+It uses a disposable GitHub-hosted
 Ubuntu runner with Docker Compose. It fetches the exact
 `postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c`
-base image and tags that *same image* for the unchanged fixture Dockerfile.
+base image and tags that *same image* for existing fixture inspections. The
+Dockerfile itself now pins that digest directly.
 Then it executes **`./experiments/native_tx_state/run.sh`** in full, with no
 test-selection flags. A Bash `pipefail` preserves the suite's nonzero result
 through `tee`; a separate marker check rejects missing canonical numeric
@@ -17,7 +26,8 @@ also removes the disposable service and volume on failure. The job has a
 30-minute limit and read-only repository permission. Test-only passwords are
 hardcoded **only for this disposable synthetic fixture**; no external database,
 GitHub secret or production data is used. The complete runner output is in the
-Actions log and is kept as a 7-day `native-pg16-security-log` artifact when a
+Actions log and is kept as a 3-day PR / 30-day intentional-release
+`native-pg16-security-log` artifact when a
 suite log exists. It contains synthetic rows, SQLSTATEs, PIDs and callback
 traces; no real credentials are printed. A failed assertion is visible in the
 `Full integrated suite` step; an omitted marker also makes that step fail.

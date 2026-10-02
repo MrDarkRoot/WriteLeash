@@ -1,17 +1,7 @@
 name: WordPress historical V0.1 regression matrix
 
 on:
-  pull_request:
-    paths:
-      - 'wordpress/**'
-      - 'experiments/mysql_tx_budget/**'
-      - '.github/workflows/wordpress-release-matrix.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'wordpress/**'
-      - 'experiments/mysql_tx_budget/**'
-      - '.github/workflows/wordpress-release-matrix.yml'
+  workflow_call:
 
 permissions:
   contents: read
@@ -22,6 +12,9 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - name: Run #62 source preflight and pinned two-engine matrix
         shell: bash
         run: |

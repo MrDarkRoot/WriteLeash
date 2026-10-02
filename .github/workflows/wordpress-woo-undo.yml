@@ -1,14 +1,6 @@
 name: WordPress Woo conflict-aware Undo
 on:
-  pull_request:
-    paths:
-      - 'wordpress/**'
-      - '.github/workflows/wordpress-woo-undo.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'wordpress/**'
-      - '.github/workflows/wordpress-woo-undo.yml'
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -17,6 +9,9 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - name: Actual Woo 11.1.2 conflict-aware Undo crash/race/retention matrix on MySQL and MariaDB
         shell: bash
         run: |
@@ -28,4 +23,4 @@ jobs:
         with:
           name: woo-undo-110
           path: ${{ runner.temp }}/woo-undo-110.txt
-          retention-days: 7
+          retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}

@@ -14,11 +14,28 @@ private/
 *.p12
 *.pfx
 *.jks
+*.crt
+*.cer
+*.der
+id_rsa
+id_ed25519
+.netrc
+.npmrc
+.pypirc
 
 # Local database artifacts
 *.dump
 *.sql.dump
 *.backup
+*.bak
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
 
 # Logs / temporary data
 *.log

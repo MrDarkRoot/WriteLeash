@@ -1,9 +1,7 @@
 name: Native PG16 security research suite
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_call:
 
 permissions:
   contents: read
@@ -14,6 +12,9 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
       - name: Verify Docker and pin the local PostgreSQL 16.4 base image
         shell: bash
@@ -89,4 +90,4 @@ jobs:
             ${{ runner.temp }}/product-demo-run-1.txt
             ${{ runner.temp }}/product-demo-run-2.txt
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}

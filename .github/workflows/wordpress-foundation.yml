@@ -1,17 +1,7 @@
 name: WordPress plugin foundation
 
 on:
-  pull_request:
-    paths:
-      - 'wordpress/**'
-      - '.github/workflows/wordpress-foundation.yml'
-      - '.github/workflows/wordpress-engine.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'wordpress/**'
-      - '.github/workflows/wordpress-foundation.yml'
-      - '.github/workflows/wordpress-engine.yml'
+  workflow_call:
 
 permissions:
   contents: read
@@ -26,6 +16,9 @@ jobs:
         database: [mysql, mariadb]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - name: Boot WordPress and test lifecycle on ${{ matrix.database }}
         shell: bash
         run: |
@@ -38,4 +31,4 @@ jobs:
           name: wordpress-foundation-${{ matrix.database }}
           path: ${{ runner.temp }}/wordpress-foundation-${{ matrix.database }}.txt
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}

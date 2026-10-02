@@ -1,0 +1,80 @@
+{
+  "workflows": {
+    "feasibility": "mysql-mariadb-feasibility.yml",
+    "native": "native-pg16-security.yml",
+    "engine": "wordpress-engine.yml",
+    "foundation": "wordpress-foundation.yml",
+    "research": "wordpress-plugin-research.yml",
+    "adapter": "wordpress-redirection-adapter.yml",
+    "historical": "wordpress-release-matrix.yml",
+    "plan": "wordpress-woo-plan.yml",
+    "journal": "wordpress-woo-journal.yml",
+    "jobs": "wordpress-woo-jobs.yml",
+    "undo": "wordpress-woo-undo.yml",
+    "admin": "wordpress-woo-admin.yml",
+    "acceptance": "wordpress-woo-acceptance.yml"
+  },
+  "listing_header_fields": ["Plugin Name", "Description", "Requires at least", "Tested up to", "Requires PHP"],
+  "listing_audit_wiring": {
+    "wordpress/tests/release/run.sh": ["php \"$here/claim-matrix-audit.php\" \"$repo\""]
+  },
+  "production_groups": [
+    {
+      "prefix": "wordpress/writeleash/",
+      "files": ["writeleash.php", "uninstall.php", "includes/class-environment.php", "includes/class-lifecycle.php", "includes/class-plugin.php"],
+      "gates": ["plan", "journal", "jobs", "undo", "admin", "foundation", "engine", "research", "adapter", "historical", "acceptance"]
+    },
+    {
+      "prefix": "wordpress/writeleash/includes/free/class-",
+      "files": ["change-plan.php", "free-support-contract.php", "price-decimal.php", "price-operation.php", "product-selector.php", "product-snapshot.php", "runner-authority.php", "safety-policy.php"],
+      "gates": ["plan", "journal", "jobs", "undo", "admin", "acceptance"]
+    },
+    {
+      "prefix": "wordpress/writeleash/includes/free/class-",
+      "files": ["price-apply-connection.php", "price-apply-journal.php", "price-apply-transaction-guard.php", "price-cache-verifier.php", "woo-price-mutator.php"],
+      "gates": ["journal", "jobs", "undo", "admin", "acceptance"]
+    },
+    {
+      "prefix": "wordpress/writeleash/includes/free/class-",
+      "files": ["job-repository.php", "job-resume-rest.php", "job-scheduler.php", "job-schema.php", "job-state.php", "job-transaction-fence.php", "job-worker.php"],
+      "gates": ["jobs", "undo", "admin", "acceptance"]
+    },
+    {
+      "prefix": "wordpress/writeleash/includes/free/class-",
+      "files": ["undo-fingerprint.php", "undo-repository.php", "undo-rest.php", "undo-scheduler.php", "undo-schema.php", "undo-state.php", "undo-transaction-fence.php", "undo-worker.php", "woo-undo-mutator.php"],
+      "gates": ["undo", "admin", "acceptance"]
+    },
+    {
+      "prefix": "wordpress/writeleash/includes/free/class-",
+      "files": ["free-admin.php"],
+      "gates": ["admin", "acceptance"]
+    },
+    {
+      "prefix": "wordpress/writeleash/includes/class-",
+      "files": ["admin-page.php", "budget-denied.php", "certified-operation.php", "certified-operation-status.php", "compatibility-doctor.php", "compatibility-grants.php", "disposable-demo.php", "disposable-demo-setup.php", "guard.php", "guard-error.php", "guard-monitor.php", "guard-sql.php", "guard-transaction.php", "last-outcome.php", "operation-config.php", "product-cli.php", "product-status.php", "provisioning-plan.php", "redirection-bulk-disable.php", "redirection-bulk-disable-rest.php", "unsupported-transaction-state.php", "update-engine.php"],
+      "gates": ["engine", "foundation", "research", "adapter", "historical"]
+    }
+  ],
+  "rules": [
+    {"paths": ["experiments/mysql_tx_budget/**"], "gates": ["feasibility", "engine", "historical"]},
+    {"paths": ["experiments/native_tx_state/**", "sql/**", "demo/**", "demo.sh", "writeleash", "tests/**", "docker-compose.yml", ".github/ci/assert-security-log.sh"], "gates": ["native"]},
+    {"paths": ["wordpress/tests/free/**"], "gates": ["plan"]},
+    {"paths": ["wordpress/tests/durable/**"], "gates": ["journal"]},
+    {"paths": ["wordpress/tests/jobs/**"], "gates": ["jobs", "admin"]},
+    {"paths": ["wordpress/tests/undo/**"], "gates": ["undo"]},
+    {"paths": ["wordpress/tests/admin/**"], "gates": ["admin"]},
+    {"paths": ["wordpress/tests/acceptance/**"], "gates": ["acceptance"]},
+    {"paths": ["wordpress/tests/engine/**", "wordpress/tests/guard/**", "wordpress/tests/doctor/**"], "gates": ["engine", "historical"]},
+    {"paths": ["wordpress/tests/adapter/**"], "gates": ["adapter", "historical"]},
+    {"paths": ["wordpress/tests/current-core/**"], "gates": ["historical"]},
+    {"paths": ["wordpress/tests/research/**"], "gates": ["research", "adapter", "historical"]},
+    {"paths": ["wordpress/tests/legacy/**"], "gates": ["foundation", "engine", "research", "adapter", "historical"]},
+    {"paths": ["wordpress/tests/Dockerfile", "wordpress/tests/assert-compose-clean.sh", "wordpress/tests/stage-plugin.sh"], "gates": ["plan", "journal", "jobs", "undo", "admin", "acceptance", "foundation", "engine", "research", "adapter", "historical"]},
+    {"paths": ["wordpress/tests/run.sh", "wordpress/tests/in-container.sh", "wordpress/tests/docker-compose.yml", "wordpress/tests/dependency-63.php", "wordpress/tests/failure.php", "wordpress/tests/lifecycle.php", "wordpress/tests/old-identity-fixture.php", "wordpress/tests/uninstall-unactivated.php"], "gates": ["foundation", "historical"]},
+    {"paths": ["wordpress/tests/identity-62.php"], "gates": ["foundation", "adapter", "historical"]},
+    {"paths": ["wordpress/tests/redirection-schema.php"], "gates": ["foundation", "adapter", "historical", "admin"]},
+    {"paths": ["wordpress/tests/release/run.sh", "wordpress/tests/release/plugin-check-results.php"], "gates": ["historical"]},
+    {"paths": ["wordpress/tests/release/debug-audit.php"], "gates": ["plan", "journal", "jobs", "undo", "admin", "foundation", "adapter", "historical"]},
+    {"paths": ["wordpress/writeleash/readme.txt", "wordpress/writeleash/LICENSE", "wordpress/writeleash/*.md", "wordpress/writeleash/operator-setup.txt", "wordpress/release/**", "wordpress/tests/release/*.php", ".github/workflows/**", ".github/ci/**", "docs/**", "*.md", ".gitignore", ".env.example", "wordpress/icon/**", "wordpress/assets/**"], "gates": []}
+  ]
+}

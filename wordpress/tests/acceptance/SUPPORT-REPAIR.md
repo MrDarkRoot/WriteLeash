@@ -94,6 +94,13 @@ The warning does not say 1,000 is supported. Current Woo must still be exactly
 
 ## Final-head verification artifacts
 
+> CI architecture note (#133): the 13-run/20-job statement below records the
+> original #119 verification requirement. Current intentional RELEASE_FULL
+> preserves those 20 evidence jobs and adds one exact-SHA preflight (21 jobs).
+> Documentation PRs now run only the two cheap checks; see
+> [CI policy](../../../.github/ci/CI-POLICY.md). Historical outcomes and hashes
+> below are not relabeled as new-head execution.
+
 The existing seven-profile/two-engine workflow remains seven jobs; all existing
 regression workflows remain intact. The required final state remains **13
 workflow runs / 20 jobs, all completed/success**, at the exact repaired head.
