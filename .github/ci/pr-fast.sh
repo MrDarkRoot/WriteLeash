@@ -6,6 +6,7 @@ cd "$repo"
 python3 .github/ci/ownership.py --audit
 python3 .github/ci/dependency-audit.py
 git ls-files -z 'wordpress/assets/*' 'wordpress/icon/*' | php .github/ci/asset-audit.php
+php wordpress/tests/release/asset-audit-cases.php
 source=wordpress/writeleash
 manifest=wordpress/release/writeleash-distribution-files.txt
 tests=wordpress/tests/release

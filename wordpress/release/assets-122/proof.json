@@ -1,0 +1,473 @@
+{
+  "product_base": "07600cf13551f54c5df74db070ec344064ecb83a",
+  "guidance_review_date": "2026-10-02",
+  "guidance_url": "https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/",
+  "fixture": {
+    "wordpress": "7.1.2",
+    "woocommerce": "11.1.2",
+    "php": "8.2.32",
+    "database": "MariaDB 10.11.15",
+    "browser": "Google Chrome 148.0.7778.178",
+    "currency": "USD",
+    "price_decimals": 2,
+    "data": "12 synthetic published core simple products; no sale-price/date configuration",
+    "scheduler_interruption": "DISABLE_WP_CRON=true; Action Scheduler async runner disabled in disposable fixture only"
+  },
+  "runtime_manifest_sha256": "d30e8952a0364ac4a7e254d0b44a2ea98eea2df9fcc9f5ff6579ab5427cda891",
+  "runtime_files_sha256": {
+    "LICENSE": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+    "includes/class-environment.php": "91d0cf91fa588e098b17cac294f8a254d1dde68ff55119c212536c90f29ea9c4",
+    "includes/class-lifecycle.php": "d76ed59797640faf810354707ce574815be8152af910c1026ea2cb93dff5338d",
+    "includes/class-plugin.php": "db8934a4ff5d52e39a31fa644939094da8b4f2488d6f19f8c4ff689cc2671720",
+    "includes/free/class-change-plan.php": "ca9b073a50baa887a01760daa1e80056a206b305e8f88258d376d011af01e94c",
+    "includes/free/class-free-admin.php": "372b9f5a7c5e3bde07056dd3f507503c7867717c24b6f5bdca5a394962d44c49",
+    "includes/free/class-free-support-contract.php": "7f7defab73c484f9dca775c73573ea2d0500b68da4c7a71f57d3e9d6e0afe010",
+    "includes/free/class-job-repository.php": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+    "includes/free/class-job-resume-rest.php": "f613cbe5970307c1e4834e9325c5442c21f4c257ba51518be6b7c29131cf2b97",
+    "includes/free/class-job-scheduler.php": "3d5583ab17c342593f7bf32c5b9f6aee63d24be5ea9df6a2d17be9c26dd751d4",
+    "includes/free/class-job-schema.php": "1a88c52cee1a60645135d4a5e0d365e510b308f7a8465102f7a046c888df5592",
+    "includes/free/class-job-state.php": "f44e85697102153279773297cd6cd4a17459e9817552273185c72def3be9daf4",
+    "includes/free/class-job-transaction-fence.php": "e5d6cc1239b0dff26256d7ab7e6a298df87fddc92199bab809f0d1bffabee063",
+    "includes/free/class-job-worker.php": "78239bb9ff5fc768de809636eafbfec86f49408ec52369b37a22b35089c2c76f",
+    "includes/free/class-price-apply-connection.php": "1cb946c51f0f2e5522893aa17d2170dafe407268429fc99aa244d79aba6d7473",
+    "includes/free/class-price-apply-journal.php": "ffe22676b5bea6f1a5f78bdd3c53ff5f17fa537979d888c9095dcc3bb113a24d",
+    "includes/free/class-price-apply-transaction-guard.php": "38c8faf10863f2bf9f076a22458973c7903dfaa8d9dd41d539be0db1832b6dff",
+    "includes/free/class-price-cache-verifier.php": "78955f169e1390ca7969b88ba156f1ecd9667430d512c16238260fb5ac7f4a53",
+    "includes/free/class-price-decimal.php": "103ee047d439778f0061944394405cdd9d559409bda37bcdf3cd251c105acb26",
+    "includes/free/class-price-operation.php": "b444081088f6010de1ffde589c893e31660ba818998692133648cfb04b119a79",
+    "includes/free/class-product-selector.php": "e1afe48d177351cd6d675d4adfb0037d0b5a5a9f1d9508603b73f344851884fa",
+    "includes/free/class-product-snapshot.php": "c188b4da3fbe665870c7d62ab884f06d2b726e3d291ef3f315dba1697ba3a0a3",
+    "includes/free/class-runner-authority.php": "8ac5352e7e26915a0b7ff0b46aeffad483910e03c4b720cb32c0bb8ec0b5099b",
+    "includes/free/class-safety-policy.php": "e7965ec55697a8b64c3b832b5a79dc7d57fd599039220d658e89dc6d86eb8f33",
+    "includes/free/class-undo-fingerprint.php": "3afbba61ac7d74f8238c82cf0b83a39386fd322d2ef4f2353057f319bd7ea11e",
+    "includes/free/class-undo-repository.php": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+    "includes/free/class-undo-rest.php": "2602b8c42802d58add6f1471c5de04adeb6491e92150e9b77f0c2876cb11225c",
+    "includes/free/class-undo-scheduler.php": "1a6decb09745afd0054dd615afe2f5b963fdfaeb218d19166b1a31820c171f6a",
+    "includes/free/class-undo-schema.php": "4463107f9039b9db568642a7052054aa6eeefdd6a09db3f7cff7faf2a8b8e87e",
+    "includes/free/class-undo-state.php": "a806dfbac54126c45ee03bf00da38032460e046e749657b99326efbe01179e3a",
+    "includes/free/class-undo-transaction-fence.php": "157ec9d990a705fd8d90b278cdf0262ea4b338c0a3864528c404bb71aafb52ba",
+    "includes/free/class-undo-worker.php": "a51e4261bf641812e32ca8b3f7526e7cb26edbf4d2f8e5a887a01be00099c763",
+    "includes/free/class-woo-price-mutator.php": "2f188838e5e42a55609f970f9bd40e199ae4e18828f334ef71de960053d630d0",
+    "includes/free/class-woo-undo-mutator.php": "1e3d8955d59326371383322af830f951f57c34d1f4c478b0246011d064c246a7",
+    "readme.txt": "1115ad085dc885327d21fecacf1057c85c5b086c039282ac4089fd19260a6c7a",
+    "uninstall.php": "d826c6ef5ea01875349a5bc4a9b2b52ecfb7a75e122322f2de216ad9be041670",
+    "writeleash.php": "7de1f5c5c7fa9caee29f842d038ba52e21064b917b52d864628fd237b2cddf3a"
+  },
+  "screenshots": [
+    {
+      "filename": "screenshot-1.png",
+      "width": 818,
+      "height": 644,
+      "format": "PNG",
+      "sha256": "a75a9d7348214b96e13d5ea7f6e8320413dc772c394078d050bbaa0d34ea84cc",
+      "captured_at_utc": "2026-10-02T15:51:59.910997+00:00",
+      "real_state": "Frozen Change Plan",
+      "caption": "Review the exact before-and-after regular prices before approval.",
+      "visible_ui_text": "WriteLeash Bulk Prices\n\nOK: Preview ready. Review the frozen plan before approving.\n\nBack to bulk prices\n\nFrozen preview\n\nPlan ffd29e41-e255-4824-9b26-d442d92e4ab6 \u00b7 fingerprint 642f51b6834a \u00b7 operation DECREASE_PERCENT 20.\n\nSelected 3 \u00b7 eligible 3 \u00b7 changing 3 \u00b7 unchanged 0 \u00b7 unsupported 0 \u00b7 blocked 0 \u00b7 warning items 0.\n\nLarge increases 0 \u00b7 large decreases 0 \u00b7 zero-price targets 0 \u00b7 conflicts 0 (a preview never carries conflicts; they surface during execution).\n\nProduct\tSKU\tBefore\tAfter\tDelta\tChange %\tState / reason\n10 \u00b7 Canvas Tote\tDEMO-01\t18.00\t14.40\t-3.6\t-20.000000%\tCHANGING\n11 \u00b7 Ceramic Mug\tDEMO-02\t24.00\t19.20\t-4.8\t-20.000000%\tCHANGING\n12 \u00b7 Linen Apron\tDEMO-03\t36.00\t28.80\t-7.2\t-20.000000%\tCHANGING\n\nPrevious page Next page\n\nApprove exact plan\n\nApproval executes exactly the frozen IDs and absolute target prices above. Planned prices are not guaranteed shopper prices. Any selection, operation or policy change requires a new preview; this approval cannot be reused for different inputs.\n\nApprove and queue execution",
+      "captured_product_base": "1bb7829c0bcdad6ab687d73df3c2dea681c2b610",
+      "unchanged_view_verified_against": "07600cf13551f54c5df74db070ec344064ecb83a"
+    },
+    {
+      "filename": "screenshot-2.png",
+      "width": 818,
+      "height": 658,
+      "format": "PNG",
+      "sha256": "bd128400fe353ef45db5ebfa806c04a549fb646be8f1dc015518a7f2d9f39748",
+      "captured_at_utc": "2026-10-03T01:58:42.709Z",
+      "real_state": "Safety-policy blocked",
+      "caption": "A safety policy blocks the plan before any product is saved.",
+      "visible_ui_text": "WriteLeash Bulk Prices\n\nBack to bulk prices Open history\n\nDurable progress\n\nState: BLOCKED (BLOCKED_BY_POLICY).\n\nPlanned 3 \u00b7 pending 3 \u00b7 applying 0 \u00b7 applied 0 \u00b7 unchanged 0 \u00b7 conflict 0 \u00b7 failed 0 \u00b7 needs review 0 \u00b7 unsupported 0.\n\nItems\n\nCurrent shows the fresh stored regular price at page load, not the shopper price. Unavailable means the product or price could not be read.\n\nProduct\tExpected\tCurrent\tPlanned\tApply\tUndo\n10\t18\t18\t23.40\tPENDING ()\t\u2014\n11\t24\t24\t31.20\tPENDING ()\t\u2014\n12\t36\t36\t46.80\tPENDING ()\t\u2014\n\nPrevious page Next page\n\nUndo\n\nUndo restores eligible stored regular-price values changed by WriteLeash. Undo does not reverse: orders, completed sales, email, webhook, HTTP side effects, or arbitrary plugin side effects.\n\nHistory expires: 2026-11-02 01:58:41.\n\nUndo is not eligible for this job (no applied items, active processing, a finished Undo operation, or expired history). No Restore action is exposed.",
+      "captured_product_base": "07600cf13551f54c5df74db070ec344064ecb83a"
+    },
+    {
+      "filename": "screenshot-3.png",
+      "width": 818,
+      "height": 1113,
+      "format": "PNG",
+      "sha256": "c8860d79bb991a656f7d48a2036d3ca53274b3390d0bfe8a26a9aebe5310ad79",
+      "captured_at_utc": "2026-10-03T01:58:47.274Z",
+      "real_state": "Execution-precondition conflict",
+      "caption": "A later regular-price or execution-state change becomes a conflict instead of a blind overwrite.",
+      "visible_ui_text": "WriteLeash Bulk Prices\n\nOK: One bounded chunk ran. Review durable progress below.\n\nBounded chunk processed 10 item(s). Remaining work stays queued; use Resume again if items remain.\n\nBack to bulk prices Open history\n\nDurable progress\n\nState: QUEUED (BATCH_LIMIT).\n\nPlanned 12 \u00b7 pending 2 \u00b7 applying 0 \u00b7 applied 9 \u00b7 unchanged 0 \u00b7 conflict 1 \u00b7 failed 0 \u00b7 needs review 0 \u00b7 unsupported 0.\n\nRun bounded resume chunk Runs at most one bounded chunk under the job lease, then re-queues if items remain.\n\nItems\n\nCurrent shows the fresh stored regular price at page load, not the shopper price. Unavailable means the product or price could not be read.\n\nProduct\tExpected\tCurrent\tPlanned\tApply\tUndo\n10\t18\t21\t14.40\tCONFLICT (ITEM_CONFLICT)\t\u2014\n11\t24\t19.2\t19.20\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n12\t36\t28.8\t28.80\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n13\t45\t36\t36.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n14\t60\t48\t48.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n15\t72\t57.6\t57.60\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n16\t90\t72\t72.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n17\t110\t88\t88.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n18\t125\t100\t100.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n19\t150\t120\t120.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n20\t180\t180\t144.00\tPENDING ()\t\u2014\n21\t210\t210\t168.00\tPENDING ()\t\u2014\n\nPrevious page Next page\n\nUndo\n\nUndo restores eligible stored regular-price values changed by WriteLeash. Undo does not reverse: orders, completed sales, email, webhook, HTTP side effects, or arbitrary plugin side effects.\n\nHistory expires: 2026-11-02 01:58:46.\n\nUndo is not eligible for this job (no applied items, active processing, a finished Undo operation, or expired history). No Restore action is exposed.",
+      "captured_product_base": "07600cf13551f54c5df74db070ec344064ecb83a"
+    },
+    {
+      "filename": "screenshot-4.png",
+      "width": 818,
+      "height": 1107,
+      "format": "PNG",
+      "sha256": "6290d77ff6215f25781ac4942af8264bad3c547b624dc81180ac9d1d99b0bf35",
+      "captured_at_utc": "2026-10-03T01:59:55.898Z",
+      "real_state": "Paused/interrupted durable job",
+      "caption": "An interrupted job shows truthful remaining work and a protected Resume action.",
+      "visible_ui_text": "WriteLeash Bulk Prices\n\nThe worker lease expired without progress; the job is paused and a protected Resume continues it. Nothing was marked successful without durable proof.\n\nBack to bulk prices Open history\n\nDurable progress\n\nState: PAUSED (LEASE_RECOVERY).\n\nPlanned 12 \u00b7 pending 2 \u00b7 applying 0 \u00b7 applied 9 \u00b7 unchanged 0 \u00b7 conflict 1 \u00b7 failed 0 \u00b7 needs review 0 \u00b7 unsupported 0.\n\nRun bounded resume chunk Runs at most one bounded chunk under the job lease, then re-queues if items remain.\n\nItems\n\nCurrent shows the fresh stored regular price at page load, not the shopper price. Unavailable means the product or price could not be read.\n\nProduct\tExpected\tCurrent\tPlanned\tApply\tUndo\n10\t18\t21\t14.40\tCONFLICT (ITEM_CONFLICT)\t\u2014\n11\t24\t19.2\t19.20\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n12\t36\t28.8\t28.80\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n13\t45\t36\t36.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n14\t60\t48\t48.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n15\t72\t57.6\t57.60\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n16\t90\t72\t72.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n17\t110\t88\t88.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n18\t125\t100\t100.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n19\t150\t120\t120.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n20\t180\t180\t144.00\tPENDING ()\t\u2014\n21\t210\t210\t168.00\tPENDING ()\t\u2014\n\nPrevious page Next page\n\nUndo\n\nUndo restores eligible stored regular-price values changed by WriteLeash. Undo does not reverse: orders, completed sales, email, webhook, HTTP side effects, or arbitrary plugin side effects.\n\nHistory expires: 2026-11-02 01:58:46.\n\nUndo is not eligible for this job (no applied items, active processing, a finished Undo operation, or expired history). No Restore action is exposed.",
+      "captured_product_base": "07600cf13551f54c5df74db070ec344064ecb83a"
+    },
+    {
+      "filename": "screenshot-5.png",
+      "width": 818,
+      "height": 1125,
+      "format": "PNG",
+      "sha256": "7d7da936bd7a4d78c0fc39c9abd0da030105f2961986d65fb318c9eafef6f6c2",
+      "captured_at_utc": "2026-10-03T01:59:57.637Z",
+      "real_state": "Partial/completed-with-issues",
+      "caption": "A partial result reports per-outcome counts instead of claiming global success.",
+      "visible_ui_text": "WriteLeash Bulk Prices\n\nOK: One bounded chunk ran. Review durable progress below.\n\nBounded chunk processed 2 item(s). Remaining work stays queued; use Resume again if items remain.\n\nBack to bulk prices Open history\n\nDurable progress\n\nState: COMPLETED_WITH_ISSUES (ITEM_CONFLICTS).\n\nPlanned 12 \u00b7 pending 0 \u00b7 applying 0 \u00b7 applied 11 \u00b7 unchanged 0 \u00b7 conflict 1 \u00b7 failed 0 \u00b7 needs review 0 \u00b7 unsupported 0.\n\nThis job finished with conflicts or items needing review. Review the item list below; partial results are never reported as generic success.\n\nItems\n\nCurrent shows the fresh stored regular price at page load, not the shopper price. Unavailable means the product or price could not be read.\n\nProduct\tExpected\tCurrent\tPlanned\tApply\tUndo\n10\t18\t21\t14.40\tCONFLICT (ITEM_CONFLICT)\t\u2014\n11\t24\t19.2\t19.20\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n12\t36\t28.8\t28.80\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n13\t45\t36\t36.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n14\t60\t48\t48.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n15\t72\t57.6\t57.60\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n16\t90\t72\t72.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n17\t110\t88\t88.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n18\t125\t100\t100.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n19\t150\t120\t120.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n20\t180\t144\t144.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n21\t210\t168\t168.00\tAPPLIED (WOO_CRUD_VERIFIED)\t\u2014\n\nPrevious page Next page\n\nUndo\n\nUndo restores eligible stored regular-price values changed by WriteLeash. Undo does not reverse: orders, completed sales, email, webhook, HTTP side effects, or arbitrary plugin side effects.\n\nHistory expires: 2026-11-02 01:59:56.\n\nRestore eligible prices (Undo) Later supported WooCommerce edits are never overwritten: conflicts stay conflicts.",
+      "captured_product_base": "07600cf13551f54c5df74db070ec344064ecb83a"
+    },
+    {
+      "filename": "screenshot-6.png",
+      "width": 818,
+      "height": 405,
+      "format": "PNG",
+      "sha256": "749061c94471d7705901180c8c59999d613499cee1dc11e1db1ecce5b5c212b6",
+      "captured_at_utc": "2026-10-02T15:54:40.025826+00:00",
+      "real_state": "History / conflict-aware Undo eligibility",
+      "caption": "History shows which WriteLeash changes are eligible for conflict-aware Undo.",
+      "visible_ui_text": "WriteLeash Bulk Prices\n\nBack to bulk prices\n\nHistory\nJob\tStatus\tApply counts\tUndo\tExpires\n82a578c7\tCOMPLETED_WITH_ISSUES (ITEM_CONFLICTS)\tapplied 11 / planned 12 \u00b7 conflict 1 \u00b7 failed 0 \u00b7 review 0\teligible\t2026-11-01 15:54:37\nbe3278ec\tBLOCKED (BLOCKED_BY_POLICY)\tapplied 0 / planned 3 \u00b7 conflict 0 \u00b7 failed 0 \u00b7 review 0\tnot eligible\t2026-11-01 15:52:00\n9a840aca\tPLANNED ()\tapplied 0 / planned 3 \u00b7 conflict 0 \u00b7 failed 0 \u00b7 review 0\tnot eligible\t2026-11-01 15:51:59\n\nPrevious page Next page",
+      "captured_product_base": "1bb7829c0bcdad6ab687d73df3c2dea681c2b610",
+      "unchanged_view_verified_against": "07600cf13551f54c5df74db070ec344064ecb83a"
+    }
+  ],
+  "independent_price_observations": [
+    {
+      "label": "before preview/block",
+      "prices": [
+        {
+          "product_id": 10,
+          "regular_price": "18.00",
+          "stored_regular_price": "18.00"
+        },
+        {
+          "product_id": 11,
+          "regular_price": "24.00",
+          "stored_regular_price": "24.00"
+        },
+        {
+          "product_id": 12,
+          "regular_price": "36.00",
+          "stored_regular_price": "36.00"
+        },
+        {
+          "product_id": 13,
+          "regular_price": "45.00",
+          "stored_regular_price": "45.00"
+        },
+        {
+          "product_id": 14,
+          "regular_price": "60.00",
+          "stored_regular_price": "60.00"
+        },
+        {
+          "product_id": 15,
+          "regular_price": "72.00",
+          "stored_regular_price": "72.00"
+        },
+        {
+          "product_id": 16,
+          "regular_price": "90.00",
+          "stored_regular_price": "90.00"
+        },
+        {
+          "product_id": 17,
+          "regular_price": "110.00",
+          "stored_regular_price": "110.00"
+        },
+        {
+          "product_id": 18,
+          "regular_price": "125.00",
+          "stored_regular_price": "125.00"
+        },
+        {
+          "product_id": 19,
+          "regular_price": "150.00",
+          "stored_regular_price": "150.00"
+        },
+        {
+          "product_id": 20,
+          "regular_price": "180.00",
+          "stored_regular_price": "180.00"
+        },
+        {
+          "product_id": 21,
+          "regular_price": "210.00",
+          "stored_regular_price": "210.00"
+        }
+      ]
+    },
+    {
+      "label": "after blocked plan",
+      "prices": [
+        {
+          "product_id": 10,
+          "regular_price": "18.00",
+          "stored_regular_price": "18.00"
+        },
+        {
+          "product_id": 11,
+          "regular_price": "24.00",
+          "stored_regular_price": "24.00"
+        },
+        {
+          "product_id": 12,
+          "regular_price": "36.00",
+          "stored_regular_price": "36.00"
+        },
+        {
+          "product_id": 13,
+          "regular_price": "45.00",
+          "stored_regular_price": "45.00"
+        },
+        {
+          "product_id": 14,
+          "regular_price": "60.00",
+          "stored_regular_price": "60.00"
+        },
+        {
+          "product_id": 15,
+          "regular_price": "72.00",
+          "stored_regular_price": "72.00"
+        },
+        {
+          "product_id": 16,
+          "regular_price": "90.00",
+          "stored_regular_price": "90.00"
+        },
+        {
+          "product_id": 17,
+          "regular_price": "110.00",
+          "stored_regular_price": "110.00"
+        },
+        {
+          "product_id": 18,
+          "regular_price": "125.00",
+          "stored_regular_price": "125.00"
+        },
+        {
+          "product_id": 19,
+          "regular_price": "150.00",
+          "stored_regular_price": "150.00"
+        },
+        {
+          "product_id": 20,
+          "regular_price": "180.00",
+          "stored_regular_price": "180.00"
+        },
+        {
+          "product_id": 21,
+          "regular_price": "210.00",
+          "stored_regular_price": "210.00"
+        }
+      ]
+    },
+    {
+      "label": "after first Apply chunk",
+      "prices": [
+        {
+          "product_id": 10,
+          "regular_price": "21.00",
+          "stored_regular_price": "21.00"
+        },
+        {
+          "product_id": 11,
+          "regular_price": "19.20",
+          "stored_regular_price": "19.20"
+        },
+        {
+          "product_id": 12,
+          "regular_price": "28.80",
+          "stored_regular_price": "28.80"
+        },
+        {
+          "product_id": 13,
+          "regular_price": "36.00",
+          "stored_regular_price": "36.00"
+        },
+        {
+          "product_id": 14,
+          "regular_price": "48.00",
+          "stored_regular_price": "48.00"
+        },
+        {
+          "product_id": 15,
+          "regular_price": "57.60",
+          "stored_regular_price": "57.60"
+        },
+        {
+          "product_id": 16,
+          "regular_price": "72.00",
+          "stored_regular_price": "72.00"
+        },
+        {
+          "product_id": 17,
+          "regular_price": "88.00",
+          "stored_regular_price": "88.00"
+        },
+        {
+          "product_id": 18,
+          "regular_price": "100.00",
+          "stored_regular_price": "100.00"
+        },
+        {
+          "product_id": 19,
+          "regular_price": "120.00",
+          "stored_regular_price": "120.00"
+        },
+        {
+          "product_id": 20,
+          "regular_price": "180.00",
+          "stored_regular_price": "180.00"
+        },
+        {
+          "product_id": 21,
+          "regular_price": "210.00",
+          "stored_regular_price": "210.00"
+        }
+      ]
+    },
+    {
+      "label": "after fresh browser login and reload",
+      "prices": [
+        {
+          "product_id": 10,
+          "regular_price": "21.00",
+          "stored_regular_price": "21.00"
+        },
+        {
+          "product_id": 11,
+          "regular_price": "19.20",
+          "stored_regular_price": "19.20"
+        },
+        {
+          "product_id": 12,
+          "regular_price": "28.80",
+          "stored_regular_price": "28.80"
+        },
+        {
+          "product_id": 13,
+          "regular_price": "36.00",
+          "stored_regular_price": "36.00"
+        },
+        {
+          "product_id": 14,
+          "regular_price": "48.00",
+          "stored_regular_price": "48.00"
+        },
+        {
+          "product_id": 15,
+          "regular_price": "57.60",
+          "stored_regular_price": "57.60"
+        },
+        {
+          "product_id": 16,
+          "regular_price": "72.00",
+          "stored_regular_price": "72.00"
+        },
+        {
+          "product_id": 17,
+          "regular_price": "88.00",
+          "stored_regular_price": "88.00"
+        },
+        {
+          "product_id": 18,
+          "regular_price": "100.00",
+          "stored_regular_price": "100.00"
+        },
+        {
+          "product_id": 19,
+          "regular_price": "120.00",
+          "stored_regular_price": "120.00"
+        },
+        {
+          "product_id": 20,
+          "regular_price": "180.00",
+          "stored_regular_price": "180.00"
+        },
+        {
+          "product_id": 21,
+          "regular_price": "210.00",
+          "stored_regular_price": "210.00"
+        }
+      ]
+    },
+    {
+      "label": "after remaining work resumed",
+      "prices": [
+        {
+          "product_id": 10,
+          "regular_price": "21.00",
+          "stored_regular_price": "21.00"
+        },
+        {
+          "product_id": 11,
+          "regular_price": "19.20",
+          "stored_regular_price": "19.20"
+        },
+        {
+          "product_id": 12,
+          "regular_price": "28.80",
+          "stored_regular_price": "28.80"
+        },
+        {
+          "product_id": 13,
+          "regular_price": "36.00",
+          "stored_regular_price": "36.00"
+        },
+        {
+          "product_id": 14,
+          "regular_price": "48.00",
+          "stored_regular_price": "48.00"
+        },
+        {
+          "product_id": 15,
+          "regular_price": "57.60",
+          "stored_regular_price": "57.60"
+        },
+        {
+          "product_id": 16,
+          "regular_price": "72.00",
+          "stored_regular_price": "72.00"
+        },
+        {
+          "product_id": 17,
+          "regular_price": "88.00",
+          "stored_regular_price": "88.00"
+        },
+        {
+          "product_id": 18,
+          "regular_price": "100.00",
+          "stored_regular_price": "100.00"
+        },
+        {
+          "product_id": 19,
+          "regular_price": "120.00",
+          "stored_regular_price": "120.00"
+        },
+        {
+          "product_id": 20,
+          "regular_price": "144.00",
+          "stored_regular_price": "144.00"
+        },
+        {
+          "product_id": 21,
+          "regular_price": "168.00",
+          "stored_regular_price": "168.00"
+        }
+      ]
+    }
+  ],
+  "phase_b": {
+    "pre_phase_b_head": "6b05316af7c159dd91158b5ba115f0d04ce3ebff",
+    "recaptured_screenshots": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "retained_screenshots": [
+      1,
+      6
+    ],
+    "reason": "Durable item tables now expose merged Phase A Current; preview and history views are unchanged."
+  }
+}
