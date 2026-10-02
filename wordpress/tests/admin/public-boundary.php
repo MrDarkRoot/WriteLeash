@@ -17,7 +17,7 @@ $legacy = array( 'Update_Engine', 'Guard_Error', 'Unsupported_Transaction_State'
 foreach ( $legacy as $class ) {
 	wl120_assert( ! class_exists( 'WriteLeash\\' . $class, false ), 'historical class not loaded: ' . $class );
 }
-global $wp_filter, $submenu, $wpdb;
+global $wp_filter, $menu, $submenu, $wpdb;
 $allowed_callbacks = array( 'WriteLeash\\Lifecycle', 'WriteLeash\\Free_Admin',
 	'WriteLeash\\Job_Resume_Rest', 'WriteLeash\\Undo_Rest', 'WriteLeash\\Job_Worker',
 	'WriteLeash\\Undo_Worker', 'WriteLeash\\Undo_Scheduler' );
@@ -44,11 +44,15 @@ foreach ( array( 'writeleash_process_job', 'writeleash_process_undo', 'writeleas
 	wl120_assert( false !== has_action( $hook ), 'owned scheduler callback ' . $hook );
 }
 wp_set_current_user( 1 );
+// WP-CLI has no wp-admin menu bootstrap; initialize the normal Admin globals
+// before invoking the actual registered admin_menu callbacks.
+$menu = is_array( $menu ) ? $menu : array();
+$submenu = is_array( $submenu ) ? $submenu : array();
 do_action( 'admin_menu' );
 $bulk_prices = false;
 foreach ( (array) $submenu as $parent => $pages ) {
 	foreach ( $pages as $page ) {
-		wl120_assert( 'writeleash' !== $page[2] && false === strpos( $page[0], 'WriteLeash Advanced' ), 'Tools Advanced absent' );
+		wl120_assert( 'writeleash' !== $page[2] && false === strpos( (string) $page[0], 'WriteLeash Advanced' ), 'Tools Advanced absent' );
 		if ( 'writeleash-bulk-prices' === $page[2] ) {
 			wl120_assert( 'edit.php?post_type=product' === $parent && 'Bulk Prices' === $page[0], 'Woo Products placement' );
 			$bulk_prices = true;

@@ -16,7 +16,7 @@ $before = array();
 foreach ( $tables as $table ) { $before[ $table ] = $fingerprint( $table ); }
 $prices = $fingerprint( $wpdb->postmeta );
 deactivate_plugins( 'writeleash/writeleash.php' );
-wl120_assert( 'inactive' === get_option( 'writeleash_runner_state' ), 'deactivate shuts runner down' );
+wl120_assert( 'deactivated' === get_option( 'writeleash_runner_state' ) && ! WriteLeash\Runner_Authority::active( $wpdb ), 'deactivate shuts runner down in cache and durable DB truth' );
 $result = activate_plugin( 'writeleash/writeleash.php', '', false );
 wl120_assert( ! is_wp_error( $result ) && 'active' === get_option( 'writeleash_runner_state' ), 'reactivate succeeds' );
 foreach ( $before as $table => $hash ) { wl120_assert( $hash === $fingerprint( $table ), 'reactivate retains evidence: ' . $table ); }
