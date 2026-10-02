@@ -23,6 +23,7 @@ for host in mysql mariadb; do
   wp --path="$site" config set WP_DEBUG_DISPLAY false --raw
   mkdir -p "$site/wp-content/mu-plugins"
   cp /opt/tests/acceptance/instrument.php "$site/wp-content/mu-plugins/wl112.php"
+  cp /opt/tests/acceptance/hook-torture.php "$site/wp-content/mu-plugins/wl112-hooks.php"
   export WL112_METRICS="/evidence/$host-requests.jsonl"
   php -d "memory_limit=$WL112_MEMORY" -d "max_execution_time=$WL112_TIME" -S 127.0.0.1:8080 -t "$site" >"/evidence/$host-web.txt" 2>&1 &
   web_pid=$!
@@ -31,6 +32,9 @@ for host in mysql mariadb; do
   for size in $WL112_SIZES; do
     WL112_SIZE="$size" wp --path="$site" eval-file /opt/tests/acceptance/journey.php
   done
+  if [ "$WL112_WOO" = 11.1.2 ]; then
+    wp --path="$site" eval-file /opt/tests/acceptance/torture.php
+  fi
   kill "$web_pid"
   wp --path="$site" eval-file /opt/tests/acceptance/lifecycle.php
   php /opt/tests/release/debug-audit.php "$site/wp-content/debug.log" "$host"

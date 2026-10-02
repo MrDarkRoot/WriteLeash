@@ -1,6 +1,6 @@
 ARG CORE_IMAGE
-FROM ${CORE_IMAGE} AS core
 ARG CLI_IMAGE
+FROM ${CORE_IMAGE} AS core
 FROM ${CLI_IMAGE}
 COPY --from=core /usr/src/wordpress/ /opt/wp-core/
 COPY writeleash/ /opt/writeleash/

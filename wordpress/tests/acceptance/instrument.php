@@ -22,6 +22,11 @@ if ( PHP_SAPI === 'cli-server' ) {
     // Deliberately impaired scheduler: neither traffic nor a loopback can run
     // queued work. These are public AS filters, not worker/lease overrides.
     add_filter( 'action_scheduler_allow_async_request_runner', '__return_false' );
+    add_action( 'writeleash_price_apply_checkpoint', static function ( $point, $id ) {
+        if ( 'AFTER_WOO_SAVE_BEFORE_JOURNAL' === $point && (int) get_option( 'wl112_rollback' ) === $id ) {
+            throw new RuntimeException( 'synthetic-rollback-before-commit' );
+        }
+    }, 10, 2 );
     add_filter( 'pre_as_enqueue_async_action', static function ( $pre, $hook ) {
         if ( get_option( 'wl112_scheduler_down' ) && $hook === 'writeleash_process_job' ) { return 0; }
         return $pre;
