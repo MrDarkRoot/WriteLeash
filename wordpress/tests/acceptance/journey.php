@@ -36,6 +36,23 @@ function wl112_sizes(): array {
     global $wpdb;
     return $wpdb->get_results( $wpdb->prepare( 'SELECT TABLE_NAME, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH FROM information_schema.TABLES WHERE TABLE_SCHEMA=%s ORDER BY TABLE_NAME', DB_NAME ), ARRAY_A );
 }
+function wl112_payload( array $job ): array {
+    global $wpdb;
+    $out = array();
+    foreach ( array( 'writeleash_jobs' => array( 'id', (int) $job['id'] ), 'writeleash_job_items' => array( 'job_id', (int) $job['id'] ), 'writeleash_price_items' => array( 'plan_id', $job['plan_id'] ), 'writeleash_undo_operations' => array( 'job_id', (int) $job['id'] ), 'writeleash_undo_items' => array( 'job_id', (int) $job['id'] ) ) as $suffix => $where ) {
+        $table = $wpdb->prefix . $suffix;
+        if ( ! $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) ) ) { continue; }
+        $columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
+        $terms = array();
+        foreach ( $columns as $column ) {
+            wl112_assert( (bool) preg_match( '/^[a-z_]+$/', $column ), 'payload identifier' );
+            $terms[] = 'COALESCE(OCTET_LENGTH(`' . $column . '`),0)';
+        }
+        $sql = 'SELECT COUNT(*) AS exact_rows,COALESCE(SUM(' . implode( '+', $terms ) . '),0) AS logical_field_bytes FROM %i WHERE %i=' . ( is_int( $where[1] ) ? '%d' : '%s' );
+        $out[$suffix] = $wpdb->get_row( $wpdb->prepare( $sql, $table, $where[0], $where[1] ), ARRAY_A );
+    }
+    return $out;
+}
 function wl112_parity( array $ids, string $price ): void {
     $db = V::observer();
     try {
@@ -115,6 +132,7 @@ try {
     $seen = array();
     $later = array();
     $plan = Repo::hydrate_plan( $job );
+    $facts['evidence_payload_after_plan'] = wl112_payload( $job );
     for ( $offset = 0; $offset < $size; $offset += 20 ) {
         $page = 0 === $offset ? $preview : wl112_get( $post['location'] . '&wl_offset=' . $offset );
         $row_ids = wl112_rows( $page['body'] );
@@ -183,6 +201,7 @@ try {
     foreach ( $ids as $id ) { V::observe( $plan, $id ); }
     $facts['cache_lookup_journal_parity'] = 'PASS';
     $facts['db_after_apply'] = wl112_sizes();
+    $facts['evidence_payload_after_apply'] = wl112_payload( $job );
     $hist = wl112_get( $base . '&wl_view=history' );
     wl112_assert( false !== strpos( $hist['body'], substr( $public, 0, 8 ) ), 'Admin history missing job' );
     $seen = array();
@@ -212,6 +231,7 @@ try {
     wp_cache_flush_runtime();
     wl112_parity( $ids, '100' );
     $facts['db_after_undo'] = wl112_sizes();
+    $facts['evidence_payload_after_undo'] = wl112_payload( $job );
     $facts['history_storage'] = U::storage_estimate();
     $facts['outcome'] = 'PASS';
     $facts['actual_job_size'] = $size;

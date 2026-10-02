@@ -79,6 +79,10 @@ jobs:
           set -euo pipefail
           mkdir -p "$WL112_RESULTS"
           bash wordpress/tests/acceptance/run.sh 2>&1 | tee "$WL112_RESULTS/transcript.txt"
+      - name: Summarize measured rows without extrapolation
+        if: always()
+        shell: bash
+        run: python3 wordpress/tests/acceptance/summarize.py "$RUNNER_TEMP/wl112" > "$RUNNER_TEMP/wl112/summary.json"
       - name: Preserve every attempt including failures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

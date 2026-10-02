@@ -202,8 +202,12 @@ try {
     // Existing session remains authenticated, but fresh request loses authority.
     wl112_login( 'wl112-a' );
     $blocked = wl112_post( array( 'action' => 'writeleash_free_resume', 'job' => $owned[$actors[0]][0], '_wpnonce' => 'irrelevant-after-revocation' ) );
-    $notice = wl112_get( $blocked['location'] );
-    wl112_assert( false !== strpos( $notice['body'], 'not allowed' ) || false !== strpos( $notice['body'], 'FORBIDDEN' ), 'revoked actor refusal' );
+    // Core refuses the plugin page itself once edit_products is revoked.
+    // A 403 here is the required negative, not a failed positive-page read.
+    $notice = wl112_http( 'GET', $blocked['location'] );
+    wl112_assert( 403 === $notice['code'], 'revoked actor must lose Admin entry' );
+    $revoked_job = R::read_by_public_id( $owned[$actors[0]][0] );
+    wl112_assert( 0 === R::counts( (int) $revoked_job['id'] )['applied'], 'revoked actor mutated' );
     wl112_login();
     $override = wl112_get( $base . '&wl_view=job&wl_job=' . $owned[$actors[1]][0] );
     wl112_assert( false !== strpos( $override['body'], 'Durable progress' ), 'intentional admin override' );
