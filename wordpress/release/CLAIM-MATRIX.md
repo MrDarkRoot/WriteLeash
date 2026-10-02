@@ -9,6 +9,10 @@ Evidence baseline: post-#120 `origin/main` = `22a89ec0d12fb4860ec9ffb1347332af02
 (merge of PR #132, closing #120; accepted public head `83b3b58588045f998ec990c5ee43017a7b43d344`).
 Official WordPress.org guidance rechecked 2026-10-02; see the last section.
 
+Phase B base after #133: `4bc45a9345a814e75a65f6d6293756f447603e91`.
+Pre-Phase-B head: `56e90cc9c12057c81d1f9312aa51bec11039415f`.
+Rebasing result: `14eaa1f580848964134b4f6b0f415ee791a20c36`.
+
 Status values:
 
 * `PUBLISHABLE` — public wording is supported as written.
@@ -54,10 +58,10 @@ Status values:
 
 ## 4. Supported product scope
 
-* **COPY CLAIM:** "Published core simple WooCommerce products", "Stored regular prices in the base store currency", "Products with no active sale price or sale date".
+* **COPY CLAIM:** "Published core simple WooCommerce products", "Stored regular prices in the base store currency", "Products with no sale-price/date configuration".
 * **SUPPORTING ISSUE:** #107 (contract), #108 (mutation proof), #111 (Admin), #112 (acceptance rows).
 * **SUPPORTING TEST/EVIDENCE:**
-  * `FREE-PRICE-CONTRACT.md` — eligibility rules for published simple products, stored regular price, base currency, no active sale window.
+  * `FREE-PRICE-CONTRACT.md` — eligibility rules for published simple products, stored regular price, base currency, no sale-price/date configuration (including inactive, future and expired sales).
   * `wordpress/writeleash/FREE-PRICE-APPLY-CONTRACT.md` — stock `WC_Product_Data_Store_CPT` and Woo CRUD path.
   * `wordpress/tests/acceptance/EVIDENCE.md` — price/meta/lookup/cache/journal parity on every completed row.
 * **ALLOWED WORDING:** "Not changed: sale prices, sale dates, variations, stock and orders."
@@ -72,7 +76,7 @@ Status values:
   * `FREE-PRICE-APPLY-CONTRACT.md` — pinned to Woo 11.1.2 stock data store; official ZIP SHA-256 recorded.
   * `wordpress/tests/acceptance/EVIDENCE.md` — row `7.1.2 / 11.0.1 / 8.2.34` → `UNSUPPORTED: existing execution gate; zero applied`.
   * `wordpress/writeleash/includes/free/class-free-support-contract.php` — `WOOCOMMERCE_VERSION = '11.1.2'`.
-  * Exact package header `wordpress/tests/free/cache/woocommerce.11.1.2.zip` → `Version: 11.1.2`, `Requires at least: 7.0`.
+  * Canonical immutable artifact: https://downloads.wordpress.org/plugin/woocommerce.11.1.2.zip → `Version: 11.1.2`, `Requires at least: 7.0`; SHA-256 `9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e`.
 * **ALLOWED WORDING:** "WooCommerce 11.1.2 exactly."
 * **REQUIRED LIMITATION:** No older, newer or range support; the Admin refuses unsupported versions before creating jobs.
 * **STATUS:** PUBLISHABLE.
@@ -85,6 +89,7 @@ Status values:
   * `wordpress/tests/acceptance/EVIDENCE.md` — exact rows for WP `7.1.2` and `7.0.1`; `6.8.3` recorded as `UNSUPPORTED: Woo package requires WP 7.0`.
   * Exact Woo package header (`Requires at least: 7.0`) and `https://api.wordpress.org/plugins/info/1.0/woocommerce.json` (`requires: 7.0`), checked 2026-10-02.
   * `readme-validate.php` requires both exact fixtures and the 7.0 floor, and requires the plugin header `Requires at least: 7.0` to match.
+  * `wordpress/tests/dependency-63.php`, foundation `in-container.sh` and current-core `in-container.sh`: exact public WP 6.8.3 expected Core minimum refusal before any historical shim; public WP 7.1.2 dependency proof with missing Woo and active Woo 11.1.2. See `wordpress/release/PHASE-B-121.md` for the separate repository-only historical mechanism.
 * **ALLOWED WORDING:** "Requires WordPress 7.0 or newer" as directory metadata plus the exact tested fixtures.
 * **REQUIRED LIMITATION:** Do not claim all WordPress 7.x releases are supported from two tested points; directory metadata is a minimum, not a coverage map.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
@@ -137,14 +142,14 @@ Status values:
 
 ## 11. Conflict behavior
 
-* **COPY CLAIM:** "a product edited after approval becomes a conflict instead of a blind overwrite"; "If a product no longer matches the approved plan, that item is reported as a conflict and the newer value is not overwritten."
+* **COPY CLAIM:** "If the stored regular price or another execution precondition no longer matches the approved plan, that item is reported as a conflict instead of being blindly overwritten."
 * **SUPPORTING ISSUE:** #107 optimistic concurrency contract; #109/#110 conflict state; #111 item UI; #112 fresh-state tests.
 * **SUPPORTING TEST/EVIDENCE:**
   * `wordpress/tests/acceptance/EVIDENCE.md` — "regular-price property changed to 88" → rollback to 100, journal/job `NEEDS_REVIEW`, no false `APPLIED`; external edit before Apply recorded.
   * `wordpress/tests/acceptance/SUPPORT-REPAIR.md` — one later Woo edit to 75 conflicts while other items restore.
-  * `class-job-state.php` / `class-free-admin.php` — `CONFLICT`, "The product changed after approval; the stored price was not overwritten."
-* **ALLOWED WORDING:** Conflict detection and non-overwrite for the frozen plan.
-* **REQUIRED LIMITATION:** Never claim WriteLeash prevents all bad edits or blocks every concurrent Woo/plugin write; only the approved items are rechecked and fenced.
+  * `FREE-PRICE-CONTRACT.md` and `class-product-snapshot.php` — execution fingerprint covers stored regular price, product existence, core-simple/type state, publication status, sale configuration, currency/base context, price decimals and WordPress/WooCommerce versions. SKU, name/title and category membership are provenance-only.
+* **ALLOWED WORDING:** The exact copy claim above. Screenshot caption: "A later regular-price or execution-state change becomes a conflict instead of a blind overwrite."
+* **REQUIRED LIMITATION:** SKU/name/category-only changes are not automatic execution conflicts. Never claim WriteLeash prevents all bad edits or blocks every concurrent Woo/plugin write; only the approved items are rechecked and fenced.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 12. Durable progress, partial outcomes and Resume
@@ -168,7 +173,7 @@ Status values:
   * `wordpress/tests/acceptance/EVIDENCE.md` — eligible stored price restored; external edit before Undo recorded; partial Undo continues after reopen.
   * `wordpress/tests/acceptance/SUPPORT-REPAIR.md` — one later edit conflicts, other items restore; first Undo POST remains nonterminal until the operation finishes.
 * **ALLOWED WORDING:** The exact sentence above; the UI action "Restore eligible prices (Undo)".
-* **REQUIRED LIMITATION:** Not universal rollback; a product changed after WriteLeash applied its price is not overwritten.
+* **REQUIRED LIMITATION:** Not universal rollback; a stored regular-price or Undo execution-precondition mismatch is not overwritten. Do not describe arbitrary product edits as automatic conflicts.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 14. External side effects are outside Undo
@@ -262,9 +267,11 @@ The `#121` readme guard in `readme-validate.php` fails the listing if `1,000`/`1
   `FREE-UNDO-HISTORY-CONTRACT.md`.
 * `wordpress/release/PUBLIC-PAYLOAD.md`,
   `wordpress/release/writeleash-distribution-files.txt`.
-* WooCommerce 11.1.2 package header in
-  `wordpress/tests/free/cache/woocommerce.11.1.2.zip` and
-  `https://api.wordpress.org/plugins/info/1.0/woocommerce.json`.
+* Primary WooCommerce 11.1.2 package evidence:
+  https://downloads.wordpress.org/plugin/woocommerce.11.1.2.zip,
+  SHA-256 `9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e`.
+  Mutable secondary corroboration only:
+  `https://api.wordpress.org/plugins/info/1.0/woocommerce.json`, reviewed 2026-10-02.
 
 ## Current WordPress.org guidance reviewed (2026-10-02)
 
@@ -295,7 +302,7 @@ The `#121` readme guard in `readme-validate.php` fails the listing if `1,000`/`1
 
 The readme captions are written to match the #122 asset plan and #111 UI
 states, in order: (1) frozen before/after preview; (2) safety-policy blocked
-plan; (3) later-edit conflict without overwrite; (4) interrupted/paused job
+plan; (3) "A later regular-price or execution-state change becomes a conflict instead of a blind overwrite."; (4) interrupted/paused job
 with truthful remaining work and Resume; (5) partial result with per-outcome
 counts; (6) history with conflict-aware Undo eligibility. No #122 asset files
 were created or modified by #121.

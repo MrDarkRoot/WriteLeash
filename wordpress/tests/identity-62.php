@@ -11,13 +11,21 @@ if ( is_file( WP_PLUGIN_DIR . '/commitcap/commitcap.php' ) ||
 	throw new RuntimeException( '#62 stale CommitCap package basename present in the plugin directory' );
 }
 $data = get_plugin_data( $file, false, false );
+$main = file_get_contents( $file );
+$historical = false !== strpos( $main, 'HISTORICAL TEST ONLY: disposable WP 6.8.3 metadata shim; not public support.' );
+$minimum = $historical ? '6.8.3' : '7.0';
+if ( $historical && ( '6.8.3' !== $GLOBALS['wp_version'] ||
+	0 !== strpos( realpath( ABSPATH ), '/tmp/' ) ||
+	! preg_match( '/^ \* Requires at least: 7\.0$/m', file_get_contents( '/opt/writeleash/writeleash.php' ) ) ) ) {
+	throw new RuntimeException( '#121 historical identity requires disposable exact WP 6.8.3 and untouched production minimum 7.0' );
+}
 $license_header = get_file_data(
 	$file,
 	array( 'License' => 'License', 'LicenseURI' => 'License URI' ),
 	'plugin'
 );
 if ( 'WriteLeash' !== $data['Name'] || 'writeleash' !== $data['TextDomain'] || '0.1.0' !== $data['Version'] ||
-	'6.8' !== $data['RequiresWP'] || '7.4' !== $data['RequiresPHP'] || 'woocommerce' !== $data['RequiresPlugins'] ||
+	$minimum !== $data['RequiresWP'] || '7.4' !== $data['RequiresPHP'] || 'woocommerce' !== $data['RequiresPlugins'] ||
 	'GPL v2 or later' !== $license_header['License'] || 'https://www.gnu.org/licenses/gpl-2.0.html' !== $license_header['LicenseURI'] ||
 	'writeleash/writeleash.php' !== plugin_basename( $file ) ||
 	'commitcap/commitcap.php' === plugin_basename( $file ) ) {

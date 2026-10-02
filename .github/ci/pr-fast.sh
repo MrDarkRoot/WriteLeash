@@ -14,6 +14,7 @@ php "$tests/inventory-audit.php" "$source" wordpress/release/PUBLIC-PAYLOAD.md "
 mkdir -p /tmp/opencode
 php "$tests/public-audit-cases.php" "$source" "$manifest"
 php "$tests/readme-validate.php" "$source"
+php "$tests/historical-shim-cases.php" "$source"
 if [[ -f "$tests/claim-matrix-audit.php" ]]; then
   php "$tests/claim-matrix-audit.php" "$repo"
 fi

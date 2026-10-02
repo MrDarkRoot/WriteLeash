@@ -20,6 +20,8 @@ foreach ( array( $readme, $main ) as $file ) {
 	}
 }
 $text = (string) file_get_contents( $readme );
+require_once __DIR__ . '/conflict-copy.php';
+writeleash_conflict_copy_audit( $text );
 if ( strlen( $text ) > 10240 ) {
 	$fail( 'readme.txt is larger than the 10k directory guidance' );
 }

@@ -20,10 +20,11 @@ and approve the exact plan.
 
 Before anything is saved you see the exact before-and-after regular price for
 every selected product, plus exclusions, blockers and safety-limit outcomes.
-Approval is bound to that frozen plan. Execution rechecks the current product
-state, so a product edited after approval becomes a conflict instead of a blind
-overwrite. Progress is durable, so an interrupted job can be resumed in bounded
-chunks, and eligible WriteLeash changes can be undone later without overwriting
+Approval is bound to that frozen plan. If the stored regular price or another
+execution precondition no longer matches the approved plan, that item is reported
+as a conflict instead of being blindly overwritten. Progress is durable, so an
+interrupted job can be resumed in bounded chunks, and eligible WriteLeash changes
+can be undone later without overwriting
 newer edits.
 
 = What you see before execution =
@@ -40,9 +41,11 @@ a new preview; an approval cannot be reused for different inputs.
 = What happens when the store changes after preview =
 
 The preview freezes the intended product IDs and target prices. Execution
-rechecks each product's current state before saving. If a product changed after
-approval, WriteLeash reports a conflict for that item instead of blindly
-overwriting the newer value.
+rechecks the stored regular price and execution preconditions before saving.
+If the stored regular price or another execution precondition no longer matches
+the approved plan, that item is reported as a conflict instead of being blindly
+overwritten. SKU, name/title and category membership are provenance-only;
+changes to those fields alone do not necessarily cause an execution conflict.
 
 = What happens when execution stops =
 
@@ -55,8 +58,9 @@ it.
 
 Undo restores eligible stored regular-price values that WriteLeash previously
 applied when the durable evidence and the current product state permit it. If a
-product was edited after WriteLeash applied its price, that item is reported as
-a conflict and is not overwritten. Undo does not reverse orders, completed
+stored regular price or another Undo execution precondition no longer matches
+the durable Apply evidence, that item is reported as a conflict and is not
+overwritten. Undo does not reverse orders, completed
 sales, emails, webhooks, remote HTTP requests, external queues or other plugin
 side effects.
 
@@ -65,7 +69,7 @@ side effects.
 * Up to 100 selected products per new job in the tested configuration.
 * Published core simple WooCommerce products.
 * Stored regular prices in the base store currency.
-* Products with no active sale price or sale date.
+* Products with no sale-price/date configuration.
 * WooCommerce 11.1.2 exactly.
 * WordPress 7.0.1 and 7.1.2 were exercised. Requires WordPress 7.0 or newer, the minimum of the supported WooCommerce package.
 * PHP 7.4.33, 8.0.30, 8.1.34 and 8.2.34 were exercised. Requires PHP 7.4 or newer.
@@ -90,7 +94,7 @@ required.
 
 1. Review the exact before-and-after regular prices before approval.
 2. A safety policy blocks the plan before any product is saved.
-3. A later product edit becomes a conflict instead of a blind overwrite.
+3. A later regular-price or execution-state change becomes a conflict instead of a blind overwrite.
 4. An interrupted job shows truthful remaining work and a protected Resume action.
 5. A partial result reports per-outcome counts instead of claiming global success.
 6. History shows which WriteLeash changes are eligible for conflict-aware Undo.
@@ -103,11 +107,15 @@ No. This version changes stored regular prices for published core simple
 products only. Sale prices, sale dates, variations, stock and orders are outside
 the supported scope.
 
-= What happens if someone edits a product after I approve the plan? =
+= What happens if the regular price or execution state changes after approval? =
 
-Execution rechecks the current product state before saving. If the product no
-longer matches the approved plan, that item is reported as a conflict and the
-newer value is not overwritten.
+If the stored regular price or another execution precondition no longer matches
+the approved plan, that item is reported as a conflict instead of being blindly
+overwritten. Execution preconditions include product existence, core-simple/type
+state, publication status, sale configuration, currency/base context, price
+decimals and WordPress/WooCommerce versions. SKU, name/title and category
+membership are provenance-only; changes to those fields alone do not necessarily
+cause an execution conflict.
 
 = What happens if execution is interrupted? =
 
@@ -117,8 +125,9 @@ the protected Resume action continues the existing job in bounded chunks.
 = Can Undo reverse everything? =
 
 No. Undo restores eligible stored regular-price values that WriteLeash applied
-when the durable evidence and the current product state permit it. Later edits
-are reported as conflicts instead of being overwritten. Orders, completed sales,
+when the durable evidence and the current product state permit it. A stored
+regular-price or Undo execution-precondition mismatch is reported as a conflict
+instead of being overwritten. Orders, completed sales,
 emails, webhooks, remote HTTP requests, external queues and other plugin side
 effects are not reversed.
 

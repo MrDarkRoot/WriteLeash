@@ -20,6 +20,34 @@ foreach ( array( $readme, $matrix, $manifest ) as $file ) {
 $read = (string) file_get_contents( $readme );
 $mx   = (string) file_get_contents( $matrix );
 $mf   = (string) file_get_contents( $manifest );
+require_once __DIR__ . '/conflict-copy.php';
+writeleash_conflict_copy_audit( $read );
+writeleash_conflict_copy_audit( $mx );
+// Appending an overbroad claim must fail even when the bounded wording remains.
+foreach ( array(
+	'If a product is edited after approval, it conflicts.',
+	'Any later product edit causes a conflict.',
+	'A later product edit becomes a conflict instead of a blind overwrite.',
+	'A product edited after approval becomes a conflict.',
+	'Later edits always conflict.',
+	'Later edits are reported as conflicts instead of being overwritten.',
+	'If the product no longer matches the approved plan, it conflicts.',
+) as $regression ) {
+	try {
+		writeleash_conflict_copy_audit( $read . "\n" . $regression );
+	} catch ( RuntimeException $expected ) {
+		continue;
+	}
+	$fail( 'overbroad conflict regression accepted: ' . $regression );
+}
+foreach ( array( 'SKU', 'name/title', 'category membership', 'provenance-only' ) as $provenance ) {
+	if ( false === strpos( $read, $provenance ) || false === strpos( $mx, $provenance ) ) {
+		$fail( 'missing provenance-only limitation: ' . $provenance );
+	}
+}
+foreach ( array( 'https://downloads.wordpress.org/plugin/woocommerce.11.1.2.zip', '9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e' ) as $artifact ) {
+	if ( false === strpos( $mx, $artifact ) ) { $fail( 'missing immutable Woo evidence: ' . $artifact ); }
+}
 
 if ( false !== strpos( $mf, 'CLAIM-MATRIX' ) ) {
 	$fail( 'internal claim matrix must not enter the distribution manifest' );

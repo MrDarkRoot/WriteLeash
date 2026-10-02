@@ -74,6 +74,7 @@
     {"paths": ["wordpress/tests/Dockerfile", "wordpress/tests/assert-compose-clean.sh", "wordpress/tests/stage-plugin.sh"], "gates": ["plan", "journal", "jobs", "undo", "admin", "acceptance", "foundation", "engine", "research", "adapter", "historical"]},
     {"paths": ["wordpress/tests/run.sh", "wordpress/tests/in-container.sh", "wordpress/tests/docker-compose.yml", "wordpress/tests/dependency-63.php", "wordpress/tests/failure.php", "wordpress/tests/lifecycle.php", "wordpress/tests/old-identity-fixture.php", "wordpress/tests/uninstall-unactivated.php"], "gates": ["foundation", "historical"]},
     {"paths": ["wordpress/tests/identity-62.php"], "gates": ["foundation", "adapter", "historical"]},
+    {"paths": ["wordpress/tests/historical-minimum-121.php"], "gates": ["foundation", "adapter", "historical"]},
     {"paths": ["wordpress/tests/redirection-schema.php"], "gates": ["foundation", "adapter", "historical", "admin"]},
     {"paths": ["wordpress/tests/release/run.sh", "wordpress/tests/release/plugin-check-results.php"], "gates": ["historical"]},
     {"paths": ["wordpress/tests/release/debug-audit.php"], "gates": ["plan", "journal", "jobs", "undo", "admin", "foundation", "adapter", "historical"]},
