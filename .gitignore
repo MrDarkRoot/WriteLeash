@@ -57,3 +57,6 @@ wordpress/tests/undo/cache/
 
 # #111 Free Admin fixture artifact cache
 wordpress/tests/admin/cache/
+
+# #112 acceptance fixture download cache
+wordpress/tests/acceptance/cache/

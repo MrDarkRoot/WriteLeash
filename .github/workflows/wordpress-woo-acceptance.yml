@@ -1,0 +1,80 @@
+name: WordPress Woo Free acceptance evidence
+on:
+  pull_request:
+    paths: ['wordpress/**', '.github/workflows/wordpress-woo-acceptance.yml']
+  push:
+    branches: [main]
+    paths: ['wordpress/**', '.github/workflows/wordpress-woo-acceptance.yml']
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: current-constrained-redis
+            core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
+            cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
+            sizes: '100 1000 10000'
+            woo: '11.1.2'
+            cache: persistent
+          - name: previous-wordpress
+            core: wordpress:6.8.3-php8.2-apache@sha256:1e6215749283955d5c9ffea6c297651ed23cdfdbb91677ad7abd705b2682f2cf
+            cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
+            sizes: '100'
+            woo: '11.1.2'
+            cache: default
+          - name: previous-woo
+            core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
+            cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
+            sizes: '100'
+            woo: '11.0.1'
+            cache: persistent
+          - name: php74
+            core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
+            cli: wordpress:cli-php7.4@sha256:9a1bb40df37cfe9c82b3d098a845b05f3586deefb696d1b59abcce3c269fb075
+            sizes: '100'
+            woo: '11.1.2'
+            cache: persistent
+          - name: php80
+            core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
+            cli: wordpress:cli-php8.0@sha256:9d9ed8300f903e19abfd65a7abd4a8b96b668a8fb675172ef64ebd16e004b4fe
+            sizes: '100'
+            woo: '11.1.2'
+            cache: persistent
+          - name: php81
+            core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
+            cli: wordpress:cli-php8.1@sha256:f6534b40833bcc3adc261e609e99f3b2a026a43d585a54092b150c852842438b
+            sizes: '100'
+            woo: '11.1.2'
+            cache: persistent
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Measure actual Admin journey on both engines
+        env:
+          WL112_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          WL112_CORE_IMAGE: ${{ matrix.core }}
+          WL112_CLI_IMAGE: ${{ matrix.cli }}
+          WL112_SIZES: ${{ matrix.sizes }}
+          WL112_WOO: ${{ matrix.woo }}
+          WL112_CACHE: ${{ matrix.cache }}
+          WL112_MEMORY: 128M
+          WL112_TIME: '30'
+          WL112_RESULTS: ${{ runner.temp }}/wl112
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$WL112_RESULTS"
+          bash wordpress/tests/acceptance/run.sh 2>&1 | tee "$WL112_RESULTS/transcript.txt"
+      - name: Preserve every attempt including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: woo112-${{ matrix.name }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/wl112
+          retention-days: 30

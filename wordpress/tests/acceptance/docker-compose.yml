@@ -1,0 +1,49 @@
+services:
+  mysql:
+    image: mysql@sha256:9c3380eac945af0736031b200027f581925927c81e010056214a4bd6b6693714
+    environment:
+      MYSQL_ROOT_PASSWORD: disposable_root_password
+      MYSQL_DATABASE: wp_test
+      MYSQL_USER: wp_test
+      MYSQL_PASSWORD: disposable_wp_password
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+  mariadb:
+    image: mariadb@sha256:85c39719200637250bb8abe3ccd239239d6f175156fc1698141409fcf8e01a38
+    environment:
+      MARIADB_ROOT_PASSWORD: disposable_root_password
+      MARIADB_DATABASE: wp_test
+      MARIADB_USER: wp_test
+      MARIADB_PASSWORD: disposable_wp_password
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p$$MARIADB_ROOT_PASSWORD --silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+  redis:
+    image: redis@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  tester:
+    build:
+      context: ../..
+      dockerfile: tests/acceptance/Dockerfile
+      args:
+        CORE_IMAGE: ${WL112_CORE_IMAGE}
+        CLI_IMAGE: ${WL112_CLI_IMAGE}
+    environment:
+      WL112_SHA: ${WL112_SHA}
+      WL112_WOO: ${WL112_WOO:-11.1.2}
+      WL112_SIZES: ${WL112_SIZES:-100}
+      WL112_CACHE: ${WL112_CACHE:-persistent}
+      WL112_MEMORY: ${WL112_MEMORY:-128M}
+      WL112_TIME: ${WL112_TIME:-30}
+    volumes:
+      - ./cache:/opt/woo-zips:ro
+      - ${WL112_RESULTS}:/evidence
