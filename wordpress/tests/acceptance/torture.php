@@ -34,8 +34,8 @@ function wt_approve( array $f ): array {
     return array( 'url' => $post['location'], 'page' => wl112_get( $post['location'] ) );
 }
 function wt_resume( array $progress ): array {
-    wl112_post( wl112_form( $progress['page']['body'], 'writeleash_free_resume' ) );
-    return array( 'url' => $progress['url'], 'page' => wl112_get( $progress['url'] ) );
+    $post = wl112_post( wl112_form( $progress['page']['body'], 'writeleash_free_resume' ) );
+    return array( 'url' => $progress['url'], 'page' => wl112_get( $progress['url'] ), 'resume_post_seconds' => $post['seconds'] );
 }
 function wt_truth( int $id, bool $after_recovery = true ): array {
     $db = V::observer();
@@ -66,7 +66,7 @@ try {
         $job = R::read( (int) $f['job']['id'] );
         $truth = wt_truth( $id );
         $row = J::read( $wpdb, $job['plan_id'], $id );
-        $report['hooks'][$mode] = array( 'job_state' => $job['status'], 'counts' => R::counts( (int) $job['id'] ), 'journal_state' => $row['state'], 'truth' => $truth, 'db_effect_rows' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}wl112_hook_events WHERE product_id=%d", $id ) ) );
+        $report['hooks'][$mode] = array( 'job_state' => $job['status'], 'counts' => R::counts( (int) $job['id'] ), 'journal_state' => $row['state'], 'truth' => $truth, 'resume_post_seconds' => $progress['resume_post_seconds'], 'db_effect_rows' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}wl112_hook_events WHERE product_id=%d", $id ) ) );
         if ( 'APPLIED' === $row['state'] ) {
             wl112_assert( D::parse( $truth['regular'] ) === '80', 'KILL: journal falsely APPLIED under hook torture' );
             V::observe( R::hydrate_plan( $job ), $id );

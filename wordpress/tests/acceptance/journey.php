@@ -122,6 +122,8 @@ try {
         $facts['outcome'] = 'USABLE_WITH_LIMIT';
         $facts['classification_reason'] = '10,000 actual fixture products; both category and explicit-ID Admin selection refused by existing 1,000 selection contract; zero mutations. No 10k job can be created.';
         $facts['actual_job_size'] = 0;
+        $facts['final_counts'] = array( 'planned' => 0, 'applied' => 0, 'refused' => $size );
+        $facts['cache_lookup_journal_parity'] = 'PASS: all requested products unchanged; no journal/job created';
         $facts['execution_seconds'] = null;
         $facts['undo_seconds'] = null;
         wl112_save( $facts );
@@ -177,6 +179,9 @@ try {
             wl112_assert( (int) $current['applied'] === 0, 'unsupported Woo mutated' );
             wl112_parity( $ids, '100' );
             $facts['outcome'] = 'UNSUPPORTED';
+            $facts['actual_job_size'] = $size;
+            $facts['final_counts'] = Repo::counts( (int) $job['id'] );
+            $facts['cache_lookup_journal_parity'] = 'PASS: zero applied; all selected prices unchanged';
             $facts['classification_reason'] = 'Previous Woo rejected by existing exact-version execution contract; no private metadata fallback.';
             wl112_save( $facts );
             return;
