@@ -22,7 +22,7 @@ function wt_plan( array $ids ): array {
     global $base;
     $home = wl112_get( $base );
     $form = wl112_form( $home['body'], 'writeleash_free_preview' );
-    $form = array_merge( $form, array( 'selector' => 'ids', 'ids' => implode( ',', $ids ), 'operation' => 'DECREASE_PERCENT', 'amount' => '20', 'max_products' => '1000', 'max_increase' => '100', 'max_decrease' => '100', 'warning_threshold' => '10' ) );
+    $form = array_merge( $form, array( 'selector' => 'ids', 'ids' => implode( ',', $ids ), 'operation' => 'DECREASE_PERCENT', 'amount' => '20', 'max_products' => '100', 'max_increase' => '100', 'max_decrease' => '100', 'warning_threshold' => '10' ) );
     unset( $form['block_zero'] );
     $post = wl112_post( $form );
     wl112_assert( (bool) preg_match( '/wl_job=([0-9a-f-]{36})/', $post['location'], $m ), 'torture preview refused' );

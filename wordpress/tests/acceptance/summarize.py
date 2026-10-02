@@ -30,14 +30,14 @@ def summarize(path):
     requests = requests[data.get("request_start_line", 0):data.get("request_end_line", 0)]
     row = {key: data.get(key) for key in (
         "git_sha", "wp", "woo", "php", "db", "cache", "catalog_size", "fixture_product_count",
-        "actual_job_size", "requested_job_size", "outcome", "error",
+        "actual_job_size", "requested_job_size", "outcome", "reason", "error",
         "classification_reason", "fixture_seconds", "fixture_queries",
         "fixture_peak_php_bytes", "plan_post_seconds", "first_plan_journey_seconds",
         "preview_first_page_seconds", "approval_seconds", "execution_seconds",
         "items_per_second_including_progress_http", "manual_resume_first_chunk_seconds",
         "scheduler_lag_lower_bound_seconds", "approval_durable_state", "undo_seconds",
         "final_counts", "cache_lookup_journal_parity",
-        "exactly_one_apply_save_per_frozen_product")}
+        "exactly_one_apply_save_per_frozen_product", "owned_evidence_before", "owned_evidence_after")}
     row["preview_later_quantiles_seconds"] = quantiles(data.get("preview_later_page_seconds", []))
     row["apply_batch_quantiles_seconds"] = quantiles(data.get("apply_batch_seconds", []))
     row["undo_batch_quantiles_seconds"] = quantiles(data.get("undo_batch_seconds", []))

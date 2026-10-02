@@ -9,7 +9,7 @@ final class Woo_Price_Mutator {
 		do_action( 'writeleash_price_apply_checkpoint', $point, $id, $attempt );
 	}
 	private static function schema( \wpdb $db ): void {
-		if ( ! defined( 'WC_VERSION' ) || ! function_exists( 'wc_get_product' ) || ! did_action( 'woocommerce_init' ) || is_multisite() || 'wpdb' !== get_class( $db ) || '11.1.2' !== WC_VERSION ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+		if ( ! Free_Support_Contract::woocommerce_ok() || is_multisite() || 'wpdb' !== get_class( $db ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		Price_Apply_Journal::assert_schema( $db );
 		foreach ( array( $db->posts, $db->postmeta, $db->wc_product_meta_lookup, Price_Apply_Journal::table( $db ), $db->options, $db->users, $db->usermeta, $db->term_relationships, $db->term_taxonomy, $db->terms ) as $table ) {
 			if ( ! preg_match( '/\A[a-zA-Z0-9_]+\z/D', $table ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }

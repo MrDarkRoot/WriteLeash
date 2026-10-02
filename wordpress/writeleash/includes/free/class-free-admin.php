@@ -70,7 +70,12 @@ final class Free_Admin {
 
 	/** Whether the supported WooCommerce planning context is available. The planner re-validates currency and settings on every preview. */
 	public static function dependency_ok(): bool {
-		return function_exists( 'wc_get_product' ) && defined( 'WC_VERSION' ) && did_action( 'woocommerce_init' );
+		return Free_Support_Contract::woocommerce_ok();
+	}
+
+	private static function dependency_refusal(): ?array {
+		$reason = Free_Support_Contract::woocommerce_reason();
+		return null === $reason ? null : array( 'status' => 'INVALID', 'reason' => $reason );
 	}
 
 	/** Creator, approver, or an administrator. Possession of an ID grants nothing. */
@@ -165,7 +170,7 @@ final class Free_Admin {
 			'status' => isset( $result['status'] ) && is_string( $result['status'] ) ? $result['status'] : 'INVALID',
 			'reason' => isset( $result['reason'] ) && is_string( $result['reason'] ) ? $result['reason'] : 'action_failed',
 		);
-		foreach ( array( 'processed', 'plan_id', 'job_status', 'stop' ) as $key ) {
+		foreach ( array( 'processed', 'plan_id', 'job_status', 'stop', 'selected_count' ) as $key ) {
 			if ( isset( $result[ $key ] ) && ( is_string( $result[ $key ] ) || is_int( $result[ $key ] ) ) ) {
 				$facts[ $key ] = $result[ $key ];
 			}
@@ -190,13 +195,13 @@ final class Free_Admin {
 		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, $nonce_action ) ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' );
 		}
-		if ( ! self::dependency_ok() ) {
-			return array( 'status' => 'INVALID', 'reason' => 'woocommerce_unavailable' );
-		}
-		return null;
+		return self::dependency_refusal();
 	}
 
 	private static function invalid( \Throwable $error ): array {
+		if ( $error instanceof Free_Job_Limit_Error ) {
+			return array( 'status' => 'INVALID', 'reason' => 'supported_job_limit_exceeded', 'selected_count' => $error->selected() );
+		}
 		$reason = 'invalid_input';
 		if ( $error instanceof Price_Validation_Error ) {
 			$reason = $error->reason();
@@ -224,6 +229,7 @@ final class Free_Admin {
 				}
 				$ids[] = (int) $token;
 			}
+			Free_Support_Contract::assert_job_size( count( $ids ) );
 			return Price_Selection_Spec::ids( $ids );
 		}
 		if ( 'sku' === $kind ) {
@@ -261,7 +267,7 @@ final class Free_Admin {
 		$max_decrease = $post['max_decrease'] ?? null;
 		$warning_threshold = $post['warning_threshold'] ?? null;
 		$block_zero_raw = $post['block_zero'] ?? null;
-		if ( ! is_string( $max_products_raw ) || ! preg_match( '/\A[0-9]{1,4}\z/', $max_products_raw ) ) {
+		if ( ! is_string( $max_products_raw ) || ! preg_match( '/\A[0-9]{1,4}\z/', $max_products_raw ) || (int) $max_products_raw > Free_Support_Contract::MAX_JOB_PRODUCTS ) {
 			throw new Price_Validation_Error( 'invalid_product_limit' );
 		}
 		if ( ! is_string( $max_increase ) || ! is_string( $max_decrease ) || ! is_string( $warning_threshold ) ) {
@@ -291,10 +297,18 @@ final class Free_Admin {
 			$operation = self::build_operation( $post );
 			$policy = self::build_policy( $post );
 			$plan = Woo_Price_Planner::preview( $selection, $operation, $policy );
+			// The frozen selected population is authoritative even if the policy
+			// blocks it or most selected items are unchanged/unsupported.
+			Free_Support_Contract::assert_job_size( $plan->summary()['selected'] );
 			$job = Job_Repository::create_from_plan( $plan, get_current_user_id() );
 		} catch ( Price_Validation_Error $error ) {
 			if ( 'permission_denied' === $error->reason() ) {
 				return array( 'status' => 'FORBIDDEN', 'reason' => 'permission_denied' );
+			}
+			if ( 'selection_limit_exceeded' === $error->reason() ) {
+				// The engineering resolver already proved this category exceeds
+				// its larger bound. Do not expose that bound as a Free promise.
+				return array( 'status' => 'INVALID', 'reason' => 'supported_job_limit_exceeded' );
 			}
 			return array( 'status' => 'INVALID', 'reason' => $error->reason() );
 		} catch ( \Throwable $error ) {
@@ -347,6 +361,8 @@ final class Free_Admin {
 		if ( 'POST' !== $method ) {
 			return array( 'status' => 'INVALID', 'reason' => 'post_required' );
 		}
+		$dependency = self::dependency_refusal();
+		if ( null !== $dependency ) { return $dependency; }
 		$job = self::job_from_post( $post );
 		if ( null === $job ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_job' );
@@ -355,9 +371,6 @@ final class Free_Admin {
 		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, self::ACTION_APPROVE . '_' . $job['plan_id'] ) ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' );
 		}
-		if ( ! self::dependency_ok() ) {
-			return array( 'status' => 'INVALID', 'reason' => 'woocommerce_unavailable' );
-		}
 		$user_id = get_current_user_id();
 		if ( ! self::authorized_for_job( $job, $user_id ) ) {
 			return array( 'status' => 'FORBIDDEN', 'reason' => 'not_authorized' );
@@ -365,14 +378,19 @@ final class Free_Admin {
 		if ( Job_State::BLOCKED === $job['status'] ) {
 			return array( 'status' => 'INVALID', 'reason' => 'plan_policy_blocked', 'public_id' => $job['public_id'] );
 		}
-		if ( Job_State::PLANNED !== $job['status'] ) {
-			return array( 'status' => 'OK', 'reason' => 'already_approved', 'public_id' => $job['public_id'], 'job_status' => $job['status'] );
-		}
 		try {
 			$plan = Job_Repository::hydrate_plan( $job );
 			Job_Repository::assert_binding( $job, $plan );
+			// Stale/internal PLANNED jobs must be refused before approve() can
+			// call Price_Apply_Journal::seed(). Never trust only total_selected.
+			Free_Support_Contract::assert_job_size( $plan->summary()['selected'] );
+		} catch ( Free_Job_Limit_Error $error ) {
+			return self::invalid( $error );
 		} catch ( \Throwable $error ) {
 			return array( 'status' => 'INVALID', 'reason' => 'job_material_mismatch', 'public_id' => $job['public_id'] );
+		}
+		if ( Job_State::PLANNED !== $job['status'] ) {
+			return array( 'status' => 'OK', 'reason' => 'already_approved', 'public_id' => $job['public_id'], 'job_status' => $job['status'] );
 		}
 		$rights = self::precheck_product_rights( $plan );
 		if ( null !== $rights ) {
@@ -406,6 +424,8 @@ final class Free_Admin {
 		if ( 'POST' !== $method ) {
 			return array( 'status' => 'INVALID', 'reason' => 'post_required' );
 		}
+		$dependency = self::dependency_refusal();
+		if ( null !== $dependency ) { return $dependency; }
 		$job = self::job_from_post( $post );
 		if ( null === $job ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_job' );
@@ -413,9 +433,6 @@ final class Free_Admin {
 		$nonce = $post['_wpnonce'] ?? null;
 		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, self::ACTION_RESUME . '_' . $job['public_id'] ) ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' );
-		}
-		if ( ! self::dependency_ok() ) {
-			return array( 'status' => 'INVALID', 'reason' => 'woocommerce_unavailable' );
 		}
 		$user_id = get_current_user_id();
 		if ( ! self::authorized_for_job( $job, $user_id ) ) {
@@ -429,6 +446,9 @@ final class Free_Admin {
 		}
 		try {
 			$plan = Job_Repository::hydrate_plan( $job );
+			Free_Support_Contract::assert_job_size( $plan->summary()['selected'] );
+		} catch ( Free_Job_Limit_Error $error ) {
+			return self::invalid( $error );
 		} catch ( \Throwable $error ) {
 			return array( 'status' => 'INVALID', 'reason' => 'job_material_mismatch', 'public_id' => $job['public_id'] );
 		}
@@ -465,6 +485,8 @@ final class Free_Admin {
 		if ( 'POST' !== $method ) {
 			return array( 'status' => 'INVALID', 'reason' => 'post_required' );
 		}
+		$dependency = self::dependency_refusal();
+		if ( null !== $dependency ) { return $dependency; }
 		$job = self::job_from_post( $post );
 		if ( null === $job ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_job' );
@@ -473,15 +495,16 @@ final class Free_Admin {
 		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, self::ACTION_UNDO . '_' . $job['public_id'] ) ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' );
 		}
-		if ( ! self::dependency_ok() ) {
-			return array( 'status' => 'INVALID', 'reason' => 'woocommerce_unavailable' );
-		}
 		$user_id = get_current_user_id();
 		if ( ! self::authorized_for_job( $job, $user_id ) ) {
 			return array( 'status' => 'FORBIDDEN', 'reason' => 'not_authorized' );
 		}
 		try {
+			$plan = Job_Repository::hydrate_plan( $job );
+			Free_Support_Contract::assert_job_size( $plan->summary()['selected'] );
 			$operation = Undo_Repository::initiate( (int) $job['id'], $user_id );
+		} catch ( Free_Job_Limit_Error $error ) {
+			return self::invalid( $error );
 		} catch ( Undo_Error $error ) {
 			return array( 'status' => 'INVALID', 'reason' => $error->reason(), 'public_id' => $job['public_id'] );
 		} catch ( \Throwable $error ) {
@@ -552,8 +575,8 @@ final class Free_Admin {
 		}
 		self::render_notice();
 		if ( ! self::dependency_ok() ) {
-			echo '<div class="notice notice-error"><p>';
-			echo esc_html( 'WooCommerce must be active and initialized before bulk-price planning. Install and activate WooCommerce, then reopen this page.' );
+			echo '<div class="notice notice-error" role="alert"><p>';
+			echo esc_html( self::reason_message( (string) Free_Support_Contract::woocommerce_reason() ) );
 			echo '</p></div>';
 			return;
 		}
@@ -581,7 +604,8 @@ final class Free_Admin {
 		$status = isset( $notice['status'] ) && is_string( $notice['status'] ) ? $notice['status'] : 'INVALID';
 		$reason = isset( $notice['reason'] ) && is_string( $notice['reason'] ) ? $notice['reason'] : 'action_failed';
 		$class = 'OK' === $status ? 'notice-success' : ( 'FORBIDDEN' === $status ? 'notice-error' : 'notice-warning' );
-		echo '<div class="notice ' . esc_attr( $class ) . '" role="alert"><p><strong>' . esc_html( $status ) . '</strong>: ' . esc_html( self::reason_message( $reason ) ) . '</p>';
+		$selected = isset( $notice['selected_count'] ) && is_int( $notice['selected_count'] ) ? $notice['selected_count'] : null;
+		echo '<div class="notice ' . esc_attr( $class ) . '" role="alert"><p><strong>' . esc_html( $status ) . '</strong>: ' . esc_html( self::reason_message( $reason, $selected ) ) . '</p>';
 		if ( isset( $notice['processed'] ) ) {
 			echo '<p>' . esc_html( 'Bounded chunk processed ' . (int) $notice['processed'] . ' item(s). Remaining work stays queued; use Resume again if items remain.' ) . '</p>';
 		}
@@ -621,22 +645,32 @@ final class Free_Admin {
 	}
 
 	/** Display copy is separate from stable machine reason codes. */
-	public static function reason_message( string $reason ): string {		$messages = array(
+	public static function reason_message( string $reason, ?int $selected = null ): string {
+		if ( 'supported_job_limit_exceeded' === $reason ) {
+			return 'WriteLeash Free 1.0 supports up to ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' products per job in the tested configuration. '
+				. ( null === $selected ? '' : $selected . ' products were selected. ' )
+				. 'Narrow the selection and build a new preview. No additional job or journal was created and no product was changed.';
+		}
+		if ( 'woocommerce_version_unsupported' === $reason ) {
+			return 'WriteLeash Free 1.0 currently supports WooCommerce ' . Free_Support_Contract::WOOCOMMERCE_VERSION . ' for price mutations. Installed version: '
+				. ( defined( 'WC_VERSION' ) ? (string) WC_VERSION : 'unavailable' ) . '. No job was created and no product was changed.';
+		}
+		$messages = array(
 			'capability_required' => 'You need WooCommerce product management capabilities for this action.',
 			'post_required' => 'This action requires an authenticated POST request.',
 			'invalid_nonce' => 'The security token is missing or invalid. Reload the page and try again.',
-			'woocommerce_unavailable' => 'WooCommerce is not active at the supported version; no product was changed.',
+			'woocommerce_unavailable' => 'WooCommerce must be active and initialized before bulk-price planning. Install and activate WooCommerce, then reopen this page. No job was created and no product was changed.',
 			'permission_denied' => 'You do not have permission to plan these product edits.',
 			'permission_revoked' => 'The approved actor can no longer edit one or more products; nothing was executed.',
 			'not_authorized' => 'Only the job creator, approver or an administrator may perform this action.',
 			'invalid_selector' => 'Select one of category, exact SKU or explicit product IDs.',
-			'invalid_selection_size' => 'Select between one and one thousand explicit IDs.',
+			'invalid_selection_size' => 'Select between one and ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' explicit IDs.',
 			'invalid_product_id' => 'Product IDs must be comma-separated positive integers.',
 			'invalid_sku' => 'Use a non-empty exact SKU without whitespace or markup.',
 			'invalid_category' => 'Select an existing product category.',
 			'unsupported_operation' => 'Select one of the five supported price operations.',
 			'malformed_decimal' => 'Use an unsigned decimal amount string with a dot separator.',
-			'invalid_product_limit' => 'The changed-product limit must be between zero and one thousand.',
+			'invalid_product_limit' => 'The changed-product safety limit must be between zero and ' . Free_Support_Contract::MAX_JOB_PRODUCTS . '. It cannot raise the Free supported-job boundary.',
 			'invalid_policy_percent' => 'Policy percentages must be unsigned decimal strings.',
 			'invalid_policy_flag' => 'The zero-price flag is invalid.',
 			'invalid_job' => 'No WriteLeash job matches that identifier.',
@@ -682,6 +716,7 @@ final class Free_Admin {
 		echo '<p>';
 		echo esc_html( 'Change stored regular prices for published core simple products in the base store currency. Variations, sale prices, stock, orders and subscriptions are out of scope and are excluded with reasons.' );
 		echo '</p>';
+		echo '<p>' . esc_html( 'WriteLeash Free 1.0 supports up to ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' selected products per job in the tested configuration.' ) . '</p>';
 		echo '<p>';
 		echo esc_html( 'Planned prices are not guaranteed shopper prices: tax display, multi-currency, dynamic pricing and later concurrent edits still apply. A closed browser never loses truth: progress is rebuilt from the durable job store on every load.' );
 		echo '</p>';
@@ -748,7 +783,8 @@ final class Free_Admin {
 		self::selector_field( 'amount', 'Unsigned amount or percent, e.g. 80.00 or 20 (no % sign)', 'text', '', 'writeleash-free-operation', true );
 		echo '</fieldset>';
 		echo '<fieldset><legend>' . esc_html( 'Safety limits (a breach blocks the whole plan)' ) . '</legend>';
-		self::selector_field( 'max_products', 'Maximum changing products (0-1000)', 'number', '1000', 'writeleash-free-operation', true, 0, 1000 );
+		$maximum = Free_Support_Contract::MAX_JOB_PRODUCTS;
+		self::selector_field( 'max_products', 'Maximum changing products (0-' . $maximum . ')', 'number', (string) $maximum, 'writeleash-free-operation', true, 0, $maximum );
 		self::selector_field( 'max_increase', 'Maximum increase percent', 'text', '50', 'writeleash-free-operation', true );
 		self::selector_field( 'max_decrease', 'Maximum decrease percent', 'text', '50', 'writeleash-free-operation', true );
 		self::selector_field( 'warning_threshold', 'Warning threshold percent', 'text', '20', 'writeleash-free-operation', true );
@@ -828,6 +864,10 @@ final class Free_Admin {
 		}
 		$data = $plan->data();
 		$summary = $plan->summary();
+		if ( $summary['selected'] > Free_Support_Contract::MAX_JOB_PRODUCTS ) {
+			echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $summary['selected'] ) ) . '</p></div>';
+			return;
+		}
 		$blocked = 'BLOCKED' === $data['status'];
 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html( 'Back to bulk prices' ) . '</a></p>';
 		echo '<h2>' . esc_html( 'Frozen preview' ) . '</h2>';
@@ -920,6 +960,7 @@ final class Free_Admin {
 		try {
 			$observed = Job_Repository::observe( (int) $job['id'] );
 			$history = Undo_Repository::history_job( (int) $job['id'] );
+			$selected = Job_Repository::hydrate_plan( $job )->summary()['selected'];
 		} catch ( \Throwable $error ) {
 			echo '<div class="notice notice-error"><p>' . esc_html( 'Durable job state is unavailable; the job tables may be incomplete.' ) . '</p></div>';
 			return;
@@ -937,7 +978,11 @@ final class Free_Admin {
 		if ( in_array( $effective, array( Job_State::COMPLETED_WITH_ISSUES, Job_State::NEEDS_REVIEW ), true ) ) {
 			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( 'This job finished with conflicts or items needing review. Review the item list below; partial results are never reported as generic success.' ) . '</p></div>';
 		}
-		if ( Job_State::can_manual_run( $job['status'] ) && self::can_mutate() ) {
+		$supported_size = $selected <= Free_Support_Contract::MAX_JOB_PRODUCTS;
+		if ( ! $supported_size ) {
+			echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $selected ) ) . '</p></div>';
+		}
+		if ( $supported_size && Job_State::can_manual_run( $job['status'] ) && self::can_mutate() ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_RESUME ) . '">';
 			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
@@ -965,10 +1010,10 @@ final class Free_Admin {
 			self::render_pager( 'job', $job['public_id'], $offset, self::ITEM_PAGE_SIZE, $items['next_offset'] );
 		}
 		echo '<h2>' . esc_html( 'Undo' ) . '</h2>';
-		self::render_undo_section( $job, $history );
+		self::render_undo_section( $job, $history, $supported_size );
 	}
 
-	private static function render_undo_section( array $job, array $history ): void {
+	private static function render_undo_section( array $job, array $history, bool $supported_size ): void {
 		echo '<p>' . esc_html( 'Undo restores eligible stored regular-price values changed by WriteLeash. Undo does not reverse: orders, completed sales, email, webhook, HTTP side effects, or arbitrary plugin side effects.' ) . '</p>';
 		if ( ! empty( $history['undo_expires_at'] ) ) {
 			echo '<p>' . esc_html( 'History expires: ' . (string) $history['undo_expires_at'] . '.' ) . '</p>';
@@ -976,7 +1021,7 @@ final class Free_Admin {
 		if ( ! empty( $history['undo']['operation_status'] ) ) {
 			echo '<p>' . esc_html( 'Undo operation: ' . (string) $history['undo']['operation_status'] . ' (' . (string) $history['undo']['operation_reason'] . ') · undone ' . (int) $history['undo']['undone'] . ' · conflict ' . (int) $history['undo']['conflict'] . ' · failed ' . (int) $history['undo']['failed'] . ' · needs review ' . (int) $history['undo']['needs_review'] . '.' ) . '</p>';
 		}
-		if ( $history['undo_eligible'] && self::can_mutate() ) {
+		if ( $supported_size && $history['undo_eligible'] && self::can_mutate() ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_UNDO ) . '">';
 			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';

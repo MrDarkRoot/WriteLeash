@@ -309,7 +309,7 @@ final class Undo_Worker {
 
 	/** WooCommerce and its exact supported version must be active and initialized. */
 	private static function dependency_ok(): bool {
-		return defined( 'WC_VERSION' ) && '11.1.2' === WC_VERSION && function_exists( 'wc_get_product' ) && did_action( 'woocommerce_init' ) && ! is_multisite();
+		return Free_Support_Contract::woocommerce_ok() && ! is_multisite();
 	}
 
 	/**

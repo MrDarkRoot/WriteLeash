@@ -12,7 +12,7 @@ wl112_login();
 $base = 'http://127.0.0.1:8080/wp-admin/admin.php?page=writeleash-bulk-prices';
 $home = wl112_get( $base );
 $form = wl112_form( $home['body'], 'writeleash_free_preview' );
-$form = array_merge( $form, array( 'selector' => 'ids', 'ids' => (string) $p->get_id(), 'operation' => 'SET', 'amount' => '80', 'max_products' => '1000', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
+$form = array_merge( $form, array( 'selector' => 'ids', 'ids' => (string) $p->get_id(), 'operation' => 'SET', 'amount' => '80', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
 unset( $form['block_zero'] );
 $root = new mysqli( DB_HOST, 'root', 'disposable_root_password', DB_NAME );
 try {

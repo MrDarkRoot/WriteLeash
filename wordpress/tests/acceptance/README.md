@@ -3,7 +3,9 @@
 This fixture drives the **merged Admin product** over authenticated HTTP:
 selection → immutable preview → approval → progress → reopen → protected
 bounded manual resume → history → Undo. It does not benchmark a planner or
-worker loop instead of the product. No product files are changed.
+worker loop instead of the product. The original measurement is preserved in
+`EVIDENCE.md`/`results-cbee8b6.csv`; PR #119's repair makes the production
+boundary match that decision. See `SUPPORT-REPAIR.md`.
 
 Run with the exact image pins in
 `.github/workflows/wordpress-woo-acceptance.yml` and:
@@ -13,7 +15,7 @@ export WL112_SHA="$(git rev-parse HEAD)"
 export WL112_RESULTS=/absolute/existing/evidence-directory
 export WL112_CORE_IMAGE=... # exact pinned image from the workflow
 export WL112_CLI_IMAGE=...  # exact pinned image from the workflow
-export WL112_SIZES='100 1000 10000'
+export WL112_SIZES='100 101 1000 10000'
 export WL112_WOO=11.1.2
 export WL112_CACHE=persistent
 bash wordpress/tests/acceptance/run.sh
@@ -35,10 +37,10 @@ query counts. The JSON request start/end line indices attribute metrics to
 each actual size. Logical field bytes and exact row counts are measured per
 job, alongside explicitly approximate physical table allocations. None of
 these metrics is a measurement of process RSS or graphical-browser render time.
-The selected fixtures contain exactly 100/1,000/10,000 products. Earlier
+The selected fixtures contain exactly 100/101/1,000/10,000 products. Earlier
 fixtures plus the one first-use refusal product remain in the shop, so the
-whole catalog count is recorded separately (101/1,101/11,101 in the scale
-sequence). These are not mislabeled as empty-shop catalogs of the selected size.
+whole catalog count is recorded separately. These are not mislabeled as
+empty-shop catalogs of the selected size.
 
 The test DB identity has only schema-local SELECT/INSERT/UPDATE/DELETE/
 CREATE/ALTER/DROP/INDEX. Root is used solely to construct disposable lab
@@ -63,13 +65,22 @@ not a release ZIP, SVN submission or release authorization.
 
 ## Interpretation
 
-The current product already refuses selections above 1,000, and execution
-accepts exactly Woo 11.1.2. A real 10,000-product fixture is evaluated through
-both category and explicit-ID Admin requests. If refused, record
-`USABLE_WITH_LIMIT`: the catalog exists, but a 10k job is unsupported and no
-execution/Undo timing exists. Do not bypass the cap to generate a misleading
-helper-only result. A previous Woo refusal is `UNSUPPORTED`, not a pass for
-editing prices on that version.
+The final Free Admin boundary is **100**, distinct from the unchanged internal
+engineering selector maximum **1,000**. `100` runs a complete workflow; `101`,
+`1,000` and `10,000` run actual category/ID requests and record
+`REFUSED_BEFORE_JOURNAL`, exact unchanged evidence counts and zero Woo saves.
+There is no post-cap throughput/Undo measurement for those refused sizes.
+Woo 11.0.1 records `UNSUPPORTED_EARLY`, with no usable preview/approval/resume
+path and zero jobs/journal rows/price mutations. Woo 11.1.2 remains the sole
+exact supported version. Do not bypass these boundaries for a helper-only run.
+
+`support-boundaries.php` additionally proves 100 explicit IDs' ordinary
+preview/approval, UI default/max 100, server-side rejection of policy 101,
+101 explicit/category typed refusals independent of the safety policy, and a
+valid internal 101-selected PLANNED job refused by the Admin approval controller
+before journal seed—even when its stored convenience counter says 100. Its
+historical item pagination beyond 100 remains readable. The lower-level plan
+contract is preserved, not weakened to manufacture this fixture.
 
 Failed/partial results and logs are uploaded on **every attempt**, with the
 attempt number. CI artifacts carry detailed batch/request data; checked

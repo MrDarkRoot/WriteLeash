@@ -57,3 +57,22 @@ function wl112_rows( string $html ): array {
     }
     return $ids;
 }
+/** Test-only nonce bound to the real HTTP login, even when no form is exposed. */
+function wl112_nonce( string $action ): string {
+    global $wl112_cookies;
+    wl112_assert( isset( $wl112_cookies[LOGGED_IN_COOKIE] ), 'logged-in cookie required for crafted authenticated request' );
+    $_COOKIE[LOGGED_IN_COOKIE] = rawurldecode( $wl112_cookies[LOGGED_IN_COOKIE]->value );
+    wp_set_current_user( 1 );
+    return wp_create_nonce( $action );
+}
+/** Exact owned evidence counts; missing tables count as zero, no DDL. */
+function wl112_evidence_rows(): array {
+    global $wpdb;
+    $counts = array();
+    foreach ( array( 'writeleash_jobs', 'writeleash_job_items', 'writeleash_price_items', 'writeleash_undo_operations', 'writeleash_undo_items' ) as $suffix ) {
+        $table = $wpdb->prefix . $suffix;
+        $exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) );
+        $counts[$suffix] = $exists ? (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) ) : 0;
+    }
+    return $counts;
+}

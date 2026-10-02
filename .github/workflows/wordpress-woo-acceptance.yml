@@ -19,13 +19,13 @@ jobs:
           - name: current-constrained-redis
             core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
             cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
-            sizes: '100 1000 10000'
+            sizes: '100 101 1000 10000'
             woo: '11.1.2'
             cache: persistent
           - name: current-normal-default
             core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
             cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
-            sizes: '100 1000'
+            sizes: '100 101 1000'
             woo: '11.1.2'
             cache: default
             memory: 256M
@@ -33,7 +33,7 @@ jobs:
           - name: previous-wordpress
             core: wordpress:7.0.1-php8.2-apache@sha256:103a9b0e51977c2baab24c04c0e3657082c79ff6d4ca4f024c15d766e496b502
             cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
-            sizes: '100'
+            sizes: '100 101'
             woo: '11.1.2'
             cache: default
           - name: previous-woo
@@ -45,19 +45,19 @@ jobs:
           - name: php74
             core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
             cli: wordpress:cli-php7.4@sha256:9a1bb40df37cfe9c82b3d098a845b05f3586deefb696d1b59abcce3c269fb075
-            sizes: '100'
+            sizes: '100 101'
             woo: '11.1.2'
             cache: persistent
           - name: php80
             core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
             cli: wordpress:cli-php8.0@sha256:9d9ed8300f903e19abfd65a7abd4a8b96b668a8fb675172ef64ebd16e004b4fe
-            sizes: '100'
+            sizes: '100 101'
             woo: '11.1.2'
             cache: persistent
           - name: php81
             core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
             cli: wordpress:cli-php8.1@sha256:f6534b40833bcc3adc261e609e99f3b2a026a43d585a54092b150c852842438b
-            sizes: '100'
+            sizes: '100 101'
             woo: '11.1.2'
             cache: persistent
     steps:

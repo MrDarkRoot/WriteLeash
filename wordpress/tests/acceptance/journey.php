@@ -105,29 +105,68 @@ try {
     $base = 'http://127.0.0.1:8080/wp-admin/admin.php?page=writeleash-bulk-prices';
     $t = microtime( true );
     $home = wl112_get( $base );
+    $before = wl112_evidence_rows();
+    if ( WC_VERSION !== '11.1.2' ) {
+        wl112_assert( false !== strpos( $home['body'], 'Installed version: ' . WC_VERSION ), 'unsupported Woo version must be visible' );
+        wl112_assert( false !== strpos( $home['body'], 'currently supports WooCommerce 11.1.2' ), 'supported Woo exact version must be visible' );
+        wl112_assert( false === strpos( $home['body'], 'name="action" value="writeleash_free_preview"' ), 'unsupported Woo exposes preview form' );
+        $post = wl112_post( array( 'action' => 'writeleash_free_preview', '_wpnonce' => wl112_nonce( 'writeleash_free_preview' ), 'selector' => 'ids', 'ids' => implode( ',', $ids ), 'operation' => 'SET', 'amount' => '80', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
+        $page = wl112_get( $post['location'] );
+        wl112_assert( false === strpos( $post['location'], 'wl_job=' ), 'unsupported Woo created job reference' );
+        wl112_assert( false !== strpos( $page['body'], 'Installed version: ' . WC_VERSION ), 'unsupported Woo POST reason' );
+        wl112_assert( false !== strpos( $page['body'], 'INVALID' ) && false === strpos( $page['body'], 'security token is missing or invalid' ), 'crafted preview must reach version refusal with a valid HTTP-session nonce' );
+        $reason = WriteLeash\Free_Admin::process_preview( array( '_wpnonce' => wl112_nonce( 'writeleash_free_preview' ) ), 'POST' );
+        wl112_assert( 'woocommerce_version_unsupported' === $reason['reason'], 'unsupported Woo typed reason' );
+        foreach ( array( 'approve', 'resume', 'undo' ) as $action ) {
+            $r = wl112_post( array( 'action' => 'writeleash_free_' . $action, 'job' => wp_generate_uuid4(), '_wpnonce' => 'crafted-no-job' ) );
+            $denied = wl112_get( $r['location'] );
+            wl112_assert( false !== strpos( $denied['body'], 'Installed version: ' . WC_VERSION ), 'unsupported Woo crafted mutation route' );
+        }
+        wl112_assert( $before === wl112_evidence_rows() && 0 === $before['writeleash_jobs'] && 0 === $before['writeleash_price_items'], 'unsupported Woo created owned evidence' );
+        wl112_assert( array() === wl112_save_counts( $facts['request_start_line'] ), 'unsupported Woo saved a product' );
+        wl112_parity( $ids, '100' );
+        $facts['outcome'] = 'UNSUPPORTED_EARLY';
+        $facts['reason'] = 'woocommerce_version_unsupported';
+        $facts['actual_job_size'] = 0;
+        $facts['final_counts'] = array( 'planned' => 0, 'applied' => 0, 'refused' => $size );
+        $facts['owned_evidence_before'] = $before;
+        $facts['owned_evidence_after'] = wl112_evidence_rows();
+        $facts['cache_lookup_journal_parity'] = 'PASS: unchanged prices and zero evidence';
+        $facts['execution_seconds'] = null; $facts['undo_seconds'] = null;
+        wl112_save( $facts );
+        return;
+    }
     $fields = wl112_form( $home['body'], 'writeleash_free_preview' );
-    $fields = array_merge( $fields, array( 'selector' => 'category', 'category' => (string) $term['term_id'], 'ids' => '', 'operation' => 'DECREASE_PERCENT', 'amount' => '20', 'max_products' => '1000', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
+    $fields = array_merge( $fields, array( 'selector' => 'category', 'category' => (string) $term['term_id'], 'ids' => '', 'operation' => 'DECREASE_PERCENT', 'amount' => '20', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
     unset( $fields['block_zero'] );
     $post = wl112_post( $fields );
     $facts['plan_post_seconds'] = $post['seconds'];
-    if ( $size > 1000 ) {
-        wl112_assert( false === strpos( $post['location'], 'wl_job=' ), '10k unexpectedly accepted' );
+    if ( $size > 100 ) {
+        wl112_assert( false === strpos( $post['location'], 'wl_job=' ), 'oversized category unexpectedly accepted' );
         $page = wl112_get( $post['location'] );
-        wl112_assert( false !== strpos( $page['body'], 'INVALID' ), '10k not visibly refused' );
+        wl112_assert( false !== strpos( $page['body'], 'supports up to 100 products per job' ), 'oversized category not visibly refused' );
+        if ( $size <= 1000 ) { wl112_assert( false !== strpos( $page['body'], $size . ' products were selected.' ), 'category selected count missing' ); }
         $fields['selector'] = 'ids';
         $fields['ids'] = implode( ',', $ids );
         $second = wl112_post( $fields );
-        wl112_assert( false === strpos( $second['location'], 'wl_job=' ), '10k IDs unexpectedly accepted' );
+        wl112_assert( false === strpos( $second['location'], 'wl_job=' ), 'oversized IDs unexpectedly accepted' );
+        $denied = wl112_get( $second['location'] );
+        wl112_assert( false !== strpos( $denied['body'], $size . ' products were selected.' ), 'explicit selected count missing' );
+        wl112_assert( $before === wl112_evidence_rows(), 'oversized request created job/items/journal/Undo evidence' );
+        wl112_assert( array() === wl112_save_counts( $facts['request_start_line'] ), 'oversized request issued Woo save' );
         wl112_parity( $ids, '100' );
-        $facts['outcome'] = 'USABLE_WITH_LIMIT';
-        $facts['classification_reason'] = '10,000 actual fixture products; both category and explicit-ID Admin selection refused by existing 1,000 selection contract; zero mutations. No 10k job can be created.';
+        $facts['outcome'] = 'REFUSED_BEFORE_JOURNAL';
+        $facts['reason'] = 'supported_job_limit_exceeded';
+        $facts['classification_reason'] = 'Post-cap Free Admin selection refused before durable import or journal seed; engineering selector max remains 1000 internally. No post-cap Apply/Undo throughput exists.';
+        $facts['owned_evidence_before'] = $before;
+        $facts['owned_evidence_after'] = wl112_evidence_rows();
         $facts['actual_job_size'] = 0;
         $facts['final_counts'] = array( 'planned' => 0, 'applied' => 0, 'refused' => $size );
         $facts['cache_lookup_journal_parity'] = 'PASS: all requested products unchanged; no journal/job created';
         $facts['execution_seconds'] = null;
         $facts['undo_seconds'] = null;
         wl112_save( $facts );
-        echo '#112 ' . DB_HOST . ' 10000: USABLE_WITH_LIMIT (selection refused)\n';
+        echo '#112 ' . DB_HOST . ' ' . $size . ': REFUSED_BEFORE_JOURNAL' . "\n";
         return;
     }
     wl112_assert( (bool) preg_match( '/wl_job=([0-9a-f-]{36})/', $post['location'], $m ), 'preview not created' );
@@ -175,17 +214,6 @@ try {
         $batches[] = $batch['seconds'];
         $progress = wl112_get( $url );
         $current = Repo::read( (int) $job['id'] );
-        if ( WC_VERSION !== '11.1.2' ) {
-            wl112_assert( (int) $current['applied'] === 0, 'unsupported Woo mutated' );
-            wl112_parity( $ids, '100' );
-            $facts['outcome'] = 'UNSUPPORTED';
-            $facts['actual_job_size'] = $size;
-            $facts['final_counts'] = Repo::counts( (int) $job['id'] );
-            $facts['cache_lookup_journal_parity'] = 'PASS: zero applied; all selected prices unchanged';
-            $facts['classification_reason'] = 'Previous Woo rejected by existing exact-version execution contract; no private metadata fallback.';
-            wl112_save( $facts );
-            return;
-        }
         if ( 'COMPLETED' === $current['status'] ) { break; }
         wl112_assert( ! in_array( $current['status'], array( 'COMPLETED_WITH_ISSUES', 'NEEDS_REVIEW', 'FAILED' ), true ), 'KILL: scale Apply correctness failure' );
         if ( 0 === $i ) {
