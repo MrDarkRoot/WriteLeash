@@ -1,6 +1,7 @@
 name: PR checks
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 permissions:
   contents: read
 concurrency:
@@ -24,6 +25,8 @@ jobs:
       jobs: ${{ steps.owners.outputs.jobs }}
       undo: ${{ steps.owners.outputs.undo }}
       admin: ${{ steps.owners.outputs.admin }}
+      acceptance: ${{ steps.owners.outputs.acceptance }}
+      acceptance_budget: ${{ steps.owners.outputs.acceptance_budget }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -42,55 +45,59 @@ jobs:
         run: python3 .github/ci/ownership.py --base "$BASE_SHA" --head "$HEAD_SHA"
   feasibility:
     needs: fast
-    if: needs.fast.outputs.feasibility == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.feasibility == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/mysql-mariadb-feasibility.yml
   native:
     needs: fast
-    if: needs.fast.outputs.native == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.native == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/native-pg16-security.yml
   engine:
     needs: fast
-    if: needs.fast.outputs.engine == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.engine == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-engine.yml
   foundation:
     needs: fast
-    if: needs.fast.outputs.foundation == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.foundation == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-foundation.yml
   research:
     needs: fast
-    if: needs.fast.outputs.research == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.research == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-plugin-research.yml
   adapter:
     needs: fast
-    if: needs.fast.outputs.adapter == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.adapter == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-redirection-adapter.yml
   historical:
     needs: fast
-    if: needs.fast.outputs.historical == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.historical == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-release-matrix.yml
   plan:
     needs: fast
-    if: needs.fast.outputs.plan == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.plan == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-woo-plan.yml
   journal:
     needs: fast
-    if: needs.fast.outputs.journal == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.journal == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-woo-journal.yml
   jobs:
     needs: fast
-    if: needs.fast.outputs.jobs == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.jobs == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-woo-jobs.yml
   undo:
     needs: fast
-    if: needs.fast.outputs.undo == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.undo == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-woo-undo.yml
   admin:
     needs: fast
-    if: needs.fast.outputs.admin == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.fast.outputs.admin == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-woo-admin.yml
+  acceptance:
+    needs: fast
+    if: needs.fast.outputs.acceptance == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/wordpress-woo-acceptance.yml
   coverage:
     name: CI_COVERAGE
-    needs: [fast, feasibility, native, engine, foundation, research, adapter, historical, plan, journal, jobs, undo, admin]
+    needs: [fast, feasibility, native, engine, foundation, research, adapter, historical, plan, journal, jobs, undo, admin, acceptance]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 2

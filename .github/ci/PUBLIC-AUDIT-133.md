@@ -6,6 +6,13 @@ Repository: **PRIVATE**. This checkpoint authorizes neither a visibility change
 nor WordPress.org publication. Maintainer audit/merge is the Phase A stop gate.
 PR #134 / #121 is not repaired here; #122 and #123 are not started.
 
+Classifier repair baseline: `bfd93f69370462aa3b11c6a2be9c7661e889d487`.
+The initial classifier's zero-owner #121 claim was incorrect: `Requires at least`
+changes activation compatibility. The repaired seven-file diff selects
+**adapter, foundation, historical**. Pure listing prose stays cheap. Reusable
+workflow definitions now self-own, and direct #112 paths have a consumed,
+SHA-budget-approved acceptance gate. Historical exposure findings below are preserved.
+
 ## Baseline: all 13 workflow files at the exact base
 
 `PR` = pull_request, `push` = automatic branch push. No baseline workflow used
@@ -31,7 +38,7 @@ were created 2026-10-02 at 12:25 UTC. Matrix sums count every runner separately.
 | wordpress-woo-jobs.yml | PR + push main; wordpress/**, own workflow | 1 × 1 | 75 | 432 / 37006546660 | jobs transcript / 7d | #109 leases/scheduling/crash/recovery | CODE_INTEGRATION + RELEASE_FULL |
 | wordpress-woo-undo.yml | PR + push main; wordpress/**, own workflow | 1 × 1 | 75 | 687 / 37006546593 | Undo transcript / 7d | #110 eligibility/conflicts/races/retention | CODE_INTEGRATION + RELEASE_FULL |
 | wordpress-woo-admin.yml | PR + push main; wordpress/**, own workflow | 1 × 1 | 75 | 196 / 37006546541 | Admin transcript / 7d | #111 authenticated actual Admin journey | CODE_INTEGRATION + RELEASE_FULL |
-| wordpress-woo-acceptance.yml | PR + push main; wordpress/**, own workflow | 1 × 7 profiles | 75 | 972,1688,548,593,110,568,652 = **5131** / 37006546628 | per-profile SHA-stamped JSON, measurements, diagnostics/transcript / 30d | #112 seven-profile/two-engine acceptance, Redis, limits/recovery | RELEASE_FULL only |
+| wordpress-woo-acceptance.yml | PR + push main; wordpress/**, own workflow | 1 × 7 profiles | 75 | 972,1688,548,593,110,568,652 = **5131** / 37006546628 | per-profile SHA-stamped JSON, measurements, diagnostics/transcript / 30d | #112 seven-profile/two-engine acceptance, Redis, limits/recovery | RELEASE_FULL + approved direct #112 changes |
 
 Baseline: **13 workflow definitions, 13 logical jobs, 20 expanded jobs**.
 The completed base wave consumed **7,962 job-seconds (~132.7 minutes)**,
@@ -186,17 +193,22 @@ fork settings, exact manual review steps and post-visibility re-audit.
   so no claim-matrix execution is claimed here.
 - Actionlint **1.7.11** syntax/expressions/reusable-call checks on all 15 workflows:
   **PASS**, using both the local binary and checksum-verified release binary.
-- Ownership/policy audit **PASS**: all 57 production PHP files, all 13 release
-  suites, docs/claim/asset cheap classification, metadata-only header case and
-  injected-comment/runtime rejection. CI_COVERAGE positive cases and selected
-  failure/skipped/cancelled rejection passed.
+- Ownership/policy audit: all 57 production PHP files and all 13 self-owned
+  workflows, cheap description/tested/copy cases, minimum-WP/PHP compatibility
+  owners and injected-comment/runtime rejection. Direct #112 is exported and
+  consumed; positive/failed/skipped/cancelled/missing-owner coverage cases and
+  exact-SHA/fork budget cases are deterministic checks.
 - The actual #121 seven-path diff (`22a89ec` → `56e90cc`) classifies to
-  **PR_FAST only / zero integration owners**. Narrow first-header metadata and
-  exact static claim-audit wiring exceptions reject runtime/terminator changes.
+  **adapter, foundation, historical** compatibility integrations. It is not
+  docs-only. Pure readme/claim/listing-test paths remain PR_FAST + CI_COVERAGE
+  only. No production #121 metadata is edited by this classifier repair.
 - Native local Docker integration could not start: no Docker daemon socket in
   this environment. Its new immutable base references preserve the existing
-  digest and select exactly the native suite for the final PR; test assertions
-  are unchanged. Hosted result must be read from the final-head PR check.
+  digest. The original `bfd93f6` hosted native run passed, but its classifier
+  failed to own reusable workflow edits. The repaired cumulative #135 diff owns
+  all 13 suites; direct #112 execution and all selected heavy suites await the
+  maintainer's exact-head budget approval. A blocked final check must not be
+  represented as green release evidence. Test assertions are unchanged.
 - RELEASE_FULL composition is statically validated: **not executed** at this
   checkpoint; near-quota account and explicit research-toolchain exception.
   No #61 retry is initiated and no unchanged-SHA failure is discarded.
