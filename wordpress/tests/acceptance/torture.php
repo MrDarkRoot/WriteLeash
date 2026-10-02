@@ -125,6 +125,37 @@ try {
     $report['scheduler_duplicate_stale'] = 'PASS';
     wt_save( $report );
 
+    // Repeat lifecycle on a running Admin-origin Apply and running Undo.
+    $lf = wt_plan( $ids ); $lp = wt_approve( $lf ); $lp = wt_resume( $lp );
+    $before_shutdown = R::counts( (int) $lf['job']['id'] );
+    deactivate_plugins( 'writeleash/writeleash.php' );
+    do_action( WriteLeash\Job_Scheduler::HOOK, (int) $lf['job']['id'] );
+    wl112_assert( $before_shutdown === R::counts( (int) $lf['job']['id'] ), 'KILL: inactive Apply mutated' );
+    wl112_assert( ! is_wp_error( activate_plugin( 'writeleash/writeleash.php', '', false ) ), 'Apply reactivation failed' );
+    $lp['page'] = wl112_get( $lp['url'] );
+    for ( $i = 0; $i < 15; ++$i ) {
+        if ( 'COMPLETED' === R::read( (int) $lf['job']['id'] )['status'] ) { break; }
+        $lp = wt_resume( $lp );
+    }
+    wl112_assert( 100 === R::counts( (int) $lf['job']['id'] )['applied'], 'running Apply reactivation recovery' );
+    wl112_post( wl112_form( $lp['page']['body'], 'writeleash_free_undo' ) );
+    $op = U::read_operation_by_job( (int) $lf['job']['id'] );
+    wl112_assert( ! WriteLeash\Undo_State::is_terminal( $op['status'] ), 'Undo fixture not running' );
+    deactivate_plugins( 'writeleash/writeleash.php' );
+    do_action( WriteLeash\Undo_Scheduler::HOOK, (int) $op['id'] );
+    $after_op = U::read_operation( (int) $op['id'] );
+    wl112_assert( (int) $after_op['undone'] === (int) $op['undone'], 'KILL: inactive Undo mutated' );
+    wl112_assert( ! is_wp_error( activate_plugin( 'writeleash/writeleash.php', '', false ) ), 'Undo reactivation failed' );
+    for ( $i = 0; $i < 15; ++$i ) {
+        $lp['page'] = wl112_get( $lp['url'] );
+        $op = U::read_operation_by_job( (int) $lf['job']['id'] );
+        if ( 'UNDO_COMPLETED' === $op['status'] ) { break; }
+        wl112_post( wl112_form( $lp['page']['body'], 'writeleash_free_undo' ) );
+    }
+    wl112_assert( 'UNDO_COMPLETED' === $op['status'], 'running Undo reactivation recovery' );
+    $report['running_apply_undo_lifecycle'] = 'PASS: 100-item Admin plans paused across deactivate/reactivate; callbacks while inactive caused zero mutations; explicit bounded HTTP resume recovered both';
+    wt_save( $report );
+
     // Interleave >20 jobs per Shop Manager, each with a 100-product frozen
     // selection, so foreign rows cannot hide a manager's second history page.
     $actors = array();

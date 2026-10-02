@@ -12,7 +12,10 @@ for host in mysql mariadb; do
   wp --path="$site" config set WP_MAX_MEMORY_LIMIT "$WL112_MEMORY"
   wp --path="$site" core install --url=http://127.0.0.1:8080 --title=Acceptance --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
   wp --path="$site" plugin install "/opt/woo-zips/woocommerce.$WL112_WOO.zip" --activate
-  wp --path="$site" plugin activate writeleash
+  # Core Admin passes an explicit boolean network-wide flag. The archived PHP
+  # 7.4 CLI command passes null instead; exercise the actual public WP activation
+  # API with the Admin's false flag consistently on every PHP build.
+  wp --path="$site" eval 'require_once ABSPATH . "wp-admin/includes/plugin.php"; $r=activate_plugin("writeleash/writeleash.php", "", false); if (is_wp_error($r)) { throw new RuntimeException($r->get_error_message()); }'
   wp --path="$site" plugin install /opt/woo-zips/redis-cache.2.7.0.zip --activate
   wp --path="$site" config set WP_REDIS_HOST redis
   wp --path="$site" config set WP_REDIS_CLIENT predis

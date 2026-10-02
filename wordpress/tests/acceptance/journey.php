@@ -111,7 +111,8 @@ try {
         $row_ids = wl112_rows( $page['body'] );
         wl112_assert( $row_ids === array_slice( $ids, $offset, 20 ), 'preview deterministic bounded ordering' );
         $material = $plan->preview_page( $offset, 20 );
-        wl112_assert( $material['total'] === $size && $material['next_offset'] === ( $offset + 20 < $size ? $offset + 20 : null ), 'preview next/total' );
+        wl112_assert( $plan->summary()['selected'] === $size && $material['next_offset'] === ( $offset + 20 < $size ? $offset + 20 : null ), 'preview next/selected total' );
+        wl112_assert( false !== strpos( $page['body'], 'Selected ' . $size . ' ' ), 'Admin preview selected total' );
         $seen = array_merge( $seen, $row_ids );
         if ( $offset > 0 ) { $later[] = $page['seconds']; }
     }
