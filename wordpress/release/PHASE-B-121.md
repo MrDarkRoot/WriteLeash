@@ -23,10 +23,11 @@ REBASING RESULT: `14eaa1f580848964134b4f6b0f415ee791a20c36`
   WP 7.1.2 is an already-exercised point; no new support range is implied.
 * **HISTORICAL TEST ONLY WP 6.8.3**: after public refusal proof in foundation,
   and before historical activation in adapter, `historical-minimum-121.php`
-  changes only the copied entrypoint's metadata from 7.0 to 6.8.3 and adds an
+  changes only the copied entrypoint/readme metadata from 7.0 to 6.8.3 and adds an
   explicit HISTORICAL TEST ONLY comment. It requires an independent identical
   public copy in a real `/tmp/` WP 6.8.3 site, rejects links/production aliases,
-  and verifies the source hash is unchanged. Then `legacy/stage.php` overlays
+  and verifies both production source hashes are unchanged. Staged header/readme
+  requirements remain coherent for official Plugin Check. Then `legacy/stage.php` overlays
   the explicit repository-only files and external CLI bootstrap. Woo 9.9.7
   remains only the historical activation dependency; Redirection stays 5.5.2.
   Disposable container/site destruction removes the shim and overlay.
@@ -74,3 +75,22 @@ Official https://wordpress.org/plugins/developers/readme-validator/ was rerun
 on the final public text on 2026-10-02: **0 errors, 0 warnings**; three notes:
 Contributors field missing, no Upgrade Notice section, no donate link. The
 request used the form's base64-encoded UTF-8 `readme_contents` submission.
+
+## Retained first hosted attempt and narrow correction
+
+Run https://github.com/MrDarkRoot/WriteLeash/actions/runs/37023355769,
+attempt 1, head `0943e8dc816a08cc1618761bf24be22d98792cc1`:
+
+* PR_FAST and both foundation engines passed, including public WP 6.8.3 refusal.
+* Adapter failed the unchanged #61 `await_overlap(update)` assertion after the
+  row-1 barrier proof (two restricted sessions 226,221). The failure transcript
+  is retained as `wordpress-redirection-adapter-attempt-1`; no overlap timeout,
+  assertion, barrier, durable accounting or concurrency code was changed.
+* Historical failed official Plugin Check's `readme_mismatched_header_requires`
+  because the disposable header had 6.8.3 while its readme still had 7.0. The
+  corrective shim now changes both staged metadata copies only, with additional
+  source-readme hash and symlink/hardlink boundary regressions. This is not an
+  exception/ignore rule for Plugin Check and public metadata remains 7.0.
+* GitHub refused to start CI_COVERAGE because of account billing/spending limits.
+  The user confirmed the budget was cleared and authorized one corrected-head
+  selected-owner run. No RELEASE_FULL or acceptance execution is requested.

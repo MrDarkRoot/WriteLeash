@@ -15,15 +15,25 @@ if ( false === $site || false === $source || 0 !== strpos( $site, '/tmp/' ) ||
 }
 $main = $destination . '/writeleash.php';
 $public = $source . '/writeleash.php';
-if ( is_link( $main ) || ! is_file( $main ) || ! is_file( $public ) ||
-	realpath( $main ) === realpath( $public ) || fileinode( $main ) === fileinode( $public ) ||
-	file_get_contents( $main ) !== file_get_contents( $public ) ) {
-	throw new RuntimeException( 'HISTORICAL TEST ONLY: requires an unmodified, independently copied public entrypoint' );
+$readme = $destination . '/readme.txt';
+$public_readme = $source . '/readme.txt';
+foreach ( array( array( $main, $public ), array( $readme, $public_readme ) ) as $pair ) {
+	if ( is_link( $pair[0] ) || ! is_file( $pair[0] ) || ! is_file( $pair[1] ) ||
+		realpath( $pair[0] ) === realpath( $pair[1] ) || fileinode( $pair[0] ) === fileinode( $pair[1] ) ||
+		file_get_contents( $pair[0] ) !== file_get_contents( $pair[1] ) ) {
+		throw new RuntimeException( 'HISTORICAL TEST ONLY: requires unmodified, independently copied public entrypoint/readme' );
+	}
 }
 $before = hash_file( 'sha256', $public );
+$readme_before = hash_file( 'sha256', $public_readme );
 $text = file_get_contents( $main );
 $text = preg_replace( '/^( \* Requires at least:) 7\.0$/m', '$1 6.8.3' . "\n * HISTORICAL TEST ONLY: disposable WP 6.8.3 metadata shim; not public support.", $text, -1, $count );
-if ( 1 !== $count || false === file_put_contents( $main, $text ) || hash_file( 'sha256', $public ) !== $before ) {
+$readme_text = preg_replace( '/^Requires at least: 7\.0$/m', 'Requires at least: 6.8.3', file_get_contents( $readme ), -1, $readme_count );
+// Official Plugin Check audits this historical staged tree too. Keep its
+// metadata coherent without changing any production file or public assertion.
+if ( 1 !== $count || 1 !== $readme_count || false === file_put_contents( $main, $text ) ||
+	false === file_put_contents( $readme, $readme_text ) ||
+	hash_file( 'sha256', $public ) !== $before || hash_file( 'sha256', $public_readme ) !== $readme_before ) {
 	throw new RuntimeException( 'HISTORICAL TEST ONLY: exact metadata shim failed or public source changed' );
 }
-echo "#121 HISTORICAL TEST ONLY: staged WP minimum 6.8.3; production remains 7.0; no runtime authority added: PASS\n";
+echo "#121 HISTORICAL TEST ONLY: staged header/readme WP minimum 6.8.3; production remains 7.0; no runtime authority added: PASS\n";
