@@ -7,7 +7,7 @@ function wl112_hook_event( string $event, int $id ): void {
 add_action( 'woocommerce_before_product_object_save', static function ( $p ) {
     global $wpdb;
     $spec = get_option( 'wl112_hook', array() );
-    if ( (int) ( $spec['id'] ?? 0 ) !== $p->get_id() ) { return; }
+    if ( $p->get_id() < 1 || ! isset( $spec['mode'] ) || (int) ( $spec['id'] ?? 0 ) !== $p->get_id() ) { return; }
     $id = $p->get_id();
     wl112_hook_event( 'before-save', $id );
     $wpdb->query( $wpdb->prepare( "INSERT INTO {$wpdb->prefix}wl112_hook_events (product_id) VALUES (%d)", $id ) );
@@ -35,5 +35,5 @@ add_action( 'woocommerce_before_product_object_save', static function ( $p ) {
 }, 10 );
 add_action( 'woocommerce_after_product_object_save', static function ( $p ) {
     $spec = get_option( 'wl112_hook', array() );
-    if ( (int) ( $spec['id'] ?? 0 ) === $p->get_id() ) { wl112_hook_event( 'after-save', $p->get_id() ); }
+    if ( $p->get_id() > 0 && isset( $spec['mode'] ) && (int) ( $spec['id'] ?? 0 ) === $p->get_id() ) { wl112_hook_event( 'after-save', $p->get_id() ); }
 }, 10 );

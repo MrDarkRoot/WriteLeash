@@ -37,7 +37,7 @@ function wt_resume( array $progress ): array {
     wl112_post( wl112_form( $progress['page']['body'], 'writeleash_free_resume' ) );
     return array( 'url' => $progress['url'], 'page' => wl112_get( $progress['url'] ) );
 }
-function wt_truth( int $id ): array {
+function wt_truth( int $id, bool $after_recovery = true ): array {
     $db = V::observer();
     try {
         $stored = V::storage( $db, $id );
@@ -45,15 +45,15 @@ function wt_truth( int $id ): array {
         V::matches( $stored, $price );
         wp_cache_flush_runtime();
         $p = wc_get_product( $id );
-        wl112_assert( D::parse( $p->get_regular_price( 'edit' ) ) === D::parse( $price ), 'KILL: cache disagrees after reconciliation' );
-        return array( 'regular' => $price, 'lookup_min' => $stored['lookup']['min_price'] );
+        if ( $after_recovery ) { wl112_assert( D::parse( $p->get_regular_price( 'edit' ) ) === D::parse( $price ), 'KILL: cache disagrees after reconciliation' ); }
+        return array( 'regular' => $price, 'lookup_min' => $stored['lookup']['min_price'], 'cached_regular' => $p->get_regular_price( 'edit' ) );
     } finally { $db->close(); }
 }
 try {
     wp_set_current_user( 1 );
     wl112_login();
     $wpdb->query( "CREATE TABLE {$wpdb->prefix}wl112_hook_events (id bigint unsigned AUTO_INCREMENT PRIMARY KEY,product_id bigint unsigned NOT NULL) ENGINE=InnoDB" );
-    foreach ( array( 'clean', 'rollback', 'throw', 'error', 'property', 'query-commit', 'raw-commit' ) as $mode ) {
+    foreach ( array( 'clean', 'rollback', 'throw', 'error', 'property', 'query-commit', 'raw-commit', 'ambiguous-commit' ) as $mode ) {
         $id = wt_product();
         $f = wt_plan( array( $id ) );
         $progress = wt_approve( $f );
@@ -77,9 +77,21 @@ try {
             wl112_assert( D::parse( wt_truth( $id )['regular'] ) === '100', 'clean-hook Undo failed' );
             $report['hooks'][$mode]['undo'] = 'PASS';
             wl112_assert( 1 === $report['hooks'][$mode]['db_effect_rows'], 'clean hook side effect not durable' );
-        } elseif ( 'raw-commit' !== $mode ) {
+        } elseif ( ! in_array( $mode, array( 'raw-commit', 'ambiguous-commit' ), true ) ) {
             wl112_assert( D::parse( $truth['regular'] ) === '100', 'KILL: failed hook changed stored price' );
             wl112_assert( 'APPLIED' !== $row['state'], 'KILL: failed hook falsely APPLIED' );
+        }
+        if ( 'rollback' === $mode ) {
+            wl112_assert( 0 === $report['hooks'][$mode]['db_effect_rows'], 'same-connection rollback leaked hook DB row' );
+            sleep( 6 ); // Actual bounded retry backoff, no forged retry clock.
+            $progress = wt_resume( $progress );
+            $retried = R::read( (int) $job['id'] );
+            wl112_assert( 'COMPLETED' === $retried['status'], 'rollback retry did not finish' );
+            V::observe( R::hydrate_plan( $retried ), $id );
+            $report['hooks'][$mode]['retry'] = 'PASS: protected HTTP resume after backoff; price/lookup/cache/journal agree at 80';
+            wl112_post( wl112_form( $progress['page']['body'], 'writeleash_free_undo' ) );
+            wl112_assert( D::parse( wt_truth( $id )['regular'] ) === '100', 'rollback/retry Undo failed' );
+            $report['hooks'][$mode]['undo_after_retry'] = 'PASS';
         }
         wt_save( $report );
     }
@@ -106,7 +118,11 @@ try {
     while ( ! is_file( $spec['barrier'] ) ) { wl112_assert( microtime( true ) < $deadline, 'kill barrier timeout' ); usleep( 10000 ); }
     posix_kill( (int) file_get_contents( $spec['started'] ), 9 );
     proc_close( $proc );
-    wl112_assert( D::parse( wt_truth( $ids[0] )['regular'] ) === '100', 'KILL: killed transaction durable mutation' );
+    // SIGKILL cannot execute rollback-cache eviction. DB truth must be 100;
+    // stale cache at this pre-recovery point is measured, not mislabelled as
+    // surviving reconciliation. Protected Resume owns that next boundary.
+    $report['killed_before_recovery'] = wt_truth( $ids[0], false );
+    wl112_assert( D::parse( $report['killed_before_recovery']['regular'] ) === '100', 'KILL: killed transaction durable mutation' );
     // Wait for the actual lease TTL; do not forge generation/fence authority.
     sleep( 61 );
     $t = microtime( true );
@@ -116,6 +132,7 @@ try {
         if ( 'COMPLETED' === R::read( (int) $f['job']['id'] )['status'] ) { break; }
     }
     wl112_assert( 100 === R::counts( (int) $f['job']['id'] )['applied'], 'KILL: killed job failed recovery' );
+    foreach ( $ids as $id ) { wl112_assert( D::parse( wt_truth( $id )['regular'] ) === '80', 'KILL: recovered killed job price' ); }
     $report['kill_resume_seconds_after_lease_expiry'] = microtime( true ) - $t;
     $before = R::counts( (int) $f['job']['id'] );
     do_action( WriteLeash\Job_Scheduler::HOOK, (int) $f['job']['id'] );

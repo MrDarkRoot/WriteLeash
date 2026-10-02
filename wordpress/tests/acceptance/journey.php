@@ -23,6 +23,15 @@ function wl112_quantiles( array $values ): array {
     foreach ( array( 50, 95, 99 ) as $p ) { $out['p' . $p] = $values[(int) ceil( count( $values ) * $p / 100 ) - 1]; }
     return $out;
 }
+function wl112_save_counts( int $start ): array {
+    $counts = array();
+    $lines = is_file( getenv( 'WL112_METRICS' ) ) ? file( getenv( 'WL112_METRICS' ) ) : array();
+    foreach ( array_slice( $lines, $start ) as $line ) {
+        $entry = json_decode( $line, true );
+        foreach ( $entry['woo_save_product_ids'] ?? array() as $id ) { $counts[$id] = ( $counts[$id] ?? 0 ) + 1; }
+    }
+    return $counts;
+}
 function wl112_sizes(): array {
     global $wpdb;
     return $wpdb->get_results( $wpdb->prepare( 'SELECT TABLE_NAME, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH FROM information_schema.TABLES WHERE TABLE_SCHEMA=%s ORDER BY TABLE_NAME', DB_NAME ), ARRAY_A );
@@ -165,6 +174,10 @@ try {
     $facts['items_per_second_including_progress_http'] = $size / $facts['execution_seconds'];
     $facts['final_counts'] = Repo::counts( (int) $job['id'] );
     wl112_assert( $facts['final_counts']['applied'] === $size && $facts['final_counts']['pending'] === 0, 'KILL: incomplete Apply' );
+    $save_counts = wl112_save_counts( $facts['request_start_line'] );
+    foreach ( $ids as $id ) { wl112_assert( 1 === ( $save_counts[$id] ?? 0 ), 'KILL: duplicate or missing Woo save' ); }
+    wl112_assert( count( $save_counts ) === $size, 'KILL: Woo save outside frozen plan' );
+    $facts['exactly_one_apply_save_per_frozen_product'] = 'PASS';
     wp_cache_flush_runtime();
     wl112_parity( $ids, '80' );
     foreach ( $ids as $id ) { V::observe( $plan, $id ); }
@@ -194,6 +207,8 @@ try {
     $facts['undo_batch_seconds'] = $undo_batches;
     $facts['undo_batch_quantiles_seconds'] = wl112_quantiles( $undo_batches );
     wl112_assert( false !== strpos( $progress['body'], 'undone ' . $size ), 'KILL: incomplete Undo' );
+    $save_counts = wl112_save_counts( $facts['request_start_line'] );
+    foreach ( $ids as $id ) { wl112_assert( 2 === ( $save_counts[$id] ?? 0 ), 'KILL: duplicate or missing Undo save' ); }
     wp_cache_flush_runtime();
     wl112_parity( $ids, '100' );
     $facts['db_after_undo'] = wl112_sizes();
