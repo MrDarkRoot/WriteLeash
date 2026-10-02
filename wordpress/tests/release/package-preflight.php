@@ -84,7 +84,7 @@ if ( false === strpos( $license, 'GNU GENERAL PUBLIC LICENSE' ) || false === str
 $main = (string) file_get_contents( $source . '/writeleash.php' );
 foreach ( array(
 	'/^\s*\*\s*Version:\s*0\.1\.0\s*$/m',
-	'/^\s*\*\s*Requires at least:\s*6\.8\s*$/m',
+	'/^\s*\*\s*Requires at least:\s*7\.0\s*$/m',
 	'/^\s*\*\s*Requires PHP:\s*7\.4\s*$/m',
 	'/^\s*\*\s*License:\s*GPL v2 or later\s*$/m',
 	'/^\s*\*\s*License URI:\s*https:\/\/www\.gnu\.org\/licenses\/gpl-2\.0\.html\s*$/m',

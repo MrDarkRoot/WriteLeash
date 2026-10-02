@@ -1,7 +1,9 @@
 <?php
-// #63 deterministic WordPress.org readme preflight. Mirrors the official
-// readme structure rules and the stable-tag/version/license consistency that
-// the release matrix and PR must not silently diverge from.
+// #63/#121 deterministic WordPress.org readme preflight. Mirrors the current
+// official readme structure rules and the metadata/version/license coherence
+// that the release matrix and PR must not silently diverge from. The public
+// listing is the WooCommerce Free product; historical Redirection setup copy
+// must never return.
 if ( 2 !== $argc ) {
 	throw new RuntimeException( 'Usage: readme-validate.php <plugin-root>' );
 }
@@ -9,7 +11,7 @@ $root   = rtrim( $argv[1], '/' );
 $readme = $root . '/readme.txt';
 $main   = $root . '/writeleash.php';
 $fail   = static function ( string $message ): void {
-	throw new RuntimeException( '#63 readme preflight: ' . $message );
+	throw new RuntimeException( '#63/#121 readme preflight: ' . $message );
 };
 
 foreach ( array( $readme, $main ) as $file ) {
@@ -60,8 +62,8 @@ $tags = array_filter( array_map( 'trim', explode( ',', $headers['tags'] ) ) );
 if ( ! $tags || count( $tags ) > 5 || count( $tags ) !== count( array_unique( $tags ) ) ) {
 	$fail( 'Tags must be 1-5 unique comma-separated terms' );
 }
-if ( ! preg_match( '/\A\d+\.\d\z/', $headers['requires at least'] ) || '6.8' !== $headers['requires at least'] ) {
-	$fail( 'Requires at least must be the reviewed major/minor value 6.8' );
+if ( ! preg_match( '/\A\d+\.\d\z/', $headers['requires at least'] ) || '7.0' !== $headers['requires at least'] ) {
+	$fail( 'Requires at least must be the narrowest coherent value 7.0 (WooCommerce 11.1.2 package minimum)' );
 }
 if ( ! preg_match( '/\A\d+\.\d\z/', $headers['tested up to'] ) || '7.1' !== $headers['tested up to'] ) {
 	$fail( 'Tested up to must be the tested current-stable major/minor 7.1' );
@@ -79,6 +81,17 @@ if ( 'https://www.gnu.org/licenses/gpl-2.0.html' !== $headers['license uri'] ) {
 	$fail( 'License URI must point at the GNU GPLv2 license text' );
 }
 
+// Directory metadata and the main plugin header must not contradict each other.
+$main_header = (string) file_get_contents( $main );
+foreach ( array(
+	'/^\s*\*\s*Requires at least:\s*7\.0\s*$/m',
+	'/^\s*\*\s*Requires PHP:\s*7\.4\s*$/m',
+) as $requirement ) {
+	if ( ! preg_match( $requirement, $main_header ) ) {
+		$fail( 'main plugin header contradicts the readme requirements: ' . $requirement );
+	}
+}
+
 // Short description: one plain-text line, 150 characters or fewer.
 if ( ! $short_lines ) {
 	$fail( 'short description is missing' );
@@ -91,8 +104,8 @@ if ( strlen( $short ) > 150 ) {
 	$fail( 'short description is longer than 150 characters: ' . strlen( $short ) );
 }
 
-// Required recognizable sections.
-foreach ( array( '== Description ==', '== How it works ==', '== Installation ==', '== Supported configuration ==', '== Frequently Asked Questions ==', '== Changelog ==' ) as $section ) {
+// Required recognizable sections for the WooCommerce Free listing.
+foreach ( array( '== Description ==', '== Supported scope ==', '== Installation ==', '== Screenshots ==', '== Frequently Asked Questions ==', '== Changelog ==' ) as $section ) {
 	if ( ! str_contains( $text, $section ) ) {
 		$fail( 'missing readme section: ' . $section );
 	}
@@ -116,6 +129,21 @@ foreach ( array( '7.0.1', '7.1.2' ) as $tested_core ) {
 	}
 }
 
+// #121 release-claim guard: the public listing must not widen the accepted
+// #111/#112/#120 evidence. The engineering selector maximum (1,000) is not a
+// public support claim; universal rollback and all-host/all-version promises
+// are forbidden.
+foreach ( array( '1,000', '1000', '10,000', '10000', 'universal rollback', 'all bad edits', 'every shared host', 'all WooCommerce versions', 'any WooCommerce version' ) as $unsupported ) {
+	if ( false !== stripos( $text, $unsupported ) ) {
+		$fail( 'unsupported public claim in readme: ' . $unsupported );
+	}
+}
+foreach ( array( 'Up to 100', 'WooCommerce 11.1.2 exactly', 'Multisite is unsupported', 'has not been tested' ) as $required_scope ) {
+	if ( false === stripos( $text, $required_scope ) ) {
+		$fail( 'required scope limitation missing from readme: ' . $required_scope );
+	}
+}
+
 // Stable tag, header version and runtime version must agree exactly.
 $version = null;
 if ( preg_match( '/^\s*\*\s*Version:\s*(\S+)\s*$/m', (string) file_get_contents( $main ), $match ) ) {
@@ -129,7 +157,7 @@ if ( false === strpos( (string) file_get_contents( $main ), "define( 'WRITELEASH
 }
 
 // Public identity, dependency and license must agree with the plugin header.
-$main_source = (string) file_get_contents( $main );
+$main_source = $main_header;
 if ( ! preg_match( '/^\s*\*\s*Plugin Name:\s*WriteLeash\s*$/m', $main_source ) ||
 	! preg_match( '/^\s*\*\s*Requires Plugins:\s*woocommerce\s*$/m', $main_source ) ||
 	! preg_match( '/^\s*\*\s*License:\s*GPL v2 or later\s*$/m', $main_source ) ) {
@@ -145,4 +173,4 @@ if ( '' === $readme_title || preg_match( '/\bwordpress\b/i', $readme_title ) ||
 	$fail( 'readme title must equal the plugin header name and must not contain the restricted term "WordPress"' );
 }
 
-echo '#63 readme preflight: title, ' . strlen( $short ) . "-char description, " . count( $tags ) . " tags, Stable tag $version, GPLv2-or-later PASS\n";
+echo '#63/#121 readme preflight: title, ' . strlen( $short ) . "-char description, " . count( $tags ) . " tags, Stable tag $version, directory/header requirements coherent, GPLv2-or-later PASS\n";

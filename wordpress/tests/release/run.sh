@@ -24,6 +24,7 @@ php "$here/inventory-audit.php" "$repo/wordpress/writeleash" "$repo/wordpress/re
 mkdir -p /tmp/opencode
 php "$here/public-audit-cases.php" "$repo/wordpress/writeleash" "$repo/wordpress/release/writeleash-distribution-files.txt"
 php "$here/readme-validate.php" "$repo/wordpress/writeleash"
+php "$here/claim-matrix-audit.php" "$repo"
 php "$here/source-audit.php" "$repo/wordpress/writeleash"
 linted=0
 for file in "$tests"/*.php "$tests"/adapter/*.php "$tests"/current-core/*.php "$tests"/engine/*.php "$tests"/guard/*.php "$tests"/doctor/*.php "$tests"/jobs/*.php "$tests"/undo/*.php "$tests"/admin/*.php "$tests"/legacy/*.php "$here"/*.php; do
