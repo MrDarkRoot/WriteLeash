@@ -23,6 +23,7 @@ final class Free_Support_Contract {
 	/** Selected products, not just changing products or the caller's policy. */
 	public static function assert_job_size( int $selected ): void {
 		if ( $selected > self::MAX_JOB_PRODUCTS ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Typed integer data, not an exception/output message; Admin renders the derived notice through esc_html().
 			throw new Free_Job_Limit_Error( $selected );
 		}
 	}
