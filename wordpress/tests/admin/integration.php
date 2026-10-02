@@ -599,6 +599,122 @@ $res = Admin::process_preview( preview_post( array( 'ids' => (string) $nonzero_i
 eq( $res['blocked'], true, 'block-zero policy blocks' );
 marker( 'zero price boundaries' );
 
+// #122 Phase A: real conflict plus fresh read-only Current evidence.
+// Match cells in ONE rendered row, rather than unrelated text on the page.
+function wl122_current_rows( string $html ): array {
+	$dom = new DOMDocument();
+	libxml_use_internal_errors( true );
+	$dom->loadHTML( '<?xml encoding="utf-8"?>' . $html );
+	libxml_clear_errors();
+	$xpath = new DOMXPath( $dom );
+	$tables = $xpath->query( '//table[thead/tr/th[normalize-space(.)="Current"]]' );
+	eq( $tables->length, 1, 'exactly one Current item table' );
+	$headers = array();
+	foreach ( $xpath->query( './thead/tr/th', $tables->item( 0 ) ) as $cell ) { $headers[] = trim( $cell->textContent ); }
+	eq( $headers, array( 'Product', 'Expected', 'Current', 'Planned', 'Apply', 'Undo' ), 'Current column order' );
+	$rows = array();
+	foreach ( $xpath->query( './tbody/tr', $tables->item( 0 ) ) as $row ) {
+		$cells = array();
+		foreach ( $xpath->query( './td', $row ) as $cell ) { $cells[] = trim( $cell->textContent ); }
+		eq( count( $cells ), 6, 'six item cells' );
+		$rows[ (int) $cells[0] ] = $cells;
+	}
+	return $rows;
+}
+$current_id = make_product( '18.00' );
+$current_other = make_product( '24.00' );
+$current_preview = Admin::process_preview( preview_post( array( 'ids' => $current_id . ',' . $current_other, 'operation' => Operation::DECREASE_PERCENT, 'amount' => '20' ) ), 'POST' );
+$current_job = Repo::read_by_public_id( $current_preview['public_id'] );
+eq( Admin::process_approve( approve_post( $current_job ), 'POST' )['status'], 'OK', 'Current fixture approved' );
+$old_product = wc_get_product( $current_id );
+$old_meta = get_post_meta( $current_id );
+eq( $old_product->get_regular_price( 'edit' ), '18.00', 'prime old Woo regular price' );
+$edited_product = wc_get_product( $current_id );
+$edited_product->set_regular_price( '21.00' );
+$edited_product->save();
+run_job_terminal( (int) $current_job['id'] );
+eq( Repo::counts( (int) $current_job['id'] )['conflict'], 1, '18 to 21 is a real worker conflict' );
+$before_current_job = Repo::read( (int) $current_job['id'] );
+$before_current_items = UndoRepo::history_items( (int) $current_job['id'], null, null, 0, 50 );
+$before_current_history = UndoRepo::history_job( (int) $current_job['id'] );
+$before_current_journal = Journal::read( $wpdb, $current_job['plan_id'], $current_id );
+// Reintroduce known stale cache AFTER the worker's own eviction. Without a
+// fresh display read this is a failing negative control, in both cache modes.
+wp_cache_set( $current_id, $old_meta, 'post_meta' );
+wc_get_container()->get( \Automattic\WooCommerce\Internal\Caches\ProductCache::class )->set( $old_product );
+eq( get_post_meta( $current_id, '_regular_price', true ), '18.00', 'negative control: metadata cache is stale' );
+// A storefront filter must not masquerade as the stored regular price.
+$shopper_price = static function () { return '999.00'; };
+add_filter( 'woocommerce_product_get_regular_price', $shopper_price );
+$render_queries = array();
+$trace_queries = static function ( $query ) use ( &$render_queries ) { $render_queries[] = $query; return $query; };
+add_filter( 'query', $trace_queries );
+try { $current_html = render_view( 'job', $current_job['public_id'], 0 ); }
+finally { remove_filter( 'query', $trace_queries ); remove_filter( 'woocommerce_product_get_regular_price', $shopper_price ); }
+$current_rows = wl122_current_rows( $current_html );
+eq( $current_rows[$current_id], array( (string) $current_id, '18', '21', '14.40', 'CONFLICT (ITEM_CONFLICT)', '—' ), 'same conflict row: Expected 18 / fresh Current 21 / Planned 14.40 / CONFLICT' );
+eq( $current_rows[$current_other][2], '19.2', 'ordinary applied row also uses fresh Current' );
+foreach ( $render_queries as $query ) {
+	ok( ! preg_match( '/^\s*(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|START\s+TRANSACTION|BEGIN|LOCK)\b|\bFOR\s+UPDATE\b/i', $query ), 'Current render is SELECT-only, with no mutation/worker lock' );
+}
+eq( Repo::read( (int) $current_job['id'] ), $before_current_job, 'render leaves job authority/state untouched' );
+eq( UndoRepo::history_items( (int) $current_job['id'], null, null, 0, 50 ), $before_current_items, 'render leaves items untouched' );
+eq( UndoRepo::history_job( (int) $current_job['id'] ), $before_current_history, 'render leaves Undo eligibility untouched' );
+eq( Journal::read( $wpdb, $current_job['plan_id'], $current_id ), $before_current_journal, 'render leaves journal untouched' );
+// Independent connection checks storage after render; no object/meta cache.
+$current_observer = Verifier::observer();
+try { eq( Verifier::storage( $current_observer, $current_id )['meta']['_regular_price'][0], '21.00', 'independent storage proves no overwrite after render' ); }
+finally { $current_observer->close(); }
+marker( 'fresh Current conflict row and read-only/no-overwrite proof' );
+
+// Missing, malformed and exceptional reads must remain truthful and local to
+// the affected row. Frozen Expected/Planned values must never be substituted.
+$missing_current_id = make_product( '18.00' );
+$malformed_current_id = make_product( '18.00' );
+$valid_current_id = make_product( '18.00' );
+$missing_preview = Admin::process_preview( preview_post( array( 'ids' => implode( ',', array( $missing_current_id, $malformed_current_id, $valid_current_id ) ), 'amount' => '14.40' ) ), 'POST' );
+$missing_job = Repo::read_by_public_id( $missing_preview['public_id'] );
+wp_delete_post( $missing_current_id, true );
+update_post_meta( $malformed_current_id, '_regular_price', 'not-a-price' ); // Fixture corruption only.
+$missing_rows = wl122_current_rows( render_view( 'job', $missing_job['public_id'], 0 ) );
+eq( $missing_rows[$missing_current_id][2], 'Unavailable', 'missing product Current unavailable' );
+eq( $missing_rows[$malformed_current_id][2], 'Unavailable', 'malformed stored price Current unavailable' );
+eq( $missing_rows[$valid_current_id][2], '18', 'one unavailable Current does not prevent other rows' );
+$unreadable = static function ( $class, $type, $post_type, $id ) use ( $current_id ) {
+	if ( $id === $current_id ) { throw new RuntimeException( 'test-only unreadable product' ); }
+	return $class;
+};
+add_filter( 'woocommerce_product_class', $unreadable, 10, 4 );
+try { $unreadable_rows = wl122_current_rows( render_view( 'job', $current_job['public_id'], 0 ) ); }
+finally { remove_filter( 'woocommerce_product_class', $unreadable, 10 ); }
+eq( $unreadable_rows[$current_id][2], 'Unavailable', 'read exception does not fatal or fall back to Expected/Planned' );
+eq( $unreadable_rows[$current_other][2], '19.2', 'read exception isolated to one row' );
+marker( 'missing malformed unreadable Current remains nonfatal' );
+
+// A 51-product job must read only the 50 visible rows, then only the last row.
+// Observe real Woo reads; no mocked price provider or whole-job scan.
+$current_page_ids = array();
+for ( $i = 0; $i < Admin::ITEM_PAGE_SIZE + 1; ++$i ) { $current_page_ids[] = make_product( '18.00' ); }
+$page_preview = Admin::process_preview( preview_post( array( 'ids' => implode( ',', $current_page_ids ), 'amount' => '14.40' ) ), 'POST' );
+$page_job = Repo::read_by_public_id( $page_preview['public_id'] );
+$current_reads = array();
+$trace_reads = static function ( $id ) use ( &$current_reads ) { $current_reads[] = $id; };
+add_action( 'woocommerce_product_read', $trace_reads );
+try {
+	$page_rows = wl122_current_rows( render_view( 'job', $page_job['public_id'], 0 ) );
+	eq( count( $page_rows ), Admin::ITEM_PAGE_SIZE, 'first item page size' );
+	eq( $current_reads, array_slice( $current_page_ids, 0, Admin::ITEM_PAGE_SIZE ), 'Current Woo reads bounded to first page IDs' );
+	$current_reads = array();
+	$page_rows = wl122_current_rows( render_view( 'job', $page_job['public_id'], Admin::ITEM_PAGE_SIZE ) );
+	eq( count( $page_rows ), 1, 'last item page size' );
+	eq( $current_reads, array_slice( $current_page_ids, Admin::ITEM_PAGE_SIZE ), 'Current Woo reads bounded to last page ID' );
+	$current_reads = array();
+	$page_rows = wl122_current_rows( render_view( 'job', $page_job['public_id'], 2 * Admin::ITEM_PAGE_SIZE ) );
+	eq( count( $page_rows ), 0, 'empty item page size' );
+	eq( $current_reads, array(), 'empty page makes zero Current Woo reads' );
+} finally { remove_action( 'woocommerce_product_read', $trace_reads ); }
+marker( 'Current reads bounded to rendered page only' );
+
 // WooCommerce dependency loss fails closed at the Admin boundary. Plugin
 // code cannot be unloaded in-process, so the loss itself is asserted in a
 // fresh `wp eval-file` process where Woo is genuinely absent.

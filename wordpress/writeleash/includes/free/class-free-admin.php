@@ -949,6 +949,31 @@ final class Free_Admin {
 		echo '</p>';
 	}
 
+	/**
+	 * Page-row display only: a new Woo edit-context read after targeted cache
+	 * eviction, using the same decimal interpretation as price verification.
+	 * Unlike execution/recovery invalidation, this does not delete transients
+	 * or touch product, journal, job or Undo storage. Never falls back to a plan.
+	 */
+	private static function current_regular_price( int $product_id ): string {
+		try {
+			if ( ! empty( $GLOBALS['_wp_suspend_cache_invalidation'] ) ) {
+				return 'Unavailable';
+			}
+			wp_cache_delete( $product_id, 'posts' );
+			wp_cache_delete( $product_id, 'post_meta' );
+			\WC_Cache_Helper::invalidate_cache_group( 'product_' . $product_id );
+			wc_get_container()->get( \Automattic\WooCommerce\Internal\Caches\ProductCache::class )->remove( $product_id );
+			$product = wc_get_product( $product_id );
+			if ( ! $product instanceof \WC_Product || $product->get_id() !== $product_id ) {
+				return 'Unavailable';
+			}
+			return Price_Decimal::parse( $product->get_regular_price( 'edit' ) );
+		} catch ( \Throwable $error ) {
+			return 'Unavailable';
+		}
+	}
+
 	private static function render_job_view( string $public_id, int $offset ): void {
 		if ( ! self::jobs_installed() ) {
 			echo '<div class="notice notice-error"><p>' . esc_html( 'No job is visible to your account for that identifier.' ) . '</p></div>';
@@ -1003,10 +1028,12 @@ final class Free_Admin {
 			$items = null;
 		}
 		if ( null !== $items ) {
-			echo '<table class="widefat striped"><thead><tr><th scope="col">' . esc_html( 'Product' ) . '</th><th scope="col">' . esc_html( 'Expected' ) . '</th><th scope="col">' . esc_html( 'Planned' ) . '</th><th scope="col">' . esc_html( 'Apply' ) . '</th><th scope="col">' . esc_html( 'Undo' ) . '</th></tr></thead><tbody>';
+			echo '<p>' . esc_html( 'Current shows the fresh stored regular price at page load, not the shopper price. Unavailable means the product or price could not be read.' ) . '</p>';
+			echo '<table class="widefat striped"><thead><tr><th scope="col">' . esc_html( 'Product' ) . '</th><th scope="col">' . esc_html( 'Expected' ) . '</th><th scope="col">' . esc_html( 'Current' ) . '</th><th scope="col">' . esc_html( 'Planned' ) . '</th><th scope="col">' . esc_html( 'Apply' ) . '</th><th scope="col">' . esc_html( 'Undo' ) . '</th></tr></thead><tbody>';
 			foreach ( $items['items'] as $item ) {
 				echo '<tr><td>' . esc_html( (string) $item['product_id'] ) . '</td>';
 				echo '<td>' . esc_html( (string) $item['expected_price'] ) . '</td>';
+				echo '<td>' . esc_html( self::current_regular_price( (int) $item['product_id'] ) ) . '</td>';
 				echo '<td>' . esc_html( (string) $item['planned_price'] ) . '</td>';
 				echo '<td>' . esc_html( (string) $item['apply_state'] . ' (' . (string) $item['apply_reason'] . ')' ) . '</td>';
 				echo '<td>' . esc_html( null === $item['undo_state'] ? '—' : (string) $item['undo_state'] . ' (' . (string) $item['undo_reason'] . ')' ) . '</td></tr>';
