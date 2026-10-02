@@ -30,10 +30,10 @@ add_filter( 'query', static function ( $sql ) use ( &$updates, $table ) {
 	return $sql;
 } );
 $request = new WP_REST_Request( 'POST', '/redirection/v1/bulk/redirect/disable' );
-$request->set_param( 'global', true );
-$request->set_param( 'items', array() );
-$request->set_param( 'filterBy', array() );
-$request->set_param( 'bulk', 'disable' );
+$request->set_header( 'X-WP-Nonce', wp_create_nonce( 'wp_rest' ) );
+// Stock Redirection checks isset(items) before its global branch, even for
+// an empty array. Match its actual select-all request: OMIT items entirely.
+$request->set_body_params( array( 'global' => true, 'filterBy' => array(), 'bulk' => 'disable' ) );
 $response = rest_do_request( $request );
 wl120_assert( 200 === $response->get_status(), 'stock bulk Disable returns 200' );
 wl120_assert( ! isset( $response->get_data()['writeleash'] ), 'stock response has no certified envelope' );
