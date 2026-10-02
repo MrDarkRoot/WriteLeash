@@ -9,12 +9,24 @@ for host in mysql mariadb; do
   echo "=== CURRENT-CORE COMPATIBILITY: $host ==="
   rm -rf "$site"
   cp -R /opt/wp-core/. "$site/"
-  sh /opt/tests/legacy/stage.sh "$site"
+  sh /opt/tests/stage-plugin.sh "$site"
   wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost="$host"
   wp --path="$site" core install --url="http://$host.example.test" --title=Current-Core \
     --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
-  wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
+  # Public supported-WP dependency proof BEFORE the historical overlay.
+  wp --path="$site" eval-file /opt/tests/identity-62.php
+  CC63_PHASE=block wp --path="$site" eval-file /opt/tests/dependency-63.php
   wp --path="$site" plugin install /opt/plugin-zips/woocommerce.11.1.2.zip --activate
+  CC63_PHASE=installed wp --path="$site" eval-file /opt/tests/dependency-63.php
+  CC63_PHASE=dependents wp --path="$site" eval-file /opt/tests/dependency-63.php
+  wp --path="$site" plugin deactivate woocommerce
+  CC63_PHASE=lost wp --path="$site" eval-file /opt/tests/dependency-63.php
+  wp --path="$site" plugin activate woocommerce
+  wp --path="$site" plugin deactivate writeleash
+  CC63_PHASE=released wp --path="$site" eval-file /opt/tests/dependency-63.php
+  # Historical current-core regression remains separate from public evidence.
+  php /opt/tests/legacy/stage.php "$site/wp-content/plugins/writeleash"
+  wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
   wp --path="$site" plugin activate writeleash
   wp_version=$(wp --path="$site" core version)
   server_version=$(wp --path="$site" eval 'global $wpdb; echo $wpdb->get_var( "SELECT VERSION()" );')

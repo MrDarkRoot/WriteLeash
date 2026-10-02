@@ -1,5 +1,6 @@
 <?php
-// #63/#111 dependency semantics on the pinned WordPress fixture. Phases are
+// #63/#121 PUBLIC dependency semantics on supported WP, plus unsupported-Core
+// refusal before any repository-only historical metadata/legacy overlay. Phases are
 // driven by CC63_PHASE from in-container.sh; this uses normal Core behavior
 // and never reimplements dependency management.
 //
@@ -15,20 +16,58 @@ $phase = getenv( 'CC63_PHASE' );
 WP_Plugin_Dependencies::initialize();
 $plugin = 'writeleash/writeleash.php';
 $dependency = 'woocommerce/woocommerce.php';
-// Expected Woo build for this leg: 9.9.7 on the WordPress 6.8.3 Guard
-// baseline (activation shim, not a Free product pin). Free E2E legs pin
-// WooCommerce 11.1.2 on WordPress 7.1.2 and assert it themselves.
-$woo_version = getenv( 'CC63_WOO_VERSION' );
-if ( ! is_string( $woo_version ) || '' === $woo_version ) {
-	$woo_version = '9.9.7';
-}
+$woo_version = '11.1.2';
 $assert = static function ( $condition, string $message ): void {
 	if ( ! $condition ) {
 		throw new RuntimeException( '#63 dependency: ' . $message );
 	}
 };
+$data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin, false, false );
+$assert( '7.0' === $data['RequiresWP'], 'public WP minimum was shimmed or reverted' );
+$assert( false === strpos( file_get_contents( WP_PLUGIN_DIR . '/' . $plugin ), 'HISTORICAL TEST ONLY' ), 'historical shim in public fixture' );
+global $wp_version, $wpdb;
+if ( 'minimum' !== $phase ) {
+	$assert( in_array( $wp_version, array( '7.0.1', '7.1.2' ), true ), 'public dependency proof must run on an exact supported WP point' );
+}
+$snapshot = static function () use ( $wpdb ): string {
+	$tables = $wpdb->get_col( 'SHOW TABLES' );
+	sort( $tables );
+	$owned = array();
+	foreach ( $tables as $table ) {
+		if ( false !== strpos( $table, 'writeleash' ) ) {
+			$owned[ $table ] = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i', $table ), ARRAY_A );
+		}
+	}
+	return hash( 'sha256', serialize( array(
+		$owned,
+		$wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY ID', $wpdb->posts ), ARRAY_A ),
+		$wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY meta_id', $wpdb->postmeta ), ARRAY_A ),
+		$wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE option_name LIKE %s ORDER BY option_name', $wpdb->options, '%writeleash%' ), ARRAY_A ),
+	) ) );
+};
 
 switch ( $phase ) {
+	case 'minimum':
+		$assert( '6.8.3' === $wp_version, 'unsupported fixture must stay exact WP 6.8.3' );
+		$assert( ! is_plugin_active( $plugin ), 'public plugin already active on unsupported WP' );
+		// Woo is absent: seed stored product facts through Core for a non-vacuous
+		// zero-product-mutation assertion, without loading the public plugin.
+		register_post_type( 'product', array( 'public' => true ) );
+		$product_id = wp_insert_post( array( 'post_type' => 'product', 'post_status' => 'publish', 'post_title' => '#121 refusal sentinel' ), true );
+		$assert( ! is_wp_error( $product_id ) && $product_id > 0, 'could not seed refusal product sentinel' );
+		update_post_meta( $product_id, '_regular_price', '123.45' );
+		update_post_meta( $product_id, '_price', '123.45' );
+		$before = $snapshot();
+		$result = activate_plugin( $plugin );
+		$assert( $result instanceof WP_Error && 'plugin_wp_incompatible' === $result->get_error_code(), 'WP minimum did not block activation first: ' . wp_json_encode( $result ) );
+		$assert( false !== strpos( $result->get_error_message(), '7.0' ), 'minimum refusal does not name WP 7.0' );
+		$assert( ! is_plugin_active( $plugin ), 'public plugin activated normally on WP 6.8.3' );
+		$assert( $before === $snapshot(), 'Core refusal caused durable/product mutation' );
+		$assert( ! defined( 'WRITELEASH_VERSION' ), 'public plugin loaded despite minimum refusal' );
+		wp_delete_post( $product_id, true );
+		echo "#121 WP 6.8.3 PUBLIC ACTIVATION: EXPECTED CORE REFUSAL (minimum 7.0 first), inactive, zero WriteLeash durable/product mutation: PASS\n";
+		break;
+
 	case 'block':
 		// WooCommerce is not installed yet: normal Core activation must refuse.
 		$assert( ! is_plugin_active( $plugin ), 'plugin unexpectedly active without dependency' );
@@ -41,15 +80,15 @@ switch ( $phase ) {
 		break;
 
 	case 'installed':
-		// The leg's WooCommerce build installed and active: the Core slug
-		// dependency is satisfied. Version mechanics are slug-based; the
-		// Free product pin is asserted by the 7.1.2 E2E legs, not here.
+		// Exact public Woo build active: Core's slug dependency is satisfied.
 		$assert( defined( 'WC_VERSION' ) && $woo_version === WC_VERSION, 'WooCommerce ' . $woo_version . ' not active' );
 		$assert( false === WP_Plugin_Dependencies::has_unmet_dependencies( $plugin ), 'Core still reports unmet dependency' );
 		$names = WP_Plugin_Dependencies::get_dependency_names( $plugin );
 		$assert( isset( $names['woocommerce'] ), 'Core did not parse the WooCommerce dependency: ' . wp_json_encode( $names ) );
 		$assert( false !== WP_Plugin_Dependencies::get_dependency_filepath( 'woocommerce' ), 'Core did not resolve the WooCommerce slug' );
-		echo "#63 dependency installed: Core resolves Requires Plugins: woocommerce: PASS\n";
+		$result = activate_plugin( $plugin );
+		$assert( ! is_wp_error( $result ) && is_plugin_active( $plugin ), 'public activation failed with supported WP/Woo: ' . wp_json_encode( $result ) );
+		echo "#63 public dependency installed: WooCommerce 11.1.2 active, Core dependency satisfied and public WriteLeash activation succeeds: PASS\n";
 		break;
 
 	case 'dependents':
