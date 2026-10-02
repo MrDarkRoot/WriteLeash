@@ -7,12 +7,22 @@ use WriteLeash\Price_Cache_Verifier as V;
 use WriteLeash\Price_Decimal as D;
 use WriteLeash\Undo_Repository as U;
 
-global $wpdb, $wl112_cookies;
+global $wpdb, $wl112_cookies, $result_file;
 $wl112_cookies = array();
 $size = (int) getenv( 'WL112_SIZE' );
 $result_file = '/evidence/' . DB_HOST . '-' . $size . '.json';
 $facts = array( 'git_sha' => getenv( 'WL112_SHA' ), 'wp' => get_bloginfo( 'version' ), 'woo' => WC_VERSION, 'php' => PHP_VERSION, 'db' => $wpdb->get_var( 'SELECT VERSION()' ), 'cache' => wp_using_ext_object_cache() ? 'Redis 7.4.2 / Redis Object Cache 2.7.0 / Predis' : 'default', 'catalog_size' => $size, 'requested_job_size' => $size, 'outcome' => 'STARTED', 'fixture_php_memory_limit' => ini_get( 'memory_limit' ) );
-function wl112_save( array $facts ): void { global $result_file; file_put_contents( $result_file, json_encode( $facts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n" ); }
+function wl112_save( array $facts ): void {
+    global $result_file;
+    $facts['request_end_line'] = is_file( getenv( 'WL112_METRICS' ) ) ? count( file( getenv( 'WL112_METRICS' ) ) ) : 0;
+    file_put_contents( $result_file, json_encode( $facts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n" );
+}
+function wl112_quantiles( array $values ): array {
+    sort( $values, SORT_NUMERIC );
+    $out = array();
+    foreach ( array( 50, 95, 99 ) as $p ) { $out['p' . $p] = $values[(int) ceil( count( $values ) * $p / 100 ) - 1]; }
+    return $out;
+}
 function wl112_sizes(): array {
     global $wpdb;
     return $wpdb->get_results( $wpdb->prepare( 'SELECT TABLE_NAME, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH FROM information_schema.TABLES WHERE TABLE_SCHEMA=%s ORDER BY TABLE_NAME', DB_NAME ), ARRAY_A );
@@ -31,6 +41,7 @@ function wl112_parity( array $ids, string $price ): void {
     } finally { $db->close(); }
 }
 try {
+    $facts['request_start_line'] = is_file( getenv( 'WL112_METRICS' ) ) ? count( file( getenv( 'WL112_METRICS' ) ) ) : 0;
     wp_set_current_user( 1 );
     delete_transient( '_wc_activation_redirect' );
     $facts['db_privileges'] = array_map( static function ( $grant ) {
@@ -40,6 +51,7 @@ try {
     $facts['innodb'] = $wpdb->get_results( 'SHOW ENGINES', ARRAY_A );
     $facts['db_before_fixture'] = wl112_sizes();
     $t = microtime( true );
+    $fixture_queries = $wpdb->num_queries;
     $term = wp_insert_term( 'WL112-' . wp_generate_uuid4(), 'product_cat' );
     wl112_assert( ! is_wp_error( $term ), 'fixture category failed' );
     $ids = array();
@@ -54,6 +66,7 @@ try {
         if ( 0 === $i % 100 ) { wp_cache_flush_runtime(); }
     }
     $facts['fixture_seconds'] = microtime( true ) - $t;
+    $facts['fixture_queries'] = $wpdb->num_queries - $fixture_queries;
     $facts['fixture_peak_php_bytes'] = memory_get_peak_usage( true );
     $facts['db_after_fixture'] = wl112_sizes();
     wl112_save( $facts );
@@ -147,6 +160,7 @@ try {
     $facts['execution_seconds'] = microtime( true ) - $t;
     $facts['manual_resume_first_chunk_seconds'] = $batches[0];
     $facts['apply_batch_seconds'] = $batches;
+    $facts['apply_batch_quantiles_seconds'] = wl112_quantiles( $batches );
     $facts['items_per_second_including_progress_http'] = $size / $facts['execution_seconds'];
     $facts['final_counts'] = Repo::counts( (int) $job['id'] );
     wl112_assert( $facts['final_counts']['applied'] === $size && $facts['final_counts']['pending'] === 0, 'KILL: incomplete Apply' );
@@ -177,6 +191,7 @@ try {
     }
     $facts['undo_seconds'] = microtime( true ) - $t;
     $facts['undo_batch_seconds'] = $undo_batches;
+    $facts['undo_batch_quantiles_seconds'] = wl112_quantiles( $undo_batches );
     wl112_assert( false !== strpos( $progress['body'], 'undone ' . $size ), 'KILL: incomplete Undo' );
     wp_cache_flush_runtime();
     wl112_parity( $ids, '100' );

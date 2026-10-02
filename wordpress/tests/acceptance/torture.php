@@ -6,7 +6,7 @@ use WriteLeash\Price_Cache_Verifier as V;
 use WriteLeash\Price_Apply_Journal as J;
 use WriteLeash\Price_Decimal as D;
 
-global $wpdb, $wl112_cookies;
+global $wpdb, $wl112_cookies, $base;
 $wl112_cookies = array();
 $report = array( 'git_sha' => getenv( 'WL112_SHA' ), 'wp' => get_bloginfo( 'version' ), 'woo' => WC_VERSION, 'php' => PHP_VERSION, 'db' => $wpdb->get_var( 'SELECT VERSION()' ), 'cache' => wp_using_ext_object_cache() ? 'persistent' : 'default', 'external_side_effects' => 'OUTSIDE CONTRACT: emails, webhooks, remote HTTP, orders, external queues, arbitrary plugin side effects' );
 $base = 'http://127.0.0.1:8080/wp-admin/admin.php?page=writeleash-bulk-prices';

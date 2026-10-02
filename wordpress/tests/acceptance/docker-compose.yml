@@ -1,6 +1,9 @@
 services:
   mysql:
     image: mysql@sha256:9c3380eac945af0736031b200027f581925927c81e010056214a4bd6b6693714
+    # Old PHP 7.4 CLI image carries a legacy MariaDB client without MySQL's
+    # caching_sha2_password plugin. Explicit lab authentication condition.
+    command: ["--default-authentication-plugin=mysql_native_password"]
     environment:
       MYSQL_ROOT_PASSWORD: disposable_root_password
       MYSQL_DATABASE: wp_test

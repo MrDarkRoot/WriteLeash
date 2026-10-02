@@ -22,7 +22,7 @@ jobs:
             woo: '11.1.2'
             cache: persistent
           - name: previous-wordpress
-            core: wordpress:6.8.3-php8.2-apache@sha256:1e6215749283955d5c9ffea6c297651ed23cdfdbb91677ad7abd705b2682f2cf
+            core: wordpress:7.0.1-php8.2-apache@sha256:103a9b0e51977c2baab24c04c0e3657082c79ff6d4ca4f024c15d766e496b502
             cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
             sizes: '100'
             woo: '11.1.2'

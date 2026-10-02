@@ -16,6 +16,7 @@ if ( PHP_SAPI === 'cli-server' ) {
             'php' => PHP_VERSION,
             'memory_limit' => ini_get( 'memory_limit' ),
             'max_execution_time' => ini_get( 'max_execution_time' ),
+            'action' => filter_input( INPUT_POST, 'action' ) ?: 'read',
             'fatal' => error_get_last(),
         ) ) . "\n", FILE_APPEND );
     } );

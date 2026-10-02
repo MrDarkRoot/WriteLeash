@@ -27,6 +27,7 @@ for host in mysql mariadb; do
   export WL112_METRICS="/evidence/$host-requests.jsonl"
   php -d "memory_limit=$WL112_MEMORY" -d "max_execution_time=$WL112_TIME" -S 127.0.0.1:8080 -t "$site" >"/evidence/$host-web.txt" 2>&1 &
   web_pid=$!
+  wp --path="$site" eval-file /opt/tests/acceptance/no-create.php
   # Fixtures have their own memory/time envelope; all Admin requests use the
   # constrained server limits above. Evidence records both independently.
   for size in $WL112_SIZES; do
@@ -37,5 +38,5 @@ for host in mysql mariadb; do
   fi
   kill "$web_pid"
   wp --path="$site" eval-file /opt/tests/acceptance/lifecycle.php
-  php /opt/tests/release/debug-audit.php "$site/wp-content/debug.log" "$host"
+  php /opt/tests/acceptance/diagnostics.php "$site/wp-content/debug.log" "$host"
 done
