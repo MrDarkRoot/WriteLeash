@@ -60,6 +60,10 @@ def summarize(path):
 root = pathlib.Path(sys.argv[1])
 rows = []
 for path in sorted(root.rglob("*.json")):
+    # Shell redirection creates this output file before this script starts.
+    # Also allow repeat summarization of an already-downloaded artifact.
+    if path.name == "summary.json":
+        continue
     data = json.loads(path.read_text())
     if "catalog_size" in data:
         rows.append(summarize(path))

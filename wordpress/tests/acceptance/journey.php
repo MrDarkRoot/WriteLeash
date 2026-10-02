@@ -68,6 +68,7 @@ function wl112_parity( array $ids, string $price ): void {
 }
 try {
     $facts['request_start_line'] = is_file( getenv( 'WL112_METRICS' ) ) ? count( file( getenv( 'WL112_METRICS' ) ) ) : 0;
+    wl112_save( $facts ); // Preserve exact requested size even on a fatal fixture limit.
     wp_set_current_user( 1 );
     delete_transient( '_wc_activation_redirect' );
     $facts['db_privileges'] = array_map( static function ( $grant ) {
