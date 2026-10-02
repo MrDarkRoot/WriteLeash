@@ -6,7 +6,7 @@ case "${CC_DB_FAMILY:-}" in
 esac
 site=/tmp/writeleash-site
 cp -R /opt/wp-core/. "$site/"
-sh /opt/tests/stage-plugin.sh "$site"
+sh /opt/tests/legacy/stage.sh "$site"
 wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost="$db"
 wp --path="$site" core install --url=http://example.test --title=WriteLeash-Test \
   --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email

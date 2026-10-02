@@ -1,4 +1,4 @@
-name: WordPress V0.1 release matrix
+name: WordPress historical V0.1 regression matrix
 
 on:
   pull_request:
@@ -31,7 +31,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, pinned
         with:
-          name: wordpress-v01-release-matrix
+          name: wordpress-v01-release-matrix-attempt-${{ github.run_attempt }}
           path: ${{ runner.temp }}/wordpress-release-matrix.txt
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 30

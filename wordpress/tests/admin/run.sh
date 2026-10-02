@@ -13,6 +13,7 @@ fetch() {
 }
 fetch "$here/cache/woocommerce.11.1.2.zip" 9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e
 fetch "$here/cache/redis-cache.2.7.0.zip" 0cbc41dea351688693b8e7db1165b5d92b6c8ef7231ac0ff5abec7b83d62c635
+fetch "$here/cache/redirection.5.5.2.zip" 2c562a256797828ec3a0ddfd19425f0c1bc126554bb4baaa95434b35f361a648
 compose=(docker compose -p writeleash_woo111 -f "$here/docker-compose.yml")
 cleanup() {
   local status=$?

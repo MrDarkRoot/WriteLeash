@@ -1,0 +1,25 @@
+# Repository-only regression overlay, NOT a release/distribution manifest.
+# Explicit legacy files in original load order. No recursive copy.
+includes/class-update-engine.php
+includes/class-guard-error.php
+includes/class-unsupported-transaction-state.php
+includes/class-budget-denied.php
+includes/class-guard-transaction.php
+includes/class-guard-sql.php
+includes/class-guard-monitor.php
+includes/class-guard.php
+includes/class-compatibility-grants.php
+includes/class-compatibility-doctor.php
+includes/class-provisioning-plan.php
+includes/class-redirection-bulk-disable.php
+includes/class-certified-operation.php
+includes/class-operation-config.php
+includes/class-certified-operation-status.php
+includes/class-last-outcome.php
+includes/class-disposable-demo.php
+includes/class-disposable-demo-setup.php
+includes/class-product-status.php
+includes/class-admin-page.php
+includes/class-product-cli.php
+includes/class-redirection-bulk-disable-rest.php
+operator-setup.txt

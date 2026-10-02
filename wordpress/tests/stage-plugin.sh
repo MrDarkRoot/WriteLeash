@@ -1,13 +1,15 @@
 #!/bin/sh
-# Test-only installation shape driven by the #63 distribution allowlist.
+# PUBLIC plugin staging only: validated explicit distribution allowlist.
 # Source stays at /opt/writeleash; the manifest is /opt/release/... .
 set -eu
 site=$1
-source=/opt/writeleash
-manifest=/opt/release/writeleash-distribution-files.txt
+source=${WRITELEASH_STAGE_SOURCE:-/opt/writeleash}
+manifest=${WRITELEASH_STAGE_MANIFEST:-/opt/release/writeleash-distribution-files.txt}
+tests=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 destination="$site/wp-content/plugins/writeleash"
 test -f "$manifest"
 test ! -e "$destination"
+php "$tests/release/package-preflight.php" "$source" "$manifest"
 
 entries=$(grep -v '^#' "$manifest" | grep -v '^[[:space:]]*$')
 test -n "$entries"
@@ -46,3 +48,8 @@ test ! -e "$destination/README.md"
 test ! -e "$destination/LICENSE-AUDIT.md"
 test ! -e "$destination/RELEASE-MATRIX.md"
 test ! -e "$destination/THREAT-MODEL.md"
+test ! -e "$destination/operator-setup.txt"
+php "$tests/release/package-preflight.php" "$destination" "$manifest"
+for entry in $entries; do
+  case "$entry" in *.php) php -l "$destination/$entry" ;; esac
+done

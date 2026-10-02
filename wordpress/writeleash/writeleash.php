@@ -48,28 +48,6 @@ if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
 
 require_once __DIR__ . '/includes/class-environment.php';
 require_once __DIR__ . '/includes/class-lifecycle.php';
-require_once __DIR__ . '/includes/class-update-engine.php';
-require_once __DIR__ . '/includes/class-guard-error.php';
-require_once __DIR__ . '/includes/class-unsupported-transaction-state.php';
-require_once __DIR__ . '/includes/class-budget-denied.php';
-require_once __DIR__ . '/includes/class-guard-transaction.php';
-require_once __DIR__ . '/includes/class-guard-sql.php';
-require_once __DIR__ . '/includes/class-guard-monitor.php';
-require_once __DIR__ . '/includes/class-guard.php';
-require_once __DIR__ . '/includes/class-compatibility-grants.php';
-require_once __DIR__ . '/includes/class-compatibility-doctor.php';
-require_once __DIR__ . '/includes/class-provisioning-plan.php';
-require_once __DIR__ . '/includes/class-redirection-bulk-disable.php';
-require_once __DIR__ . '/includes/class-certified-operation.php';
-require_once __DIR__ . '/includes/class-operation-config.php';
-require_once __DIR__ . '/includes/class-certified-operation-status.php';
-require_once __DIR__ . '/includes/class-last-outcome.php';
-require_once __DIR__ . '/includes/class-disposable-demo.php';
-require_once __DIR__ . '/includes/class-disposable-demo-setup.php';
-require_once __DIR__ . '/includes/class-product-status.php';
-require_once __DIR__ . '/includes/class-admin-page.php';
-require_once __DIR__ . '/includes/class-product-cli.php';
-require_once __DIR__ . '/includes/class-redirection-bulk-disable-rest.php';
 require_once __DIR__ . '/includes/class-plugin.php';
 
 // Read-only Free planning values load without Woo; invocation checks its context.

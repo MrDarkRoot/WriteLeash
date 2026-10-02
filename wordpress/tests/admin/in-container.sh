@@ -12,6 +12,7 @@ for host in mysql mariadb; do
   # No Redirection: the default Free product must activate and work with Woo only.
   wp --path="$site" plugin install /opt/woo-zips/woocommerce.11.1.2.zip --activate
   wp --path="$site" plugin activate writeleash
+  wp --path="$site" eval-file /opt/tests/admin/public-boundary.php
   wp --path="$site" plugin install /opt/woo-zips/redis-cache.2.7.0.zip --activate
   wp --path="$site" config set WP_REDIS_HOST redis
   wp --path="$site" config set WP_REDIS_CLIENT predis
@@ -45,5 +46,17 @@ for host in mysql mariadb; do
   kill "$web_pid"
   php /opt/tests/release/source-audit.php "$site/wp-content/plugins/writeleash"
   php /opt/tests/release/debug-audit.php "$site/wp-content/debug.log" "$host"
+  wp --path="$site" eval-file /opt/tests/admin/public-lifecycle.php
+  # A fresh process after lifecycle shutdown restores only the public product.
+  wp --path="$site" plugin deactivate writeleash
+  wp --path="$site" plugin activate writeleash
+  wp --path="$site" plugin install /opt/woo-zips/redirection.5.5.2.zip --activate
+  wp --path="$site" eval-file /opt/tests/redirection-schema.php
+  wp --path="$site" plugin deactivate writeleash
+  WL120_STOCK_ONLY=1 wp --path="$site" eval-file /opt/tests/admin/public-redirection.php
+  wp --path="$site" plugin activate writeleash
+  wp --path="$site" eval-file /opt/tests/admin/public-redirection.php
+  # Repeat in a fresh process with forged historical state present.
+  wp --path="$site" eval-file /opt/tests/admin/public-redirection.php
 done
 echo '#111 Free Admin workflow two-engine/default/Redis gate: PASS'

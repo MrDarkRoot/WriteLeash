@@ -5,7 +5,7 @@ set -eu
 
 site=/tmp/cc-research
 cp -R /opt/wp-core/. "$site/"
-sh /opt/tests/stage-plugin.sh "$site"
+sh /opt/tests/legacy/stage.sh "$site"
 wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost=mysql
 wp --path="$site" core install --url=http://research.test --title=WriteLeash-Research \
   --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email

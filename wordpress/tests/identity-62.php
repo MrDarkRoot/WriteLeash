@@ -32,7 +32,7 @@ if ( 1 !== $headers ) {
 }
 $readme = WP_PLUGIN_DIR . '/writeleash/readme.txt';
 $license = WP_PLUGIN_DIR . '/writeleash/LICENSE';
-if ( ! is_file( $readme ) || ! is_file( $license ) || ! is_file( WP_PLUGIN_DIR . '/writeleash/operator-setup.txt' ) ) {
+if ( ! is_file( $readme ) || ! is_file( $license ) ) {
 	throw new RuntimeException( '#63 release files missing from installed plugin' );
 }
 if ( ! preg_match( '/^Stable tag:\s*' . preg_quote( $data['Version'], '/' ) . '\s*$/mi', (string) file_get_contents( $readme ) ) ) {
