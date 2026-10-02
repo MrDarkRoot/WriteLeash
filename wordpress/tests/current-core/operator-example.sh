@@ -1,5 +1,5 @@
 #!/bin/sh
-# #63: run the documented public operator workflow exactly as shipped. The
+# #63 historical regression: run the repository operator workflow. The
 # script body is extracted from operator-setup.txt so documentation drift fails
 # CI; only test-infrastructure credentials are used here.
 set -eu

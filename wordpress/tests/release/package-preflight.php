@@ -1,7 +1,6 @@
 <?php
-// #63 package-content preflight: the distribution allowlist must match the
-// intended runtime exactly. This runs against the repository source tree and
-// is the canonical list #77 will later consume; it creates no artifact.
+// #63/#120 public package gate: explicit allowlist + literal runtime closure.
+// Historical repository PHP is not distribution PHP. Creates no artifact.
 if ( 3 !== $argc ) {
 	throw new RuntimeException( 'Usage: package-preflight.php <plugin-source-root> <distribution-manifest>' );
 }
@@ -21,11 +20,11 @@ if ( ! is_array( $raw ) ) {
 
 $entries = array();
 foreach ( $raw as $line ) {
-	$line = trim( $line );
-	if ( '' === $line || str_starts_with( $line, '#' ) ) {
+	if ( $line !== trim( $line ) ) { $fail( 'manifest whitespace is not canonical' ); }
+	if ( '' === $line || 0 === strpos( $line, '#' ) ) {
 		continue;
 	}
-	if ( preg_match( '/\s/', $line ) || str_contains( $line, '..' ) || str_contains( $line, '\\' ) || str_starts_with( $line, '/' ) ) {
+	if ( preg_match( '/\s/', $line ) || false !== strpos( $line, '..' ) || false !== strpos( $line, '\\' ) || 0 === strpos( $line, '/' ) ) {
 		$fail( 'unsafe or non-canonical manifest entry: ' . $line );
 	}
 	$entries[] = $line;
@@ -47,7 +46,7 @@ foreach ( $entries as $entry ) {
 }
 
 // Required runtime and release files.
-foreach ( array( 'writeleash.php', 'uninstall.php', 'readme.txt', 'LICENSE', 'operator-setup.txt' ) as $required ) {
+foreach ( array( 'writeleash.php', 'uninstall.php', 'readme.txt', 'LICENSE' ) as $required ) {
 	if ( ! in_array( $required, $entries, true ) ) {
 		$fail( 'required distribution file missing from allowlist: ' . $required );
 	}
@@ -68,20 +67,8 @@ foreach ( $entries as $entry ) {
 	}
 }
 
-// Every production PHP file must be accounted for: a new include cannot be
-// silently omitted from the package.
-$php_files = array();
-foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $source, FilesystemIterator::SKIP_DOTS ) ) as $file ) {
-	if ( $file->isFile() && 'php' === strtolower( $file->getExtension() ) ) {
-		$php_files[] = substr( $file->getPathname(), strlen( $source ) + 1 );
-	}
-}
-sort( $php_files, SORT_STRING );
-$allowlist_php = array_values( array_filter( $entries, static fn( $entry ) => 'php' === strtolower( pathinfo( $entry, PATHINFO_EXTENSION ) ) ) );
-sort( $allowlist_php, SORT_STRING );
-if ( $php_files !== $allowlist_php ) {
-	$fail( 'allowlist does not match production PHP files: ' . json_encode( array_diff( $php_files, $allowlist_php ) ) );
-}
+require_once __DIR__ . '/public-runtime-audit.php';
+writeleash_public_runtime_audit( $source, $entries );
 
 // The packaged license must be the verbatim GNU GPLv2 text.
 $license_hash = hash_file( 'sha256', $source . '/LICENSE' );
@@ -89,7 +76,7 @@ if ( 'edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6' !== $lic
 	$fail( 'LICENSE is not the reviewed verbatim GNU GPLv2 text' );
 }
 $license = (string) file_get_contents( $source . '/LICENSE' );
-if ( ! str_contains( $license, 'GNU GENERAL PUBLIC LICENSE' ) || ! str_contains( $license, 'Version 2, June 1991' ) ) {
+if ( false === strpos( $license, 'GNU GENERAL PUBLIC LICENSE' ) || false === strpos( $license, 'Version 2, June 1991' ) ) {
 	$fail( 'LICENSE header text missing' );
 }
 
@@ -108,7 +95,7 @@ foreach ( array(
 		$fail( 'main plugin file is missing expected license/version header: ' . $pattern );
 	}
 }
-if ( ! str_contains( $main, "define( 'WRITELEASH_VERSION', '0.1.0' )" ) ) {
+if ( false === strpos( $main, "define( 'WRITELEASH_VERSION', '0.1.0' )" ) ) {
 	$fail( 'runtime version constant does not match the release version' );
 }
 if ( ! preg_match( '/^\s*\*\s*Requires Plugins:\s*woocommerce\s*$/m', $main ) ) {

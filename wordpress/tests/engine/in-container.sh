@@ -3,7 +3,7 @@ set -eu
 for host in mysql mariadb; do
   site="/tmp/writeleash-engine-$host"
   cp -R /opt/wp-core/. "$site/"
-  sh /opt/tests/stage-plugin.sh "$site"
+  sh /opt/tests/legacy/stage.sh "$site"
   wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost="$host"
   wp --path="$site" core install --url="http://$host.example.test" --title=Engine-Test \
     --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email

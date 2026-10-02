@@ -1,6 +1,6 @@
 #!/bin/sh
 # #63 current-stable compatibility gate: WordPress 7.1.2 + Redirection 5.5.2 +
-# the allowlisted WriteLeash package on both pinned database engines. Focused on
+# the repository-only historical lab on both pinned database engines. Focused on
 # the certified product path and lifecycle; the full adversarial matrix remains
 # pinned to the WordPress 6.8.3 baseline (#62).
 set -eu
@@ -9,7 +9,7 @@ for host in mysql mariadb; do
   echo "=== CURRENT-CORE COMPATIBILITY: $host ==="
   rm -rf "$site"
   cp -R /opt/wp-core/. "$site/"
-  sh /opt/tests/stage-plugin.sh "$site"
+  sh /opt/tests/legacy/stage.sh "$site"
   wp --path="$site" core config --dbname=wp_test --dbuser=wp_test --dbpass=disposable_wp_password --dbhost="$host"
   wp --path="$site" core install --url="http://$host.example.test" --title=Current-Core \
     --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
@@ -35,7 +35,7 @@ for host in mysql mariadb; do
   # does); the accepted 6.8.3 adapter suite uses the same API.
   wp --path="$site" eval-file /opt/tests/redirection-schema.php
 
-  # The documented public operator workflow is the provisioning path here: the
+  # The historical repository operator workflow is the provisioning path here: the
   # CI harness extracts the script from operator-setup.txt, executes review and
   # apply modes, and leaks no secret.
   sh /opt/tests/current-core/operator-example.sh "$host" "$site"

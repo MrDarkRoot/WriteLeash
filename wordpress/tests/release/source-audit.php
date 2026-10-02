@@ -59,9 +59,8 @@ if ( 1 !== $headers || $php_count < 20 ||
 	throw new RuntimeException( 'Plugin identity, source count or duplicate headers' );
 }
 
-// #63/#64 staged release files: license, readme and the public operator guide
-// must be present; internal development documents must not be staged.
-foreach ( array( 'readme.txt', 'LICENSE', 'operator-setup.txt' ) as $required ) {
+// Public release files; historical lab operator guide is not a public requirement.
+foreach ( array( 'readme.txt', 'LICENSE' ) as $required ) {
 	if ( ! is_file( $root . '/' . $required ) ) {
 		throw new RuntimeException( 'Required staged release file missing: ' . $required );
 	}
@@ -115,6 +114,8 @@ foreach ( $brand_files as $file ) {
 }
 // #97 canonical DB identity: lock the renamed helper and TABLE_COMMENT values,
 // and prove the old pre-#97 family is entirely absent from the staged product.
+if ( is_file( $root . '/includes/class-update-engine.php' ) ) {
+// Keep the original #97 identity assertions on historical source/lab stages.
 $engine_source = (string) file_get_contents( $root . '/includes/class-update-engine.php' );
 foreach ( array(
 	"public const STATE = 'writeleash_v01_state';",
@@ -131,5 +132,8 @@ foreach ( array( $root . '/writeleash.php', $engine_source ) as $canonical_scan 
 	}
 }
 echo "#97 DB-identity audit: canonical writeleash_v01_* helper name/TABLE_COMMENT locked; old commitcap_v01_* identifiers in the staged product: 0 PASS\n";
+} elseif ( is_file( $root . '/operator-setup.txt' ) ) {
+	throw new RuntimeException( 'Historical operator setup entered public staging' );
+}
 echo "#97 active-brand audit: only the finite uninstall cleanup literals may mention the old local option names; no stale low-level brand remains PASS\n";
-echo "#62/#63 source audit: $php_count guarded PHP files; one public header; GPLv2 LICENSE; readme/operator guide staged; no internal docs; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS\n";
+echo "#62/#63 source audit: $php_count guarded PHP files; one public header; GPLv2 LICENSE; readme staged; no internal docs; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS\n";

@@ -4,8 +4,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) || ! defined( 'ABSPATH' ) ) {
 }
 
 // WordPress uninstall removes only WriteLeash-owned local WordPress state.
-// Trusted database objects, grants, triggers, routines and runtime accounts
-// are intentionally left to the explicit operator lifecycle (PROVISIONING.md).
+// Durable journal/job/Undo evidence is retained; no product prices are changed.
 //
 // #110 uninstall lifecycle order:
 //   1. durably fail-close the runner gate by deleting the exact lifecycle
@@ -36,6 +35,8 @@ if ( '' !== (string) $wpdb->last_error || 'active' === $writeleash_state ) {
 
 // Exact-name deletion only: no wildcard or LIKE-based option cleanup runs here.
 delete_option( 'writeleash_version' );
+// Historical exact-name local option cleanup only. These values are never
+// read or migrated by Free and cannot load or enable any historical runtime.
 delete_option( 'writeleash_certified_operation_state' );
 delete_option( 'writeleash_last_certified_outcome' );
 // Stale #87 writeleash budget option; not an authority since #78 but removed if present.

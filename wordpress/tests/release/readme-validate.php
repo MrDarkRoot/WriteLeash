@@ -110,7 +110,7 @@ if ( false !== stripos( $text, 'Baseline Disable' ) ) {
 }
 // The exact tested WordPress core fixtures must remain explicit so that a
 // major/minor "Tested up to" value is never read as blanket coverage.
-foreach ( array( '6.8.3', '7.1.2' ) as $tested_core ) {
+foreach ( array( '7.0.1', '7.1.2' ) as $tested_core ) {
 	if ( ! str_contains( $text, $tested_core ) ) {
 		$fail( 'readme must name the exact tested WordPress core fixture: ' . $tested_core );
 	}
