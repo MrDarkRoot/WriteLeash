@@ -14,6 +14,7 @@ for host in mysql mariadb; do
   wp --path="$site" core install --url="http://$host.example.test" --title=Current-Core \
     --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
   wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
+  wp --path="$site" plugin install /opt/plugin-zips/woocommerce.11.1.2.zip --activate
   wp --path="$site" plugin activate writeleash
   wp_version=$(wp --path="$site" core version)
   server_version=$(wp --path="$site" eval 'global $wpdb; echo $wpdb->get_var( "SELECT VERSION()" );')

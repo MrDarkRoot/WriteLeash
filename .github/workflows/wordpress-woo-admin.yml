@@ -1,0 +1,31 @@
+name: WordPress Woo Free Admin workflow
+on:
+  pull_request:
+    paths:
+      - 'wordpress/**'
+      - '.github/workflows/wordpress-woo-admin.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'wordpress/**'
+      - '.github/workflows/wordpress-woo-admin.yml'
+permissions:
+  contents: read
+jobs:
+  woo-free-admin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Actual Woo 11.1.2 Free Admin journey on MySQL and MariaDB
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash wordpress/tests/admin/run.sh 2>&1 | tee "$RUNNER_TEMP/woo-admin-111.txt"
+      - name: Preserve lab activity
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: woo-admin-111
+          path: ${{ runner.temp }}/woo-admin-111.txt
+          retention-days: 7

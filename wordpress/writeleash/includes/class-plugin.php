@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		register_deactivation_hook( WRITELEASH_PLUGIN_FILE, array( Lifecycle::class, 'deactivate' ) );
 		Redirection_Bulk_Disable_Rest::boot();
 		Admin_Page::boot();
+		Free_Admin::boot();
 		Job_Resume_Rest::boot();
 		Undo_Rest::boot();
 		// Action Scheduler 4.0.0 executes WriteLeash-owned wake-ups only.

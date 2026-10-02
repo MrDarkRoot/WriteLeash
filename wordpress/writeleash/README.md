@@ -53,7 +53,8 @@ distribution allowlist for the `writeleash/` technical package root is
 `wordpress/release/writeleash-distribution-files.txt`; the historical V0.1
 package metadata is [readme.txt](readme.txt), and the operator guide shipped with
 the distribution is [operator-setup.txt](operator-setup.txt). WriteLeash declares
-`Requires Plugins: redirection` and still enforces Redirection 5.5.2 exactly at
+`Requires Plugins: woocommerce` for the default Free product; the advanced Guard
+substrate still enforces Redirection 5.5.2 exactly at
 runtime. The full #63/#64 contract is in
 [RELEASE-MATRIX.md](RELEASE-MATRIX.md); release issues #77/#76 are deferred and
 must be rewritten for #106 after the #107–#112 product gates pass before they

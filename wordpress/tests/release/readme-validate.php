@@ -131,7 +131,7 @@ if ( false === strpos( (string) file_get_contents( $main ), "define( 'WRITELEASH
 // Public identity, dependency and license must agree with the plugin header.
 $main_source = (string) file_get_contents( $main );
 if ( ! preg_match( '/^\s*\*\s*Plugin Name:\s*WriteLeash\s*$/m', $main_source ) ||
-	! preg_match( '/^\s*\*\s*Requires Plugins:\s*redirection\s*$/m', $main_source ) ||
+	! preg_match( '/^\s*\*\s*Requires Plugins:\s*woocommerce\s*$/m', $main_source ) ||
 	! preg_match( '/^\s*\*\s*License:\s*GPL v2 or later\s*$/m', $main_source ) ) {
 	$fail( 'main plugin header does not match the readme identity/dependency/license' );
 }

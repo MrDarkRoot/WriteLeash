@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: WriteLeash
- * Description: Put a mutation budget on the certified Redirection bulk Disable path.
+ * Description: WooCommerce bulk regular-price changes with frozen previews, safety limits and Undo.
  * Version: 0.1.0
  * Requires at least: 6.8
  * Requires PHP: 7.4
- * Requires Plugins: redirection
+ * Requires Plugins: woocommerce
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: writeleash
@@ -107,5 +107,9 @@ require_once __DIR__ . '/includes/free/class-undo-repository.php';
 require_once __DIR__ . '/includes/free/class-undo-scheduler.php';
 require_once __DIR__ . '/includes/free/class-undo-worker.php';
 require_once __DIR__ . '/includes/free/class-undo-rest.php';
+
+// #111 complete Free Admin workflow over the #107 plan, #108 primitive,
+// #109 job engine and #110 history/Undo contracts. No scale certification.
+require_once __DIR__ . '/includes/free/class-free-admin.php';
 
 \WriteLeash\Plugin::boot();

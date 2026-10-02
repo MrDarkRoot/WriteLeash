@@ -29,6 +29,7 @@ includes/class-redirection-bulk-disable.php
 includes/class-unsupported-transaction-state.php
 includes/class-update-engine.php
 includes/free/class-change-plan.php
+includes/free/class-free-admin.php
 includes/free/class-job-repository.php
 includes/free/class-job-resume-rest.php
 includes/free/class-job-scheduler.php

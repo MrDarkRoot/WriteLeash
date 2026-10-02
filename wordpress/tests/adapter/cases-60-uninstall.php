@@ -62,7 +62,8 @@ foreach ( $owned_scheduler_groups as $owned_group ) {
 	cc87_assert( false !== strpos( $uninstall_source, "'" . $owned_group . "'" ), 'uninstall.php drift, missing owned AS group literal: ' . $owned_group );
 }
 
-// This fixture intentionally has no WooCommerce/Action Scheduler. The owned
+// This fixture has WooCommerce installed but inactive (it satisfies Core's
+// activation gate only), so no Action Scheduler API is loaded. The owned
 // Action Scheduler cancellation behavior (including the unrelated sentinel)
 // is proved in the Woo fixture at tests/undo/integration.php; here the
 // uninstall path must fail safely with no scheduler present.

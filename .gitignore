@@ -54,3 +54,6 @@ wordpress/tests/jobs/cache/
 
 # #110 Undo fixture artifact cache
 wordpress/tests/undo/cache/
+
+# #111 Free Admin fixture artifact cache
+wordpress/tests/admin/cache/

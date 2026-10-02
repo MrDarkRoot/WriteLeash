@@ -21,6 +21,15 @@ if [ ! -f "$zip" ] || [ "$(sha256sum "$zip" | cut -d' ' -f1)" != "$sha" ]; then
 fi
 echo "$sha  $zip" | sha256sum -c - >/dev/null
 
+file="woocommerce.9.9.7"
+sha="96facedd12e32b6e0b120dcaa4a62b9c6b1ae12159d32510ea416c8e9b44f4dd"
+zip="$cache/$file.zip"
+if [ ! -f "$zip" ] || [ "$(sha256sum "$zip" | cut -d' ' -f1)" != "$sha" ]; then
+  curl -fsSL -o "$zip.tmp" "https://downloads.wordpress.org/plugin/$file.zip"
+  mv "$zip.tmp" "$zip"
+fi
+echo "$sha  $zip" | sha256sum -c - >/dev/null
+
 project=writeleash_wp_redirection_adapter
 compose_file="$here/docker-compose.yml"
 compose=(docker compose -p "$project" -f "$compose_file")

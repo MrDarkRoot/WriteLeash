@@ -655,29 +655,79 @@ final class Undo_Repository {
 	// ------------------------------------------------------------------
 	// History: backend view models for #111. No HTML. Reads are scoped by
 	// the caller through `authorized()`; possession of an ID grants nothing.
+	//
+	// Reads never install schema: no CREATE/ALTER/DROP, no option writes.
+	// Before any Undo schema exists the Undo portion of every response is
+	// empty/not-yet-initialized while apply truth stays fully visible.
+	// Schema installation happens only on explicit state-changing paths
+	// (`initiate()`, job import/approval), never on GET/render reads.
 	// ------------------------------------------------------------------
 
+	/** True only when the Undo tables are installed and verified; never installs. */
+	private static function undo_ready(): bool {
+		try {
+			return Undo_Schema::ready( self::db() );
+		} catch ( \Throwable $error ) {
+			return false;
+		}
+	}
+
+	/** True only when the job tables are installed and verified; never installs. */
+	private static function jobs_ready(): bool {
+		try {
+			return Job_Schema::ready( self::db() );
+		} catch ( \Throwable $error ) {
+			return false;
+		}
+	}
+
 	/**
-	 * Recent jobs page: apply truth plus Undo progress, eligibility and
-	 * expiry. Deterministic newest-first ordering, bounded page size.
+	 * Recent jobs page scoped to the viewer BEFORE pagination: the actor
+	 * predicate is part of the SQL result set, so LIMIT/OFFSET and the
+	 * total/next_offset describe only caller-visible jobs. Administrators
+	 * (manage_options override) see the global set; anyone else sees only
+	 * jobs they created or approved. Unknown viewers see an empty page.
+	 * Deterministic newest-first ordering, bounded page size.
 	 */
-	public static function history_jobs( int $offset = 0, int $limit = 20 ): array {
+	public static function history_jobs( int $offset = 0, int $limit = 20, int $viewer_id = 0 ): array {
 		$db = self::db();
 		if ( $offset < 0 || $limit < 1 || $limit > self::PAGE_LIMIT ) { throw new Undo_Error( 'INVALID_PAGE' ); }
+		$empty = array( 'offset' => $offset, 'limit' => $limit, 'total' => 0, 'jobs' => array(), 'next_offset' => null );
+		if ( $viewer_id < 1 || ! self::jobs_ready() ) {
+			return $empty;
+		}
 		$jobs = Job_Schema::jobs_table( $db );
-		$rows = $db->get_results( $db->prepare( 'SELECT * FROM %i ORDER BY id DESC LIMIT %d OFFSET %d', $jobs, $limit, $offset ), ARRAY_A );
+		if ( user_can( $viewer_id, 'manage_options' ) ) {
+			$where = '1=1';
+			$scope = array();
+		} else {
+			$where = '(creator_id=%d OR approver_id=%d)';
+			$scope = array( $viewer_id, $viewer_id );
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Actor-scoped history read over plugin-owned tables; identifiers and values are prepared.
+		$total = (int) $db->get_var( $db->prepare( "SELECT COUNT(*) FROM %i WHERE $where", $jobs, ...$scope ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Actor-scoped history read over plugin-owned tables; identifiers and values are prepared.
+		$rows = $db->get_results( $db->prepare( "SELECT * FROM %i WHERE $where ORDER BY id DESC LIMIT %d OFFSET %d", $jobs, ...array_merge( $scope, array( $limit, $offset ) ) ), ARRAY_A );
 		$jobs_page = array();
 		foreach ( $rows as $job ) {
 			$jobs_page[] = self::history_job( (int) $job['id'] );
 		}
-		return array( 'offset' => $offset, 'limit' => $limit, 'jobs' => $jobs_page );
+		$returned = count( $jobs_page );
+		return array(
+			'offset' => $offset,
+			'limit' => $limit,
+			'total' => $total,
+			'jobs' => $jobs_page,
+			'next_offset' => $offset + $returned < $total ? $offset + $returned : null,
+		);
 	}
 
 	/** One job summary with apply counts, Undo counts, eligibility and expiry. */
 	public static function history_job( int $job_id ): array {
+		if ( ! self::jobs_ready() ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }
 		$job = Job_Repository::read( $job_id );
 		if ( ! $job ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }
-		$operation = self::read_operation_by_job( $job_id );
+		$operation = self::undo_ready() ? self::read_operation_by_job( $job_id ) : null;
 		$undo_counts = $operation ? self::counts( (int) $operation['id'] ) : array( 'eligible' => 0, 'pending' => 0, 'applying' => 0, 'undone' => 0, 'conflict' => 0, 'failed' => 0, 'needs_review' => 0 );
 		return array(
 			'job_id' => (int) $job['id'],
@@ -730,14 +780,21 @@ final class Undo_Repository {
 	 * database query instead, and `total`/`next_offset` describe the filtered
 	 * logical set. Deterministic frozen `sequence ASC, product_id ASC` order,
 	 * bounded `limit <= 100`.
+	 *
+	 * Before any Undo schema exists the Undo columns read as empty without
+	 * querying a missing table; an `undo_state` filter then matches nothing.
 	 */
 	public static function history_items( int $job_id, ?string $apply_state = null, ?string $undo_state = null, int $offset = 0, int $limit = 50 ): array {
 		$db = self::db();
 		if ( $offset < 0 || $limit < 1 || $limit > self::PAGE_LIMIT ) { throw new Undo_Error( 'INVALID_PAGE' ); }
 		if ( null !== $apply_state && ! in_array( $apply_state, self::apply_states(), true ) ) { throw new Undo_Error( 'INVALID_ITEM_STATE' ); }
 		if ( null !== $undo_state && ! in_array( $undo_state, self::item_states(), true ) ) { throw new Undo_Error( 'INVALID_UNDO_ITEM_STATE' ); }
+		if ( ! self::jobs_ready() ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }
 		$job = Job_Repository::read( $job_id );
 		if ( ! $job ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }
+		if ( ! self::undo_ready() ) {
+			return self::history_items_apply_only( $db, $job_id, $apply_state, $undo_state, $offset, $limit );
+		}
 		$job_items = Job_Schema::items_table( $db );
 		$undo_items = Undo_Schema::items_table( $db );
 		$where = 'i.job_id=%d';
@@ -764,6 +821,53 @@ final class Undo_Repository {
 				'undo_reason_message' => null !== $row['undo_reason'] ? Undo_Reason::message( (string) $row['undo_reason'] ) : null,
 				'restored_price' => Undo_Item_State::UNDONE === $row['undo_state'] ? $row['expected_price'] : null,
 				'undone_at' => $row['undone_at'],
+			);
+		}
+		$returned = count( $items );
+		return array(
+			'job_id' => $job_id,
+			'offset' => $offset,
+			'limit' => $limit,
+			'total' => $total,
+			'items' => $items,
+			'next_offset' => $offset + $returned < $total ? $offset + $returned : null,
+		);
+	}
+
+	/**
+	 * Apply-only item page used while the Undo tables do not exist yet.
+	 * Reads the job items table only; every Undo field is empty and an
+	 * `undo_state` filter matches nothing, which is exactly the durable
+	 * truth (no Undo row can exist without its tables).
+	 */
+	private static function history_items_apply_only( \wpdb $db, int $job_id, ?string $apply_state, ?string $undo_state, int $offset, int $limit ): array {
+		$empty = array( 'job_id' => $job_id, 'offset' => $offset, 'limit' => $limit, 'total' => 0, 'items' => array(), 'next_offset' => null );
+		if ( null !== $undo_state ) {
+			return $empty;
+		}
+		$job_items = Job_Schema::items_table( $db );
+		$where = 'job_id=%d';
+		$args = array( $job_id );
+		if ( null !== $apply_state ) { $where .= ' AND state=%s'; $args[] = $apply_state; }
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only history page over the plugin-owned job items table; identifiers and values are prepared.
+		$total = (int) $db->get_var( $db->prepare( "SELECT COUNT(*) FROM %i WHERE $where", $job_items, ...$args ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only history page over the plugin-owned job items table; identifiers and values are prepared.
+		$rows = $db->get_results( $db->prepare( "SELECT product_id,sequence,expected_price,planned_price,state AS apply_state,reason AS apply_reason,applied_at FROM %i WHERE $where ORDER BY sequence ASC, product_id ASC LIMIT %d OFFSET %d", $job_items, ...array_merge( $args, array( $limit, $offset ) ) ), ARRAY_A );
+		$items = array();
+		foreach ( $rows as $row ) {
+			$items[] = array(
+				'product_id' => (int) $row['product_id'],
+				'sequence' => (int) $row['sequence'],
+				'expected_price' => $row['expected_price'],
+				'planned_price' => $row['planned_price'],
+				'apply_state' => $row['apply_state'],
+				'apply_reason' => $row['apply_reason'],
+				'applied_at' => $row['applied_at'],
+				'undo_state' => null,
+				'undo_reason' => null,
+				'undo_reason_message' => null,
+				'restored_price' => null,
+				'undone_at' => null,
 			);
 		}
 		$returned = count( $items );

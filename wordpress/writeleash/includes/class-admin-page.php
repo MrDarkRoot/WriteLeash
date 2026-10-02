@@ -18,7 +18,7 @@ final class Admin_Page {
 	}
 
 	public static function menu(): void {
-		add_management_page( 'WriteLeash', 'WriteLeash', self::CAPABILITY, self::PAGE, array( __CLASS__, 'render' ) );
+		add_management_page( 'WriteLeash Advanced', 'WriteLeash Advanced', self::CAPABILITY, self::PAGE, array( __CLASS__, 'render' ) );
 	}
 
 	/** The same authenticated, POST-only, nonce-bound controller used by the hook. */
@@ -119,7 +119,8 @@ final class Admin_Page {
 		}
 		$s = Product_Status::snapshot();
 		$notice = get_transient( self::notice_key() );
-		echo '<div class="wrap"><h1>WriteLeash</h1>';
+		echo '<div class="wrap"><h1>WriteLeash Advanced</h1>';
+		echo '<p>' . esc_html( 'Optional advanced/research Guard path for the certified Redirection bulk Disable operation. This surface is not required for the WooCommerce bulk-price workflow at Products → Bulk Prices.' ) . '</p>';
 		if ( is_array( $notice ) && isset( $notice['status'], $notice['reason'] ) && is_string( $notice['status'] ) && is_string( $notice['reason'] ) ) {
 			$allowed = array( 'budget_saved', 'invalid_budget', 'operation_enabled', 'operation_disabled', 'invalid_nonce', 'post_required', 'invalid_action', 'action_failed', 'trusted_reset_required', 'runtime_unavailable', 'doctor_not_ready', 'target_privileges_mismatch', 'physical_ceiling_mismatch', 'redirection_version_unsupported', 'logical_budget_missing', 'config_invalid', 'demo_state_unavailable', 'demo_table_not_owned', 'safe_run_not_confirmed', 'logical_denial_not_confirmed', 'guard_paths_exercised' );
 			$reason = in_array( $notice['reason'], $allowed, true ) ? $notice['reason'] : 'action_failed';
