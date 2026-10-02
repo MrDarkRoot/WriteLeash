@@ -23,7 +23,7 @@ final class Woo_Undo_Mutator {
 	}
 
 	private static function schema( \wpdb $db ): void {
-		if ( ! defined( 'WC_VERSION' ) || ! function_exists( 'wc_get_product' ) || ! did_action( 'woocommerce_init' ) || is_multisite() || 'wpdb' !== get_class( $db ) || '11.1.2' !== WC_VERSION ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+		if ( ! Free_Support_Contract::woocommerce_ok() || is_multisite() || 'wpdb' !== get_class( $db ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		Price_Apply_Journal::assert_schema( $db );
 		Undo_Schema::assert_schema( $db );
 		Job_Schema::assert_schema( $db );

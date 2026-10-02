@@ -6,10 +6,11 @@ defined( 'ABSPATH' ) || exit;
 /** All additional rollback/recovery eviction lives here; no global cache flush. */
 final class Price_Cache_Verifier {
 	public static function invalidate( int $id ): void {
+		if ( ! Free_Support_Contract::woocommerce_ok() ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		if ( ! empty( $GLOBALS['_wp_suspend_cache_invalidation'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 		clean_post_cache( $id ); // posts, post_meta, term cache and posts last_changed.
 		wp_cache_delete( $id, 'post_meta' );
-		// Exact Woo 11.1.2 WC_Data_Store_WP::update_lookup_table key/group.
+		// Key/group certified for Free_Support_Contract::WOOCOMMERCE_VERSION.
 		wp_cache_delete( 'lookup_table', 'object_' . $id );
 		wc_delete_product_transients( $id );
 		\WC_Cache_Helper::invalidate_cache_group( 'product_' . $id );
