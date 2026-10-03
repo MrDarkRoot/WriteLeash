@@ -70,6 +70,7 @@ if ( $total > 8 * 1024 * 1024 ) { $fail( 'unexpected large total asset set' ); }
     $allowed = array_keys( $canonical );
     $allowed[] = 'icon.svg';
     foreach ( glob( $root . '/wordpress/assets/*' ) as $file ) {
+        if ( is_dir( $file ) && in_array( basename( $file ), array( 'price-history', 'price-campaigns' ), true ) ) { continue; }
         if ( ! is_file( $file ) || ! in_array( basename( $file ), $allowed, true ) ) { $fail( 'unexpected canonical asset: ' . basename( $file ) ); }
     }
     foreach ( $canonical as $name => $dimensions ) {

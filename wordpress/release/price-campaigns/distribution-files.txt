@@ -1,0 +1,6 @@
+# Finite runtime closure; relative to this target plugin root.
+LICENSE
+includes/class-plugin.php
+readme.txt
+uninstall.php
+writeleash-price-campaigns.php

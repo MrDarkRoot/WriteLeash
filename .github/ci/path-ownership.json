@@ -12,7 +12,9 @@
     "jobs": "wordpress-woo-jobs.yml",
     "undo": "wordpress-woo-undo.yml",
     "admin": "wordpress-woo-admin.yml",
-    "acceptance": "wordpress-woo-acceptance.yml"
+    "acceptance": "wordpress-woo-acceptance.yml",
+    "price-history": "wordpress-price-history.yml",
+    "price-campaigns": "wordpress-price-campaigns.yml"
   },
   "listing_header_fields": ["Plugin Name", "Description", "Tested up to"],
   "compatibility_header_fields": ["Requires at least", "Requires PHP"],
@@ -55,9 +57,19 @@
       "prefix": "wordpress/writeleash/includes/class-",
       "files": ["admin-page.php", "budget-denied.php", "certified-operation.php", "certified-operation-status.php", "compatibility-doctor.php", "compatibility-grants.php", "disposable-demo.php", "disposable-demo-setup.php", "guard.php", "guard-error.php", "guard-monitor.php", "guard-sql.php", "guard-transaction.php", "last-outcome.php", "operation-config.php", "product-cli.php", "product-status.php", "provisioning-plan.php", "redirection-bulk-disable.php", "redirection-bulk-disable-rest.php", "unsupported-transaction-state.php", "update-engine.php"],
       "gates": ["engine", "foundation", "research", "adapter", "historical"]
-    }
+    },
+    {"prefix": "wordpress/writeleash-price-history/", "files": ["writeleash-price-history.php", "uninstall.php", "includes/class-plugin.php"], "gates": ["price-history"]},
+    {"prefix": "wordpress/writeleash-price-campaigns/", "files": ["writeleash-price-campaigns.php", "uninstall.php", "includes/class-plugin.php"], "gates": ["price-campaigns"]}
   ],
   "rules": [
+    {"paths": ["wordpress/tests/portfolio/*.md"], "gates": []},
+    {"paths": ["wordpress/release/build-wordpress-org.py", "wordpress/release/plugin-targets.py", "wordpress/release/test-artifact.py", "wordpress/release/plugin-targets.json", "wordpress/release/writeleash-distribution-files.txt", ".github/ci/*.py", ".github/ci/path-ownership.json", ".github/workflows/pr-fast.yml", ".github/workflows/release-full.yml", "wordpress/tests/portfolio/**", ".github/ci/pr-fast.sh", ".github/ci/workflow-lint.sh"], "gates": ["price-history", "price-campaigns", "historical"], "reason": "Shared artifact/owner logic fans out to all plugin integration owners; flagship historical release owner retained."},
+    {"paths": ["wordpress/writeleash-price-campaigns/readme.txt", "wordpress/writeleash-price-campaigns/LICENSE"], "gates": []},
+    {"paths": ["wordpress/release/price-campaigns/distribution-files.txt", "wordpress/release/price-campaigns/assets-files.txt"], "gates": ["price-campaigns"], "reason": "Distribution/asset manifests affect exact target artifacts."},
+    {"paths": ["wordpress/tests/price-campaigns/**"], "gates": ["price-campaigns"]},
+    {"paths": ["wordpress/writeleash-price-history/readme.txt", "wordpress/writeleash-price-history/LICENSE"], "gates": []},
+    {"paths": ["wordpress/release/price-history/distribution-files.txt", "wordpress/release/price-history/assets-files.txt"], "gates": ["price-history"], "reason": "Distribution/asset manifests affect exact target artifacts."},
+    {"paths": ["wordpress/tests/price-history/**"], "gates": ["price-history"]},
     {"paths": ["experiments/mysql_tx_budget/**"], "gates": ["feasibility", "engine", "historical"]},
     {"paths": ["experiments/native_tx_state/**", "sql/**", "demo/**", "demo.sh", "writeleash", "tests/**", "docker-compose.yml", ".github/ci/assert-security-log.sh"], "gates": ["native"]},
     {"paths": ["wordpress/tests/free/**"], "gates": ["plan"]},

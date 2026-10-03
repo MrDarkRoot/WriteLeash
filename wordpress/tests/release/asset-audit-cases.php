@@ -13,7 +13,7 @@ $remove = static function ( string $dir ) use ( &$remove ): void {
 $prepare = static function () use ( $repo, $fixture, $remove ): void {
     $remove( $fixture );
     foreach ( array( 'wordpress/assets', 'wordpress/release/assets-122', 'wordpress/writeleash' ) as $dir ) { mkdir( $fixture . '/' . $dir, 0700, true ); }
-    $files = array_merge( glob( $repo . '/wordpress/assets/*' ), array( $repo . '/wordpress/release/assets-122/proof.json', $repo . '/wordpress/release/writeleash-distribution-files.txt', $repo . '/wordpress/writeleash/readme.txt' ) );
+    $files = array_merge( array_values( array_filter( glob( $repo . '/wordpress/assets/*' ), 'is_file' ) ), array( $repo . '/wordpress/release/assets-122/proof.json', $repo . '/wordpress/release/writeleash-distribution-files.txt', $repo . '/wordpress/writeleash/readme.txt' ) );
     foreach ( $files as $file ) { copy( $file, $fixture . substr( $file, strlen( $repo ) ) ); }
 };
 $run = static function () use ( $repo, $fixture ): int {

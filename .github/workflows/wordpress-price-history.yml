@@ -1,0 +1,27 @@
+name: WordPress price-history isolation
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  isolation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Target artifact negatives and three-plugin Woo lifecycle fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash wordpress/tests/price-history/run.sh 2>&1 | tee "$RUNNER_TEMP/price-history-isolation.txt"
+      - name: Preserve exact-SHA target evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: price-history-isolation-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/price-history-isolation.txt
+          retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}

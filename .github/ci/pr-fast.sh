@@ -5,6 +5,15 @@ repo="$(git rev-parse --show-toplevel)"
 cd "$repo"
 python3 .github/ci/ownership.py --audit
 python3 .github/ci/dependency-audit.py
+targets="${PR_FAST_TARGETS-writeleash,price-history,price-campaigns}"
+python3 - "$targets" <<'PYVALIDATE'
+import sys
+selected = sys.argv[1].split(',') if sys.argv[1] else []
+assert len(selected) == len(set(selected)) and set(selected) <= {'writeleash', 'price-history', 'price-campaigns'}, 'Unknown/ambiguous static target'
+PYVALIDATE
+printf '#144 static owners: %s\n' "${targets:-none}"
+selected=",$targets,"
+if [[ "$selected" == *,writeleash,* ]]; then
 python3 wordpress/release/test-artifact.py
 git ls-files -z 'wordpress/assets/*' 'wordpress/icon/*' | php .github/ci/asset-audit.php
 php wordpress/tests/release/asset-audit-cases.php
@@ -28,6 +37,12 @@ while IFS= read -r entry; do
   cp "$source/$entry" "$stage/$entry"
 done < "$manifest"
 php "$tests/source-audit.php" "$stage"
+fi
+for target in price-history price-campaigns; do
+  if [[ "$selected" == *,"$target",* ]]; then
+    python3 wordpress/tests/portfolio/test-isolation.py --target "$target"
+  fi
+done
 count=0
 while IFS= read -r -d '' file; do
   php -l "$file" >/dev/null

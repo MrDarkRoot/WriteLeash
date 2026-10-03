@@ -26,6 +26,8 @@ jobs:
       undo: ${{ steps.owners.outputs.undo }}
       admin: ${{ steps.owners.outputs.admin }}
       acceptance: ${{ steps.owners.outputs.acceptance }}
+      price-history: ${{ steps.owners.outputs.price-history }}
+      price-campaigns: ${{ steps.owners.outputs.price-campaigns }}
       acceptance_budget: ${{ steps.owners.outputs.acceptance_budget }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -33,16 +35,18 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
           fetch-depth: 0
-      - name: Public package and CI ownership gate
-        run: bash .github/ci/pr-fast.sh
-      - name: Immutable workflow syntax validator
-        run: bash .github/ci/workflow-lint.sh
       - id: owners
         name: Classify exact base-to-head paths (including deletions)
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: python3 .github/ci/ownership.py --base "$BASE_SHA" --head "$HEAD_SHA"
+      - name: Public package and CI ownership gate
+        env:
+          PR_FAST_TARGETS: ${{ steps.owners.outputs.static_targets }}
+        run: bash .github/ci/pr-fast.sh
+      - name: Immutable workflow syntax validator
+        run: bash .github/ci/workflow-lint.sh
   feasibility:
     needs: fast
     if: needs.fast.outputs.feasibility == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
@@ -95,9 +99,17 @@ jobs:
     needs: fast
     if: needs.fast.outputs.acceptance == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/wordpress-woo-acceptance.yml
+  price-history:
+    needs: fast
+    if: needs.fast.outputs.price-history == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/wordpress-price-history.yml
+  price-campaigns:
+    needs: fast
+    if: needs.fast.outputs.price-campaigns == 'true' && (needs.fast.outputs.acceptance != 'true' || needs.fast.outputs.acceptance_budget == 'approved') && github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/wordpress-price-campaigns.yml
   coverage:
     name: CI_COVERAGE
-    needs: [fast, feasibility, native, engine, foundation, research, adapter, historical, plan, journal, jobs, undo, admin, acceptance]
+    needs: [fast, feasibility, native, engine, foundation, research, adapter, historical, plan, journal, jobs, undo, admin, acceptance, price-history, price-campaigns]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 2
