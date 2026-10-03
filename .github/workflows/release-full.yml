@@ -7,6 +7,12 @@ on:
         description: Full 40-character SHA; must equal the selected ref at dispatch
         required: true
         type: string
+      target:
+        description: Exact plugin release evidence owner (default preserves flagship matrix)
+        required: true
+        default: writeleash
+        type: choice
+        options: [writeleash, price-history, price-campaigns]
       acknowledge_research_toolchain:
         description: Explicitly accept documented unpinned Alpine build-base packages in PG research only
         required: true
@@ -38,11 +44,13 @@ jobs:
       - run: bash .github/ci/workflow-lint.sh
       - name: Refuse unreviewed floating release dependencies
         env:
+          PLUGIN_TARGET: ${{ inputs.target }}
           ACKNOWLEDGE_RESEARCH_TOOLCHAIN: ${{ inputs.acknowledge_research_toolchain }}
         shell: bash
         run: |
           set -euo pipefail
-          args=(--release)
+          args=()
+          if [[ "$PLUGIN_TARGET" == writeleash ]]; then args+=(--release); fi
           if [[ "$ACKNOWLEDGE_RESEARCH_TOOLCHAIN" == true ]]; then
             args+=(--acknowledge-research-toolchain)
           fi
@@ -50,39 +58,60 @@ jobs:
   feasibility:
     needs: preflight
     uses: ./.github/workflows/mysql-mariadb-feasibility.yml
+    if: inputs.target == 'writeleash'
   native:
     needs: preflight
     uses: ./.github/workflows/native-pg16-security.yml
+    if: inputs.target == 'writeleash'
   engine:
     needs: preflight
     uses: ./.github/workflows/wordpress-engine.yml
+    if: inputs.target == 'writeleash'
   foundation:
     needs: preflight
     uses: ./.github/workflows/wordpress-foundation.yml
+    if: inputs.target == 'writeleash'
   research:
     needs: preflight
     uses: ./.github/workflows/wordpress-plugin-research.yml
+    if: inputs.target == 'writeleash'
   adapter:
     needs: preflight
     uses: ./.github/workflows/wordpress-redirection-adapter.yml
+    if: inputs.target == 'writeleash'
   historical:
     needs: preflight
     uses: ./.github/workflows/wordpress-release-matrix.yml
+    if: inputs.target == 'writeleash'
   plan:
     needs: preflight
     uses: ./.github/workflows/wordpress-woo-plan.yml
+    if: inputs.target == 'writeleash'
   journal:
     needs: preflight
     uses: ./.github/workflows/wordpress-woo-journal.yml
+    if: inputs.target == 'writeleash'
   jobs:
     needs: preflight
     uses: ./.github/workflows/wordpress-woo-jobs.yml
+    if: inputs.target == 'writeleash'
   undo:
     needs: preflight
     uses: ./.github/workflows/wordpress-woo-undo.yml
+    if: inputs.target == 'writeleash'
   admin:
     needs: preflight
     uses: ./.github/workflows/wordpress-woo-admin.yml
+    if: inputs.target == 'writeleash'
   acceptance:
     needs: preflight
     uses: ./.github/workflows/wordpress-woo-acceptance.yml
+    if: inputs.target == 'writeleash'
+  price-history:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-price-history.yml
+    if: inputs.target == 'price-history'
+  price-campaigns:
+    needs: preflight
+    uses: ./.github/workflows/wordpress-price-campaigns.yml
+    if: inputs.target == 'price-campaigns'

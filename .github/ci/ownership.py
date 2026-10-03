@@ -33,7 +33,7 @@ def classify(path):
     owners = production()
     if path in owners:
         return owners[path]
-    if path.startswith('wordpress/writeleash/') and path.lower().endswith('.php'):
+    if path.lower().endswith('.php') and not path.startswith(('wordpress/tests/', 'wordpress/release/', '.github/ci/', 'tests/')):
         raise AssertionError('Unmapped production PHP: ' + path)
     if path.lower().endswith('.md'):
         return set()
@@ -95,10 +95,29 @@ def requirements(paths, changes=None):
     integrations = gates - {'acceptance'}
     if direct_acceptance:
         integrations.add('acceptance')
-    return {'PR_FAST': True, 'CODE_INTEGRATION': sorted(integrations),
+    return {'PR_FAST': True, 'STATIC_OWNERS': static_owners(paths), 'CODE_INTEGRATION': sorted(integrations),
             'RELEASE_FULL_OWNERS': sorted(gates),
             'DEFERRED_RELEASE_OWNERS': ['acceptance'] if 'acceptance' in gates and not direct_acceptance else []}
 
+
+
+def static_owners(paths):
+    targets = set()
+    for path in paths:
+        satellite = next((key for key in ('price-history', 'price-campaigns')
+                          if path.startswith(('wordpress/writeleash-' + key + '/',
+                                              'wordpress/tests/' + key + '/',
+                                              'wordpress/release/' + key + '/',
+                                              'wordpress/assets/' + key + '/')) or
+                          path == '.github/workflows/wordpress-' + key + '.yml'), None)
+        if satellite:
+            targets.add(satellite)
+        elif path.startswith(('wordpress/release/', '.github/ci/', '.github/workflows/pr-fast.yml',
+                              '.github/workflows/release-full.yml', 'wordpress/tests/portfolio/')) and not path.endswith('.md'):
+            targets.update(('writeleash', 'price-history', 'price-campaigns'))
+        elif path.startswith(('wordpress/writeleash/', 'wordpress/tests/', 'wordpress/assets/', 'wordpress/icon/')):
+            targets.add('writeleash')
+    return sorted(targets)
 
 def acceptance_budget_approved(event):
     pr = event.get('pull_request', {})
@@ -153,7 +172,7 @@ def release_history_regression(text):
 
 def audit():
     owners = production()
-    actual = {p.relative_to(ROOT).as_posix() for p in (ROOT / 'wordpress/writeleash').rglob('*') if p.is_file() and p.suffix.lower() == '.php'}
+    actual = {p.relative_to(ROOT).as_posix() for p in ROOT.rglob('*') if p.is_file() and p.suffix.lower() == '.php' and not p.relative_to(ROOT).as_posix().startswith(('wordpress/tests/', 'wordpress/release/', '.github/ci/', 'tests/', '.git/'))}
     assert set(owners) == actual, 'Production inventory differs: ' + repr(set(owners) ^ actual)
     for path, gates in owners.items():
         assert gates and gates <= MAP['workflows'].keys(), 'Invalid production gates: ' + path
@@ -174,10 +193,15 @@ def audit():
         assert condition in pr, 'Missing owner/budget/fork condition: ' + gate
         assert f"{gate}: ${{{{ steps.owners.outputs.{gate} }}}}" in pr, 'Missing classifier output: ' + gate
         assert f"{gate}:\n    needs: preflight\n    uses: ./.github/workflows/{workflow}" in full, 'Missing release preflight dependency: ' + gate
-    assert 'needs: [fast, feasibility, native, engine, foundation, research, adapter, historical, plan, journal, jobs, undo, admin, acceptance]' in pr, 'Coverage must consume every integration including acceptance'
+    assert 'needs: [fast, ' + ', '.join(MAP['workflows']) + ']' in pr, 'Coverage must consume every integration including satellites'
     assert "acceptance_budget: ${{ steps.owners.outputs.acceptance_budget }}" in pr
     assert 'labeled, unlabeled' in pr, 'SHA-bound budget approval must re-evaluate'
     assert 'cancel-in-progress: true' in pr and 'concurrency:' not in full
+    assert 'options: [writeleash, price-history, price-campaigns]' in full
+    for gate in MAP['workflows']:
+        selected_target = gate if gate in ('price-history', 'price-campaigns') else 'writeleash'
+        block = re.split(r'\n  (?=\S)', full.split('  ' + gate + ':\n', 1)[1], maxsplit=1)[0]
+        assert "if: inputs.target == '" + selected_target + "'" in block, 'Cross-target release owner: ' + gate
     assert 'name: CI_COVERAGE' in pr and 'if: always()' in pr, 'Stable owning-check summary missing'
     assert "test \"$REQUESTED_SHA\" = \"$GITHUB_SHA\"" in full, 'Exact-SHA release guard missing'
     for p in (ROOT / '.github/workflows').glob('*.yml'):
@@ -225,7 +249,7 @@ def audit():
         assert requirements([path])['CODE_INTEGRATION'] == ['acceptance'], 'Direct acceptance owner was dropped'
     runtime = requirements(['wordpress/writeleash/includes/free/class-free-admin.php'])
     assert runtime['CODE_INTEGRATION'] == ['admin'] and runtime['DEFERRED_RELEASE_OWNERS'] == ['acceptance'], 'Runtime-only #112 deferral not explicit'
-    for gate in ['plan', 'jobs', 'historical', 'native', 'acceptance']:
+    for gate in ['plan', 'jobs', 'historical', 'native', 'acceptance', 'price-history', 'price-campaigns']:
         for selected, result, expected in [(False, 'skipped', 0), (True, 'success', 0), (True, 'failure', 1), (True, 'skipped', 1), (True, 'cancelled', 1), (True, None, 1)]:
             outputs = {'acceptance_budget': 'approved', **{owner: 'false' for owner in MAP['workflows']}}
             outputs[gate] = str(selected).lower()
@@ -257,7 +281,7 @@ def audit():
     event['pull_request']['head']['sha'] = 'a' * 40
     event['pull_request']['head']['repo']['full_name'] = 'fork/repo'
     assert not acceptance_budget_approved(event), 'Fork code authorized expensive work'
-    print(f'#133 ownership/policy audit: {len(owners)} production PHP files; 13 release suites; listing-only=PR_FAST; new PHP rejected PASS')
+    print(f'#133/#144 ownership/policy audit: {len(owners)} production PHP files; {len(MAP["workflows"])} release owners; listing-only=PR_FAST; new PHP rejected PASS')
 
 
 def main():
@@ -287,6 +311,7 @@ def main():
         with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
             for gate in MAP['workflows']:
                 output.write(f'{gate}={str(gate in result["CODE_INTEGRATION"]).lower()}\n')
+            output.write('static_targets=' + ','.join(result['STATIC_OWNERS']) + '\n')
             event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text()) if os.environ.get('GITHUB_EVENT_PATH') else {}
             output.write('acceptance_budget=' + ('approved' if acceptance_budget_approved(event) else 'pending') + '\n')
 

@@ -77,3 +77,6 @@ wordpress/tests/admin/cache/
 
 # #112 acceptance fixture download cache
 wordpress/tests/acceptance/cache/
+
+# #144 pinned co-installation fixture downloads
+wordpress/tests/portfolio/cache/
