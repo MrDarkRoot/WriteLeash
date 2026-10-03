@@ -1,0 +1,3957 @@
+{
+  "PHASE": "B2 \u2014 FULL #124 REAUDIT",
+  "BASE_MAIN": "db32e07f3e0fc8bb1888d3dd8f34959247893d17",
+  "SOURCE_GIT_SHA": "5ccc75c1d895a2fb379866ce4cf0e9901d1c276c",
+  "VERSION": "0.1.0",
+  "ZIP_SHA256": "7932ed450fa4fdd43902cfd74fb264f3db14271a63030726066c17e677d4223e",
+  "ZIP_SIZE": 396314,
+  "PUBLIC_MANIFEST_SHA256": "d30e8952a0364ac4a7e254d0b44a2ea98eea2df9fcc9f5ff6579ab5427cda891",
+  "SVN_TRUNK_TREE_HASH": "4d3fa1f34b2435a364bc62f92db75a7c417bedb23086b02eace2cf974b6cb5c4",
+  "SVN_TAG_TREE_HASH": "4d3fa1f34b2435a364bc62f92db75a7c417bedb23086b02eace2cf974b6cb5c4",
+  "RUNTIME_FILE_COUNT": 37,
+  "PHP_FILE_COUNT": 35,
+  "PLUGIN_HEADER_COUNT": 1,
+  "RUNTIME_FILES": [
+    {
+      "path": "LICENSE",
+      "size": 17984,
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6"
+    },
+    {
+      "path": "includes/class-environment.php",
+      "size": 736,
+      "sha256": "91d0cf91fa588e098b17cac294f8a254d1dde68ff55119c212536c90f29ea9c4"
+    },
+    {
+      "path": "includes/class-lifecycle.php",
+      "size": 2798,
+      "sha256": "d76ed59797640faf810354707ce574815be8152af910c1026ea2cb93dff5338d"
+    },
+    {
+      "path": "includes/class-plugin.php",
+      "size": 977,
+      "sha256": "db8934a4ff5d52e39a31fa644939094da8b4f2488d6f19f8c4ff689cc2671720"
+    },
+    {
+      "path": "includes/free/class-change-plan.php",
+      "size": 17518,
+      "sha256": "ca9b073a50baa887a01760daa1e80056a206b305e8f88258d376d011af01e94c"
+    },
+    {
+      "path": "includes/free/class-free-admin.php",
+      "size": 60052,
+      "sha256": "cc03221dc7bd2202b23a05ac29bf0253ac58b2bab9105f8e65c567034c2cf95a"
+    },
+    {
+      "path": "includes/free/class-free-support-contract.php",
+      "size": 1554,
+      "sha256": "7f7defab73c484f9dca775c73573ea2d0500b68da4c7a71f57d3e9d6e0afe010"
+    },
+    {
+      "path": "includes/free/class-job-repository.php",
+      "size": 33282,
+      "sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4"
+    },
+    {
+      "path": "includes/free/class-job-resume-rest.php",
+      "size": 2973,
+      "sha256": "f613cbe5970307c1e4834e9325c5442c21f4c257ba51518be6b7c29131cf2b97"
+    },
+    {
+      "path": "includes/free/class-job-scheduler.php",
+      "size": 1411,
+      "sha256": "3d5583ab17c342593f7bf32c5b9f6aee63d24be5ea9df6a2d17be9c26dd751d4"
+    },
+    {
+      "path": "includes/free/class-job-schema.php",
+      "size": 9320,
+      "sha256": "1a88c52cee1a60645135d4a5e0d365e510b308f7a8465102f7a046c888df5592"
+    },
+    {
+      "path": "includes/free/class-job-state.php",
+      "size": 8675,
+      "sha256": "f44e85697102153279773297cd6cd4a17459e9817552273185c72def3be9daf4"
+    },
+    {
+      "path": "includes/free/class-job-transaction-fence.php",
+      "size": 2251,
+      "sha256": "e5d6cc1239b0dff26256d7ab7e6a298df87fddc92199bab809f0d1bffabee063"
+    },
+    {
+      "path": "includes/free/class-job-worker.php",
+      "size": 19655,
+      "sha256": "78239bb9ff5fc768de809636eafbfec86f49408ec52369b37a22b35089c2c76f"
+    },
+    {
+      "path": "includes/free/class-price-apply-connection.php",
+      "size": 4138,
+      "sha256": "1cb946c51f0f2e5522893aa17d2170dafe407268429fc99aa244d79aba6d7473"
+    },
+    {
+      "path": "includes/free/class-price-apply-journal.php",
+      "size": 10051,
+      "sha256": "ffe22676b5bea6f1a5f78bdd3c53ff5f17fa537979d888c9095dcc3bb113a24d"
+    },
+    {
+      "path": "includes/free/class-price-apply-transaction-guard.php",
+      "size": 1171,
+      "sha256": "38c8faf10863f2bf9f076a22458973c7903dfaa8d9dd41d539be0db1832b6dff"
+    },
+    {
+      "path": "includes/free/class-price-cache-verifier.php",
+      "size": 6006,
+      "sha256": "78955f169e1390ca7969b88ba156f1ecd9667430d512c16238260fb5ac7f4a53"
+    },
+    {
+      "path": "includes/free/class-price-decimal.php",
+      "size": 4881,
+      "sha256": "103ee047d439778f0061944394405cdd9d559409bda37bcdf3cd251c105acb26"
+    },
+    {
+      "path": "includes/free/class-price-operation.php",
+      "size": 2930,
+      "sha256": "b444081088f6010de1ffde589c893e31660ba818998692133648cfb04b119a79"
+    },
+    {
+      "path": "includes/free/class-product-selector.php",
+      "size": 3688,
+      "sha256": "e1afe48d177351cd6d675d4adfb0037d0b5a5a9f1d9508603b73f344851884fa"
+    },
+    {
+      "path": "includes/free/class-product-snapshot.php",
+      "size": 8506,
+      "sha256": "c188b4da3fbe665870c7d62ab884f06d2b726e3d291ef3f315dba1697ba3a0a3"
+    },
+    {
+      "path": "includes/free/class-runner-authority.php",
+      "size": 2926,
+      "sha256": "8ac5352e7e26915a0b7ff0b46aeffad483910e03c4b720cb32c0bb8ec0b5099b"
+    },
+    {
+      "path": "includes/free/class-safety-policy.php",
+      "size": 3569,
+      "sha256": "e7965ec55697a8b64c3b832b5a79dc7d57fd599039220d658e89dc6d86eb8f33"
+    },
+    {
+      "path": "includes/free/class-undo-fingerprint.php",
+      "size": 6653,
+      "sha256": "3afbba61ac7d74f8238c82cf0b83a39386fd322d2ef4f2353057f319bd7ea11e"
+    },
+    {
+      "path": "includes/free/class-undo-repository.php",
+      "size": 66480,
+      "sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f"
+    },
+    {
+      "path": "includes/free/class-undo-rest.php",
+      "size": 3713,
+      "sha256": "2602b8c42802d58add6f1471c5de04adeb6491e92150e9b77f0c2876cb11225c"
+    },
+    {
+      "path": "includes/free/class-undo-scheduler.php",
+      "size": 2654,
+      "sha256": "1a6decb09745afd0054dd615afe2f5b963fdfaeb218d19166b1a31820c171f6a"
+    },
+    {
+      "path": "includes/free/class-undo-schema.php",
+      "size": 9233,
+      "sha256": "4463107f9039b9db568642a7052054aa6eeefdd6a09db3f7cff7faf2a8b8e87e"
+    },
+    {
+      "path": "includes/free/class-undo-state.php",
+      "size": 8641,
+      "sha256": "a806dfbac54126c45ee03bf00da38032460e046e749657b99326efbe01179e3a"
+    },
+    {
+      "path": "includes/free/class-undo-transaction-fence.php",
+      "size": 3068,
+      "sha256": "157ec9d990a705fd8d90b278cdf0262ea4b338c0a3864528c404bb71aafb52ba"
+    },
+    {
+      "path": "includes/free/class-undo-worker.php",
+      "size": 19562,
+      "sha256": "a51e4261bf641812e32ca8b3f7526e7cb26edbf4d2f8e5a887a01be00099c763"
+    },
+    {
+      "path": "includes/free/class-woo-price-mutator.php",
+      "size": 10126,
+      "sha256": "2f188838e5e42a55609f970f9bd40e199ae4e18828f334ef71de960053d630d0"
+    },
+    {
+      "path": "includes/free/class-woo-undo-mutator.php",
+      "size": 16742,
+      "sha256": "1e3d8955d59326371383322af830f951f57c34d1f4c478b0246011d064c246a7"
+    },
+    {
+      "path": "readme.txt",
+      "size": 7048,
+      "sha256": "1115ad085dc885327d21fecacf1057c85c5b086c039282ac4089fd19260a6c7a"
+    },
+    {
+      "path": "uninstall.php",
+      "size": 4963,
+      "sha256": "d826c6ef5ea01875349a5bc4a9b2b52ecfb7a75e122322f2de216ad9be041670"
+    },
+    {
+      "path": "writeleash.php",
+      "size": 4129,
+      "sha256": "7de1f5c5c7fa9caee29f842d038ba52e21064b917b52d864628fd237b2cddf3a"
+    }
+  ],
+  "ASSET_SHA256_SET": [
+    {
+      "path": "banner-1544x500.png",
+      "size": 34685,
+      "sha256": "743eeb73c66f5f4e0f7cfd30fbfbfacc4b6cd68d8c2fac5e99cf360991929815",
+      "dimensions": [
+        1544,
+        500
+      ]
+    },
+    {
+      "path": "banner-772x250.png",
+      "size": 32809,
+      "sha256": "9d0f89ff2f2024c9ea0f6a60cd066dd96a794b65ce736187aaf8362d27dc78e9",
+      "dimensions": [
+        772,
+        250
+      ]
+    },
+    {
+      "path": "icon-128x128.png",
+      "size": 5831,
+      "sha256": "5ad3f9c0451ece8c5ec82930cced54ad3a4151923ba34d39de382fcc6c330b55",
+      "dimensions": [
+        128,
+        128
+      ]
+    },
+    {
+      "path": "icon-256x256.png",
+      "size": 7370,
+      "sha256": "14b6350a5dd0f25fe8295153d497fb948fbeaf8d016f4055d4ea173345a51732",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "icon.svg",
+      "size": 643,
+      "sha256": "9239cecb489ead508f29c85d09a1251470bff26edc85145785a6e9a4aad2c8c7",
+      "viewBox": "0 0 256 256"
+    },
+    {
+      "path": "screenshot-1.png",
+      "size": 77950,
+      "sha256": "a75a9d7348214b96e13d5ea7f6e8320413dc772c394078d050bbaa0d34ea84cc",
+      "dimensions": [
+        818,
+        644
+      ]
+    },
+    {
+      "path": "screenshot-2.png",
+      "size": 65469,
+      "sha256": "bd128400fe353ef45db5ebfa806c04a549fb646be8f1dc015518a7f2d9f39748",
+      "dimensions": [
+        818,
+        658
+      ]
+    },
+    {
+      "path": "screenshot-3.png",
+      "size": 119230,
+      "sha256": "c8860d79bb991a656f7d48a2036d3ca53274b3390d0bfe8a26a9aebe5310ad79",
+      "dimensions": [
+        818,
+        1113
+      ]
+    },
+    {
+      "path": "screenshot-4.png",
+      "size": 118082,
+      "sha256": "6290d77ff6215f25781ac4942af8264bad3c547b624dc81180ac9d1d99b0bf35",
+      "dimensions": [
+        818,
+        1107
+      ]
+    },
+    {
+      "path": "screenshot-5.png",
+      "size": 122833,
+      "sha256": "7d7da936bd7a4d78c0fc39c9abd0da030105f2961986d65fb318c9eafef6f6c2",
+      "dimensions": [
+        818,
+        1125
+      ]
+    },
+    {
+      "path": "screenshot-6.png",
+      "size": 43969,
+      "sha256": "749061c94471d7705901180c8c59999d613499cee1dc11e1db1ecce5b5c212b6",
+      "dimensions": [
+        818,
+        405
+      ]
+    }
+  ],
+  "REVIEW_DATE": "2026-10-03",
+  "OFFICIAL_GUIDANCE": [
+    {
+      "url": "https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/",
+      "review_date": "2026-10-03",
+      "retrieved_sha256": "c2e37d6f6051c38b3e5ac2dca673bd5457c2c417ba79c980d271a01071f2e487",
+      "bytes": 199272
+    },
+    {
+      "url": "https://developer.wordpress.org/plugins/wordpress-org/common-issues/",
+      "review_date": "2026-10-03",
+      "retrieved_sha256": "ce1101c187e828c4f78e5a2ec236ab76ba434a85776aa4a3525da76e6187012d",
+      "bytes": 231654
+    },
+    {
+      "url": "https://wordpress.org/plugins/plugin-check/",
+      "review_date": "2026-10-03",
+      "retrieved_sha256": "29ed78543ef097b23b519388c10dba18d0888d174e4599af6354774e46798f4f",
+      "bytes": 201573
+    }
+  ],
+  "GUIDANCE_DELTA": {
+    "MATERIAL_CHANGE_IDENTIFIED": false,
+    "PLUGIN_CHECK_VERSION_DELTA": "none; prior and current 2.1.0",
+    "LIMITATION": "Prior #139 audit records the same review date and interpretation but has no historical page-byte snapshot. No full textual delta is claimed."
+  },
+  "ENVIRONMENT": {
+    "WP": "7.1.2",
+    "WOO": "11.1.2",
+    "PHP": "8.2.32",
+    "DB": "10.11.14-MariaDB-0ubuntu0.24.04.1",
+    "PCP": "2.1.0",
+    "WP_CLI": "2.12.0"
+  },
+  "PLUGIN_CHECK": {
+    "VERSION": "2.1.0",
+    "COMMAND_FLAGS": [
+      "--include-low-severity-errors",
+      "--include-low-severity-warnings",
+      "--include-experimental",
+      "--format=json"
+    ],
+    "RUNTIME_LOADER": "wp-content/plugins/plugin-check/cli.php",
+    "EXCLUSIONS": [],
+    "ERROR": 0,
+    "WARNING": 0,
+    "NOTICE": 0,
+    "INFO": 0,
+    "FINDINGS": [],
+    "OUTPUT_FORMAT_NOTE": "With zero findings PCP emits its success line even under --format=json; this line is retained verbatim, not invented empty JSON.",
+    "AVAILABLE_CHECKS": [
+      {
+        "slug": "i18n_usage",
+        "category": "general, plugin_repo",
+        "stability": "stable",
+        "description": "Checks for various internationalization best practices.",
+        "url": "https://developer.wordpress.org/plugins/internationalization/how-to-internationalize-your-plugin/"
+      },
+      {
+        "slug": "php_error_reporting",
+        "category": "general",
+        "stability": "stable",
+        "description": "Detects runtime changes to PHP error reporting configuration or WordPress debug constants.",
+        "url": "https://www.php.net/manual/en/function.error-reporting.php"
+      },
+      {
+        "slug": "code_obfuscation",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Detects the usage of code obfuscation tools.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/"
+      },
+      {
+        "slug": "plugin_content",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Detects content that does not comply with the WordPress.org plugin guidelines.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/"
+      },
+      {
+        "slug": "file_type",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Detects the usage of hidden and compressed files, VCS directories, application files, badly named files, Library Core Files, AI development directories, and unexpected markdown files.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/"
+      },
+      {
+        "slug": "plugin_header_fields",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Checks adherence to the Headers requirements.",
+        "url": "https://developer.wordpress.org/plugins/plugin-basics/header-requirements/"
+      },
+      {
+        "slug": "late_escaping",
+        "category": "security, plugin_repo",
+        "stability": "stable",
+        "description": "Checks that all output is escaped before being sent to the browser.",
+        "url": "https://developer.wordpress.org/apis/security/escaping/"
+      },
+      {
+        "slug": "safe_redirect",
+        "category": "security, plugin_repo",
+        "stability": "stable",
+        "description": "Checks that redirects use wp_safe_redirect() instead of wp_redirect() for security.",
+        "url": "https://developer.wordpress.org/reference/functions/wp_safe_redirect/"
+      },
+      {
+        "slug": "plugin_updater",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Prevents altering WordPress update routines or using custom updaters, which are not allowed on WordPress.org.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/"
+      },
+      {
+        "slug": "plugin_uninstall",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Checks related to plugin uninstallation.",
+        "url": "https://developer.wordpress.org/plugins/plugin-basics/uninstall-methods/#method-2-uninstall-php"
+      },
+      {
+        "slug": "plugin_review_phpcs",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Runs PHP_CodeSniffer to detect certain best practices plugins should follow for submission on WordPress.org.",
+        "url": "https://developer.wordpress.org/plugins/plugin-basics/best-practices/"
+      },
+      {
+        "slug": "direct_db_queries",
+        "category": "security, plugin_repo",
+        "stability": "stable",
+        "description": "Checks the usage of direct database queries, which should be avoided.",
+        "url": "https://developer.wordpress.org/apis/database/"
+      },
+      {
+        "slug": "performant_wp_query_params",
+        "category": "performance",
+        "stability": "stable",
+        "description": "Checks for potentially slow database queries when using <code>WP_Query</code>",
+        "url": "https://developer.wordpress.org/apis/database/"
+      },
+      {
+        "slug": "enqueued_scripts_in_footer",
+        "category": "performance",
+        "stability": "stable",
+        "description": "Checks whether a loading strategy is explicitly set for JavaScript files, as loading scripts in the footer is usually desired.",
+        "url": "https://developer.wordpress.org/plugins/"
+      },
+      {
+        "slug": "enqueued_resources",
+        "category": "plugin_repo, performance",
+        "stability": "stable",
+        "description": "Checks whether scripts and styles are properly enqueued using the recommended way.",
+        "url": "https://developer.wordpress.org/plugins/"
+      },
+      {
+        "slug": "plugin_readme",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Checks adherence to the <code>readme.txt</code> requirements.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/how-your-readme-txt-works/"
+      },
+      {
+        "slug": "localhost",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Detects the usage of Localhost/127.0.0.1 in the plugin.",
+        "url": "https://make.wordpress.org/plugins/handbook/performing-reviews/review-checklist/"
+      },
+      {
+        "slug": "no_unfiltered_uploads",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Detects disallowed usage of <code>ALLOW_UNFILTERED_UPLOADS</code>.",
+        "url": "https://make.wordpress.org/plugins/handbook/performing-reviews/review-checklist/"
+      },
+      {
+        "slug": "trademarks",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Checks the usage of trademarks or other projects in the plugin slug.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/"
+      },
+      {
+        "slug": "offloading_files",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Prevents using remote services that are not necessary.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/common-issues/#calling-files-remotely"
+      },
+      {
+        "slug": "write_file",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Detects if plugins save data in the plugin folder instead of using the uploads directory or database.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/common-issues/#saving-data-in-the-plugin-folder"
+      },
+      {
+        "slug": "setting_sanitization",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Ensures sanitization in register_setting().",
+        "url": "https://developer.wordpress.org/reference/functions/register_setting/"
+      },
+      {
+        "slug": "prefixing",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Checks plugin for unique prefixing for everything the plugin defines in the public namespace.",
+        "url": "https://make.wordpress.org/plugins/handbook/performing-reviews/review-checklist/#code"
+      },
+      {
+        "slug": "direct_db",
+        "category": "security, plugin_repo",
+        "stability": "stable",
+        "description": "Checks the escaping in direct database queries.",
+        "url": "https://developer.wordpress.org/apis/database/"
+      },
+      {
+        "slug": "minified_files",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Detects minified PHP files and tokenization errors.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/#4-code-must-be-mostly-human-readable"
+      },
+      {
+        "slug": "direct_file_access",
+        "category": "security, plugin_repo",
+        "stability": "stable",
+        "description": "Checks that PHP files have proper guards to prevent direct file access.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/common-issues/#direct-file-access"
+      },
+      {
+        "slug": "external_admin_menu_links",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Detects external URLs used in top-level WordPress admin menu, which disrupts the expected user experience.",
+        "url": "https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/#11-plugins-should-not-hijack-the-admin"
+      },
+      {
+        "slug": "wp_functions_compatibility",
+        "category": "plugin_repo",
+        "stability": "stable",
+        "description": "Checks whether WordPress functions used by the plugin are compatible with its minimum supported WordPress version.",
+        "url": "https://developer.wordpress.org/plugins/plugin-basics/header-requirements/#header-fields"
+      },
+      {
+        "slug": "ai_provider",
+        "category": "general",
+        "stability": "stable",
+        "description": "Recommends the WordPress AI Client when a plugin integrates directly with a third-party AI provider.",
+        "url": "https://developer.wordpress.org/plugins/"
+      },
+      {
+        "slug": "enqueued_scripts_size",
+        "category": "performance",
+        "stability": "stable",
+        "description": "Checks whether the cumulative size of all scripts enqueued on a page exceeds 293 KB.",
+        "url": "https://developer.wordpress.org/plugins/"
+      },
+      {
+        "slug": "enqueued_styles_size",
+        "category": "performance",
+        "stability": "stable",
+        "description": "Checks whether the cumulative size of all stylesheets enqueued on a page exceeds 293 KB.",
+        "url": "https://developer.wordpress.org/plugins/"
+      },
+      {
+        "slug": "enqueued_styles_scope",
+        "category": "performance",
+        "stability": "stable",
+        "description": "Checks whether any stylesheets are loaded on all pages, which is usually not desirable and can lead to performance issues.",
+        "url": "https://developer.wordpress.org/plugins/"
+      },
+      {
+        "slug": "enqueued_scripts_scope",
+        "category": "performance",
+        "stability": "stable",
+        "description": "Checks whether any scripts are loaded on all pages, which is usually not desirable and can lead to performance issues.",
+        "url": "https://developer.wordpress.org/plugins/"
+      },
+      {
+        "slug": "non_blocking_scripts",
+        "category": "performance",
+        "stability": "stable",
+        "description": "Checks whether scripts and styles are enqueued using a recommended loading strategy.",
+        "url": "https://developer.wordpress.org/plugins/"
+      }
+    ],
+    "RUNS": [
+      {
+        "mode": "static",
+        "stdout": "Success: Checks complete. No errors found.\n",
+        "stdout_sha256": "abe55b9dd953a065b918abfb442b3160cd094e3a9add33e8da44f5995a0d6361",
+        "stderr": "",
+        "RESULT": "PASS",
+        "COMMAND": "wp plugin check writeleash --include-low-severity-errors --include-low-severity-warnings --include-experimental --format=json"
+      },
+      {
+        "mode": "runtime",
+        "stdout": "Success: Checks complete. No errors found.\n",
+        "stdout_sha256": "abe55b9dd953a065b918abfb442b3160cd094e3a9add33e8da44f5995a0d6361",
+        "stderr": "",
+        "RESULT": "PASS",
+        "COMMAND": "wp plugin check writeleash --require=wp-content/plugins/plugin-check/cli.php --include-low-severity-errors --include-low-severity-warnings --include-experimental --format=json"
+      },
+      {
+        "mode": "final",
+        "stdout": "Success: Checks complete. No errors found.\n",
+        "stdout_sha256": "abe55b9dd953a065b918abfb442b3160cd094e3a9add33e8da44f5995a0d6361",
+        "stderr": "",
+        "RESULT": "PASS",
+        "COMMAND": "wp plugin check writeleash --require=wp-content/plugins/plugin-check/cli.php --include-low-severity-errors --include-low-severity-warnings --include-experimental --format=json"
+      }
+    ]
+  },
+  "PHPCS_SUPPRESSION_SITES": 44,
+  "PHPCS_SUPPRESSIONS": [
+    {
+      "file": "includes/free/class-free-support-contract.php",
+      "line": 26,
+      "rules": [
+        "WordPress.Security.EscapeOutput.ExceptionNotEscaped"
+      ],
+      "artifact_file_sha256": "7f7defab73c484f9dca775c73573ea2d0500b68da4c7a71f57d3e9d6e0afe010",
+      "adjacent_code_context": [
+        {
+          "line": 23,
+          "text": "\t/** NEW selected work, not execution validity or historical recovery authority. */"
+        },
+        {
+          "line": 24,
+          "text": "\tpublic static function assert_job_size( int $selected ): void {"
+        },
+        {
+          "line": 25,
+          "text": "\t\tif ( $selected > self::MAX_JOB_PRODUCTS ) {"
+        },
+        {
+          "line": 26,
+          "text": "\t\t\t// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Typed integer data, not an exception/output message; Admin renders the derived notice through esc_html()."
+        },
+        {
+          "line": 27,
+          "text": "\t\t\tthrow new Free_Job_Limit_Error( $selected );"
+        },
+        {
+          "line": 28,
+          "text": "\t\t}"
+        },
+        {
+          "line": 29,
+          "text": "\t}"
+        },
+        {
+          "line": 30,
+          "text": "}"
+        },
+        {
+          "line": 31,
+          "text": ""
+        },
+        {
+          "line": 32,
+          "text": "/** Carries a bounded scalar count through the authenticated Admin PRG notice. */"
+        },
+        {
+          "line": 33,
+          "text": "final class Free_Job_Limit_Error extends \\RuntimeException {"
+        },
+        {
+          "line": 34,
+          "text": "\tprivate int $selected;"
+        },
+        {
+          "line": 35,
+          "text": "\tpublic function __construct( int $selected ) {"
+        },
+        {
+          "line": 36,
+          "text": "\t\tparent::__construct( 'supported_job_limit_exceeded' );"
+        },
+        {
+          "line": 37,
+          "text": "\t\t$this->selected = $selected;"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Exception constructor receives an int selected count, stores it as typed data and creates a fixed reason message. Admin renders its derived notice with esc_html; no request text becomes exception output.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 83,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 80,
+          "text": "\t\t\t$reason = 'BLOCKED' === $data['status'] ? 'BLOCKED_BY_POLICY' : '';"
+        },
+        {
+          "line": 81,
+          "text": "\t\t\t$summary = $data['summary'];"
+        },
+        {
+          "line": 82,
+          "text": "\t\t\t$store = $data['store'];"
+        },
+        {
+          "line": 83,
+          "text": "\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom import INSERT requires durable DB authority; identifiers and values are prepared."
+        },
+        {
+          "line": 84,
+          "text": "\t\t\tif ( 1 !== $tx->query( $tx->prepare("
+        },
+        {
+          "line": 85,
+          "text": "\t\t\t\t\"INSERT INTO %i (schema_version,public_id,plan_id,plan_schema_version,plan_hash_version,plan_hash,plan_json,creator_id,approver_id,status,status_reason,currency,price_decimals,wordpress_version,woocommerce_version,total_selected,total_eligible,total_changing,total_unchanged,total_unsupported,total_blocked,planned,pending,unchanged,unsupported,created_at,updated_at) VALUES (%d,%s,%s,%d,%s,%s,%s,%d,0,%s,%s,%s,%d,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,UTC_TIMESTAMP(),UTC_TIMESTAMP())\","
+        },
+        {
+          "line": 86,
+          "text": "\t\t\t\t$jobs, Job_Schema::SCHEMA_VERSION, wp_generate_uuid4(), $data['plan_id'], Change_Plan::SCHEMA_VERSION, Change_Plan::HASH_VERSION, $plan->hash(), $plan->json(), $creator_id, $status, $reason, $store['currency'], (int) $store['price_decimals'], $store['wordpress_version'], $store['woocommerce_version'],"
+        },
+        {
+          "line": 87,
+          "text": "\t\t\t\t(int) $summary['selected'], (int) $summary['eligible'], (int) $summary['changing'], (int) $summary['unchanged'], (int) $summary['unsupported'], (int) $summary['blocked'], (int) $summary['selected'], (int) $summary['changing'], (int) $summary['unchanged'], (int) $summary['unsupported']"
+        },
+        {
+          "line": 88,
+          "text": "\t\t\t) ) ) {"
+        },
+        {
+          "line": 89,
+          "text": "\t\t\t\tthrow new Job_Error( 'IMPORT_FAILED' );"
+        },
+        {
+          "line": 90,
+          "text": "\t\t\t}"
+        },
+        {
+          "line": 91,
+          "text": "\t\t\t$job_id = (int) $tx->insert_id;"
+        },
+        {
+          "line": 92,
+          "text": "\t\t\tif ( $job_id < 1 ) { throw new Job_Error( 'IMPORT_FAILED' ); }"
+        },
+        {
+          "line": 93,
+          "text": "\t\t\tself::insert_items( $tx, $job_id, $plan );"
+        },
+        {
+          "line": 94,
+          "text": "\t\t\tself::assert_items_complete( $tx, $job_id, $plan );"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Plan import inserts into validated plugin jobs identifier via %i. Every material/actor/count value is prepared; durable transaction truth cannot be replaced by object-cache APIs.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 123,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 120,
+          "text": "\t\t\t$planned = $item['planned_regular_price'] ?? '';"
+        },
+        {
+          "line": 121,
+          "text": "\t\t\t$state = Job_Item_State::initial_for_result( $item['result'] );"
+        },
+        {
+          "line": 122,
+          "text": "\t\t\t$reason = 'PENDING' === $state ? '' : ( 'UNCHANGED' === $state ? 'PLAN_UNCHANGED' : (string) ( $item['eligibility']['reason'] ?? 'PLAN_UNSUPPORTED' ) );"
+        },
+        {
+          "line": 123,
+          "text": "\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom idempotent INSERT requires durable DB authority; identifiers and values are prepared."
+        },
+        {
+          "line": 124,
+          "text": "\t\t\tif ( false === $tx->query( $tx->prepare("
+        },
+        {
+          "line": 125,
+          "text": "\t\t\t\t\"INSERT INTO %i (schema_version,job_id,plan_id,product_id,sequence,plan_result,eligibility_state,eligibility_reason,blockers,warnings,expected_price,planned_price,state,reason,created_at,updated_at) VALUES (%d,%d,%s,%d,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id\","
+        },
+        {
+          "line": 126,
+          "text": "\t\t\t\t$items_table, Job_Schema::SCHEMA_VERSION, $job_id, $plan->data()['plan_id'], (int) $item['product_id'], $sequence, $item['result'], $item['eligibility']['state'], $item['eligibility']['reason'], Plan_Hasher::canonical_json( $item['blockers'] ), Plan_Hasher::canonical_json( $item['warnings'] ), $expected, $planned, $state, $reason"
+        },
+        {
+          "line": 127,
+          "text": "\t\t\t) ) ) {"
+        },
+        {
+          "line": 128,
+          "text": "\t\t\t\tthrow new Job_Error( 'IMPORT_FAILED' );"
+        },
+        {
+          "line": 129,
+          "text": "\t\t\t}"
+        },
+        {
+          "line": 130,
+          "text": "\t\t}"
+        },
+        {
+          "line": 131,
+          "text": "\t}"
+        },
+        {
+          "line": 132,
+          "text": ""
+        },
+        {
+          "line": 133,
+          "text": "\t/** Every frozen plan item must exist exactly once; partial import is not executable. */"
+        },
+        {
+          "line": 134,
+          "text": "\tprivate static function assert_items_complete( \\wpdb $db, int $job_id, Change_Plan $plan ): void {"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Item import uses %i and value placeholders with frozen plan fields. Duplicate key leaves id unchanged; immutable material is not overwritten. Durable import requires uncached SQL.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 169,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 166,
+          "text": "\t\t\t$plan = self::hydrate_plan( $job );"
+        },
+        {
+          "line": 167,
+          "text": "\t\t\t// Journal seed shares this transaction: a partial approval is not executable."
+        },
+        {
+          "line": 168,
+          "text": "\t\t\tPrice_Apply_Journal::seed( $plan );"
+        },
+        {
+          "line": 169,
+          "text": "\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced CAS transition; values are prepared."
+        },
+        {
+          "line": 170,
+          "text": "\t\t\tif ( 1 !== $tx->query( $tx->prepare( \"UPDATE %i SET status=%s,status_reason=%s,approver_id=%d,approved_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s\", $jobs, Job_State::READY, 'APPROVED', $approver_id, $job_id, Job_State::PLANNED ) ) ) {"
+        },
+        {
+          "line": 171,
+          "text": "\t\t\t\tthrow new Job_Error( 'INVALID_TRANSITION' );"
+        },
+        {
+          "line": 172,
+          "text": "\t\t\t}"
+        },
+        {
+          "line": 173,
+          "text": "\t\t\t$tx->commit();"
+        },
+        {
+          "line": 174,
+          "text": "\t\t\t$committed = true;"
+        },
+        {
+          "line": 175,
+          "text": "\t\t\t$wpdb = $original;"
+        },
+        {
+          "line": 176,
+          "text": "\t\t\treturn self::read( $job_id );"
+        },
+        {
+          "line": 177,
+          "text": "\t\t} catch ( \\Throwable $error ) {"
+        },
+        {
+          "line": 178,
+          "text": "\t\t\t$wpdb = $original;"
+        },
+        {
+          "line": 179,
+          "text": "\t\t\tif ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }"
+        },
+        {
+          "line": 180,
+          "text": "\t\t\t// A lost acknowledgement may still have committed; re-read before failing."
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Approval CAS uses prepared job ID, actor and statuses after binding/authorization and journal seed in the same pinned transaction; exactly one changed row required.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 279,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 276,
+          "text": "\tpublic static function refresh_counters( \\wpdb $db, int $job_id ): array {"
+        },
+        {
+          "line": 277,
+          "text": "\t\t$counts = self::derive_counts( $db, $job_id );"
+        },
+        {
+          "line": 278,
+          "text": "\t\t$jobs = Job_Schema::jobs_table( $db );"
+        },
+        {
+          "line": 279,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Absolute truth repair from item rows; values are prepared."
+        },
+        {
+          "line": 280,
+          "text": "\t\t$db->query( $db->prepare("
+        },
+        {
+          "line": 281,
+          "text": "\t\t\t'UPDATE %i SET planned=%d,pending=%d,applying=%d,applied=%d,unchanged=%d,conflict=%d,failed=%d,needs_review=%d,unsupported=%d,updated_at=UTC_TIMESTAMP() WHERE id=%d',"
+        },
+        {
+          "line": 282,
+          "text": "\t\t\t$jobs, $counts['planned'], $counts['pending'], $counts['applying'], $counts['applied'], $counts['unchanged'], $counts['conflict'], $counts['failed'], $counts['needs_review'], $counts['unsupported'], $job_id"
+        },
+        {
+          "line": 283,
+          "text": "\t\t) );"
+        },
+        {
+          "line": 284,
+          "text": "\t\treturn $counts;"
+        },
+        {
+          "line": 285,
+          "text": "\t}"
+        },
+        {
+          "line": 286,
+          "text": ""
+        },
+        {
+          "line": 287,
+          "text": "\t/**"
+        },
+        {
+          "line": 288,
+          "text": "\t * Atomic job lease acquisition. The generation increase is the fence used by"
+        },
+        {
+          "line": 289,
+          "text": "\t * every later claim/status write. Expired leases are recoverable; live ones"
+        },
+        {
+          "line": 290,
+          "text": "\t * are not, regardless of Action Scheduler state. This UPDATE touches the job"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Count reconciliation derives absolute counters from stored item rows and binds each integer plus job ID; plugin-only UPDATE is a durable repair, not product price SQL.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 301,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 298,
+          "text": "\t\t$statuses = $manual ? array( Job_State::READY, Job_State::QUEUED, Job_State::RUNNING, Job_State::PAUSED, Job_State::NEEDS_REVIEW ) : array( Job_State::READY, Job_State::QUEUED, Job_State::RUNNING );"
+        },
+        {
+          "line": 299,
+          "text": "\t\t$jobs = Job_Schema::jobs_table( $db );"
+        },
+        {
+          "line": 300,
+          "text": "\t\t$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );"
+        },
+        {
+          "line": 301,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic lease CAS; identifiers and values are prepared."
+        },
+        {
+          "line": 302,
+          "text": "\t\t$updated = $db->query( $db->prepare("
+        },
+        {
+          "line": 303,
+          "text": "\t\t\t\"UPDATE %i SET lease_owner=%s,lease_generation=lease_generation+1,lease_expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),last_worker_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP(),status=%s,status_reason=%s,started_at=IFNULL(started_at,UTC_TIMESTAMP()) WHERE id=%d AND status IN ($placeholders) AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\","
+        },
+        {
+          "line": 304,
+          "text": "\t\t\tarray_merge( array( $jobs, $owner, self::LEASE_TTL, Job_State::RUNNING, 'ACTIVE', $job_id ), $statuses )"
+        },
+        {
+          "line": 305,
+          "text": "\t\t) );"
+        },
+        {
+          "line": 306,
+          "text": "\t\tif ( 1 !== $updated ) { return array(); }"
+        },
+        {
+          "line": 307,
+          "text": "\t\t$row = $db->get_row( $db->prepare( 'SELECT lease_owner,lease_generation,lease_expires_at FROM %i WHERE id=%d', $jobs, $job_id ), ARRAY_A );"
+        },
+        {
+          "line": 308,
+          "text": "\t\tif ( ! $row || $row['lease_owner'] !== $owner ) { return array(); }"
+        },
+        {
+          "line": 309,
+          "text": "\t\treturn array( 'owner' => $owner, 'generation' => (int) $row['lease_generation'], 'expires_at' => $row['lease_expires_at'] );"
+        },
+        {
+          "line": 310,
+          "text": "\t}"
+        },
+        {
+          "line": 311,
+          "text": ""
+        },
+        {
+          "line": 312,
+          "text": "\t/** Fence identity (owner + generation). Expiry only gates takeover, not continuation. */"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Lease acquisition binds table, owner, TTL, state and job ID. Status IN syntax is built only from a count of fixed allowed statuses with %s placeholders; lease expiry/generation CAS requires DB authority.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 324,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 321,
+          "text": "\t\t$jobs = Job_Schema::jobs_table( $db );"
+        },
+        {
+          "line": 322,
+          "text": "\t\t// MySQL reports zero changed rows when no column value differs (same"
+        },
+        {
+          "line": 323,
+          "text": "\t\t// second); ownership is confirmed by the fence read instead."
+        },
+        {
+          "line": 324,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced lease renewal; values are prepared."
+        },
+        {
+          "line": 325,
+          "text": "\t\t$db->query( $db->prepare( 'UPDATE %i SET lease_expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),last_worker_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND lease_owner=%s AND lease_generation=%d', $jobs, self::LEASE_TTL, $job_id, $owner, $generation ) );"
+        },
+        {
+          "line": 326,
+          "text": "\t\treturn self::fence( $job_id, $owner, $generation );"
+        },
+        {
+          "line": 327,
+          "text": "\t}"
+        },
+        {
+          "line": 328,
+          "text": ""
+        },
+        {
+          "line": 329,
+          "text": "\t/** Fenced terminal/chunk-boundary transition that also releases the lease. */"
+        },
+        {
+          "line": 330,
+          "text": "\tpublic static function finish_chunk( array $job, string $owner, int $generation, string $status, string $reason ): bool {"
+        },
+        {
+          "line": 331,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 332,
+          "text": "\t\tJob_State::assert_transition( $job['status'], $status );"
+        },
+        {
+          "line": 333,
+          "text": "\t\t$jobs = Job_Schema::jobs_table( $db );"
+        },
+        {
+          "line": 334,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced status + lease release; values are prepared."
+        },
+        {
+          "line": 335,
+          "text": "\t\treturn 1 === $db->query( $db->prepare("
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Lease renewal binds table/TTL/job ID/owner/generation. Fence reread confirms authority even when same-second UPDATE reports zero changed rows; cached truth is inappropriate.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 334,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 331,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 332,
+          "text": "\t\tJob_State::assert_transition( $job['status'], $status );"
+        },
+        {
+          "line": 333,
+          "text": "\t\t$jobs = Job_Schema::jobs_table( $db );"
+        },
+        {
+          "line": 334,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced status + lease release; values are prepared."
+        },
+        {
+          "line": 335,
+          "text": "\t\treturn 1 === $db->query( $db->prepare("
+        },
+        {
+          "line": 336,
+          "text": "\t\t\t\"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,updated_at=UTC_TIMESTAMP(),queued_at=IF(%s='QUEUED',UTC_TIMESTAMP(),queued_at),completed_at=IF(%s IN ('COMPLETED','COMPLETED_WITH_ISSUES'),UTC_TIMESTAMP(),completed_at),paused_at=IF(%s='PAUSED',UTC_TIMESTAMP(),paused_at) WHERE id=%d AND status=%s AND lease_owner=%s AND lease_generation=%d\","
+        },
+        {
+          "line": 337,
+          "text": "\t\t\t$jobs, $status, $reason, $status, $status, $status, (int) $job['id'], $job['status'], $owner, $generation"
+        },
+        {
+          "line": 338,
+          "text": "\t\t) );"
+        },
+        {
+          "line": 339,
+          "text": "\t}"
+        },
+        {
+          "line": 340,
+          "text": ""
+        },
+        {
+          "line": 341,
+          "text": "\t/** Unlocked scheduler transition; never clobbers a job a worker is running. */"
+        },
+        {
+          "line": 342,
+          "text": "\tpublic static function transition_unlocked( int $job_id, string $from_status, string $to_status, string $reason ): bool {"
+        },
+        {
+          "line": 343,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 344,
+          "text": "\t\tJob_State::assert_transition( $from_status, $to_status );"
+        },
+        {
+          "line": 345,
+          "text": "\t\t$jobs = Job_Schema::jobs_table( $db );"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Status transition checks state-machine edge then binds values/job/state/owner/generation; same-row CAS releases lease. No request SQL fragments.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 346,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 343,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 344,
+          "text": "\t\tJob_State::assert_transition( $from_status, $to_status );"
+        },
+        {
+          "line": 345,
+          "text": "\t\t$jobs = Job_Schema::jobs_table( $db );"
+        },
+        {
+          "line": 346,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Guarded scheduler transition; values are prepared."
+        },
+        {
+          "line": 347,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( 'UPDATE %i SET status=%s,status_reason=%s,updated_at=UTC_TIMESTAMP(),queued_at=IF(%s=%s,UTC_TIMESTAMP(),queued_at),paused_at=IF(%s=%s,UTC_TIMESTAMP(),paused_at) WHERE id=%d AND status=%s AND lease_owner=%s', $jobs, $to_status, $reason, $to_status, Job_State::QUEUED, $to_status, Job_State::PAUSED, $job_id, $from_status, '' ) );"
+        },
+        {
+          "line": 348,
+          "text": "\t}"
+        },
+        {
+          "line": 349,
+          "text": ""
+        },
+        {
+          "line": 350,
+          "text": "\tpublic static function mark_paused( int $job_id, string $reason ): bool {"
+        },
+        {
+          "line": 351,
+          "text": "\t\t$job = self::read( $job_id );"
+        },
+        {
+          "line": 352,
+          "text": "\t\tif ( ! $job || ! in_array( $job['status'], array( Job_State::READY, Job_State::QUEUED ), true ) || '' !== $job['lease_owner'] ) { return false; }"
+        },
+        {
+          "line": 353,
+          "text": "\t\treturn self::transition_unlocked( $job_id, $job['status'], Job_State::PAUSED, $reason );"
+        },
+        {
+          "line": 354,
+          "text": "\t}"
+        },
+        {
+          "line": 355,
+          "text": ""
+        },
+        {
+          "line": 356,
+          "text": "\t/** Reconcile dead workers after activation: pause RUNNING jobs with no live lease. */"
+        },
+        {
+          "line": 357,
+          "text": "\tpublic static function reap_stalled_leases(): int {"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Scheduler transition is a prepared from-state/empty-owner CAS on a plugin job row; queue is a wake-up layer and cannot bypass durable state.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 361,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 358,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 359,
+          "text": "\t\tif ( ! Job_Schema::ready( $db ) ) { return 0; }"
+        },
+        {
+          "line": 360,
+          "text": "\t\t$jobs = Job_Schema::jobs_table( $db );"
+        },
+        {
+          "line": 361,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded lease recovery on activation; no product state is touched."
+        },
+        {
+          "line": 362,
+          "text": "\t\t$reaped = $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,paused_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE status=%s AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\", $jobs, Job_State::PAUSED, 'LEASE_RECOVERY', Job_State::RUNNING ) );"
+        },
+        {
+          "line": 363,
+          "text": "\t\treturn is_int( $reaped ) ? $reaped : 0;"
+        },
+        {
+          "line": 364,
+          "text": "\t}"
+        },
+        {
+          "line": 365,
+          "text": ""
+        },
+        {
+          "line": 366,
+          "text": "\t/** Pause a RUNNING job whose worker is gone (expired or absent lease). Waits behind an in-flight item fence lock. */"
+        },
+        {
+          "line": 367,
+          "text": "\tpublic static function pause_stalled( int $job_id, string $reason ): bool {"
+        },
+        {
+          "line": 368,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 369,
+          "text": "\t\t$jobs = Job_Schema::jobs_table( $db );"
+        },
+        {
+          "line": 370,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stalled-lease revocation CAS; values are prepared."
+        },
+        {
+          "line": 371,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,paused_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\", $jobs, Job_State::PAUSED, $reason, $job_id, Job_State::RUNNING ) );"
+        },
+        {
+          "line": 372,
+          "text": "\t}"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Activation lease recovery binds table and fixed RUNNING/PAUSED states. Predicate only reaps expired/absent leases, bumps generation, changes no Woo row; uncached durable state needed.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 370,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 367,
+          "text": "\tpublic static function pause_stalled( int $job_id, string $reason ): bool {"
+        },
+        {
+          "line": 368,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 369,
+          "text": "\t\t$jobs = Job_Schema::jobs_table( $db );"
+        },
+        {
+          "line": 370,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stalled-lease revocation CAS; values are prepared."
+        },
+        {
+          "line": 371,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,paused_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\", $jobs, Job_State::PAUSED, $reason, $job_id, Job_State::RUNNING ) );"
+        },
+        {
+          "line": 372,
+          "text": "\t}"
+        },
+        {
+          "line": 373,
+          "text": ""
+        },
+        {
+          "line": 374,
+          "text": "\t/**"
+        },
+        {
+          "line": 375,
+          "text": "\t * Claim the next bounded item with a CAS that is itself fenced to the live"
+        },
+        {
+          "line": 376,
+          "text": "\t * job lease AND the durable active lifecycle row. The claim transaction"
+        },
+        {
+          "line": 377,
+          "text": "\t * locks lifecycle first, then evaluates the lease/job CAS, then writes the"
+        },
+        {
+          "line": 378,
+          "text": "\t * item. Shutdown cannot delete/update the lifecycle row between the check"
+        },
+        {
+          "line": 379,
+          "text": "\t * and the claim COMMIT. Returns null without claiming when shutdown won."
+        },
+        {
+          "line": 380,
+          "text": "\t */"
+        },
+        {
+          "line": 381,
+          "text": "\tpublic static function claim_next_item( int $job_id, string $owner, string $token, int $generation ): ?array {"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Manual stalled-lease revocation is prepared and requires matching job/status and stale lease predicate; generation increment prevents an old owner retaining authority.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 432,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 429,
+          "text": "\t\tJob_Item_State::assert_transition( $item['state'], $state );"
+        },
+        {
+          "line": 430,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 431,
+          "text": "\t\t$items = Job_Schema::items_table( $db );"
+        },
+        {
+          "line": 432,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Claim-token CAS item transition; values are prepared."
+        },
+        {
+          "line": 433,
+          "text": "\t\treturn 1 === $db->query( $db->prepare("
+        },
+        {
+          "line": 434,
+          "text": "\t\t\t'UPDATE %i SET state=%s,reason=%s,claim_token=\\'\\',claim_generation=0,applied_at=IF(%s=%s,COALESCE(%s,applied_at),applied_at),next_attempt_after=IF(%d=1,DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),NULL),updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND claim_token=%s',"
+        },
+        {
+          "line": 435,
+          "text": "\t\t\t$items, $state, $reason, $state, Job_Item_State::APPLIED, $applied_at, $retry ? 1 : 0, self::RETRY_BACKOFF, (int) $item['id'], $item['state'], $token"
+        },
+        {
+          "line": 436,
+          "text": "\t\t) );"
+        },
+        {
+          "line": 437,
+          "text": "\t}"
+        },
+        {
+          "line": 438,
+          "text": ""
+        },
+        {
+          "line": 439,
+          "text": "\t/** Reconciliation of a stale claim after a lost worker: journal truth wins. */"
+        },
+        {
+          "line": 440,
+          "text": "\tpublic static function reconcile_item( array $item, int $max_generation, string $state, string $reason, ?string $applied_at = null ): bool {"
+        },
+        {
+          "line": 441,
+          "text": "\t\tif ( ! in_array( $state, self::item_states(), true ) || ! preg_match( '/\\A[A-Z0-9_]{1,64}\\z/D', $reason ) ) { throw new Job_Error( 'INVALID_ITEM_STATE' ); }"
+        },
+        {
+          "line": 442,
+          "text": "\t\tJob_Item_State::assert_transition( $item['state'], $state );"
+        },
+        {
+          "line": 443,
+          "text": "\t\t$db = self::db();"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Item transition binds table, state, reason, token, timestamps, retry flag and bounded TTL. WHERE includes stored item ID/state/claim token; counters are not inferred from cache.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 445,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 442,
+          "text": "\t\tJob_Item_State::assert_transition( $item['state'], $state );"
+        },
+        {
+          "line": 443,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 444,
+          "text": "\t\t$items = Job_Schema::items_table( $db );"
+        },
+        {
+          "line": 445,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stale-generation reconciliation CAS; values are prepared."
+        },
+        {
+          "line": 446,
+          "text": "\t\treturn 1 === $db->query( $db->prepare("
+        },
+        {
+          "line": 447,
+          "text": "\t\t\t\"UPDATE %i SET state=%s,reason=%s,claim_token='',claim_generation=0,applied_at=IF(%s='APPLIED',COALESCE(%s,applied_at),applied_at),next_attempt_after=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND claim_generation<%d\","
+        },
+        {
+          "line": 448,
+          "text": "\t\t\t$items, $state, $reason, $state, $applied_at, (int) $item['id'], $item['state'], $max_generation"
+        },
+        {
+          "line": 449,
+          "text": "\t\t) );"
+        },
+        {
+          "line": 450,
+          "text": "\t}"
+        },
+        {
+          "line": 451,
+          "text": ""
+        },
+        {
+          "line": 452,
+          "text": "\t/** Stale claimed items for reconciliation at a new lease generation. */"
+        },
+        {
+          "line": 453,
+          "text": "\tpublic static function stale_claims( int $job_id, int $generation ): array {"
+        },
+        {
+          "line": 454,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 455,
+          "text": "\t\t$items = Job_Schema::items_table( $db );"
+        },
+        {
+          "line": 456,
+          "text": "\t\treturn $db->get_results( $db->prepare( \"SELECT * FROM %i WHERE job_id=%d AND claim_generation>0 AND claim_generation<%d AND state IN ('APPLYING','PENDING') ORDER BY sequence ASC\", $items, $job_id, $generation ), ARRAY_A );"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Reconciliation binds all values and requires stale claim generation; static SQL controls the clause structure. Cannot write an arbitrary table or overwrite a fresh claimant.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "line": 483,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "adjacent_code_context": [
+        {
+          "line": 480,
+          "text": "\t\t// boundary. This UPDATE waits behind an in-flight item's fence row lock,"
+        },
+        {
+          "line": 481,
+          "text": "\t\t// so cancel cannot revoke ownership mid-commit; after that item commits"
+        },
+        {
+          "line": 482,
+          "text": "\t\t// the job is CANCELLED and no later claim is possible."
+        },
+        {
+          "line": 483,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Operator cancel CAS; values are prepared."
+        },
+        {
+          "line": 484,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s\", $jobs, Job_State::CANCELLED, 'OPERATOR_CANCELLED', $job_id, $job['status'] ) );"
+        },
+        {
+          "line": 485,
+          "text": "\t}"
+        },
+        {
+          "line": 486,
+          "text": ""
+        },
+        {
+          "line": 487,
+          "text": "\t/**"
+        },
+        {
+          "line": 488,
+          "text": "\t * Read-only truthful view. A dead worker's lease is reported as stalled"
+        },
+        {
+          "line": 489,
+          "text": "\t * instead of pretending the job is actively running; nothing writes here."
+        },
+        {
+          "line": 490,
+          "text": "\t */"
+        },
+        {
+          "line": 491,
+          "text": "\tpublic static function observe( int $job_id ): array {"
+        },
+        {
+          "line": 492,
+          "text": "\t\t$job = self::read( $job_id );"
+        },
+        {
+          "line": 493,
+          "text": "\t\tif ( ! $job ) { throw new Job_Error( 'JOB_NOT_FOUND' ); }"
+        },
+        {
+          "line": 494,
+          "text": "\t\t$db = self::db();"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Operator cancellation binds plugin table/job/from-status and fixed cancel state after repository checks; generation bump revokes claims without editing products.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-worker.php",
+      "line": 325,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "78239bb9ff5fc768de809636eafbfec86f49408ec52369b37a22b35089c2c76f",
+      "adjacent_code_context": [
+        {
+          "line": 322,
+          "text": "\t\t$journal = Price_Apply_Journal::table( $wpdb );"
+        },
+        {
+          "line": 323,
+          "text": "\t\t// Existence first: assert_schema issues SHOW INDEX, which must not run"
+        },
+        {
+          "line": 324,
+          "text": "\t\t// against an absent table and produce a raw database diagnostic."
+        },
+        {
+          "line": 325,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- information_schema existence probe; caching it would be wrong."
+        },
+        {
+          "line": 326,
+          "text": "\t\t$exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $journal ) );"
+        },
+        {
+          "line": 327,
+          "text": "\t\tif ( 1 !== $exists ) { return false; }"
+        },
+        {
+          "line": 328,
+          "text": "\t\ttry { Price_Apply_Journal::assert_schema( $wpdb ); return true; }"
+        },
+        {
+          "line": 329,
+          "text": "\t\tcatch ( \\Throwable $error ) { return false; }"
+        },
+        {
+          "line": 330,
+          "text": "\t}"
+        },
+        {
+          "line": 331,
+          "text": ""
+        },
+        {
+          "line": 332,
+          "text": "\t/** WooCommerce and its exact supported version must be active and initialized. */"
+        },
+        {
+          "line": 333,
+          "text": "\tprivate static function dependency_ok(): bool {"
+        },
+        {
+          "line": 334,
+          "text": "\t\treturn Free_Support_Contract::woocommerce_ok() && ! is_multisite();"
+        },
+        {
+          "line": 335,
+          "text": "\t}"
+        },
+        {
+          "line": 336,
+          "text": ""
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Journal existence probe binds the validated table name as a value in information_schema.TABLES. A current DB read is needed before index verification, avoiding absent-table diagnostics.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-job-worker.php",
+      "line": 349,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "78239bb9ff5fc768de809636eafbfec86f49408ec52369b37a22b35089c2c76f",
+      "adjacent_code_context": [
+        {
+          "line": 346,
+          "text": "\t */"
+        },
+        {
+          "line": 347,
+          "text": "\tprivate static function runner_active(): bool {"
+        },
+        {
+          "line": 348,
+          "text": "\t\tglobal $wpdb;"
+        },
+        {
+          "line": 349,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lifecycle gate; uncached read is intentional."
+        },
+        {
+          "line": 350,
+          "text": "\t\t$value = $wpdb->get_var( $wpdb->prepare( \"SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1\", 'writeleash_runner_state' ) );"
+        },
+        {
+          "line": 351,
+          "text": "\t\treturn 'active' === $value;"
+        },
+        {
+          "line": 352,
+          "text": "\t}"
+        },
+        {
+          "line": 353,
+          "text": ""
+        },
+        {
+          "line": 354,
+          "text": "\tprivate static function pause_unleased( int $job_id, string $reason ): void {"
+        },
+        {
+          "line": 355,
+          "text": "\t\ttry {"
+        },
+        {
+          "line": 356,
+          "text": "\t\t\tif ( Job_Repository::mark_paused( $job_id, $reason ) ) { return; }"
+        },
+        {
+          "line": 357,
+          "text": "\t\t\tJob_Repository::pause_stalled( $job_id, $reason );"
+        },
+        {
+          "line": 358,
+          "text": "\t\t} catch ( \\Throwable $error ) {"
+        },
+        {
+          "line": 359,
+          "text": "\t\t\t// Persisting the typed pause is best effort; no product mutation happens either way."
+        },
+        {
+          "line": 360,
+          "text": "\t\t}"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Runner diagnostic read uses WordPress-owned options identifier and binds the exact runner option name. It is uncached deliberately; actual mutation additionally acquires lifecycle transaction lock.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-price-apply-journal.php",
+      "line": 97,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "ffe22676b5bea6f1a5f78bdd3c53ff5f17fa537979d888c9095dcc3bb113a24d",
+      "adjacent_code_context": [
+        {
+          "line": 94,
+          "text": "\t\t$data = $plan->data();"
+        },
+        {
+          "line": 95,
+          "text": "\t\tforeach ( $data['items'] as $item ) {"
+        },
+        {
+          "line": 96,
+          "text": "\t\t\tif ( 'CHANGING' !== $item['result'] ) { continue; }"
+        },
+        {
+          "line": 97,
+          "text": "\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom journal INSERT requires durable DB authority. The duplicate is verified below; identifiers and values are prepared."
+        },
+        {
+          "line": 98,
+          "text": "\t\t\tif ( false === $wpdb->query( $wpdb->prepare( \"INSERT INTO %i (schema_version,plan_id,plan_schema_version,plan_hash_version,plan_hash,product_id,plan_json,expected_price,target_price,state,evidence,created_at,updated_at) VALUES (%d,%s,%d,%s,%s,%d,%s,%s,%s,'PENDING','',UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id\", $table, self::SCHEMA_VERSION, $data['plan_id'], Change_Plan::SCHEMA_VERSION, Change_Plan::HASH_VERSION, $plan->hash(), $item['product_id'], $plan->json(), $item['expected_regular_price'], $item['planned_regular_price'] ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }"
+        },
+        {
+          "line": 99,
+          "text": "\t\t\t$row = self::read( $wpdb, $data['plan_id'], $item['product_id'] );"
+        },
+        {
+          "line": 100,
+          "text": "\t\t\tif ( ! $row ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }"
+        },
+        {
+          "line": 101,
+          "text": "\t\t\t// No immutable field or execution state is overwritten by a duplicate seed."
+        },
+        {
+          "line": 102,
+          "text": "\t\t\tself::assert_binding( $row, $plan, $item['product_id'] );"
+        },
+        {
+          "line": 103,
+          "text": "\t\t}"
+        },
+        {
+          "line": 104,
+          "text": "\t}"
+        },
+        {
+          "line": 105,
+          "text": "\tpublic static function read( \\wpdb $db, string $plan_id, int $id, bool $lock = false ): ?array {"
+        },
+        {
+          "line": 106,
+          "text": "\t\t$table = self::table( $db );"
+        },
+        {
+          "line": 107,
+          "text": "\t\t$row = $db->get_row( $db->prepare( \"SELECT * FROM %i WHERE plan_id=%s AND product_id=%d\" . ( $lock ? ' FOR UPDATE' : '' ), $table, $plan_id, $id ), ARRAY_A );"
+        },
+        {
+          "line": 108,
+          "text": "\t\treturn $row ?: null;"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Journal insert binds identifier and all immutable plan/product/material fields. Duplicate is independently reread and binding checked; requires durable SQL and never writes Woo product storage.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-product-selector.php",
+      "line": 46,
+      "rules": [
+        "WordPress.DB.SlowDBQuery.slow_db_query_meta_query"
+      ],
+      "artifact_file_sha256": "e1afe48d177351cd6d675d4adfb0037d0b5a5a9f1d9508603b73f344851884fa",
+      "adjacent_code_context": [
+        {
+          "line": 43,
+          "text": "\t\telseif ( 'SKU' === $s['type'] ) {"
+        },
+        {
+          "line": 44,
+          "text": "\t\t\t// Woo 11.1.2's sku argument uses LIKE, not exact equality. Use public WP API,"
+        },
+        {
+          "line": 45,
+          "text": "\t\t\t// then byte-compare the edit-context Woo value to defeat DB collation aliases."
+        },
+        {
+          "line": 46,
+          "text": "\t\t\t$args['meta_query'] = array( array( 'key' => '_sku', 'value' => $s['sku'], 'compare' => '=' ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query"
+        },
+        {
+          "line": 47,
+          "text": "\t\t} else {"
+        },
+        {
+          "line": 48,
+          "text": "\t\t\t$term = get_term( $s['term_id'], 'product_cat' );"
+        },
+        {
+          "line": 49,
+          "text": "\t\t\tif ( ! $term || is_wp_error( $term ) ) { throw new Price_Validation_Error( 'invalid_category' ); }"
+        },
+        {
+          "line": 50,
+          "text": "\t\t\t$args['tax_query'] = array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => array( $s['term_id'] ), 'include_children' => false ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query"
+        },
+        {
+          "line": 51,
+          "text": "\t\t}"
+        },
+        {
+          "line": 52,
+          "text": "\t\t$query = new \\WP_Query( $args );"
+        },
+        {
+          "line": 53,
+          "text": "\t\tif ( count( $query->posts ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }"
+        },
+        {
+          "line": 54,
+          "text": "\t\t$products = array();"
+        },
+        {
+          "line": 55,
+          "text": "\t\tforeach ( $query->posts as $post ) {"
+        },
+        {
+          "line": 56,
+          "text": "\t\t\t$product = wc_get_product( $post->ID );"
+        },
+        {
+          "line": 57,
+          "text": "\t\t\tif ( 'SKU' === $s['type'] && ( ! $product || $product->get_sku( 'edit' ) !== $s['sku'] ) ) { continue; }"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "SKU selection uses WP_Query meta_query with fixed _sku key and equality operator, validated bounded SKU value, posts_per_page=1001 engineering cap and exact Woo edit-context byte comparison. Free rejects >100 selected; query API prepares values.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-product-selector.php",
+      "line": 50,
+      "rules": [
+        "WordPress.DB.SlowDBQuery.slow_db_query_tax_query"
+      ],
+      "artifact_file_sha256": "e1afe48d177351cd6d675d4adfb0037d0b5a5a9f1d9508603b73f344851884fa",
+      "adjacent_code_context": [
+        {
+          "line": 47,
+          "text": "\t\t} else {"
+        },
+        {
+          "line": 48,
+          "text": "\t\t\t$term = get_term( $s['term_id'], 'product_cat' );"
+        },
+        {
+          "line": 49,
+          "text": "\t\t\tif ( ! $term || is_wp_error( $term ) ) { throw new Price_Validation_Error( 'invalid_category' ); }"
+        },
+        {
+          "line": 50,
+          "text": "\t\t\t$args['tax_query'] = array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => array( $s['term_id'] ), 'include_children' => false ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query"
+        },
+        {
+          "line": 51,
+          "text": "\t\t}"
+        },
+        {
+          "line": 52,
+          "text": "\t\t$query = new \\WP_Query( $args );"
+        },
+        {
+          "line": 53,
+          "text": "\t\tif ( count( $query->posts ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }"
+        },
+        {
+          "line": 54,
+          "text": "\t\t$products = array();"
+        },
+        {
+          "line": 55,
+          "text": "\t\tforeach ( $query->posts as $post ) {"
+        },
+        {
+          "line": 56,
+          "text": "\t\t\t$product = wc_get_product( $post->ID );"
+        },
+        {
+          "line": 57,
+          "text": "\t\t\tif ( 'SKU' === $s['type'] && ( ! $product || $product->get_sku( 'edit' ) !== $s['sku'] ) ) { continue; }"
+        },
+        {
+          "line": 58,
+          "text": "\t\t\t$products[ $post->ID ] = $product;"
+        },
+        {
+          "line": 59,
+          "text": "\t\t}"
+        },
+        {
+          "line": 60,
+          "text": "\t\tif ( 'SKU' === $s['type'] && count( $products ) > 1 ) { throw new Price_Validation_Error( 'ambiguous_sku' ); }"
+        },
+        {
+          "line": 61,
+          "text": "\t\t$ids = 'IDS' === $s['type'] ? $s['ids'] : array_keys( $products );"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Category selection uses WP_Query tax_query with fixed taxonomy/field/include_children=false, validated positive term ID, checked term and bounded population. This is supported selection, not request-generated SQL.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-runner-authority.php",
+      "line": 44,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "8ac5352e7e26915a0b7ff0b46aeffad483910e03c4b720cb32c0bb8ec0b5099b",
+      "adjacent_code_context": [
+        {
+          "line": 41,
+          "text": "\t/** Short autocommit shutdown transition on the same indexed row. */"
+        },
+        {
+          "line": 42,
+          "text": "\tpublic static function deactivate(): void {"
+        },
+        {
+          "line": 43,
+          "text": "\t\tglobal $wpdb;"
+        },
+        {
+          "line": 44,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The uncached indexed lifecycle UPDATE is the durable shutdown linearization point, not a cacheable read."
+        },
+        {
+          "line": 45,
+          "text": "\t\t$updated = $wpdb->query( $wpdb->prepare( 'UPDATE %i SET option_value=%s WHERE option_name=%s AND option_value=%s', $wpdb->options, 'deactivated', self::OPTION, 'active' ) );"
+        },
+        {
+          "line": 46,
+          "text": "\t\twp_cache_delete( self::OPTION, 'options' );"
+        },
+        {
+          "line": 47,
+          "text": "\t\twp_cache_delete( 'alloptions', 'options' );"
+        },
+        {
+          "line": 48,
+          "text": "\t\tif ( false === $updated || self::active( $wpdb ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }"
+        },
+        {
+          "line": 49,
+          "text": "\t}"
+        },
+        {
+          "line": 50,
+          "text": "}"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Lifecycle shutdown binds identifier/name/old/new value for indexed runner option CAS, deletes relevant option cache entries and verifies independent DB truth. Cached API state cannot establish the shutdown lock boundary.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 172,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 169,
+          "text": "\t\t\tif ( self::retention_expired_for( $locked_job, null ) ) { throw new Undo_Error( 'UNDO_EXPIRED' ); }"
+        },
+        {
+          "line": 170,
+          "text": "\t\t\tself::initiate_checkpoint( 'INITIATE_AFTER_JOB_LOCK', $job_id );"
+        },
+        {
+          "line": 171,
+          "text": "\t\t\t$operations = Undo_Schema::operations_table( $tx );"
+        },
+        {
+          "line": 172,
+          "text": "\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable Undo initiation INSERT requires DB authority; identifiers and values are prepared."
+        },
+        {
+          "line": 173,
+          "text": "\t\t\tif ( 1 !== $tx->query( $tx->prepare("
+        },
+        {
+          "line": 174,
+          "text": "\t\t\t\t\"INSERT INTO %i (schema_version,job_id,plan_id,public_id,initiator_id,status,status_reason,created_at,updated_at) VALUES (%d,%d,%s,%s,%d,%s,%s,UTC_TIMESTAMP(),UTC_TIMESTAMP())\","
+        },
+        {
+          "line": 175,
+          "text": "\t\t\t\t$operations, Undo_Schema::SCHEMA_VERSION, $job_id, $plan->data()['plan_id'], wp_generate_uuid4(), $initiator_id, Undo_State::PENDING, 'UNDO_INITIATED'"
+        },
+        {
+          "line": 176,
+          "text": "\t\t\t) ) ) {"
+        },
+        {
+          "line": 177,
+          "text": "\t\t\t\tthrow new Undo_Error( 'UNDO_NOT_ELIGIBLE' );"
+        },
+        {
+          "line": 178,
+          "text": "\t\t\t}"
+        },
+        {
+          "line": 179,
+          "text": "\t\t\t$undo_id = (int) $tx->insert_id;"
+        },
+        {
+          "line": 180,
+          "text": "\t\t\tif ( $undo_id < 1 ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }"
+        },
+        {
+          "line": 181,
+          "text": "\t\t\t// Reads inside insert_items use the pinned transaction connection:"
+        },
+        {
+          "line": 182,
+          "text": "\t\t\t// `$wpdb` is `$tx` here, so the frozen apply evidence is read"
+        },
+        {
+          "line": 183,
+          "text": "\t\t\t// while the job row lock excludes a concurrent purge."
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Undo initiation inserts only prepared plugin identifier/job/plan/UUID/initiator/state after parent-job locking, eligibility, retention, actor authorization and binding; durable SQL is required.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 240,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 237,
+          "text": "\t\t\t\t$product_id = (int) $job_item['product_id'];"
+        },
+        {
+          "line": 238,
+          "text": "\t\t\t\t$facts = self::provenance_facts( $tx, $job, $plan, $job_item, $initiator_id );"
+        },
+        {
+          "line": 239,
+          "text": "\t\t\t\t$captured = Undo_Fingerprint::capture( $facts );"
+        },
+        {
+          "line": 240,
+          "text": "\t\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotent Undo INSERT requires durable DB authority; identifiers and values are prepared."
+        },
+        {
+          "line": 241,
+          "text": "\t\t\t\tif ( false === $tx->query( $tx->prepare("
+        },
+        {
+          "line": 242,
+          "text": "\t\t\t\t\t\"INSERT INTO %i (schema_version,job_id,undo_id,plan_id,product_id,sequence,expected_price,applied_price,apply_attempt_id,state,reason,provenance,fingerprint,evidence,created_at,updated_at) VALUES (%d,%d,%d,%s,%d,%d,%s,%s,%s,%s,%s,%s,%s,'',UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id\","
+        },
+        {
+          "line": 243,
+          "text": "\t\t\t\t\t$items_table, Undo_Schema::SCHEMA_VERSION, $job_id, $undo_id, $plan->data()['plan_id'], $product_id, (int) $job_item['sequence'], $job_item['expected_price'], $job_item['planned_price'], $facts['apply_attempt_id'], Undo_Item_State::PENDING, 'UNDO_INITIATED', $captured['provenance'], $captured['fingerprint']"
+        },
+        {
+          "line": 244,
+          "text": "\t\t\t\t) ) ) {"
+        },
+        {
+          "line": 245,
+          "text": "\t\t\t\t\tthrow new Undo_Error( 'UNDO_NOT_ELIGIBLE' );"
+        },
+        {
+          "line": 246,
+          "text": "\t\t\t\t}"
+        },
+        {
+          "line": 247,
+          "text": "\t\t\t\t$row = self::read_item( $tx, $job_id, $product_id );"
+        },
+        {
+          "line": 248,
+          "text": "\t\t\t\tif ( ! $row || $row['fingerprint'] !== $captured['fingerprint'] || $row['expected_price'] !== $job_item['expected_price'] || $row['applied_price'] !== $job_item['planned_price'] ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }"
+        },
+        {
+          "line": 249,
+          "text": "\t\t\t\t++$eligible;"
+        },
+        {
+          "line": 250,
+          "text": "\t\t\t}"
+        },
+        {
+          "line": 251,
+          "text": "\t\t\t$offset += count( $batch );"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Undo item seed uses prepared identifiers/material/provenance and fixed idempotent duplicate action. Frozen apply provenance is validated before seeding; uncached DB authority is necessary.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 360,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 357,
+          "text": "\t\tUndo_Item_State::assert_transition( $row['state'], $state );"
+        },
+        {
+          "line": 358,
+          "text": "\t\tif ( ! preg_match( '/\\A[A-Z0-9_]{1,64}\\z/D', $reason ) ) { throw new Undo_Error( 'INVALID_UNDO_ITEM_TRANSITION' ); }"
+        },
+        {
+          "line": 359,
+          "text": "\t\t$table = Undo_Schema::items_table( $db );"
+        },
+        {
+          "line": 360,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Locked in-transaction Undo transition; values are prepared."
+        },
+        {
+          "line": 361,
+          "text": "\t\tif ( 1 !== $db->query( $db->prepare("
+        },
+        {
+          "line": 362,
+          "text": "\t\t\t\"UPDATE %i SET state=%s,reason=%s,attempt_id=%s,evidence=IF(%s<>'',%s,evidence),last_attempt_at=UTC_TIMESTAMP(),undone_at=IF(%s='UNDONE',UTC_TIMESTAMP(),undone_at),updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s\","
+        },
+        {
+          "line": 363,
+          "text": "\t\t\t$table, $state, $reason, $attempt, $evidence, $evidence, $state, (int) $row['id'], $row['state']"
+        },
+        {
+          "line": 364,
+          "text": "\t\t) ) ) {"
+        },
+        {
+          "line": 365,
+          "text": "\t\t\tthrow new Undo_Error( 'INVALID_UNDO_ITEM_TRANSITION' );"
+        },
+        {
+          "line": 366,
+          "text": "\t\t}"
+        },
+        {
+          "line": 367,
+          "text": "\t}"
+        },
+        {
+          "line": 368,
+          "text": ""
+        },
+        {
+          "line": 369,
+          "text": "\t// ------------------------------------------------------------------"
+        },
+        {
+          "line": 370,
+          "text": "\t// Claims, reconciliation, counters, leases."
+        },
+        {
+          "line": 371,
+          "text": "\t// ------------------------------------------------------------------"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Locked Undo transition checks reason grammar and state edge, then binds table/state/reason/attempt/evidence/item ID/from-state. Journal evidence needs same-transaction UPDATE.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 414,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 411,
+          "text": "\tpublic static function refresh_counters( \\wpdb $db, int $undo_id ): array {"
+        },
+        {
+          "line": 412,
+          "text": "\t\t$counts = self::derive_counts( $db, $undo_id );"
+        },
+        {
+          "line": 413,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        },
+        {
+          "line": 414,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Absolute truth repair from Undo item rows; values are prepared."
+        },
+        {
+          "line": 415,
+          "text": "\t\t$db->query( $db->prepare("
+        },
+        {
+          "line": 416,
+          "text": "\t\t\t'UPDATE %i SET undo_eligible=%d,undo_pending=%d,undo_applying=%d,undone=%d,undo_conflict=%d,undo_failed=%d,undo_needs_review=%d,updated_at=UTC_TIMESTAMP() WHERE id=%d',"
+        },
+        {
+          "line": 417,
+          "text": "\t\t\t$operations, $counts['eligible'], $counts['pending'], $counts['applying'], $counts['undone'], $counts['conflict'], $counts['failed'], $counts['needs_review'], $undo_id"
+        },
+        {
+          "line": 418,
+          "text": "\t\t) );"
+        },
+        {
+          "line": 419,
+          "text": "\t\treturn $counts;"
+        },
+        {
+          "line": 420,
+          "text": "\t}"
+        },
+        {
+          "line": 421,
+          "text": ""
+        },
+        {
+          "line": 422,
+          "text": "\t/**"
+        },
+        {
+          "line": 423,
+          "text": "\t * Claim the next bounded Undo item with a CAS that is itself fenced to the"
+        },
+        {
+          "line": 424,
+          "text": "\t * live Undo lease AND the locked, indexed lifecycle option row. Shutdown"
+        },
+        {
+          "line": 425,
+          "text": "\t * cannot delete/update the row between the check and the claim COMMIT."
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Absolute Undo counters are derived from durable item rows and bound as integers to a validated operation identifier/ID. This writes plugin-only summary truth.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 481,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 478,
+          "text": "\t\tif ( Undo_Item_State::UNDONE === $state && null === $undone_at ) { $undone_at = gmdate( 'Y-m-d H:i:s' ); }"
+        },
+        {
+          "line": 479,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 480,
+          "text": "\t\t$items = Undo_Schema::items_table( $db );"
+        },
+        {
+          "line": 481,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Claim-token CAS Undo item transition; values are prepared."
+        },
+        {
+          "line": 482,
+          "text": "\t\treturn 1 === $db->query( $db->prepare("
+        },
+        {
+          "line": 483,
+          "text": "\t\t\t'UPDATE %i SET state=%s,reason=%s,claim_token=\\'\\',claim_generation=0,undone_at=IF(%s=%s,COALESCE(%s,undone_at),undone_at),next_attempt_after=IF(%d=1,DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),NULL),updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND claim_token=%s',"
+        },
+        {
+          "line": 484,
+          "text": "\t\t\t$items, $state, $reason, $state, Undo_Item_State::UNDONE, $undone_at, $retry ? 1 : 0, self::RETRY_BACKOFF, (int) $item['id'], $item['state'], $token"
+        },
+        {
+          "line": 485,
+          "text": "\t\t) );"
+        },
+        {
+          "line": 486,
+          "text": "\t}"
+        },
+        {
+          "line": 487,
+          "text": ""
+        },
+        {
+          "line": 488,
+          "text": "\t/** Reconciliation of a stale claim after a lost worker: Undo journal truth wins. */"
+        },
+        {
+          "line": 489,
+          "text": "\tpublic static function reconcile_item( array $item, int $max_generation, string $state, string $reason, ?string $undone_at = null ): bool {"
+        },
+        {
+          "line": 490,
+          "text": "\t\tif ( ! in_array( $state, self::item_states(), true ) || ! preg_match( '/\\A[A-Z0-9_]{1,64}\\z/D', $reason ) ) { throw new Undo_Error( 'INVALID_UNDO_ITEM_STATE' ); }"
+        },
+        {
+          "line": 491,
+          "text": "\t\tUndo_Item_State::assert_transition( $item['state'], $state );"
+        },
+        {
+          "line": 492,
+          "text": "\t\tif ( Undo_Item_State::UNDONE === $state && null === $undone_at ) { $undone_at = gmdate( 'Y-m-d H:i:s' ); }"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Undo item CAS binds identifier/state/reason/token/timestamps/flags/TTL/item/from-state and requires claim token. No request-controlled query syntax.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 495,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 492,
+          "text": "\t\tif ( Undo_Item_State::UNDONE === $state && null === $undone_at ) { $undone_at = gmdate( 'Y-m-d H:i:s' ); }"
+        },
+        {
+          "line": 493,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 494,
+          "text": "\t\t$items = Undo_Schema::items_table( $db );"
+        },
+        {
+          "line": 495,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stale-generation Undo reconciliation CAS; values are prepared."
+        },
+        {
+          "line": 496,
+          "text": "\t\treturn 1 === $db->query( $db->prepare("
+        },
+        {
+          "line": 497,
+          "text": "\t\t\t\"UPDATE %i SET state=%s,reason=%s,claim_token='',claim_generation=0,undone_at=IF(%s='UNDONE',COALESCE(%s,undone_at),undone_at),next_attempt_after=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND claim_generation<%d\","
+        },
+        {
+          "line": 498,
+          "text": "\t\t\t$items, $state, $reason, $state, $undone_at, (int) $item['id'], $item['state'], $max_generation"
+        },
+        {
+          "line": 499,
+          "text": "\t\t) );"
+        },
+        {
+          "line": 500,
+          "text": "\t}"
+        },
+        {
+          "line": 501,
+          "text": ""
+        },
+        {
+          "line": 502,
+          "text": "\t/** Stale claimed Undo items for reconciliation at a new lease generation. */"
+        },
+        {
+          "line": 503,
+          "text": "\tpublic static function stale_claims( int $undo_id, int $generation ): array {"
+        },
+        {
+          "line": 504,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 505,
+          "text": "\t\t$items = Undo_Schema::items_table( $db );"
+        },
+        {
+          "line": 506,
+          "text": "\t\treturn $db->get_results( $db->prepare( 'SELECT * FROM %i WHERE undo_id=%d AND claim_generation>0 AND claim_generation<%d ORDER BY sequence ASC', $items, $undo_id, $generation ), ARRAY_A );"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Stale-generation Undo reconciliation binds every value and requires claim_generation below fenced generation. Static predicate protects fresh claimants.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 514,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 511,
+          "text": "\t\tif ( '' === $token ) { return false; }"
+        },
+        {
+          "line": 512,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 513,
+          "text": "\t\t$items = Undo_Schema::items_table( $db );"
+        },
+        {
+          "line": 514,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Claim-token housekeeping; values are prepared."
+        },
+        {
+          "line": 515,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET claim_token='',claim_generation=0,updated_at=UTC_TIMESTAMP() WHERE id=%d AND claim_token=%s\", $items, $item_id, $token ) );"
+        },
+        {
+          "line": 516,
+          "text": "\t}"
+        },
+        {
+          "line": 517,
+          "text": ""
+        },
+        {
+          "line": 518,
+          "text": "\t/** Arm the bounded retry backoff on a pending Undo item and release the claim. */"
+        },
+        {
+          "line": 519,
+          "text": "\tpublic static function defer_item( int $item_id, string $token ): bool {"
+        },
+        {
+          "line": 520,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 521,
+          "text": "\t\t$items = Undo_Schema::items_table( $db );"
+        },
+        {
+          "line": 522,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded Undo retry backoff; values are prepared."
+        },
+        {
+          "line": 523,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET claim_token='',claim_generation=0,next_attempt_after=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),updated_at=UTC_TIMESTAMP() WHERE id=%d AND claim_token=%s AND state=%s\", $items, self::RETRY_BACKOFF, $item_id, $token, Undo_Item_State::PENDING ) );"
+        },
+        {
+          "line": 524,
+          "text": "\t}"
+        },
+        {
+          "line": 525,
+          "text": ""
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Claim housekeeping binds plugin table/item/token and clears only the matching token. Cache cannot enforce claim ownership.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 522,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 519,
+          "text": "\tpublic static function defer_item( int $item_id, string $token ): bool {"
+        },
+        {
+          "line": 520,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 521,
+          "text": "\t\t$items = Undo_Schema::items_table( $db );"
+        },
+        {
+          "line": 522,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded Undo retry backoff; values are prepared."
+        },
+        {
+          "line": 523,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET claim_token='',claim_generation=0,next_attempt_after=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),updated_at=UTC_TIMESTAMP() WHERE id=%d AND claim_token=%s AND state=%s\", $items, self::RETRY_BACKOFF, $item_id, $token, Undo_Item_State::PENDING ) );"
+        },
+        {
+          "line": 524,
+          "text": "\t}"
+        },
+        {
+          "line": 525,
+          "text": ""
+        },
+        {
+          "line": 526,
+          "text": "\t/** Undo operation status derivation: durable Undo item truth decides. */"
+        },
+        {
+          "line": 527,
+          "text": "\tpublic static function derive_terminal_status( array $counts ): string {"
+        },
+        {
+          "line": 528,
+          "text": "\t\tif ( $counts['pending'] > 0 || $counts['applying'] > 0 ) { throw new Undo_Error( 'UNDO_NOT_TERMINAL' ); }"
+        },
+        {
+          "line": 529,
+          "text": "\t\tif ( $counts['needs_review'] > 0 ) { return Undo_State::NEEDS_REVIEW; }"
+        },
+        {
+          "line": 530,
+          "text": "\t\tif ( $counts['conflict'] > 0 || $counts['failed'] > 0 ) { return Undo_State::COMPLETED_WITH_ISSUES; }"
+        },
+        {
+          "line": 531,
+          "text": "\t\treturn Undo_State::COMPLETED;"
+        },
+        {
+          "line": 532,
+          "text": "\t}"
+        },
+        {
+          "line": 533,
+          "text": ""
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Retry backoff binds fixed retry TTL, item/token/PENDING and plugin identifier; it cannot introduce arbitrary interval syntax or operate on Woo rows.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 550,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 547,
+          "text": "\t\t$statuses = $manual ? array( Undo_State::PENDING, Undo_State::RUNNING, Undo_State::PAUSED, Undo_State::NEEDS_REVIEW ) : array( Undo_State::PENDING, Undo_State::RUNNING );"
+        },
+        {
+          "line": 548,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        },
+        {
+          "line": 549,
+          "text": "\t\t$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );"
+        },
+        {
+          "line": 550,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic Undo lease CAS; identifiers and values are prepared."
+        },
+        {
+          "line": 551,
+          "text": "\t\t$updated = $db->query( $db->prepare("
+        },
+        {
+          "line": 552,
+          "text": "\t\t\t\"UPDATE %i SET lease_owner=%s,lease_generation=lease_generation+1,lease_expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),last_worker_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP(),status=%s,status_reason=%s,started_at=IFNULL(started_at,UTC_TIMESTAMP()) WHERE id=%d AND status IN ($placeholders) AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\","
+        },
+        {
+          "line": 553,
+          "text": "\t\t\tarray_merge( array( $operations, $owner, self::LEASE_TTL, Undo_State::RUNNING, 'UNDO_ACTIVE', $undo_id ), $statuses )"
+        },
+        {
+          "line": 554,
+          "text": "\t\t) );"
+        },
+        {
+          "line": 555,
+          "text": "\t\tif ( 1 !== $updated ) { return array(); }"
+        },
+        {
+          "line": 556,
+          "text": "\t\t$row = $db->get_row( $db->prepare( 'SELECT lease_owner,lease_generation,lease_expires_at FROM %i WHERE id=%d', $operations, $undo_id ), ARRAY_A );"
+        },
+        {
+          "line": 557,
+          "text": "\t\tif ( ! $row || $row['lease_owner'] !== $owner ) { return array(); }"
+        },
+        {
+          "line": 558,
+          "text": "\t\treturn array( 'owner' => $owner, 'generation' => (int) $row['lease_generation'], 'expires_at' => $row['lease_expires_at'] );"
+        },
+        {
+          "line": 559,
+          "text": "\t}"
+        },
+        {
+          "line": 560,
+          "text": ""
+        },
+        {
+          "line": 561,
+          "text": "\t/** Fence identity (owner + generation). Expiry only gates takeover, not continuation. */"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Undo lease CAS binds owner/TTL/status/operation ID and validated plugin table. IN list derives fixed states as placeholder count; expiry/generation logic is DB authority.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 571,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 568,
+          "text": "\tpublic static function renew_lease( int $undo_id, string $owner, int $generation ): bool {"
+        },
+        {
+          "line": 569,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 570,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        },
+        {
+          "line": 571,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced Undo lease renewal; values are prepared."
+        },
+        {
+          "line": 572,
+          "text": "\t\t$db->query( $db->prepare( 'UPDATE %i SET lease_expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),last_worker_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND lease_owner=%s AND lease_generation=%d', $operations, self::LEASE_TTL, $undo_id, $owner, $generation ) );"
+        },
+        {
+          "line": 573,
+          "text": "\t\treturn self::fence( $undo_id, $owner, $generation );"
+        },
+        {
+          "line": 574,
+          "text": "\t}"
+        },
+        {
+          "line": 575,
+          "text": ""
+        },
+        {
+          "line": 576,
+          "text": "\t/** Fenced terminal/chunk-boundary transition that also releases the lease. */"
+        },
+        {
+          "line": 577,
+          "text": "\tpublic static function finish_chunk( array $operation, string $owner, int $generation, string $status, string $reason ): bool {"
+        },
+        {
+          "line": 578,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 579,
+          "text": "\t\tUndo_State::assert_transition( $operation['status'], $status );"
+        },
+        {
+          "line": 580,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        },
+        {
+          "line": 581,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced Undo status + lease release; values are prepared."
+        },
+        {
+          "line": 582,
+          "text": "\t\treturn 1 === $db->query( $db->prepare("
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Fenced renewal binds table/TTL/operation/owner/generation, then rechecks fence. Same-second row count does not grant ownership without the reread.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 581,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 578,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 579,
+          "text": "\t\tUndo_State::assert_transition( $operation['status'], $status );"
+        },
+        {
+          "line": 580,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        },
+        {
+          "line": 581,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced Undo status + lease release; values are prepared."
+        },
+        {
+          "line": 582,
+          "text": "\t\treturn 1 === $db->query( $db->prepare("
+        },
+        {
+          "line": 583,
+          "text": "\t\t\t\"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,updated_at=UTC_TIMESTAMP(),completed_at=IF(%s IN ('UNDO_COMPLETED','UNDO_COMPLETED_WITH_ISSUES'),UTC_TIMESTAMP(),completed_at) WHERE id=%d AND status=%s AND lease_owner=%s AND lease_generation=%d\","
+        },
+        {
+          "line": 584,
+          "text": "\t\t\t$operations, $status, $reason, $status, (int) $operation['id'], $operation['status'], $owner, $generation"
+        },
+        {
+          "line": 585,
+          "text": "\t\t) );"
+        },
+        {
+          "line": 586,
+          "text": "\t}"
+        },
+        {
+          "line": 587,
+          "text": ""
+        },
+        {
+          "line": 588,
+          "text": "\t/** Unlocked scheduler transition; never clobbers an operation a worker is running. */"
+        },
+        {
+          "line": 589,
+          "text": "\tpublic static function transition_unlocked( int $undo_id, string $from_status, string $to_status, string $reason ): bool {"
+        },
+        {
+          "line": 590,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 591,
+          "text": "\t\tUndo_State::assert_transition( $from_status, $to_status );"
+        },
+        {
+          "line": 592,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Operation status transition binds fixed and validated values plus stored from-state/lease owner/generation; static CASE predicates mark terminal completion and release lease.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 593,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 590,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 591,
+          "text": "\t\tUndo_State::assert_transition( $from_status, $to_status );"
+        },
+        {
+          "line": 592,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        },
+        {
+          "line": 593,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Guarded Undo scheduler transition; values are prepared."
+        },
+        {
+          "line": 594,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( 'UPDATE %i SET status=%s,status_reason=%s,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s AND lease_owner=%s', $operations, $to_status, $reason, $undo_id, $from_status, '' ) );"
+        },
+        {
+          "line": 595,
+          "text": "\t}"
+        },
+        {
+          "line": 596,
+          "text": ""
+        },
+        {
+          "line": 597,
+          "text": "\tpublic static function mark_paused( int $undo_id, string $reason ): bool {"
+        },
+        {
+          "line": 598,
+          "text": "\t\t$operation = self::read_operation( $undo_id );"
+        },
+        {
+          "line": 599,
+          "text": "\t\tif ( ! $operation || Undo_State::PENDING !== $operation['status'] || '' !== $operation['lease_owner'] ) { return false; }"
+        },
+        {
+          "line": 600,
+          "text": "\t\treturn self::transition_unlocked( $undo_id, $operation['status'], Undo_State::PAUSED, $reason );"
+        },
+        {
+          "line": 601,
+          "text": "\t}"
+        },
+        {
+          "line": 602,
+          "text": ""
+        },
+        {
+          "line": 603,
+          "text": "\t/** Reconcile dead Undo workers after activation: pause RUNNING operations with no live lease. */"
+        },
+        {
+          "line": 604,
+          "text": "\tpublic static function reap_stalled_leases(): int {"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Scheduler transition validates the edge and binds table/states/reason/operation/empty owner. It cannot bypass durable operation authorization.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 608,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 605,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 606,
+          "text": "\t\tif ( ! Undo_Schema::ready( $db ) ) { return 0; }"
+        },
+        {
+          "line": 607,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        },
+        {
+          "line": 608,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded Undo lease recovery on activation; no product state is touched."
+        },
+        {
+          "line": 609,
+          "text": "\t\t$reaped = $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,updated_at=UTC_TIMESTAMP() WHERE status=%s AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\", $operations, Undo_State::PAUSED, 'LEASE_RECOVERY', Undo_State::RUNNING ) );"
+        },
+        {
+          "line": 610,
+          "text": "\t\treturn is_int( $reaped ) ? $reaped : 0;"
+        },
+        {
+          "line": 611,
+          "text": "\t}"
+        },
+        {
+          "line": 612,
+          "text": ""
+        },
+        {
+          "line": 613,
+          "text": "\t/** Pause a RUNNING operation whose worker is gone (expired or absent lease). */"
+        },
+        {
+          "line": 614,
+          "text": "\tpublic static function pause_stalled( int $undo_id, string $reason ): bool {"
+        },
+        {
+          "line": 615,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 616,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        },
+        {
+          "line": 617,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stalled Undo lease revocation CAS; values are prepared."
+        },
+        {
+          "line": 618,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\", $operations, Undo_State::PAUSED, $reason, $undo_id, Undo_State::RUNNING ) );"
+        },
+        {
+          "line": 619,
+          "text": "\t}"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Activation recovers only stale RUNNING leases using bound PAUSED/RUNNING values, clears owner and increments generation; no product data change.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 617,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 614,
+          "text": "\tpublic static function pause_stalled( int $undo_id, string $reason ): bool {"
+        },
+        {
+          "line": 615,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 616,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        },
+        {
+          "line": 617,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stalled Undo lease revocation CAS; values are prepared."
+        },
+        {
+          "line": 618,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\", $operations, Undo_State::PAUSED, $reason, $undo_id, Undo_State::RUNNING ) );"
+        },
+        {
+          "line": 619,
+          "text": "\t}"
+        },
+        {
+          "line": 620,
+          "text": ""
+        },
+        {
+          "line": 621,
+          "text": "\t/** Operator cancel: stop claims, retain UNDONE facts. Never re-applies. */"
+        },
+        {
+          "line": 622,
+          "text": "\tpublic static function cancel( int $undo_id, int $actor ): bool {"
+        },
+        {
+          "line": 623,
+          "text": "\t\t$operation = self::read_operation( $undo_id );"
+        },
+        {
+          "line": 624,
+          "text": "\t\tif ( ! $operation ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }"
+        },
+        {
+          "line": 625,
+          "text": "\t\tUndo_State::assert_transition( $operation['status'], Undo_State::CANCELLED );"
+        },
+        {
+          "line": 626,
+          "text": "\t\t$db = self::db();"
+        },
+        {
+          "line": 627,
+          "text": "\t\t$operations = Undo_Schema::operations_table( $db );"
+        },
+        {
+          "line": 628,
+          "text": "\t\t// Revoking the lease generation fences any in-flight worker at its next"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Manual stale-lease CAS binds operation/status/reason with expiry predicate and generation increment. No unchecked request-generated identifier or condition.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 631,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 628,
+          "text": "\t\t// Revoking the lease generation fences any in-flight worker at its next"
+        },
+        {
+          "line": 629,
+          "text": "\t\t// boundary. This UPDATE waits behind an in-flight Undo item's fence row"
+        },
+        {
+          "line": 630,
+          "text": "\t\t// lock, so cancel cannot revoke ownership mid-commit."
+        },
+        {
+          "line": 631,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Operator Undo cancel CAS; values are prepared."
+        },
+        {
+          "line": 632,
+          "text": "\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s\", $operations, Undo_State::CANCELLED, 'UNDO_CANCELLED', $undo_id, $operation['status'] ) );"
+        },
+        {
+          "line": 633,
+          "text": "\t}"
+        },
+        {
+          "line": 634,
+          "text": ""
+        },
+        {
+          "line": 635,
+          "text": "\t/**"
+        },
+        {
+          "line": 636,
+          "text": "\t * Read-only truthful view. A dead worker's lease is reported as stalled"
+        },
+        {
+          "line": 637,
+          "text": "\t * instead of pretending the operation is actively running."
+        },
+        {
+          "line": 638,
+          "text": "\t */"
+        },
+        {
+          "line": 639,
+          "text": "\tpublic static function observe( int $undo_id ): array {"
+        },
+        {
+          "line": 640,
+          "text": "\t\t$operation = self::read_operation( $undo_id );"
+        },
+        {
+          "line": 641,
+          "text": "\t\tif ( ! $operation ) { throw new Undo_Error( 'UNDO_NOT_ELIGIBLE' ); }"
+        },
+        {
+          "line": 642,
+          "text": "\t\t$db = self::db();"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Cancellation takes operation lock and binds plugin identifier/ID/status. It retains UNDONE facts and revokes future claims rather than reapplying prices.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 707,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 704,
+          "text": "\t\t\t$where = '(creator_id=%d OR approver_id=%d)';"
+        },
+        {
+          "line": 705,
+          "text": "\t\t\t$scope = array( $viewer_id, $viewer_id );"
+        },
+        {
+          "line": 706,
+          "text": "\t\t}"
+        },
+        {
+          "line": 707,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Actor-scoped history read over plugin-owned tables; identifiers and values are prepared."
+        },
+        {
+          "line": 708,
+          "text": "\t\t$total = (int) $db->get_var( $db->prepare( \"SELECT COUNT(*) FROM %i WHERE $where\", $jobs, ...$scope ) );"
+        },
+        {
+          "line": 709,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Actor-scoped history read over plugin-owned tables; identifiers and values are prepared."
+        },
+        {
+          "line": 710,
+          "text": "\t\t$rows = $db->get_results( $db->prepare( \"SELECT * FROM %i WHERE $where ORDER BY id DESC LIMIT %d OFFSET %d\", $jobs, ...array_merge( $scope, array( $limit, $offset ) ) ), ARRAY_A );"
+        },
+        {
+          "line": 711,
+          "text": "\t\t$jobs_page = array();"
+        },
+        {
+          "line": 712,
+          "text": "\t\tforeach ( $rows as $job ) {"
+        },
+        {
+          "line": 713,
+          "text": "\t\t\t$jobs_page[] = self::history_job( (int) $job['id'] );"
+        },
+        {
+          "line": 714,
+          "text": "\t\t}"
+        },
+        {
+          "line": 715,
+          "text": "\t\t$returned = count( $jobs_page );"
+        },
+        {
+          "line": 716,
+          "text": "\t\treturn array("
+        },
+        {
+          "line": 717,
+          "text": "\t\t\t'offset' => $offset,"
+        },
+        {
+          "line": 718,
+          "text": "\t\t\t'limit' => $limit,"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "History COUNT binds plugin jobs identifier and viewer IDs. WHERE has exactly two internal forms: admin 1=1 or creator_id=%d OR approver_id=%d; scope precedes pagination.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 709,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 706,
+          "text": "\t\t}"
+        },
+        {
+          "line": 707,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Actor-scoped history read over plugin-owned tables; identifiers and values are prepared."
+        },
+        {
+          "line": 708,
+          "text": "\t\t$total = (int) $db->get_var( $db->prepare( \"SELECT COUNT(*) FROM %i WHERE $where\", $jobs, ...$scope ) );"
+        },
+        {
+          "line": 709,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Actor-scoped history read over plugin-owned tables; identifiers and values are prepared."
+        },
+        {
+          "line": 710,
+          "text": "\t\t$rows = $db->get_results( $db->prepare( \"SELECT * FROM %i WHERE $where ORDER BY id DESC LIMIT %d OFFSET %d\", $jobs, ...array_merge( $scope, array( $limit, $offset ) ) ), ARRAY_A );"
+        },
+        {
+          "line": 711,
+          "text": "\t\t$jobs_page = array();"
+        },
+        {
+          "line": 712,
+          "text": "\t\tforeach ( $rows as $job ) {"
+        },
+        {
+          "line": 713,
+          "text": "\t\t\t$jobs_page[] = self::history_job( (int) $job['id'] );"
+        },
+        {
+          "line": 714,
+          "text": "\t\t}"
+        },
+        {
+          "line": 715,
+          "text": "\t\t$returned = count( $jobs_page );"
+        },
+        {
+          "line": 716,
+          "text": "\t\treturn array("
+        },
+        {
+          "line": 717,
+          "text": "\t\t\t'offset' => $offset,"
+        },
+        {
+          "line": 718,
+          "text": "\t\t\t'limit' => $limit,"
+        },
+        {
+          "line": 719,
+          "text": "\t\t\t'total' => $total,"
+        },
+        {
+          "line": 720,
+          "text": "\t\t\t'jobs' => $jobs_page,"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "History page uses the same fixed actor predicate and prepared table/viewer/LIMIT/OFFSET, with validated offset/limit and deterministic ID order. No cache hides durable recovery truth.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 805,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 802,
+          "text": "\t\tif ( null !== $apply_state ) { $where .= ' AND i.state=%s'; $args[] = $apply_state; }"
+        },
+        {
+          "line": 803,
+          "text": "\t\tif ( null !== $undo_state ) { $where .= ' AND u.state=%s'; $args[] = $undo_state; }"
+        },
+        {
+          "line": 804,
+          "text": "\t\t$join = 'FROM %i i LEFT JOIN %i u ON u.job_id=i.job_id AND u.product_id=i.product_id WHERE ' . $where;"
+        },
+        {
+          "line": 805,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier-qualified join over plugin-owned tables; identifiers and values are prepared."
+        },
+        {
+          "line": 806,
+          "text": "\t\t$total = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) ' . $join, $job_items, $undo_items, ...$args ) );"
+        },
+        {
+          "line": 807,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier-qualified join over plugin-owned tables; identifiers and values are prepared."
+        },
+        {
+          "line": 808,
+          "text": "\t\t$rows = $db->get_results( $db->prepare( 'SELECT i.product_id,i.sequence,i.expected_price,i.planned_price,i.state AS apply_state,i.reason AS apply_reason,i.applied_at,u.state AS undo_state,u.reason AS undo_reason,u.undone_at ' . $join . ' ORDER BY i.sequence ASC, i.product_id ASC LIMIT %d OFFSET %d', $job_items, $undo_items, ...array_merge( $args, array( $limit, $offset ) ) ), ARRAY_A );"
+        },
+        {
+          "line": 809,
+          "text": "\t\t$items = array();"
+        },
+        {
+          "line": 810,
+          "text": "\t\tforeach ( $rows as $row ) {"
+        },
+        {
+          "line": 811,
+          "text": "\t\t\t$items[] = array("
+        },
+        {
+          "line": 812,
+          "text": "\t\t\t\t'product_id' => (int) $row['product_id'],"
+        },
+        {
+          "line": 813,
+          "text": "\t\t\t\t'sequence' => (int) $row['sequence'],"
+        },
+        {
+          "line": 814,
+          "text": "\t\t\t\t'expected_price' => $row['expected_price'],"
+        },
+        {
+          "line": 815,
+          "text": "\t\t\t\t'planned_price' => $row['planned_price'],"
+        },
+        {
+          "line": 816,
+          "text": "\t\t\t\t'apply_state' => $row['apply_state'],"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Item COUNT join uses two %i identifiers; filter syntax is fixed and apply/undo state filters use validated enums with placeholders. Job ID is bound.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 807,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 804,
+          "text": "\t\t$join = 'FROM %i i LEFT JOIN %i u ON u.job_id=i.job_id AND u.product_id=i.product_id WHERE ' . $where;"
+        },
+        {
+          "line": 805,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier-qualified join over plugin-owned tables; identifiers and values are prepared."
+        },
+        {
+          "line": 806,
+          "text": "\t\t$total = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) ' . $join, $job_items, $undo_items, ...$args ) );"
+        },
+        {
+          "line": 807,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier-qualified join over plugin-owned tables; identifiers and values are prepared."
+        },
+        {
+          "line": 808,
+          "text": "\t\t$rows = $db->get_results( $db->prepare( 'SELECT i.product_id,i.sequence,i.expected_price,i.planned_price,i.state AS apply_state,i.reason AS apply_reason,i.applied_at,u.state AS undo_state,u.reason AS undo_reason,u.undone_at ' . $join . ' ORDER BY i.sequence ASC, i.product_id ASC LIMIT %d OFFSET %d', $job_items, $undo_items, ...array_merge( $args, array( $limit, $offset ) ) ), ARRAY_A );"
+        },
+        {
+          "line": 809,
+          "text": "\t\t$items = array();"
+        },
+        {
+          "line": 810,
+          "text": "\t\tforeach ( $rows as $row ) {"
+        },
+        {
+          "line": 811,
+          "text": "\t\t\t$items[] = array("
+        },
+        {
+          "line": 812,
+          "text": "\t\t\t\t'product_id' => (int) $row['product_id'],"
+        },
+        {
+          "line": 813,
+          "text": "\t\t\t\t'sequence' => (int) $row['sequence'],"
+        },
+        {
+          "line": 814,
+          "text": "\t\t\t\t'expected_price' => $row['expected_price'],"
+        },
+        {
+          "line": 815,
+          "text": "\t\t\t\t'planned_price' => $row['planned_price'],"
+        },
+        {
+          "line": 816,
+          "text": "\t\t\t\t'apply_state' => $row['apply_state'],"
+        },
+        {
+          "line": 817,
+          "text": "\t\t\t\t'apply_reason' => $row['apply_reason'],"
+        },
+        {
+          "line": 818,
+          "text": "\t\t\t\t'applied_at' => $row['applied_at'],"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "History item page uses the same prepared join and bound job/enums/limit/offset after range validation. State/reason fields go to escaped Admin renderers.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 852,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 849,
+          "text": "\t\t$where = 'job_id=%d';"
+        },
+        {
+          "line": 850,
+          "text": "\t\t$args = array( $job_id );"
+        },
+        {
+          "line": 851,
+          "text": "\t\tif ( null !== $apply_state ) { $where .= ' AND state=%s'; $args[] = $apply_state; }"
+        },
+        {
+          "line": 852,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only history page over the plugin-owned job items table; identifiers and values are prepared."
+        },
+        {
+          "line": 853,
+          "text": "\t\t$total = (int) $db->get_var( $db->prepare( \"SELECT COUNT(*) FROM %i WHERE $where\", $job_items, ...$args ) );"
+        },
+        {
+          "line": 854,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only history page over the plugin-owned job items table; identifiers and values are prepared."
+        },
+        {
+          "line": 855,
+          "text": "\t\t$rows = $db->get_results( $db->prepare( \"SELECT product_id,sequence,expected_price,planned_price,state AS apply_state,reason AS apply_reason,applied_at FROM %i WHERE $where ORDER BY sequence ASC, product_id ASC LIMIT %d OFFSET %d\", $job_items, ...array_merge( $args, array( $limit, $offset ) ) ), ARRAY_A );"
+        },
+        {
+          "line": 856,
+          "text": "\t\t$items = array();"
+        },
+        {
+          "line": 857,
+          "text": "\t\tforeach ( $rows as $row ) {"
+        },
+        {
+          "line": 858,
+          "text": "\t\t\t$items[] = array("
+        },
+        {
+          "line": 859,
+          "text": "\t\t\t\t'product_id' => (int) $row['product_id'],"
+        },
+        {
+          "line": 860,
+          "text": "\t\t\t\t'sequence' => (int) $row['sequence'],"
+        },
+        {
+          "line": 861,
+          "text": "\t\t\t\t'expected_price' => $row['expected_price'],"
+        },
+        {
+          "line": 862,
+          "text": "\t\t\t\t'planned_price' => $row['planned_price'],"
+        },
+        {
+          "line": 863,
+          "text": "\t\t\t\t'apply_state' => $row['apply_state'],"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Pre-Undo-schema history COUNT uses a fixed job predicate plus optional fixed state placeholder; table/job/state are prepared. No schema install occurs on read.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "line": 854,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "adjacent_code_context": [
+        {
+          "line": 851,
+          "text": "\t\tif ( null !== $apply_state ) { $where .= ' AND state=%s'; $args[] = $apply_state; }"
+        },
+        {
+          "line": 852,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only history page over the plugin-owned job items table; identifiers and values are prepared."
+        },
+        {
+          "line": 853,
+          "text": "\t\t$total = (int) $db->get_var( $db->prepare( \"SELECT COUNT(*) FROM %i WHERE $where\", $job_items, ...$args ) );"
+        },
+        {
+          "line": 854,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only history page over the plugin-owned job items table; identifiers and values are prepared."
+        },
+        {
+          "line": 855,
+          "text": "\t\t$rows = $db->get_results( $db->prepare( \"SELECT product_id,sequence,expected_price,planned_price,state AS apply_state,reason AS apply_reason,applied_at FROM %i WHERE $where ORDER BY sequence ASC, product_id ASC LIMIT %d OFFSET %d\", $job_items, ...array_merge( $args, array( $limit, $offset ) ) ), ARRAY_A );"
+        },
+        {
+          "line": 856,
+          "text": "\t\t$items = array();"
+        },
+        {
+          "line": 857,
+          "text": "\t\tforeach ( $rows as $row ) {"
+        },
+        {
+          "line": 858,
+          "text": "\t\t\t$items[] = array("
+        },
+        {
+          "line": 859,
+          "text": "\t\t\t\t'product_id' => (int) $row['product_id'],"
+        },
+        {
+          "line": 860,
+          "text": "\t\t\t\t'sequence' => (int) $row['sequence'],"
+        },
+        {
+          "line": 861,
+          "text": "\t\t\t\t'expected_price' => $row['expected_price'],"
+        },
+        {
+          "line": 862,
+          "text": "\t\t\t\t'planned_price' => $row['planned_price'],"
+        },
+        {
+          "line": 863,
+          "text": "\t\t\t\t'apply_state' => $row['apply_state'],"
+        },
+        {
+          "line": 864,
+          "text": "\t\t\t\t'apply_reason' => $row['apply_reason'],"
+        },
+        {
+          "line": 865,
+          "text": "\t\t\t\t'applied_at' => $row['applied_at'],"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Pre-Undo-schema history page binds table/job/state/LIMIT/OFFSET with bounded validated pagination and deterministic sequence/product ordering. Read-only uncached truth.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-worker.php",
+      "line": 303,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "a51e4261bf641812e32ca8b3f7526e7cb26edbf4d2f8e5a887a01be00099c763",
+      "adjacent_code_context": [
+        {
+          "line": 300,
+          "text": "\t\tglobal $wpdb;"
+        },
+        {
+          "line": 301,
+          "text": "\t\tif ( ! Undo_Schema::ready( $wpdb ) || ! Job_Schema::ready( $wpdb ) ) { return false; }"
+        },
+        {
+          "line": 302,
+          "text": "\t\t$journal = Price_Apply_Journal::table( $wpdb );"
+        },
+        {
+          "line": 303,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- information_schema existence probe; caching it would be wrong."
+        },
+        {
+          "line": 304,
+          "text": "\t\t$exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $journal ) );"
+        },
+        {
+          "line": 305,
+          "text": "\t\tif ( 1 !== $exists ) { return false; }"
+        },
+        {
+          "line": 306,
+          "text": "\t\ttry { Price_Apply_Journal::assert_schema( $wpdb ); return true; }"
+        },
+        {
+          "line": 307,
+          "text": "\t\tcatch ( \\Throwable $error ) { return false; }"
+        },
+        {
+          "line": 308,
+          "text": "\t}"
+        },
+        {
+          "line": 309,
+          "text": ""
+        },
+        {
+          "line": 310,
+          "text": "\t/** WooCommerce and its exact supported version must be active and initialized. */"
+        },
+        {
+          "line": 311,
+          "text": "\tprivate static function dependency_ok(): bool {"
+        },
+        {
+          "line": 312,
+          "text": "\t\treturn Free_Support_Contract::woocommerce_ok() && ! is_multisite();"
+        },
+        {
+          "line": 313,
+          "text": "\t}"
+        },
+        {
+          "line": 314,
+          "text": ""
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Journal existence check binds table name as a value in information_schema, then verifies schema; it requires current DB truth before Undo work.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "includes/free/class-undo-worker.php",
+      "line": 327,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "a51e4261bf641812e32ca8b3f7526e7cb26edbf4d2f8e5a887a01be00099c763",
+      "adjacent_code_context": [
+        {
+          "line": 324,
+          "text": "\t */"
+        },
+        {
+          "line": 325,
+          "text": "\tprivate static function runner_active(): bool {"
+        },
+        {
+          "line": 326,
+          "text": "\t\tglobal $wpdb;"
+        },
+        {
+          "line": 327,
+          "text": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lifecycle gate; uncached read is intentional."
+        },
+        {
+          "line": 328,
+          "text": "\t\t$value = $wpdb->get_var( $wpdb->prepare( \"SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1\", 'writeleash_runner_state' ) );"
+        },
+        {
+          "line": 329,
+          "text": "\t\treturn 'active' === $value;"
+        },
+        {
+          "line": 330,
+          "text": "\t}"
+        },
+        {
+          "line": 331,
+          "text": ""
+        },
+        {
+          "line": 332,
+          "text": "\tprivate static function pause_unleased( int $undo_id, string $reason ): void {"
+        },
+        {
+          "line": 333,
+          "text": "\t\ttry {"
+        },
+        {
+          "line": 334,
+          "text": "\t\t\tif ( Undo_Repository::mark_paused( $undo_id, $reason ) ) { return; }"
+        },
+        {
+          "line": 335,
+          "text": "\t\t\tUndo_Repository::pause_stalled( $undo_id, $reason );"
+        },
+        {
+          "line": 336,
+          "text": "\t\t} catch ( \\Throwable $error ) {"
+        },
+        {
+          "line": 337,
+          "text": "\t\t\t// Persisting the typed pause is best effort; no product mutation happens either way."
+        },
+        {
+          "line": 338,
+          "text": "\t\t}"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Uncached runner observation binds exact runner name against WordPress options; mutation still requires Runner_Authority lock_active on the pinned transaction.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    },
+    {
+      "file": "uninstall.php",
+      "line": 30,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "artifact_file_sha256": "d826c6ef5ea01875349a5bc4a9b2b52ecfb7a75e122322f2de216ad9be041670",
+      "adjacent_code_context": [
+        {
+          "line": 27,
+          "text": "// delete_option() return without issuing a DELETE."
+        },
+        {
+          "line": 28,
+          "text": "global $wpdb;"
+        },
+        {
+          "line": 29,
+          "text": "delete_option( 'writeleash_runner_state' );"
+        },
+        {
+          "line": 30,
+          "text": "// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Independent uncached DB verification of the safety-critical shutdown; the option cache can be stale across processes."
+        },
+        {
+          "line": 31,
+          "text": "$writeleash_state = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name=%s LIMIT 1', $wpdb->options, 'writeleash_runner_state' ) );"
+        },
+        {
+          "line": 32,
+          "text": "if ( '' !== (string) $wpdb->last_error || 'active' === $writeleash_state ) {"
+        },
+        {
+          "line": 33,
+          "text": "\twp_die( 'WriteLeash uninstall could not establish the runner shutdown boundary.' );"
+        },
+        {
+          "line": 34,
+          "text": "}"
+        },
+        {
+          "line": 35,
+          "text": ""
+        },
+        {
+          "line": 36,
+          "text": "// Exact-name deletion only: no wildcard or LIKE-based option cleanup runs here."
+        },
+        {
+          "line": 37,
+          "text": "delete_option( 'writeleash_version' );"
+        },
+        {
+          "line": 38,
+          "text": "// Historical exact-name local option cleanup only. These values are never"
+        },
+        {
+          "line": 39,
+          "text": "// read or migrated by Free and cannot load or enable any historical runtime."
+        },
+        {
+          "line": 40,
+          "text": "delete_option( 'writeleash_certified_operation_state' );"
+        },
+        {
+          "line": 41,
+          "text": "delete_option( 'writeleash_last_certified_outcome' );"
+        }
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "After exact runner-option deletion, prepared %i/%s SELECT independently verifies shutdown. This is necessary against stale option cache; uninstall exits on active/error and retains durable/product tables.",
+      "PLUGIN_CHECK_EMITTED_FINDING": false
+    }
+  ],
+  "C124_001": {
+    "STATUS": "CLOSED",
+    "ASSERTIONS": 111,
+    "PREVIEW": "PASS",
+    "APPROVE": "PASS",
+    "RESUME": "PASS",
+    "UNDO": "PASS",
+    "RAW_REQUEST_NONCE_TO_WP_VERIFY_NONCE": "NONE",
+    "CAPABILITY_METHOD_INDEPENDENT": true,
+    "MISSING_NONSTRING_REJECTED": true,
+    "CROSS_ACTOR_RESUME": "REJECTED",
+    "CROSS_ACTOR_UNDO": "REJECTED",
+    "REJECTED_REQUEST_DURABLE_PRODUCT_MUTATION": "NONE",
+    "OBSERVER_CORRECTION": "Repository-only slashed fixture changed from backslash+nonce to backslash+HTML-wrapped nonce: a nonce beginning 0 otherwise forms PHP backslash-zero and unslashes to NUL. Expected normalization/result assertions and count preserved; runtime not changed."
+  },
+  "REQUIRED_GATES": {
+    "CHECKSUM_REPRODUCTION": "PASS",
+    "INSTALLED_TREE_MATCHES_ZIP": "PASS",
+    "PLUGIN_CHECK": "PASS",
+    "PHPCS_SUPPRESSION_REVIEW": "PASS",
+    "C124_001": "PASS",
+    "CAPABILITY_NONCE": "PASS",
+    "MUTATION_INPUT_VALIDATION": "PASS",
+    "OUTPUT_ESCAPING": "PASS",
+    "SQL_SCHEMA_SAFETY": "PASS",
+    "REST_AUTHORIZATION": "PASS",
+    "DIRECT_ACCESS_GUARDS": "PASS",
+    "REMOTE_CODE_UPDATER_TRACKING": "PASS",
+    "FREE_TRIALWARE_PAYWALL": "PASS",
+    "ADMIN_BEHAVIOR": "PASS",
+    "PACKAGE_CLEANLINESS": "PASS",
+    "SOURCE_READABILITY": "PASS",
+    "INSTALL": "PASS",
+    "DEACTIVATE": "PASS",
+    "REACTIVATE": "PASS",
+    "UNINSTALL_SAFETY": "PASS",
+    "WOO_PRODUCT_DATA_PRESERVED": "PASS",
+    "CLAIM_MATRIX": "PASS"
+  },
+  "MANUAL_FINDINGS": [],
+  "UNRESOLVED_SECURITY_FINDINGS": [],
+  "SOURCE_CHANGE_REQUIRED": false,
+  "UNIQUE_PRODUCTION_RUNTIME_DIFF": "NONE",
+  "SELECTED_RUNTIME_OWNERS": [],
+  "AUTHORIZED_FOR_125": true,
+  "AUTHORIZED_ZIP": "7932ed450fa4fdd43902cfd74fb264f3db14271a63030726066c17e677d4223e",
+  "OLD_ARTIFACT": {
+    "ZIP_SHA256": "2ecfd3edf667c15b36fc75fbb525551df07b075bdfc5696a07813a704eb6cf57",
+    "STATUS": "SUPERSEDED / COMPLIANCE-BLOCKED",
+    "AUTHORIZED_FOR_125": false,
+    "PRESERVED_PR": 139,
+    "PRESERVED_HEAD": "859e198be1ab5f21e2995b6a14c400d89f82ec31"
+  },
+  "RELEASE_FULL": "NOT RUN",
+  "WORDPRESS_ORG_PUBLISHED": false,
+  "MERGED": false,
+  "BOUNDARIES": [
+    "#125 not started; checksum-specific authorization only",
+    "WordPress.org human review remains separate",
+    "WooCommerce 11.1.2 exact; single-site; managed/shared hosting NOT TESTED",
+    "No new crash/cache/concurrency or historical-v1 migration scale acceptance claim"
+  ],
+  "OBSERVATIONS": [
+    {
+      "name": "nonce",
+      "stdout": "C124-001 four Admin actions, real WP normalization/verification, capability/method/cross-actor negatives, unchanged job/product PASS (111 assertions)\n",
+      "sha256": "a7dd66c37c72d790609cffef7abb8ee93028d3f912311a7b3115bed0440f251d"
+    },
+    {
+      "name": "authorization_inputs_escaping",
+      "stdout": "Admin capability/POST/nonce, strict inputs, REST anonymous/subscriber/cross-actor negatives, GET denial, unchanged job/product, output escaping PASS\n",
+      "sha256": "1fcd1d1431171c63681b0267d9a8aacc55ac681c6d394792342c5244990153b0"
+    },
+    {
+      "name": "lifecycle",
+      "stdout": "Lifecycle before: product/meta/job preserved; runner state and owned-only cleanup PASS\nPlugin 'writeleash' deactivated.\nSuccess: Deactivated 1 of 1 plugins.\nLIFECYCLE_QUERY_COUNTS={\"DDL_DCL\":0,\"PRODUCT_DML\":0}\nLifecycle deactivated: product/meta/job preserved; runner state and owned-only cleanup PASS\nPlugin 'writeleash' activated.\nSuccess: Activated 1 of 1 plugins.\nLIFECYCLE_QUERY_COUNTS={\"DDL_DCL\":0,\"PRODUCT_DML\":0}\nLifecycle reactivated: product/meta/job preserved; runner state and owned-only cleanup PASS\nPlugin 'writeleash' deactivated.\nSuccess: Deactivated 1 of 1 plugins.\nLIFECYCLE_QUERY_COUNTS={\"DDL_DCL\":0,\"PRODUCT_DML\":0}\nUninstalled and deleted 'writeleash' plugin.\nSuccess: Uninstalled 1 of 1 plugins.\nLIFECYCLE_QUERY_COUNTS={\"DDL_DCL\":0,\"PRODUCT_DML\":0}\nLifecycle uninstalled: product/meta/job preserved; runner state and owned-only cleanup PASS\n",
+      "sha256": "1442adf466f5776c8810d5420a3dfc3e39331c63a5ab2564df2acd5a8fafa5b1"
+    },
+    {
+      "name": "http",
+      "stdout": "anonymous: real HTTP POST REST without REST session nonce rejected PASS\npackage_admin: real HTTP POST REST without REST session nonce rejected PASS\nAuthenticated Products -> Bulk Prices HTTP 200/render PASS\nartifact_low: real HTTP POST REST without REST session nonce rejected PASS\nartifact_other: real HTTP POST REST without REST session nonce rejected PASS\n",
+      "sha256": "5532f966039595584aca317e9c11364ce9bd532356493271eeb3f6723a91b0dd"
+    },
+    {
+      "name": "read_only_history_sql",
+      "stdout": "#111 read-only history SQL audit: zero DDL, zero WriteLeash writes, setup options untouched: PASS\n",
+      "sha256": "c1369c2e31102ad9f8a7be0eb5843896e9ccb6a2aad51ef49e38b35a7ac7e1b8"
+    },
+    {
+      "name": "nonempty_apply_undo_retention",
+      "stdout": "Normal public Admin one-product apply/eligible Undo fixture; nonempty journal/job/Undo evidence ready for lifecycle preservation PASS\n",
+      "sha256": "b2f3801d93c2768c99d735afa6b1257caf5999e28028dc6c3dbe9bfbfb6c2824"
+    }
+  ],
+  "TOOLS": {
+    "python": "3.12.3",
+    "archive": "Python stdlib zipfile; ZIP_STORED; no compression dependency",
+    "git": "git version 2.43.0",
+    "php": "8.2.32"
+  },
+  "BUILD_COMMAND": "python3 wordpress/release/build-wordpress-org.py --source /tmp/writeleash-124-regen-source-1 --sha 5ccc75c1d895a2fb379866ce4cf0e9901d1c276c --output /tmp/writeleash-124-reaudit-build",
+  "FIXTURE_CORRECTIONS": [
+    "Repository-only slashed fixture changed from backslash+nonce to backslash+HTML-wrapped nonce: a nonce beginning 0 otherwise forms PHP backslash-zero and unslashes to NUL. Expected normalization/result assertions and count preserved; runtime not changed.",
+    "Durable lifecycle fixture originally compared raw restored 31.00; actual UNDONE/UNDO_RESTORED result is canonical 31. Corrected observer to Price_Decimal::parse and reran successfully. No production changes."
+  ]
+}
