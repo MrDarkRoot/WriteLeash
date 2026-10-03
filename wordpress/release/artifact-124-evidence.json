@@ -1,0 +1,573 @@
+{
+  "RESULT": "GO",
+  "REVIEW_DATE": "2026-10-03",
+  "SOURCE_GIT_SHA": "27c3241be4eb5ce9772a128c3af1a381cd3c8843",
+  "ZIP_SHA256": "2ecfd3edf667c15b36fc75fbb525551df07b075bdfc5696a07813a704eb6cf57",
+  "ZIP_SIZE": 395959,
+  "PLUGIN_CHECK_VERSION": "2.1.0",
+  "PLUGIN_CHECK_ZIP_SHA256": "6ff4bd2145f3befcf907df158cc466b1649dafed5686de8369907403c3013fc4",
+  "WORDPRESS": "7.1.2",
+  "WOOCOMMERCE": "11.1.2",
+  "PHP": "8.2.32",
+  "DB": "MariaDB 10.11.14",
+  "PLUGIN_CHECK_FINDINGS": {
+    "ERROR": [],
+    "WARNING": [],
+    "NOTICE": [],
+    "INFO": []
+  },
+  "PLUGIN_CHECK_STDOUT": "Success: Checks complete. No errors found.\n",
+  "PLUGIN_CHECK_STDERR": "",
+  "PLUGIN_CHECK_OPTIONS": [
+    "--require=wp-content/plugins/plugin-check/cli.php",
+    "--include-low-severity-errors",
+    "--include-low-severity-warnings",
+    "--include-experimental",
+    "--format=json"
+  ],
+  "PLUGIN_CHECK_COMMAND": "wp plugin check writeleash --require=wp-content/plugins/plugin-check/cli.php --include-low-severity-errors --include-low-severity-warnings --include-experimental --format=json",
+  "INLINE_SUPPRESSIONS": [
+    {
+      "file": "includes/free/class-free-support-contract.php",
+      "file_sha256": "7f7defab73c484f9dca775c73573ea2d0500b68da4c7a71f57d3e9d6e0afe010",
+      "line": 26,
+      "rules": [
+        "WordPress.Security.EscapeOutput.ExceptionNotEscaped"
+      ],
+      "disposition": "FALSE_POSITIVE_WITH_EVIDENCE",
+      "reason": "Free_Job_Limit_Error receives a typed integer, stores it as data, and uses a constant parent message. Free_Admin renders the derived count/reason via esc_html; it is not an HTML sink.",
+      "artifact_context": "\tpublic static function assert_job_size( int $selected ): void {\n\t\tif ( $selected > self::MAX_JOB_PRODUCTS ) {\n\t\t\t// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Typed integer data, not an exception/output message; Admin renders the derived notice through esc_html().\n\t\t\tthrow new Free_Job_Limit_Error( $selected );\n\t\t}\n\t}\n}"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 83,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Custom import INSERT requires durable DB authority; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t\t$summary = $data['summary'];\n\t\t\t$store = $data['store'];\n\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom import INSERT requires durable DB authority; identifiers and values are prepared.\n\t\t\tif ( 1 !== $tx->query( $tx->prepare(\n\t\t\t\t\"INSERT INTO %i (schema_version,public_id,plan_id,plan_schema_version,plan_hash_version,plan_hash,plan_json,creator_id,approver_id,status,status_reason,currency,price_decimals,wordpress_version,woocommerce_version,total_selected,total_eligible,total_changing,total_unchanged,total_unsupported,total_blocked,planned,pending,unchanged,unsupported,created_at,updated_at) VALUES (%d,%s,%s,%d,%s,%s,%s,%d,0,%s,%s,%s,%d,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,UTC_TIMESTAMP(),UTC_TIMESTAMP())\",\n\t\t\t\t$jobs, Job_Schema::SCHEMA_VERSION, wp_generate_uuid4(), $data['plan_id'], Change_Plan::SCHEMA_VERSION, Change_Plan::HASH_VERSION, $plan->hash(), $plan->json(), $creator_id, $status, $reason, $store['currency'], (int) $store['price_decimals'], $store['wordpress_version'], $store['woocommerce_version'],\n\t\t\t\t(int) $summary['selected'], (int) $summary['eligible'], (int) $summary['changing'], (int) $summary['unchanged'], (int) $summary['unsupported'], (int) $summary['blocked'], (int) $summary['selected'], (int) $summary['changing'], (int) $summary['unchanged'], (int) $summary['unsupported']"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 123,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Custom idempotent INSERT requires durable DB authority; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t\t$state = Job_Item_State::initial_for_result( $item['result'] );\n\t\t\t$reason = 'PENDING' === $state ? '' : ( 'UNCHANGED' === $state ? 'PLAN_UNCHANGED' : (string) ( $item['eligibility']['reason'] ?? 'PLAN_UNSUPPORTED' ) );\n\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom idempotent INSERT requires durable DB authority; identifiers and values are prepared.\n\t\t\tif ( false === $tx->query( $tx->prepare(\n\t\t\t\t\"INSERT INTO %i (schema_version,job_id,plan_id,product_id,sequence,plan_result,eligibility_state,eligibility_reason,blockers,warnings,expected_price,planned_price,state,reason,created_at,updated_at) VALUES (%d,%d,%s,%d,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id\",\n\t\t\t\t$items_table, Job_Schema::SCHEMA_VERSION, $job_id, $plan->data()['plan_id'], (int) $item['product_id'], $sequence, $item['result'], $item['eligibility']['state'], $item['eligibility']['reason'], Plan_Hasher::canonical_json( $item['blockers'] ), Plan_Hasher::canonical_json( $item['warnings'] ), $expected, $planned, $state, $reason\n\t\t\t) ) ) {"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 169,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Fenced CAS transition; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t\t// Journal seed shares this transaction: a partial approval is not executable.\n\t\t\tPrice_Apply_Journal::seed( $plan );\n\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced CAS transition; values are prepared.\n\t\t\tif ( 1 !== $tx->query( $tx->prepare( \"UPDATE %i SET status=%s,status_reason=%s,approver_id=%d,approved_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s\", $jobs, Job_State::READY, 'APPROVED', $approver_id, $job_id, Job_State::PLANNED ) ) ) {\n\t\t\t\tthrow new Job_Error( 'INVALID_TRANSITION' );\n\t\t\t}\n\t\t\t$tx->commit();"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 279,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Absolute truth repair from item rows; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$counts = self::derive_counts( $db, $job_id );\n\t\t$jobs = Job_Schema::jobs_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Absolute truth repair from item rows; values are prepared.\n\t\t$db->query( $db->prepare(\n\t\t\t'UPDATE %i SET planned=%d,pending=%d,applying=%d,applied=%d,unchanged=%d,conflict=%d,failed=%d,needs_review=%d,unsupported=%d,updated_at=UTC_TIMESTAMP() WHERE id=%d',\n\t\t\t$jobs, $counts['planned'], $counts['pending'], $counts['applying'], $counts['applied'], $counts['unchanged'], $counts['conflict'], $counts['failed'], $counts['needs_review'], $counts['unsupported'], $job_id\n\t\t) );"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 301,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Atomic lease CAS; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$jobs = Job_Schema::jobs_table( $db );\n\t\t$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic lease CAS; identifiers and values are prepared.\n\t\t$updated = $db->query( $db->prepare(\n\t\t\t\"UPDATE %i SET lease_owner=%s,lease_generation=lease_generation+1,lease_expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),last_worker_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP(),status=%s,status_reason=%s,started_at=IFNULL(started_at,UTC_TIMESTAMP()) WHERE id=%d AND status IN ($placeholders) AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\",\n\t\t\tarray_merge( array( $jobs, $owner, self::LEASE_TTL, Job_State::RUNNING, 'ACTIVE', $job_id ), $statuses )\n\t\t) );"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 324,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Fenced lease renewal; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t// MySQL reports zero changed rows when no column value differs (same\n\t\t// second); ownership is confirmed by the fence read instead.\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced lease renewal; values are prepared.\n\t\t$db->query( $db->prepare( 'UPDATE %i SET lease_expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),last_worker_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND lease_owner=%s AND lease_generation=%d', $jobs, self::LEASE_TTL, $job_id, $owner, $generation ) );\n\t\treturn self::fence( $job_id, $owner, $generation );\n\t}\n"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 334,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Fenced status + lease release; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\tJob_State::assert_transition( $job['status'], $status );\n\t\t$jobs = Job_Schema::jobs_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced status + lease release; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare(\n\t\t\t\"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,updated_at=UTC_TIMESTAMP(),queued_at=IF(%s='QUEUED',UTC_TIMESTAMP(),queued_at),completed_at=IF(%s IN ('COMPLETED','COMPLETED_WITH_ISSUES'),UTC_TIMESTAMP(),completed_at),paused_at=IF(%s='PAUSED',UTC_TIMESTAMP(),paused_at) WHERE id=%d AND status=%s AND lease_owner=%s AND lease_generation=%d\",\n\t\t\t$jobs, $status, $reason, $status, $status, $status, (int) $job['id'], $job['status'], $owner, $generation\n\t\t) );"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 346,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Guarded scheduler transition; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\tJob_State::assert_transition( $from_status, $to_status );\n\t\t$jobs = Job_Schema::jobs_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Guarded scheduler transition; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare( 'UPDATE %i SET status=%s,status_reason=%s,updated_at=UTC_TIMESTAMP(),queued_at=IF(%s=%s,UTC_TIMESTAMP(),queued_at),paused_at=IF(%s=%s,UTC_TIMESTAMP(),paused_at) WHERE id=%d AND status=%s AND lease_owner=%s', $jobs, $to_status, $reason, $to_status, Job_State::QUEUED, $to_status, Job_State::PAUSED, $job_id, $from_status, '' ) );\n\t}\n\n\tpublic static function mark_paused( int $job_id, string $reason ): bool {"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 361,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Bounded lease recovery on activation; no product state is touched. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\tif ( ! Job_Schema::ready( $db ) ) { return 0; }\n\t\t$jobs = Job_Schema::jobs_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded lease recovery on activation; no product state is touched.\n\t\t$reaped = $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,paused_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE status=%s AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\", $jobs, Job_State::PAUSED, 'LEASE_RECOVERY', Job_State::RUNNING ) );\n\t\treturn is_int( $reaped ) ? $reaped : 0;\n\t}\n"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 370,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Stalled-lease revocation CAS; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$db = self::db();\n\t\t$jobs = Job_Schema::jobs_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stalled-lease revocation CAS; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,paused_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\", $jobs, Job_State::PAUSED, $reason, $job_id, Job_State::RUNNING ) );\n\t}\n\n\t/**"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 432,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Claim-token CAS item transition; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$db = self::db();\n\t\t$items = Job_Schema::items_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Claim-token CAS item transition; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare(\n\t\t\t'UPDATE %i SET state=%s,reason=%s,claim_token=\\'\\',claim_generation=0,applied_at=IF(%s=%s,COALESCE(%s,applied_at),applied_at),next_attempt_after=IF(%d=1,DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),NULL),updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND claim_token=%s',\n\t\t\t$items, $state, $reason, $state, Job_Item_State::APPLIED, $applied_at, $retry ? 1 : 0, self::RETRY_BACKOFF, (int) $item['id'], $item['state'], $token\n\t\t) );"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 445,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Stale-generation reconciliation CAS; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$db = self::db();\n\t\t$items = Job_Schema::items_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stale-generation reconciliation CAS; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare(\n\t\t\t\"UPDATE %i SET state=%s,reason=%s,claim_token='',claim_generation=0,applied_at=IF(%s='APPLIED',COALESCE(%s,applied_at),applied_at),next_attempt_after=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND claim_generation<%d\",\n\t\t\t$items, $state, $reason, $state, $applied_at, (int) $item['id'], $item['state'], $max_generation\n\t\t) );"
+    },
+    {
+      "file": "includes/free/class-job-repository.php",
+      "file_sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4",
+      "line": 483,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Operator cancel CAS; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t// so cancel cannot revoke ownership mid-commit; after that item commits\n\t\t// the job is CANCELLED and no later claim is possible.\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Operator cancel CAS; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s\", $jobs, Job_State::CANCELLED, 'OPERATOR_CANCELLED', $job_id, $job['status'] ) );\n\t}\n\n\t/**"
+    },
+    {
+      "file": "includes/free/class-job-worker.php",
+      "file_sha256": "78239bb9ff5fc768de809636eafbfec86f49408ec52369b37a22b35089c2c76f",
+      "line": 325,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "information_schema existence probe; caching it would be wrong. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t// Existence first: assert_schema issues SHOW INDEX, which must not run\n\t\t// against an absent table and produce a raw database diagnostic.\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- information_schema existence probe; caching it would be wrong.\n\t\t$exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $journal ) );\n\t\tif ( 1 !== $exists ) { return false; }\n\t\ttry { Price_Apply_Journal::assert_schema( $wpdb ); return true; }\n\t\tcatch ( \\Throwable $error ) { return false; }"
+    },
+    {
+      "file": "includes/free/class-job-worker.php",
+      "file_sha256": "78239bb9ff5fc768de809636eafbfec86f49408ec52369b37a22b35089c2c76f",
+      "line": 349,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Lifecycle gate; uncached read is intentional. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\tprivate static function runner_active(): bool {\n\t\tglobal $wpdb;\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lifecycle gate; uncached read is intentional.\n\t\t$value = $wpdb->get_var( $wpdb->prepare( \"SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1\", 'writeleash_runner_state' ) );\n\t\treturn 'active' === $value;\n\t}\n"
+    },
+    {
+      "file": "includes/free/class-price-apply-journal.php",
+      "file_sha256": "ffe22676b5bea6f1a5f78bdd3c53ff5f17fa537979d888c9095dcc3bb113a24d",
+      "line": 97,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Custom journal INSERT requires durable DB authority. The duplicate is verified below; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\tforeach ( $data['items'] as $item ) {\n\t\t\tif ( 'CHANGING' !== $item['result'] ) { continue; }\n\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom journal INSERT requires durable DB authority. The duplicate is verified below; identifiers and values are prepared.\n\t\t\tif ( false === $wpdb->query( $wpdb->prepare( \"INSERT INTO %i (schema_version,plan_id,plan_schema_version,plan_hash_version,plan_hash,product_id,plan_json,expected_price,target_price,state,evidence,created_at,updated_at) VALUES (%d,%s,%d,%s,%s,%d,%s,%s,%s,'PENDING','',UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id\", $table, self::SCHEMA_VERSION, $data['plan_id'], Change_Plan::SCHEMA_VERSION, Change_Plan::HASH_VERSION, $plan->hash(), $item['product_id'], $plan->json(), $item['expected_regular_price'], $item['planned_regular_price'] ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }\n\t\t\t$row = self::read( $wpdb, $data['plan_id'], $item['product_id'] );\n\t\t\tif ( ! $row ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }\n\t\t\t// No immutable field or execution state is overwritten by a duplicate seed."
+    },
+    {
+      "file": "includes/free/class-product-selector.php",
+      "file_sha256": "e1afe48d177351cd6d675d4adfb0037d0b5a5a9f1d9508603b73f344851884fa",
+      "line": 46,
+      "rules": [
+        "WordPress.DB.SlowDBQuery.slow_db_query_meta_query"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Public WP_Query exact SKU/category selection; fixed keys/taxonomy and validated values; posts_per_page=MAX_SELECTED+1 bounds results. This query cost is acknowledged, not reclassified as absent.",
+      "artifact_context": "\t\t\t// Woo 11.1.2's sku argument uses LIKE, not exact equality. Use public WP API,\n\t\t\t// then byte-compare the edit-context Woo value to defeat DB collation aliases.\n\t\t\t$args['meta_query'] = array( array( 'key' => '_sku', 'value' => $s['sku'], 'compare' => '=' ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query\n\t\t} else {\n\t\t\t$term = get_term( $s['term_id'], 'product_cat' );\n\t\t\tif ( ! $term || is_wp_error( $term ) ) { throw new Price_Validation_Error( 'invalid_category' ); }\n\t\t\t$args['tax_query'] = array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => array( $s['term_id'] ), 'include_children' => false ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query"
+    },
+    {
+      "file": "includes/free/class-product-selector.php",
+      "file_sha256": "e1afe48d177351cd6d675d4adfb0037d0b5a5a9f1d9508603b73f344851884fa",
+      "line": 50,
+      "rules": [
+        "WordPress.DB.SlowDBQuery.slow_db_query_tax_query"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Public WP_Query exact SKU/category selection; fixed keys/taxonomy and validated values; posts_per_page=MAX_SELECTED+1 bounds results. This query cost is acknowledged, not reclassified as absent.",
+      "artifact_context": "\t\t\t$term = get_term( $s['term_id'], 'product_cat' );\n\t\t\tif ( ! $term || is_wp_error( $term ) ) { throw new Price_Validation_Error( 'invalid_category' ); }\n\t\t\t$args['tax_query'] = array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => array( $s['term_id'] ), 'include_children' => false ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query\n\t\t}\n\t\t$query = new \\WP_Query( $args );\n\t\tif ( count( $query->posts ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }\n\t\t$products = array();"
+    },
+    {
+      "file": "includes/free/class-runner-authority.php",
+      "file_sha256": "8ac5352e7e26915a0b7ff0b46aeffad483910e03c4b720cb32c0bb8ec0b5099b",
+      "line": 44,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "The uncached indexed lifecycle UPDATE is the durable shutdown linearization point, not a cacheable read. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\tpublic static function deactivate(): void {\n\t\tglobal $wpdb;\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The uncached indexed lifecycle UPDATE is the durable shutdown linearization point, not a cacheable read.\n\t\t$updated = $wpdb->query( $wpdb->prepare( 'UPDATE %i SET option_value=%s WHERE option_name=%s AND option_value=%s', $wpdb->options, 'deactivated', self::OPTION, 'active' ) );\n\t\twp_cache_delete( self::OPTION, 'options' );\n\t\twp_cache_delete( 'alloptions', 'options' );\n\t\tif ( false === $updated || self::active( $wpdb ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 172,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Durable Undo initiation INSERT requires DB authority; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t\tself::initiate_checkpoint( 'INITIATE_AFTER_JOB_LOCK', $job_id );\n\t\t\t$operations = Undo_Schema::operations_table( $tx );\n\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable Undo initiation INSERT requires DB authority; identifiers and values are prepared.\n\t\t\tif ( 1 !== $tx->query( $tx->prepare(\n\t\t\t\t\"INSERT INTO %i (schema_version,job_id,plan_id,public_id,initiator_id,status,status_reason,created_at,updated_at) VALUES (%d,%d,%s,%s,%d,%s,%s,UTC_TIMESTAMP(),UTC_TIMESTAMP())\",\n\t\t\t\t$operations, Undo_Schema::SCHEMA_VERSION, $job_id, $plan->data()['plan_id'], wp_generate_uuid4(), $initiator_id, Undo_State::PENDING, 'UNDO_INITIATED'\n\t\t\t) ) ) {"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 240,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Idempotent Undo INSERT requires durable DB authority; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t\t\t$facts = self::provenance_facts( $tx, $job, $plan, $job_item, $initiator_id );\n\t\t\t\t$captured = Undo_Fingerprint::capture( $facts );\n\t\t\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotent Undo INSERT requires durable DB authority; identifiers and values are prepared.\n\t\t\t\tif ( false === $tx->query( $tx->prepare(\n\t\t\t\t\t\"INSERT INTO %i (schema_version,job_id,undo_id,plan_id,product_id,sequence,expected_price,applied_price,apply_attempt_id,state,reason,provenance,fingerprint,evidence,created_at,updated_at) VALUES (%d,%d,%d,%s,%d,%d,%s,%s,%s,%s,%s,%s,%s,'',UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id\",\n\t\t\t\t\t$items_table, Undo_Schema::SCHEMA_VERSION, $job_id, $undo_id, $plan->data()['plan_id'], $product_id, (int) $job_item['sequence'], $job_item['expected_price'], $job_item['planned_price'], $facts['apply_attempt_id'], Undo_Item_State::PENDING, 'UNDO_INITIATED', $captured['provenance'], $captured['fingerprint']\n\t\t\t\t) ) ) {"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 360,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Locked in-transaction Undo transition; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\tif ( ! preg_match( '/\\A[A-Z0-9_]{1,64}\\z/D', $reason ) ) { throw new Undo_Error( 'INVALID_UNDO_ITEM_TRANSITION' ); }\n\t\t$table = Undo_Schema::items_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Locked in-transaction Undo transition; values are prepared.\n\t\tif ( 1 !== $db->query( $db->prepare(\n\t\t\t\"UPDATE %i SET state=%s,reason=%s,attempt_id=%s,evidence=IF(%s<>'',%s,evidence),last_attempt_at=UTC_TIMESTAMP(),undone_at=IF(%s='UNDONE',UTC_TIMESTAMP(),undone_at),updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s\",\n\t\t\t$table, $state, $reason, $attempt, $evidence, $evidence, $state, (int) $row['id'], $row['state']\n\t\t) ) ) {"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 414,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Absolute truth repair from Undo item rows; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$counts = self::derive_counts( $db, $undo_id );\n\t\t$operations = Undo_Schema::operations_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Absolute truth repair from Undo item rows; values are prepared.\n\t\t$db->query( $db->prepare(\n\t\t\t'UPDATE %i SET undo_eligible=%d,undo_pending=%d,undo_applying=%d,undone=%d,undo_conflict=%d,undo_failed=%d,undo_needs_review=%d,updated_at=UTC_TIMESTAMP() WHERE id=%d',\n\t\t\t$operations, $counts['eligible'], $counts['pending'], $counts['applying'], $counts['undone'], $counts['conflict'], $counts['failed'], $counts['needs_review'], $undo_id\n\t\t) );"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 481,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Claim-token CAS Undo item transition; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$db = self::db();\n\t\t$items = Undo_Schema::items_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Claim-token CAS Undo item transition; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare(\n\t\t\t'UPDATE %i SET state=%s,reason=%s,claim_token=\\'\\',claim_generation=0,undone_at=IF(%s=%s,COALESCE(%s,undone_at),undone_at),next_attempt_after=IF(%d=1,DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),NULL),updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND claim_token=%s',\n\t\t\t$items, $state, $reason, $state, Undo_Item_State::UNDONE, $undone_at, $retry ? 1 : 0, self::RETRY_BACKOFF, (int) $item['id'], $item['state'], $token\n\t\t) );"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 495,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Stale-generation Undo reconciliation CAS; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$db = self::db();\n\t\t$items = Undo_Schema::items_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stale-generation Undo reconciliation CAS; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare(\n\t\t\t\"UPDATE %i SET state=%s,reason=%s,claim_token='',claim_generation=0,undone_at=IF(%s='UNDONE',COALESCE(%s,undone_at),undone_at),next_attempt_after=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d AND state=%s AND claim_generation<%d\",\n\t\t\t$items, $state, $reason, $state, $undone_at, (int) $item['id'], $item['state'], $max_generation\n\t\t) );"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 514,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Claim-token housekeeping; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$db = self::db();\n\t\t$items = Undo_Schema::items_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Claim-token housekeeping; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET claim_token='',claim_generation=0,updated_at=UTC_TIMESTAMP() WHERE id=%d AND claim_token=%s\", $items, $item_id, $token ) );\n\t}\n\n\t/** Arm the bounded retry backoff on a pending Undo item and release the claim. */"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 522,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Bounded Undo retry backoff; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$db = self::db();\n\t\t$items = Undo_Schema::items_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded Undo retry backoff; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET claim_token='',claim_generation=0,next_attempt_after=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),updated_at=UTC_TIMESTAMP() WHERE id=%d AND claim_token=%s AND state=%s\", $items, self::RETRY_BACKOFF, $item_id, $token, Undo_Item_State::PENDING ) );\n\t}\n\n\t/** Undo operation status derivation: durable Undo item truth decides. */"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 550,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Atomic Undo lease CAS; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$operations = Undo_Schema::operations_table( $db );\n\t\t$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic Undo lease CAS; identifiers and values are prepared.\n\t\t$updated = $db->query( $db->prepare(\n\t\t\t\"UPDATE %i SET lease_owner=%s,lease_generation=lease_generation+1,lease_expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),last_worker_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP(),status=%s,status_reason=%s,started_at=IFNULL(started_at,UTC_TIMESTAMP()) WHERE id=%d AND status IN ($placeholders) AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\",\n\t\t\tarray_merge( array( $operations, $owner, self::LEASE_TTL, Undo_State::RUNNING, 'UNDO_ACTIVE', $undo_id ), $statuses )\n\t\t) );"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 571,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Fenced Undo lease renewal; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$db = self::db();\n\t\t$operations = Undo_Schema::operations_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced Undo lease renewal; values are prepared.\n\t\t$db->query( $db->prepare( 'UPDATE %i SET lease_expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL %d SECOND),last_worker_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND lease_owner=%s AND lease_generation=%d', $operations, self::LEASE_TTL, $undo_id, $owner, $generation ) );\n\t\treturn self::fence( $undo_id, $owner, $generation );\n\t}\n"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 581,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Fenced Undo status + lease release; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\tUndo_State::assert_transition( $operation['status'], $status );\n\t\t$operations = Undo_Schema::operations_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced Undo status + lease release; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare(\n\t\t\t\"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,updated_at=UTC_TIMESTAMP(),completed_at=IF(%s IN ('UNDO_COMPLETED','UNDO_COMPLETED_WITH_ISSUES'),UTC_TIMESTAMP(),completed_at) WHERE id=%d AND status=%s AND lease_owner=%s AND lease_generation=%d\",\n\t\t\t$operations, $status, $reason, $status, (int) $operation['id'], $operation['status'], $owner, $generation\n\t\t) );"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 593,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Guarded Undo scheduler transition; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\tUndo_State::assert_transition( $from_status, $to_status );\n\t\t$operations = Undo_Schema::operations_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Guarded Undo scheduler transition; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare( 'UPDATE %i SET status=%s,status_reason=%s,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s AND lease_owner=%s', $operations, $to_status, $reason, $undo_id, $from_status, '' ) );\n\t}\n\n\tpublic static function mark_paused( int $undo_id, string $reason ): bool {"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 608,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Bounded Undo lease recovery on activation; no product state is touched. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\tif ( ! Undo_Schema::ready( $db ) ) { return 0; }\n\t\t$operations = Undo_Schema::operations_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded Undo lease recovery on activation; no product state is touched.\n\t\t$reaped = $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,updated_at=UTC_TIMESTAMP() WHERE status=%s AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\", $operations, Undo_State::PAUSED, 'LEASE_RECOVERY', Undo_State::RUNNING ) );\n\t\treturn is_int( $reaped ) ? $reaped : 0;\n\t}\n"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 617,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Stalled Undo lease revocation CAS; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$db = self::db();\n\t\t$operations = Undo_Schema::operations_table( $db );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stalled Undo lease revocation CAS; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s AND (lease_owner='' OR lease_expires_at IS NULL OR lease_expires_at<UTC_TIMESTAMP())\", $operations, Undo_State::PAUSED, $reason, $undo_id, Undo_State::RUNNING ) );\n\t}\n\n\t/** Operator cancel: stop claims, retain UNDONE facts. Never re-applies. */"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 631,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Operator Undo cancel CAS; values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t// boundary. This UPDATE waits behind an in-flight Undo item's fence row\n\t\t// lock, so cancel cannot revoke ownership mid-commit.\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Operator Undo cancel CAS; values are prepared.\n\t\treturn 1 === $db->query( $db->prepare( \"UPDATE %i SET status=%s,status_reason=%s,lease_owner='',lease_expires_at=NULL,lease_generation=lease_generation+1,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s\", $operations, Undo_State::CANCELLED, 'UNDO_CANCELLED', $undo_id, $operation['status'] ) );\n\t}\n\n\t/**"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 707,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Actor-scoped history read over plugin-owned tables; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t\t$scope = array( $viewer_id, $viewer_id );\n\t\t}\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Actor-scoped history read over plugin-owned tables; identifiers and values are prepared.\n\t\t$total = (int) $db->get_var( $db->prepare( \"SELECT COUNT(*) FROM %i WHERE $where\", $jobs, ...$scope ) );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Actor-scoped history read over plugin-owned tables; identifiers and values are prepared.\n\t\t$rows = $db->get_results( $db->prepare( \"SELECT * FROM %i WHERE $where ORDER BY id DESC LIMIT %d OFFSET %d\", $jobs, ...array_merge( $scope, array( $limit, $offset ) ) ), ARRAY_A );\n\t\t$jobs_page = array();"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 709,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Actor-scoped history read over plugin-owned tables; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Actor-scoped history read over plugin-owned tables; identifiers and values are prepared.\n\t\t$total = (int) $db->get_var( $db->prepare( \"SELECT COUNT(*) FROM %i WHERE $where\", $jobs, ...$scope ) );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Actor-scoped history read over plugin-owned tables; identifiers and values are prepared.\n\t\t$rows = $db->get_results( $db->prepare( \"SELECT * FROM %i WHERE $where ORDER BY id DESC LIMIT %d OFFSET %d\", $jobs, ...array_merge( $scope, array( $limit, $offset ) ) ), ARRAY_A );\n\t\t$jobs_page = array();\n\t\tforeach ( $rows as $job ) {\n\t\t\t$jobs_page[] = self::history_job( (int) $job['id'] );"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 805,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Identifier-qualified join over plugin-owned tables; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\tif ( null !== $undo_state ) { $where .= ' AND u.state=%s'; $args[] = $undo_state; }\n\t\t$join = 'FROM %i i LEFT JOIN %i u ON u.job_id=i.job_id AND u.product_id=i.product_id WHERE ' . $where;\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier-qualified join over plugin-owned tables; identifiers and values are prepared.\n\t\t$total = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) ' . $join, $job_items, $undo_items, ...$args ) );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier-qualified join over plugin-owned tables; identifiers and values are prepared.\n\t\t$rows = $db->get_results( $db->prepare( 'SELECT i.product_id,i.sequence,i.expected_price,i.planned_price,i.state AS apply_state,i.reason AS apply_reason,i.applied_at,u.state AS undo_state,u.reason AS undo_reason,u.undone_at ' . $join . ' ORDER BY i.sequence ASC, i.product_id ASC LIMIT %d OFFSET %d', $job_items, $undo_items, ...array_merge( $args, array( $limit, $offset ) ) ), ARRAY_A );\n\t\t$items = array();"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 807,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Identifier-qualified join over plugin-owned tables; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier-qualified join over plugin-owned tables; identifiers and values are prepared.\n\t\t$total = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) ' . $join, $job_items, $undo_items, ...$args ) );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Identifier-qualified join over plugin-owned tables; identifiers and values are prepared.\n\t\t$rows = $db->get_results( $db->prepare( 'SELECT i.product_id,i.sequence,i.expected_price,i.planned_price,i.state AS apply_state,i.reason AS apply_reason,i.applied_at,u.state AS undo_state,u.reason AS undo_reason,u.undone_at ' . $join . ' ORDER BY i.sequence ASC, i.product_id ASC LIMIT %d OFFSET %d', $job_items, $undo_items, ...array_merge( $args, array( $limit, $offset ) ) ), ARRAY_A );\n\t\t$items = array();\n\t\tforeach ( $rows as $row ) {\n\t\t\t$items[] = array("
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 852,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Read-only history page over the plugin-owned job items table; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t$args = array( $job_id );\n\t\tif ( null !== $apply_state ) { $where .= ' AND state=%s'; $args[] = $apply_state; }\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only history page over the plugin-owned job items table; identifiers and values are prepared.\n\t\t$total = (int) $db->get_var( $db->prepare( \"SELECT COUNT(*) FROM %i WHERE $where\", $job_items, ...$args ) );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only history page over the plugin-owned job items table; identifiers and values are prepared.\n\t\t$rows = $db->get_results( $db->prepare( \"SELECT product_id,sequence,expected_price,planned_price,state AS apply_state,reason AS apply_reason,applied_at FROM %i WHERE $where ORDER BY sequence ASC, product_id ASC LIMIT %d OFFSET %d\", $job_items, ...array_merge( $args, array( $limit, $offset ) ) ), ARRAY_A );\n\t\t$items = array();"
+    },
+    {
+      "file": "includes/free/class-undo-repository.php",
+      "file_sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f",
+      "line": 854,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Read-only history page over the plugin-owned job items table; identifiers and values are prepared. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only history page over the plugin-owned job items table; identifiers and values are prepared.\n\t\t$total = (int) $db->get_var( $db->prepare( \"SELECT COUNT(*) FROM %i WHERE $where\", $job_items, ...$args ) );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only history page over the plugin-owned job items table; identifiers and values are prepared.\n\t\t$rows = $db->get_results( $db->prepare( \"SELECT product_id,sequence,expected_price,planned_price,state AS apply_state,reason AS apply_reason,applied_at FROM %i WHERE $where ORDER BY sequence ASC, product_id ASC LIMIT %d OFFSET %d\", $job_items, ...array_merge( $args, array( $limit, $offset ) ) ), ARRAY_A );\n\t\t$items = array();\n\t\tforeach ( $rows as $row ) {\n\t\t\t$items[] = array("
+    },
+    {
+      "file": "includes/free/class-undo-worker.php",
+      "file_sha256": "a51e4261bf641812e32ca8b3f7526e7cb26edbf4d2f8e5a887a01be00099c763",
+      "line": 303,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "information_schema existence probe; caching it would be wrong. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\t\tif ( ! Undo_Schema::ready( $wpdb ) || ! Job_Schema::ready( $wpdb ) ) { return false; }\n\t\t$journal = Price_Apply_Journal::table( $wpdb );\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- information_schema existence probe; caching it would be wrong.\n\t\t$exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $journal ) );\n\t\tif ( 1 !== $exists ) { return false; }\n\t\ttry { Price_Apply_Journal::assert_schema( $wpdb ); return true; }\n\t\tcatch ( \\Throwable $error ) { return false; }"
+    },
+    {
+      "file": "includes/free/class-undo-worker.php",
+      "file_sha256": "a51e4261bf641812e32ca8b3f7526e7cb26edbf4d2f8e5a887a01be00099c763",
+      "line": 327,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Lifecycle gate; uncached read is intentional. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "\tprivate static function runner_active(): bool {\n\t\tglobal $wpdb;\n\t\t// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lifecycle gate; uncached read is intentional.\n\t\t$value = $wpdb->get_var( $wpdb->prepare( \"SELECT option_value FROM {$wpdb->options} WHERE option_name=%s LIMIT 1\", 'writeleash_runner_state' ) );\n\t\treturn 'active' === $value;\n\t}\n"
+    },
+    {
+      "file": "uninstall.php",
+      "file_sha256": "d826c6ef5ea01875349a5bc4a9b2b52ecfb7a75e122322f2de216ad9be041670",
+      "line": 30,
+      "rules": [
+        "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "WordPress.DB.DirectDatabaseQuery.NoCaching"
+      ],
+      "disposition": "NON_BLOCKING_NOTE",
+      "reason": "Independent uncached DB verification of the safety-critical shutdown; the option cache can be stale across processes. The adjacent exact SQL/API context is recorded below; plugin-owned prepared operations deliberately bypass cache for durable/fenced state. This is not a claim that direct queries do not exist.",
+      "artifact_context": "global $wpdb;\ndelete_option( 'writeleash_runner_state' );\n// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Independent uncached DB verification of the safety-critical shutdown; the option cache can be stale across processes.\n$writeleash_state = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name=%s LIMIT 1', $wpdb->options, 'writeleash_runner_state' ) );\nif ( '' !== (string) $wpdb->last_error || 'active' === $writeleash_state ) {\n\twp_die( 'WriteLeash uninstall could not establish the runner shutdown boundary.' );\n}"
+    }
+  ],
+  "SMOKE": {
+    "INSTALLED_TREE_MATCH": "PASS",
+    "ADMIN_POST_CAPABILITY_NONCE": "PASS",
+    "STRICT_INPUT_NEGATIVES": "PASS",
+    "REST_ANONYMOUS": "401",
+    "REST_SUBSCRIBER": "403",
+    "REST_CROSS_ACTOR": "403",
+    "REST_GET": "404",
+    "NEGATIVE_JOB_AND_PRODUCT_UNCHANGED": "PASS",
+    "DEACTIVATED_RUNNER": "deactivated",
+    "REACTIVATED_RUNNER": "active",
+    "UNINSTALL_RUNNER": "missing",
+    "PRODUCT_AND_METADATA_PRESERVED": "PASS",
+    "PLANNED_JOB_EVIDENCE_PRESERVED": "PASS",
+    "UNRELATED_ACTION": "pending",
+    "OWNED_ACTION": "canceled"
+  }
+}
