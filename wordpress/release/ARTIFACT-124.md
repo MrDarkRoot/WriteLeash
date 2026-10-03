@@ -176,7 +176,9 @@ source repository requirement is added.
 path/size/hash, ZIP metadata, package scan, source/readme audits and optional
 installed-tree byte equivalence. Any unknown/nonzero Plugin Check output fails
 closed for review. PR_FAST's existing independent artifact builds invoke this
-verifier; no network, install or deep runtime integration is added to PR_FAST.
+verifier in explicit --identity-only mode; no network, install or deep runtime
+integration is added to PR_FAST. The full verifier blocks on C124-001. CI proves
+the audit tooling and known-blocker rejection; it does not approve the artifact.
 
 **BLOCKED for #124. SOURCE CHANGE REQUIRED.** The nonce-input compliance
 blocker below remains unresolved. Plugin Check reports zero error-level findings,

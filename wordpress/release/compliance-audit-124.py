@@ -15,7 +15,7 @@ spec = importlib.util.spec_from_file_location('artifact123', HERE / 'build-wordp
 a = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(a)
 
-def audit(archive, installed=None, plugin_check=None):
+def audit(archive, installed=None, plugin_check=None, identity_only=False):
     reviewed = json.loads((HERE / 'artifact-123-evidence.json').read_text())
     data = archive.read_bytes()
     a.require(hashlib.sha256(data).hexdigest() == reviewed['ZIP_SHA256'] and len(data) == reviewed['ZIP_SIZE'], 'CHECKSUM DRIFT')
@@ -39,6 +39,9 @@ def audit(archive, installed=None, plugin_check=None):
         # The reviewed exact artifact emits zero findings. New/unknown output
         # is retained and blocks; this is not an ignore-list classifier.
         a.require(plugin_check.read_text().strip() == 'Success: Checks complete. No errors found.', 'Plugin Check findings require review')
+    if not identity_only:
+        compliance = json.loads((HERE / 'artifact-124-evidence.json').read_text())
+        a.require(not compliance.get('MANUAL_FINDINGS'), 'EXACT ARTIFACT BLOCKED: C124-001; SOURCE CHANGE REQUIRED')
     print('Exact ZIP identity, public closure, metadata, package scan and installed bytes PASS')
 
 def source_checks(root):
@@ -51,9 +54,10 @@ if __name__ == '__main__':
     p.add_argument('--zip', type=Path, required=True)
     p.add_argument('--installed', type=Path)
     p.add_argument('--plugin-check', type=Path)
+    p.add_argument('--identity-only', action='store_true', help='Check identity/preflight only; does not authorize compliance')
     args = p.parse_args()
     try:
-        audit(args.zip, args.installed, args.plugin_check)
+        audit(args.zip, args.installed, args.plugin_check, args.identity_only)
     except (ValueError, OSError, subprocess.CalledProcessError, KeyError) as error:
         print('BLOCKED: ' + (str(error) if isinstance(error, ValueError) else type(error).__name__), file=sys.stderr)
         sys.exit(1)

@@ -140,15 +140,19 @@ class ArtifactCases(unittest.TestCase):
         self.assertEqual(first['ZIP_SHA256'], second['ZIP_SHA256'])
         self.assertEqual(first['ZIP_SIZE'], second['ZIP_SIZE'])
         subprocess.run([sys.executable, str(Path(__file__).with_name('compliance-audit-124.py')),
-                        '--zip', str(self.base / 'build1/writeleash-0.1.0.zip')], check=True)
+                        '--zip', str(self.base / 'build1/writeleash-0.1.0.zip'), '--identity-only'], check=True)
         verifier = Path(__file__).with_name('compliance-audit-124.py')
         for level in ['ERROR', 'WARNING', 'NOTICE', 'INFO']:
             finding = self.base / (level + '.txt')
             finding.write_text('FILE: writeleash.php\n[{"type":"' + level + '","code":"unreviewed"}]\n')
             result = subprocess.run([sys.executable, str(verifier), '--zip',
                                      str(self.base / 'build1/writeleash-0.1.0.zip'),
-                                     '--plugin-check', str(finding)], capture_output=True)
+                                     '--plugin-check', str(finding), '--identity-only'], capture_output=True)
             self.assertNotEqual(result.returncode, 0, level)
+        blocked = subprocess.run([sys.executable, str(verifier), '--zip',
+                                  str(self.base / 'build1/writeleash-0.1.0.zip')], capture_output=True)
+        self.assertNotEqual(blocked.returncode, 0)
+        self.assertIn(b'C124-001', blocked.stderr)
         drift = self.base / 'checksum-drift.zip'
         drift.write_bytes((self.base / 'build1/writeleash-0.1.0.zip').read_bytes() + b'drift')
         result = subprocess.run([sys.executable, str(verifier), '--zip', str(drift)], capture_output=True)
