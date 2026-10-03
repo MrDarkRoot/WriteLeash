@@ -183,6 +183,21 @@ class ArtifactCases(unittest.TestCase):
             self.rejected(reaudit.audit, archive, installed, None, True)
         finally:
             extra.unlink()
+        identity_spec = importlib.util.spec_from_file_location('identity125', Path(__file__).with_name('identity-125.py'))
+        identity125 = importlib.util.module_from_spec(identity_spec)
+        identity_spec.loader.exec_module(identity125)
+        archive125 = self.base / 'build1/writeleash-0.1.0.zip'
+        installed125 = self.base / 'build1/extracted/writeleash'
+        identity125.audit(archive125, installed125)
+        drift125 = self.base / 'checksum-drift125.zip'
+        drift125.write_bytes(archive125.read_bytes() + b'drift')
+        self.rejected(identity125.audit, drift125, installed125)
+        extra125 = installed125 / 'release-fixture.php'
+        extra125.write_text('<?php')
+        try:
+            self.rejected(identity125.audit, archive125, installed125)
+        finally:
+            extra125.unlink()
         self.assertEqual(first['ZIP_SHA256'], second['ZIP_SHA256'])
         self.assertEqual(first['ZIP_SIZE'], second['ZIP_SIZE'])
         reviewed = json.loads(Path(__file__).with_name('artifact-124-evidence.json').read_text())
