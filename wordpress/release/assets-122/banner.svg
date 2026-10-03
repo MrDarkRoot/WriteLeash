@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1544" height="500" viewBox="0 0 1544 500">
+  <rect width="1544" height="500" fill="#142c43"/>
+  <circle cx="1400" cy="35" r="265" fill="#1a374e"/>
+  <circle cx="1465" cy="455" r="215" fill="#1a374e"/>
+  <g transform="translate(82 115) scale(.92)">
+    <path d="M72 119V88c0-24 19-43 43-43s43 19 43 43v14" fill="none" stroke="#83d6d1" stroke-width="18" stroke-linecap="round"/>
+    <path d="M72 115v55c0 22 17 40 39 40s40-18 40-40v-12c0-18 14-32 32-32" fill="none" stroke="#f6f3e9" stroke-width="18" stroke-linecap="round"/>
+    <rect x="168" y="90" width="28" height="63" rx="12" fill="#efad62"/>
+    <path d="M176 114h12" stroke="#142c43" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <text x="315" y="210" font-family="DejaVu Sans, sans-serif" font-size="82" font-weight="bold" fill="#f6f3e9">WriteLeash</text>
+  <text x="319" y="265" font-family="DejaVu Sans, sans-serif" font-size="30" fill="#b5d3df">Bulk regular prices</text>
+  <path d="M342 342H1270" stroke="#83d6d1" stroke-width="4"/>
+  <g fill="#142c43" stroke="#83d6d1" stroke-width="4">
+    <circle cx="342" cy="342" r="20"/><circle cx="632" cy="342" r="20"/>
+    <circle cx="922" cy="342" r="20"/><circle cx="1270" cy="342" r="20"/>
+  </g>
+  <path d="M333 342h18M342 333v18M623 342l7 7 13-15M914 341h16l-7-7m7 7-7 7M1277 336a10 10 0 1 0 1 10m-1-10h-9m9 0v-9" fill="none" stroke="#f6f3e9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <g font-family="DejaVu Sans, sans-serif" font-size="28" fill="#f6f3e9" text-anchor="middle">
+    <text x="342" y="404">Preview</text><text x="632" y="404">Approve</text>
+    <text x="922" y="404">Apply</text><text x="1270" y="404">Recover</text>
+  </g>
+</svg>
