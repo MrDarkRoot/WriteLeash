@@ -102,6 +102,12 @@ final class Free_Admin {
 		return is_string( $value ) ? $value : null;
 	}
 
+	/** Normalize only nonce input; other mutation fields keep their strict contracts. */
+	private static function normalize_nonce( $value ): ?string {
+		if ( ! is_string( $value ) ) { return null; }
+		return sanitize_text_field( wp_unslash( $value ) );
+	}
+
 	private static function post_input(): array {
 		return array(
 			'_wpnonce' => self::post_field( '_wpnonce' ),
@@ -191,7 +197,7 @@ final class Free_Admin {
 		if ( 'POST' !== $method ) {
 			return array( 'status' => 'INVALID', 'reason' => 'post_required' );
 		}
-		$nonce = $post['_wpnonce'] ?? null;
+		$nonce = self::normalize_nonce( $post['_wpnonce'] ?? null );
 		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, $nonce_action ) ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' );
 		}
@@ -367,7 +373,7 @@ final class Free_Admin {
 		if ( null === $job ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_job' );
 		}
-		$nonce = $post['_wpnonce'] ?? null;
+		$nonce = self::normalize_nonce( $post['_wpnonce'] ?? null );
 		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, self::ACTION_APPROVE . '_' . $job['plan_id'] ) ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' );
 		}
@@ -430,7 +436,7 @@ final class Free_Admin {
 		if ( null === $job ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_job' );
 		}
-		$nonce = $post['_wpnonce'] ?? null;
+		$nonce = self::normalize_nonce( $post['_wpnonce'] ?? null );
 		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, self::ACTION_RESUME . '_' . $job['public_id'] ) ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' );
 		}
@@ -490,7 +496,7 @@ final class Free_Admin {
 		if ( null === $job ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_job' );
 		}
-		$nonce = $post['_wpnonce'] ?? null;
+		$nonce = self::normalize_nonce( $post['_wpnonce'] ?? null );
 		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, self::ACTION_UNDO . '_' . $job['public_id'] ) ) {
 			return array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' );
 		}
