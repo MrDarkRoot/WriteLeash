@@ -179,7 +179,7 @@ def build(root, requested, output):
                     'ZIP_SIZE':archive.stat().st_size, 'RUNTIME_FILE_COUNT':len(runtime),
                     'SVN_TRUNK_TREE_HASH':tree_hash(runtime), 'SVN_TAG_TREE_HASH':tree_hash(runtime),
                     'ASSET_SHA256_SET':asset_rows, 'RUNTIME_FILES':inventory(runtime),
-                    'BUILD_COMMAND':f'python3 wordpress/release/build-wordpress-org.py --source <clean-checkout> --sha {SOURCE} --output <new-output-outside-checkout>',
+                    'BUILD_COMMAND':f'python3 wordpress/release/build-wordpress-org.py --source source --sha {SOURCE} --output candidate',
                     'TOOLS':{'python':sys.version.split()[0], 'archive':'Python stdlib zipfile; ZIP_STORED; no compression dependency',
                              'git':git(root, '--version').decode().strip(),
                              'php':subprocess.check_output(['php', '-r', 'echo PHP_VERSION;']).decode()},

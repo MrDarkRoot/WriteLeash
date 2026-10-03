@@ -293,7 +293,7 @@
       "sha256": "7de1f5c5c7fa9caee29f842d038ba52e21064b917b52d864628fd237b2cddf3a"
     }
   ],
-  "BUILD_COMMAND": "python3 wordpress/release/build-wordpress-org.py --source <clean-checkout> --sha 27c3241be4eb5ce9772a128c3af1a381cd3c8843 --output <new-output-outside-checkout>",
+  "BUILD_COMMAND": "python3 wordpress/release/build-wordpress-org.py --source source --sha 27c3241be4eb5ce9772a128c3af1a381cd3c8843 --output candidate",
   "TOOLS": {
     "python": "3.12.3",
     "archive": "Python stdlib zipfile; ZIP_STORED; no compression dependency",
