@@ -65,6 +65,30 @@ class ArtifactCases(unittest.TestCase):
         self.rejected(a.blob, self.source, 'wordpress/writeleash/readme.txt')
         p.write_bytes(original)
 
+    def test_source_symlink_and_blob_bytes(self):
+        p = self.source / 'wordpress/writeleash/readme.txt'
+        original = p.read_bytes()
+        target = self.base / 'same-bytes'
+        target.write_bytes(original)
+        p.unlink()
+        try:
+            p.symlink_to(target)
+            self.rejected(a.blob, self.source, 'wordpress/writeleash/readme.txt')
+        finally:
+            p.unlink()
+            p.write_bytes(original)
+        p.write_bytes(original + b'drift')
+        try:
+            self.rejected(a.blob, self.source, 'wordpress/writeleash/readme.txt')
+        finally:
+            p.write_bytes(original)
+
+    def test_output_safety(self):
+        self.rejected(a.build, self.source, a.SOURCE, self.source / 'output')
+        existing = self.base / 'existing-output'
+        existing.mkdir()
+        self.rejected(a.build, self.source, a.SOURCE, existing)
+
     def test_manifest_traversal(self):
         for data in [b'../evil\n', b'/absolute\n', b'a\na\n']:
             self.rejected(a.read_manifest, data)
@@ -136,10 +160,15 @@ class ArtifactCases(unittest.TestCase):
 
     def test_independent_builds(self):
         first = a.build(self.source, a.SOURCE, self.base / 'build1')
-        second = a.build(self.source, a.SOURCE, self.base / 'build2')
+        source2 = self.base / 'source2'
+        subprocess.run(['git', 'clone', '--quiet', '--shared', '--no-checkout', str(ROOT), str(source2)], check=True)
+        subprocess.run(['git', '-C', str(source2), 'checkout', '--quiet', '--detach', a.SOURCE], check=True)
+        second = a.build(source2, a.SOURCE, self.base / 'build2')
+        self.assertNotEqual(first['ZIP_SHA256'], '2ecfd3edf667c15b36fc75fbb525551df07b075bdfc5696a07813a704eb6cf57')
+        subprocess.run([sys.executable, str(Path(__file__).with_name('nonce-artifact-audit.py')), str(self.base / 'build1/extracted/writeleash')], check=True)
         self.assertEqual(first['ZIP_SHA256'], second['ZIP_SHA256'])
         self.assertEqual(first['ZIP_SIZE'], second['ZIP_SIZE'])
-        reviewed = json.loads(Path(__file__).with_name('artifact-123-evidence.json').read_text())
+        reviewed = json.loads(Path(__file__).with_name('artifact-124-evidence.json').read_text())
         for field in ['SOURCE_GIT_SHA', 'VERSION', 'STABLE_TAG', 'PUBLIC_MANIFEST_SHA256',
                       'ZIP_SHA256', 'ZIP_SIZE', 'RUNTIME_FILE_COUNT', 'SVN_TRUNK_TREE_HASH',
                       'SVN_TAG_TREE_HASH', 'ASSET_SHA256_SET', 'RUNTIME_FILES']:
