@@ -39,6 +39,7 @@ for host in mysql mariadb; do
       wp --path="$site" redis status
     fi
     echo "#111 engine=$host cache=$cache"
+    WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/nonce-normalization.php
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/integration.php
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/sql-audit.php
     WL111_CACHE="$cache" WL111_BASE_URL=http://127.0.0.1:8080 WL111_ADMIN_PASSWORD=disposable_admin_password wp --path="$site" eval-file /opt/tests/admin/browser-e2e.php
