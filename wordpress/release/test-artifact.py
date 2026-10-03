@@ -166,6 +166,23 @@ class ArtifactCases(unittest.TestCase):
         second = a.build(source2, a.SOURCE, self.base / 'build2')
         self.assertNotEqual(first['ZIP_SHA256'], '2ecfd3edf667c15b36fc75fbb525551df07b075bdfc5696a07813a704eb6cf57')
         subprocess.run([sys.executable, str(Path(__file__).with_name('nonce-artifact-audit.py')), str(self.base / 'build1/extracted/writeleash')], check=True)
+        audit_spec = importlib.util.spec_from_file_location('reaudit', Path(__file__).with_name('compliance-reaudit-124.py'))
+        reaudit = importlib.util.module_from_spec(audit_spec)
+        audit_spec.loader.exec_module(reaudit)
+        archive = self.base / 'build1/writeleash-0.1.0.zip'
+        installed = self.base / 'build1/extracted/writeleash'
+        reaudit.audit(archive, installed, identity_only=True)
+        for result in ['ERROR', 'WARNING', 'NOTICE', 'INFO', '', '[]', 'Success: Checks complete. No errors found.\nERROR unknown']:
+            self.rejected(reaudit.plugin_check_output, result)
+        changed = self.base / 'changed.zip'
+        changed.write_bytes(archive.read_bytes() + b'drift')
+        self.rejected(reaudit.audit, changed, installed, None, True)
+        extra = installed / 'fixture.php'
+        extra.write_text('<?php')
+        try:
+            self.rejected(reaudit.audit, archive, installed, None, True)
+        finally:
+            extra.unlink()
         self.assertEqual(first['ZIP_SHA256'], second['ZIP_SHA256'])
         self.assertEqual(first['ZIP_SIZE'], second['ZIP_SIZE'])
         reviewed = json.loads(Path(__file__).with_name('artifact-124-evidence.json').read_text())
