@@ -1,4 +1,4 @@
-# #124 exact-artifact compliance gate — GO
+# #124 exact-artifact compliance gate — BLOCKED
 
 All conclusions below attach only to ZIP SHA-256
 `2ecfd3edf667c15b36fc75fbb525551df07b075bdfc5696a07813a704eb6cf57`
@@ -26,18 +26,19 @@ secondary DB user or external hosting setup was required.
 
 First-party guidance reread:
 
-- [Detailed Plugin Guidelines](https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/) (page Last Updated: March 15, 2024).
+- [Detailed Plugin Guidelines](https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/) (embedded Last Updated: March 15, 2024; page footer last updated March 11, 2026).
 - [Common issues](https://developer.wordpress.org/plugins/wordpress-org/common-issues/) (page Last Updated: March 20, 2026).
 - [Official Plugin Check guidance](https://wordpress.org/plugins/plugin-check/), including the CLI runtime-loader requirement.
 
-No material change relative to the recorded #121/#123 interpretations was
-identified: readable deployed source satisfies the source-access rule;
+The final current-guidance cross-check identifies an unmet nonce sanitization
+requirement not established by the recorded #121/#123 interpretations: readable deployed source satisfies the source-access rule;
 capabilities are separate from CSRF checks; trialware, tracking, remote code
 and Admin hijacking remain disallowed. There is no archived byte-level
 historical webpage snapshot here, so this does not claim a complete historical
 text diff. Plugin Check 2.1.0 is current per the official plugin information
 API and is the same pinned version already referenced by repository audits.
-No public claim was rewritten.
+No public claim was rewritten. Historical webpage snapshots are unavailable;
+this is an identified compliance gap, not a proven newly introduced guideline.
 
 ## Exact install and Plugin Check
 
@@ -85,7 +86,7 @@ Paths/lines here refer to files in the exact installed/extracted candidate.
 
 | Area | Exact paths and evidence | Verdict |
 |---|---|---|
-| Admin mutations | `includes/free/class-free-admin.php`: boot lines 41–47 registers four `admin_post_` actions; `gate` 187–199 checks both manage_woocommerce and edit_products before POST and nonce; process_approve 357+, process_resume 420+, process_undo 480+ repeat method/capability and job authorization before persistence. Action-specific nonces bind plan/job identities. | PASS |
+| Admin mutations | `includes/free/class-free-admin.php`: boot lines 41–47 registers four `admin_post_` actions; `gate` 187–199 checks both manage_woocommerce and edit_products before POST and nonce; process_approve 357+, process_resume 420+, process_undo 480+ repeat method/capability and job authorization before persistence. Action-specific nonces bind plan/job identities. | FAIL: nonce input sanitization requirement |
 | Actor scope | `Free_Admin::authorized_for_job` and `load_job_for_view` require creator/approver or administrator; history SQL is actor-scoped. UUID possession is not authority. Worker restores the frozen actor and Woo mutators recheck global and product capabilities fresh. | PASS |
 | REST | `class-job-resume-rest.php` 17–30 and `class-undo-rest.php` 19–32 register only POST with permission_callback requiring logged-in manage_woocommerce/edit_products. Handlers check creator/approver/admin before worker/initiation. IDs use fixed UUID route regex plus repository PUBLIC_ID_REGEX. Core REST cookie authentication owns X-WP-Nonce validation; application passwords are a separate Core authentication path. | PASS |
 | Input | Free_Admin build_selection 217+, build_operation 252+, build_policy 264+: strings/types checked before integer conversion, anchored digit regex, positive IDs, fixed five-operation enum, maximum new selection/policy 100. Price_Decimal::parse rejects floats, exponent notation, malformed/sign/coercion inputs. Job IDs are strict UUIDs; Undo numeric IDs come from trusted loaded operations, not request SQL. Display offsets use bounded digit regex and do not authorize mutations. | PASS |
@@ -177,8 +178,46 @@ installed-tree byte equivalence. Any unknown/nonzero Plugin Check output fails
 closed for review. PR_FAST's existing independent artifact builds invoke this
 verifier; no network, install or deep runtime integration is added to PR_FAST.
 
-**GO for #124 only.** No unresolved security finding, error-level directory
-blocker or production change. Any source/runtime/asset change invalidates this
+**BLOCKED for #124. SOURCE CHANGE REQUIRED.** The nonce-input compliance
+blocker below remains unresolved. Plugin Check reports zero error-level findings,
+but automated success does not override the official manual guidance. No
+exploitable nonce bypass or security vulnerability is claimed. Any source/runtime/asset change invalidates this
 audit and requires new #123-equivalent artifact production and downstream
 reaudit. WordPress.org's human review remains separate. No #125 implementation,
 RELEASE_FULL, merge, tag, GitHub Release, SVN operation or publication occurred.
+
+
+## Blocking finding C124-001: raw Admin nonce passed to pluggable verification
+
+Classification: **BLOCKER** (manual WordPress.org compliance); no demonstrated
+security exploit. Exact ZIP identity above remains byte-valid as evidence but
+is **not authorized for #125 acceptance**.
+
+Current official Common issues, Sanitize: Nonces, requires both wp_unslash and
+sanitize_text_field before wp_verify_nonce because verification is pluggable:
+https://developer.wordpress.org/plugins/wordpress-org/common-issues/#sanitize-nonces
+The same page explains that FILTER_DEFAULT does not sanitize input.
+
+Exact artifact evidence in `includes/free/class-free-admin.php`:
+
+- `post_field` lines 100–103 calls `filter_input(INPUT_POST, $key)` with the
+  default filter, and returns an unchanged string.
+- `post_input` line 107 obtains `_wpnonce` from that function.
+- `gate` lines 194–195 checks is_string and passes `$nonce` directly to
+  wp_verify_nonce for preview.
+- `process_approve` lines 370–371, `process_resume` 433–434 and `process_undo`
+  493–494 likewise pass nonce strings directly to verification.
+- Neither wp_unslash nor sanitize_text_field is applied to these nonce values.
+  request_method sanitizes only $_SERVER REQUEST_METHOD, not the nonce.
+
+Capability and method checks remain independent and the observed negative
+controls pass; that does not satisfy this separate directory requirement.
+This source path is not covered by an emitted Plugin Check finding. It is not
+suppressed or called a false positive. Source changes must be reviewed normally,
+followed by #123-equivalent regeneration and renewed #124 audit. Do not add a
+production patch on this branch, silently sanitize the installed candidate,
+or continue #125 against the old hash.
+
+The compliance work stopped when this requirement was identified. Previously
+completed lifecycle/authorization/package observations are retained with their
+bounded meanings; they do not turn the blocked overall verdict into GO.

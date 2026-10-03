@@ -1,5 +1,5 @@
 {
-  "RESULT": "GO",
+  "RESULT": "BLOCKED",
   "REVIEW_DATE": "2026-10-03",
   "SOURCE_GIT_SHA": "27c3241be4eb5ce9772a128c3af1a381cd3c8843",
   "ZIP_SHA256": "2ecfd3edf667c15b36fc75fbb525551df07b075bdfc5696a07813a704eb6cf57",
@@ -569,5 +569,31 @@
     "PLANNED_JOB_EVIDENCE_PRESERVED": "PASS",
     "UNRELATED_ACTION": "pending",
     "OWNED_ACTION": "canceled"
-  }
+  },
+  "SOURCE_CHANGE_REQUIRED": true,
+  "AUTHORIZED_FOR_125": false,
+  "MANUAL_FINDINGS": [
+    {
+      "id": "C124-001",
+      "classification": "BLOCKER",
+      "kind": "nonce input sanitization compliance; no demonstrated exploit",
+      "file": "includes/free/class-free-admin.php",
+      "file_sha256": "372b9f5a7c5e3bde07056dd3f507503c7867717c24b6f5bdca5a394962d44c49",
+      "lines": [
+        100,
+        103,
+        107,
+        194,
+        195,
+        370,
+        371,
+        433,
+        434,
+        493,
+        494
+      ],
+      "evidence": "filter_input default returns raw nonce; is_string then wp_verify_nonce; no wp_unslash/sanitize_text_field",
+      "official_guidance": "https://developer.wordpress.org/plugins/wordpress-org/common-issues/#sanitize-nonces"
+    }
+  ]
 }
