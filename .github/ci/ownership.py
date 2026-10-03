@@ -116,6 +116,41 @@ def listing_wiring_only(path, before, after):
     return bool(allowed) and before != after and normalize(before) == normalize(after)
 
 
+def release_history_audit(text):
+    """Fail closed on the canonical workflow's preflight checkout structure.
+
+    Scope by YAML indentation, so a depth on another job/step cannot satisfy
+    this check. actionlint separately validates the complete YAML syntax.
+    """
+    jobs = re.search(r'^jobs:\n((?:[ \t].*\n|\n)*)', text, re.M)
+    assert jobs, 'Release jobs mapping missing'
+    preflight = re.search(r'^  preflight:\n((?: {4}.*\n|\n)*)', jobs[1], re.M)
+    assert preflight, 'Release preflight mapping missing'
+    steps = re.search(r'^    steps:\n((?: {6}.*\n|\n)*)', preflight[1], re.M)
+    assert steps, 'Release preflight steps missing'
+    checkouts = [step for step in re.split(r'^      - ', steps[1], flags=re.M)
+                 if re.match(r'uses: actions/checkout@[a-f0-9]{40}\n', step)]
+    assert len(checkouts) == 1, 'Expected one canonical release preflight checkout'
+    inputs = re.search(r'^        with:\n((?: {10}.*\n|\n)*)', checkouts[0], re.M)
+    assert inputs, 'Release preflight checkout inputs missing'
+    depths = re.findall(r'^          fetch-depth: (.*)$', inputs[1], re.M)
+    assert depths == ['0'], 'Release preflight checkout requires fetch-depth: 0 for frozen artifact source'
+
+
+def release_history_regression(text):
+    release_history_audit(text)
+    for replacement in ('          fetch-depth: 1\n', '', '          fetch-depth: 0\n          fetch-depth: 1\n'):
+        broken = text.replace('          fetch-depth: 0\n', replacement, 1)
+        # An unrelated job's full history must not mask the shallow preflight.
+        broken += '  unrelated:\n    steps:\n      - uses: actions/checkout@' + 'a' * 40 + '\n        with:\n          fetch-depth: 0\n'
+        try:
+            release_history_audit(broken)
+        except AssertionError:
+            continue
+        raise AssertionError('Shallow/ambiguous release preflight accepted')
+    print('#125 release preflight history: full checkout required; shallow/default/duplicate depth rejected PASS')
+
+
 def audit():
     owners = production()
     actual = {p.relative_to(ROOT).as_posix() for p in (ROOT / 'wordpress/writeleash').rglob('*') if p.is_file() and p.suffix.lower() == '.php'}
@@ -127,6 +162,7 @@ def audit():
             classify(p.relative_to(ROOT).as_posix())
     pr = (ROOT / '.github/workflows/pr-fast.yml').read_text()
     full = (ROOT / '.github/workflows/release-full.yml').read_text()
+    release_history_regression(full)
     for gate, workflow in MAP['workflows'].items():
         text = (ROOT / '.github/workflows' / workflow).read_text()
         assert re.search(r'^on:\n  workflow_call:', text, re.M), workflow + ' must be reusable only'
