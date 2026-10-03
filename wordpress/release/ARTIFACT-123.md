@@ -1,5 +1,10 @@
 # #123 deterministic local candidate
 
+> Historical artifact: ZIP `2ecfd3edf667c15b36fc75fbb525551df07b075bdfc5696a07813a704eb6cf57`
+> is superseded / compliance-blocked by C124-001 and is NOT authorized for #125.
+> Closed issue state is not acceptance. Original evidence below is preserved;
+> see `ARTIFACT-124.md` for the regenerated candidate. PR #139 remains untouched.
+
 Source is frozen to reviewed main `27c3241be4eb5ce9772a128c3af1a381cd3c8843`.
 Tooling commits do not become candidate source revisions. Invoke the tooling
 from this branch against a separate clean checkout with HEAD at the frozen SHA.

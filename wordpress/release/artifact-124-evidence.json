@@ -1,0 +1,356 @@
+{
+  "SOURCE_GIT_SHA": "5ccc75c1d895a2fb379866ce4cf0e9901d1c276c",
+  "VERSION": "0.1.0",
+  "STABLE_TAG": "0.1.0",
+  "PUBLIC_MANIFEST_SHA256": "d30e8952a0364ac4a7e254d0b44a2ea98eea2df9fcc9f5ff6579ab5427cda891",
+  "ZIP_SHA256": "7932ed450fa4fdd43902cfd74fb264f3db14271a63030726066c17e677d4223e",
+  "ZIP_SIZE": 396314,
+  "RUNTIME_FILE_COUNT": 37,
+  "SVN_TRUNK_TREE_HASH": "4d3fa1f34b2435a364bc62f92db75a7c417bedb23086b02eace2cf974b6cb5c4",
+  "SVN_TAG_TREE_HASH": "4d3fa1f34b2435a364bc62f92db75a7c417bedb23086b02eace2cf974b6cb5c4",
+  "ASSET_SHA256_SET": [
+    {
+      "path": "banner-1544x500.png",
+      "size": 34685,
+      "sha256": "743eeb73c66f5f4e0f7cfd30fbfbfacc4b6cd68d8c2fac5e99cf360991929815",
+      "dimensions": [
+        1544,
+        500
+      ]
+    },
+    {
+      "path": "banner-772x250.png",
+      "size": 32809,
+      "sha256": "9d0f89ff2f2024c9ea0f6a60cd066dd96a794b65ce736187aaf8362d27dc78e9",
+      "dimensions": [
+        772,
+        250
+      ]
+    },
+    {
+      "path": "icon-128x128.png",
+      "size": 5831,
+      "sha256": "5ad3f9c0451ece8c5ec82930cced54ad3a4151923ba34d39de382fcc6c330b55",
+      "dimensions": [
+        128,
+        128
+      ]
+    },
+    {
+      "path": "icon-256x256.png",
+      "size": 7370,
+      "sha256": "14b6350a5dd0f25fe8295153d497fb948fbeaf8d016f4055d4ea173345a51732",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "icon.svg",
+      "size": 643,
+      "sha256": "9239cecb489ead508f29c85d09a1251470bff26edc85145785a6e9a4aad2c8c7",
+      "viewBox": "0 0 256 256"
+    },
+    {
+      "path": "screenshot-1.png",
+      "size": 77950,
+      "sha256": "a75a9d7348214b96e13d5ea7f6e8320413dc772c394078d050bbaa0d34ea84cc",
+      "dimensions": [
+        818,
+        644
+      ]
+    },
+    {
+      "path": "screenshot-2.png",
+      "size": 65469,
+      "sha256": "bd128400fe353ef45db5ebfa806c04a549fb646be8f1dc015518a7f2d9f39748",
+      "dimensions": [
+        818,
+        658
+      ]
+    },
+    {
+      "path": "screenshot-3.png",
+      "size": 119230,
+      "sha256": "c8860d79bb991a656f7d48a2036d3ca53274b3390d0bfe8a26a9aebe5310ad79",
+      "dimensions": [
+        818,
+        1113
+      ]
+    },
+    {
+      "path": "screenshot-4.png",
+      "size": 118082,
+      "sha256": "6290d77ff6215f25781ac4942af8264bad3c547b624dc81180ac9d1d99b0bf35",
+      "dimensions": [
+        818,
+        1107
+      ]
+    },
+    {
+      "path": "screenshot-5.png",
+      "size": 122833,
+      "sha256": "7d7da936bd7a4d78c0fc39c9abd0da030105f2961986d65fb318c9eafef6f6c2",
+      "dimensions": [
+        818,
+        1125
+      ]
+    },
+    {
+      "path": "screenshot-6.png",
+      "size": 43969,
+      "sha256": "749061c94471d7705901180c8c59999d613499cee1dc11e1db1ecce5b5c212b6",
+      "dimensions": [
+        818,
+        405
+      ]
+    }
+  ],
+  "RUNTIME_FILES": [
+    {
+      "path": "LICENSE",
+      "size": 17984,
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6"
+    },
+    {
+      "path": "includes/class-environment.php",
+      "size": 736,
+      "sha256": "91d0cf91fa588e098b17cac294f8a254d1dde68ff55119c212536c90f29ea9c4"
+    },
+    {
+      "path": "includes/class-lifecycle.php",
+      "size": 2798,
+      "sha256": "d76ed59797640faf810354707ce574815be8152af910c1026ea2cb93dff5338d"
+    },
+    {
+      "path": "includes/class-plugin.php",
+      "size": 977,
+      "sha256": "db8934a4ff5d52e39a31fa644939094da8b4f2488d6f19f8c4ff689cc2671720"
+    },
+    {
+      "path": "includes/free/class-change-plan.php",
+      "size": 17518,
+      "sha256": "ca9b073a50baa887a01760daa1e80056a206b305e8f88258d376d011af01e94c"
+    },
+    {
+      "path": "includes/free/class-free-admin.php",
+      "size": 60052,
+      "sha256": "cc03221dc7bd2202b23a05ac29bf0253ac58b2bab9105f8e65c567034c2cf95a"
+    },
+    {
+      "path": "includes/free/class-free-support-contract.php",
+      "size": 1554,
+      "sha256": "7f7defab73c484f9dca775c73573ea2d0500b68da4c7a71f57d3e9d6e0afe010"
+    },
+    {
+      "path": "includes/free/class-job-repository.php",
+      "size": 33282,
+      "sha256": "5708573406335ec5bc0cfae7a9846d24e6b96e4fe07ce840dbfe505f7cc6e5c4"
+    },
+    {
+      "path": "includes/free/class-job-resume-rest.php",
+      "size": 2973,
+      "sha256": "f613cbe5970307c1e4834e9325c5442c21f4c257ba51518be6b7c29131cf2b97"
+    },
+    {
+      "path": "includes/free/class-job-scheduler.php",
+      "size": 1411,
+      "sha256": "3d5583ab17c342593f7bf32c5b9f6aee63d24be5ea9df6a2d17be9c26dd751d4"
+    },
+    {
+      "path": "includes/free/class-job-schema.php",
+      "size": 9320,
+      "sha256": "1a88c52cee1a60645135d4a5e0d365e510b308f7a8465102f7a046c888df5592"
+    },
+    {
+      "path": "includes/free/class-job-state.php",
+      "size": 8675,
+      "sha256": "f44e85697102153279773297cd6cd4a17459e9817552273185c72def3be9daf4"
+    },
+    {
+      "path": "includes/free/class-job-transaction-fence.php",
+      "size": 2251,
+      "sha256": "e5d6cc1239b0dff26256d7ab7e6a298df87fddc92199bab809f0d1bffabee063"
+    },
+    {
+      "path": "includes/free/class-job-worker.php",
+      "size": 19655,
+      "sha256": "78239bb9ff5fc768de809636eafbfec86f49408ec52369b37a22b35089c2c76f"
+    },
+    {
+      "path": "includes/free/class-price-apply-connection.php",
+      "size": 4138,
+      "sha256": "1cb946c51f0f2e5522893aa17d2170dafe407268429fc99aa244d79aba6d7473"
+    },
+    {
+      "path": "includes/free/class-price-apply-journal.php",
+      "size": 10051,
+      "sha256": "ffe22676b5bea6f1a5f78bdd3c53ff5f17fa537979d888c9095dcc3bb113a24d"
+    },
+    {
+      "path": "includes/free/class-price-apply-transaction-guard.php",
+      "size": 1171,
+      "sha256": "38c8faf10863f2bf9f076a22458973c7903dfaa8d9dd41d539be0db1832b6dff"
+    },
+    {
+      "path": "includes/free/class-price-cache-verifier.php",
+      "size": 6006,
+      "sha256": "78955f169e1390ca7969b88ba156f1ecd9667430d512c16238260fb5ac7f4a53"
+    },
+    {
+      "path": "includes/free/class-price-decimal.php",
+      "size": 4881,
+      "sha256": "103ee047d439778f0061944394405cdd9d559409bda37bcdf3cd251c105acb26"
+    },
+    {
+      "path": "includes/free/class-price-operation.php",
+      "size": 2930,
+      "sha256": "b444081088f6010de1ffde589c893e31660ba818998692133648cfb04b119a79"
+    },
+    {
+      "path": "includes/free/class-product-selector.php",
+      "size": 3688,
+      "sha256": "e1afe48d177351cd6d675d4adfb0037d0b5a5a9f1d9508603b73f344851884fa"
+    },
+    {
+      "path": "includes/free/class-product-snapshot.php",
+      "size": 8506,
+      "sha256": "c188b4da3fbe665870c7d62ab884f06d2b726e3d291ef3f315dba1697ba3a0a3"
+    },
+    {
+      "path": "includes/free/class-runner-authority.php",
+      "size": 2926,
+      "sha256": "8ac5352e7e26915a0b7ff0b46aeffad483910e03c4b720cb32c0bb8ec0b5099b"
+    },
+    {
+      "path": "includes/free/class-safety-policy.php",
+      "size": 3569,
+      "sha256": "e7965ec55697a8b64c3b832b5a79dc7d57fd599039220d658e89dc6d86eb8f33"
+    },
+    {
+      "path": "includes/free/class-undo-fingerprint.php",
+      "size": 6653,
+      "sha256": "3afbba61ac7d74f8238c82cf0b83a39386fd322d2ef4f2353057f319bd7ea11e"
+    },
+    {
+      "path": "includes/free/class-undo-repository.php",
+      "size": 66480,
+      "sha256": "d69dd8c0e0c19b9abf8a24e28ef35922671e30dbfcab09408fc3e925ff52862f"
+    },
+    {
+      "path": "includes/free/class-undo-rest.php",
+      "size": 3713,
+      "sha256": "2602b8c42802d58add6f1471c5de04adeb6491e92150e9b77f0c2876cb11225c"
+    },
+    {
+      "path": "includes/free/class-undo-scheduler.php",
+      "size": 2654,
+      "sha256": "1a6decb09745afd0054dd615afe2f5b963fdfaeb218d19166b1a31820c171f6a"
+    },
+    {
+      "path": "includes/free/class-undo-schema.php",
+      "size": 9233,
+      "sha256": "4463107f9039b9db568642a7052054aa6eeefdd6a09db3f7cff7faf2a8b8e87e"
+    },
+    {
+      "path": "includes/free/class-undo-state.php",
+      "size": 8641,
+      "sha256": "a806dfbac54126c45ee03bf00da38032460e046e749657b99326efbe01179e3a"
+    },
+    {
+      "path": "includes/free/class-undo-transaction-fence.php",
+      "size": 3068,
+      "sha256": "157ec9d990a705fd8d90b278cdf0262ea4b338c0a3864528c404bb71aafb52ba"
+    },
+    {
+      "path": "includes/free/class-undo-worker.php",
+      "size": 19562,
+      "sha256": "a51e4261bf641812e32ca8b3f7526e7cb26edbf4d2f8e5a887a01be00099c763"
+    },
+    {
+      "path": "includes/free/class-woo-price-mutator.php",
+      "size": 10126,
+      "sha256": "2f188838e5e42a55609f970f9bd40e199ae4e18828f334ef71de960053d630d0"
+    },
+    {
+      "path": "includes/free/class-woo-undo-mutator.php",
+      "size": 16742,
+      "sha256": "1e3d8955d59326371383322af830f951f57c34d1f4c478b0246011d064c246a7"
+    },
+    {
+      "path": "readme.txt",
+      "size": 7048,
+      "sha256": "1115ad085dc885327d21fecacf1057c85c5b086c039282ac4089fd19260a6c7a"
+    },
+    {
+      "path": "uninstall.php",
+      "size": 4963,
+      "sha256": "d826c6ef5ea01875349a5bc4a9b2b52ecfb7a75e122322f2de216ad9be041670"
+    },
+    {
+      "path": "writeleash.php",
+      "size": 4129,
+      "sha256": "7de1f5c5c7fa9caee29f842d038ba52e21064b917b52d864628fd237b2cddf3a"
+    }
+  ],
+  "BUILD_COMMAND": "python3 wordpress/release/build-wordpress-org.py --source source --sha 5ccc75c1d895a2fb379866ce4cf0e9901d1c276c --output candidate",
+  "TOOLS": {
+    "python": "3.12.3",
+    "archive": "Python stdlib zipfile; ZIP_STORED; no compression dependency",
+    "git": "git version 2.43.0",
+    "php": "8.2.32"
+  },
+  "ZIP_ENTRY_AUDIT": "PASS",
+  "ZIP_PUBLIC_CLOSURE": "PASS",
+  "FORBIDDEN_PAYLOAD_SCAN": "PASS",
+  "PAYLOAD_EQUIVALENCE": "PASS",
+  "OLD_ARTIFACT": {
+    "SOURCE_GIT_SHA": "27c3241be4eb5ce9772a128c3af1a381cd3c8843",
+    "ZIP_SHA256": "2ecfd3edf667c15b36fc75fbb525551df07b075bdfc5696a07813a704eb6cf57",
+    "STATUS": "superseded / compliance-blocked",
+    "AUTHORIZED_FOR_125": false,
+    "PRESERVED_PR": 139
+  },
+  "REPRODUCIBILITY": {
+    "INDEPENDENT_CLEAN_CHECKOUTS": 2,
+    "ZIP_SHA256_BUILD_2": "7932ed450fa4fdd43902cfd74fb264f3db14271a63030726066c17e677d4223e",
+    "ZIP_SIZE_BUILD_2": 396314,
+    "BYTES_EQUAL": true,
+    "RESULT": "PASS"
+  },
+  "C124_001": {
+    "EXTRACTED_ARTIFACT": "PASS",
+    "INSTALLED_ARTIFACT": "PASS",
+    "ACTIONS": {
+      "Preview": "PASS",
+      "Approve": "PASS",
+      "Resume": "PASS",
+      "Undo": "PASS"
+    },
+    "RAW_REQUEST_NONCE": "NONE",
+    "REAL_WORDPRESS_NONCE_ASSERTIONS": 111
+  },
+  "SMOKE": {
+    "WORDPRESS": "7.1.2",
+    "WOOCOMMERCE": "11.1.2",
+    "ZIP_INSTALL": "PASS",
+    "ACTIVATION": "PASS",
+    "WOO_DEPENDENCY": "PASS",
+    "BASENAME": "writeleash/writeleash.php",
+    "HEADER_COUNT": 1,
+    "AUTHENTICATED_PRODUCTS_BULK_PRICES_HTTP": "200, rendered WriteLeash Bulk Prices",
+    "INSTALLED_TREE_EQUIVALENCE": "PASS",
+    "UNSUPPORTED_WORDPRESS": "6.8.3",
+    "UNSUPPORTED_NORMAL_INSTALL": "Core refuses ZIP because minimum is 7.0",
+    "UNSUPPORTED_ACTIVATION": "ZIP installed inactive through WP Plugin_Upgrader on 7.1.2, Core then replaced with exact 6.8.3; Core plugin_wp_incompatible refusal; inactive; zero WriteLeash tables/products",
+    "DATABASE_FIXTURE": "MariaDB 10.11.14; isolated Unix socket; ordinary WordPress connection",
+    "REDIRECTION_REQUIRED": false,
+    "DOCTOR_REQUIRED": false,
+    "CUSTOM_DB_PRIVILEGE_SETUP_REQUIRED": false,
+    "NONCE_NORMALIZATION": "Installed artifact; real WordPress normalization/verification; 111 assertions PASS"
+  },
+  "FULL_REAUDIT_124": "NOT YET RUN",
+  "AUTHORIZED_FOR_125": false,
+  "WORDPRESS_ORG_PUBLISHED": false,
+  "RELEASE_FULL": "NOT RUN"
+}

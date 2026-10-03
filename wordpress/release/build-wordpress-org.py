@@ -13,7 +13,7 @@ import subprocess
 import sys
 import zipfile
 
-SOURCE = '27c3241be4eb5ce9772a128c3af1a381cd3c8843'
+SOURCE = '5ccc75c1d895a2fb379866ce4cf0e9901d1c276c'
 MANIFEST = 'wordpress/release/writeleash-distribution-files.txt'
 ASSETS = sorted(['icon-128x128.png', 'icon-256x256.png', 'icon.svg',
                  'banner-772x250.png', 'banner-1544x500.png'] +
