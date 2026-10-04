@@ -3,6 +3,8 @@ namespace WriteLeash;
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/class-product-discovery.php';
+
 /**
  * #111 Free WooCommerce bulk-price Admin workflow.
  *
@@ -40,6 +42,8 @@ final class Free_Admin {
 
 	public static function boot(): void {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ), 20 );
+		Product_Discovery::boot();
 		add_action( 'admin_post_' . self::ACTION_PREVIEW, array( __CLASS__, 'handle_preview' ) );
 		add_action( 'admin_post_' . self::ACTION_APPROVE, array( __CLASS__, 'handle_approve' ) );
 		add_action( 'admin_post_' . self::ACTION_RESUME, array( __CLASS__, 'handle_resume' ) );
@@ -61,6 +65,15 @@ final class Free_Admin {
 		} else {
 			add_management_page( $title, 'WriteLeash Bulk Prices', 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
 		}
+	}
+
+	/** Woo enhancement assets are isolated to this Admin screen; native form remains usable. */
+	public static function assets( string $hook ): void {
+		if ( ! in_array( $hook, array( 'product_page_' . self::SLUG, 'woocommerce_page_' . self::SLUG, 'tools_page_' . self::SLUG ), true ) || ! self::can_mutate() || ! self::dependency_ok() ) { return; }
+		wp_enqueue_style( 'writeleash-free-selection', plugins_url( 'includes/free/free-selection.css', WRITELEASH_PLUGIN_FILE ), array(), WRITELEASH_VERSION );
+		if ( ! wp_script_is( 'selectWoo', 'registered' ) ) { return; }
+		wp_enqueue_style( 'woocommerce_admin_styles' );
+		wp_enqueue_script( 'writeleash-free-selection', plugins_url( 'includes/free/free-selection.js', WRITELEASH_PLUGIN_FILE ), array( 'jquery', 'selectWoo' ), WRITELEASH_VERSION, true );
 	}
 
 	/** Whether both mutation capabilities are present for the current actor. */
@@ -88,7 +101,7 @@ final class Free_Admin {
 	// process_* core, then a transient notice plus safe redirect (PRG).
 	// ------------------------------------------------------------------
 
-	private static function request_method(): string {
+	public static function request_method(): string {
 		// $_SERVER is routing metadata, not processed input; unslash and
 		// sanitize exactly like the reviewed legacy Admin handler.
 		if ( isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] ) ) {
@@ -123,6 +136,14 @@ final class Free_Admin {
 			'warning_threshold' => self::post_field( 'warning_threshold' ),
 			'block_zero' => self::post_field( 'block_zero' ),
 			'job' => self::post_field( 'job' ),
+			'picker_present' => self::post_field( 'picker_present' ),
+			'product_ids' => filter_input( INPUT_POST, 'product_ids', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ),
+			'discovery_nonce' => self::post_field( 'discovery_nonce' ),
+			'selection_action' => self::post_field( 'selection_action' ),
+			'product_search' => self::post_field( 'product_search' ),
+			'category_search' => self::post_field( 'category_search' ),
+			'product_page' => self::post_field( 'product_page' ),
+			'category_page' => self::post_field( 'category_page' ),
 		);
 	}
 
@@ -143,7 +164,11 @@ final class Free_Admin {
 	}
 
 	public static function handle_preview(): array {
-		$result = self::process_preview( self::post_input(), self::request_method() );
+		$post = self::post_input();
+		$result = self::process_preview( $post, self::request_method() );
+		if ( 'INVALID' === ( $result['status'] ?? '' ) && null === self::gate( self::ACTION_PREVIEW, $post, self::request_method() ) ) {
+			set_transient( self::form_key(), self::retained_inputs( $post ), self::NOTICE_SECONDS );
+		}
 		$public_id = 'OK' === ( $result['status'] ?? '' ) ? (string) ( $result['public_id'] ?? '' ) : null;
 		return self::finish( $result, 'OK' === ( $result['status'] ?? '' ) ? 'preview' : '', $public_id );
 	}
@@ -222,6 +247,10 @@ final class Free_Admin {
 	/** Build the trusted selector from exactly the proved #107 selector kinds. */
 	public static function build_selection( array $post ): Price_Selection_Spec {
 		$kind = $post['selector'] ?? null;
+		if ( 'manual_ids' === $kind ) { $kind = 'ids'; }
+		elseif ( 'ids' === $kind && '1' === ( $post['picker_present'] ?? '' ) ) {
+			$post['ids'] = implode( ',', self::picker_ids( $post ) );
+		}
 		if ( 'ids' === $kind ) {
 			$raw = $post['ids'] ?? null;
 			if ( ! is_string( $raw ) || '' === trim( $raw ) ) {
@@ -253,6 +282,61 @@ final class Free_Admin {
 			return Price_Selection_Spec::category( (int) $raw );
 		}
 		throw new Price_Validation_Error( 'invalid_selector' );
+	}
+
+	/** Only the merchant picker deduplicates IDs; the established advanced contract stays intact. */
+	private static function picker_ids( array $post ): array {
+		$raw = $post['product_ids'] ?? array();
+		if ( null === $raw ) { $raw = array(); }
+		if ( ! is_array( $raw ) || count( $raw ) > Free_Support_Contract::MAX_JOB_PRODUCTS + 1 ) { throw new Price_Validation_Error( 'invalid_selection_size' ); }
+		$ids = array();
+		foreach ( $raw as $value ) {
+			if ( ! is_string( $value ) || ! preg_match( '/\A[0-9]{1,10}\z/', $value ) || (int) $value < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
+			$ids[] = (int) $value;
+		}
+		$ids = array_values( array_unique( $ids ) );
+		Free_Support_Contract::assert_job_size( count( $ids ) );
+		return $ids;
+	}
+
+	private static function form_key(): string {
+		return 'writeleash_free_form_' . get_current_user_id() . '_' . substr( hash( 'sha256', wp_get_session_token() ), 0, 16 );
+	}
+
+	/** Bounded, escaped-on-output, session-scoped input recovery; never plan or execution truth. */
+	private static function retained_inputs( array $post ): array {
+		$values = array();
+		foreach ( array( 'selector', 'ids', 'sku', 'category', 'operation', 'amount', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
+			$value = $post[$key] ?? null;
+			if ( is_string( $value ) && strlen( $value ) <= ( 'ids' === $key ? 1500 : 100 ) ) { $values[$key] = $value; }
+		}
+		try { $values['product_ids'] = array_map( 'strval', self::picker_ids( $post ) ); }
+		catch ( \Throwable $error ) { $values['product_ids'] = array(); }
+		return $values;
+	}
+
+	/** Native fallback form actions are authenticated reads, never preview imports or saves. */
+	public static function process_selection( array $post, string $method ): array {
+		$gate_post = array( '_wpnonce' => $post['discovery_nonce'] ?? null );
+		$refused = self::gate( Product_Discovery::ACTION, $gate_post, $method );
+		if ( null !== $refused ) { return $refused; }
+		$values = self::retained_inputs( $post );
+		try {
+			$ids = self::picker_ids( $post );
+			$action = $post['selection_action'] ?? '';
+			if ( 'clear-products' === $action ) { $ids = array(); }
+			elseif ( is_string( $action ) && preg_match( '/\Aremove:([0-9]{1,10})\z/', $action, $match ) ) { $ids = array_values( array_diff( $ids, array( (int) $match[1] ) ) ); }
+			elseif ( ! in_array( $action, array( 'search-products', 'next-products', 'search-categories', 'next-categories', 'update-products' ), true ) ) { throw new Price_Validation_Error( 'invalid_discovery' ); }
+			Product_Discovery::selected( $ids );
+			$values['product_ids'] = array_map( 'strval', $ids );
+			foreach ( array( 'products' => 'product', 'categories' => 'category' ) as $kind => $prefix ) {
+				if ( 'search-' . $kind === $action ) { $values[$prefix . '_page'] = '1'; }
+				if ( 'next-' . $kind === $action ) { $values[$prefix . '_page'] = (string) min( Product_Discovery::MAX_PAGE, max( 1, (int) ( $values[$prefix . '_page'] ?? 1 ) ) + 1 ); }
+			}
+			return array( 'status' => 'OK', 'form' => $values );
+		} catch ( \Throwable $error ) {
+			return array_merge( self::invalid( $error ), array( 'form' => $values ) );
+		}
 	}
 
 	public static function build_operation( array $post ): Price_Operation {
@@ -565,7 +649,15 @@ final class Free_Admin {
 		$offset_raw = filter_input( INPUT_GET, 'wl_offset' );
 		$offset = is_string( $offset_raw ) && preg_match( '/\A[0-9]{1,7}\z/', $offset_raw ) ? (int) $offset_raw : 0;
 		echo '<div class="wrap"><h1>WriteLeash Bulk Prices</h1>';
-		self::render_view( $view, $job_param, $offset );
+		$form = get_transient( self::form_key() );
+		delete_transient( self::form_key() );
+		$form = is_array( $form ) ? $form : array();
+		if ( 'POST' === self::request_method() && null !== self::post_field( 'selection_action' ) ) {
+			$result = self::process_selection( self::post_input(), 'POST' );
+			$form = $result['form'] ?? array();
+			if ( 'OK' !== $result['status'] ) { echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( $result['reason'] ) ) . '</p></div>'; }
+		}
+		self::render_view( $view, $job_param, $offset, $form );
 		echo '</div>';
 	}
 
@@ -573,7 +665,7 @@ final class Free_Admin {
 	 * Testable view dispatch, including the transient notice and the Woo
 	 * dependency gate. render() only adds the wrap heading around it.
 	 */
-	public static function render_view( string $view, string $job_param, int $offset ): void {
+	public static function render_view( string $view, string $job_param, int $offset, array $form = array() ): void {
 		if ( ! current_user_can( 'edit_products' ) ) {
 			echo '<div class="notice notice-error"><p>' . esc_html( 'You are not allowed to edit products.' ) . '</p></div>';
 			return;
@@ -592,7 +684,7 @@ final class Free_Admin {
 		} elseif ( 'history' === $view ) {
 			self::render_history_view( $offset );
 		} else {
-			self::render_home_view();
+			self::render_home_view( $form );
 		}
 	}
 
@@ -668,8 +760,10 @@ final class Free_Admin {
 			'permission_denied' => 'You do not have permission to plan these product edits.',
 			'permission_revoked' => 'The approved actor can no longer edit one or more products; nothing was executed.',
 			'not_authorized' => 'Only the job creator, approver or an administrator may perform this action.',
-			'invalid_selector' => 'Select one of category, exact SKU or explicit product IDs.',
-			'invalid_selection_size' => 'Select between one and ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' explicit IDs.',
+			'invalid_selector' => 'Choose selected products, a named category or an advanced exact SKU/manual ID selection.',
+			'invalid_discovery' => 'Use a shorter product or category search and start again from the first page.',
+			'discovery_unavailable' => 'Search is unavailable. Try again, reload if your session expired, or use the native search controls.',
+			'invalid_selection_size' => 'Choose between one and ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' products.',
 			'invalid_product_id' => 'Product IDs must be comma-separated positive integers.',
 			'invalid_sku' => 'Use a non-empty exact SKU without whitespace or markup.',
 			'invalid_category' => 'Select an existing product category.',
@@ -717,7 +811,7 @@ final class Free_Admin {
 		return 'The action could not be completed; nothing was changed.';
 	}
 
-	private static function render_home_view(): void {
+	private static function render_home_view( array $form = array() ): void {
 		echo '<p>';
 		echo esc_html( 'Change stored regular prices for published core simple products in the base store currency. Variations, sale prices, stock, orders and subscriptions are out of scope and are excluded with reasons.' );
 		echo '</p>';
@@ -729,7 +823,7 @@ final class Free_Admin {
 			echo '<div class="notice notice-warning"><p>' . esc_html( 'Your role can view this page but cannot plan or execute bulk-price changes.' ) . '</p></div>';
 		}
 		echo '<h2>1. Select products and operation</h2>';
-		self::render_selector_form();
+		self::render_selector_form( $form );
 		echo '<h2>2. Recent jobs</h2>';
 		self::render_recent_jobs();
 		echo '<p><a class="button" href="' . esc_url( self::page_url( 'history' ) ) . '">' . esc_html( 'Open full history' ) . '</a></p>';
@@ -753,49 +847,82 @@ final class Free_Admin {
 		echo '></p>';
 	}
 
-	private static function render_selector_form(): void {
-		if ( ! self::can_mutate() ) {
-			return;
+	private static function selection_button( string $action, string $label, string $accessible_label = '' ): void {
+		echo '<button class="button" type="submit" name="selection_action" value="' . esc_attr( $action ) . '" formaction="' . esc_url( self::page_url() ) . '"' . ( '' !== $accessible_label ? ' aria-label="' . esc_attr( $accessible_label ) . '"' : '' ) . ' formnovalidate>' . esc_html( $label ) . '</button> ';
+	}
+
+	private static function render_selector_form( array $values = array() ): void {
+		if ( ! self::can_mutate() ) { return; }
+		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'operation' => Price_Operation::SET, 'amount' => '', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
+		$values = array_merge( $defaults, $values );
+		$selected = array(); $matches = array( 'results' => array(), 'more' => false ); $categories = $matches;
+		try {
+			$selected = Product_Discovery::selected( self::picker_ids( $values ) );
+			$matches = Product_Discovery::products( $values['product_search'], (int) $values['product_page'] );
+			$categories = Product_Discovery::categories( $values['category_search'], (int) $values['category_page'] );
+		} catch ( \Throwable $error ) {
+			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( self::reason_message( $error instanceof Price_Validation_Error ? $error->reason() : 'discovery_unavailable' ) ) . '</p></div>';
 		}
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_PREVIEW ) . '">';
+		echo '<form id="writeleash-free-selection-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-discovery-url="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '" data-discovery-action="' . esc_attr( Product_Discovery::ACTION ) . '" data-discovery-nonce="' . esc_attr( wp_create_nonce( Product_Discovery::ACTION ) ) . '">';
+		echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_PREVIEW ) . '"><input type="hidden" name="picker_present" value="1">';
 		wp_nonce_field( self::ACTION_PREVIEW );
+		echo '<input type="hidden" name="discovery_nonce" value="' . esc_attr( wp_create_nonce( Product_Discovery::ACTION ) ) . '">';
 		echo '<fieldset><legend>' . esc_html( 'Product selection (one selector per preview)' ) . '</legend>';
-		echo '<p id="writeleash-free-selector-help">' . esc_html( 'Category uses direct membership without descendants. SKU matches byte-for-byte. Explicit IDs are comma-separated. Workers never re-run the selector: the previewed IDs are the execution population.' ) . '</p>';
-		echo '<p><label for="writeleash-free-selector">' . esc_html( 'Selector' ) . '</label><br>';
-		echo '<select id="writeleash-free-selector" name="selector" aria-describedby="writeleash-free-selector-help">';
-		foreach ( array( 'ids' => 'Explicit product IDs', 'sku' => 'Exact SKU', 'category' => 'Product category' ) as $value => $label ) {
-			echo '<option value="' . esc_attr( $value ) . '">' . esc_html( $label ) . '</option>';
+		echo '<p id="writeleash-free-selector-help">' . esc_html( 'Choose specific products or one category. Categories include direct members only; subcategories are not included. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum 100 selected products.' ) . '</p>';
+		echo '<p><label for="writeleash-free-selector">Selection method</label><br><select id="writeleash-free-selector" name="selector" aria-describedby="writeleash-free-selector-help">';
+		foreach ( array( 'ids' => 'Choose products by name or SKU', 'category' => 'Named product category', 'sku' => 'Advanced: one exact SKU', 'manual_ids' => 'Advanced: manual product IDs' ) as $value => $label ) {
+			echo '<option value="' . esc_attr( $value ) . '"' . selected( $values['selector'], $value, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select></p><p id="writeleash-free-discovery-status" role="status" aria-live="polite">Search and choose products. If live suggestions are unavailable, use the search without live suggestions.</p>';
+		echo '<details id="writeleash-free-products-fallback" open><summary>Search products without live suggestions</summary>';
+		self::selector_field( 'product_search', 'Product name or partial SKU', 'search', $values['product_search'], 'writeleash-free-selector-help' );
+		echo '<input type="hidden" name="product_page" value="' . esc_attr( $values['product_page'] ) . '">';
+		self::selection_button( 'search-products', 'Search products' );
+		if ( $matches['more'] ) { self::selection_button( 'next-products', 'More product matches' ); }
+		if ( '' !== $values['product_search'] && ! $matches['results'] ) { echo '<p>No matches on this page. Try another product name or SKU.</p>'; }
+		if ( ! empty( $matches['capped'] ) ) { echo '<p>Search limit reached. Use a more specific name or SKU.</p>'; }
+		echo '<p>Use Ctrl/Command to select several matches below, then Update selected products. Selected products stay on subsequent search pages.</p>';
+		self::selection_button( 'update-products', 'Update selected products' );
+		echo '</details>';
+		echo '<p><label for="writeleash-free-products">Choose products</label><br><select id="writeleash-free-products" name="product_ids[]" multiple size="6" style="width:100%;max-width:600px" aria-describedby="writeleash-free-products-help">';
+		$options = $selected;
+		foreach ( $matches['results'] as $item ) { $options[(int) $item['id']] = $item; }
+		foreach ( $options as $id => $item ) { echo '<option value="' . esc_attr( (string) $id ) . '"' . ( isset( $selected[$id] ) ? ' selected' : '' ) . '>' . esc_html( $item['text'] ) . '</option>'; }
+		echo '</select></p><p id="writeleash-free-products-help">Check the selected products below. Preview checks their eligibility before any prices change.</p>';
+		echo '<h3>Selected products</h3><ul id="writeleash-free-selected">';
+		foreach ( $selected as $id => $item ) { echo '<li>' . esc_html( $item['text'] ) . ' '; self::selection_button( 'remove:' . $id, 'Remove', 'Remove ' . $item['text'] ); echo '</li>'; }
+		if ( ! $selected ) { echo '<li>No products selected. Search and choose products to add them.</li>'; }
+		echo '</ul><button id="writeleash-free-clear" class="button" type="submit" name="selection_action" value="clear-products" formaction="' . esc_url( self::page_url() ) . '" formnovalidate>Clear selected products</button>';
+		echo '<details id="writeleash-free-categories-fallback" open><summary>Search categories without live suggestions</summary>';
+		self::selector_field( 'category_search', 'Category name', 'search', $values['category_search'], 'writeleash-free-selector-help' );
+		echo '<input type="hidden" name="category_page" value="' . esc_attr( $values['category_page'] ) . '">';
+		self::selection_button( 'search-categories', 'Search categories' );
+		if ( $categories['more'] ) { self::selection_button( 'next-categories', 'More category matches' ); }
+		if ( ! empty( $categories['capped'] ) ) { echo '<p>Search limit reached. Use a more specific category name.</p>'; }
+		if ( ! $categories['results'] ) { echo '<p>No categories match this page. Try another category name.</p>'; }
+		echo '</details>';
+		echo '<p><label for="writeleash-free-category">Product category (direct members only)</label><br><select id="writeleash-free-category" name="category" style="width:100%;max-width:600px" aria-describedby="writeleash-free-selector-help"><option value="">Choose a category</option>';
+		$category_options = array();
+		foreach ( $categories['results'] as $item ) { $category_options[$item['id']] = $item; }
+		if ( preg_match( '/\A[0-9]{1,10}\z/', $values['category'] ) ) {
+			try { $item = Product_Discovery::category( (int) $values['category'] ); if ( $item ) { $category_options[$item['id']] = $item; } } catch ( \Throwable $error ) { /* Dependency/permission notice above; no guessed label. */ }
+		}
+		foreach ( $category_options as $id => $item ) { echo '<option value="' . esc_attr( (string) $id ) . '"' . selected( $values['category'], (string) $id, false ) . '>' . esc_html( $item['text'] ) . '</option>'; }
+		echo '</select></p><details><summary>Advanced selection: exact SKU or manual IDs</summary><p>Choose the matching advanced selection method above. Exact SKU means one byte-for-byte SKU, not a list. Changing inputs creates a new preview.</p>';
+		self::selector_field( 'ids', 'Explicit product IDs (advanced), e.g. 12,34,56', 'text', $values['ids'], 'writeleash-free-selector-help' );
+		self::selector_field( 'sku', 'One exact SKU', 'text', $values['sku'], 'writeleash-free-selector-help' );
+		echo '</details></fieldset><fieldset><legend>Price operation</legend><p><label for="writeleash-free-operation">Operation</label><br><select id="writeleash-free-operation" name="operation">';
+		foreach ( array( Price_Operation::SET => 'Set regular price to amount', Price_Operation::INCREASE_FIXED => 'Increase by fixed amount', Price_Operation::DECREASE_FIXED => 'Decrease by fixed amount', Price_Operation::INCREASE_PERCENT => 'Increase by percent', Price_Operation::DECREASE_PERCENT => 'Decrease by percent' ) as $value => $label ) {
+			echo '<option value="' . esc_attr( $value ) . '"' . selected( $values['operation'], $value, false ) . '>' . esc_html( $label ) . '</option>';
 		}
 		echo '</select></p>';
-		self::selector_field( 'ids', 'Explicit IDs, e.g. 12,34,56', 'text', '', 'writeleash-free-selector-help' );
-		self::selector_field( 'sku', 'Exact SKU', 'text', '', 'writeleash-free-selector-help' );
-		self::selector_field( 'category', 'Category term ID', 'number', '', 'writeleash-free-selector-help', false, 1 );
-		echo '</fieldset>';
-		echo '<fieldset><legend>' . esc_html( 'Price operation' ) . '</legend>';
-		echo '<p><label for="writeleash-free-operation">' . esc_html( 'Operation' ) . '</label><br>';
-		echo '<select id="writeleash-free-operation" name="operation">';
-		foreach ( array(
-			Price_Operation::SET => 'Set regular price to amount',
-			Price_Operation::INCREASE_FIXED => 'Increase by fixed amount',
-			Price_Operation::DECREASE_FIXED => 'Decrease by fixed amount',
-			Price_Operation::INCREASE_PERCENT => 'Increase by percent',
-			Price_Operation::DECREASE_PERCENT => 'Decrease by percent',
-		) as $value => $label ) {
-			echo '<option value="' . esc_attr( $value ) . '">' . esc_html( $label ) . '</option>';
-		}
-		echo '</select></p>';
-		self::selector_field( 'amount', 'Unsigned amount or percent, e.g. 80.00 or 20 (no % sign)', 'text', '', 'writeleash-free-operation', true );
-		echo '</fieldset>';
-		echo '<fieldset><legend>' . esc_html( 'Safety limits (a breach blocks the whole plan)' ) . '</legend>';
+		self::selector_field( 'amount', 'Unsigned amount or percent, e.g. 80.00 or 20 (no % sign)', 'text', $values['amount'], 'writeleash-free-operation', true );
+		echo '</fieldset><fieldset><legend>Safety limits (a breach blocks the whole plan)</legend>';
 		$maximum = Free_Support_Contract::MAX_JOB_PRODUCTS;
-		self::selector_field( 'max_products', 'Maximum changing products (0-' . $maximum . ')', 'number', (string) $maximum, 'writeleash-free-operation', true, 0, $maximum );
-		self::selector_field( 'max_increase', 'Maximum increase percent', 'text', '50', 'writeleash-free-operation', true );
-		self::selector_field( 'max_decrease', 'Maximum decrease percent', 'text', '50', 'writeleash-free-operation', true );
-		self::selector_field( 'warning_threshold', 'Warning threshold percent', 'text', '20', 'writeleash-free-operation', true );
-		echo '<p><input id="writeleash-free-block-zero" name="block_zero" type="checkbox" value="1"> <label for="writeleash-free-block-zero">' . esc_html( 'Block plans that set any changing price to zero' ) . '</label></p>';
-		echo '</fieldset>';
-		echo '<p><button type="submit" class="button button-primary">' . esc_html( 'Build frozen preview' ) . '</button></p></form>';
+		self::selector_field( 'max_products', 'Maximum changing products (0-' . $maximum . ')', 'number', $values['max_products'], 'writeleash-free-operation', true, 0, $maximum );
+		foreach ( array( 'max_increase' => 'Maximum increase percent', 'max_decrease' => 'Maximum decrease percent', 'warning_threshold' => 'Warning threshold percent' ) as $name => $label ) { self::selector_field( $name, $label, 'text', $values[$name], 'writeleash-free-operation', true ); }
+		echo '<p><input id="writeleash-free-block-zero" name="block_zero" type="checkbox" value="1"' . checked( $values['block_zero'] ?? '', '1', false ) . '> <label for="writeleash-free-block-zero">Block plans that set any changing price to zero</label></p></fieldset>';
+		echo '<p><button type="submit" class="button button-primary">Build frozen preview</button></p></form>';
 	}
 
 	/** Job tables exist yet. Pure page views never create tables; the first preview import installs them. */
@@ -830,12 +957,21 @@ final class Free_Admin {
 			if ( null === $job ) {
 				continue;
 			}
-			echo '<tr><td><a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( substr( (string) $job['public_id'], 0, 8 ) ) . '</a></td>';
+			echo '<tr><td><a href="' . esc_url( self::page_url( self::reviewable( $job ) ? 'preview' : 'job', $job['public_id'] ) ) . '">' . esc_html( substr( (string) $job['public_id'], 0, 8 ) ) . '</a> '; self::job_action_link( $job ); echo '</td>';
 			echo '<td>' . esc_html( $job['status'] ) . ' (' . esc_html( $job['status_reason'] ) . ')</td>';
 			echo '<td>' . esc_html( (string) $job['applied'] . ' / ' . (string) $job['planned'] ) . '</td>';
 			echo '<td>' . esc_html( $entry['undo_eligible'] ? 'eligible' : 'not eligible' ) . '</td></tr>';
 		}
 		echo '</tbody></table>';
+	}
+
+	private static function reviewable( array $job ): bool {
+		return in_array( $job['status'], array( Job_State::PLANNED, Job_State::BLOCKED ), true );
+	}
+
+	private static function job_action_link( array $job ): void {
+		$label = Job_State::PLANNED === $job['status'] ? 'Continue review' : ( Job_State::BLOCKED === $job['status'] ? 'Review blocked plan' : 'Open progress/results' );
+		echo '<a class="button" href="' . esc_url( self::page_url( self::reviewable( $job ) ? 'preview' : 'job', $job['public_id'] ) ) . '">' . esc_html( $label ) . '</a>';
 	}
 
 	private static function load_job_for_view( string $public_id ): ?array {
@@ -867,6 +1003,7 @@ final class Free_Admin {
 			echo '<div class="notice notice-error"><p>' . esc_html( 'Stored job material no longer matches its frozen plan; no product was changed.' ) . '</p></div>';
 			return;
 		}
+		if ( ! self::reviewable( $job ) ) { self::render_job_view( $public_id, $offset ); return; }
 		$data = $plan->data();
 		$summary = $plan->summary();
 		if ( $summary['selected'] > Free_Support_Contract::MAX_JOB_PRODUCTS ) {
@@ -926,6 +1063,7 @@ final class Free_Admin {
 		}
 		echo '</tbody></table>';
 		self::render_pager( 'preview', $job['public_id'], $offset, $limit, $page['next_offset'] );
+		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">Create a new preview</a> ' . esc_html( 'Changing selection, operation or policy creates a separate plan; this saved preview stays unchanged.' ) . '</p>';
 		if ( ! $blocked && Job_State::PLANNED === $job['status'] && self::can_mutate() ) {
 			echo '<h2>' . esc_html( 'Approve exact plan' ) . '</h2>';
 			echo '<p>' . esc_html( 'Approval executes exactly the frozen IDs and absolute target prices above. Planned prices are not guaranteed shopper prices. Any selection, operation or policy change requires a new preview; this approval cannot be reused for different inputs.' ) . '</p>';
@@ -1004,6 +1142,7 @@ final class Free_Admin {
 		$effective = $observed['effective_status'];
 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html( 'Back to bulk prices' ) . '</a> ';
 		echo '<a class="button" href="' . esc_url( self::page_url( 'history' ) ) . '">' . esc_html( 'Open history' ) . '</a></p>';
+		if ( self::reviewable( $job ) ) { self::job_action_link( $job ); echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">Create a new preview</a></p>'; }
 		echo '<h2>' . esc_html( 'Durable progress' ) . '</h2>';
 		echo '<p>' . esc_html( 'State: ' . $effective . ' (' . $observed['effective_reason'] . ').' ) . '</p>';
 		echo '<p>' . esc_html( 'Planned ' . $counts['planned'] . ' · pending ' . $counts['pending'] . ' · applying ' . $counts['applying'] . ' · applied ' . $counts['applied'] . ' · unchanged ' . $counts['unchanged'] . ' · conflict ' . $counts['conflict'] . ' · failed ' . $counts['failed'] . ' · needs review ' . $counts['needs_review'] . ' · unsupported ' . $counts['unsupported'] . '.' ) . '</p>';
@@ -1112,7 +1251,7 @@ final class Free_Admin {
 				continue;
 			}
 			$apply = $entry['apply'];
-			echo '<tr><td><a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( substr( (string) $job['public_id'], 0, 8 ) ) . '</a></td>';
+			echo '<tr><td><a href="' . esc_url( self::page_url( self::reviewable( $job ) ? 'preview' : 'job', $job['public_id'] ) ) . '">' . esc_html( substr( (string) $job['public_id'], 0, 8 ) ) . '</a> '; self::job_action_link( $job ); echo '</td>';
 			echo '<td>' . esc_html( $job['status'] ) . ' (' . esc_html( $job['status_reason'] ) . ')</td>';
 			echo '<td>' . esc_html( 'applied ' . (int) $apply['applied'] . ' / planned ' . (int) $apply['planned'] . ' · conflict ' . (int) $apply['conflict'] . ' · failed ' . (int) $apply['failed'] . ' · review ' . (int) $apply['needs_review'] ) . '</td>';
 			echo '<td>' . esc_html( $entry['undo_eligible'] ? 'eligible' : 'not eligible' ) . '</td>';

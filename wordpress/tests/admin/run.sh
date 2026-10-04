@@ -27,4 +27,6 @@ trap cleanup EXIT
 redis_version=$("${compose[@]}" exec -T redis redis-cli --raw INFO server | sed -n 's/^redis_version://p' | tr -d '\r')
 [[ "$redis_version" = 7.4.2 ]]
 echo "#111 pinned Redis server: $redis_version"
-"${compose[@]}" run --build --rm tester
+"${compose[@]}" build tester
+bash "$here/selection-browser-run.sh"
+"${compose[@]}" run --rm tester

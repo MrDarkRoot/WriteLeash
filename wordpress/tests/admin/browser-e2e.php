@@ -302,4 +302,6 @@ foreach ( $ids as $id ) {
 		throw new RuntimeException( 'Undo did not restore product ' . $id );
 	}
 }
+require __DIR__ . '/selection-http.php';
+
 echo "#111 real-HTTP browser Admin E2E (menu, POST, nonce, PRG, reload, resume, history, Undo, negatives): PASS\n";
