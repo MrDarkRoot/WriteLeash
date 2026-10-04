@@ -1405,6 +1405,8 @@ final class Free_Admin {
 			echo '<p><button type="submit" class="button button-primary">' . esc_html( 'Resume remaining products' ) . '</button> ';
 			echo esc_html( 'Continues remaining products in a small step. Conflicted products will not be retried. Reload this page to check progress.' ) . '</p></form>';
 		}
+		echo '<h2>' . esc_html( 'Undo' ) . '</h2>';
+		self::render_undo_section( $job, $history );
 		echo '<h2>' . esc_html( 'Products' ) . '</h2>';
 		$filters = array( '' => array( 'All products', null, null ), 'conflict' => array( 'Apply conflicts', 'CONFLICT', null ), 'review' => array( 'Uncertain Apply outcomes', 'NEEDS_REVIEW', null ), 'undo_conflict' => array( 'Undo conflicts', null, 'UNDO_CONFLICT' ), 'undo_review' => array( 'Uncertain Undo outcomes', null, 'UNDO_NEEDS_REVIEW' ) );
 		if ( ! isset( $filters[ $filter ] ) ) { $filter = ''; }
@@ -1442,8 +1444,6 @@ final class Free_Admin {
 			echo '</tbody></table>';
 			self::render_pager( 'job', $job['public_id'], $offset, self::ITEM_PAGE_SIZE, $items['next_offset'], $filter );
 		}
-		echo '<h2>' . esc_html( 'Undo' ) . '</h2>';
-		self::render_undo_section( $job, $history );
 	}
 
 	/** Post-approval states are durable authority, not a new size certification. */

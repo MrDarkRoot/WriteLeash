@@ -32,7 +32,7 @@ async function login(page) {
     await page.goto(home);
 }
 async function action(page, name) {
-    await Promise.all([page.waitForLoadState('domcontentloaded'), page.getByRole('button', { name, exact: true }).click()]);
+    await Promise.all([page.waitForEvent('framenavigated', { predicate: frame => frame === page.mainFrame() }), page.getByRole('button', { name, exact: true }).click()]);
     await page.waitForLoadState('networkidle');
 }
 function input(page) { return page.locator('#writeleash-free-products + .select2-container .select2-search__field'); }
@@ -140,7 +140,12 @@ async function search(page, term) {
         await page.locator('.select2-results__option[data-selected="false"]').first().click();
         await page.locator('#writeleash-free-amount').fill('bad-price');
         await action(page, 'Build frozen preview');
-        ok(await page.locator('#writeleash-free-amount').inputValue() === 'bad-price', 'validation retains entered amount');
+        const retainedAmount = await page.locator('#writeleash-free-amount').inputValue();
+        if (retainedAmount !== 'bad-price') {
+            console.error('Validation recovery diagnostics:', JSON.stringify({ url: page.url(), amount: retainedAmount, notices: await page.locator('#wpbody-content .notice').allTextContents() }));
+            await capture(page, 'failed-validation-recovery');
+        }
+        ok(retainedAmount === 'bad-price', 'validation retains entered amount');
         ok(await page.locator('#writeleash-free-selected button').count() === 2, 'validation retains chosen identities');
         await page.locator('#writeleash-free-amount').fill('80.00');
         await action(page, 'Build frozen preview');
