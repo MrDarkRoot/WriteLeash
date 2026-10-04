@@ -42,7 +42,16 @@ async function search(page, term) {
         return url.pathname.endsWith('/admin-ajax.php') && url.searchParams.get('action') === 'writeleash_free_discovery' && url.searchParams.get('term') === term;
     });
     await input(page).fill(term);
-    await response;
+    try { await response; }
+    catch (error) {
+        console.error('Search diagnostics:', JSON.stringify(await page.evaluate(() => ({
+            status: document.getElementById('writeleash-free-discovery-status').textContent,
+            action: document.getElementById('writeleash-free-selection-form').dataset.discoveryAction,
+            value: document.querySelector('#writeleash-free-products + .select2-container .select2-search__field').value
+        }))));
+        await capture(page, 'failed-search');
+        throw error;
+    }
     await page.locator('#writeleash-free-discovery-status').filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor();
 }
 (async () => {
@@ -52,6 +61,10 @@ async function search(page, term) {
         const context = await browser.newContext();
         let page = await context.newPage();
         page.on('pageerror', error => errors.push(error.message));
+        page.on('request', request => {
+            const url = new URL(request.url());
+            if (url.pathname.endsWith('/admin-ajax.php')) console.log('#167 AJAX:', JSON.stringify({ action: url.searchParams.get('action'), kind: url.searchParams.get('kind'), term: url.searchParams.get('term') }));
+        });
         await login(page);
         await input(page).waitFor();
         ok(await page.locator('#writeleash-free-selected').innerText() === 'No products selected. Search and choose products to add them.', 'nothing automatically selected');
