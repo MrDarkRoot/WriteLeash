@@ -41,6 +41,9 @@ try {
 		$expect( 'forbidden/unresolved/dynamic dependency: ' . $code, $entries, false );
 	}
 	$write( 'includes/class-plugin.php', $original );
+	// Restore an exact guarded payload before testing the separate source audit.
+	// Directory iteration order must not let earlier closure-test debris fail first.
+	foreach ( array( 'includes/free/class-research.php', 'includes/class-guard.php', 'operator-setup.txt' ) as $extra_entry ) { unlink( $root . '/' . $extra_entry ); }
 	// #168: a finite CSV header allowance must not permit arbitrary response routing.
 	$admin_entry = 'includes/free/class-free-admin.php';
 	$admin_original = file_get_contents( $source . '/' . $admin_entry );

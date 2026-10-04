@@ -914,7 +914,7 @@ final class Free_Admin {
 		echo '<strong>' . esc_html( self::item_label( $state, $job_state ) ) . '</strong>';
 		if ( 'CONFLICT' === $state || 'UNDO_CONFLICT' === $state ) {
 			$copy = 'CONFLICT' === $state
-				? 'This product’s price or eligibility changed after you reviewed the preview. WriteLeash left the newer value unchanged.'
+				? 'This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.'
 				: 'This product changed after WriteLeash applied its price. WriteLeash preserved the newer value instead of restoring over it.';
 			echo '<p>' . esc_html( $copy ) . '</p>';
 			if ( '' !== $observation['context'] ) { echo '<p>' . esc_html( $observation['context'] ) . '</p>'; }
