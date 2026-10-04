@@ -32,7 +32,9 @@ eq( Discovery::products( $tag167 . ' does-not-exist' )['results'], array(), 'emp
 eq( Discovery::products( '' )['results'], array(), 'empty term does not load catalog' );
 ok( str_contains( Discovery::products( $tag167 . ' Sale' )['results'][0]['text'], 'Excluded:' ), 'search match explicitly does not mean eligible' );
 eq( Discovery::products( $tag167 . ' Private' )['results'], array(), 'private products never exposed by published discovery' );
+$query_start167 = $wpdb->num_queries;
 $one167 = Discovery::products( $tag167 . ' Bounded' );
+echo '#167 discovery load: catalog fixture 121 matches; first-page results ' . count( $one167['results'] ) . '; SQL queries ' . ( $wpdb->num_queries - $query_start167 ) . "; two candidate windows capped at 11 rows each\n";
 $two167 = Discovery::products( $tag167 . ' Bounded', 2 );
 ok( count( $one167['results'] ) <= 20 && $one167['more'], 'bounded larger-catalog discovery offers pagination' );
 eq( array_intersect( array_column( $one167['results'], 'id' ), array_column( $two167['results'], 'id' ) ), array(), 'candidate windows advance' );
@@ -122,7 +124,8 @@ eq( Discovery::request( array_merge( $discovery_input167, array( 'nonce' => $oth
 ok( ! str_contains( render_view( 'history', '', 0 ), $job167['public_id'] ), 'history remains actor-scoped' );
 ok( str_contains( render_view( 'preview', $job167['public_id'], 0 ), 'No preview is visible' ), 'wrong actor cannot reopen original preview' );
 eq( Discovery::request( $discovery_input167, 'GET' )['reason'], 'invalid_nonce', 'other actor cannot use creator discovery nonce' );
-$user167 = new WP_User( $other167 ); $user167->remove_cap( 'manage_woocommerce' ); $user167->add_cap( 'manage_woocommerce', false );
+$user167 = wp_get_current_user(); $user167->add_cap( 'manage_woocommerce', false );
+eq( Admin::can_mutate(), false, 'revocation fixture updates the active WordPress actor' );
 eq( Discovery::request( array_merge( $discovery_input167, array( 'nonce' => $other_nonce167 ) ), 'GET' )['reason'], 'permission_denied', 'revoked global permission denies even valid nonce' );
 wp_set_current_user( 0 );
 eq( Discovery::request( $discovery_input167, 'GET' )['reason'], 'permission_denied', 'anonymous discovery refused' );

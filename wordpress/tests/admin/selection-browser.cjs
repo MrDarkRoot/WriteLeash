@@ -74,6 +74,15 @@ async function search(page, term) {
         ok(await page.locator('#writeleash-free-selected button').count() === 0, 'clear works');
         await search(page, 'WL167-SEARCH-');
         ok((await page.locator('.select2-results__option[data-selected]').allTextContents()).every(text => text.includes('WL167-SEARCH-')), 'partial SKU discovery');
+        await page.locator('.select2-results__option[data-selected="false"]').filter({ hasText: 'WL167-SEARCH-TWO' }).click();
+        for (const width of [1440, 1024, 782, 375]) {
+            await page.setViewportSize({ width, height: 900 });
+            const box = await page.locator('#writeleash-free-products + .select2-container').boundingBox();
+            ok(box.x >= 0 && box.x + box.width <= width + 1, 'long-name product picker fits ' + width + 'px');
+            await capture(page, 'selection-' + width);
+        }
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.getByRole('button', { name: 'Clear selected products', exact: true }).click();
         await input(page).press('Escape');
         await page.route('**/admin-ajax.php*', async route => {
             const url = new URL(route.request().url());
