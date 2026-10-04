@@ -26,10 +26,12 @@ async function capture(page, name) {
 }
 async function login(page) {
     await page.goto(base + '/wp-login.php');
+    await page.waitForLoadState('networkidle');
     await page.getByLabel('Username or Email Address').fill(fixture.username);
     await page.getByLabel('Password', { exact: true }).fill(fixture.password);
     await Promise.all([page.waitForURL(/wp-admin/), page.getByRole('button', { name: 'Log In', exact: true }).click()]);
     await page.goto(home);
+    await page.waitForLoadState('networkidle');
 }
 async function action(page, name) {
     await Promise.all([page.waitForEvent('framenavigated', { predicate: frame => frame === page.mainFrame() }), page.getByRole('button', { name, exact: true }).click()]);
