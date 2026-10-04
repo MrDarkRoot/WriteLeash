@@ -213,3 +213,17 @@ No Woo mutation implementation, price SQL, Action Scheduler runner, job tables,
 journal, leases, retries, Undo, Admin product UI, telemetry, network runtime,
 Pro or Guard integration. Test setup alone uses Woo saves and one public metadata
 API SKU anomaly; planner saves are zero. #108–#112 remain subsequent work.
+
+## Merchant discovery (#167)
+
+Admin name/partial-SKU search is read-only discovery, not a new saved selector.
+Each request reads at most two 11-row candidate windows (title and literal
+partial SKU), returns at most 20 caller-readable/editable published products,
+and caps pagination at 50 windows per query. Permission filtering may leave
+an empty page with further candidates; the UI offers another page or a narrower
+query. Category discovery reads at most 21 terms per page and resolves at most
+20 ancestors per returned label; category membership still excludes descendants.
+Search text is capped at 100 bytes. No catalog-sized browser payload or total
+count query is required. Selected concrete IDs use the existing IDS plan and
+100-product public support limit. Eligibility is rechecked by the planner.
+Saved preview reopening hydrates the original plan; it never reruns discovery.

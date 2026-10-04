@@ -69,7 +69,7 @@ they are omitted from the public allowlist and loaded only by repository tests.
 | LICENSE | Reviewed GPLv2 text | PUBLIC_FREE_REQUIRED |
 | readme.txt | Minimum Woo-only user instructions; full copy belongs to #121 | PUBLIC_FREE_REQUIRED |
 
-All 31 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
+All 32 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
 inventory (multi-class files included):
 
 | File stem (`includes/free/class-<stem>.php`) | Classes / interfaces / traits | Classification |
@@ -105,6 +105,7 @@ inventory (multi-class files included):
 | undo-worker | Undo_Worker | PUBLIC_FREE_REQUIRED |
 | undo-rest | Undo_Rest | PUBLIC_FREE_REQUIRED |
 | free-admin | Free_Admin | PUBLIC_FREE_REQUIRED |
+| product-discovery | Product_Discovery; bounded authenticated read-only name/SKU/category discovery | PUBLIC_FREE_REQUIRED |
 
 ## Hooks, routes, UI, command and state inventory
 
@@ -168,3 +169,5 @@ grandfathered >100 recovery, multisite unsupported; no journal redesign.
 Metadata mismatch/full public copy belong to #121. No ZIP/SVN or publication.
 #61 barrier, overlap and durability assertions are unchanged; failed attempts
 must be retained and rerun at the same unchanged SHA.
+
+The only public JavaScript asset is `includes/free/free-selection.js`, a scoped Woo selectWoo progressive enhancement. Native selection works without it; no bundled libraries/build output are shipped.

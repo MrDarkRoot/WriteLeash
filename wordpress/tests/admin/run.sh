@@ -28,3 +28,4 @@ redis_version=$("${compose[@]}" exec -T redis redis-cli --raw INFO server | sed 
 [[ "$redis_version" = 7.4.2 ]]
 echo "#111 pinned Redis server: $redis_version"
 "${compose[@]}" run --build --rm tester
+bash "$here/selection-browser-run.sh"

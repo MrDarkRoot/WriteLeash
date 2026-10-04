@@ -23,6 +23,7 @@ includes/free/class-price-apply-transaction-guard.php
 includes/free/class-price-cache-verifier.php
 includes/free/class-price-decimal.php
 includes/free/class-price-operation.php
+includes/free/class-product-discovery.php
 includes/free/class-product-selector.php
 includes/free/class-product-snapshot.php
 includes/free/class-runner-authority.php
@@ -37,6 +38,7 @@ includes/free/class-undo-transaction-fence.php
 includes/free/class-undo-worker.php
 includes/free/class-woo-price-mutator.php
 includes/free/class-woo-undo-mutator.php
+includes/free/free-selection.js
 readme.txt
 uninstall.php
 writeleash.php

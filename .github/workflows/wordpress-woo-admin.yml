@@ -16,11 +16,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          npm install --ignore-scripts --no-audit --no-fund --prefix "$RUNNER_TEMP/wl167-browser-tools" playwright@1.61.0
+          export NODE_PATH="$RUNNER_TEMP/wl167-browser-tools/node_modules"
+          export WL167_EVIDENCE="$RUNNER_TEMP/woo-selection-167"
           bash wordpress/tests/admin/run.sh 2>&1 | tee "$RUNNER_TEMP/woo-admin-111.txt"
       - name: Preserve lab activity
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: woo-admin-111
-          path: ${{ runner.temp }}/woo-admin-111.txt
+          path: |
+            ${{ runner.temp }}/woo-admin-111.txt
+            ${{ runner.temp }}/woo-selection-167/**/*.png
           retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}

@@ -715,6 +715,8 @@ try {
 } finally { remove_action( 'woocommerce_product_read', $trace_reads ); }
 marker( 'Current reads bounded to rendered page only' );
 
+require __DIR__ . '/selection-integration.php';
+
 // WooCommerce dependency loss fails closed at the Admin boundary. Plugin
 // code cannot be unloaded in-process, so the loss itself is asserted in a
 // fresh `wp eval-file` process where Woo is genuinely absent.

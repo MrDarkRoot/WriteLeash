@@ -18,7 +18,7 @@ foreach ( $legacy as $class ) {
 	wl120_assert( ! class_exists( 'WriteLeash\\' . $class, false ), 'historical class not loaded: ' . $class );
 }
 global $wp_filter, $menu, $submenu, $wpdb;
-$allowed_callbacks = array( 'WriteLeash\\Lifecycle', 'WriteLeash\\Free_Admin',
+$allowed_callbacks = array( 'WriteLeash\\Lifecycle', 'WriteLeash\\Free_Admin', 'WriteLeash\\Product_Discovery',
 	'WriteLeash\\Job_Resume_Rest', 'WriteLeash\\Undo_Rest', 'WriteLeash\\Job_Worker',
 	'WriteLeash\\Undo_Worker', 'WriteLeash\\Undo_Scheduler' );
 $observed = array();
@@ -31,6 +31,7 @@ foreach ( $wp_filter as $hook => $registered ) {
 				$class = ltrim( $class, '\\' );
 				wl120_assert( in_array( $class, $allowed_callbacks, true ), 'unexpected WriteLeash callback: ' . $hook . ':' . $class );
 				wl120_assert( ! in_array( $hook, array( 'query', 'rest_dispatch_request', 'admin_post_writeleash_action' ), true ), 'legacy interception absent' );
+				wl120_assert( 'WriteLeash\\Product_Discovery' !== $class || ( 'wp_ajax_writeleash_free_discovery' === $hook && 'ajax' === $function[1] ), 'discovery registers only the reviewed authenticated read callback' );
 				$observed[] = $hook . ':' . $class;
 			}
 		}
@@ -43,6 +44,7 @@ foreach ( array( 'preview', 'approve', 'resume', 'undo' ) as $action ) {
 foreach ( array( 'writeleash_process_job', 'writeleash_process_undo', 'writeleash_retention_purge' ) as $hook ) {
 	wl120_assert( false !== has_action( $hook ), 'owned scheduler callback ' . $hook );
 }
+wl120_assert( false === has_action( 'wp_ajax_nopriv_writeleash_free_discovery' ), 'no unauthenticated discovery callback' );
 wp_set_current_user( 1 );
 // WP-CLI has no wp-admin menu bootstrap; initialize the normal Admin globals
 // before invoking the actual registered admin_menu callbacks.

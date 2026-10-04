@@ -48,7 +48,7 @@
     },
     {
       "prefix": "wordpress/writeleash/includes/free/class-",
-      "files": ["free-admin.php"],
+      "files": ["free-admin.php", "product-discovery.php"],
       "gates": ["admin", "acceptance"]
     },
     {
@@ -58,6 +58,7 @@
     }
   ],
   "rules": [
+    {"paths": ["wordpress/writeleash/includes/free/free-selection.js"], "gates": ["admin", "acceptance"]},
     {"paths": ["experiments/mysql_tx_budget/**"], "gates": ["feasibility", "engine", "historical"]},
     {"paths": ["experiments/native_tx_state/**", "sql/**", "demo/**", "demo.sh", "writeleash", "tests/**", "docker-compose.yml", ".github/ci/assert-security-log.sh"], "gates": ["native"]},
     {"paths": ["wordpress/tests/free/**"], "gates": ["plan"]},
