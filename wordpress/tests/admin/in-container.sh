@@ -42,7 +42,15 @@ for host in mysql mariadb; do
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/integration.php
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/sql-audit.php
     WL111_CACHE="$cache" WL111_BASE_URL=http://127.0.0.1:8080 WL111_ADMIN_PASSWORD=disposable_admin_password wp --path="$site" eval-file /opt/tests/admin/browser-e2e.php
-    WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/nonce-normalization.php
+
+    # Fresh processes retain real nonce verification and exercise the repaired
+    # value-independent transport fixture repeatedly on every DB/cache profile.
+    nonce_run=1
+    while [ "$nonce_run" -le 10 ]; do
+      echo "#125 nonce normalization engine=$host cache=$cache fresh-run=$nonce_run/10"
+      WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/nonce-normalization.php
+      nonce_run=$((nonce_run + 1))
+    done
   done
   kill "$web_pid"
   php /opt/tests/release/source-audit.php "$site/wp-content/plugins/writeleash"

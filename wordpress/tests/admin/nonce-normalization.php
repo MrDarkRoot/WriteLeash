@@ -21,6 +21,12 @@ $eq = static function ( $actual, $expected, string $label ) use ( &$assertions )
 	++$assertions;
 	if ( $actual !== $expected ) { throw new \RuntimeException( 'C124-001: ' . $label ); }
 };
+// A slash before a nonce is not transport encoding: \0 unslashes to NUL.
+// Synthetic controls exercise normalization only, never product authorization.
+$eq( \wp_unslash( '\\' . '0abc' ), "\0abc", 'old zero-prefix fixture becomes NUL' );
+foreach ( array( '0abc', 'aabc' ) as $synthetic ) {
+	$eq( \sanitize_text_field( \wp_unslash( '\\<b>' . $synthetic . '</b>' ) ), $synthetic, 'wrapped fixture is prefix-independent' );
+}
 $actor = static function ( string $login, string $role ): int {
 	$user = \get_user_by( 'login', $login );
 	if ( $user ) { return $user->ID; }
@@ -69,12 +75,16 @@ foreach ( $actions as $name => $action ) {
 	$valid = \wp_create_nonce( $action );
 	$base = array( 'job' => $job['public_id'], 'selector' => 'invalid_selector' );
 	$method = 'process_' . $name;
-	foreach ( array( 'valid' => $valid, 'invalid' => 'invalid_nonce', 'slashed' => '\\' . $valid, 'html' => '<b>' . $valid . '</b>', 'mixed' => "\\\"<b>sentinel</b>\\\"\n" ) as $case => $raw ) {
+	foreach ( array( 'valid' => $valid, 'invalid' => 'invalid_nonce', 'slashed' => '\\<b>' . $valid . '</b>', 'html' => '<b>' . $valid . '</b>', 'mixed' => "\\\"<b>sentinel</b>\\\"\n" ) as $case => $raw ) {
 		$input = $base; $input['_wpnonce'] = $raw;
 		$GLOBALS['wl124_nonce_events'] = array();
 		$result = Free_Admin::$method( $input, 'POST' );
 		$unslashed = \wp_unslash( $raw );
 		$clean = \sanitize_text_field( $unslashed );
+		if ( 'slashed' === $case ) {
+			$eq( $unslashed, '<b>' . $valid . '</b>', $name . ' slashed deterministic transport value' );
+			$eq( $clean, $valid, $name . ' slashed normalized valid nonce' );
+		}
 		$eq( $GLOBALS['wl124_nonce_events'], array( array( 'unslash', $raw ), array( 'sanitize', $unslashed ), array( 'verify', $clean, $action ) ), $name . '/' . $case . ' exact boundary and order' );
 		$passed = in_array( $case, array( 'valid', 'slashed', 'html' ), true );
 		$eq( $result['reason'], $passed ? ( 'preview' === $name ? 'invalid_selector' : 'not_authorized' ) : 'invalid_nonce', $name . '/' . $case . ' real nonce result' );
