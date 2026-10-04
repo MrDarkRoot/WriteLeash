@@ -119,5 +119,7 @@ $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE job_id=%d', WriteLeash\Job_S
 $missing_export168 = false;
 try { csv168( $owned_job168 ); } catch ( RuntimeException $error ) { $missing_export168 = true; }
 eq( $missing_export168, true, 'missing item evidence refuses CSV' );
-ok( str_contains( render_view( 'job', $owned_job168['public_id'], 0 ), 'Some saved product evidence is unavailable' ), 'missing retained rows have honest result message' );
+$missing_html168 = render_view( 'job', $owned_job168['public_id'], 0 );
+ok( str_contains( $missing_html168, 'Some saved product evidence is unavailable' ) && str_contains( $missing_html168, 'Planned 1 product.' ), 'missing retained rows keep the saved planned count and honest unavailable message' );
+ok( ! str_contains( $missing_html168, '0 changed' ) && ! str_contains( $missing_html168, 'Undo available for prices' ), 'missing outcomes never become confirmed zero or eligible Undo' );
 marker( '#168 readable identity/conflicts/history/Undo and authorized bounded CSV' );

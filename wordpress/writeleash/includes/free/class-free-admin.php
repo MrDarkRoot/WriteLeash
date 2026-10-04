@@ -1376,16 +1376,17 @@ final class Free_Admin {
 		}
 		$counts = $observed['counts'];
 		$effective = $observed['effective_status'];
+		$complete_evidence = $counts['planned'] === $selected;
 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html( 'Back to bulk prices' ) . '</a> ';
 		echo '<a class="button" href="' . esc_url( self::page_url( 'history' ) ) . '">' . esc_html( 'Open history' ) . '</a></p>';
 		if ( self::reviewable( $job ) ) { self::job_action_link( $job ); echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">Create a new preview</a></p>'; }
 		echo '<h2>Results</h2><p><strong>' . esc_html( self::task_description( $plan->data() ) ) . '</strong></p>';
-		echo '<p><strong>' . esc_html( self::job_label( $effective ) ) . '</strong></p>';
-		echo '<p>' . esc_html( self::result_summary( $counts, $effective ) ) . '</p>';
+		echo '<p><strong>' . esc_html( $complete_evidence ? self::job_label( $effective ) : 'Saved product outcomes unavailable; needs checking' ) . '</strong></p>';
+		if ( $complete_evidence ) { echo '<p>' . esc_html( self::result_summary( $counts, $effective ) ) . '</p>'; }
+		else { echo '<p>' . esc_html( 'Planned ' . $selected . ( 1 === $selected ? ' product.' : ' products.' ) . ' Some saved product evidence is unavailable. Check this job before taking further action.' ) . '</p>'; }
 		if ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { echo '<p>' . esc_html( self::reason_message( $observed['effective_reason'] ) ) . '</p>'; }
 		self::support_details( $effective . ' · ' . $observed['effective_reason'] . ' · ' . $job['public_id'] . ' · pending ' . $counts['pending'] . ' · applied ' . $counts['applied'] );
 		self::render_export_form( $job );
-		if ( $counts['planned'] !== $selected ) { echo '<p>Some saved product evidence is unavailable. Check this job before taking further action.</p>'; }
 		if ( $observed['stalled'] ) {
 			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( 'Background processing stopped making progress. Use Resume remaining products to continue; completed changes are kept.' ) . '</p></div>';
 		}
@@ -1397,7 +1398,7 @@ final class Free_Admin {
 		} elseif ( $selected > Free_Support_Contract::MAX_JOB_PRODUCTS ) {
 			echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $selected ) ) . '</p></div>';
 		}
-		if ( Job_State::can_manual_run( $job['status'] ) && self::can_mutate() ) {
+		if ( $complete_evidence && Job_State::can_manual_run( $job['status'] ) && self::can_mutate() ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_RESUME ) . '">';
 			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
@@ -1406,7 +1407,8 @@ final class Free_Admin {
 			echo esc_html( 'Continues remaining products in a small step. Conflicted products will not be retried. Reload this page to check progress.' ) . '</p></form>';
 		}
 		echo '<h2>' . esc_html( 'Undo' ) . '</h2>';
-		self::render_undo_section( $job, $history );
+		if ( $complete_evidence ) { self::render_undo_section( $job, $history ); }
+		else { echo '<p>Undo availability cannot be verified while product outcomes are missing. Reload this job or ask an administrator to check its saved records.</p>'; }
 		echo '<h2>' . esc_html( 'Products' ) . '</h2>';
 		$filters = array( '' => array( 'All products', null, null ), 'conflict' => array( 'Apply conflicts', 'CONFLICT', null ), 'review' => array( 'Uncertain Apply outcomes', 'NEEDS_REVIEW', null ), 'undo_conflict' => array( 'Undo conflicts', null, 'UNDO_CONFLICT' ), 'undo_review' => array( 'Uncertain Undo outcomes', null, 'UNDO_NEEDS_REVIEW' ) );
 		if ( ! isset( $filters[ $filter ] ) ) { $filter = ''; }
