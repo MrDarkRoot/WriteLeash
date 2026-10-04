@@ -48,7 +48,7 @@ bok( str_contains( $http_status167['body'], 'Continue review' ), 'direct HTTP st
 $http_reopen167 = admin_get( (string) $http_preview167['location'] );
 beq( $http_rows167( $http_reopen167['body'] ), $http_original_rows167, 'saved review retains exact original rows and price strings after fresh login' );
 $http_products167 = admin_get( admin_url_abs( '/wp-admin/edit.php?post_type=product' ) );
-bok( ! str_contains( $http_products167['body'], 'free-selection.js' ), 'selection asset never enqueued on stock Products screen' );
+bok( ! str_contains( $http_products167['body'], 'free-selection.js' ) && ! str_contains( $http_products167['body'], 'free-selection.css' ), 'selection assets never enqueued on stock Products screen' );
 global $wl111_jar;
 $http_jar167 = $wl111_jar; $wl111_jar = array();
 $http_anon167 = http_request( 'GET', admin_url_abs( '/wp-admin/admin-ajax.php' ), $http_ajax167 );
