@@ -31,7 +31,7 @@ unknown/partial state fails closed.
 `<prefix>writeleash_jobs` (one row per frozen plan instance):
 
 - identity: `id` (internal), `public_id` (UUID, future-facing), `plan_id`
-  (`ascii_bin`), `plan_schema_version`, `plan_hash_version`, `plan_hash`,
+  (`utf8mb4_bin`), `plan_schema_version`, `plan_hash_version`, `plan_hash`,
   `plan_json` (canonical frozen material including selection/operation/policy).
 - actors/context: `creator_id` (= frozen plan actor), `approver_id`,
   `currency`, `price_decimals`, `wordpress_version`, `woocommerce_version`.

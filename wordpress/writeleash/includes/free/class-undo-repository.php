@@ -39,6 +39,8 @@ final class Undo_Repository {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		try {
 			if ( ! Undo_Schema::ready( $wpdb ) ) { Undo_Schema::install(); }
+			Durable_Charset::migrate( $wpdb, Undo_Schema::operations_table( $wpdb ) );
+			Durable_Charset::migrate( $wpdb, Undo_Schema::items_table( $wpdb ) );
 			Undo_Schema::assert_schema( $wpdb );
 			update_option( Undo_Schema::SETUP_OPTION, 'READY', false );
 		} catch ( \Throwable $error ) {

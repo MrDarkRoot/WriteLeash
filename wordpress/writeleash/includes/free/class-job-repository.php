@@ -37,6 +37,11 @@ final class Job_Repository {
 		try {
 			if ( ! Job_Schema::ready( $wpdb ) ) { Job_Schema::install(); }
 			if ( ! self::journal_ready( $wpdb ) ) { Price_Apply_Journal::install(); }
+			// Reads/old ASCII recovery accept the known legacy layout. New import
+			// and approval require UTF-8 storage before their writer transaction.
+			Durable_Charset::migrate( $wpdb, Job_Schema::jobs_table( $wpdb ) );
+			Durable_Charset::migrate( $wpdb, Job_Schema::items_table( $wpdb ) );
+			Durable_Charset::migrate( $wpdb, Price_Apply_Journal::table( $wpdb ) );
 			Job_Schema::assert_schema( $wpdb );
 			Price_Apply_Journal::assert_schema( $wpdb );
 			update_option( 'writeleash_job_setup', 'READY', false );

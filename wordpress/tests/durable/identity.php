@@ -30,6 +30,12 @@ $wpdb->query( $wpdb->prepare( 'RENAME TABLE %i TO %i', $table, $backup ) );
 J::install();
 // Exact v1 shape, with real APPLIED and PENDING records. No product price SQL.
 $m1 = fixture(); $m2 = fixture();
+// #171 historical v1 can contain UTF-8 plan JSON; preserve it through identity upgrade.
+$m3_source = fixture();
+$m3_product = wc_get_product( $m3_source['id'] ); $m3_product->set_name( 'Cà phê sữa đá 咖啡 🍵' ); $m3_product->save();
+$m3_plan = Planner::preview( Selection::ids( array( $m3_source['id'] ) ), new Operation( Operation::DECREASE_PERCENT, '20' ), new Policy( 2, '100', '100', true, '100' ) );
+$m3 = identity_fixture( $m3_source, $m3_plan ); J::seed( $m3_plan );
+$m3_before = J::read( $wpdb, $m3_plan->data()['plan_id'], $m3['id'] );
 eq( run_item( $m1 )['code'], 'APPLIED', 'migration applied fixture' );
 $before = J::read( $wpdb, $m1['object']->data()['plan_id'], $m1['id'] );
 $legacy_evidence = json_decode( $before['evidence'], true );
@@ -47,6 +53,9 @@ eq( (int) $upgraded['plan_schema_version'], WriteLeash\Change_Plan::SCHEMA_VERSI
 eq( $upgraded['plan_hash_version'], WriteLeash\Change_Plan::HASH_VERSION, 'existing #107 hash constant' );
 foreach ( array( 'id', 'plan_hash', 'plan_json', 'attempt_id', 'state', 'applied_at', 'created_at', 'updated_at' ) as $field ) { eq( $upgraded[$field], $before[$field], 'migration preserves ' . $field ); }
 eq( json_decode( $upgraded['evidence'], true )['plan_id'], $upgraded['plan_id'], 'migration binds evidence identity' );
+$m3_after = J::read( $wpdb, $m3_plan->data()['plan_id'], $m3['id'] );
+foreach ( array( 'id', 'plan_hash', 'plan_json', 'state', 'created_at', 'updated_at' ) as $field ) { eq( $m3_after[$field], $m3_before[$field], '#171 UTF-8 v1 journal migration preserves ' . $field ); }
+eq( run_item( $m3 )['code'], 'APPLIED', '#171 upgraded UTF-8 journal executes normally' );
 eq( run_item( $m1 )['code'], 'ALREADY_APPLIED', 'migrated APPLIED recovery' );
 eq( hook_count( $m1 ), 1, 'migration no Woo save replay' );
 $columns = $wpdb->get_results( $wpdb->prepare( "SELECT COLUMN_NAME,IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME IN ('plan_id','plan_schema_version','plan_hash_version')", $table ), ARRAY_A );
