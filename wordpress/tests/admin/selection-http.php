@@ -11,7 +11,8 @@ $http_bad167 = http_request( 'GET', admin_url_abs( '/wp-admin/admin-ajax.php' ),
 beq( $http_bad167['code'], 403, 'HTTP invalid discovery nonce refused' );
 $http_post167 = http_post( admin_url_abs( '/wp-admin/admin-ajax.php' ), $http_ajax167 );
 beq( $http_post167['code'], 403, 'HTTP discovery POST cannot create work' );
-$http_inputs167 = array_merge( $http_form167, array( 'product_ids' => array_map( 'strval', array_slice( $ids, 0, 2 ) ), 'selector' => 'ids', 'product_search' => $tag, 'selection_action' => 'update-products', 'amount' => 'invalid-amount' ) );
+$http_inputs167 = array_merge( $http_form167, array( 'product_ids' => array_map( 'strval', array_slice( $ids, 0, 2 ) ), 'selector' => 'ids', 'operation' => 'SET', 'product_search' => $tag, 'selection_action' => 'update-products', 'amount' => 'invalid-amount' ) );
+unset( $http_inputs167['product_ids[]'] );
 $http_update167 = http_post( $bulk_url, $http_inputs167 );
 beq( $http_update167['code'], 200, 'native selection is a read-only same-page POST' );
 bok( str_contains( $http_update167['body'], 'value="invalid-amount"' ), 'native POST retains operation input' );

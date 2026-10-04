@@ -5,6 +5,7 @@ $file = (string) getenv( 'WL167_FIXTURE' );
 if ( ! $file || ! in_array( $mode, array( 'seed', 'observe', 'edit' ), true ) ) { throw new RuntimeException( 'Explicit #167 fixture file/mode required.' ); }
 if ( 'seed' === $mode ) {
  wp_set_current_user( 1 );
+ delete_transient( '_wc_activation_redirect' ); // Fixture onboarding is not the merchant journey.
  $password = wp_generate_password( 32, false );
  $manager = wp_insert_user( array( 'user_login' => 'wl167_browser_manager', 'user_pass' => $password, 'role' => 'shop_manager' ) );
  if ( is_wp_error( $manager ) ) { throw new RuntimeException( 'Use a fresh #167 fixture.' ); }

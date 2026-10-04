@@ -48,6 +48,7 @@ echo "$!" >/tmp/wl167-web.pid
 SETUP
     docker cp "$container:/tmp/wl167-fixture.json" "$WL167_FIXTURE"
     chmod 600 "$WL167_FIXTURE"
+    curl --fail --silent --retry 5 --retry-connrefused --retry-delay 1 "$WL167_BASE_URL/wp-login.php" >/dev/null
     echo "#167 real browser engine=$host cache=$cache"
     node "$here/selection-browser.cjs"
     docker exec "$container" sh -c 'kill "$(cat /tmp/wl167-web.pid)"'

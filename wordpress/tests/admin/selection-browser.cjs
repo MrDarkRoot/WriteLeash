@@ -69,6 +69,7 @@ async function search(page, term) {
         ok(await page.locator('#writeleash-free-selected button').count() === 2, 'repeated keyboard selection does not duplicate products');
         await page.locator('#writeleash-free-selected button').first().click();
         ok(await page.locator('#writeleash-free-selected button').count() === 1, 'individual removal works');
+        ok(await input(page).evaluate(element => element === document.activeElement), 'removal returns focus to product search');
         await page.getByRole('button', { name: 'Clear selected products', exact: true }).click();
         ok(await page.locator('#writeleash-free-selected button').count() === 0, 'clear works');
         await search(page, 'WL167-SEARCH-');
