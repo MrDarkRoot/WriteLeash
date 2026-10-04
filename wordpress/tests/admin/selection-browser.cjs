@@ -36,13 +36,18 @@ async function action(page, name) {
     await page.waitForLoadState('networkidle');
 }
 function input(page) { return page.locator('#writeleash-free-products + .select2-container .select2-search__field'); }
+async function typeSearch(page, term) {
+    await input(page).fill('');
+    await input(page).pressSequentially(term);
+}
 async function search(page, term) {
     const response = page.waitForResponse(response => {
         const url = new URL(response.url());
         return url.pathname.endsWith('/admin-ajax.php') && url.searchParams.get('action') === 'writeleash_free_discovery' && url.searchParams.get('term') === term;
     });
-    await input(page).fill(term);
-    try { await response; }
+    await typeSearch(page, term);
+    let result;
+    try { result = await (await response).json(); }
     catch (error) {
         console.error('Search diagnostics:', JSON.stringify(await page.evaluate(() => ({
             status: document.getElementById('writeleash-free-discovery-status').textContent,
@@ -53,6 +58,7 @@ async function search(page, term) {
         throw error;
     }
     await page.locator('#writeleash-free-discovery-status').filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor();
+    if (result.data.results.length) await page.locator('.select2-results__option[data-selected]').first().waitFor();
 }
 (async () => {
     const browser = await chromium.launch({ headless: true, executablePath: process.env.WL167_CHROME || '/usr/bin/google-chrome' });
@@ -70,7 +76,7 @@ async function search(page, term) {
         ok(await page.locator('#writeleash-free-selected').innerText() === 'No products selected. Search and choose products to add them.', 'nothing automatically selected');
         await search(page, 'WL167 Browser Café');
         ok((await page.locator('.select2-results__option[data-selected]').allTextContents()).every(text => text.includes('ID:')), 'duplicate names have IDs');
-        await input(page).press('ArrowDown'); await input(page).press('Enter');
+        await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
         ok(await page.locator('#writeleash-free-selected button').count() === 1, 'keyboard adds one product');
         await search(page, 'WL167 Browser Café');
         await page.locator('.select2-results__option[data-selected="false"]').first().click();
@@ -78,7 +84,7 @@ async function search(page, term) {
         await capture(page, 'selected-products');
         await search(page, 'WL167 Browser Café');
         ok(await page.locator('.select2-results__option[data-selected="false"]').count() === 0, 'both matching products are already selected');
-        await input(page).press('Enter');
+        await page.keyboard.press('Enter');
         ok(await page.locator('#writeleash-free-selected button').count() === 2, 'repeated keyboard selection does not duplicate products');
         await page.locator('#writeleash-free-selected button').first().click();
         ok(await page.locator('#writeleash-free-selected button').count() === 1, 'individual removal works');
@@ -105,14 +111,14 @@ async function search(page, term) {
                 try { await route.fulfill({ response }); } catch (_) { /* expected aborted stale request */ }
             } else return route.continue();
         });
-        await input(page).fill('WL167 Browser Café'); await page.waitForTimeout(400);
+        await typeSearch(page, 'WL167 Browser Café'); await page.waitForTimeout(400);
         await search(page, 'WL167-SEARCH-TWO');
         await page.waitForTimeout(1200);
         ok((await page.locator('.select2-results__option[data-selected]').allTextContents()).every(text => text.includes('WL167-SEARCH-TWO')), 'older response never replaces newer search');
         await page.unroute('**/admin-ajax.php*');
         await input(page).press('Escape');
         await page.route('**/admin-ajax.php*', route => route.abort('timedout'));
-        await input(page).fill('WL167 timeout');
+        await typeSearch(page, 'WL167 timeout');
         await page.getByText('Search is unavailable. Try again, reload if your session expired, or use the native search below.', { exact: true }).waitFor();
         ok(true, 'failed search has useful native recovery');
         await page.locator('#writeleash-free-product_search').fill('WL167 Browser Café');
