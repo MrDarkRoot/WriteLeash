@@ -102,7 +102,14 @@ async function search(page, term) {
         await input(page).fill('WL167 timeout');
         await page.getByText('Search is unavailable. Try again, reload if your session expired, or use the native search below.', { exact: true }).waitFor();
         ok(true, 'failed search has useful native recovery');
+        await page.locator('#writeleash-free-product_search').fill('WL167 Browser Café');
+        await action(page, 'Search products');
+        ok(await page.locator('#writeleash-free-products').isVisible(), 'native search matches remain selectable with failed AJAX and JavaScript enabled');
+        await page.locator('#writeleash-free-products').selectOption(fixture.products.slice(0, 2).map(String));
+        await action(page, 'Update selected products');
+        ok(await page.locator('#writeleash-free-selected button').count() === 2, 'network-failure fallback adds the chosen products');
         await page.unroute('**/admin-ajax.php*');
+        await page.goto(home);
         await input(page).press('Escape');
         await search(page, 'WL167 never-matches');
         await page.getByText(/No matches on this page/).first().waitFor();

@@ -14,7 +14,8 @@
                 $('<button>', { type: 'button', 'class': 'button', text: 'Remove', 'aria-label': 'Remove ' + this.text }).on('click', function () {
                     products.find('option').filter(function () { return this.value === row.data('id'); }).prop('selected', false);
                     products.trigger('change');
-                    products.next('.select2-container').find('.select2-search__field').trigger('focus');
+                    var search = products.next('.select2-container').find('.select2-search__field');
+                    (search.length ? search : products).trigger('focus');
                 }).appendTo(row);
                 row.data('id', this.value).appendTo(list);
             });
@@ -50,7 +51,10 @@
                 }
             });
         }
-        enhance(products, 'products'); enhance(category, 'categories');
+        // A native search must keep its server-rendered matches selectable
+        // even when the live suggestions endpoint is unavailable.
+        if (!$('#writeleash-free-product_search').val()) { enhance(products, 'products'); }
+        if (!$('#writeleash-free-category_search').val()) { enhance(category, 'categories'); }
         products.on('change', selectedList);
         $('#writeleash-free-clear').on('click', function (event) { event.preventDefault(); products.val([]).trigger('change'); });
         selectedList();
