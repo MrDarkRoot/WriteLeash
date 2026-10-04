@@ -9,6 +9,11 @@ for host in mysql mariadb; do
   wp --path="$site" config set WP_ACCESSIBLE_HOSTS 127.0.0.1
   wp --path="$site" core install --url="http://127.0.0.1:8080" --title=Free-Admin --admin_user=admin --admin_password=disposable_admin_password --admin_email=admin@example.test --skip-email
   wp --path="$site" config set DISABLE_WP_CRON true --raw
+  # The HTTP journey asserts exact manual chunks. DISABLE_WP_CRON does not
+  # disable Action Scheduler's separate async HTTP runner; hold that transport
+  # in this fixture so approval cannot race the first progress-page assertion.
+  mkdir -p "$site/wp-content/mu-plugins"
+  printf '%s\n' '<?php add_filter("action_scheduler_allow_async_request_runner", "__return_false");' >"$site/wp-content/mu-plugins/wl111-manual-resume.php"
   # No Redirection: the default Free product must activate and work with Woo only.
   wp --path="$site" plugin install /opt/woo-zips/woocommerce.11.1.2.zip --activate
   wp --path="$site" plugin activate writeleash
