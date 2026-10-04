@@ -9,6 +9,7 @@ scratch="$(mktemp -d)"
 cleanup() {
   local status=$?
   trap - EXIT
+  if [ "$status" -ne 0 ]; then docker exec "$container" sh -c 'tail -40 /tmp/wl167-web.log' 2>/dev/null | sed 's/?.*/?[query redacted]/' || true; fi
   docker rm -f "$container" >/dev/null 2>&1 || true
   rm -rf "$scratch"
   exit "$status"
@@ -43,12 +44,11 @@ if [ "$WL167_CACHE" = persistent ]; then
   wp --path="$site" redis enable
 fi
 WL167_MODE=seed wp --path="$site" eval-file /opt/tests/admin/selection-browser-fixture.php
-php -S 0.0.0.0:8080 -t "$site" >/tmp/wl167-web.log 2>&1 &
-echo "$!" >/tmp/wl167-web.pid
 SETUP
+    docker exec -d -e WL167_SITE "$container" sh -c 'echo "$$" >/tmp/wl167-web.pid; exec php -S 0.0.0.0:8080 -t "$WL167_SITE" >/tmp/wl167-web.log 2>&1'
     docker cp "$container:/tmp/wl167-fixture.json" "$WL167_FIXTURE"
     chmod 600 "$WL167_FIXTURE"
-    curl --fail --silent --retry 5 --retry-connrefused --retry-delay 1 "$WL167_BASE_URL/wp-login.php" >/dev/null
+    curl --fail --silent --retry 5 --retry-all-errors --retry-delay 1 "$WL167_BASE_URL/wp-login.php" >/dev/null
     echo "#167 real browser engine=$host cache=$cache"
     node "$here/selection-browser.cjs"
     docker exec "$container" sh -c 'kill "$(cat /tmp/wl167-web.pid)"'
