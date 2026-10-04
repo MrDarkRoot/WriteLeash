@@ -167,8 +167,8 @@ async function search(page, term) {
         ok(await page.getByRole('link', { name: 'Continue review', exact: true }).count() === 1, 'direct status offers saved review');
         await page.getByRole('link', { name: 'Continue review', exact: true }).click();
         await action(page, 'Approve and queue execution');
-        await action(page, 'Run bounded resume chunk');
-        ok((await page.locator('#wpbody-content').innerText()).includes('CONFLICT'), 'existing execution checks detect stale product');
+        await action(page, 'Resume remaining products');
+        ok((await page.locator('#wpbody-content').innerText()).includes('Not changed'), 'existing execution checks detect stale product');
         ok(Number(observe().prices[fixture.products[0]].stored) === 120, 'independent observer proves no blind overwrite');
         await page.goto(previewURL);
         ok(await page.getByRole('button', { name: 'Approve and queue execution', exact: true }).count() === 0, 'approved preview routes to actual results, cannot reapprove');
@@ -198,7 +198,7 @@ async function search(page, term) {
         await page.locator('#writeleash-free-amount').fill('80.00');
         await page.locator('#writeleash-free-max_decrease').fill('1');
         await action(page, 'Build frozen preview');
-        ok((await page.locator('#wpbody-content').innerText()).includes('BLOCKED'), 'blocked saved category preview explains block');
+        ok((await page.locator('#wpbody-content').innerText()).includes('This plan cannot be executed.'), 'blocked saved category preview explains block');
         await capture(page, 'blocked-category');
         await page.goto(home + '&wl_view=history');
         await page.getByRole('link', { name: 'Review blocked plan', exact: true }).first().click();

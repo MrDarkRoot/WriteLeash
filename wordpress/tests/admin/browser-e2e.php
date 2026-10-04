@@ -42,6 +42,8 @@ function http_request( string $method, string $url, array $params = array() ): a
 		'code' => wp_remote_retrieve_response_code( $response ),
 		'location' => wp_remote_retrieve_header( $response, 'location' ),
 		'body' => (string) wp_remote_retrieve_body( $response ),
+		'content_type' => (string) wp_remote_retrieve_header( $response, 'content-type' ),
+		'content_disposition' => (string) wp_remote_retrieve_header( $response, 'content-disposition' ),
 	);
 }
 function http_get( string $url ): array { return http_request( 'GET', $url ); }
@@ -215,7 +217,7 @@ $public_id = $match[1];
 $preview_page = admin_get( (string) $preview['location'] );
 beq( $preview_page['code'], 200, 'frozen preview renders' );
 bok( str_contains( $preview_page['body'], 'Frozen preview' ), 'preview heading' );
-bok( str_contains( $preview_page['body'], 'changing 12' ), 'preview changing count' );
+bok( str_contains( $preview_page['body'], '12 planned changes' ), 'preview changing count' );
 bok( str_contains( $preview_page['body'], '80.00' ), 'frozen target visible' );
 a11y_check( $preview_page['body'], 'frozen preview' );
 echo '#111 browser first-plan journey: ' . round( microtime( true ) - $journey_start, 2 ) . "s (Bulk Prices open to frozen preview render)\n";
@@ -229,7 +231,7 @@ bok( str_contains( (string) $approve['location'], 'wl_view=job' ), 'approval lan
 $job_url = (string) $approve['location'];
 $job_page = admin_get( $job_url );
 beq( $job_page['code'], 200, 'durable progress renders' );
-bok( str_contains( $job_page['body'], 'pending 12' ), 'queued work visible, nothing implied applied' );
+bok( str_contains( $job_page['body'], '12 remaining' ), 'queued work visible, nothing implied applied' );
 a11y_check( $job_page['body'], 'durable progress' );
 
 // Bounded manual resume over HTTP: 10 of 12, then the remainder.
@@ -238,19 +240,19 @@ beq( count( $resume_forms ), 1, 'resume control present while work remains' );
 $resume1 = http_post( admin_url_abs( '/wp-admin/admin-post.php' ), $resume_forms[0] );
 bok( in_array( $resume1['code'], array( 302, 303 ), true ), 'resume POST redirects (PRG)' );
 $job_page = admin_get( $job_url );
-bok( str_contains( $job_page['body'], 'applied 10' ), 'first bounded chunk applied 10' );
-bok( str_contains( $job_page['body'], 'pending 2' ), 'remainder stays pending, never success' );
+bok( str_contains( $job_page['body'], '10 changed' ), 'first bounded chunk 10 changed' );
+bok( str_contains( $job_page['body'], '2 remaining' ), 'remainder stays pending, never success' );
 // Reopen with a brand-new authenticated session: identical durable truth.
 login_session();
 $reopened = admin_get( $job_url );
-bok( str_contains( $reopened['body'], 'applied 10' ), 'reopened session sees applied 10' );
-bok( str_contains( $reopened['body'], 'pending 2' ), 'reopened session sees pending 2' );
+bok( str_contains( $reopened['body'], '10 changed' ), 'reopened session sees 10 changed' );
+bok( str_contains( $reopened['body'], '2 remaining' ), 'reopened session sees 2 remaining' );
 $resume_forms = forms_for_action( $reopened['body'], 'writeleash_free_resume' );
 beq( count( $resume_forms ), 1, 'resume control present for remainder' );
 http_post( admin_url_abs( '/wp-admin/admin-post.php' ), $resume_forms[0] );
 $done = admin_get( $job_url );
 bok( str_contains( $done['body'], 'COMPLETED' ), 'resumed job completes' );
-bok( str_contains( $done['body'], 'applied 12' ), 'all items applied' );
+bok( str_contains( $done['body'], '12 changed' ), 'all items applied' );
 bok( 0 === count( forms_for_action( $done['body'], 'writeleash_free_resume' ) ), 'no resume control once terminal' );
 
 // History over HTTP, then Undo over HTTP in two bounded chunks.
@@ -262,7 +264,7 @@ $undo_forms = forms_for_action( $done['body'], 'writeleash_free_undo' );
 beq( count( $undo_forms ), 1, 'Restore offered exactly once for the eligible job' );
 http_post( admin_url_abs( '/wp-admin/admin-post.php' ), $undo_forms[0] );
 $after_undo1 = admin_get( $job_url );
-bok( str_contains( $after_undo1['body'], 'undone 10' ), 'first Undo chunk restored 10' );
+bok( str_contains( $after_undo1['body'], '10 restored' ), 'first Undo chunk restored 10' );
 $undo_forms = forms_for_action( $after_undo1['body'], 'writeleash_free_undo' );
 if ( $undo_forms ) {
 	// A second bounded chunk finishes only when items remain; otherwise the
@@ -270,7 +272,7 @@ if ( $undo_forms ) {
 	http_post( admin_url_abs( '/wp-admin/admin-post.php' ), $undo_forms[0] );
 	$after_undo1 = admin_get( $job_url );
 }
-bok( str_contains( $after_undo1['body'], 'undone 12' ), 'Undo restored all eligible prices' );
+bok( str_contains( $after_undo1['body'], '12 restored' ), 'Undo restored all eligible prices' );
 bok( 0 === count( forms_for_action( $after_undo1['body'], 'writeleash_free_undo' ) ), 'no Restore form after finished Undo' );
 
 // Negatives over HTTP: GET mutation refused with zero mutation, bad nonce refused.
@@ -303,5 +305,6 @@ foreach ( $ids as $id ) {
 	}
 }
 require __DIR__ . '/selection-http.php';
+require __DIR__ . '/presentation-http.php';
 
 echo "#111 real-HTTP browser Admin E2E (menu, POST, nonce, PRG, reload, resume, history, Undo, negatives): PASS\n";

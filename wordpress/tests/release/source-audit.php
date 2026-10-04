@@ -39,6 +39,19 @@ foreach ( $files as $file ) {
 		throw new RuntimeException( 'Test-only credential literal entered runtime source: ' . $path );
 	}
 	$forbidden = '/\b(?:eval|create_function|base64_decode|shell_exec|exec|system|passthru|proc_open|popen|curl_exec|curl_init|wp_(?:safe_)?remote_[a-z_]+|file_get_contents|error_reporting|ini_set|header|wp_redirect|activate_plugin|deactivate_plugins|wp_update_plugins)\s*\(|\$_(?:REQUEST|GET|COOKIE|FILES)\b|\b(?:wp_redirection_items|wp_writeleash_demo_rows)\b/i';
+	// #168: only these reviewed CSV response headers are allowed in Free Admin.
+	// Arbitrary headers, redirects and all other runtime files remain forbidden.
+	if ( '/includes/free/class-free-admin.php' === $relative ) {
+		$allowed_headers = array(
+			"header( 'Content-Type: text/csv; charset=UTF-8' );",
+			<<<'HEADER'
+header( 'Content-Disposition: attachment; filename="writeleash-' . $result['job']['public_id'] . '.csv"' );
+HEADER
+			,
+			"header( 'X-Content-Type-Options: nosniff' );",
+		);
+		$code = str_replace( $allowed_headers, '', $code );
+	}
 	if ( preg_match( $forbidden, $code, $match ) ) {
 		throw new RuntimeException( 'Unreviewed runtime source token ' . $match[0] . ' in ' . $path );
 	}

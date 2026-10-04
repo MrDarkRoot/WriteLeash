@@ -96,7 +96,7 @@ $hundredone167 = Admin::process_preview( preview_post( array( 'picker_present' =
 eq( $hundredone167['reason'], 'supported_job_limit_exceeded', '101 picker products refused before import' );
 eq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $before_jobs167, '101 refusal creates no job' );
 $blocked167 = Admin::process_preview( preview_post( array( 'ids' => (string) $duplicate167[0], 'max_decrease' => '1' ) ), 'POST' );
-ok( str_contains( render_view( 'preview', $blocked167['public_id'], 0 ), 'BLOCKED' ), 'saved blocked preview explanation' );
+ok( str_contains( render_view( 'preview', $blocked167['public_id'], 0 ), 'This plan cannot be executed.' ), 'saved blocked preview explanation' );
 ok( str_contains( render_view( 'job', $blocked167['public_id'], 0 ), 'Review blocked plan' ), 'direct blocked status has review action' );
 $new167 = Admin::process_preview( array_merge( $duplicate_post167, array( 'amount' => '70.00' ) ), 'POST' );
 ok( $new167['plan_id'] !== $preview167['plan_id'], 'changed configuration creates a new plan' );
