@@ -170,4 +170,4 @@ Metadata mismatch/full public copy belong to #121. No ZIP/SVN or publication.
 #61 barrier, overlap and durability assertions are unchanged; failed attempts
 must be retained and rerun at the same unchanged SHA.
 
-The only public JavaScript asset is `includes/free/free-selection.js`, a scoped Woo selectWoo progressive enhancement. Native selection works without it; no bundled libraries/build output are shipped.
+The public selection assets are `includes/free/free-selection.js`, a scoped Woo selectWoo progressive enhancement, and `includes/free/free-selection.css`, limited to picker widths and long-name wrapping. Native selection works without JavaScript; no bundled libraries/build output are shipped.

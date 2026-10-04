@@ -39,6 +39,7 @@ includes/free/class-undo-worker.php
 includes/free/class-woo-price-mutator.php
 includes/free/class-woo-undo-mutator.php
 includes/free/free-selection.js
+includes/free/free-selection.css
 readme.txt
 uninstall.php
 writeleash.php

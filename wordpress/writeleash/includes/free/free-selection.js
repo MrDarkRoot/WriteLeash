@@ -23,6 +23,7 @@
         }
         function enhance(control, kind) {
             var sequence = 0;
+            var fallback = $('#writeleash-free-' + kind + '-fallback');
             control.selectWoo({
                 width: '100%', minimumInputLength: kind === 'products' ? 1 : 0,
                 maximumSelectionLength: kind === 'products' ? 100 : 0,
@@ -36,12 +37,13 @@
                         var request = $.ajax({ url: form.data('discovery-url'), data: params.data, dataType: 'json', timeout: 10000 });
                         request.done(function (response) {
                             if (generation !== sequence) { return; }
-                            if (!response.success) { status.text('Search is unavailable. Reload if your session expired, or use the native search below.'); failure(); return; }
+                            if (!response.success) { fallback.prop('open', true); status.text('Search is unavailable. Reload if your session expired, or use the native search below.'); failure(); return; }
                             status.text(response.data.capped ? 'Search limit reached. Use a more specific name or SKU.' : (response.data.results.length ? 'Choose matches to add them. Search matches are not automatically selected; eligibility is checked in preview.' : 'No matches on this page. Try another name or SKU, or the native search below.'));
                             success(response.data);
                         });
                         request.fail(function (_, reason) {
                             if (generation !== sequence || reason === 'abort') { return; }
+                            fallback.prop('open', true);
                             status.text('Search is unavailable. Try again, reload if your session expired, or use the native search below.');
                             failure();
                         });
@@ -50,6 +52,7 @@
                     processResults: function (data) { return { results: data.results, pagination: { more: data.more } }; }
                 }
             });
+            fallback.prop('open', false);
         }
         // A native search must keep its server-rendered matches selectable
         // even when the live suggestions endpoint is unavailable.

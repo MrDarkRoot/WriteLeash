@@ -19,7 +19,7 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 	foreach ( $entries as $entry ) {
 		// Finite release files + reviewed common classes + Woo class directory.
 		// The closure below further rejects even an unused PHP file here.
-		if ( ! in_array( $entry, array( 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js',
+		if ( ! in_array( $entry, array( 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-selection.css',
 			'includes/class-environment.php', 'includes/class-lifecycle.php', 'includes/class-plugin.php' ), true ) &&
 			! preg_match( '#\Aincludes/free/class-[a-z-]+\.php\z#D', $entry ) ) {
 			$fail( 'non-public artifact in manifest: ' . $entry );
@@ -28,7 +28,10 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 			$fail( 'missing or symlinked public file: ' . $entry );
 		}
 	}
-	if ( in_array( 'includes/free/free-selection.js', $entries, true ) && ! str_contains( (string) file_get_contents( $root . '/includes/free/class-free-admin.php' ), "plugins_url( 'includes/free/free-selection.js', WRITELEASH_PLUGIN_FILE )" ) ) { $fail( 'unreferenced public selection asset' ); }
+	foreach ( array( 'js', 'css' ) as $extension ) {
+		$asset = 'includes/free/free-selection.' . $extension;
+		if ( in_array( $asset, $entries, true ) && ! str_contains( (string) file_get_contents( $root . '/includes/free/class-free-admin.php' ), "plugins_url( '" . $asset . "', WRITELEASH_PLUGIN_FILE )" ) ) { $fail( 'unreferenced public selection asset' ); }
+	}
 	$pending = array( 'writeleash.php', 'uninstall.php' );
 	$seen = array();
 	$definitions = array();

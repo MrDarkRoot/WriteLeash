@@ -69,7 +69,9 @@ final class Free_Admin {
 
 	/** Woo enhancement assets are isolated to this Admin screen; native form remains usable. */
 	public static function assets( string $hook ): void {
-		if ( ! in_array( $hook, array( 'product_page_' . self::SLUG, 'woocommerce_page_' . self::SLUG, 'tools_page_' . self::SLUG ), true ) || ! self::can_mutate() || ! self::dependency_ok() || ! wp_script_is( 'selectWoo', 'registered' ) ) { return; }
+		if ( ! in_array( $hook, array( 'product_page_' . self::SLUG, 'woocommerce_page_' . self::SLUG, 'tools_page_' . self::SLUG ), true ) || ! self::can_mutate() || ! self::dependency_ok() ) { return; }
+		wp_enqueue_style( 'writeleash-free-selection', plugins_url( 'includes/free/free-selection.css', WRITELEASH_PLUGIN_FILE ), array(), WRITELEASH_VERSION );
+		if ( ! wp_script_is( 'selectWoo', 'registered' ) ) { return; }
 		wp_enqueue_style( 'woocommerce_admin_styles' );
 		wp_enqueue_script( 'writeleash-free-selection', plugins_url( 'includes/free/free-selection.js', WRITELEASH_PLUGIN_FILE ), array( 'jquery', 'selectWoo' ), WRITELEASH_VERSION, true );
 	}
@@ -871,29 +873,34 @@ final class Free_Admin {
 		foreach ( array( 'ids' => 'Choose products by name or SKU', 'category' => 'Named product category', 'sku' => 'Advanced: one exact SKU', 'manual_ids' => 'Advanced: manual product IDs' ) as $value => $label ) {
 			echo '<option value="' . esc_attr( $value ) . '"' . selected( $values['selector'], $value, false ) . '>' . esc_html( $label ) . '</option>';
 		}
-		echo '</select></p><p id="writeleash-free-discovery-status" role="status" aria-live="polite">Search and choose products. You can also use the native search below.</p>';
-		self::selector_field( 'product_search', 'Native search: product name or partial SKU', 'search', $values['product_search'], 'writeleash-free-selector-help' );
+		echo '</select></p><p id="writeleash-free-discovery-status" role="status" aria-live="polite">Search and choose products. If live suggestions are unavailable, use the search without live suggestions.</p>';
+		echo '<details id="writeleash-free-products-fallback" open><summary>Search products without live suggestions</summary>';
+		self::selector_field( 'product_search', 'Product name or partial SKU', 'search', $values['product_search'], 'writeleash-free-selector-help' );
 		echo '<input type="hidden" name="product_page" value="' . esc_attr( $values['product_page'] ) . '">';
 		self::selection_button( 'search-products', 'Search products' );
 		if ( $matches['more'] ) { self::selection_button( 'next-products', 'More product matches' ); }
 		if ( '' !== $values['product_search'] && ! $matches['results'] ) { echo '<p>No matches on this page. Try another product name or SKU.</p>'; }
 		if ( ! empty( $matches['capped'] ) ) { echo '<p>Search limit reached. Use a more specific name or SKU.</p>'; }
+		echo '<p>Use Ctrl/Command to select several matches below, then Update selected products. Selected products stay on subsequent search pages.</p>';
+		self::selection_button( 'update-products', 'Update selected products' );
+		echo '</details>';
 		echo '<p><label for="writeleash-free-products">Choose products</label><br><select id="writeleash-free-products" name="product_ids[]" multiple size="6" style="width:100%;max-width:600px" aria-describedby="writeleash-free-products-help">';
 		$options = $selected;
 		foreach ( $matches['results'] as $item ) { $options[(int) $item['id']] = $item; }
 		foreach ( $options as $id => $item ) { echo '<option value="' . esc_attr( (string) $id ) . '"' . ( isset( $selected[$id] ) ? ' selected' : '' ) . '>' . esc_html( $item['text'] ) . '</option>'; }
-		echo '</select></p><p id="writeleash-free-products-help">With native selection, use Ctrl/Command to select several matches, then Update selected products. Selected products stay on subsequent search pages.</p>';
-		self::selection_button( 'update-products', 'Update selected products' );
+		echo '</select></p><p id="writeleash-free-products-help">Check the selected products below. Preview checks their eligibility before any prices change.</p>';
 		echo '<h3>Selected products</h3><ul id="writeleash-free-selected">';
 		foreach ( $selected as $id => $item ) { echo '<li>' . esc_html( $item['text'] ) . ' '; self::selection_button( 'remove:' . $id, 'Remove', 'Remove ' . $item['text'] ); echo '</li>'; }
 		if ( ! $selected ) { echo '<li>No products selected. Search and choose products to add them.</li>'; }
 		echo '</ul><button id="writeleash-free-clear" class="button" type="submit" name="selection_action" value="clear-products" formaction="' . esc_url( self::page_url() ) . '" formnovalidate>Clear selected products</button>';
-		self::selector_field( 'category_search', 'Native search: category name', 'search', $values['category_search'], 'writeleash-free-selector-help' );
+		echo '<details id="writeleash-free-categories-fallback" open><summary>Search categories without live suggestions</summary>';
+		self::selector_field( 'category_search', 'Category name', 'search', $values['category_search'], 'writeleash-free-selector-help' );
 		echo '<input type="hidden" name="category_page" value="' . esc_attr( $values['category_page'] ) . '">';
 		self::selection_button( 'search-categories', 'Search categories' );
 		if ( $categories['more'] ) { self::selection_button( 'next-categories', 'More category matches' ); }
 		if ( ! empty( $categories['capped'] ) ) { echo '<p>Search limit reached. Use a more specific category name.</p>'; }
 		if ( ! $categories['results'] ) { echo '<p>No categories match this page. Try another category name.</p>'; }
+		echo '</details>';
 		echo '<p><label for="writeleash-free-category">Product category (direct members only)</label><br><select id="writeleash-free-category" name="category" style="width:100%;max-width:600px" aria-describedby="writeleash-free-selector-help"><option value="">Choose a category</option>';
 		$category_options = array();
 		foreach ( $categories['results'] as $item ) { $category_options[$item['id']] = $item; }

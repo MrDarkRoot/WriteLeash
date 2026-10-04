@@ -1,0 +1,16 @@
+/* Keep the native and enhanced picker within the existing wp-admin column. */
+#writeleash-free-selection-form fieldset {
+    min-inline-size: 0;
+}
+#writeleash-free-selection-form .select2-container {
+    max-width: 600px;
+}
+#writeleash-free-selection-form .select2-selection__choice {
+    box-sizing: border-box;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+#writeleash-free-selected li {
+    overflow-wrap: anywhere;
+}
