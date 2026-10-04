@@ -31,6 +31,7 @@ for host in mysql mariadb; do
     fi
     echo "#109 engine=$host cache=$cache"
     WL109_ROOT_USER=root WL109_ROOT_PASSWORD=disposable_root_password WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/integration.php
+    sh /opt/tests/jobs/unicode-run.sh "$host" "$cache" /opt/wp-core /opt/woo-zips
   done
   php /opt/tests/release/source-audit.php "$site/wp-content/plugins/writeleash"
   php /opt/tests/release/debug-audit.php "$site/wp-content/debug.log" "$host"

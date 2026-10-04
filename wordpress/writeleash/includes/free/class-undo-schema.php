@@ -53,13 +53,15 @@ final class Undo_Schema {
 		}
 		$operations = self::operations_table( $wpdb );
 		$items = self::items_table( $wpdb );
-		$charset = $wpdb->get_charset_collate();
+		$charset = Durable_Charset::table_clause( $wpdb );
+		Durable_Charset::migrate( $wpdb, $operations );
+		Durable_Charset::migrate( $wpdb, $items );
 		dbDelta( "CREATE TABLE $operations (
  id bigint unsigned NOT NULL AUTO_INCREMENT,
  schema_version int unsigned NOT NULL,
  job_id bigint unsigned NOT NULL,
- plan_id varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
- public_id char(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ plan_id varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+ public_id char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
  initiator_id bigint unsigned NOT NULL,
  status varchar(32) NOT NULL,
  status_reason varchar(64) NOT NULL DEFAULT '',
@@ -87,7 +89,7 @@ final class Undo_Schema {
  schema_version int unsigned NOT NULL,
  job_id bigint unsigned NOT NULL,
  undo_id bigint unsigned NOT NULL,
- plan_id varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ plan_id varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
  product_id bigint unsigned NOT NULL,
  sequence int unsigned NOT NULL,
  expected_price varchar(32) NOT NULL,
@@ -101,7 +103,7 @@ final class Undo_Schema {
  claim_generation bigint unsigned NOT NULL DEFAULT 0,
  next_attempt_after datetime NULL,
  provenance longtext NOT NULL,
- fingerprint char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ fingerprint char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
  evidence longtext NOT NULL,
  created_at datetime NOT NULL,
  updated_at datetime NOT NULL,
@@ -111,6 +113,8 @@ final class Undo_Schema {
  UNIQUE KEY undo_job_product (job_id,product_id),
  KEY undo_operation_state (undo_id,state,product_id)
 ) ENGINE=InnoDB " . $charset . ';' );
+		Price_Apply_Connection::forget_table_metadata( $wpdb, $operations );
+		Price_Apply_Connection::forget_table_metadata( $wpdb, $items );
 		self::assert_schema( $wpdb );
 		update_option( self::OPTION, self::SCHEMA_VERSION, false );
 	}
@@ -146,9 +150,13 @@ final class Undo_Schema {
 		self::assert_columns( $db, $items, $item_columns );
 		self::assert_indexes( $db, $operations, array( 'undo_job' => array( array( 'job_id' ), true ), 'undo_public_id' => array( array( 'public_id' ), true ) ) );
 		self::assert_indexes( $db, $items, array( 'undo_job_product' => array( array( 'job_id', 'product_id' ), true ), 'undo_operation_state' => array( array( 'undo_id', 'state', 'product_id' ), false ) ) );
+		try {
+			Durable_Charset::assert_table( $db, $operations, array( 'plan_id', 'public_id' ), true );
+			Durable_Charset::assert_table( $db, $items, array( 'plan_id', 'fingerprint' ), true );
+		} catch ( \Throwable $error ) { throw new Undo_Error( 'SCHEMA_UNAVAILABLE' ); }
 		foreach ( array( $operations, $items ) as $table ) {
 			$collation = $db->get_var( $db->prepare( "SELECT COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME='plan_id'", $table ) );
-			if ( 'ascii_bin' !== $collation ) { throw new Undo_Error( 'SCHEMA_UNAVAILABLE' ); }
+			if ( ! in_array( $collation, array( 'ascii_bin', 'utf8mb4_bin' ), true ) ) { throw new Undo_Error( 'SCHEMA_UNAVAILABLE' ); }
 		}
 	}
 

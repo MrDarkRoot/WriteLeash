@@ -69,7 +69,7 @@ they are omitted from the public allowlist and loaded only by repository tests.
 | LICENSE | Reviewed GPLv2 text | PUBLIC_FREE_REQUIRED |
 | readme.txt | Minimum Woo-only user instructions; full copy belongs to #121 | PUBLIC_FREE_REQUIRED |
 
-All 30 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
+All 31 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
 inventory (multi-class files included):
 
 | File stem (`includes/free/class-<stem>.php`) | Classes / interfaces / traits | Classification |
@@ -81,6 +81,7 @@ inventory (multi-class files included):
 | product-snapshot | Price_Store_Context, Product_Price_Snapshot, Eligibility_Result, Product_Price_Eligibility, Price_Reason_Messages | PUBLIC_FREE_REQUIRED |
 | product-selector | Price_Selection_Spec, Product_Price_Selector | PUBLIC_FREE_REQUIRED |
 | change-plan | Change_Plan_Item, Plan_Hasher, Change_Plan, Woo_Price_Planner | PUBLIC_FREE_REQUIRED |
+| durable-charset | Durable_Charset; lossless physical UTF-8 setup/upgrade verification | PUBLIC_FREE_REQUIRED |
 | price-apply-connection | Price_Apply_Error, Price_Apply_Connection (ordinary WP connection assertion) | PUBLIC_FREE_REQUIRED |
 | runner-authority | Runner_Authority | PUBLIC_FREE_REQUIRED |
 | price-apply-journal | Price_Apply_Journal | PUBLIC_FREE_REQUIRED |

@@ -39,12 +39,14 @@ final class Job_Schema {
 		}
 		$jobs = self::jobs_table( $wpdb );
 		$items = self::items_table( $wpdb );
-		$charset = $wpdb->get_charset_collate();
+		$charset = Durable_Charset::table_clause( $wpdb );
+		Durable_Charset::migrate( $wpdb, $jobs );
+		Durable_Charset::migrate( $wpdb, $items );
 		dbDelta( "CREATE TABLE $jobs (
  id bigint unsigned NOT NULL AUTO_INCREMENT,
  schema_version int unsigned NOT NULL,
- public_id char(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
- plan_id varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ public_id char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+ plan_id varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
  plan_schema_version int unsigned NOT NULL,
  plan_hash_version varchar(64) NOT NULL,
  plan_hash char(64) NOT NULL,
@@ -91,7 +93,7 @@ final class Job_Schema {
  id bigint unsigned NOT NULL AUTO_INCREMENT,
  schema_version int unsigned NOT NULL,
  job_id bigint unsigned NOT NULL,
- plan_id varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ plan_id varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
  product_id bigint unsigned NOT NULL,
  sequence int unsigned NOT NULL,
  plan_result varchar(16) NOT NULL,
@@ -116,6 +118,8 @@ final class Job_Schema {
  UNIQUE KEY job_sequence (job_id,sequence),
  KEY job_state_sequence (job_id,state,sequence)
 ) ENGINE=InnoDB " . $charset . ';' );
+		Price_Apply_Connection::forget_table_metadata( $wpdb, $jobs );
+		Price_Apply_Connection::forget_table_metadata( $wpdb, $items );
 		self::assert_schema( $wpdb );
 		update_option( self::OPTION, self::SCHEMA_VERSION, false );
 	}
@@ -151,9 +155,13 @@ final class Job_Schema {
 		self::assert_columns( $db, $items, $item_columns );
 		self::assert_indexes( $db, $jobs, array( 'public_id' => array( array( 'public_id' ), true ), 'plan_instance' => array( array( 'plan_id' ), true ) ) );
 		self::assert_indexes( $db, $items, array( 'job_product' => array( array( 'job_id', 'product_id' ), true ), 'job_sequence' => array( array( 'job_id', 'sequence' ), true ), 'job_state_sequence' => array( array( 'job_id', 'state', 'sequence' ), false ) ) );
+		try {
+			Durable_Charset::assert_table( $db, $jobs, array( 'plan_id', 'public_id' ), true );
+			Durable_Charset::assert_table( $db, $items, array( 'plan_id' ), true );
+		} catch ( \Throwable $error ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
 		foreach ( array( $jobs, $items ) as $table ) {
 			$collation = $db->get_var( $db->prepare( "SELECT COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME='plan_id'", $table ) );
-			if ( 'ascii_bin' !== $collation ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
+			if ( ! in_array( $collation, array( 'ascii_bin', 'utf8mb4_bin' ), true ) ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
 		}
 	}
 

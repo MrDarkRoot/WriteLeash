@@ -33,7 +33,7 @@
     },
     {
       "prefix": "wordpress/writeleash/includes/free/class-",
-      "files": ["price-apply-connection.php", "price-apply-journal.php", "price-apply-transaction-guard.php", "price-cache-verifier.php", "woo-price-mutator.php"],
+      "files": ["durable-charset.php", "price-apply-connection.php", "price-apply-journal.php", "price-apply-transaction-guard.php", "price-cache-verifier.php", "woo-price-mutator.php"],
       "gates": ["journal", "jobs", "undo", "admin", "acceptance"]
     },
     {

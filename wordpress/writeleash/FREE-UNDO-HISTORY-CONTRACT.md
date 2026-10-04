@@ -40,7 +40,7 @@ through the normal WordPress connection (`writeleash_undo_schema` records
 the version; unknown/partial state fails closed with zero mutation):
 
 `<prefix>writeleash_undo_operations` (one row per apply job):
-`id`, `job_id` (unique), `plan_id` (`ascii_bin`), `public_id` (UUID,
+`id`, `job_id` (unique), `plan_id` (`utf8mb4_bin`), `public_id` (UUID,
 future-facing for #111), `initiator_id`, `status`, `status_reason`, durable
 counters (`undo_eligible/pending/applying`, `undone`, `undo_conflict`,
 `undo_failed`, `undo_needs_review`), `lease_owner/generation/expires_at`,

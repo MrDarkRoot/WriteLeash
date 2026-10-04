@@ -31,6 +31,10 @@ final class Price_Apply_Connection extends \wpdb {
 		$this->connection_id = (int) $this->owner->thread_id;
 		$this->sentinel = 'wl_price_' . bin2hex( random_bytes( 12 ) );
 	}
+	/** A completed schema ALTER must invalidate Core's cached charset/length facts. */
+	public static function forget_table_metadata( \wpdb $db, string $table ): void {
+		unset( $db->table_charset[strtolower( $table )], $db->col_meta[strtolower( $table )] );
+	}
 	public function check_connection( $allow_bail = true ) { throw new Price_Apply_Error( 'TRANSACTION_LOST' ); }
 	public function db_connect( $allow_bail = true ) { throw new Price_Apply_Error( 'TRANSACTION_LOST' ); }
 	public function id(): int { return $this->connection_id; }

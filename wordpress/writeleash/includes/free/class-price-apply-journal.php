@@ -3,6 +3,8 @@ namespace WriteLeash;
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/class-durable-charset.php';
+
 /** Disposable item journal for #108; no scheduler, approval endpoint or job lifecycle. */
 final class Price_Apply_Journal {
 	public const SCHEMA_VERSION = 2;
@@ -18,7 +20,9 @@ final class Price_Apply_Journal {
 		if ( 2 !== count( $index ) || array_column( $index, 'Column_name' ) !== array( 'plan_id', 'product_id' ) || array_column( $index, 'Non_unique' ) !== array( '0', '0' ) || $db->get_results( $db->prepare( "SHOW INDEX FROM %i WHERE Key_name='plan_product'", $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		$collation = $db->get_var( $db->prepare( "SELECT COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME='plan_id'", $table ) );
 		$required = $db->get_var( $db->prepare( "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME IN ('plan_id','plan_schema_version','plan_hash_version') AND IS_NULLABLE='NO'", $table ) );
-		if ( 3 !== (int) $required || 'ascii_bin' !== $collation ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+		try { Durable_Charset::assert_table( $db, $table, array( 'plan_id' ), true ); }
+		catch ( \Throwable $error ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+		if ( 3 !== (int) $required || ! in_array( $collation, array( 'ascii_bin', 'utf8mb4_bin' ), true ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 	}
 	/** Branch-local v1 upgrade. Preserve history; never derive identity from a hash. */
 	private static function upgrade_v1( \wpdb $db ): void {
@@ -26,7 +30,7 @@ final class Price_Apply_Journal {
 		$exists = $db->get_var( $db->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) );
 		if ( ! $exists ) { return; }
 		$column = $db->get_var( $db->prepare( "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME='plan_id'", $table ) );
-		if ( ! $column && false === $db->query( $db->prepare( 'ALTER TABLE %i ADD plan_id varchar(64) CHARACTER SET ascii COLLATE ascii_bin NULL, ADD plan_schema_version int unsigned NULL, ADD plan_hash_version varchar(64) NULL', $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+		if ( ! $column && false === $db->query( $db->prepare( 'ALTER TABLE %i ADD plan_id varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL, ADD plan_schema_version int unsigned NULL, ADD plan_hash_version varchar(64) NULL', $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		foreach ( $db->get_results( $db->prepare( 'SELECT * FROM %i WHERE schema_version=1', $table ), ARRAY_A ) as $row ) {
 			$plan = json_decode( $row['plan_json'], true );
 			if ( ! is_array( $plan ) || ! preg_match( '/\A[a-zA-Z0-9_-]{1,64}\z/D', $plan['plan_id'] ?? '' ) || ( $plan['schema_version'] ?? null ) !== Change_Plan::SCHEMA_VERSION || ( $plan['hash_version'] ?? '' ) !== Change_Plan::HASH_VERSION || ( $plan['plan_hash'] ?? '' ) !== $row['plan_hash'] ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
@@ -46,19 +50,20 @@ final class Price_Apply_Journal {
 		}
 		// dbDelta compares column types/defaults, not NULL constraints; tighten explicitly.
 		$nullable = $db->get_var( $db->prepare( "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME IN ('plan_id','plan_schema_version','plan_hash_version') AND IS_NULLABLE='YES'", $table ) );
-		if ( $nullable && false === $db->query( $db->prepare( 'ALTER TABLE %i MODIFY plan_id varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, MODIFY plan_schema_version int unsigned NOT NULL, MODIFY plan_hash_version varchar(64) NOT NULL', $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+		if ( $nullable && false === $db->query( $db->prepare( 'ALTER TABLE %i MODIFY plan_id varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL, MODIFY plan_schema_version int unsigned NOT NULL, MODIFY plan_hash_version varchar(64) NOT NULL', $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		// dbDelta adds indexes but does not remove obsolete ones.
 		if ( $db->get_results( $db->prepare( "SHOW INDEX FROM %i WHERE Key_name='plan_product'", $table ) ) && false === $db->query( $db->prepare( 'ALTER TABLE %i DROP INDEX plan_product', $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 	}
 	public static function install(): void {
 		global $wpdb;
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		Durable_Charset::migrate( $wpdb, self::table( $wpdb ) );
 		self::upgrade_v1( $wpdb );
 		$table = self::table( $wpdb );
 		dbDelta( "CREATE TABLE $table (
  id bigint unsigned NOT NULL AUTO_INCREMENT,
  schema_version int unsigned NOT NULL,
- plan_id varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ plan_id varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
  plan_schema_version int unsigned NOT NULL,
  plan_hash_version varchar(64) NOT NULL,
  plan_hash char(64) NOT NULL,
@@ -75,7 +80,8 @@ final class Price_Apply_Journal {
  applied_at datetime NULL,
  PRIMARY KEY  (id),
  UNIQUE KEY plan_instance_product (plan_id,product_id)
-) ENGINE=InnoDB " . $wpdb->get_charset_collate() . ';' );
+) ENGINE=InnoDB " . Durable_Charset::table_clause( $wpdb ) . ';' );
+		Price_Apply_Connection::forget_table_metadata( $wpdb, $table );
 		self::assert_schema( $wpdb );
 		update_option( 'writeleash_price_journal_schema', self::SCHEMA_VERSION, false );
 	}
