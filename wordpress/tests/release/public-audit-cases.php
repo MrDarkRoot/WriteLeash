@@ -41,6 +41,20 @@ try {
 		$expect( 'forbidden/unresolved/dynamic dependency: ' . $code, $entries, false );
 	}
 	$write( 'includes/class-plugin.php', $original );
+	// Restore an exact guarded payload before testing the separate source audit.
+	// Directory iteration order must not let earlier closure-test debris fail first.
+	foreach ( array( 'includes/free/class-research.php', 'includes/class-guard.php', 'operator-setup.txt' ) as $extra_entry ) { unlink( $root . '/' . $extra_entry ); }
+	// #168: a finite CSV header allowance must not permit arbitrary response routing.
+	$admin_entry = 'includes/free/class-free-admin.php';
+	$admin_original = file_get_contents( $source . '/' . $admin_entry );
+	foreach ( array( "header( 'Location: https://example.test' );", 'header( $untrusted );' ) as $injected_header ) {
+		$write( $admin_entry, $admin_original . "\n" . $injected_header );
+		$output = array(); $code = 0;
+		exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/source-audit.php' ) . ' ' . escapeshellarg( $root ) . ' 2>&1', $output, $code );
+		if ( 0 === $code || ! str_contains( implode( "\n", $output ), 'Unreviewed runtime source token header(' ) ) { throw new RuntimeException( '#168 arbitrary header allowance escaped source audit' ); }
+		echo "#168 source audit rejects arbitrary/dynamic header: PASS\n";
+	}
+	$write( $admin_entry, $admin_original );
 	unlink( $root . '/includes/class-plugin.php' );
 	symlink( $source . '/includes/class-plugin.php', $root . '/includes/class-plugin.php' );
 	$expect( 'symlinked payload rejected', $entries, false );

@@ -26,13 +26,15 @@ async function capture(page, name) {
 }
 async function login(page) {
     await page.goto(base + '/wp-login.php');
+    await page.waitForLoadState('networkidle');
     await page.getByLabel('Username or Email Address').fill(fixture.username);
     await page.getByLabel('Password', { exact: true }).fill(fixture.password);
     await Promise.all([page.waitForURL(/wp-admin/), page.getByRole('button', { name: 'Log In', exact: true }).click()]);
     await page.goto(home);
+    await page.waitForLoadState('networkidle');
 }
 async function action(page, name) {
-    await Promise.all([page.waitForLoadState('domcontentloaded'), page.getByRole('button', { name, exact: true }).click()]);
+    await Promise.all([page.waitForEvent('framenavigated', { predicate: frame => frame === page.mainFrame() }), page.getByRole('button', { name, exact: true }).click()]);
     await page.waitForLoadState('networkidle');
 }
 function input(page) { return page.locator('#writeleash-free-products + .select2-container .select2-search__field'); }
@@ -140,7 +142,12 @@ async function search(page, term) {
         await page.locator('.select2-results__option[data-selected="false"]').first().click();
         await page.locator('#writeleash-free-amount').fill('bad-price');
         await action(page, 'Build frozen preview');
-        ok(await page.locator('#writeleash-free-amount').inputValue() === 'bad-price', 'validation retains entered amount');
+        const retainedAmount = await page.locator('#writeleash-free-amount').inputValue();
+        if (retainedAmount !== 'bad-price') {
+            console.error('Validation recovery diagnostics:', JSON.stringify({ url: page.url(), amount: retainedAmount, notices: await page.locator('#wpbody-content .notice').allTextContents() }));
+            await capture(page, 'failed-validation-recovery');
+        }
+        ok(retainedAmount === 'bad-price', 'validation retains entered amount');
         ok(await page.locator('#writeleash-free-selected button').count() === 2, 'validation retains chosen identities');
         await page.locator('#writeleash-free-amount').fill('80.00');
         await action(page, 'Build frozen preview');
@@ -167,8 +174,8 @@ async function search(page, term) {
         ok(await page.getByRole('link', { name: 'Continue review', exact: true }).count() === 1, 'direct status offers saved review');
         await page.getByRole('link', { name: 'Continue review', exact: true }).click();
         await action(page, 'Approve and queue execution');
-        await action(page, 'Run bounded resume chunk');
-        ok((await page.locator('#wpbody-content').innerText()).includes('CONFLICT'), 'existing execution checks detect stale product');
+        await action(page, 'Resume remaining products');
+        ok((await page.locator('#wpbody-content').innerText()).includes('Not changed'), 'existing execution checks detect stale product');
         ok(Number(observe().prices[fixture.products[0]].stored) === 120, 'independent observer proves no blind overwrite');
         await page.goto(previewURL);
         ok(await page.getByRole('button', { name: 'Approve and queue execution', exact: true }).count() === 0, 'approved preview routes to actual results, cannot reapprove');
@@ -198,7 +205,7 @@ async function search(page, term) {
         await page.locator('#writeleash-free-amount').fill('80.00');
         await page.locator('#writeleash-free-max_decrease').fill('1');
         await action(page, 'Build frozen preview');
-        ok((await page.locator('#wpbody-content').innerText()).includes('BLOCKED'), 'blocked saved category preview explains block');
+        ok((await page.locator('#wpbody-content').innerText()).includes('This plan cannot be executed.'), 'blocked saved category preview explains block');
         await capture(page, 'blocked-category');
         await page.goto(home + '&wl_view=history');
         await page.getByRole('link', { name: 'Review blocked plan', exact: true }).first().click();

@@ -210,7 +210,7 @@ $zhtml = render_view( 'preview', $zjob['public_id'], 0 );
 ok( str_contains( $zhtml, 'Large increases 0' ), 'rendered large increases' );
 ok( str_contains( $zhtml, 'large decreases 2' ), 'rendered large decreases' );
 ok( str_contains( $zhtml, 'zero-price targets 2' ), 'rendered zero targets' );
-ok( str_contains( $zhtml, 'conflicts 0' ), 'rendered preview conflicts' );
+ok( str_contains( $zhtml, '2 planned changes' ), 'preview categories do not double-count policy-blocked changes' );
 ok( str_contains( $zhtml, '-100.000000%' ), 'rendered full-decrease percentage' );
 $li_ids = array( make_product( '100.00' ), make_product( '150.00' ), make_product( '200.00' ) );
 $res = Admin::process_preview( preview_post( array( 'ids' => implode( ',', $li_ids ), 'operation' => Operation::SET, 'amount' => '200.00', 'max_increase' => '500', 'max_decrease' => '500', 'warning_threshold' => '20' ) ), 'POST' );
@@ -367,7 +367,7 @@ $completed = Repo::read( (int) $job['id'] );
 eq( $completed['status'], 'COMPLETED_WITH_ISSUES', 'partial truth, never generic success' );
 $html = render_view( 'job', $job['public_id'], 0 );
 ok( str_contains( $html, 'COMPLETED_WITH_ISSUES' ), 'progress names the issue state' );
-ok( str_contains( $html, 'conflict 1' ), 'progress shows conflict count' );
+ok( str_contains( $html, '1 conflict' ), 'progress shows conflict count' );
 marker( 'conflict preserves later edits' );
 
 // History reads, pagination and per-user scoping.
@@ -614,10 +614,11 @@ function wl122_current_rows( string $html ): array {
 	eq( $headers, array( 'Product', 'Expected', 'Current', 'Planned', 'Apply', 'Undo' ), 'Current column order' );
 	$rows = array();
 	foreach ( $xpath->query( './tbody/tr', $tables->item( 0 ) ) as $row ) {
+		if ( ! $row->hasAttribute( 'data-product-id' ) ) { continue; }
 		$cells = array();
 		foreach ( $xpath->query( './td', $row ) as $cell ) { $cells[] = trim( $cell->textContent ); }
 		eq( count( $cells ), 6, 'six item cells' );
-		$rows[ (int) $cells[0] ] = $cells;
+		$rows[ (int) $row->getAttribute( 'data-product-id' ) ] = $cells;
 	}
 	return $rows;
 }
@@ -652,8 +653,9 @@ add_filter( 'query', $trace_queries );
 try { $current_html = render_view( 'job', $current_job['public_id'], 0 ); }
 finally { remove_filter( 'query', $trace_queries ); remove_filter( 'woocommerce_product_get_regular_price', $shopper_price ); }
 $current_rows = wl122_current_rows( $current_html );
-eq( $current_rows[$current_id], array( (string) $current_id, '18', '21', '14.40', 'CONFLICT (ITEM_CONFLICT)', '—' ), 'same conflict row: Expected 18 / fresh Current 21 / Planned 14.40 / CONFLICT' );
-eq( $current_rows[$current_other][2], '19.2', 'ordinary applied row also uses fresh Current' );
+eq( array_slice( $current_rows[$current_id], 1, 3 ), array( '18.00', '21.00', '14.40' ), 'same conflict row preserves saved and current decimal strings' );
+ok( str_contains( $current_rows[$current_id][4], 'Not changed' ) && str_contains( $current_rows[$current_id][4], 'left the newer value unchanged' ), 'merchant conflict explanation in the affected row' );
+eq( $current_rows[$current_other][2], '19.20', 'ordinary applied row also uses fresh Current' );
 foreach ( $render_queries as $query ) {
 	ok( ! preg_match( '/^\s*(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|START\s+TRANSACTION|BEGIN|LOCK)\b|\bFOR\s+UPDATE\b/i', $query ), 'Current render is SELECT-only, with no mutation/worker lock' );
 }
@@ -679,7 +681,7 @@ update_post_meta( $malformed_current_id, '_regular_price', 'not-a-price' ); // F
 $missing_rows = wl122_current_rows( render_view( 'job', $missing_job['public_id'], 0 ) );
 eq( $missing_rows[$missing_current_id][2], 'Unavailable', 'missing product Current unavailable' );
 eq( $missing_rows[$malformed_current_id][2], 'Unavailable', 'malformed stored price Current unavailable' );
-eq( $missing_rows[$valid_current_id][2], '18', 'one unavailable Current does not prevent other rows' );
+eq( $missing_rows[$valid_current_id][2], '18.00', 'one unavailable Current does not prevent other rows' );
 $unreadable = static function ( $class, $type, $post_type, $id ) use ( $current_id ) {
 	if ( $id === $current_id ) { throw new RuntimeException( 'test-only unreadable product' ); }
 	return $class;
@@ -688,7 +690,7 @@ add_filter( 'woocommerce_product_class', $unreadable, 10, 4 );
 try { $unreadable_rows = wl122_current_rows( render_view( 'job', $current_job['public_id'], 0 ) ); }
 finally { remove_filter( 'woocommerce_product_class', $unreadable, 10 ); }
 eq( $unreadable_rows[$current_id][2], 'Unavailable', 'read exception does not fatal or fall back to Expected/Planned' );
-eq( $unreadable_rows[$current_other][2], '19.2', 'read exception isolated to one row' );
+eq( $unreadable_rows[$current_other][2], '19.20', 'read exception isolated to one row' );
 marker( 'missing malformed unreadable Current remains nonfatal' );
 
 // A 51-product job must read only the 50 visible rows, then only the last row.
@@ -716,6 +718,7 @@ try {
 marker( 'Current reads bounded to rendered page only' );
 
 require __DIR__ . '/selection-integration.php';
+require __DIR__ . '/presentation-integration.php';
 
 // WooCommerce dependency loss fails closed at the Admin boundary. Plugin
 // code cannot be unloaded in-process, so the loss itself is asserted in a

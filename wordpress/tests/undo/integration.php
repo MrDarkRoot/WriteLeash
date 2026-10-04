@@ -579,6 +579,16 @@ eq( URepo::authorized( $job_row, (int) $subscriber ), false, 'subscriber history
 eq( URepo::authorized( $job_row, (int) $foreign ), false, 'foreign manager history not authorized' );
 eq( URepo::authorized( $job_row, 1 ), true, 'admin history authorized' );
 eq( UReason::message( 'UNDO_CONFLICT' ), 'The product changed after WriteLeash applied its price; the stored price was not overwritten.', 'typed reason copy' );
+// #168 consumes the proven durable Undo outcomes without changing the engine.
+wp_set_current_user( 1 );
+ob_start();
+WriteLeash\Free_Admin::render_view( 'job', $job_row['public_id'], 0 );
+$merchant_undo168 = (string) ob_get_clean();
+ok( str_contains( $merchant_undo168, 'Undo finished with conflicts' ), 'merchant Undo clearly finished with issues' );
+ok( str_contains( $merchant_undo168, 'preserved the newer value instead of restoring over it' ), 'merchant Undo explains external edit preservation' );
+ok( str_contains( $merchant_undo168, '1 restored · 3 conflicts' ), 'merchant Undo uses disjoint proven counts' );
+ok( ! str_contains( $merchant_undo168, 'name="action" value="writeleash_free_undo"' ), 'terminal conflicted Undo never offers restoration retry' );
+ok( str_contains( $merchant_undo168, 'does not reverse: orders' ), 'merchant Undo explains external effects boundary' );
 marker( 'history model: pagination, filters, authorization, eligibility, expiry' );
 
 // ---------------------------------------------------------------------------

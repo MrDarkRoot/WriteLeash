@@ -51,6 +51,11 @@ SETUP
     curl --fail --silent --retry 5 --retry-all-errors --retry-delay 1 "$WL167_BASE_URL/wp-login.php" >/dev/null
     echo "#167 real browser engine=$host cache=$cache"
     node "$here/selection-browser.cjs"
+    export WL168_FIXTURE="$scratch/presentation-fixture.json"
+    docker exec -e WL168_MODE=seed -e WL168_FIXTURE=/tmp/wl168-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/presentation-browser-fixture.php
+    docker cp "$container:/tmp/wl168-fixture.json" "$WL168_FIXTURE"
+    chmod 600 "$WL168_FIXTURE"
+    node "$here/presentation-browser.cjs"
     docker exec "$container" sh -c 'kill "$(cat /tmp/wl167-web.pid)"'
   done
 done
