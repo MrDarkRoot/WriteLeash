@@ -26,13 +26,27 @@ $http_preview167 = http_post( admin_url_abs( '/wp-admin/admin-post.php' ), $http
 bok( preg_match( '/wl_view=preview&wl_job=([0-9a-f-]{36})/', (string) $http_preview167['location'], $http_match167 ) === 1, 'picker POST imports explicit IDs into saved preview' );
 $http_saved167 = admin_get( (string) $http_preview167['location'] );
 bok( str_contains( $http_saved167['body'], 'changing 2' ), 'two selected IDs, not all discovery matches' );
+$http_rows167 = static function ( string $html ): array {
+ $dom = new DOMDocument(); libxml_use_internal_errors( true ); $dom->loadHTML( '<?xml encoding="utf-8"?>' . $html ); libxml_clear_errors();
+ $rows = array();
+ foreach ( ( new DOMXPath( $dom ) )->query( '(//*[@id="wpbody-content"]//table)[1]/tbody/tr' ) as $row ) {
+  $cells = array(); foreach ( $row->getElementsByTagName( 'td' ) as $cell ) { $cells[] = trim( $cell->textContent ); } $rows[] = $cells;
+ }
+ return $rows;
+};
+$http_original_rows167 = $http_rows167( $http_saved167['body'] );
+beq( count( $http_original_rows167 ), 2, 'saved picker preview renders two product rows' );
+foreach ( $http_original_rows167 as $row ) {
+ beq( WriteLeash\Price_Decimal::parse( $row[2] ), '100', 'saved expected price after prior Undo' );
+ beq( WriteLeash\Price_Decimal::parse( $row[3] ), '80', 'saved absolute target' );
+}
 login_session();
 $http_recent167 = admin_get( $bulk_url );
 bok( str_contains( $http_recent167['body'], 'Continue review' ) && str_contains( $http_recent167['body'], 'wl_view=preview' ), 'fresh authenticated session has continuation link' );
 $http_status167 = admin_get( admin_url_abs( '/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=' . $http_match167[1] ) );
 bok( str_contains( $http_status167['body'], 'Continue review' ), 'direct HTTP status has continuation' );
 $http_reopen167 = admin_get( (string) $http_preview167['location'] );
-bok( str_contains( $http_reopen167['body'], '100.00' ) && str_contains( $http_reopen167['body'], '80.00' ), 'saved review retains original prices after fresh login' );
+beq( $http_rows167( $http_reopen167['body'] ), $http_original_rows167, 'saved review retains exact original rows and price strings after fresh login' );
 $http_products167 = admin_get( admin_url_abs( '/wp-admin/edit.php?post_type=product' ) );
 bok( ! str_contains( $http_products167['body'], 'free-selection.js' ), 'selection asset never enqueued on stock Products screen' );
 global $wl111_jar;
