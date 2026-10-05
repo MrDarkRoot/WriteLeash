@@ -793,19 +793,19 @@ final class Free_Admin {
 			'invalid_input' => 'A request field is malformed; nothing was changed.',
 			'plan_blocked' => 'The safety policy blocks this plan; it cannot be approved.',
 			'preview_ready' => 'Preview ready. Review these saved prices before approving.',
-			'plan_policy_blocked' => 'The plan policy blocks every changing product; it cannot be approved.',
+			'plan_policy_blocked' => 'Your safety limits block every changing product in this preview; it cannot be approved.',
 			'already_approved' => 'This plan was already approved; no duplicate approval was recorded.',
-			'job_material_mismatch' => 'Stored job material no longer matches its frozen plan; no product was changed.',
-			'job_terminal' => 'The job already reached a terminal state.',
-			'job_not_resumable' => 'The job state does not permit a manual resume.',
-			'job_not_approvable' => 'The job state does not permit approval.',
-			'approved' => 'Approved. WriteLeash will process the reviewed products in the background. Reload this page to check progress.',
-			'approved_scheduler_unavailable' => 'Approved, but the scheduler is unavailable; the job is paused and the protected Resume action continues it.',
+			'job_material_mismatch' => 'This saved job no longer matches its approved preview; no product was changed. Start a new preview.',
+			'job_terminal' => 'This job has already finished.',
+			'job_not_resumable' => 'This job cannot be continued from its current state.',
+			'job_not_approvable' => 'This job cannot be approved in its current state.',
+			'approved' => 'Approved. WriteLeash will apply the reviewed prices in the background. Reload this page to check progress.',
+			'approved_scheduler_unavailable' => 'Approved, but background processing could not start. This job is paused; use Resume remaining products to continue it.',
 			'resume_chunk' => 'Results updated after this step. Check changes, remaining products and anything needing attention below.',
 			'undo_chunk' => 'Undo results updated. Check restorations, remaining products and anything needing attention below.',
-			'undo_terminal' => 'The Undo operation already reached a terminal state.',
+			'undo_terminal' => 'This Undo has already finished.',
 			'undo_unavailable' => 'Undo is currently unavailable; no price was restored.',
-			'worker_failed' => 'The bounded worker could not run; durable state was preserved.',
+			'worker_failed' => 'The background step could not run. Saved progress was kept; try Resume remaining products again.',
 			'action_failed' => 'The action could not be completed; nothing was changed.',
 		);
 		if ( isset( $messages[ $reason ] ) ) {
@@ -850,8 +850,8 @@ final class Free_Admin {
 			return 'Remaining';
 		}
 		$labels = array(
-			'APPLIED' => 'Changed', 'UNCHANGED' => 'Already at target; unchanged',
-			'UNSUPPORTED' => 'Skipped at preview; unchanged', 'BLOCKED' => 'Will not run',
+			'APPLIED' => 'Changed', 'UNCHANGED' => 'Already at the target price',
+			'UNSUPPORTED' => 'Skipped at preview', 'BLOCKED' => 'Will not run',
 			'APPLYING' => 'In progress; outcome not yet confirmed', 'CONFLICT' => 'Not changed',
 			'FAILED' => 'Needs attention; not changed', 'NEEDS_REVIEW' => 'Outcome uncertain; needs checking',
 			'UNDO_PENDING' => 'Awaiting restoration', 'UNDO_APPLYING' => 'Restoration in progress; outcome not yet confirmed',
@@ -863,12 +863,13 @@ final class Free_Admin {
 
 	public static function result_summary( array $counts, string $state, bool $compact = false ): string {
 		$pending = (int) $counts['pending'];
+		$review = (int) $counts['needs_review'];
 		$parts = array(
-			(int) $counts['applied'] . ' changed', (int) $counts['unchanged'] . ' already at target; unchanged',
-			(int) $counts['unsupported'] . ' skipped at preview; unchanged', (int) $counts['conflict'] . ' conflict' . ( 1 === (int) $counts['conflict'] ? '' : 's' ),
+			(int) $counts['applied'] . ' changed', (int) $counts['unchanged'] . ' already at the target price',
+			(int) $counts['unsupported'] . ' skipped', (int) $counts['conflict'] . ' conflict' . ( 1 === (int) $counts['conflict'] ? '' : 's' ),
 			$pending . ( 'BLOCKED' === $state ? ' will not run' : ( 'PLANNED' === $state ? ' awaiting approval' : ( Job_State::is_terminal( $state ) ? ' not processed' : ' remaining' ) ) ),
 			(int) $counts['applying'] . ' in progress', (int) $counts['failed'] . ' needing attention',
-			(int) $counts['needs_review'] . ' uncertain',
+			$review . ( 1 === $review ? ' needs checking' : ' need checking' ),
 		);
 		if ( $compact ) { $parts = array_values( array_filter( $parts, static fn( $part ) => ! str_starts_with( $part, '0 ' ) ) ); }
 		return 'Planned ' . (int) $counts['planned'] . ( 1 === (int) $counts['planned'] ? ' product: ' : ' products: ' ) . implode( ' · ', $parts ) . '.';
@@ -962,7 +963,7 @@ final class Free_Admin {
 		$variation = ! empty( $identity['core_variation'] );
 		echo '<strong>' . esc_html( '' === $name ? 'Name unavailable at preview' : $name ) . '</strong><br><span class="description">';
 		$sku = (string) ( $identity['sku'] ?? '' );
-		echo esc_html( ( '' === $sku ? '' : 'SKU: ' . $sku . ' · ' ) . ( $variation ? 'Variation' : 'Product' ) . ' #' . $id . ' · identity at preview' ) . '</span>';
+		echo esc_html( ( '' === $sku ? '' : 'SKU: ' . $sku . ' · ' ) . ( $variation ? 'Variation' : 'Product' ) . ' #' . $id . ' · as reviewed' ) . '</span>';
 		// No current-name fallback. A native edit link requires a current Woo post and per-product permission.
 		$post = get_post( $id );
 		if ( $post && in_array( $post->post_type, array( 'product', 'product_variation' ), true ) && current_user_can( 'edit_post', $id ) ) {
@@ -1158,14 +1159,16 @@ final class Free_Admin {
 
 	private static function render_home_view( array $form = array() ): void {
 		echo '<p>';
-		echo esc_html( 'Change stored regular or sale prices for published core simple products and variations of published core variable products in the base store currency. Variations can be selected as a whole product or individually; WooCommerce parent price ranges are refreshed after every change. Sale dates, stock, orders and subscriptions are out of scope and are excluded with reasons.' );
+		echo esc_html( 'Preview bulk regular or sale prices before they happen. Run them safely. If the price or a checked setting changed after review, WriteLeash leaves the newer value alone. Undo changes that are still safe to restore.' );
 		echo '</p>';
-		echo '<p>' . esc_html( 'WriteLeash supports up to ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' selected products per job in the tested configuration.' ) . '</p>';
 		echo '<p>';
-		echo esc_html( 'Planned prices are not guaranteed shopper prices: tax display, multi-currency, dynamic pricing and later concurrent edits still apply. A closed browser never loses truth: progress is rebuilt from the durable job store on every load.' );
+		echo esc_html( 'Change the stored price of published simple products and variations of published variable products in the base store currency. Variations can be selected as a whole product or individually. Sale dates, stock, orders and subscriptions are not changed.' );
+		echo '</p>';
+		echo '<p>';
+		echo esc_html( 'Up to ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' selected products per new job in the tested configuration. Planned prices are not guaranteed shopper prices: taxes, currency settings, dynamic pricing and later edits still apply. You can close this page at any time; saved progress appears again when you return.' );
 		echo '</p>';
 		if ( ! self::can_mutate() ) {
-			echo '<div class="notice notice-warning"><p>' . esc_html( 'Your role can view this page but cannot plan or execute bulk-price changes.' ) . '</p></div>';
+			echo '<div class="notice notice-warning"><p>' . esc_html( 'Your role can view this page but cannot preview or apply bulk price changes.' ) . '</p></div>';
 		}
 		echo '<h2>New price change</h2>';
 		self::render_selector_form( $form );
@@ -1256,22 +1259,22 @@ final class Free_Admin {
 		echo '</select></p><details><summary>Advanced selection: exact SKU or manual IDs</summary><p>Choose the matching advanced selection method above. Exact SKU means one byte-for-byte SKU, not a list. Changing inputs creates a new preview.</p>';
 		self::selector_field( 'ids', 'Explicit product IDs (advanced), e.g. 12,34,56', 'text', $values['ids'], 'writeleash-free-selector-help' );
 		self::selector_field( 'sku', 'One exact SKU', 'text', $values['sku'], 'writeleash-free-selector-help' );
-		echo '</details></fieldset><fieldset><legend>2. Configure price change</legend><p><label for="writeleash-free-price-field">Price to change</label><br><select id="writeleash-free-price-field" name="price_field">';
+		echo '</details></fieldset><fieldset><legend>2. Choose the price change</legend><p><label for="writeleash-free-price-field">Price to change</label><br><select id="writeleash-free-price-field" name="price_field" aria-describedby="writeleash-free-price-field-help">';
 		foreach ( array( Price_Operation::FIELD_REGULAR => 'Regular price', Price_Operation::FIELD_SALE => 'Sale price' ) as $value => $label ) {
 			echo '<option value="' . esc_attr( $value ) . '"' . selected( $values['price_field'], $value, false ) . '>' . esc_html( $label ) . '</option>';
 		}
-		echo '</select></p><p><label for="writeleash-free-operation">Operation</label><br><select id="writeleash-free-operation" name="operation">';
+		echo '</select></p><p id="writeleash-free-price-field-help">' . esc_html( 'Regular price is the everyday price. Sale price is the discounted price during a sale. WriteLeash changes only the price you choose and keeps the other one.' ) . '</p><p><label for="writeleash-free-operation">Operation</label><br><select id="writeleash-free-operation" name="operation">';
 		foreach ( array( Price_Operation::SET => 'Set an exact price', Price_Operation::INCREASE_FIXED => 'Increase by fixed amount', Price_Operation::DECREASE_FIXED => 'Decrease by fixed amount', Price_Operation::INCREASE_PERCENT => 'Increase by percent', Price_Operation::DECREASE_PERCENT => 'Decrease by percent' ) as $value => $label ) {
 			echo '<option value="' . esc_attr( $value ) . '"' . selected( $values['operation'], $value, false ) . '>' . esc_html( $label ) . '</option>';
 		}
 		echo '</select></p>';
 		self::selector_field( 'amount', 'Unsigned amount or percent, e.g. 80.00 or 20 (no % sign)', 'text', $values['amount'], 'writeleash-free-operation', true );
-		echo '</fieldset><fieldset class="writeleash-safety"><legend>3. Safety limits</legend><p class="writeleash-full-width">A breach blocks the whole plan.</p>';
+		echo '</fieldset><fieldset class="writeleash-safety"><legend>3. Safety limits</legend><p class="writeleash-full-width">A breach blocks the whole preview.</p>';
 		$maximum = Free_Support_Contract::MAX_JOB_PRODUCTS;
 		self::selector_field( 'max_products', 'Maximum changing products (0-' . $maximum . ')', 'number', $values['max_products'], 'writeleash-free-operation', true, 0, $maximum );
 		foreach ( array( 'max_increase' => 'Maximum increase percent', 'max_decrease' => 'Maximum decrease percent', 'warning_threshold' => 'Warning threshold percent' ) as $name => $label ) { self::selector_field( $name, $label, 'text', $values[$name], 'writeleash-free-operation', true ); }
-		echo '<p class="writeleash-full-width"><input id="writeleash-free-block-zero" name="block_zero" type="checkbox" value="1"' . checked( $values['block_zero'] ?? '', '1', false ) . '> <label for="writeleash-free-block-zero">Block plans that set any changing price to zero</label></p></fieldset>';
-		echo '<p class="writeleash-actions"><button type="submit" class="button button-primary">Build frozen preview</button></p></form>';
+		echo '<p class="writeleash-full-width"><input id="writeleash-free-block-zero" name="block_zero" type="checkbox" value="1"' . checked( $values['block_zero'] ?? '', '1', false ) . '> <label for="writeleash-free-block-zero">Block a preview that sets any changing price to zero</label></p></fieldset>';
+		echo '<p class="writeleash-actions"><button type="submit" class="button button-primary">Preview price changes</button> <span class="description">' . esc_html( 'Nothing is saved until you approve the preview.' ) . '</span></p></form>';
 	}
 
 	/** Job tables exist yet. Pure page views never create tables; the first preview import installs them. */
@@ -1286,7 +1289,7 @@ final class Free_Admin {
 
 	private static function render_recent_jobs(): void {
 		if ( ! self::jobs_installed() ) {
-			echo '<p>' . esc_html( 'No jobs yet. Build a frozen preview above to start.' ) . '</p>';
+			echo '<p>' . esc_html( 'No price changes yet. Preview your first change above to start.' ) . '</p>';
 			return;
 		}
 		$user_id = get_current_user_id();
@@ -1294,7 +1297,7 @@ final class Free_Admin {
 			// Actor-scoped in SQL: the page contains only caller-visible jobs.
 			$page = Undo_Repository::history_jobs( 0, 5, $user_id );
 		} catch ( \Throwable $error ) {
-			echo '<p>' . esc_html( 'Job history is unavailable; the job tables may not be installed yet.' ) . '</p>';
+			echo '<p>' . esc_html( 'History is unavailable right now. Reload the page to try again.' ) . '</p>';
 			return;
 		}
 		self::render_history_table( $page['jobs'] );
@@ -1335,7 +1338,7 @@ final class Free_Admin {
 		try {
 			$plan = Job_Repository::hydrate_plan( $job );
 		} catch ( \Throwable $error ) {
-			echo '<div class="notice notice-error"><p>' . esc_html( 'Stored job material no longer matches its frozen plan; no product was changed.' ) . '</p></div>';
+			echo '<div class="notice notice-error"><p>' . esc_html( self::reason_message( 'job_material_mismatch' ) ) . '</p></div>';
 			return;
 		}
 		if ( ! self::reviewable( $job ) ) { self::render_job_view( $public_id, $offset ); return; }
@@ -1344,7 +1347,7 @@ final class Free_Admin {
 		if ( $summary['selected'] > Free_Support_Contract::MAX_JOB_PRODUCTS ) {
 			if ( self::is_legacy_oversized_job( $job, $summary['selected'] ) ) {
 				self::render_legacy_oversize_warning();
-				echo '<p><a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( 'Open existing durable progress and eligible Undo' ) . '</a></p>';
+				echo '<p><a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( 'Open progress and available Undo' ) . '</a></p>';
 			} else {
 				echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $summary['selected'] ) ) . '</p></div>';
 			}
@@ -1355,11 +1358,11 @@ final class Free_Admin {
 		echo '<h2>' . esc_html( 'Review price change' ) . '</h2><div class="writeleash-summary">';
 		echo '<p><strong>' . esc_html( self::task_description( $data ) ) . '</strong></p>';
 		self::support_details( $data['plan_id'] . ' · ' . $plan->hash() );
-		echo '<p>' . esc_html( 'Selected ' . $summary['selected'] . ' products: ' . ( $summary['changing'] ) . ' planned changes · ' . $summary['unchanged'] . ' already at target · ' . $summary['unsupported'] . ' skipped at preview.' ) . '</p>';
+		echo '<p>' . esc_html( 'Selected ' . $summary['selected'] . ' products: ' . ( $summary['changing'] ) . ' planned changes · ' . $summary['unchanged'] . ' already at the target price · ' . $summary['unsupported'] . ' skipped at preview.' ) . '</p>';
 		$extra_counts = self::preview_extra_counts( $data['items'] );
 		echo '<p>' . esc_html( 'Large increases ' . $extra_counts['large_increase'] . ' · large decreases ' . $extra_counts['large_decrease'] . ' · zero-price targets ' . $extra_counts['zero_target'] . ' · ' . $summary['warning_items'] . ' products with warnings.' ) . '</p></div>';
 		if ( $blocked ) {
-			echo '<div class="notice notice-error" role="alert"><p><strong>' . esc_html( 'This plan cannot be executed.' ) . '</strong>: ' . esc_html( 'the safety policy blocks every changing product. Approval and execution are impossible for this plan; build a new preview with different inputs.' ) . '</p>';
+			echo '<div class="notice notice-error" role="alert"><p><strong>' . esc_html( 'This plan cannot be executed.' ) . '</strong>: ' . esc_html( 'your safety limits block every changing product. You cannot approve this preview; build a new one with different settings.' ) . '</p>';
 			$identities = array_column( $data['items'], null, 'product_id' );
 			$blockers = $data['policy_result']['blockers'];
 			$blocked_ids = array();
@@ -1422,17 +1425,17 @@ final class Free_Admin {
 		}
 		echo '</tbody></table></div>';
 		self::render_pager( 'preview', $job['public_id'], $offset, $limit, $page['next_offset'] );
-		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">Create a new preview</a> ' . esc_html( 'Changing selection, operation or policy creates a separate plan; this saved preview stays unchanged.' ) . '</p>';
+		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">Create a new preview</a> ' . esc_html( 'Changing the selection or price settings creates a new preview; this saved preview stays unchanged.' ) . '</p>';
 		if ( ! $blocked && Job_State::PLANNED === $job['status'] && self::can_mutate() ) {
-			echo '<h2>' . esc_html( 'Approve exact plan' ) . '</h2>';
-			echo '<p>' . esc_html( 'Approval executes exactly the frozen IDs and absolute target prices above. Planned prices are not guaranteed shopper prices. Any selection, operation or policy change requires a new preview; this approval cannot be reused for different inputs.' ) . '</p>';
+			echo '<h2>' . esc_html( 'Approve this preview' ) . '</h2>';
+			echo '<p>' . esc_html( 'Approving applies exactly the products and prices shown above. Planned prices are not guaranteed shopper prices. If you change any setting, build a new preview.' ) . '</p>';
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_APPROVE ) . '">';
 			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
 			wp_nonce_field( self::ACTION_APPROVE . '_' . $job['plan_id'] );
-			echo '<p><button type="submit" class="button button-primary">' . esc_html( 'Approve and queue execution' ) . '</button></p></form>';
+			echo '<p><button type="submit" class="button button-primary">' . esc_html( 'Approve and apply' ) . '</button></p></form>';
 		} elseif ( ! $blocked ) {
-			echo '<p>' . esc_html( 'Current job state: ' . $job['status'] . '. ' ) . '<a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( 'Open durable progress' ) . '</a></p>';
+			echo '<p>' . esc_html( 'Current status: ' . self::job_label( $job['status'] ) . '. ' ) . '<a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( 'View progress and results' ) . '</a></p>';
 		}
 	}
 
@@ -1499,7 +1502,7 @@ final class Free_Admin {
 			$selected = $plan->summary()['selected'];
 			$identities = array_column( $plan->data()['items'], null, 'product_id' );
 		} catch ( \Throwable $error ) {
-			echo '<div class="notice notice-error"><p>' . esc_html( 'Durable job state is unavailable; the job tables may be incomplete.' ) . '</p></div>';
+			echo '<div class="notice notice-error"><p>' . esc_html( 'Saved progress and results are unavailable right now. Reload this page to try again; if it persists, ask an administrator to check the saved records.' ) . '</p></div>';
 			return;
 		}
 		$counts = $observed['counts'];
@@ -1520,7 +1523,7 @@ final class Free_Admin {
 			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( 'Background processing stopped making progress. Use Resume remaining products to continue; completed changes are kept.' ) . '</p></div>';
 		}
 		if ( in_array( $effective, array( Job_State::COMPLETED_WITH_ISSUES, Job_State::NEEDS_REVIEW ), true ) ) {
-			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( Job_State::NEEDS_REVIEW === $effective ? 'An outcome needs checking. Review uncertain products before continuing remaining work; uncertain products will not be retried.' : 'Apply finished with products needing attention. Review conflicts and failed products below, then create a new preview if needed.' ) . '</p></div>';
+			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( Job_State::NEEDS_REVIEW === $effective ? 'An outcome needs checking. Review uncertain products before continuing remaining work; uncertain products will not be retried.' : 'The price change finished with products needing attention. Review conflicts and failed products below, then create a new preview if needed.' ) . '</p></div>';
 		}
 		if ( self::is_legacy_oversized_job( $job, $selected ) ) {
 			self::render_legacy_oversize_warning();
@@ -1540,7 +1543,7 @@ final class Free_Admin {
 		else { echo '<p>Undo availability cannot be verified while product outcomes are missing. Reload this job or ask an administrator to check its saved records.</p>'; }
 		echo '</section>';
 		echo '<h2>' . esc_html( 'Products' ) . '</h2>';
-		$filters = array( '' => array( 'All products', null, null ), 'conflict' => array( 'Apply conflicts', 'CONFLICT', null ), 'attention' => array( 'Apply failures needing attention', 'FAILED', null ), 'review' => array( 'Uncertain Apply outcomes', 'NEEDS_REVIEW', null ), 'undo_conflict' => array( 'Undo conflicts', null, 'UNDO_CONFLICT' ), 'undo_review' => array( 'Uncertain Undo outcomes', null, 'UNDO_NEEDS_REVIEW' ) );
+		$filters = array( '' => array( 'All products', null, null ), 'conflict' => array( 'Conflicts', 'CONFLICT', null ), 'attention' => array( 'Changes needing attention', 'FAILED', null ), 'review' => array( 'Uncertain changes', 'NEEDS_REVIEW', null ), 'undo_conflict' => array( 'Undo conflicts', null, 'UNDO_CONFLICT' ), 'undo_review' => array( 'Uncertain restorations', null, 'UNDO_NEEDS_REVIEW' ) );
 		if ( ! isset( $filters[ $filter ] ) ) { $filter = ''; }
 		echo '<p class="writeleash-filters">';
 		foreach ( $filters as $key => $choice ) {
@@ -1556,9 +1559,10 @@ final class Free_Admin {
 		}
 		if ( null !== $items ) {
 			$field = $plan->price_field();
-			$field_label = strtolower( Price_Operation::label( $field ) );
-			echo '<p>' . esc_html( 'Expected and Planned are ' . $field_label . ' values. Current shows the fresh stored ' . $field_label . ' at page load, not the shopper price. Unavailable means the product or price could not be read.' ) . '</p>';
-			echo '<div class="writeleash-table-scroll" role="region" aria-label="Product prices and outcomes" tabindex="0"><table class="widefat striped writeleash-prices writeleash-results"><thead><tr><th scope="col">' . esc_html( 'Product' ) . '</th><th scope="col">' . esc_html( 'Expected' ) . '</th><th scope="col">' . esc_html( 'Current' ) . '</th><th scope="col">' . esc_html( 'Planned' ) . '</th><th scope="col">' . esc_html( 'Apply' ) . '</th><th scope="col">' . esc_html( 'Undo' ) . '</th></tr></thead><tbody>';
+			$field_name = Price_Operation::label( $field );
+			$field_label = strtolower( $field_name );
+			echo '<p>' . esc_html( 'Expected and planned are ' . $field_label . ' values. Now shows the stored ' . $field_label . ' at page load, not the shopper price. Unavailable means the product or price could not be read.' ) . '</p>';
+			echo '<div class="writeleash-table-scroll" role="region" aria-label="Product prices and outcomes" tabindex="0"><table class="widefat striped writeleash-prices writeleash-results" data-writeleash-results="1"><thead><tr><th scope="col">' . esc_html( 'Product' ) . '</th><th scope="col">' . esc_html( $field_name . ' expected' ) . '</th><th scope="col">' . esc_html( $field_name . ' now' ) . '</th><th scope="col">' . esc_html( $field_name . ' planned' ) . '</th><th scope="col">' . esc_html( 'Apply' ) . '</th><th scope="col">' . esc_html( 'Undo' ) . '</th></tr></thead><tbody>';
 			if ( ! $items['items'] ) { echo '<tr><td colspan="6">No retained products on this page match this view.</td></tr>'; }
 			foreach ( $items['items'] as $item ) {
 				$id = (int) $item['product_id'];
@@ -1589,25 +1593,26 @@ final class Free_Admin {
 	}
 
 	public static function legacy_oversize_message(): string {
-		return 'This existing durable job was already approved. The current WriteLeash limit of ' . Free_Support_Contract::MAX_JOB_PRODUCTS
+		return 'This older job was already approved. The current WriteLeash limit of ' . Free_Support_Contract::MAX_JOB_PRODUCTS
 			. ' products applies to new work: new jobs above ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' cannot be created or approved. '
-			. 'Bounded recovery and conflict-aware eligible Undo remain available only to safely finish or restore this existing job.';
+			. 'You can still continue this existing job and restore prices that are safe to restore.';
 	}
 
 	private static function render_legacy_oversize_warning(): void {
-		echo '<div class="notice notice-warning" role="alert"><p><strong>' . esc_html( 'Legacy oversized job' ) . '</strong></p><p>' . esc_html( self::legacy_oversize_message() ) . '</p></div>';
+		echo '<div class="notice notice-warning" role="alert"><p><strong>' . esc_html( 'Older large job' ) . '</strong></p><p>' . esc_html( self::legacy_oversize_message() ) . '</p></div>';
 	}
 
 	private static function render_undo_section( array $job, array $history, string $field ): void {
 		$field_label = strtolower( Price_Operation::label( $field ) );
-		echo '<p>' . esc_html( 'Undo restores eligible ' . $field_label . ' values changed by WriteLeash. Undo does not reverse: orders, completed sales, email, webhook, HTTP side effects, or arbitrary plugin side effects.' ) . '</p>';
+		echo '<p>' . esc_html( 'Undo restores eligible ' . $field_label . ' values changed by WriteLeash. Undo does not reverse: orders, completed sales, emails, webhooks, remote requests or other plugins’ effects.' ) . '</p>';
 		echo '<p><strong>' . esc_html( self::undo_availability( $job, $history ) ) . '</strong></p>';
 		if ( ! empty( $history['undo_expires_at'] ) ) {
 			echo '<p>' . esc_html( 'Undo window ends: ' . self::site_time( $history['undo_expires_at'] ) ) . '</p>';
 		}
 		if ( ! empty( $history['undo']['operation_status'] ) ) {
 			$undo = $history['undo'];
-			echo '<p>' . esc_html( (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflict' . ( 1 === (int) $undo['conflict'] ? '' : 's' ) . ' · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' failed; check details · ' . (int) $undo['applying'] . ' in progress · ' . (int) $undo['needs_review'] . ' uncertain.' ) . '</p>';
+			$undo_review = (int) $undo['needs_review'];
+			echo '<p>' . esc_html( (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflict' . ( 1 === (int) $undo['conflict'] ? '' : 's' ) . ' · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' needing attention · ' . (int) $undo['applying'] . ' in progress · ' . $undo_review . ( 1 === $undo_review ? ' needs checking.' : ' need checking.' ) ) . '</p>';
 			self::support_details( $undo['operation_status'] . ' · ' . $undo['operation_reason'] );
 		}
 
@@ -1627,13 +1632,13 @@ final class Free_Admin {
 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html( 'Back to bulk prices' ) . '</a></p>';
 		echo '<h2>' . esc_html( 'History' ) . '</h2>';
 		if ( ! self::jobs_installed() ) {
-			echo '<p>' . esc_html( 'No jobs yet. Build a frozen preview to start.' ) . '</p>';
+			echo '<p>' . esc_html( 'No price changes yet. Preview a change to start.' ) . '</p>';
 			return;
 		}
 		try {
 			$page = Undo_Repository::history_jobs( $offset, self::HISTORY_PAGE_SIZE, get_current_user_id() );
 		} catch ( \Throwable $error ) {
-			echo '<p>' . esc_html( 'Job history is unavailable; the job tables may not be installed yet.' ) . '</p>';
+			echo '<p>' . esc_html( 'History is unavailable right now. Reload the page to try again.' ) . '</p>';
 			return;
 		}
 		self::render_history_table( $page['jobs'] );
