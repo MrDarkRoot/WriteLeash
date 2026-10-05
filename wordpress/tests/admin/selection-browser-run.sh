@@ -9,7 +9,12 @@ scratch="$(mktemp -d)"
 cleanup() {
   local status=$?
   trap - EXIT
-  if [ "$status" -ne 0 ]; then docker exec "$container" sh -c 'tail -200 /tmp/wl167-web.log' 2>/dev/null | sed 's/?.*/?[query redacted]/' || true; fi
+  if [ "$status" -ne 0 ]; then
+    docker exec "$container" sh -c 'tail -200 /tmp/wl167-web.log' 2>/dev/null | sed 's/?.*/?[query redacted]/' || true
+    for log in $(docker exec "$container" sh -c 'find /tmp -maxdepth 4 -name writeleash-debug.log 2>/dev/null' | tr -d '\r'); do
+      docker exec "$container" sh -c "tail -50 '$log'" 2>/dev/null || true
+    done
+  fi
   docker rm -f "$container" >/dev/null 2>&1 || true
   rm -rf "$scratch"
   exit "$status"
