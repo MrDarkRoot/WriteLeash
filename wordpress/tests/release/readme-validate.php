@@ -137,16 +137,15 @@ foreach ( array( '7.0.1', '7.1.2' ) as $tested_core ) {
 }
 
 // #121 release-claim guard: the public listing must not widen the accepted
-// #111/#112/#120 evidence. The engineering selector maximum (1,000) is not a
-// public support claim; universal rollback and all-host/all-version promises
-// are forbidden.
-foreach ( array( '1,000', '1000', '10,000', '10000', 'universal rollback', 'all bad edits', 'every shared host', 'all WooCommerce versions', 'any WooCommerce version' ) as $unsupported ) {
+// #111/#112/#177 evidence. The supported new-job ceiling is 1,000 (#177);
+// universal rollback and all-host/all-version promises are forbidden.
+foreach ( array( '10,000', '10000', 'universal rollback', 'all bad edits', 'every shared host', 'all WooCommerce versions', 'any WooCommerce version' ) as $unsupported ) {
 	if ( false !== stripos( $text, $unsupported ) ) {
 		$fail( 'unsupported public claim in readme: ' . $unsupported );
 	}
 }
 $woo_claim = $frozen ? 'WooCommerce 11.1.2 exactly' : 'WooCommerce 10.0 through 11.x';
-foreach ( array( 'Up to 100', $woo_claim, 'Multisite is unsupported', 'has not been tested' ) as $required_scope ) {
+foreach ( array( 'Up to 1,000', $woo_claim, 'Multisite is unsupported', 'has not been tested' ) as $required_scope ) {
 	if ( false === stripos( $text, $required_scope ) ) {
 		$fail( 'required scope limitation missing from readme: ' . $required_scope );
 	}

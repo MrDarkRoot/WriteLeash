@@ -16,7 +16,7 @@ $child167 = wp_insert_term( $tag167 . ' Collection', 'product_cat', array( 'pare
 $parent_product167 = make_product( '100.00', 'publish', array( 'category' => $parent167['term_id'], 'name' => $tag167 . ' Parent product' ) );
 $child_product167 = make_product( '100.00', 'publish', array( 'category' => $child167['term_id'], 'name' => $tag167 . ' Child product' ) );
 $large167 = array();
-for ( $i167 = 0; $i167 < 121; ++$i167 ) { $large167[] = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Bounded ' . $i167 ) ); }
+for ( $i167 = 0; $i167 < 1001; ++$i167 ) { $large167[] = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Bounded ' . $i167 ) ); }
 for ( $i167 = 0; $i167 < 121; ++$i167 ) { wp_insert_term( $tag167 . ' Taxonomy ' . $i167, 'product_cat' ); }
 
 // Observe reads/planning only, after fixture writes. No simulated mutation provider.
@@ -37,7 +37,7 @@ ok( str_contains( $sale_matches167['results'][1]['text'], 'Excluded:' ), 'search
 eq( Discovery::products( $tag167 . ' Private' )['results'], array(), 'private products never exposed by published discovery' );
 $query_start167 = $wpdb->num_queries;
 $one167 = Discovery::products( $tag167 . ' Bounded' );
-echo '#167 discovery load: catalog fixture 121 matches; first-page results ' . count( $one167['results'] ) . '; SQL queries ' . ( $wpdb->num_queries - $query_start167 ) . "; two candidate windows capped at 11 rows each\n";
+echo '#167 discovery load: catalog fixture 1001 matches; first-page results ' . count( $one167['results'] ) . '; SQL queries ' . ( $wpdb->num_queries - $query_start167 ) . "; two candidate windows capped at 11 rows each\n";
 $two167 = Discovery::products( $tag167 . ' Bounded', 2 );
 ok( count( $one167['results'] ) <= 20 && $one167['more'], 'bounded larger-catalog discovery offers pagination' );
 eq( array_intersect( array_column( $one167['results'], 'id' ), array_column( $two167['results'], 'id' ) ), array(), 'candidate windows advance' );
@@ -112,12 +112,17 @@ ok( str_contains( $html167, 'Approve and queue execution' ) && str_contains( $ht
 $direct167 = Admin::process_preview( preview_post( array( 'selector' => 'category', 'category' => (string) $parent167['term_id'] ) ), 'POST' );
 $parent_plan167 = Repo::hydrate_plan( Repo::read_by_public_id( $direct167['public_id'] ) );
 eq( array_column( $parent_plan167->data()['items'], 'product_id' ), array( $parent_product167 ), 'parent category excludes child-only member' );
-$hundred167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 100 ) ) ) ), 'POST' );
-eq( $hundred167['status'], 'OK', '100 picker products permitted by existing policy' );
+$thousand167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 1000 ) ) ) ), 'POST' );
+eq( $thousand167['status'], 'OK', '1000 picker products permitted at the supported ceiling' );
+eq( Repo::hydrate_plan( Repo::read_by_public_id( $thousand167['public_id'] ) )->summary()['selected'], 1000, '1000 picker products frozen exactly' );
 $before_jobs167 = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) );
-$hundredone167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 101 ) ) ) ), 'POST' );
-eq( $hundredone167['reason'], 'supported_job_limit_exceeded', '101 picker products refused before import' );
-eq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $before_jobs167, '101 refusal creates no job' );
+$thousandone167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 1001 ) ) ) ), 'POST' );
+eq( $thousandone167['reason'], 'supported_job_limit_exceeded', '1001 picker products refused before import' );
+eq( Admin::process_preview( preview_post( array( 'picker_present' => '0', 'ids' => implode( ',', range( 1, 1001 ) ) ) ), 'POST' )['reason'], 'supported_job_limit_exceeded', '1001 explicit IDs refused before resolution' );
+eq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $before_jobs167, '1001 refusal creates no job' );
+$blocked_thousand167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 1000 ) ), 'max_decrease' => '1' ) ), 'POST' );
+$blocked_html167 = render_view( 'preview', $blocked_thousand167['public_id'], 0 );
+ok( str_contains( $blocked_html167, 'Showing the first 20 blocked products in this summary' ) && str_contains( $blocked_html167, '980 more blocked products are not listed here' ), 'blocked 1000-item preview bounds its reason summary' );
 $blocked167 = Admin::process_preview( preview_post( array( 'ids' => (string) $duplicate167[0], 'max_decrease' => '1' ) ), 'POST' );
 ok( str_contains( render_view( 'preview', $blocked167['public_id'], 0 ), 'This plan cannot be executed.' ), 'saved blocked preview explanation' );
 ok( str_contains( render_view( 'job', $blocked167['public_id'], 0 ), 'Review blocked plan' ), 'direct blocked status has review action' );

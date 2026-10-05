@@ -7,6 +7,7 @@ require __DIR__ . '/../../writeleash/includes/free/class-safety-policy.php';
 require __DIR__ . '/../../writeleash/includes/free/class-product-snapshot.php';
 require __DIR__ . '/../../writeleash/includes/free/class-product-selector.php';
 require __DIR__ . '/../../writeleash/includes/free/class-change-plan.php';
+require __DIR__ . '/../../writeleash/includes/free/class-free-support-contract.php';
 use WriteLeash\Price_Decimal as D;
 use WriteLeash\Price_Operation as O;
 use WriteLeash\Price_Calculator as C;
@@ -93,3 +94,15 @@ wl107_error( static fn() => \WriteLeash\Price_Selection_Spec::ids( array_fill( 0
 foreach ( array( '', '*', 'A B', '<bad>', "A\n" ) as $sku ) { wl107_error( static fn() => \WriteLeash\Price_Selection_Spec::sku( $sku ), 'invalid_sku' ); }
 wl107_marker( 'canonical hash ordering, invalid encoding, bounded selector input' );
 require __DIR__ . '/dirty-catalog-stubs.php';
+
+$thousand_ids = range( 1, 1000 );
+$thousand_snapshots = array();
+foreach ( $thousand_ids as $thousand_id ) { $thousand_snapshots[] = \WriteLeash\Product_Price_Snapshot::read( $thousand_id, new WC_Product_Simple( array( 'id' => $thousand_id, 'regular_price' => '100.00' ) ) ); }
+$thousand_plan = \WriteLeash\Change_Plan::create( 'wl177-thousand', gmdate( 'Y-m-d\TH:i:s\Z' ), 1, new \WriteLeash\Price_Store_Context( 'USD', 2, '7.1.2', '11.1.2' ), \WriteLeash\Price_Selection_Spec::ids( $thousand_ids ), new O( O::SET, '80' ), new P( 1000, '100', '100', false, '100' ), $thousand_snapshots );
+wl107_equal( $thousand_plan->summary()['selected'], 1000, 'supported job size' );
+wl107_equal( $thousand_plan->summary()['changing'], 1000, 'all 1000 targets computed' );
+wl107_equal( \WriteLeash\Change_Plan::hydrate( json_decode( $thousand_plan->json(), true ) )->summary()['selected'], 1000, '1000-product plan rehydrates' );
+\WriteLeash\Free_Support_Contract::assert_job_size( 1000 );
+try { \WriteLeash\Free_Support_Contract::assert_job_size( 1001 ); throw new RuntimeException( '1001 not refused' ); }
+catch ( \WriteLeash\Free_Job_Limit_Error $error ) { wl107_equal( $error->selected(), 1001, 'typed limit count' ); wl107_equal( $error->getMessage(), 'supported_job_limit_exceeded', 'typed limit reason' ); }
+wl107_marker( 'Free support contract accepts 1000 and refuses 1001; 1000-product plan computes and rehydrates' );
