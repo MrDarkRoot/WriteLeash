@@ -37,6 +37,13 @@ $draft = wl107_product( 'WL107-draft', '100', 'draft' );
 $private = wl107_product( 'WL107-private', '100', 'private' );
 $trash = wl107_product( 'WL107-trash', '100', 'trash' );
 $variable = wl107_product( 'WL107-variable', '', 'publish', 'WC_Product_Variable' );
+// A real variable product declares its variation attributes on the parent;
+// Woo only surfaces variation attribute values declared here.
+$variable->set_attributes( array(
+	'color' => array( 'name' => 'Color', 'value' => 'Blue | Red', 'position' => 0, 'is_visible' => 1, 'is_variation' => 1, 'is_taxonomy' => 0 ),
+	'size' => array( 'name' => 'Size', 'value' => 'M | L', 'position' => 1, 'is_visible' => 1, 'is_variation' => 1, 'is_taxonomy' => 0 ),
+) );
+$variable->save();
 $variation = new WC_Product_Variation();
 $variation->set_parent_id( $variable->get_id() );
 $variation->set_regular_price( '100' );

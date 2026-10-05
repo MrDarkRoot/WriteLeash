@@ -811,6 +811,12 @@ $var_name = 'WL179 Hoodie ' . wp_generate_uuid4();
 $var_parent = new WC_Product_Variable();
 $var_parent->set_name( $var_name );
 $var_parent->set_status( 'publish' );
+// A real variable product declares its variation attributes on the parent;
+// Woo only surfaces variation attribute values declared here.
+$var_parent->set_attributes( array(
+	'color' => array( 'name' => 'Color', 'value' => 'Blue | Red | Green', 'position' => 0, 'is_visible' => 1, 'is_variation' => 1, 'is_taxonomy' => 0 ),
+	'size' => array( 'name' => 'Size', 'value' => 'M | L | S', 'position' => 1, 'is_visible' => 1, 'is_variation' => 1, 'is_taxonomy' => 0 ),
+) );
 $var_parent->save();
 $var_parent_id = $var_parent->get_id();
 $mk_variation179 = static function ( string $price, array $attrs ) use ( $var_parent_id ): int {
