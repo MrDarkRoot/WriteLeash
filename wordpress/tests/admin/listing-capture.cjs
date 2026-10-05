@@ -30,13 +30,12 @@ function searchInput(page) { return page.locator('#writeleash-free-products + .s
 async function selectThree(page) {
     const input = searchInput(page);
     await input.waitFor();
-    const response = page.waitForResponse(res => {
-        const url = new URL(res.url());
-        return url.pathname.endsWith('/admin-ajax.php') && url.searchParams.get('action') === 'writeleash_free_discovery' && url.searchParams.get('term') === fixture.search;
-    });
+    await input.click();
+    await input.fill('');
     await input.pressSequentially(fixture.search, { delay: 20 });
-    await (await response).json();
-    await page.locator('.select2-results__option[data-selected="false"]').first().waitFor();
+    const status = page.locator('#writeleash-free-discovery-status');
+    await status.filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor({ timeout: 30000 });
+    await page.locator('.select2-results__option[data-selected="false"]').filter({ hasText: fixture.search }).first().waitFor({ timeout: 30000 });
     for (let i = 0; i < 3; i++) {
         await page.locator('.select2-results__option[data-selected="false"]').first().click();
     }
