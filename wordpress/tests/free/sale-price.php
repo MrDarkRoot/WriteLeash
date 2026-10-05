@@ -101,7 +101,7 @@ namespace {
 		if ( '' !== (string) $to ) { $meta['_sale_price_dates_to'] = array( (string) $to ); }
 		return array(
 			'meta' => $meta,
-			'lookup' => array( 'min_price' => $price ?? $active, 'max_price' => $price ?? $active, 'onsale' => $onsale ?? ( ( '' !== $sale && $active === $sale ) ? '1' : '0' ) ),
+			'lookup' => array( 'min_price' => $price ?? $active, 'max_price' => $price ?? $active, 'onsale' => $onsale ?? ( ( '' !== $sale && '0' !== $sale && $active === $sale ) ? '1' : '0' ) ),
 		);
 	}
 
@@ -261,6 +261,11 @@ namespace {
 	$future['lookup']['max_price'] = '100.00';
 	$future['lookup']['onsale'] = '0';
 	Verifier::matches_field( $future, O::FIELD_SALE, '80.00', array( 'regular_price' => '100.00' ) );
+	$zero_sale = wl178_storage( '90.00', '0' );
+	Verifier::matches_field( $zero_sale, O::FIELD_REGULAR, '90.00', array( 'sale_price' => '0' ) );
+	$zero_sale = wl178_storage( '100.00', '0.00' );
+	$zero_sale['lookup']['onsale'] = '1';
+	Verifier::matches_field( $zero_sale, O::FIELD_SALE, '0.00', array( 'regular_price' => '100.00' ) );
 	wl178_marker( 'field-aware verification against Woo save/lookup semantics' );
 
 	echo "#178 sale-price domain harness: PASS ($wl178_assertions assertions)\n";

@@ -143,6 +143,14 @@ final class Woo_Undo_Mutator {
 				Price_Cache_Verifier::coherence( $truth );
 				$field_meta = '_' . Price_Operation::meta_key( $field );
 				if ( ! Price_Decimal::equal( $truth['meta'][ $field_meta ][0] ?? '', $provenance['applied_price'] ) ) { throw new Price_Apply_Error( 'UNDO_CONFLICT' ); }
+				// Restoring the original regular price must not force
+				// WooCommerce to clear a newer sale: that would lose external
+				// work and is a conflict, not a silent overwrite.
+				$current_sale = $truth['meta']['_sale_price'][0] ?? '';
+				if ( Price_Operation::FIELD_REGULAR === $field && '' !== $current_sale
+					&& Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $provenance['expected_price'] ) ), Price_Decimal::units( Price_Decimal::parse( $current_sale ) ) ) <= 0 ) {
+					throw new Price_Apply_Error( 'UNDO_CONFLICT' );
+				}
 			}
 			$preserved = array(
 				'regular_price' => $truth['meta']['_regular_price'][0],

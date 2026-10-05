@@ -88,7 +88,9 @@ final class Price_Cache_Verifier {
 			try { $actual = Price_Decimal::parse( $lookup[$key] ); } catch ( \Throwable $e ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
 			if ( $actual !== $active ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
 		}
-		$onsale = ( '' !== $sale && Price_Decimal::parse( $sale ) === $active ) ? '1' : '0';
+		// WooCommerce's lookup sets onsale from PHP string truthiness after
+		// wc_format_decimal(): the literal '0' is falsy, '0.00' is not.
+		$onsale = ( '' !== $sale && '0' !== $sale && Price_Decimal::parse( $sale ) === $active ) ? '1' : '0';
 		if ( (string) ( $lookup['onsale'] ?? '' ) !== $onsale ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
 	}
 	/** Self-consistency of the stored regular/sale/date/_price/lookup state. Returns the active price. */
