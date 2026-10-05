@@ -813,10 +813,21 @@ $var_parent->set_name( $var_name );
 $var_parent->set_status( 'publish' );
 // A real variable product declares its variation attributes on the parent;
 // Woo only surfaces variation attribute values declared here.
-$var_parent->set_attributes( array(
-	'color' => array( 'name' => 'Color', 'value' => 'Blue | Red | Green', 'position' => 0, 'is_visible' => 1, 'is_variation' => 1, 'is_taxonomy' => 0 ),
-	'size' => array( 'name' => 'Size', 'value' => 'M | L | S', 'position' => 1, 'is_visible' => 1, 'is_variation' => 1, 'is_taxonomy' => 0 ),
-) );
+$var_color_attr = new WC_Product_Attribute();
+$var_color_attr->set_id( 0 );
+$var_color_attr->set_name( 'Color' );
+$var_color_attr->set_options( array( 'Blue', 'Red', 'Green' ) );
+$var_color_attr->set_position( 0 );
+$var_color_attr->set_visible( true );
+$var_color_attr->set_variation( true );
+$var_size_attr = new WC_Product_Attribute();
+$var_size_attr->set_id( 0 );
+$var_size_attr->set_name( 'Size' );
+$var_size_attr->set_options( array( 'M', 'L', 'S' ) );
+$var_size_attr->set_position( 1 );
+$var_size_attr->set_visible( true );
+$var_size_attr->set_variation( true );
+$var_parent->set_attributes( array( $var_color_attr, $var_size_attr ) );
 $var_parent->save();
 $var_parent_id = $var_parent->get_id();
 $mk_variation179 = static function ( string $price, array $attrs ) use ( $var_parent_id ): int {

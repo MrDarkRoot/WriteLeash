@@ -39,10 +39,21 @@ $trash = wl107_product( 'WL107-trash', '100', 'trash' );
 $variable = wl107_product( 'WL107-variable', '', 'publish', 'WC_Product_Variable' );
 // A real variable product declares its variation attributes on the parent;
 // Woo only surfaces variation attribute values declared here.
-$variable->set_attributes( array(
-	'color' => array( 'name' => 'Color', 'value' => 'Blue | Red', 'position' => 0, 'is_visible' => 1, 'is_variation' => 1, 'is_taxonomy' => 0 ),
-	'size' => array( 'name' => 'Size', 'value' => 'M | L', 'position' => 1, 'is_visible' => 1, 'is_variation' => 1, 'is_taxonomy' => 0 ),
-) );
+$color_attr = new WC_Product_Attribute();
+$color_attr->set_id( 0 );
+$color_attr->set_name( 'Color' );
+$color_attr->set_options( array( 'Blue', 'Red' ) );
+$color_attr->set_position( 0 );
+$color_attr->set_visible( true );
+$color_attr->set_variation( true );
+$size_attr = new WC_Product_Attribute();
+$size_attr->set_id( 0 );
+$size_attr->set_name( 'Size' );
+$size_attr->set_options( array( 'M', 'L' ) );
+$size_attr->set_position( 1 );
+$size_attr->set_visible( true );
+$size_attr->set_variation( true );
+$variable->set_attributes( array( $color_attr, $size_attr ) );
 $variable->save();
 $variation = new WC_Product_Variation();
 $variation->set_parent_id( $variable->get_id() );
