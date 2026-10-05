@@ -89,4 +89,35 @@ if ( $total > 8 * 1024 * 1024 ) { $fail( 'unexpected large total asset set' ); }
     }
     echo '#122 required files, exact dimensions, contiguous six screenshots, readme captions, capture hashes, SVG policy, size caps and runtime manifest: PASS' . "\n";
 }
+
+// #170 current review evidence has its own identity; #122 listing proof stays historical.
+$review_dir = $root . '/docs/review/170';
+{
+    if ( ! is_file( $review_dir . '/proof.json' ) ) { $fail( 'missing #170 reviewed evidence' ); }
+    $review = json_decode( file_get_contents( $review_dir . '/proof.json' ), true, 512, JSON_THROW_ON_ERROR );
+    if ( 1 !== ( $review['schema'] ?? null ) || 'bd66a79' !== ( $review['base_main'] ?? null ) || count( $review['screenshots'] ?? array() ) !== 2 ) { $fail( 'invalid #170 reviewed baseline' ); }
+    foreach ( array( 'class-free-admin.php', 'free-selection.js', 'free-selection.css' ) as $name ) {
+        if ( hash_file( 'sha256', $root . '/wordpress/writeleash/includes/free/' . $name ) !== ( $review['source_hashes'][$name] ?? null ) ) { $fail( '#170 UI source differs from reviewed capture' ); }
+    }
+    foreach ( array( 'chromium', 'firefox' ) as $i => $engine ) {
+        $shot = $review['screenshots'][$i];
+        $name = '170-' . $engine . '-apply-conflict.png';
+        $caption = ucfirst( $engine ) . ': newer Woo price preserved; expected/current/planned values remain in the same product row.';
+        if ( $name !== ( $shot['filename'] ?? null ) || $caption !== ( $shot['caption'] ?? null ) ) { $fail( '#170 capture/caption mismatch' ); }
+        $image = getimagesize( $review_dir . '/' . $name );
+        if ( ! $image || $image[2] !== IMAGETYPE_PNG || array( $image[0], $image[1] ) !== array( $shot['width'], $shot['height'] ) || $image[0] !== 1440 || $image[1] < 200 || hash_file( 'sha256', $review_dir . '/' . $name ) !== $shot['sha256'] ) { $fail( '#170 capture hash/dimensions mismatch' ); }
+        $result = json_decode( file_get_contents( $review_dir . '/170-' . $engine . '-result.json' ), true, 512, JSON_THROW_ON_ERROR );
+        $a = $result['safety']['apply'];
+        $dom = new DOMDocument(); libxml_use_internal_errors( true );
+        $dom->loadHTML( '<table><tbody>' . $a['html'] . '</tbody></table>' ); libxml_clear_errors();
+        $xpath = new DOMXPath( $dom );
+        $rows = $xpath->query( '//tr[@data-product-id="' . (int) $a['product_id'] . '"]' );
+        if ( $rows->length !== 1 || 'CONFLICT' !== $a['state'] || '100.00' !== $a['expected'] || '120.00' !== $a['current'] || '80.00' !== $a['planned'] ) { $fail( '#170 missing independent conflict observer' ); }
+        $cells = array(); foreach ( $xpath->query( './td', $rows->item( 0 ) ) as $cell ) { $cells[] = trim( $cell->textContent ); }
+        if ( count( $cells ) !== 6 || array_slice( $cells, 1, 3 ) !== array( '$100.00 USD', '$120.00 USD', '$80.00 USD' ) || ! str_contains( $cells[0], 'Gate ' ) || ! str_contains( $cells[4], 'left the newer value unchanged' ) ) { $fail( '#170 missing same-row identity/expected/current/planned/preservation proof' ); }
+        if ( ! ( $result['safety']['negatives']['no_mutation'] ?? false ) ) { $fail( '#170 safety negatives did not pass' ); }
+    }
+    echo "#170 reviewed source, capture hashes/dimensions/captions and same-row independent conflict evidence PASS\n";
+}
+
 echo "#133 tracked directory asset format/size/dimensions: $count files PASS\n";
