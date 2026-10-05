@@ -1,13 +1,21 @@
 # #112 evidence decision — proposed Free ceiling: 100 products
 
 > **Historical pre-cap measurement record.** The tables, CSV and original
-> results below are preserved decision evidence from the predecessor. PR #119's
-> repair now enforces **100 for new work** server-side in the Free Admin boundary, while the
-> internal #107 engineering selector maximum remains **1,000**. See
-> [SUPPORT-REPAIR.md](SUPPORT-REPAIR.md) for post-cap behavior and final-head
-> refusal/recovery evidence. Already-approved >100 durable jobs retain bounded
-> recovery and conflict-aware eligible Undo, without new approval or a support
-> claim for creating larger jobs. The pre-cap 1,000 timings are not post-cap throughput claims.
+> results below are preserved decision evidence from the predecessor. The
+> current product supports **1,000 products per new job**, and the engineering
+> selector maximum equals that ceiling. The acceptance suite at this head
+> describes the current product: a frozen real 1,000-product category plan
+> completes in one durable job with paginated preview/results; 1,001 is refused
+> before any job or journal, independently of the safety policy; regular and
+> sale price targets preserve the other price field; a selected variable parent
+> freezes its exact variations and refreshes the parent lookup range after
+> Apply and Undo; dirty-catalog products are skipped at preview or fail closed
+> with typed needs-attention reasons; and an externally edited product stays a
+> conflict through Undo. The 10,000 evaluation below is retained as historical
+> decision evidence, not a current CI row. See
+> [SUPPORT-REPAIR.md](SUPPORT-REPAIR.md) for the refused-before-journal and
+> recovery boundary. The pre-cap 1,000 timings are not throughput claims for
+> the focused current fixture.
 
 Authoritative base main: `061d5f5ff4e1867327495c8ca07dd903f1f16b06`.
 The #111 product from merged PR #118 is the subject. Product implementation,

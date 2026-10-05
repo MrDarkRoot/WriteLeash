@@ -15,7 +15,7 @@ jobs:
           - name: current-constrained-redis
             core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
             cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
-            sizes: '100 101 1000 10000'
+            sizes: '100 101 1000'
             woo: '11.1.2'
             cache: persistent
           - name: current-normal-default

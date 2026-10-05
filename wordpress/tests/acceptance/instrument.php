@@ -8,6 +8,13 @@ add_action( 'woocommerce_before_product_object_save', static function ( $p ) {
         file_put_contents( '/evidence/' . DB_HOST . '-legacy-probe.jsonl', json_encode( array( 'event' => 'save', 'product_id' => $p->get_id() ) ) . "\n", FILE_APPEND );
     }
 } );
+// Test-only unreadable-product probe for the dirty-catalog leg. No production
+// code reads this option and the fixture that sets it deletes it afterwards.
+add_filter( 'woocommerce_product_class', static function ( $class, $type, $post_type, $id ) {
+    $unreadable = (int) get_option( 'wl112_unreadable_product', 0 );
+    if ( $unreadable > 0 && (int) $id === $unreadable ) { throw new RuntimeException( 'test-only unreadable product' ); }
+    return $class;
+}, 10, 4 );
 if ( PHP_SAPI === 'cli-server' ) {
     $GLOBALS['wl112_started'] = microtime( true );
     $GLOBALS['wl112_queries'] = 0;

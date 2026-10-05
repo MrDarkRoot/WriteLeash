@@ -1,8 +1,12 @@
 <?php
-// Trusted predecessor setup only. Recovery/Undo use authenticated Admin HTTP;
-// no public import bypass, migration flag, new worker or generation override.
+// Trusted durable predecessor setup only. Recovery/Undo use authenticated Admin
+// HTTP; no public import bypass, migration flag, new worker or generation override.
+// The fixture stays at 101 items, now a supported size: grandfathered >1,000
+// recovery is proved separately in support-boundaries.php because no current
+// factory (and no released selector) can build an above-ceiling plan.
 require __DIR__ . '/http.php';
 use WriteLeash\Free_Admin as A;
+use WriteLeash\Free_Support_Contract as S;
 use WriteLeash\Job_Repository as R;
 use WriteLeash\Job_State as JS;
 use WriteLeash\Price_Apply_Journal as J;
@@ -13,7 +17,7 @@ use WriteLeash\Undo_Repository as U;
 global $wpdb, $wl112_cookies;
 $wl112_cookies = array();
 wp_set_current_user( 1 );
-$report = array( 'git_sha' => getenv( 'WL112_SHA' ), 'wp' => get_bloginfo( 'version' ), 'woo' => WC_VERSION, 'php' => PHP_VERSION, 'db' => $wpdb->get_var( 'SELECT VERSION()' ), 'cache' => wp_using_ext_object_cache() ? 'persistent' : 'default', 'selected' => 101 );
+$report = array( 'git_sha' => getenv( 'WL112_SHA' ), 'wp' => get_bloginfo( 'version' ), 'woo' => WC_VERSION, 'php' => PHP_VERSION, 'db' => $wpdb->get_var( 'SELECT VERSION()' ), 'cache' => wp_using_ext_object_cache() ? 'persistent' : 'default', 'selected' => 101, 'new_work_ceiling' => S::MAX_JOB_PRODUCTS );
 function lr_report( array $report ): void {
     file_put_contents( '/evidence/' . DB_HOST . '-legacy-recovery.json', json_encode( $report, JSON_PRETTY_PRINT ) . "\n" );
 }
@@ -39,9 +43,9 @@ function lr_saves(): array {
     }
     return $counts;
 }
-function lr_warning( string $body ): void {
-    wl112_assert( false !== strpos( $body, 'Legacy oversized job' ) && false !== strpos( $body, 'Bounded recovery and conflict-aware eligible Undo remain available' ), 'legacy recovery warning missing' );
-    wl112_assert( false === strpos( $body, 'supports up to 1,000' ) && false === strpos( $body, '101 products were selected. Narrow' ), 'legacy job mislabeled as newly supported or invalid new work' );
+function lr_supported( string $body ): void {
+    wl112_assert( false === strpos( $body, 'Older large job' ), 'supported-size durable job must not be labeled oversized' );
+    wl112_assert( false === strpos( $body, '101 products were selected. Narrow' ), 'durable job mislabeled as invalid new work' );
 }
 function lr_truth( array $prices ): void {
     $db = V::observer();
@@ -112,7 +116,7 @@ try {
     wl112_assert( $partial['applied'] > 0 && $partial['applied'] <= 10 && $partial['pending'] > 0, 'automatic legacy chunk must be bounded and partial' );
     $automatic_generation = (int) R::read( (int) $job['id'] )['lease_generation'];
     wl112_assert( R::mark_paused( (int) $job['id'], 'SCHEDULER_UNAVAILABLE' ), 'production scheduler impairment must pause legacy job' );
-    $page = wl112_get( $url ); lr_warning( $page['body'] );
+    $page = wl112_get( $url ); lr_supported( $page['body'] );
     $form = wl112_form( $page['body'], A::ACTION_RESUME );
     wl112_assert( false !== strpos( $page['body'], 'PAUSED' ) && false !== strpos( $page['body'], 'pending ' . $partial['pending'] ), 'truthful paused legacy counts' );
 
@@ -128,7 +132,7 @@ try {
 
     $chunks = array();
     for ( $i = 0; $i < 20; ++$i ) {
-        $page = wl112_get( $url ); lr_warning( $page['body'] );
+        $page = wl112_get( $url ); lr_supported( $page['body'] );
         $before = R::counts( (int) $job['id'] );
         if ( JS::COMPLETED === R::read( (int) $job['id'] )['status'] ) { break; }
         $generation = (int) R::read( (int) $job['id'] )['lease_generation'];
@@ -155,7 +159,7 @@ try {
     $later = $ids[100];
     V::invalidate( $later ); $p = wc_get_product( $later ); $p->set_regular_price( '75.00' ); $p->save();
     $save_baseline = lr_saves();
-    $page = wl112_get( $url ); lr_warning( $page['body'] );
+    $page = wl112_get( $url ); lr_supported( $page['body'] );
     wl112_assert( U::history_job( (int) $job['id'] )['undo_eligible'], 'legacy completed Apply must retain #110 eligibility' );
     wl112_post( wl112_form( $page['body'], A::ACTION_UNDO ) );
     $op = U::read_operation_by_job( (int) $job['id'] );
@@ -163,7 +167,7 @@ try {
     wl112_assert( (int) $op['undone'] > 0 && (int) $op['undone'] <= 10 && ! WriteLeash\Undo_State::is_terminal( $op['status'] ), 'legacy Undo first POST must be bounded and nonterminal' );
     $report['partial_undo_before_reopen'] = array( 'id' => $undo_id, 'status' => $op['status'], 'undone' => (int) $op['undone'] );
     wl112_login();
-    $page = wl112_get( $url ); lr_warning( $page['body'] );
+    $page = wl112_get( $url ); lr_supported( $page['body'] );
     $undo_chunks = array();
     for ( $i = 0; $i < 20; ++$i ) {
         $op = U::read_operation_by_job( (int) $job['id'] );
@@ -176,7 +180,7 @@ try {
         $delta = (int) $op['undone'] + (int) $op['undo_conflict'] - $before;
         wl112_assert( $delta > 0 && $delta <= 10 && (int) $op['lease_generation'] > $generation, 'legacy Undo continuation must be bounded and leased' );
         $undo_chunks[] = $delta;
-        $page = wl112_get( $url ); lr_warning( $page['body'] );
+        $page = wl112_get( $url ); lr_supported( $page['body'] );
     }
     wl112_assert( 'UNDO_COMPLETED_WITH_ISSUES' === $op['status'] && 100 === (int) $op['undone'] && 1 === (int) $op['undo_conflict'], 'legacy Undo must restore 100 and preserve one later edit' );
     wl112_assert( $binding === lr_journal_binding( $job ) && $applied_evidence === lr_apply_evidence( $job ), 'Undo must not rewrite/seed Apply evidence' );
@@ -186,7 +190,7 @@ try {
     wl112_assert( false === strpos( $page['body'], 'value="' . A::ACTION_UNDO . '"' ), 'terminal legacy Undo exposes repeat action' );
     $report['completed_apply_undo'] = array( 'outcome' => 'PASS', 'authority_applied_rows' => 101, 'restored' => 100, 'conflict_preserved' => 1, 'same_undo_id' => $undo_id, 'continuation_chunks' => $undo_chunks, 'apply_evidence_unchanged' => true, 'additional_apply_journal_rows' => 0 );
     $report['scheduler_manual_authority'] = 'SAME #109 run()/lease/generation/item-transaction fence/lifecycle contract; both refused same competing live lease';
-    $report['legacy_warning_copy'] = A::legacy_oversize_message();
+    $report['grandfather_boundary'] = 'A 101-item job is a supported size now. The above-ceiling oversized recovery path (approved >' . S::MAX_JOB_PRODUCTS . ' durable work still finishes and Undoes) is proved in support-boundaries.php; the copy itself is: ' . A::legacy_oversize_message();
     $report['outcome'] = 'PASS'; lr_report( $report );
 } catch ( Throwable $error ) {
     $report['outcome'] = 'FAIL'; $report['error'] = $error->getMessage(); lr_report( $report ); throw $error;
