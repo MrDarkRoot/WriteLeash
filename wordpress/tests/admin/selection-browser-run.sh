@@ -9,14 +9,19 @@ scratch="$(mktemp -d)"
 cleanup() {
   local status=$?
   trap - EXIT
-  if [ "$status" -ne 0 ]; then docker exec "$container" sh -c 'tail -40 /tmp/wl167-web.log' 2>/dev/null | sed 's/?.*/?[query redacted]/' || true; fi
+  if [ "$status" -ne 0 ]; then
+    docker exec "$container" sh -c 'tail -200 /tmp/wl167-web.log' 2>/dev/null | sed 's/?.*/?[query redacted]/' || true
+    for log in $(docker exec "$container" sh -c 'find /tmp -maxdepth 4 -name writeleash-debug.log 2>/dev/null' | tr -d '\r'); do
+      docker exec "$container" sh -c "tail -50 '$log'" 2>/dev/null || true
+    done
+  fi
   docker rm -f "$container" >/dev/null 2>&1 || true
   rm -rf "$scratch"
   exit "$status"
 }
 trap cleanup EXIT
 node -e 'const p=require(process.env.WL167_PLAYWRIGHT_MODULE || "playwright/package.json"); console.log("#167 Node " + process.version + "; Playwright " + (p.version || "explicit module"));'
-"${compose[@]}" run -d --no-deps --name "$container" --publish 127.0.0.1::8080 tester sh -c 'sleep 1200' >/dev/null
+"${compose[@]}" run -d --no-deps --name "$container" --publish 127.0.0.1::8080 tester sh -c 'sleep 2400' >/dev/null
 port="$(docker port "$container" 8080/tcp | sed 's/.*://')"
 export WL167_CONTAINER="$container" WL167_BASE_URL="http://127.0.0.1:$port" WL167_FIXTURE="$scratch/fixture.json"
 evidence="${WL167_EVIDENCE:-$scratch/screenshots}"
@@ -45,30 +50,40 @@ if [ "$WL167_CACHE" = persistent ]; then
 fi
 WL167_MODE=seed wp --path="$site" eval-file /opt/tests/admin/selection-browser-fixture.php
 SETUP
-    docker exec -d -e WL167_SITE "$container" sh -c 'echo "$$" >/tmp/wl167-web.pid; exec php -S 0.0.0.0:8080 -t "$WL167_SITE" >/tmp/wl167-web.log 2>&1'
+    docker exec -d -e WL167_SITE "$container" sh -c 'echo "$$" >/tmp/wl167-web.pid; exec php -d opcache.enable=0 -S 0.0.0.0:8080 -t "$WL167_SITE" >/tmp/wl167-web.log 2>&1'
     docker cp "$container:/tmp/wl167-fixture.json" "$WL167_FIXTURE"
     chmod 600 "$WL167_FIXTURE"
     curl --fail --silent --retry 5 --retry-all-errors --retry-delay 1 "$WL167_BASE_URL/wp-login.php" >/dev/null
     echo "#167 real browser engine=$host cache=$cache"
     node "$here/selection-browser.cjs"
+    if [ "$host" = mysql ] && [ "$cache" = default ]; then
+      export WL167_EVIDENCE="$evidence"
+      export WL167_LISTING_FIXTURE="$scratch/listing-fixture.json"
+      docker exec -e WL167_LISTING_MODE=seed -e WL167_LISTING_FIXTURE=/tmp/wl167-listing-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/listing-browser-fixture.php
+      docker cp "$container:/tmp/wl167-listing-fixture.json" "$WL167_LISTING_FIXTURE"
+      chmod 600 "$WL167_LISTING_FIXTURE"
+      echo '#182 real browser listing captures engine=mysql cache=default'
+      node "$here/listing-capture.cjs"
+      export WL167_EVIDENCE="$evidence/$host-$cache"
+      unset WL167_LISTING_FIXTURE
+    fi
     export WL168_FIXTURE="$scratch/presentation-fixture.json"
     docker exec -e WL168_MODE=seed -e WL168_FIXTURE=/tmp/wl168-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/presentation-browser-fixture.php
     docker cp "$container:/tmp/wl168-fixture.json" "$WL168_FIXTURE"
     chmod 600 "$WL168_FIXTURE"
     node "$here/presentation-browser.cjs"
+    if [ "$host:$cache" = mysql:default ]; then
+      # Both browser engines use fresh actors/products in this existing disposable site.
+      export WL170_FIXTURE="$scratch/regression-fixture.json"
+      for browser in chromium firefox; do
+        export WL170_BROWSER="$browser" WL167_EVIDENCE="$evidence/170-$browser"
+        docker exec -e WL170_MODE=seed -e WL170_FIXTURE=/tmp/wl170-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/regression-browser-fixture.php
+        docker cp "$container:/tmp/wl170-fixture.json" "$WL170_FIXTURE"
+        chmod 600 "$WL170_FIXTURE"
+        node "$here/regression-browser.cjs"
+      done
+    fi
     docker exec "$container" sh -c 'kill "$(cat /tmp/wl167-web.pid)"'
   done
 done
-# #182 listing captures: one deterministic set from the mysql/default site.
-export WL167_SITE="/tmp/wl167-mysql-default"
-export WL167_EVIDENCE="$evidence"
-export WL167_LISTING_FIXTURE="$scratch/listing-fixture.json"
-docker exec -d -e WL167_SITE "$container" sh -c 'echo "$$" >/tmp/wl167-listing-web.pid; exec php -S 0.0.0.0:8080 -t "$WL167_SITE" >/tmp/wl167-listing-web.log 2>&1'
-curl --fail --silent --retry 5 --retry-all-errors --retry-delay 1 "$WL167_BASE_URL/wp-login.php" >/dev/null
-docker exec -e WL167_LISTING_MODE=seed -e WL167_LISTING_FIXTURE=/tmp/wl167-listing-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/listing-browser-fixture.php
-docker cp "$container:/tmp/wl167-listing-fixture.json" "$WL167_LISTING_FIXTURE"
-chmod 600 "$WL167_LISTING_FIXTURE"
-echo '#182 real browser listing captures engine=mysql cache=default'
-node "$here/listing-capture.cjs"
-docker exec "$container" sh -c 'kill "$(cat /tmp/wl167-listing-web.pid)"'
 echo '#167/#182 real-browser two-engine/default/Redis selection, saved review and listing captures: PASS'

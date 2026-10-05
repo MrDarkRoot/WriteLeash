@@ -29,16 +29,36 @@ async function login(page) {
 function searchInput(page) { return page.locator('#writeleash-free-products + .select2-container .select2-search__field'); }
 async function selectThree(page) {
     const input = searchInput(page);
-    await input.waitFor();
-    const response = page.waitForResponse(res => {
-        const url = new URL(res.url());
-        return url.pathname.endsWith('/admin-ajax.php') && url.searchParams.get('action') === 'writeleash_free_discovery' && url.searchParams.get('term') === fixture.search;
-    });
-    await input.pressSequentially(fixture.search, { delay: 20 });
-    await (await response).json();
-    await page.locator('.select2-results__option[data-selected="false"]').first().waitFor();
+    const status = page.locator('#writeleash-free-discovery-status');
+    const options = page.locator('.select2-results__option[data-selected="false"]').filter({ hasText: fixture.search });
     for (let i = 0; i < 3; i++) {
-        await page.locator('.select2-results__option[data-selected="false"]').first().click();
+        // Selecting a product clears the multiple picker's result list, so
+        // re-issue the query before every choice. Retry once when SelectWoo
+        // drops a query keyed before its dropdown settles.
+        let ready = false;
+        for (let attempt = 0; attempt < 2 && !ready; attempt++) {
+            try {
+                await input.waitFor();
+                await input.click();
+                await input.fill('');
+                await input.pressSequentially(fixture.search, { delay: 20 });
+                await status.filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor({ timeout: 30000 });
+                await options.first().waitFor({ timeout: 30000 });
+                ready = true;
+            } catch (error) {
+                if (attempt === 1) {
+                    console.error('SelectWoo diagnostics:', JSON.stringify(await page.evaluate(() => ({
+                        status: document.getElementById('writeleash-free-discovery-status').textContent,
+                        chosen: document.querySelectorAll('#writeleash-free-selected button').length,
+                        options: Array.from(document.querySelectorAll('.select2-results__option')).map(option => option.textContent)
+                    }))));
+                    await capture(page, 'failed-selection');
+                    throw error;
+                }
+                await page.keyboard.press('Escape').catch(() => {});
+            }
+        }
+        await options.first().click();
     }
     ok(await page.locator('#writeleash-free-selected button').count() === 3, 'selection capture shows three chosen products');
 }
