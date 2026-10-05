@@ -31,24 +31,36 @@ async function selectThree(page) {
     const input = searchInput(page);
     const status = page.locator('#writeleash-free-discovery-status');
     const options = page.locator('.select2-results__option[data-selected="false"]').filter({ hasText: fixture.search });
-    // A SelectWoo query can be dropped before its dropdown settles; retry once
-    // so a capture-only run is not failed by that race.
-    for (let attempt = 0; attempt < 2; attempt++) {
-        await input.waitFor();
-        await input.click();
-        await input.fill('');
-        await input.pressSequentially(fixture.search, { delay: 20 });
-        try {
-            await status.filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor({ timeout: 30000 });
-            await options.first().waitFor({ timeout: 30000 });
-            for (let i = 0; i < 3; i++) { await options.first().click(); }
-            ok(await page.locator('#writeleash-free-selected button').count() === 3, 'selection capture shows three chosen products');
-            return;
-        } catch (error) {
-            if (attempt === 1) { throw error; }
+    for (let i = 0; i < 3; i++) {
+        // Selecting a product clears the multiple picker's result list, so
+        // re-issue the query before every choice. Retry once when SelectWoo
+        // drops a query keyed before its dropdown settles.
+        let ready = false;
+        for (let attempt = 0; attempt < 2 && !ready; attempt++) {
+            try {
+                await input.waitFor();
+                await input.click();
+                await input.fill('');
+                await input.pressSequentially(fixture.search, { delay: 20 });
+                await status.filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor({ timeout: 30000 });
+                await options.first().waitFor({ timeout: 30000 });
+                ready = true;
+            } catch (error) {
+                if (attempt === 1) {
+                    console.error('SelectWoo diagnostics:', JSON.stringify(await page.evaluate(() => ({
+                        status: document.getElementById('writeleash-free-discovery-status').textContent,
+                        chosen: document.querySelectorAll('#writeleash-free-selected button').length,
+                        options: Array.from(document.querySelectorAll('.select2-results__option')).map(option => option.textContent)
+                    }))));
+                    await capture(page, 'failed-selection');
+                    throw error;
+                }
+                await page.keyboard.press('Escape').catch(() => {});
+            }
         }
-        await page.keyboard.press('Escape').catch(() => {});
+        await options.first().click();
     }
+    ok(await page.locator('#writeleash-free-selected button').count() === 3, 'selection capture shows three chosen products');
 }
 (async () => {
     const browser = await chromium.launch({ headless: true, executablePath: process.env.WL167_CHROME || '/usr/bin/google-chrome' });

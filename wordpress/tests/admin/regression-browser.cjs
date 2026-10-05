@@ -272,7 +272,7 @@ async function responsive(page) {
         fixture('restore-woo'); missing = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'reactivated Woo recovers saved job');
         fixture('unsupported-woo'); unsupported = true; await page.reload();
-        ok((await text(page)).includes('11.0.1') && (await text(page)).includes('11.1.2') && durable(fixture()) === unchanged, 'actual unsupported Woo refuses with supported-version guidance');
+        ok((await text(page)).includes('11.0.1') && (await text(page)).includes('through 11.x') && durable(fixture()) === unchanged, 'actual unsupported Woo refuses with supported-version guidance');
         fixture('restore-version'); unsupported = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'supported Woo restored without lost work');
         const reads = fixture().reads; ok(!reads.unbounded && !reads.oversized && reads.search <= 11 && reads.selected <= 100, 'bounded catalog windows throughout browser journey');
