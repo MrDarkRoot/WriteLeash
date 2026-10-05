@@ -894,8 +894,8 @@ eq( (string) $lookup['onsale'], '0', 'parent stays offsale after Apply' );
 
 Admin::process_undo( undo_post( Repo::read( (int) $vjob['id'] ) ), 'POST' );
 run_undo_terminal( (int) UndoRepo::read_operation_by_job( (int) $vjob['id'] )['id'] );
-eq( fresh_price( $v_blue ), '100.00', 'first variation restored' );
-eq( fresh_price( $v_red ), '50.00', 'sibling variation restored' );
+price_eq( fresh_price( $v_blue ), '100.00', 'first variation restored' );
+price_eq( fresh_price( $v_red ), '50.00', 'sibling variation restored' );
 eq( fresh_price( $v_green ), '60.00', 'post-preview variation untouched by Undo' );
 $lookup = $parent_lookup179( $var_parent_id );
 eq( Decimal::parse( $lookup['min_price'] ), Decimal::parse( '50.00' ), 'parent lookup min refreshed after Undo' );
