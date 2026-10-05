@@ -848,7 +848,7 @@ $parent_lookup179 = static function ( int $parent_id ): array {
 	if ( ! is_array( $row ) ) { throw new RuntimeException( 'parent lookup row missing' ); }
 	return $row;
 };
-$vpreview = Admin::process_preview( preview_post( array( 'ids' => (string) $var_parent_id, 'amount' => '80.00' ) ), 'POST' );
+$vpreview = Admin::process_preview( preview_post( array( 'ids' => (string) $var_parent_id, 'operation' => Operation::DECREASE_PERCENT, 'amount' => '20' ) ), 'POST' );
 eq( $vpreview['status'], 'OK', 'variable parent creates a preview' );
 $vjob = Repo::read_by_public_id( $vpreview['public_id'] );
 $vplan = Repo::hydrate_plan( $vjob );
@@ -894,8 +894,8 @@ eq( (string) $lookup['onsale'], '0', 'parent stays offsale after Apply' );
 
 Admin::process_undo( undo_post( Repo::read( (int) $vjob['id'] ) ), 'POST' );
 run_undo_terminal( (int) UndoRepo::read_operation_by_job( (int) $vjob['id'] )['id'] );
-eq( fresh_price( $v_blue ), '100.00', 'first variation restored' );
-eq( fresh_price( $v_red ), '50.00', 'sibling variation restored' );
+price_eq( fresh_price( $v_blue ), '100.00', 'first variation restored' );
+price_eq( fresh_price( $v_red ), '50.00', 'sibling variation restored' );
 eq( fresh_price( $v_green ), '60.00', 'post-preview variation untouched by Undo' );
 $lookup = $parent_lookup179( $var_parent_id );
 eq( Decimal::parse( $lookup['min_price'] ), Decimal::parse( '50.00' ), 'parent lookup min refreshed after Undo' );

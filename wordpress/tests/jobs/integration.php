@@ -106,9 +106,13 @@ function start_worker( array $spec, string $script = 'worker.php' ): array {
 }
 function await_file( string $file, float $timeout = 25 ): void {
 	$deadline = microtime( true ) + $timeout;
-	while ( ! is_file( $file ) ) {
+	clearstatcache( true, $file );
+	// file_put_contents creates the file before its content lands; wait for
+	// the deterministic payload so a loaded runner cannot read an empty barrier.
+	while ( ! is_file( $file ) || '' === (string) file_get_contents( $file ) ) {
 		if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'missing deterministic barrier: ' . $file ); }
 		usleep( 10000 );
+		clearstatcache( true, $file );
 	}
 }
 function finish_worker( array $worker, bool $killed = false ): array {
