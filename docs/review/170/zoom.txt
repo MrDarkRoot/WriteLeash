@@ -1,0 +1,3 @@
+configuration { viewport: 720, outer: 1440, dpr: 2, overflow: 720 }
+history { viewport: 720, outer: 1440, dpr: 2, overflow: 720 }
+Actual Chromium 153.0.8010.12 browser 200% zoom: PASS
