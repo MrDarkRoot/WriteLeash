@@ -40,7 +40,7 @@ add_action('woocommerce_before_product_object_save', static function($p) {
 add_filter('posts_results', static function($posts,$query) {
  if ('product' !== $query->get('post_type')) return $posts;
  $r=get_option('wl170_reads', array()); $kind=$query->get('post__in')?'selected':'search';
- $r[$kind]=max($r[$kind]??0,count($posts)); $r['unbounded']=($r['unbounded']??false)||$query->get('posts_per_page')<1; $r['oversized']=($r['oversized']??false)||$query->get('posts_per_page')>($kind==='selected'?max(\WriteLeash\Free_Support_Contract::MAX_JOB_PRODUCTS,\WriteLeash\Product_Selector::MAX_SELECTED)+1:11);
+ $r[$kind]=max($r[$kind]??0,count($posts)); $pp=(int)$query->get('posts_per_page'); $limit=$kind==='selected'?max(\WriteLeash\Free_Support_Contract::MAX_JOB_PRODUCTS,\WriteLeash\Product_Selector::MAX_SELECTED)+1:11; $r['unbounded']=($r['unbounded']??false)||$pp<1; $r['oversized']=($r['oversized']??false)||$pp>$limit; if(($pp<1||$pp>$limit)&&count($r['offenders']??array())<20){$in=$query->get('post__in'); $r['offenders'][]=array('kind'=>$kind,'pp'=>$pp,'returned'=>count($posts),'in'=>is_array($in)?count($in):(int)(bool)$in);}
  update_option('wl170_reads',$r,false); return $posts;
 },10,2);
 MU
