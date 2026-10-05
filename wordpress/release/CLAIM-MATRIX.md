@@ -47,25 +47,25 @@ Status values:
 ## 3. Five price operations
 
 * **COPY CLAIM:** "choose Set, + fixed, - fixed, + percent or - percent".
-* **SUPPORTING ISSUE:** #107 (accepted); #111 Admin workflow.
+* **SUPPORTING ISSUE:** #107 (accepted); #111 Admin workflow; #178 sale-price targeting.
 * **SUPPORTING TEST/EVIDENCE:**
   * `wordpress/writeleash/FREE-PRICE-CONTRACT.md` — operation contract and absolute target computation.
   * `wordpress/tests/acceptance/EVIDENCE.md` — completed rows applied exact frozen targets; percentage targets stayed absolute, never recomputed.
-  * Unit suite `wordpress/tests/admin/` and the #107 suite (2,564 assertions) on the #120 final head.
-* **ALLOWED WORDING:** "Set, + fixed, - fixed, + percent or - percent" for stored regular price.
-* **REQUIRED LIMITATION:** Applies only to the stored regular price of eligible products; no sale-price or variation editing.
+  * Unit suite `wordpress/tests/admin/`, the pure-PHP `wordpress/tests/free/sale-price.php` harness and the #107 suite on the #178 final head.
+* **ALLOWED WORDING:** "Set, + fixed, - fixed, + percent or - percent" for the stored regular or sale price.
+* **REQUIRED LIMITATION:** Applies only to the stored regular or sale price of eligible simple products; no variation editing.
 * **STATUS:** PUBLISHABLE.
 
 ## 4. Supported product scope
 
-* **COPY CLAIM:** "Published core simple WooCommerce products", "Stored regular prices in the base store currency", "Products with no sale-price/date configuration".
-* **SUPPORTING ISSUE:** #107 (contract), #108 (mutation proof), #111 (Admin), #112 (acceptance rows).
+* **COPY CLAIM:** "Published core simple WooCommerce products", "Stored regular and sale prices in the base store currency", "Regular-price edits on products with an existing sale price or schedule".
+* **SUPPORTING ISSUE:** #107 (contract), #108 (mutation proof), #111 (Admin), #112 (acceptance rows), #178 (sale field).
 * **SUPPORTING TEST/EVIDENCE:**
-  * `FREE-PRICE-CONTRACT.md` — eligibility rules for published simple products, stored regular price, base currency, no sale-price/date configuration (including inactive, future and expired sales).
+  * `FREE-PRICE-CONTRACT.md` — eligibility rules for published simple products, the stored regular or sale price, base currency and the sale-clearing refusals (`regular_price_not_above_sale`, `sale_price_not_below_regular`, `empty_sale_price`).
   * `wordpress/writeleash/FREE-PRICE-APPLY-CONTRACT.md` — stock `WC_Product_Data_Store_CPT` and Woo CRUD path.
   * `wordpress/tests/acceptance/EVIDENCE.md` — price/meta/lookup/cache/journal parity on every completed row.
-* **ALLOWED WORDING:** "Not changed: sale prices, sale dates, variations, stock and orders."
-* **REQUIRED LIMITATION:** Variations, sale prices/dates, stock, orders and non-simple product types are unsupported.
+* **ALLOWED WORDING:** "Not changed: sale dates, variations, stock and orders."
+* **REQUIRED LIMITATION:** Sale-date editing, variations, stock, orders and non-simple product types are unsupported; a regular or sale target that WooCommerce would use to clear the sale is refused.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 5. WooCommerce version
@@ -147,7 +147,7 @@ Status values:
 * **SUPPORTING TEST/EVIDENCE:**
   * `wordpress/tests/acceptance/EVIDENCE.md` — "regular-price property changed to 88" → rollback to 100, journal/job `NEEDS_REVIEW`, no false `APPLIED`; external edit before Apply recorded.
   * `wordpress/tests/acceptance/SUPPORT-REPAIR.md` — one later Woo edit to 75 conflicts while other items restore.
-  * `FREE-PRICE-CONTRACT.md` and `class-product-snapshot.php` — execution fingerprint covers stored regular price, product existence, core-simple/type state, publication status, sale configuration, currency/base context, price decimals and WordPress/WooCommerce versions. SKU, name/title and category membership are provenance-only.
+  * `FREE-PRICE-CONTRACT.md` and `class-product-snapshot.php` — execution fingerprint covers the stored value of the changed price field (regular or sale), product existence, core-simple/type state, publication status, currency/base context, price decimals and WordPress/WooCommerce versions. A regular-field plan preserves external sale changes; a sale-field plan requires the planned sale to stay strictly below the current regular price. SKU, name/title and category membership are provenance-only.
 * **ALLOWED WORDING:** The exact copy claim above. Screenshot caption: "A later regular-price or execution-state change becomes a conflict instead of a blind overwrite."
 * **REQUIRED LIMITATION:** SKU/name/category-only changes are not automatic execution conflicts. Never claim WriteLeash prevents all bad edits or blocks every concurrent Woo/plugin write; only the approved items are rechecked and fenced.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
@@ -166,14 +166,15 @@ Status values:
 
 ## 13. Undo eligibility
 
-* **COPY CLAIM:** "Undo restores eligible stored regular-price values that WriteLeash previously applied when the durable evidence and the current product state permit it."
-* **SUPPORTING ISSUE:** #110 conflict-aware Undo and history.
+* **COPY CLAIM:** "Undo restores eligible stored regular- or sale-price values that WriteLeash previously applied when the durable evidence and the current product state permit it."
+* **SUPPORTING ISSUE:** #110 conflict-aware Undo and history; #178 field-scoped provenance.
 * **SUPPORTING TEST/EVIDENCE:**
   * `FREE-UNDO-HISTORY-CONTRACT.md` — eligible stored-price restoration with proven Apply evidence; `UNDO_CONFLICT` and `UNDO_NEEDS_REVIEW` never overwrite.
   * `wordpress/tests/acceptance/EVIDENCE.md` — eligible stored price restored; external edit before Undo recorded; partial Undo continues after reopen.
   * `wordpress/tests/acceptance/SUPPORT-REPAIR.md` — one later edit conflicts, other items restore; first Undo POST remains nonterminal until the operation finishes.
+  * `wordpress/tests/free/sale-price.php` and `wordpress/tests/undo/integration.php` — a regular-field Undo is not blocked by a later sale change and preserves it.
 * **ALLOWED WORDING:** The exact sentence above; the UI action "Restore eligible prices (Undo)".
-* **REQUIRED LIMITATION:** Not universal rollback; a stored regular-price or Undo execution-precondition mismatch is not overwritten. Do not describe arbitrary product edits as automatic conflicts.
+* **REQUIRED LIMITATION:** Not universal rollback; a stored changed-field or Undo execution-precondition mismatch is not overwritten. Do not describe arbitrary product edits as automatic conflicts.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 14. External side effects are outside Undo

@@ -62,7 +62,7 @@
       "sha256": "a75a9d7348214b96e13d5ea7f6e8320413dc772c394078d050bbaa0d34ea84cc",
       "captured_at_utc": "2026-10-02T15:51:59.910997+00:00",
       "real_state": "Frozen Change Plan",
-      "caption": "Review the exact before-and-after regular prices before approval.",
+      "caption": "Review the exact before-and-after prices of the chosen field before approval.",
       "visible_ui_text": "WriteLeash Bulk Prices\n\nOK: Preview ready. Review the frozen plan before approving.\n\nBack to bulk prices\n\nFrozen preview\n\nPlan ffd29e41-e255-4824-9b26-d442d92e4ab6 \u00b7 fingerprint 642f51b6834a \u00b7 operation DECREASE_PERCENT 20.\n\nSelected 3 \u00b7 eligible 3 \u00b7 changing 3 \u00b7 unchanged 0 \u00b7 unsupported 0 \u00b7 blocked 0 \u00b7 warning items 0.\n\nLarge increases 0 \u00b7 large decreases 0 \u00b7 zero-price targets 0 \u00b7 conflicts 0 (a preview never carries conflicts; they surface during execution).\n\nProduct\tSKU\tBefore\tAfter\tDelta\tChange %\tState / reason\n10 \u00b7 Canvas Tote\tDEMO-01\t18.00\t14.40\t-3.6\t-20.000000%\tCHANGING\n11 \u00b7 Ceramic Mug\tDEMO-02\t24.00\t19.20\t-4.8\t-20.000000%\tCHANGING\n12 \u00b7 Linen Apron\tDEMO-03\t36.00\t28.80\t-7.2\t-20.000000%\tCHANGING\n\nPrevious page Next page\n\nApprove exact plan\n\nApproval executes exactly the frozen IDs and absolute target prices above. Planned prices are not guaranteed shopper prices. Any selection, operation or policy change requires a new preview; this approval cannot be reused for different inputs.\n\nApprove and queue execution",
       "captured_product_base": "1bb7829c0bcdad6ab687d73df3c2dea681c2b610",
       "unchanged_view_verified_against": "07600cf13551f54c5df74db070ec344064ecb83a"
