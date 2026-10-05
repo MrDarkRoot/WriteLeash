@@ -64,8 +64,10 @@ Planning is bounded to 1,000 concrete IDs; overflow fails the entire selection
 without a partial plan. This is an initial planning ceiling, not #112 scale proof.
 IDs and items sort ascending numerically. The public WP query primes post/meta/
 term caches before Woo object reads; no N × full-catalog query. Missing explicit
-IDs remain preview items with `missing_product`. Unsupported selected products
-remain with typed reasons, not silently dropped. Duplicate requested IDs are
+IDs remain preview items with `missing_product`; an ID whose Woo read throws
+remains a preview item with `unreadable_product_data` instead of aborting the
+whole selection. Unsupported selected products remain with typed reasons, not
+silently dropped. Duplicate requested IDs are
 deduplicated with a `duplicate_selection` selection warning; selected count is
 the unique count. An empty explicit list is invalid; an unmatched SKU/category
 may yield an empty, non-executable preview.

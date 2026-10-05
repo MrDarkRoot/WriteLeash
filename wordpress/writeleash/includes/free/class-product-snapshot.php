@@ -27,7 +27,7 @@ final class Product_Price_Snapshot {
 	public static function read( int $id, $product ): self {
 		if ( $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
 		if ( ! $product instanceof \WC_Product ) {
-			return new self( array( 'product_id' => $id, 'exists' => false, 'name' => '', 'sku' => '', 'type' => '', 'status' => '', 'core_simple' => false, 'regular_price' => '', 'sale_price' => '', 'sale_from' => null, 'sale_to' => null, 'category_ids' => array() ) );
+			return new self( array( 'product_id' => $id, 'exists' => false, 'unreadable' => false, 'name' => '', 'sku' => '', 'type' => '', 'status' => '', 'core_simple' => false, 'regular_price' => '', 'sale_price' => '', 'sale_from' => null, 'sale_to' => null, 'category_ids' => array() ) );
 		}
 		if ( $product->get_id() !== $id ) { throw new Price_Validation_Error( 'selection_changed_during_planning' ); }
 		$from = $product->get_date_on_sale_from( 'edit' );
@@ -35,7 +35,7 @@ final class Product_Price_Snapshot {
 		$categories = $product->get_category_ids( 'edit' );
 		sort( $categories, SORT_NUMERIC );
 		return new self( array(
-			'product_id' => $id, 'exists' => true, 'name' => $product->get_name( 'edit' ), 'sku' => $product->get_sku( 'edit' ),
+			'product_id' => $id, 'exists' => true, 'unreadable' => false, 'name' => $product->get_name( 'edit' ), 'sku' => $product->get_sku( 'edit' ),
 			'type' => $product->get_type(), 'status' => $product->get_status( 'edit' ),
 			// Reject extension subclasses, even ones that advertise type=simple.
 			'core_simple' => 'WC_Product_Simple' === get_class( $product ),
@@ -43,6 +43,11 @@ final class Product_Price_Snapshot {
 			'sale_from' => $from ? (string) $from->getTimestamp() : null, 'sale_to' => $to ? (string) $to->getTimestamp() : null,
 			'category_ids' => $categories,
 		) );
+	}
+	/** An ID whose WooCommerce read threw. Explicitly unknown, never guessed and never treated as absent. */
+	public static function unreadable( int $id ): self {
+		if ( $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
+		return new self( array( 'product_id' => $id, 'exists' => false, 'unreadable' => true, 'name' => '', 'sku' => '', 'type' => '', 'status' => '', 'core_simple' => false, 'regular_price' => '', 'sale_price' => '', 'sale_from' => null, 'sale_to' => null, 'category_ids' => array() ) );
 	}
 	public function data(): array { return $this->values; }
 }
@@ -60,7 +65,7 @@ final class Product_Price_Eligibility {
 	public static function evaluate( Product_Price_Snapshot $snapshot, Price_Store_Context $context ): Eligibility_Result {
 		$s = $snapshot->data();
 		$reason = null;
-		if ( ! $s['exists'] ) { $reason = 'missing_product'; }
+		if ( ! $s['exists'] ) { $reason = ! empty( $s['unreadable'] ) ? 'unreadable_product_data' : 'missing_product'; }
 		elseif ( ! $context->data()['base_currency_context'] ) { $reason = 'unsupported_currency_context'; }
 		elseif ( ! $s['core_simple'] || 'simple' !== $s['type'] ) { $reason = 'unsupported_product_type'; }
 		elseif ( 'publish' !== $s['status'] ) { $reason = 'unsupported_status'; }
@@ -79,6 +84,7 @@ final class Price_Reason_Messages {
 	public static function all(): array {
 		return array(
 			'missing_product' => 'The selected product no longer exists.',
+			'unreadable_product_data' => 'WriteLeash could not read this product’s saved data, so it was skipped before any change. Open the product in WooCommerce and save it again to regenerate its data; if many products are affected, run WooCommerce’s product lookup table update. Then create a new preview.',
 			'unsupported_product_type' => 'Only core simple products are supported.',
 			'unsupported_status' => 'Only published products are supported.',
 			'sale_configured' => 'Remove sale configuration and create a new preview.',
