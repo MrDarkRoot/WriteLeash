@@ -24,17 +24,24 @@ final class Product_Price_Snapshot {
 	use Immutable_Price_Value;
 	private array $values;
 	private function __construct( array $values ) { $this->values = $values; }
-	public static function read( int $id, $product ): self {
+	/**
+	 * A snapshot always carries the core simple/variation identity fields so
+	 * plans can freeze and explain either kind. `$parent` is an optional,
+	 * already-read variable parent for a variation; when omitted the parent
+	 * is read once through the public Woo API.
+	 */
+	public static function read( int $id, $product, $parent = null ): self {
 		if ( $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
 		if ( ! $product instanceof \WC_Product ) {
-			return new self( array( 'product_id' => $id, 'exists' => false, 'unreadable' => false, 'name' => '', 'sku' => '', 'type' => '', 'status' => '', 'core_simple' => false, 'regular_price' => '', 'sale_price' => '', 'sale_from' => null, 'sale_to' => null, 'category_ids' => array() ) );
+			return new self( self::missing_values( $id, false ) );
 		}
 		if ( $product->get_id() !== $id ) { throw new Price_Validation_Error( 'selection_changed_during_planning' ); }
 		$from = $product->get_date_on_sale_from( 'edit' );
 		$to = $product->get_date_on_sale_to( 'edit' );
 		$categories = $product->get_category_ids( 'edit' );
 		sort( $categories, SORT_NUMERIC );
-		return new self( array(
+		$variation = self::variation_facts( $product, $parent );
+		return new self( array_merge( array(
 			'product_id' => $id, 'exists' => true, 'unreadable' => false, 'name' => $product->get_name( 'edit' ), 'sku' => $product->get_sku( 'edit' ),
 			'type' => $product->get_type(), 'status' => $product->get_status( 'edit' ),
 			// Reject extension subclasses, even ones that advertise type=simple.
@@ -42,12 +49,64 @@ final class Product_Price_Snapshot {
 			'regular_price' => $product->get_regular_price( 'edit' ), 'sale_price' => $product->get_sale_price( 'edit' ),
 			'sale_from' => $from ? (string) $from->getTimestamp() : null, 'sale_to' => $to ? (string) $to->getTimestamp() : null,
 			'category_ids' => $categories,
-		) );
+		), $variation ) );
 	}
 	/** An ID whose WooCommerce read threw. Explicitly unknown, never guessed and never treated as absent. */
 	public static function unreadable( int $id ): self {
 		if ( $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
-		return new self( array( 'product_id' => $id, 'exists' => false, 'unreadable' => true, 'name' => '', 'sku' => '', 'type' => '', 'status' => '', 'core_simple' => false, 'regular_price' => '', 'sale_price' => '', 'sale_from' => null, 'sale_to' => null, 'category_ids' => array() ) );
+		return new self( self::missing_values( $id, true ) );
+	}
+	/** The pre-#179 shape plus the always-present variation identity fields. */
+	private static function missing_values( int $id, bool $unreadable ): array {
+		return array(
+			'product_id' => $id, 'exists' => false, 'unreadable' => $unreadable, 'name' => '', 'sku' => '', 'type' => '', 'status' => '', 'core_simple' => false,
+			'core_variation' => false, 'parent_id' => 0, 'parent_type' => '', 'parent_status' => '', 'parent_core_variable' => false, 'variation_label' => '',
+			'regular_price' => '', 'sale_price' => '', 'sale_from' => null, 'sale_to' => null, 'category_ids' => array(),
+		);
+	}
+	/**
+	 * Core variation identity and display label ("Product name — Blue / M").
+	 * Only an exact core WC_Product_Variation is identified as a variation;
+	 * extension subclasses keep core_variation=false and are refused later.
+	 */
+	private static function variation_facts( $product, $parent ): array {
+		$facts = array( 'core_variation' => false, 'parent_id' => 0, 'parent_type' => '', 'parent_status' => '', 'parent_core_variable' => false, 'variation_label' => '' );
+		if ( ! $product instanceof \WC_Product_Variation ) { return $facts; }
+		$parent_id = (int) $product->get_parent_id( 'edit' );
+		$facts['parent_id'] = $parent_id;
+		if ( ! $parent instanceof \WC_Product && $parent_id > 0 && function_exists( 'wc_get_product' ) ) {
+			try { $parent = wc_get_product( $parent_id ); }
+			catch ( \Throwable $error ) { $parent = null; }
+		}
+		if ( $parent instanceof \WC_Product ) {
+			$facts['parent_type'] = (string) $parent->get_type();
+			$facts['parent_status'] = (string) $parent->get_status( 'edit' );
+			$facts['parent_core_variable'] = 'WC_Product_Variable' === get_class( $parent );
+		}
+		$facts['core_variation'] = 'WC_Product_Variation' === get_class( $product );
+		$facts['variation_label'] = self::variation_label( $product, $parent );
+		return $facts;
+	}
+	/** Human-readable attributes; stable fallbacks, escaped only at output. */
+	private static function variation_label( $product, $parent ): string {
+		$name = $parent instanceof \WC_Product ? (string) $parent->get_name( 'edit' ) : '';
+		if ( '' === $name ) { $name = (string) $product->get_name( 'edit' ); }
+		$parts = array();
+		if ( function_exists( 'wc_get_formatted_variation' ) ) {
+			try {
+				$flat = wc_get_formatted_variation( $product, true, false );
+				if ( is_string( $flat ) && '' !== $flat ) {
+					foreach ( explode( ',', $flat ) as $part ) { $part = trim( $part ); if ( '' !== $part ) { $parts[] = $part; } }
+				}
+			} catch ( \Throwable $error ) { $parts = array(); }
+		}
+		if ( ! $parts && method_exists( $product, 'get_attributes' ) ) {
+			try {
+				foreach ( (array) $product->get_attributes() as $value ) { if ( is_string( $value ) && '' !== $value ) { $parts[] = $value; } }
+			} catch ( \Throwable $error ) { $parts = array(); }
+		}
+		if ( ! $parts ) { return $name; }
+		return ( '' === $name ? '' : $name . ' — ' ) . implode( ' / ', $parts );
 	}
 	public function data(): array { return $this->values; }
 }
@@ -62,6 +121,21 @@ final class Eligibility_Result {
 }
 
 final class Product_Price_Eligibility {
+	/** An exact core simple product; extension subclasses never qualify. */
+	private static function is_core_simple( array $s ): bool {
+		return ! empty( $s['core_simple'] ) && 'simple' === $s['type'];
+	}
+	/** An exact core variation; extension subclasses never qualify. */
+	private static function is_core_variation( array $s ): bool {
+		return ! empty( $s['core_variation'] ) && 'variation' === $s['type'];
+	}
+	/** A variation needs a published core variable parent captured at preview. */
+	private static function parent_supported( array $s ): bool {
+		return (int) ( $s['parent_id'] ?? 0 ) > 0
+			&& ! empty( $s['parent_core_variable'] )
+			&& 'variable' === ( $s['parent_type'] ?? '' )
+			&& 'publish' === ( $s['parent_status'] ?? '' );
+	}
 	/**
 	 * Field-aware eligibility. The third argument defaults to the regular
 	 * price so discovery's existing two-argument call keeps its meaning; the
@@ -74,7 +148,8 @@ final class Product_Price_Eligibility {
 		$reason = null;
 		if ( ! $s['exists'] ) { $reason = ! empty( $s['unreadable'] ) ? 'unreadable_product_data' : 'missing_product'; }
 		elseif ( ! $context->data()['base_currency_context'] ) { $reason = 'unsupported_currency_context'; }
-		elseif ( ! $s['core_simple'] || 'simple' !== $s['type'] ) { $reason = 'unsupported_product_type'; }
+		elseif ( self::is_core_variation( $s ) && ! self::parent_supported( $s ) ) { $reason = 'unsupported_parent_product'; }
+		elseif ( ! self::is_core_simple( $s ) && ! self::is_core_variation( $s ) ) { $reason = 'unsupported_product_type'; }
 		elseif ( 'publish' !== $s['status'] ) { $reason = 'unsupported_status'; }
 		// Both fields need a parseable non-empty regular price: WooCommerce
 		// validates every sale against it and would clear the sale without one.
@@ -114,7 +189,8 @@ final class Price_Reason_Messages {
 		return array(
 			'missing_product' => 'The selected product no longer exists.',
 			'unreadable_product_data' => 'WriteLeash could not read this product’s saved data, so it was skipped before any change. Open the product in WooCommerce and save it again to regenerate its data; if many products are affected, run WooCommerce’s product lookup table update. Then create a new preview.',
-			'unsupported_product_type' => 'Only core simple products are supported.',
+			'unsupported_product_type' => 'Only core simple products and variations of published core variable products are supported.',
+			'unsupported_parent_product' => 'This variation’s parent product is missing, is not a core variable product, or is not published.',
 			'unsupported_status' => 'Only published products are supported.',
 			'sale_configured' => 'Remove sale configuration and create a new preview.',
 			'empty_regular_price' => 'The stored regular price is empty, not zero.',

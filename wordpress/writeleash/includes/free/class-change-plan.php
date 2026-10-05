@@ -263,7 +263,10 @@ final class Change_Plan {
 		$expected = $this->material['store'];
 		$reasons = array();
 		if ( $now['product_id'] !== $id || ! $now['exists'] ) { $reasons[] = 'missing_product'; }
-		if ( $old['type'] !== $now['type'] || $old['core_simple'] !== $now['core_simple'] ) { $reasons[] = 'product_type_changed'; }
+		if ( (string) ( $old['type'] ?? '' ) !== (string) ( $now['type'] ?? '' )
+			|| ! empty( $old['core_simple'] ) !== ! empty( $now['core_simple'] )
+			|| ! empty( $old['core_variation'] ) !== ! empty( $now['core_variation'] )
+			|| (int) ( $old['parent_id'] ?? 0 ) !== (int) ( $now['parent_id'] ?? 0 ) ) { $reasons[] = 'product_type_changed'; }
 		if ( $old['status'] !== $now['status'] ) { $reasons[] = 'product_status_changed'; }
 		if ( Price_Operation::FIELD_SALE === $field ) {
 			// Guard the sale price itself. Sale dates are not a conflict:
@@ -295,10 +298,14 @@ final class Woo_Price_Planner {
 		if ( ! $actor || ! current_user_can( 'manage_woocommerce' ) || ! current_user_can( 'edit_products' ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
 		$context = Price_Store_Context::current();
 		$snapshots = Product_Price_Selector::resolve( $selection );
+		// A selected variable parent is replaced by its exact variation IDs
+		// before the plan exists, so the frozen population and the IDS
+		// invariant both operate on children only.
+		$resolved_selection = Product_Price_Selector::resolved_selection( $selection, $snapshots );
 		foreach ( $snapshots as $snapshot ) {
 			if ( $snapshot->data()['exists'] && ! current_user_can( 'edit_post', $snapshot->data()['product_id'] ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
 		}
 		if ( $context->data() !== Price_Store_Context::current()->data() ) { throw new Price_Validation_Error( 'store_context_changed_during_planning' ); }
-		return Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor, $context, $selection, $operation, $policy, $snapshots );
+		return Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor, $context, $resolved_selection, $operation, $policy, $snapshots );
 	}
 }
