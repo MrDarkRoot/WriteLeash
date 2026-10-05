@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  * provenance only: it is not a blocking safety claim (see contract research).
  */
 final class Undo_Fingerprint {
-	/** Blocking fingerprint fields, in canonical hash order. */
+	/** Legacy blocking fingerprint fields (provenance without a price field), in canonical hash order. */
 	public static function fields(): array {
 		return array(
 			'product_id',
@@ -49,6 +49,20 @@ final class Undo_Fingerprint {
 	}
 
 	/**
+	 * Blocking fields for a field-scoped provenance. A regular-price restore
+	 * only guards the applied regular price and identity/store/version facts;
+	 * sale configuration, the active price and the lookup table depend on the
+	 * other field and must not block Undo during a promotion. A sale-price
+	 * restore additionally guards the regular price recorded at apply time.
+	 */
+	public static function fields_for( string $field ): array {
+		Price_Operation::assert_field( $field );
+		$fields = array( 'product_id', 'applied_price', 'product_type', 'core_simple', 'status', 'currency', 'price_decimals', 'wordpress_version', 'woocommerce_version' );
+		if ( Price_Operation::FIELD_SALE === $field ) { $fields[] = 'regular_context'; }
+		return $fields;
+	}
+
+	/**
 	 * Assemble durable provenance from apply-time records only. Fresh Woo
 	 * state is never an input here; it is compared later by `verify()`.
 	 *
@@ -56,11 +70,20 @@ final class Undo_Fingerprint {
 	 * @return array{provenance: string, fingerprint: string}
 	 */
 	public static function capture( array $facts ): array {
-		foreach ( array( 'product_id', 'expected_price', 'applied_price', 'apply_attempt_id', 'applied_at', 'actor_id', 'initiator_id', 'job_id', 'plan_id', 'currency', 'price_decimals', 'wordpress_version', 'woocommerce_version', 'product_type', 'core_simple', 'status', 'sale_price', 'sale_from', 'sale_to', 'active_price', 'lookup_min', 'lookup_max', 'lookup_onsale' ) as $key ) {
+		$required = array( 'product_id', 'expected_price', 'applied_price', 'apply_attempt_id', 'applied_at', 'actor_id', 'initiator_id', 'job_id', 'plan_id', 'currency', 'price_decimals', 'wordpress_version', 'woocommerce_version', 'product_type', 'core_simple', 'status' );
+		$field = $facts['price_field'] ?? null;
+		if ( null === $field ) {
+			$block_fields = self::fields();
+			$required = array_merge( $required, array( 'sale_price', 'sale_from', 'sale_to', 'active_price', 'lookup_min', 'lookup_max', 'lookup_onsale' ) );
+		} else {
+			$block_fields = self::fields_for( $field );
+			if ( Price_Operation::FIELD_SALE === $field ) { $required[] = 'regular_context'; }
+		}
+		foreach ( $required as $key ) {
 			if ( ! array_key_exists( $key, $facts ) ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
 		}
 		$blocking = array();
-		foreach ( self::fields() as $field ) { $blocking[$field] = $facts[$field]; }
+		foreach ( $block_fields as $block_field ) { $blocking[$block_field] = $facts[$block_field]; }
 		$provenance = array(
 			'version' => 1,
 			'job_id' => (int) $facts['job_id'],
@@ -76,6 +99,7 @@ final class Undo_Fingerprint {
 			// Advisory only: recorded for history display, never a blocking claim.
 			'initiated_post_modified_gmt' => $facts['initiated_post_modified_gmt'] ?? null,
 		);
+		if ( null !== $field ) { $provenance['price_field'] = $field; }
 		$json = Plan_Hasher::canonical_json( $provenance );
 		return array( 'provenance' => $json, 'fingerprint' => hash( 'sha256', Plan_Hasher::canonical_json( $blocking ) ) );
 	}
@@ -92,14 +116,48 @@ final class Undo_Fingerprint {
 		if ( ! is_array( $provenance ) || 1 !== ( $provenance['version'] ?? 0 ) || ! is_array( $provenance['blocking'] ?? null ) ) {
 			return array( 'match' => false, 'reasons' => array( 'provenance_tampered' ) );
 		}
+		$field = $provenance['price_field'] ?? null;
+		if ( null !== $field && ! in_array( $field, Price_Operation::FIELDS, true ) ) {
+			return array( 'match' => false, 'reasons' => array( 'provenance_tampered' ) );
+		}
 		$blocking = $provenance['blocking'];
 		if ( (int) ( $fresh['product_id'] ?? 0 ) !== (int) ( $provenance['product_id'] ?? 0 ) ) {
 			return array( 'match' => false, 'reasons' => array( 'product_identity_changed' ) );
 		}
-		foreach ( array( 'applied_price', 'active_price', 'lookup_min', 'lookup_max' ) as $field ) {
-			if ( ! self::decimal_equal( $blocking[$field] ?? null, $fresh[$field] ?? null ) ) {
+		if ( null === $field ) {
+			foreach ( array( 'applied_price', 'active_price', 'lookup_min', 'lookup_max' ) as $compare ) {
+				if ( ! self::decimal_equal( $blocking[$compare] ?? null, $fresh[$compare] ?? null ) ) {
+					$reasons[] = 'applied_price_changed';
+					break;
+				}
+			}
+			foreach ( array( 'sale_price', 'sale_from', 'sale_to' ) as $compare ) {
+				if ( ( $blocking[$compare] ?? null ) !== ( $fresh[$compare] ?? null ) ) {
+					$reasons[] = 'sale_configuration_changed';
+					break;
+				}
+			}
+			if ( ( $blocking['currency'] ?? null ) !== ( $fresh['currency'] ?? null ) ) {
+				$reasons[] = 'currency_context_changed';
+			}
+			if ( (int) ( $blocking['price_decimals'] ?? -1 ) !== (int) ( $fresh['price_decimals'] ?? -2 ) ) {
+				$reasons[] = 'price_decimals_changed';
+			}
+			if ( '0' !== (string) ( $fresh['lookup_onsale'] ?? '' ) || '0' !== (string) ( $blocking['lookup_onsale'] ?? '' ) ) {
+				$reasons[] = 'lookup_changed';
+			}
+		} else {
+			if ( ! self::decimal_equal( $blocking['applied_price'] ?? null, $fresh['applied_price'] ?? null ) ) {
 				$reasons[] = 'applied_price_changed';
-				break;
+			}
+			if ( Price_Operation::FIELD_SALE === $field && ! self::decimal_equal( $blocking['regular_context'] ?? null, $fresh['regular_context'] ?? null ) ) {
+				$reasons[] = 'regular_context_changed';
+			}
+			if ( ( $blocking['currency'] ?? null ) !== ( $fresh['currency'] ?? null ) ) {
+				$reasons[] = 'currency_context_changed';
+			}
+			if ( (int) ( $blocking['price_decimals'] ?? -1 ) !== (int) ( $fresh['price_decimals'] ?? -2 ) ) {
+				$reasons[] = 'price_decimals_changed';
 			}
 		}
 		if ( ( $blocking['product_type'] ?? null ) !== ( $fresh['product_type'] ?? null ) || (bool) ( $blocking['core_simple'] ?? false ) !== (bool) ( $fresh['core_simple'] ?? false ) ) {
@@ -107,21 +165,6 @@ final class Undo_Fingerprint {
 		}
 		if ( ( $blocking['status'] ?? null ) !== ( $fresh['status'] ?? null ) ) {
 			$reasons[] = 'product_status_changed';
-		}
-		foreach ( array( 'sale_price', 'sale_from', 'sale_to' ) as $field ) {
-			if ( ( $blocking[$field] ?? null ) !== ( $fresh[$field] ?? null ) ) {
-				$reasons[] = 'sale_configuration_changed';
-				break;
-			}
-		}
-		if ( ( $blocking['currency'] ?? null ) !== ( $fresh['currency'] ?? null ) ) {
-			$reasons[] = 'currency_context_changed';
-		}
-		if ( (int) ( $blocking['price_decimals'] ?? -1 ) !== (int) ( $fresh['price_decimals'] ?? -2 ) ) {
-			$reasons[] = 'price_decimals_changed';
-		}
-		if ( '0' !== (string) ( $fresh['lookup_onsale'] ?? '' ) || '0' !== (string) ( $blocking['lookup_onsale'] ?? '' ) ) {
-			$reasons[] = 'lookup_changed';
 		}
 		// Same rule as the apply precondition: routine supported version
 		// drift is not a product-state change. Only drift outside the
@@ -135,12 +178,13 @@ final class Undo_Fingerprint {
 	/** Recompute the stored fingerprint over stored blocking values (tamper check). */
 	public static function fingerprint_of( array $provenance ): string {
 		if ( ! is_array( $provenance ) || ! is_array( $provenance['blocking'] ?? null ) ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
-		$ordered = array();
-		foreach ( self::fields() as $field ) {
-			if ( ! array_key_exists( $field, $provenance['blocking'] ) ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
-			$ordered[$field] = $provenance['blocking'][$field];
+		$field = $provenance['price_field'] ?? null;
+		try { $expected = null === $field ? self::fields() : self::fields_for( $field ); }
+		catch ( Price_Validation_Error $error ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
+		foreach ( $expected as $block_field ) {
+			if ( ! array_key_exists( $block_field, $provenance['blocking'] ) ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
 		}
-		return hash( 'sha256', Plan_Hasher::canonical_json( $ordered ) );
+		return hash( 'sha256', Plan_Hasher::canonical_json( $provenance['blocking'] ) );
 	}
 
 	private static function decimal_equal( $stored, $fresh ): bool {
