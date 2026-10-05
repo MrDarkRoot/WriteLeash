@@ -39,9 +39,13 @@ final class Product_Discovery {
 		$reason = 'unreadable_product_data';
 		if ( $product instanceof \WC_Product ) {
 			try {
-				$name = $product->get_name( 'edit' );
-				$sku = $product->get_sku( 'edit' );
-				$reason = Product_Price_Eligibility::evaluate( Product_Price_Snapshot::read( $id, $product ), Price_Store_Context::current() )->data()['reason'];
+				$snapshot = Product_Price_Snapshot::read( $id, $product );
+				$s = $snapshot->data();
+				// A variation is identified by its product name and human-readable
+				// attributes; the parent name alone would be ambiguous.
+				$name = ! empty( $s['core_variation'] ) && '' !== (string) $s['variation_label'] ? (string) $s['variation_label'] : (string) $s['name'];
+				$sku = (string) $s['sku'];
+				$reason = Product_Price_Eligibility::evaluate( $snapshot, Price_Store_Context::current() )->data()['reason'];
 			} catch ( \Throwable $error ) {
 				$reason = 'unreadable_product_data';
 			}
@@ -69,7 +73,7 @@ final class Product_Discovery {
 		$term = self::bounds( $term, $page );
 		if ( '' === $term ) { return array( 'results' => array(), 'more' => false, 'capped' => false ); }
 		$args = array(
-			'post_type' => 'product', 'post_status' => 'publish',
+			'post_type' => array( 'product', 'product_variation' ), 'post_status' => 'publish',
 			'posts_per_page' => self::WINDOW + 1, 'offset' => ( $page - 1 ) * self::WINDOW,
 			'orderby' => 'ID', 'order' => 'ASC', 'no_found_rows' => true,
 			'update_post_meta_cache' => true, 'update_post_term_cache' => true,
@@ -94,7 +98,7 @@ final class Product_Discovery {
 		foreach ( $ids as $id ) { if ( ! is_int( $id ) || $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); } }
 		if ( ! $ids ) { return array(); }
 		$posts = new \WP_Query( array(
-			'post_type' => 'product', 'post_status' => 'publish', 'post__in' => $ids,
+			'post_type' => array( 'product', 'product_variation' ), 'post_status' => 'publish', 'post__in' => $ids,
 			'posts_per_page' => Free_Support_Contract::MAX_JOB_PRODUCTS, 'no_found_rows' => true,
 			'update_post_meta_cache' => true, 'update_post_term_cache' => true,
 		) );

@@ -801,6 +801,85 @@ try {
 } finally { remove_action( 'woocommerce_product_read', $trace_reads ); }
 marker( 'Current reads bounded to rendered page only' );
 
+// ---------------------------------------------------------------------------
+// #179 variable products: preview freezes exact variations with attribute
+// identity, Apply refreshes the Woo parent price range, a variation created
+// after preview cannot execute, and Undo restores per variation while
+// re-syncing the parent.
+// ---------------------------------------------------------------------------
+$var_name = 'WL179 Hoodie ' . wp_generate_uuid4();
+$var_parent = new WC_Product_Variable();
+$var_parent->set_name( $var_name );
+$var_parent->set_status( 'publish' );
+$var_parent->save();
+$var_parent_id = $var_parent->get_id();
+$mk_variation179 = static function ( string $price, array $attrs ) use ( $var_parent_id ): int {
+	$v = new WC_Product_Variation();
+	$v->set_parent_id( $var_parent_id );
+	$v->set_regular_price( $price );
+	$v->set_attributes( $attrs );
+	$v->save();
+	return $v->get_id();
+};
+$v_blue = $mk_variation179( '100.00', array( 'color' => 'Blue', 'size' => 'M' ) );
+$v_red = $mk_variation179( '50.00', array( 'color' => 'Red', 'size' => 'L' ) );
+$parent_lookup179 = static function ( int $parent_id ): array {
+	$db = Verifier::observer();
+	try {
+		$row = $db->get_row( $db->prepare( 'SELECT min_price,max_price,onsale FROM ' . $db->wc_product_meta_lookup . ' WHERE product_id=%d', $parent_id ), ARRAY_A );
+	} finally { $db->close(); }
+	if ( ! is_array( $row ) ) { throw new RuntimeException( 'parent lookup row missing' ); }
+	return $row;
+};
+$vpreview = Admin::process_preview( preview_post( array( 'ids' => (string) $var_parent_id, 'amount' => '80.00' ) ), 'POST' );
+eq( $vpreview['status'], 'OK', 'variable parent creates a preview' );
+$vjob = Repo::read_by_public_id( $vpreview['public_id'] );
+$vplan = Repo::hydrate_plan( $vjob );
+eq( $vplan->summary()['selected'], 2, 'parent selection freezes both variations' );
+eq( in_array( $var_parent_id, $vplan->data()['resolved_product_ids'], true ), false, 'the variable parent is replaced by its variations' );
+eq( $vplan->data()['selection']['ids'], array( $v_blue, $v_red ), 'frozen IDS selection holds the resolved variation IDs' );
+$vfrozen = $vplan->item( $v_blue )->data()['snapshot'];
+eq( $vfrozen['core_variation'], true, 'variation identity frozen' );
+eq( $vfrozen['parent_id'], $var_parent_id, 'variation parent frozen' );
+eq( $vfrozen['variation_label'], $var_name . ' — Blue / M', 'variation attribute identity frozen' );
+$vhtml = render_view( 'preview', $vjob['public_id'], 0 );
+ok( str_contains( $vhtml, 'Variation #' . $v_blue ), 'preview labels the row as a variation' );
+ok( str_contains( $vhtml, '— Blue / M' ), 'preview shows human-readable attributes' );
+ok( str_contains( $vhtml, '2 variations' ), 'task copy counts variations honestly' );
+$vfound = \WriteLeash\Product_Discovery::products( $var_name );
+$vresult_ids = array_map( 'intval', array_column( $vfound['results'], 'id' ) );
+ok( in_array( $v_blue, $vresult_ids, true ) && in_array( $v_red, $vresult_ids, true ), 'discovery lists individual variations of the parent' );
+$vblue_text = '';
+foreach ( $vfound['results'] as $vrow ) { if ( (int) $vrow['id'] === $v_blue ) { $vblue_text = $vrow['text']; } }
+ok( str_contains( $vblue_text, '— Blue / M' ) && str_contains( $vblue_text, 'ID: ' . $v_blue ), 'variation discovery label shows attributes and ID' );
+
+// A variation created after preview is not in the frozen ID list.
+$v_green = $mk_variation179( '60.00', array( 'color' => 'Green', 'size' => 'S' ) );
+ok( ! in_array( $v_green, $vplan->data()['resolved_product_ids'], true ), 'a later variation is outside the frozen population' );
+try { $vplan->item( $v_green ); ok( false, 'frozen plan must refuse the later variation' ); }
+catch ( WriteLeash\Price_Validation_Error $error ) { eq( $error->reason(), 'unpreviewed_product', 'frozen plan refuses the later variation' ); }
+
+$vapprove = Admin::process_approve( approve_post( $vjob ), 'POST' );
+eq( $vapprove['status'], 'OK', 'variation plan approves' );
+run_job_terminal( (int) $vjob['id'] );
+eq( fresh_price( $v_blue ), '80.00', 'first variation applied' );
+eq( fresh_price( $v_red ), '40.00', 'sibling variation applied independently' );
+eq( fresh_price( $v_green ), '60.00', 'post-preview variation untouched by Apply' );
+$lookup = $parent_lookup179( $var_parent_id );
+eq( Decimal::parse( $lookup['min_price'] ), Decimal::parse( '40.00' ), 'parent lookup min refreshed after Apply' );
+eq( Decimal::parse( $lookup['max_price'] ), Decimal::parse( '80.00' ), 'parent lookup max refreshed after Apply' );
+eq( (string) $lookup['onsale'], '0', 'parent stays offsale after Apply' );
+
+Admin::process_undo( undo_post( Repo::read( (int) $vjob['id'] ) ), 'POST' );
+run_undo_terminal( (int) UndoRepo::read_operation_by_job( (int) $vjob['id'] )['id'] );
+eq( fresh_price( $v_blue ), '100.00', 'first variation restored' );
+eq( fresh_price( $v_red ), '50.00', 'sibling variation restored' );
+eq( fresh_price( $v_green ), '60.00', 'post-preview variation untouched by Undo' );
+$lookup = $parent_lookup179( $var_parent_id );
+eq( Decimal::parse( $lookup['min_price'] ), Decimal::parse( '50.00' ), 'parent lookup min refreshed after Undo' );
+eq( Decimal::parse( $lookup['max_price'] ), Decimal::parse( '100.00' ), 'parent lookup max refreshed after Undo' );
+marker( 'variable products: expansion, variation Apply/Undo and parent range refresh' );
+
 require __DIR__ . '/selection-integration.php';
 require __DIR__ . '/presentation-integration.php';
 require __DIR__ . '/polish-integration.php';
