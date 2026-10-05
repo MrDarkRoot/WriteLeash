@@ -34,7 +34,10 @@ async function capture(page, name) {
             await region.focus(); await page.keyboard.press('Tab'); await page.keyboard.press('Shift+Tab');
             ok(await region.evaluate(el => document.activeElement === el && getComputedStyle(el).outlineStyle !== 'none'), name + ': keyboard scroll region focus visible');
             await page.keyboard.press('ArrowRight');
-            if (width === 375) ok(await region.evaluate(el => el.scrollLeft > 0), name + ': table scrolls by keyboard');
+            if (width === 375) {
+                await page.waitForFunction(el => el.scrollLeft > 0, await region.elementHandle());
+                ok(await region.evaluate(el => el.scrollLeft > 0), name + ': table scrolls by keyboard');
+            }
             await region.evaluate(el => { el.scrollLeft = 0; });
         }
         if (process.env.WL167_EVIDENCE) {
