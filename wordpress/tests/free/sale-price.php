@@ -16,6 +16,8 @@ namespace {
 	require __DIR__ . '/../../writeleash/includes/free/class-product-snapshot.php';
 	require __DIR__ . '/../../writeleash/includes/free/class-product-selector.php';
 	require __DIR__ . '/../../writeleash/includes/free/class-change-plan.php';
+	require __DIR__ . '/../../writeleash/includes/free/class-undo-state.php';
+	require __DIR__ . '/../../writeleash/includes/free/class-undo-fingerprint.php';
 	class WC_DateTime {
 		private int $timestamp;
 		public function __construct( int $timestamp ) { $this->timestamp = $timestamp; }
@@ -57,6 +59,7 @@ namespace {
 	use WriteLeash\Product_Price_Eligibility as Eligibility;
 	use WriteLeash\Product_Price_Snapshot as Snapshot;
 	use WriteLeash\Safety_Policy as P;
+	use WriteLeash\Undo_Fingerprint as UFingerprint;
 
 	require __DIR__ . '/../../writeleash/includes/free/class-price-cache-verifier.php';
 
@@ -70,6 +73,11 @@ namespace {
 		try { $call(); }
 		catch ( \WriteLeash\Price_Validation_Error $error ) { wl178_equal( $error->reason(), $reason, 'typed error' ); return; }
 		throw new RuntimeException( 'Missing typed error: ' . $reason );
+	}
+	function wl178_undo_error( callable $call, string $reason ): void {
+		try { $call(); }
+		catch ( \WriteLeash\Undo_Error $error ) { wl178_equal( $error->reason(), $reason, 'typed undo error' ); return; }
+		throw new RuntimeException( 'Missing typed undo error: ' . $reason );
 	}
 	function wl178_marker( string $label ): void {
 		global $wl178_assertions;
@@ -267,6 +275,47 @@ namespace {
 	$zero_sale['lookup']['onsale'] = '1';
 	Verifier::matches_field( $zero_sale, O::FIELD_SALE, '0.00', array( 'regular_price' => '100.00' ) );
 	wl178_marker( 'field-aware verification against Woo save/lookup semantics' );
+
+	// ------------------------------------------------------------------
+	// Undo provenance: legacy hashes, field-scoped blocking facts.
+	// ------------------------------------------------------------------
+	$base = array( 'product_id' => 7, 'applied_price' => '80', 'product_type' => 'simple', 'core_simple' => true, 'status' => 'publish', 'currency' => 'USD', 'price_decimals' => 2, 'wordpress_version' => '7.1.2', 'woocommerce_version' => '11.1.2' );
+	$legacy_blocking = array_merge( array( 'active_price' => '80', 'sale_price' => '', 'sale_from' => null, 'sale_to' => null, 'lookup_min' => '80', 'lookup_max' => '80', 'lookup_onsale' => '0' ), $base );
+	$legacy_provenance = array( 'version' => 1, 'job_id' => 1, 'plan_id' => 'legacy-plan', 'product_id' => 7, 'expected_price' => '100', 'applied_price' => '80', 'apply_attempt_id' => 'attempt', 'applied_at' => '2026-01-01 00:00:00', 'actor_id' => 1, 'initiator_id' => 1, 'blocking' => $legacy_blocking, 'initiated_post_modified_gmt' => null );
+	wl178_equal( UFingerprint::fingerprint_of( $legacy_provenance ), hash( 'sha256', Hasher::canonical_json( $legacy_blocking ) ), 'legacy blocking fingerprint hash is byte-stable' );
+	$fresh_legacy = array_merge( $legacy_blocking, array( 'product_id' => 7 ) );
+	wl178_equal( UFingerprint::verify( $legacy_provenance, $fresh_legacy )['match'], true, 'legacy provenance verifies on identical facts' );
+	$fresh_legacy['sale_price'] = '70';
+	wl178_equal( UFingerprint::verify( $legacy_provenance, $fresh_legacy )['reasons'], array( 'sale_configuration_changed' ), 'legacy provenance still blocks sale drift' );
+
+	$facts = array_merge( $base, array( 'price_field' => O::FIELD_REGULAR, 'expected_price' => '100', 'apply_attempt_id' => 'attempt', 'applied_at' => '2026-01-01 00:00:00', 'actor_id' => 1, 'initiator_id' => 1, 'job_id' => 1, 'plan_id' => 'regular-plan' ) );
+	$captured = UFingerprint::capture( $facts );
+	$provenance = json_decode( $captured['provenance'], true );
+	wl178_equal( $provenance['price_field'], O::FIELD_REGULAR, 'new provenance records the field' );
+	wl178_equal( count( $provenance['blocking'] ), 9, 'regular field blocks only identity/store/applied facts' );
+	wl178_equal( UFingerprint::fingerprint_of( $provenance ), $captured['fingerprint'], 'new fingerprint recomputes over stored blocking' );
+	$fresh = array_merge( $base, array( 'sale_price' => '70', 'active_price' => '70', 'lookup_min' => '70', 'lookup_max' => '70', 'lookup_onsale' => '1' ) );
+	wl178_equal( UFingerprint::verify( $provenance, $fresh )['match'], true, 'regular undo ignores sale/active/lookup drift' );
+	$fresh['applied_price'] = '90';
+	wl178_equal( UFingerprint::verify( $provenance, $fresh )['reasons'], array( 'applied_price_changed' ), 'regular undo still blocks applied-price drift' );
+
+	$sale_facts = $facts;
+	$sale_facts['price_field'] = O::FIELD_SALE;
+	$sale_facts['applied_price'] = '70';
+	wl178_undo_error( static fn() => UFingerprint::capture( $sale_facts ), 'UNDO_PROVENANCE_MISMATCH' );
+	$sale_facts['regular_context'] = '100';
+	$sale_facts['plan_id'] = 'sale-plan';
+	$captured = UFingerprint::capture( $sale_facts );
+	$sale_provenance = json_decode( $captured['provenance'], true );
+	$fresh = array_merge( $base, array( 'applied_price' => '70', 'regular_context' => '100' ) );
+	wl178_equal( UFingerprint::verify( $sale_provenance, $fresh )['match'], true, 'sale undo matches its sale and regular context' );
+	$fresh['regular_context'] = '90';
+	wl178_equal( UFingerprint::verify( $sale_provenance, $fresh )['reasons'], array( 'regular_context_changed' ), 'sale undo blocks regular-context drift' );
+
+	$tampered = $sale_provenance;
+	unset( $tampered['blocking']['status'] );
+	wl178_undo_error( static fn() => UFingerprint::fingerprint_of( $tampered ), 'UNDO_PROVENANCE_MISMATCH' );
+	wl178_marker( 'legacy fingerprint stability and field-scoped undo blocking facts' );
 
 	echo "#178 sale-price domain harness: PASS ($wl178_assertions assertions)\n";
 }
