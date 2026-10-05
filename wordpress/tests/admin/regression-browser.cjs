@@ -33,6 +33,13 @@ async function tabTo(page, target) {
             ok(await target.evaluate(el => { const s = getComputedStyle(el); const widget = el.closest('.select2-container'); const boundary = widget && widget.querySelector('.select2-selection'); return s.outlineStyle !== 'none' || s.boxShadow !== 'none' || (boundary && widget.classList.contains('select2-container--focus') && (getComputedStyle(boundary).boxShadow !== 'none' || getComputedStyle(boundary).outlineStyle !== 'none')); }), 'visible keyboard focus');
             return;
         }
+        // selectWoo treats Tab as "select the highlighted option" while its
+        // dropdown is open (document-level keydown), so close it before any
+        // focus traversal that is not an explicit selection step.
+        if (await page.locator('.select2-container--open').count()) {
+            await page.keyboard.press('Escape');
+            await page.locator('.select2-container--open').first().waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+        }
         const backwards = await target.evaluate(el => !!(el.compareDocumentPosition(document.activeElement) & Node.DOCUMENT_POSITION_FOLLOWING));
         await page.keyboard.press(backwards ? 'Shift+Tab' : 'Tab');
         await page.waitForTimeout(20); // Native focus events settle asynchronously in Firefox.
