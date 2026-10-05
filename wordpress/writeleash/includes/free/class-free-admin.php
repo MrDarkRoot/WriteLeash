@@ -1080,6 +1080,7 @@ final class Free_Admin {
 			if ( false === $stream ) { throw new \RuntimeException( 'CSV unavailable' ); }
 			self::write_job_csv( $stream, $result['job'], $result['plan'] );
 		} catch ( \Throwable $error ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Streaming the generated CSV response; WP_Filesystem is not an output stream.
 			if ( is_resource( $stream ) ) { fclose( $stream ); }
 			wp_die( esc_html( 'Saved export evidence is unavailable. No products were changed.' ), '', array( 'response' => 409 ) );
 		}
@@ -1089,6 +1090,7 @@ final class Free_Admin {
 		header( 'X-Content-Type-Options: nosniff' );
 		rewind( $stream );
 		fpassthru( $stream );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Streaming the generated CSV response; WP_Filesystem is not an output stream.
 		fclose( $stream );
 		exit;
 	}

@@ -116,7 +116,7 @@ try {
         $page = wl112_get( $post['location'] );
         wl112_assert( false === strpos( $post['location'], 'wl_job=' ), 'unsupported Woo created job reference' );
         wl112_assert( false !== strpos( $page['body'], 'Installed version: ' . WC_VERSION ), 'unsupported Woo POST reason' );
-        wl112_assert( false !== strpos( $page['body'], 'INVALID' ) && false === strpos( $page['body'], 'security token is missing or invalid' ), 'crafted preview must reach version refusal with a valid HTTP-session nonce' );
+        wl112_assert( false !== strpos( $page['body'], \WriteLeash\Free_Support_Contract::range_text() ) && false === strpos( $page['body'], 'security token is missing or invalid' ), 'crafted preview must reach version refusal with a valid HTTP-session nonce' );
         $reason = WriteLeash\Free_Admin::process_preview( array( '_wpnonce' => wl112_nonce( 'writeleash_free_preview' ) ), 'POST' );
         wl112_assert( 'woocommerce_version_unsupported' === $reason['reason'], 'unsupported Woo typed reason' );
         foreach ( array( 'approve', 'resume', 'undo' ) as $action ) {
@@ -265,7 +265,7 @@ try {
     $facts['undo_seconds'] = microtime( true ) - $t;
     $facts['undo_batch_seconds'] = $undo_batches;
     $facts['undo_batch_quantiles_seconds'] = wl112_quantiles( $undo_batches );
-    wl112_assert( false !== strpos( $progress['body'], 'undone ' . $size ), 'KILL: incomplete Undo' );
+    wl112_assert( false !== strpos( $progress['body'], $size . ' restored' ), 'KILL: incomplete Undo' );
     $save_counts = wl112_save_counts( $facts['request_start_line'] );
     foreach ( $ids as $id ) { wl112_assert( 2 === ( $save_counts[$id] ?? 0 ), 'KILL: duplicate or missing Undo save' ); }
     wp_cache_flush_runtime();

@@ -28,7 +28,7 @@ try {
     $fields = wl112_form( $home['body'], A::ACTION_PREVIEW );
     wl112_assert( '100' === $fields['max_products'], 'UI default must be 100' );
     wl112_assert( (bool) preg_match( '/name="max_products"[^>]*max="100"/', $home['body'] ), 'UI maximum must be 100' );
-    $fields = array_merge( $fields, array( 'selector' => 'ids', 'ids' => implode( ',', $ids ), 'operation' => 'SET', 'amount' => '80', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
+    $fields = array_merge( $fields, array( 'picker_present' => '0', 'selector' => 'ids', 'ids' => implode( ',', $ids ), 'operation' => 'SET', 'amount' => '80', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
     unset( $fields['block_zero'] );
     foreach ( array( 'ids', 'category' ) as $selector ) {
         $post = $fields; $post['selector'] = $selector; $post['category'] = (string) $term['term_id'];

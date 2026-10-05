@@ -12,7 +12,8 @@ wl112_login();
 $base = 'http://127.0.0.1:8080/wp-admin/admin.php?page=writeleash-bulk-prices';
 $home = wl112_get( $base );
 $form = wl112_form( $home['body'], 'writeleash_free_preview' );
-$form = array_merge( $form, array( 'selector' => 'ids', 'ids' => (string) $p->get_id(), 'operation' => 'SET', 'amount' => '80', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
+// Explicit IDs must not be replaced by the empty picker selection.
+$form = array_merge( $form, array( 'picker_present' => '0', 'selector' => 'ids', 'ids' => (string) $p->get_id(), 'operation' => 'SET', 'amount' => '80', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
 unset( $form['block_zero'] );
 $root = new mysqli( DB_HOST, 'root', 'disposable_root_password', DB_NAME );
 try {
@@ -20,7 +21,7 @@ try {
     $post = wl112_post( $form );
     wl112_assert( false === strpos( $post['location'], 'wl_job=' ), 'KILL: no-CREATE silently degraded' );
     $page = wl112_get( $post['location'] );
-    wl112_assert( false !== strpos( $page['body'], 'INVALID' ), 'no-CREATE not explicit' );
+    wl112_assert( false !== strpos( $page['body'], WriteLeash\Job_Reason::message( 'SCHEMA_UNAVAILABLE' ) ), 'no-CREATE not explicit' );
     $db = WriteLeash\Price_Cache_Verifier::observer();
     try { WriteLeash\Price_Cache_Verifier::matches( WriteLeash\Price_Cache_Verifier::storage( $db, $p->get_id() ), '100' ); }
     finally { $db->close(); }

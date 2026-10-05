@@ -10,6 +10,7 @@ final class Woo_Price_Mutator {
 	}
 	private static function schema( \wpdb $db ): void {
 		$reason = Free_Support_Contract::execution_reason( $db );
+		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Typed machine reason code; not HTML output.
 		if ( null !== $reason ) { throw new Price_Apply_Error( Free_Support_Contract::item_reason( $reason ) ); }
 		Price_Apply_Journal::assert_schema( $db );
 		foreach ( array( $db->posts, $db->postmeta, $db->wc_product_meta_lookup, Price_Apply_Journal::table( $db ), $db->options, $db->users, $db->usermeta, $db->term_relationships, $db->term_taxonomy, $db->terms ) as $table ) {

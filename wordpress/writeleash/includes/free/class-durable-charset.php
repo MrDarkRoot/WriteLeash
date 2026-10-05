@@ -33,6 +33,7 @@ final class Durable_Charset {
 		foreach ( self::columns( $db, $table ) as $column ) {
 			$found[$column['Field']] = $column;
 			if ( preg_match( '/(?:char|text|blob|binary|enum|set)/i', $column['Type'] ) && ( ! is_string( $column['Collation'] ) || ( 0 !== strpos( $column['Collation'], 'utf8mb4_' ) && ! ( $legacy && in_array( $column['Field'], $binary_columns, true ) && 'ascii_bin' === $column['Collation'] ) ) ) ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Diagnostic exception construction; not HTML output.
 				throw new \RuntimeException( 'Durable encoding: incompatible column ' . $table . '.' . $column['Field'] . '.' );
 			}
 		}
@@ -60,6 +61,7 @@ final class Durable_Charset {
 			$type = $column['Type']; $collation = $column['Collation'];
 			if ( ! preg_match( '/(?:char|text|blob|binary|enum|set)/i', $type ) ) { continue; }
 			if ( ! preg_match( '/\A(?:char\([0-9]+\)|varchar\([0-9]+\)|(?:tiny|medium|long)?text)\z/D', $type ) || ! is_string( $collation ) || ! preg_match( '/\A(?:ascii|utf8|utf8mb3|utf8mb4)_[a-z0-9_]+\z/D', $collation ) || '' !== $column['Extra'] ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Diagnostic exception construction; not HTML output.
 				throw new \RuntimeException( 'Durable encoding: unsupported byte storage ' . $table . '.' . $column['Field'] . '.' );
 			}
 			if ( 0 === strpos( $collation, 'utf8mb4_' ) ) { continue; }
@@ -75,6 +77,7 @@ final class Durable_Charset {
 		// existing transport's savepoint probe refuses an ambient transaction.
 		$probe = new Price_Apply_Connection( $db );
 		try { $probe->begin(); }
+		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Diagnostic exception construction; not HTML output.
 		catch ( \Throwable $error ) { throw new \RuntimeException( 'Durable encoding migration requires no active transaction.', 0, $error ); }
 		if ( ! $probe->rollback() ) { throw new \RuntimeException( 'Durable encoding: transaction probe cleanup failed.' ); }
 		// Validate every text column without loading catalog/history-sized rows
@@ -87,7 +90,10 @@ final class Durable_Charset {
 			$bad = $db->get_var( $sql );
 			$error = $db->last_error;
 			$warnings = $db->get_results( 'SHOW WARNINGS', ARRAY_A );
-			if ( null !== $bad || '' !== $error || $warnings ) { throw new \RuntimeException( 'Durable encoding: undecodable row/column ' . $table . '.' . $name . '; migration refused.' ); }
+			if ( null !== $bad || '' !== $error || $warnings ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Diagnostic exception construction; not HTML output.
+				throw new \RuntimeException( 'Durable encoding: undecodable row/column ' . $table . '.' . $name . '; migration refused.' );
+			}
 		}
 		$mode = $db->get_var( 'SELECT @@SESSION.sql_mode' );
 		if ( ! is_string( $mode ) ) { throw new \RuntimeException( 'Durable encoding: session SQL mode unavailable.' ); }

@@ -24,6 +24,7 @@ final class Woo_Undo_Mutator {
 
 	private static function schema( \wpdb $db ): void {
 		$reason = Free_Support_Contract::execution_reason( $db );
+		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Typed machine reason code; not HTML output.
 		if ( null !== $reason ) { throw new Price_Apply_Error( Free_Support_Contract::item_reason( $reason ) ); }
 		Price_Apply_Journal::assert_schema( $db );
 		Undo_Schema::assert_schema( $db );
