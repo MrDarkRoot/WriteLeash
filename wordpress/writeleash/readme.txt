@@ -75,6 +75,7 @@ side effects.
 
 * Up to 1,000 selected products per new job in the tested configuration.
 * Published core simple WooCommerce products.
+* Published core variable WooCommerce products: selecting the parent targets all of its variations, or select individual variations.
 * Stored regular and sale prices in the base store currency.
 * Adding a first sale price with Set; changing an existing sale with any operation.
 * Regular-price edits on products with an existing sale price or schedule (the sale is preserved).
@@ -82,7 +83,7 @@ side effects.
 * WordPress 7.0 through 7.x is supported. WordPress 7.0.1 and 7.1.2 were exercised. Requires WordPress 7.0 or newer.
 * PHP 7.4.33, 8.0.30, 8.1.34 and 8.2.34 were exercised. Requires PHP 7.4 or newer.
 * MySQL 8.0.44 and MariaDB 10.11.15 were exercised, with default and Redis Object Cache 2.7.0 (Redis 7.4.2) persistent cache modes.
-* Not changed: sale dates, variations, stock and orders.
+* Not changed: sale dates, stock and orders. Variable parent price ranges are refreshed with WooCommerce's own sync after every variation change.
 * Multisite is unsupported.
 * Real managed or shared hosting has not been tested.
 
@@ -112,18 +113,21 @@ required.
 = Does WriteLeash change sale prices, variations or stock? =
 
 It changes the stored regular price or the stored sale price you choose for
-published core simple products. A regular-price change preserves an existing
-sale price and schedule. Sale dates themselves, variations, stock and orders
-are outside the supported scope. Setting a sale price at or above the regular
-price (or a regular price at or below the sale) is refused because WooCommerce
-would clear the sale.
+published core simple products and for variations of published core variable
+products. Selecting a variable parent targets all of its variations; you can
+also select individual variations. A regular-price change preserves an existing
+sale price and schedule. Sale dates themselves, stock and orders are outside
+the supported scope. Setting a sale price at or above the regular price (or a
+regular price at or below the sale) is refused because WooCommerce would clear
+the sale.
 
 = What happens if the regular price or execution state changes after approval? =
 
 If the stored regular price or another execution precondition no longer matches
 the approved plan, that item is reported as a conflict instead of being blindly
 overwritten. Execution preconditions include product existence, core-simple/type
-state, publication status, the stored value of the changed price field,
+state (including a variation's published core variable parent), publication
+status, the stored value of the changed price field,
 currency/base context and price
 decimals. Routine WordPress/WooCommerce updates inside the supported ranges do
 not cause conflicts on their own; versions outside the supported ranges do.

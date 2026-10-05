@@ -32,6 +32,80 @@ final class Price_Cache_Verifier {
 		if ( ! $db->dbh instanceof \mysqli || $db->dbh === $GLOBALS['wpdb']->dbh ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		return $db;
 	}
+	/**
+	 * The exact core data stores this transaction class certifies: a simple
+	 * product's CPT store and a variation's CPT store. Extension product
+	 * classes are refused even when they reuse a core store.
+	 */
+	public static function core_data_store( \WC_Product $product ): bool {
+		$store = $product->get_data_store();
+		if ( ! $store ) { return false; }
+		return in_array( $store->get_current_class_name(), array( 'WC_Product_Data_Store_CPT', 'WC_Product_Variation_Data_Store_CPT' ), true );
+	}
+	/**
+	 * Woo's own variable-parent range computation: the sorted DISTINCT
+	 * non-empty child `_price` strings; min is first, max is last. This
+	 * mirrors WC_Product_Variable_Data_Store_CPT::sync_price + lookup.
+	 */
+	public static function parent_range( array $prices ): array {
+		$distinct = array();
+		foreach ( $prices as $price ) {
+			if ( null === $price ) { continue; }
+			$price = (string) $price;
+			if ( '' === $price ) { continue; }
+			if ( ! in_array( $price, $distinct, true ) ) { $distinct[] = $price; }
+		}
+		sort( $distinct, SORT_NUMERIC );
+		return array( 'min' => $distinct ? $distinct[0] : null, 'max' => $distinct ? $distinct[ count( $distinct ) - 1 ] : null );
+	}
+	/**
+	 * After WC_Product_Variable::sync() recompute the parent range from the
+	 * visible children's `_price` values and refuse divergence from the
+	 * parent lookup row (typed LOOKUP_MISMATCH => review, zero commit).
+	 */
+	public static function assert_parent_range( \wpdb $db, int $parent_id, array $visible_children ): array {
+		if ( $parent_id < 1 ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
+		$lookup = $db->get_row( $db->prepare( "SELECT min_price,max_price,onsale FROM {$db->wc_product_meta_lookup} WHERE product_id=%d", $parent_id ), ARRAY_A );
+		if ( ! $lookup ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
+		$prices = array();
+		if ( $visible_children ) {
+			$placeholders = implode( ',', array_fill( 0, count( $visible_children ), '%d' ) );
+			$prices = $db->get_col( $db->prepare( "SELECT DISTINCT meta_value FROM {$db->postmeta} WHERE meta_key='_price' AND post_id IN ($placeholders)", $visible_children ) );
+		}
+		$range = self::parent_range( (array) $prices );
+		if ( null === $range['min'] ) {
+			if ( ! self::parent_range_empty( $lookup['min_price'] ?? null ) || ! self::parent_range_empty( $lookup['max_price'] ?? null ) ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
+		} elseif ( ! Price_Decimal::equal( (string) ( $lookup['min_price'] ?? '' ), $range['min'] ) || ! Price_Decimal::equal( (string) ( $lookup['max_price'] ?? '' ), $range['max'] ) ) {
+			throw new Price_Apply_Error( 'LOOKUP_MISMATCH' );
+		}
+		// sync_price deletes the parent sale meta, so a variable parent is never onsale.
+		if ( '0' !== (string) ( $lookup['onsale'] ?? '' ) ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
+		return $range;
+	}
+	/** An empty parent range may be stored as NULL, empty text or numeric zero. */
+	private static function parent_range_empty( $value ): bool {
+		if ( null === $value || '' === $value ) { return true; }
+		try { return '0' === Price_Decimal::parse( (string) $value ); }
+		catch ( \Throwable $error ) { return false; }
+	}
+	/**
+	 * Refresh a variation's parent through Woo's public sync on the caller's
+	 * pinned transaction connection, then certify the parent lookup range
+	 * against the visible children. Shared by Apply and Undo.
+	 */
+	public static function sync_variable_parent( \wpdb $db, int $parent_id ): void {
+		if ( $parent_id < 1 ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
+		// Serialize sibling variation mutations on the shared parent row.
+		$post = $db->get_row( $db->prepare( "SELECT ID FROM {$db->posts} WHERE ID=%d FOR UPDATE", $parent_id ) );
+		if ( ! $post ) { throw new Price_Apply_Error( 'CONFLICT' ); }
+		self::invalidate( $parent_id );
+		$parent = wc_get_product( $parent_id );
+		// A parent that is no longer a core variable product is a concurrent
+		// product-state conflict, never an environment/state corruption.
+		if ( ! $parent || 'WC_Product_Variable' !== get_class( $parent ) ) { throw new Price_Apply_Error( 'CONFLICT' ); }
+		\WC_Product_Variable::sync( $parent );
+		self::assert_parent_range( $db, $parent_id, (array) $parent->get_visible_children() );
+	}
 	public static function storage( \wpdb $db, int $id, bool $lock = false ): array {
 		$rows = $db->get_results( $db->prepare( "SELECT meta_key,meta_value FROM {$db->postmeta} WHERE post_id=%d ORDER BY meta_id" . ( $lock ? ' FOR UPDATE' : '' ), $id ), ARRAY_A );
 		$meta = array();
@@ -157,6 +231,10 @@ final class Price_Cache_Verifier {
 				}
 			}
 			$truth = self::storage( $db, $id );
+			$core_variation = ! empty( $item['snapshot']['core_variation'] );
+			if ( $core_variation ) {
+				if ( (int) ( $evidence['parent_id'] ?? 0 ) !== (int) ( $item['snapshot']['parent_id'] ?? 0 ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			}
 			if ( null === $field ) {
 				self::matches( $truth, $item['planned_regular_price'] );
 			} else {
@@ -171,7 +249,7 @@ final class Price_Cache_Verifier {
 			$GLOBALS['wpdb'] = $db;
 			self::invalidate( $id );
 			$product = wc_get_product( $id );
-			if ( ! $product || 'WC_Product_Simple' !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+			if ( ! $product || ( $core_variation ? 'WC_Product_Variation' : 'WC_Product_Simple' ) !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 			if ( null === $field ) {
 				if ( '' !== $product->get_sale_price( 'edit' ) || $product->get_date_on_sale_from( 'edit' ) || $product->get_date_on_sale_to( 'edit' ) || Price_Decimal::parse( $product->get_regular_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) || Price_Decimal::parse( $product->get_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 			} else {
@@ -185,10 +263,21 @@ final class Price_Cache_Verifier {
 					throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' );
 				}
 			}
+			// The variation's own storefront row is certified; the parent range
+			// must also reflect Woo's post-sync visible-child computation.
+			if ( $core_variation ) { self::observe_variable_parent( $db, (int) $item['snapshot']['parent_id'] ); }
 			return array( 'journal' => $row, 'storage' => $truth, 'observer_connection' => (int) $db->dbh->thread_id );
 		} catch ( \Throwable $error ) {
 			if ( $error instanceof Price_Apply_Error ) { throw $error; }
 			throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' );
 		} finally { $GLOBALS['wpdb'] = $original; $db->close(); }
+	}
+	/** Live parent certification on the observer connection; Woo reads use it too. */
+	public static function observe_variable_parent( \wpdb $db, int $parent_id ): void {
+		if ( $parent_id < 1 ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+		self::invalidate( $parent_id );
+		$parent = wc_get_product( $parent_id );
+		if ( ! $parent || 'WC_Product_Variable' !== get_class( $parent ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+		self::assert_parent_range( $db, $parent_id, (array) $parent->get_visible_children() );
 	}
 }

@@ -7,6 +7,12 @@
 > sale); a sale-field Undo also guards the regular price recorded at apply time
 > and removes a WriteLeash-added sale when the expected value is empty. Legacy
 > provenance without `price_field` keeps the old strict behavior exactly.
+>
+> #179 supersedes the simple-only statements below: eligible core variations
+> are restored through the same field-scoped path and re-sync their parent
+> through `WC_Product_Variable::sync()` on the same transaction connection with
+> the same lookup-range certification. A variation whose parent is no longer
+> the same published core variable product is a typed conflict, not a restore.
 
 This layer turns the #108 Woo CRUD + price journal facts and the #109
 durable per-item outcomes into Free conflict-aware Undo and bounded history.

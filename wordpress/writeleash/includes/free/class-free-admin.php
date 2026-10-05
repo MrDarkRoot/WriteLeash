@@ -884,9 +884,21 @@ final class Free_Admin {
 		$label = Price_Operation::FIELD_SALE === $field ? 'sale prices' : 'regular prices';
 		$verbs = array( 'SET' => 'Set ' . $label . ' to ', 'INCREASE_FIXED' => 'Increase ' . $label . ' by ', 'DECREASE_FIXED' => 'Decrease ' . $label . ' by ', 'INCREASE_PERCENT' => 'Increase ' . $label . ' by ', 'DECREASE_PERCENT' => 'Decrease ' . $label . ' by ' );
 		$type = $op['type'];
+		$total = count( $plan['items'] );
+		$variations = 0;
+		foreach ( $plan['items'] as $item ) {
+			if ( ! empty( $item['snapshot']['core_variation'] ) ) { ++$variations; }
+		}
+		if ( $variations === $total ) {
+			$count = $total . ( 1 === $total ? ' variation' : ' variations' );
+		} elseif ( $variations > 0 ) {
+			$count = $total . ( 1 === $total ? ' product' : ' products' ) . ' (' . $variations . ( 1 === $variations ? ' variation' : ' variations' ) . ')';
+		} else {
+			$count = $total . ( 1 === $total ? ' product' : ' products' );
+		}
 		return ( $verbs[ $type ] ?? 'Price operation: ' )
 			. ( in_array( $type, array( 'INCREASE_PERCENT', 'DECREASE_PERCENT' ), true ) ? self::percentage_display( $op['input'] ) : self::money_display( $op['input'], $plan['store'] ) )
-			. ' · ' . count( $plan['items'] ) . ( 1 === count( $plan['items'] ) ? ' product' : ' products' );
+			. ' · ' . $count;
 	}
 
 	/** Display only: string arithmetic keeps exact decimals out of floating point. */
@@ -936,13 +948,21 @@ final class Free_Admin {
 		return false === $timestamp ? 'Unavailable' : wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp, wp_timezone() ) . ' (' . wp_timezone_string() . ')';
 	}
 
+	/** Variation rows read "Product name — Blue / M" with SKU/ID secondary. */
+	private static function identity_name( array $identity ): string {
+		$name = (string) ( $identity['variation_label'] ?? '' );
+		if ( '' === $name ) { $name = (string) ( $identity['name'] ?? '' ); }
+		return $name;
+	}
+
 	private static function render_identity( array $frozen ): void {
 		$id = (int) $frozen['product_id'];
 		$identity = $frozen['snapshot'] ?? $frozen;
-		$name = (string) ( $identity['name'] ?? '' );
+		$name = self::identity_name( $identity );
+		$variation = ! empty( $identity['core_variation'] );
 		echo '<strong>' . esc_html( '' === $name ? 'Name unavailable at preview' : $name ) . '</strong><br><span class="description">';
 		$sku = (string) ( $identity['sku'] ?? '' );
-		echo esc_html( ( '' === $sku ? '' : 'SKU: ' . $sku . ' · ' ) . 'Product #' . $id . ' · identity at preview' ) . '</span>';
+		echo esc_html( ( '' === $sku ? '' : 'SKU: ' . $sku . ' · ' ) . ( $variation ? 'Variation' : 'Product' ) . ' #' . $id . ' · identity at preview' ) . '</span>';
 		// No current-name fallback. A native edit link requires a current Woo post and per-product permission.
 		$post = get_post( $id );
 		if ( $post && in_array( $post->post_type, array( 'product', 'product_variation' ), true ) && current_user_can( 'edit_post', $id ) ) {
@@ -1096,7 +1116,7 @@ final class Free_Admin {
 				if ( null === $frozen ) { throw new \RuntimeException( 'Saved identity unavailable' ); }
 				$row = array(
 					$job['public_id'], self::task_description( $plan->data() ), Price_Operation::label( $plan_field ),
-					$frozen['snapshot']['name'], $frozen['snapshot']['sku'], $item['product_id'],
+					self::identity_name( $frozen['snapshot'] ), $frozen['snapshot']['sku'], $item['product_id'],
 					$frozen['snapshot']['regular_price'], $item['expected_price'], $item['planned_price'], $job['currency'],
 					self::item_label( $item['apply_state'], $job['status'] ), $item['apply_state'],
 					'UNSUPPORTED' === $item['apply_state'] ? ( $frozen['eligibility']['reason'] ?? $item['apply_reason'] ) : $item['apply_reason'],
@@ -1138,7 +1158,7 @@ final class Free_Admin {
 
 	private static function render_home_view( array $form = array() ): void {
 		echo '<p>';
-		echo esc_html( 'Change stored regular or sale prices for published core simple products in the base store currency. Variations, sale dates, stock, orders and subscriptions are out of scope and are excluded with reasons.' );
+		echo esc_html( 'Change stored regular or sale prices for published core simple products and variations of published core variable products in the base store currency. Variations can be selected as a whole product or individually; WooCommerce parent price ranges are refreshed after every change. Sale dates, stock, orders and subscriptions are out of scope and are excluded with reasons.' );
 		echo '</p>';
 		echo '<p>' . esc_html( 'WriteLeash supports up to ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' selected products per job in the tested configuration.' ) . '</p>';
 		echo '<p>';
@@ -1450,7 +1470,8 @@ final class Free_Admin {
 			if ( ! $product instanceof \WC_Product || $product->get_id() !== $product_id ) { return $unavailable; }
 			$snapshot = Product_Price_Snapshot::read( $product_id, $product )->data();
 			$context = '';
-			if ( ! $snapshot['core_simple'] ) { $context = 'At page load, this product is no longer a supported core simple product.'; }
+			if ( ! $snapshot['core_simple'] && empty( $snapshot['core_variation'] ) ) { $context = 'At page load, this product is no longer a supported core simple product or variation.'; }
+			elseif ( ! empty( $snapshot['core_variation'] ) && ( 'publish' !== ( $snapshot['parent_status'] ?? '' ) || empty( $snapshot['parent_core_variable'] ) ) ) { $context = 'At page load, this variation’s parent is no longer a published core variable product.'; }
 			elseif ( 'publish' !== $snapshot['status'] ) { $context = 'At page load, this product is no longer published.'; }
 			elseif ( Price_Operation::FIELD_REGULAR === $field && ( '' !== $snapshot['sale_price'] || null !== $snapshot['sale_from'] || null !== $snapshot['sale_to'] ) ) { $context = 'At page load, this product has a sale price or schedule; a matching regular price alone does not authorize overwriting it.'; }
 			$price = $snapshot[ Price_Operation::meta_key( $field ) ];

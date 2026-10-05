@@ -7,6 +7,13 @@
 > preserved regular/sale, active and lookup values; fresh observer
 > certification is field-aware and no longer requires a sale-free product.
 > Legacy evidence without `price_field` keeps the old strict path exactly.
+>
+> #179 supersedes the simple-only statements below: eligible core variations
+> use the same CRUD path. After a variation save the item transaction locks the
+> parent row, calls `WC_Product_Variable::sync()` on the same pinned connection,
+> and certifies the parent lookup min/max against the visible children's
+> `_price` values (typed `LOOKUP_MISMATCH` => review, zero commit). Evidence adds
+> the frozen `parent_id`. Stock simple evidence keeps its exact legacy shape.
 
 This is an item correctness experiment consumed through PHP, with no public
 mutation endpoint, automatic journal installation, approval UI, job engine,

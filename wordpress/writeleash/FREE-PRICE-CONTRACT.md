@@ -8,23 +8,27 @@ path remains intact. Loadable classes do not require Woo until invoked.
 ## Product domain
 
 Only the exact core `WC_Product_Simple` class, `type=simple`, `status=publish`,
-stored `get_regular_price('edit')`, base store currency. Extension subclasses
-are conservatively excluded even if they claim to be simple. Variable parents,
-variations, grouped, external, subscriptions, bundles, composites and custom
-types are unsupported; draft/pending/private/future/trash are unsupported.
+or the exact core `WC_Product_Variation` class, `type=variation`,
+`status=publish`, whose parent is a published exact core `WC_Product_Variable`
+(#179), stored `get_regular_price('edit')` / `get_sale_price('edit')`, base
+store currency. Extension subclasses are conservatively excluded even if they
+claim to be simple or a variation. Variable parents targeted directly, grouped,
+external, subscriptions, bundles, composites and custom types are unsupported;
+draft/pending/private/future/trash are unsupported.
 Tax-inclusive/exclusive storefront prices, discounts and multi-currency
 extensions are not this price field. Filtered currency differing from the base
 option yields `unsupported_currency_context`; caller integrations must not
 claim extension-defined per-product currency support.
 
 Sale configuration is no longer a blanket exclusion (#178). A sale-configured
-simple product is eligible for a regular-price edit, and the stored sale price
-and dates are preserved. Both fields require a parseable non-empty regular price
-as the sale baseline, and a target WooCommerce would use to clear the sale is
-refused: a regular target at or below the sale (`regular_price_not_above_sale`),
-a sale target at or above the regular price (`sale_price_not_below_regular`), or
-a fixed/percent operation from an empty sale (`empty_sale_price`). Empty regular
-price is distinct from zero and is unsupported for every operation, including SET.
+simple product or variation is eligible for a regular-price edit, and the stored
+sale price and dates are preserved. Both fields require a parseable non-empty
+regular price as the sale baseline, and a target WooCommerce would use to clear
+the sale is refused: a regular target at or below the sale
+(`regular_price_not_above_sale`), a sale target at or above the regular price
+(`sale_price_not_below_regular`), or a fixed/percent operation from an empty
+sale (`empty_sale_price`). Empty regular price is distinct from zero and is
+unsupported for every operation, including SET.
 
 ## Price field (#178)
 
@@ -98,8 +102,10 @@ Unexpected duplicate exact matches fail `ambiguous_sku`, never select the first.
 Woo setter uniqueness checks are not a planner uniqueness guarantee.
 
 Category uses public WP taxonomy query `product_cat`, term ID, **no descendants**.
-Multiple memberships do not duplicate IDs. Missing term is invalid. Both products
-and variations are queried so selected unsupported variations remain explainable.
+Multiple memberships do not duplicate IDs. Missing term is invalid. Products and
+variations are queried; selected core variable parents are expanded to their
+exact child variations at preview, and a variable parent with no children stays
+one explained unsupported item.
 Concrete IDs are frozen; subsequent membership changes are **provenance only**,
 not drift conflicts. SKU/name changes are also provenance only. Workers do not
 re-query selectors. Title search: **DEFER** (search interpretation/cost unproven).

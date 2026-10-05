@@ -8,13 +8,29 @@ final class Price_Selection_Spec {
 	private array $values;
 	private function __construct( array $values ) { $this->values = $values; }
 	public static function ids( array $ids ): self {
+		return self::identity( $ids, array() );
+	}
+	/**
+	 * Trusted preview-time factory for an IDS selection resolved from a
+	 * requested selection (for example a selected variable parent expanded to
+	 * its variations). The requested selection's warnings are preserved and
+	 * the resolved IDs stay the exact frozen population.
+	 */
+	public static function resolved( array $ids, array $warnings ): self {
+		foreach ( $warnings as $warning ) {
+			if ( ! is_string( $warning ) || '' === $warning ) { throw new Price_Validation_Error( 'invalid_selection_size' ); }
+		}
+		return self::identity( $ids, array_values( $warnings ) );
+	}
+	private static function identity( array $ids, array $warnings ): self {
 		if ( ! $ids || count( $ids ) > Product_Price_Selector::MAX_SELECTED ) { throw new Price_Validation_Error( 'invalid_selection_size' ); }
 		foreach ( $ids as $id ) {
 			if ( ! is_int( $id ) || $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
 		}
 		$unique = array_values( array_unique( $ids ) );
 		sort( $unique, SORT_NUMERIC );
-		return new self( array( 'type' => 'IDS', 'ids' => $unique, 'warnings' => count( $unique ) !== count( $ids ) ? array( 'duplicate_selection' ) : array() ) );
+		if ( count( $unique ) !== count( $ids ) ) { $warnings[] = 'duplicate_selection'; }
+		return new self( array( 'type' => 'IDS', 'ids' => $unique, 'warnings' => array_values( array_unique( $warnings ) ) ) );
 	}
 	public static function sku( string $sku ): self {
 		if ( '' === $sku || strlen( $sku ) > 100 || preg_match( '/[\x00-\x20\x7f<>]/', $sku ) || '*' === $sku || ! preg_match( '//u', $sku ) ) { throw new Price_Validation_Error( 'invalid_sku' ); }
@@ -65,17 +81,94 @@ final class Product_Price_Selector {
 			}
 		}
 		if ( 'SKU' === $s['type'] && count( $products ) > 1 ) { throw new Price_Validation_Error( 'ambiguous_sku' ); }
-		$ids = 'IDS' === $s['type'] ? $s['ids'] : array_merge( array_keys( $products ), array_keys( $unreadable ) );
-		sort( $ids, SORT_NUMERIC );
+		// #179: a selected core variable parent resolves to its exact variation
+		// set at preview time. An advanced exact-SKU selection keeps its single
+		// exact product semantics.
+		$expanded = array();
+		if ( 'SKU' !== $s['type'] ) {
+			list( $products, $unreadable, $expanded ) = self::expand_variable_parents( $products, $unreadable );
+		}
+		if ( count( $products ) + count( $unreadable ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
+		if ( 'IDS' === $s['type'] ) {
+			$ids = array();
+			foreach ( $s['ids'] as $requested ) {
+				if ( ! empty( $expanded[ $requested ] ) ) {
+					foreach ( $expanded[ $requested ] as $child_id ) { $ids[] = $child_id; }
+				} else {
+					$ids[] = $requested;
+				}
+			}
+			$ids = array_values( array_unique( $ids ) );
+			sort( $ids, SORT_NUMERIC );
+		} else {
+			$ids = array_merge( array_keys( $products ), array_keys( $unreadable ) );
+			sort( $ids, SORT_NUMERIC );
+		}
 		$snapshots = array();
 		foreach ( $ids as $id ) {
 			if ( isset( $unreadable[ $id ] ) ) { $snapshots[] = Product_Price_Snapshot::unreadable( $id ); continue; }
 			try {
-				$snapshots[] = Product_Price_Snapshot::read( $id, $products[ $id ] ?? false );
+				$snapshots[] = Product_Price_Snapshot::read( $id, $products[ $id ] ?? false, self::parent_of( $products[ $id ] ?? false ) );
 			} catch ( \Throwable $error ) {
 				$snapshots[] = Product_Price_Snapshot::unreadable( $id );
 			}
 		}
 		return $snapshots;
+	}
+	/** The exact resolved IDS selection a preview must freeze; other kinds keep their spec. */
+	public static function resolved_selection( Price_Selection_Spec $spec, array $snapshots ): Price_Selection_Spec {
+		if ( 'IDS' !== $spec->data()['type'] ) { return $spec; }
+		$ids = array();
+		foreach ( $snapshots as $snapshot ) { $ids[] = (int) $snapshot->data()['product_id']; }
+		sort( $ids, SORT_NUMERIC );
+		return Price_Selection_Spec::resolved( $ids, $spec->data()['warnings'] );
+	}
+	/** Only exact core variable parents expand; extension subclasses stay refused as-is. */
+	private static function expandable_parent( $product ): bool {
+		return is_object( $product ) && 'WC_Product_Variable' === get_class( $product ) && method_exists( $product, 'get_children' );
+	}
+	private static function parent_of( $product ) {
+		if ( ! $product instanceof \WC_Product_Variation || ! function_exists( 'wc_get_product' ) ) { return null; }
+		try {
+			$parent_id = (int) $product->get_parent_id( 'edit' );
+			return $parent_id > 0 ? wc_get_product( $parent_id ) : null;
+		} catch ( \Throwable $error ) { return null; }
+	}
+	/**
+	 * Replace each readable core variable parent with its child variations
+	 * (all children Keyed by child ID). A parent with no readable children
+	 * stays itself so the merchant still sees one explained unsupported item.
+	 */
+	private static function expand_variable_parents( array $products, array $unreadable ): array {
+		$expanded_products = array();
+		$expanded_unreadable = array();
+		$expanded_children = array();
+		foreach ( $products as $product_id => $product ) {
+			if ( ! self::expandable_parent( $product ) ) {
+				$expanded_products[ $product_id ] = $product;
+				continue;
+			}
+			$children = array();
+			try { $children = (array) $product->get_children(); }
+			catch ( \Throwable $error ) { $children = array(); }
+			$children = array_values( array_unique( array_map( 'intval', $children ) ) );
+			$children = array_values( array_filter( $children, static fn( $child_id ) => $child_id > 0 && $child_id !== (int) $product_id ) );
+			if ( ! $children ) {
+				$expanded_products[ $product_id ] = $product;
+				continue;
+			}
+			$expanded_children[ $product_id ] = $children;
+			foreach ( $children as $child_id ) {
+				if ( isset( $products[ $child_id ] ) || isset( $unreadable[ $child_id ] ) ) { continue; }
+				try {
+					$child = wc_get_product( $child_id );
+					$expanded_products[ $child_id ] = $child instanceof \WC_Product ? $child : false;
+				} catch ( \Throwable $error ) {
+					$expanded_unreadable[ $child_id ] = true;
+				}
+			}
+		}
+		foreach ( $unreadable as $product_id => $flag ) { $expanded_unreadable[ $product_id ] = true; }
+		return array( $expanded_products, $expanded_unreadable, $expanded_children );
 	}
 }
