@@ -89,21 +89,21 @@ async function row(page, id) { return page.locator('tr[data-product-id="' + id +
         }
         await open(page, 'blocked', 'preview');
         ok((await text(page)).includes('This plan cannot be executed.'), 'blocked plan clear');
-        ok(await page.getByRole('button', { name: 'Approve and queue execution' }).count() === 0, 'blocked no execution action');
+        ok(await page.getByRole('button', { name: 'Approve and apply' }).count() === 0, 'blocked no execution action');
         await open(page, 'blocked');
         ok((await text(page)).includes('will not run') && !(await text(page)).includes('1 remaining'), 'blocked internal pending is not remaining work');
         await capture(page, 'blocked');
         await open(page, 'nochange', 'preview');
-        ok((await text(page)).includes('Already at target; unchanged') && (await text(page)).includes('Skipped at preview; unchanged'), 'exclusion/no-change preview');
-        await action(page, 'Approve and queue execution');
+        ok((await text(page)).includes('Already at the target price') && (await text(page)).includes('Skipped at preview'), 'exclusion/no-change preview');
+        await action(page, 'Approve and apply');
         await action(page, 'Resume remaining products');
-        ok((await text(page)).includes('1 already at target') && (await text(page)).includes('1 skipped at preview'), 'disjoint no-change results');
+        ok((await text(page)).includes('1 already at the target price') && (await text(page)).includes('1 skipped'), 'disjoint no-change results');
         ok((await text(page)).includes('no products were changed by this job'), 'Undo unavailable exact reason');
         await capture(page, 'exclusions');
         await open(page, 'mixed', 'preview');
         await capture(page, 'preview');
         ok((await text(page)).includes('Blue T-Shirt') && !(await text(page)).includes('Renamed externally'), 'frozen saved identity after rename');
-        await action(page, 'Approve and queue execution');
+        await action(page, 'Approve and apply');
         ok((await text(page)).includes('12 remaining'), 'queued progress honest');
         await action(page, 'Resume remaining products');
         ok((await text(page)).includes('9 changed') && (await text(page)).includes('1 conflict') && (await text(page)).includes('2 remaining'), 'partial 10 processed separates conflicts and remaining');
@@ -121,9 +121,9 @@ async function row(page, id) { return page.locator('tr[data-product-id="' + id +
         ok((await text(page)).includes('11 changed') && (await text(page)).includes('1 conflict') && (await text(page)).includes('Finished with products needing attention'), 'mixed finished is not complete success');
         ok(observe().prices[fixture.mixed_ids[0]] === '21.00', 'independent storage confirms preserved newer price');
         await capture(page, 'mixed-conflict');
-        await link(page, 'Apply conflicts');
+        await link(page, 'Conflicts');
         ok(await page.locator('tr[data-product-id]').count() === 1, 'attention view reads only matching conflicted product');
-        await link(page, 'Uncertain Apply outcomes');
+        await link(page, 'Uncertain changes');
         ok((await text(page)).includes('No retained products on this page match this view.'), 'empty uncertainty view is honest');
         await link(page, 'All products');
         observe('edit-undo');
@@ -138,7 +138,7 @@ async function row(page, id) { return page.locator('tr[data-product-id="' + id +
         ok((await text(page)).includes('does not reverse: orders'), 'Undo external effects boundary');
         await capture(page, 'undo-conflict');
         await open(page, 'sale', 'preview');
-        await action(page, 'Approve and queue execution'); await action(page, 'Resume remaining products');
+        await action(page, 'Approve and apply'); await action(page, 'Resume remaining products');
         ok((await text(page)).includes('sale price or schedule') && (await text(page)).includes('matching regular price alone'), 'sale eligibility conflict despite equal regular price');
         ok(observe().prices[fixture.sale_id] === '18.00', 'independent observer confirms equal price preserved');
         await capture(page, 'sale-conflict');
@@ -151,7 +151,7 @@ async function row(page, id) { return page.locator('tr[data-product-id="' + id +
         await capture(page, 'expired-undo');
         await open(page, 'success', 'preview');
         ok((await text(page)).includes('<script>alert("168")</script> Café 日本'), 'Unicode and markup-shaped preview identity');
-        await action(page, 'Approve and queue execution'); await action(page, 'Resume remaining products');
+        await action(page, 'Approve and apply'); await action(page, 'Resume remaining products');
         ok((await text(page)).includes('2 changed') && (await text(page)).includes('Undo available'), 'successful Apply');
         const before = observe();
         const downloadEvent = page.waitForEvent('download');

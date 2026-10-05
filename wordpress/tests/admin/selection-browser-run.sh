@@ -59,4 +59,16 @@ SETUP
     docker exec "$container" sh -c 'kill "$(cat /tmp/wl167-web.pid)"'
   done
 done
-echo '#167 real-browser two-engine/default/Redis selection and saved review: PASS'
+# #182 listing captures: one deterministic set from the mysql/default site.
+export WL167_SITE="/tmp/wl167-mysql-default"
+export WL167_EVIDENCE="$evidence"
+export WL167_LISTING_FIXTURE="$scratch/listing-fixture.json"
+docker exec -d -e WL167_SITE "$container" sh -c 'echo "$$" >/tmp/wl167-listing-web.pid; exec php -S 0.0.0.0:8080 -t "$WL167_SITE" >/tmp/wl167-listing-web.log 2>&1'
+curl --fail --silent --retry 5 --retry-all-errors --retry-delay 1 "$WL167_BASE_URL/wp-login.php" >/dev/null
+docker exec -e WL167_LISTING_MODE=seed -e WL167_LISTING_FIXTURE=/tmp/wl167-listing-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/listing-browser-fixture.php
+docker cp "$container:/tmp/wl167-listing-fixture.json" "$WL167_LISTING_FIXTURE"
+chmod 600 "$WL167_LISTING_FIXTURE"
+echo '#182 real browser listing captures engine=mysql cache=default'
+node "$here/listing-capture.cjs"
+docker exec "$container" sh -c 'kill "$(cat /tmp/wl167-listing-web.pid)"'
+echo '#167/#182 real-browser two-engine/default/Redis selection, saved review and listing captures: PASS'

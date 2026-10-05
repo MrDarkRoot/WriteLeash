@@ -64,7 +64,7 @@ Status values:
   * `wordpress/writeleash/FREE-PRICE-APPLY-CONTRACT.md` — stock `WC_Product_Data_Store_CPT` / `WC_Product_Variation_Data_Store_CPT` and Woo CRUD path.
   * `wordpress/tests/acceptance/EVIDENCE.md` — price/meta/lookup/cache/journal parity on every completed row.
 * **ALLOWED WORDING:** "Not changed: sale dates, stock and orders. Variable parent price ranges are refreshed with WooCommerce's own sync after every variation change."
-* **REQUIRED LIMITATION:** Sale-date editing, stock, orders and non-simple/non-variation product types are unsupported; variation selections freeze their exact variation IDs at preview; a regular or sale target that WooCommerce would use to clear the sale is refused.
+* **REQUIRED LIMITATION:** Sale-date editing, stock, orders and non-simple/non-variation product types are unsupported; variation selections save their exact variation IDs in the preview; a regular or sale target that WooCommerce would use to clear the sale is refused. SKU, product name and category are reference details only and do not by themselves cause a conflict.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 5. WooCommerce version
@@ -127,53 +127,53 @@ Status values:
 * **REQUIRED LIMITATION:** Exact fixture only; not a general "works with every caching plugin" promise.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
-## 10. Frozen preview and approval binding
+## 10. Preview and approval binding
 
-* **COPY CLAIM:** "build a frozen preview and approve the exact plan"; "Approval executes exactly the frozen product IDs and the absolute target prices that were previewed."
+* **COPY CLAIM:** "build a preview and approve the exact preview"; "Approving applies exactly the products and target prices shown in the preview."
 * **SUPPORTING ISSUE:** #107 immutable Change Plan; #109 durable import; #111 Admin.
 * **SUPPORTING TEST/EVIDENCE:**
   * `FREE-PRICE-CONTRACT.md` — immutable plan, `Plan_Hasher`, approval hydration/fingerprint checks.
   * `wordpress/tests/acceptance/EVIDENCE.md` — percentage targets stayed absolute on apply and Undo; immutable bindings unchanged.
-  * `SUPPORT-REPAIR.md` — approval hydrates/verifies frozen material; cannot be reused for different inputs.
-* **ALLOWED WORDING:** "Changing the selection, operation or safety policy requires a new preview."
+  * `SUPPORT-REPAIR.md` — approval hydrates/verifies saved material; cannot be reused for different inputs.
+* **ALLOWED WORDING:** "Changing the selection or the price settings requires a new preview."
 * **REQUIRED LIMITATION:** Planned prices are target store values, not guaranteed shopper prices.
 * **STATUS:** PUBLISHABLE.
 
 ## 11. Conflict behavior
 
-* **COPY CLAIM:** "If the stored regular price or another execution precondition no longer matches the approved plan, that item is reported as a conflict instead of being blindly overwritten."
+* **COPY CLAIM:** "If the stored price WriteLeash is changing or another checked setting no longer matches the preview, WriteLeash leaves the newer value alone and marks that product as a conflict."
 * **SUPPORTING ISSUE:** #107 optimistic concurrency contract; #109/#110 conflict state; #111 item UI; #112 fresh-state tests.
 * **SUPPORTING TEST/EVIDENCE:**
   * `wordpress/tests/acceptance/EVIDENCE.md` — "regular-price property changed to 88" → rollback to 100, journal/job `NEEDS_REVIEW`, no false `APPLIED`; external edit before Apply recorded.
   * `wordpress/tests/acceptance/SUPPORT-REPAIR.md` — one later Woo edit to 75 conflicts while other items restore.
-  * `FREE-PRICE-CONTRACT.md` and `class-product-snapshot.php` — execution fingerprint covers the stored value of the changed price field (regular or sale), product existence, core-simple/type state, publication status, currency/base context, price decimals and WordPress/WooCommerce versions. A regular-field plan preserves external sale changes; a sale-field plan requires the planned sale to stay strictly below the current regular price. SKU, name/title and category membership are provenance-only.
-* **ALLOWED WORDING:** The exact copy claim above. Screenshot caption: "A later regular-price or execution-state change becomes a conflict instead of a blind overwrite."
-* **REQUIRED LIMITATION:** SKU/name/category-only changes are not automatic execution conflicts. Never claim WriteLeash prevents all bad edits or blocks every concurrent Woo/plugin write; only the approved items are rechecked and fenced.
+  * `FREE-PRICE-CONTRACT.md` and `class-product-snapshot.php` — execution fingerprint covers the stored value of the changed price field (regular or sale), product existence, core-simple/type state, publication status, currency/base context, price decimals and WordPress/WooCommerce versions. A regular-field plan preserves external sale changes; a sale-field plan requires the planned sale to stay strictly below the current regular price. SKU, product name and category are reference details only and do not by themselves cause a conflict.
+* **ALLOWED WORDING:** The exact copy claim above. Screenshot caption: "A later price or setting change becomes a conflict instead of a blind overwrite."
+* **REQUIRED LIMITATION:** SKU/product-name/category-only changes are not automatic conflicts. Never claim WriteLeash prevents all bad edits or blocks every concurrent Woo/plugin write; only the approved items are rechecked before they are changed.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
-## 12. Durable progress, partial outcomes and Resume
+## 12. Saved progress, partial outcomes and Resume
 
-* **COPY CLAIM:** "Progress is durable, so a closed browser or an interrupted worker does not lose the job"; "the protected Resume action continues the existing job in bounded chunks"; "A partial result reports per-outcome counts instead of claiming global success."
+* **COPY CLAIM:** "Progress is saved, so a closed browser or an interrupted background step does not lose the change"; "the Resume action continues the existing job in small steps"; "Results report per-outcome counts instead of claiming global success."
 * **SUPPORTING ISSUE:** #109 durable job engine; #110 Undo lifecycle; #111 Resume/REST UI; #112 scheduler/kill tests.
 * **SUPPORTING TEST/EVIDENCE:**
   * `FREE-JOB-ENGINE-CONTRACT.md` — durable repository is truth; Action Scheduler is wake-up only; one bounded chunk per worker run.
   * `wordpress/tests/acceptance/EVIDENCE.md` — real SIGKILL with 60-second lease expiry recovered by protected HTTP Resume; duplicate/stale wakes changed no counts; scheduler refusal preserves `PAUSED`.
   * `wordpress/tests/jobs/LAB-ACTIVITY.md` — crash/lease/generation evidence.
-* **ALLOWED WORDING:** Durable progress, truthful remaining work and protected bounded Resume.
+* **ALLOWED WORDING:** Saved progress, truthful remaining work and Resume.
 * **REQUIRED LIMITATION:** Impaired scheduling may require the manual Resume action; no promise of unattended completion on every host.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 13. Undo eligibility
 
-* **COPY CLAIM:** "Undo restores eligible stored regular- or sale-price values that WriteLeash previously applied when the durable evidence and the current product state permit it."
-* **SUPPORTING ISSUE:** #110 conflict-aware Undo and history; #178 field-scoped provenance.
+* **COPY CLAIM:** "Undo restores eligible stored regular- or sale-price values that WriteLeash previously applied when the saved details and the current product state permit it."
+* **SUPPORTING ISSUE:** #110 conflict-aware Undo and history; #178 field-scoped saved record.
 * **SUPPORTING TEST/EVIDENCE:**
   * `FREE-UNDO-HISTORY-CONTRACT.md` — eligible stored-price restoration with proven Apply evidence; `UNDO_CONFLICT` and `UNDO_NEEDS_REVIEW` never overwrite.
   * `wordpress/tests/acceptance/EVIDENCE.md` — eligible stored price restored; external edit before Undo recorded; partial Undo continues after reopen.
   * `wordpress/tests/acceptance/SUPPORT-REPAIR.md` — one later edit conflicts, other items restore; first Undo POST remains nonterminal until the operation finishes.
   * `wordpress/tests/free/sale-price.php` and `wordpress/tests/undo/integration.php` — a regular-field Undo is not blocked by a later sale change and preserves it.
 * **ALLOWED WORDING:** The exact sentence above; the UI action "Restore eligible prices (Undo)".
-* **REQUIRED LIMITATION:** Not universal rollback; a stored changed-field or Undo execution-precondition mismatch is not overwritten. Do not describe arbitrary product edits as automatic conflicts.
+* **REQUIRED LIMITATION:** Not universal rollback; a stored changed-field or checked-setting mismatch is not overwritten. Do not describe arbitrary product edits as automatic conflicts.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 14. External side effects are outside Undo
@@ -300,9 +300,9 @@ The `#121` readme guard in `readme-validate.php` fails the listing if
 
 ## #122 screenshot caption mapping
 
-The readme captions are written to match the #122 asset plan and #111 UI
-states, in order: (1) frozen before/after preview; (2) safety-policy blocked
-plan; (3) "A later regular-price or execution-state change becomes a conflict instead of a blind overwrite."; (4) interrupted/paused job
-with truthful remaining work and Resume; (5) partial result with per-outcome
-counts; (6) history with conflict-aware Undo eligibility. No #122 asset files
+The readme captions are written to match the #122/#182 listing capture plan and
+#111 UI states, in order: (1) product selection; (2) before/after preview for
+the chosen regular or sale price; (3) large-job progress with what is done,
+remaining and needing attention; (4) results with expected, current and planned
+values; (5) "A later price or setting change becomes a conflict instead of a blind overwrite."; (6) history with Undo eligibility. No #122 asset files
 were created or modified by #121.

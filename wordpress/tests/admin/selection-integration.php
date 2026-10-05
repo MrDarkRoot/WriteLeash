@@ -110,7 +110,7 @@ foreach ( array( '', 'history', 'job' ) as $view167 ) {
  ok( str_contains( $html167, 'Continue review' ) && str_contains( $html167, 'wl_view=preview' ), 'saved review action on ' . $view167 );
 }
 $html167 = render_view( 'preview', $job167['public_id'], 0 );
-ok( str_contains( $html167, 'Approve and queue execution' ) && str_contains( $html167, 'Create a new preview' ), 'saved preview approval plus separate new-preview action' );
+ok( str_contains( $html167, 'Approve and apply' ) && str_contains( $html167, 'Create a new preview' ), 'saved preview approval plus separate new-preview action' );
 $direct167 = Admin::process_preview( preview_post( array( 'selector' => 'category', 'category' => (string) $parent167['term_id'] ) ), 'POST' );
 $parent_plan167 = Repo::hydrate_plan( Repo::read_by_public_id( $direct167['public_id'] ) );
 eq( array_column( $parent_plan167->data()['items'], 'product_id' ), array( $parent_product167 ), 'parent category excludes child-only member' );
@@ -144,7 +144,7 @@ eq( Repo::read_by_public_id( $job167['public_id'] )['plan_hash'], $hash167, 'reo
 eq( Admin::process_approve( approve_post( $job167 ), 'POST' )['status'], 'OK', 'saved original plan approval' );
 run_job_terminal( (int) $job167['id'] );
 price_eq( fresh_price( $duplicate167[0] ), '120.00', 'fresh conflict preserves newer Woo price' );
-ok( ! str_contains( render_view( 'preview', $job167['public_id'], 0 ), 'Approve and queue execution' ), 'old preview link after approval routes to progress' );
+ok( ! str_contains( render_view( 'preview', $job167['public_id'], 0 ), 'Approve and apply' ), 'old preview link after approval routes to progress' );
 eq( Admin::process_approve( approve_post( $job167 ), 'POST' )['reason'], 'already_approved', 'cannot approve existing job twice' );
 
 $other167 = wp_insert_user( array( 'user_login' => 'wl167-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );

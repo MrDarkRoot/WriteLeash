@@ -1,15 +1,29 @@
 # WriteLeash
 
-## Existing advanced WordPress V0.1 technical substrate
+Bulk price changes for WooCommerce, on a short leash.
 
-> **Current public Free direction:** #106 governs safe WooCommerce bulk price
-> changes. That workflow is planned, not implemented; #107–#112 are pending
-> build/proof gates, and public release is deferred. This subtree documents and
-> tests the separate advanced Guard/Doctor/Redirection V0.1 substrate. Its
-> existing behavior is technical evidence, not the planned Free 1.0 workflow.
+Preview bulk price changes before they happen. Run them safely. If the price or
+a checked setting changed after review, WriteLeash leaves the newer value alone.
+Undo changes that are still safe to restore.
+
+* Preview the exact before-and-after value of the chosen regular price or sale price for every selected product before anything is saved.
+* Approve exactly what you reviewed. A later price or checked-setting change becomes a conflict instead of an overwrite.
+* Saved progress survives a closed browser; an interrupted background step resumes in small steps.
+* Undo restores eligible regular-price or sale-price values that are still safe to restore.
+* Published core simple products and variations of published core variable products are supported, up to 1,000 selected products per new job in the tested configuration. Multisite is unsupported and real managed or shared hosting has not been tested.
+
+The merchant listing is [readme.txt](readme.txt); the release claim matrix is
+[../release/CLAIM-MATRIX.md](../release/CLAIM-MATRIX.md).
+
+## Existing advanced WordPress V0.1 technical substrate (repository research)
+
+> The default Free product changes WooCommerce prices through the workflow
+> above. This section documents and tests the separate advanced
+> Guard/Doctor/Redirection V0.1 substrate, which is repository-only research and
+> is not part of the public Free listing.
 
 Brand tagline: "Keep dangerous database writes on a short leash." That is a
-brand-level statement, not a claim about the planned WooCommerce Free product.
+brand-level statement, not a claim about the WooCommerce Free product.
 The V0.1 technical contract documented here is narrow: one certified
 Redirection 5.5.2 global/select-all Bulk Disable operation with a logical
 mutation budget.
@@ -92,9 +106,10 @@ Redirection 5.5.2 unfiltered global/select-all Bulk Disable. #58's
 [WriteLeash-owned disposable demo](DEMO.md) is independent of that real
 operation. #60 adds the restrained [Tools → WriteLeash / WP-CLI experience](ADMIN-CLI.md)
 on top of the existing adapter; trusted [operator provisioning](PROVISIONING.md)
-is separate. No general WooCommerce integration, telemetry, external network
-requests or cloud feature is included. WooCommerce bulk-price functionality is
-not implemented in this subtree.
+is separate. No telemetry, external network requests or cloud feature is
+included in the advanced research surface. The WooCommerce bulk-price workflow
+is the separate public Free product described at the top of this document; the
+advanced classes are not loaded by the public Free package.
 
 ## Guarded UPDATE example
 

@@ -144,7 +144,7 @@ async function search(page, term) {
         await search(page, 'WL167 Browser Café');
         await page.locator('.select2-results__option[data-selected="false"]').first().click();
         await page.locator('#writeleash-free-amount').fill('bad-price');
-        await action(page, 'Build frozen preview');
+        await action(page, 'Preview price changes');
         const retainedAmount = await page.locator('#writeleash-free-amount').inputValue();
         if (retainedAmount !== 'bad-price') {
             console.error('Validation recovery diagnostics:', JSON.stringify({ url: page.url(), amount: retainedAmount, notices: await page.locator('#wpbody-content .notice').allTextContents() }));
@@ -153,7 +153,7 @@ async function search(page, term) {
         ok(retainedAmount === 'bad-price', 'validation retains entered amount');
         ok(await page.locator('#writeleash-free-selected button').count() === 2, 'validation retains chosen identities');
         await page.locator('#writeleash-free-amount').fill('80.00');
-        await action(page, 'Build frozen preview');
+        await action(page, 'Preview price changes');
         const previewURL = page.url();
         await capture(page, 'saved-preview');
         const before = observe();
@@ -176,12 +176,12 @@ async function search(page, term) {
         await page.goto(previewURL.replace('wl_view=preview', 'wl_view=job'));
         ok(await page.getByRole('link', { name: 'Continue review', exact: true }).count() === 1, 'direct status offers saved review');
         await page.getByRole('link', { name: 'Continue review', exact: true }).click();
-        await action(page, 'Approve and queue execution');
+        await action(page, 'Approve and apply');
         await action(page, 'Resume remaining products');
         ok((await page.locator('#wpbody-content').innerText()).includes('Not changed'), 'existing execution checks detect stale product');
         ok(Number(observe().prices[fixture.products[0]].stored) === 120, 'independent observer proves no blind overwrite');
         await page.goto(previewURL);
-        ok(await page.getByRole('button', { name: 'Approve and queue execution', exact: true }).count() === 0, 'approved preview routes to actual results, cannot reapprove');
+        ok(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count() === 0, 'approved preview routes to actual results, cannot reapprove');
         ok(errors.length === 0, 'escaped names do not run JavaScript or cause script errors');
         await context.close();
         // Native fallback uses the same routes/controls with JavaScript disabled.
@@ -207,13 +207,13 @@ async function search(page, term) {
         await page.locator('#writeleash-free-category').selectOption(String(fixture.parent));
         await page.locator('#writeleash-free-amount').fill('80.00');
         await page.locator('#writeleash-free-max_decrease').fill('1');
-        await action(page, 'Build frozen preview');
+        await action(page, 'Preview price changes');
         ok((await page.locator('#wpbody-content').innerText()).includes('This plan cannot be executed.'), 'blocked saved category preview explains block');
         await capture(page, 'blocked-category');
         await page.goto(home + '&wl_view=history');
         await page.getByRole('link', { name: 'Review blocked plan', exact: true }).first().click();
         await page.waitForLoadState('networkidle');
-        ok(await page.getByRole('button', { name: 'Approve and queue execution', exact: true }).count() === 0 && await page.getByRole('link', { name: 'Create a new preview', exact: true }).count() === 1, 'blocked review offers new preview, no approval');
+        ok(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count() === 0 && await page.getByRole('link', { name: 'Create a new preview', exact: true }).count() === 1, 'blocked review offers new preview, no approval');
         const after = observe().jobs[0];
         ok(JSON.parse(after.plan_json).resolved_product_ids.every(id => id !== fixture.products[1]), 'category preview excludes child-only product');
         await native.close();

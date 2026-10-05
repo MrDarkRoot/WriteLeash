@@ -40,9 +40,9 @@ foreach ( array(
 	}
 	$fail( 'overbroad conflict regression accepted: ' . $regression );
 }
-foreach ( array( 'SKU', 'name/title', 'category membership', 'provenance-only' ) as $provenance ) {
-	if ( false === strpos( $read, $provenance ) || false === strpos( $mx, $provenance ) ) {
-		$fail( 'missing provenance-only limitation: ' . $provenance );
+foreach ( array( 'SKU', 'product name', 'category', 'reference details only' ) as $reference ) {
+	if ( false === strpos( $read, $reference ) || false === strpos( $mx, $reference ) ) {
+		$fail( 'missing reference-only limitation: ' . $reference );
 	}
 }
 foreach ( array( 'https://downloads.wordpress.org/plugin/woocommerce.11.1.2.zip', '9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e' ) as $artifact ) {

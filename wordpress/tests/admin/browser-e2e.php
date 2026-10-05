@@ -186,7 +186,7 @@ if ( 200 !== $home['code'] ) {
 	throw new RuntimeException( 'Bulk Prices GET returned ' . $home['code'] . ' location=' . (string) $home['location'] . ' body=' . substr( $home['body'], 0, 500 ) );
 }
 bok( str_contains( $home['body'], 'WriteLeash Bulk Prices' ), 'menu navigation lands on Bulk Prices' );
-bok( str_contains( $home['body'], 'Build frozen preview' ), 'preview form present' );
+bok( str_contains( $home['body'], 'Preview price changes' ), 'preview form present' );
 a11y_check( $home['body'], 'bulk prices home' );
 $preview_forms = forms_for_action( $home['body'], 'writeleash_free_preview' );
 beq( count( $preview_forms ), 1, 'exactly one preview form' );

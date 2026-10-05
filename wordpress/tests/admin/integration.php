@@ -655,7 +655,7 @@ marker( 'security negatives and escaping' );
 // Accessibility and honest scope copy in the rendered product.
 wp_set_current_user( 1 );
 $home = render_view( '', '', 0 );
-foreach ( array( 'Build frozen preview', '<label for=', 'aria-describedby=', 'Variations', 'sale prices', 'not guaranteed shopper prices' ) as $needle ) {
+foreach ( array( 'Preview price changes', '<label for=', 'aria-describedby=', 'Variations', 'sale prices', 'not guaranteed shopper prices' ) as $needle ) {
 	ok( str_contains( $home, $needle ), 'home copy: ' . $needle );
 }
 ok( false !== strpos( $home, 'Explicit product IDs' ), 'only proved selectors offered' );
@@ -691,11 +691,11 @@ function wl122_current_rows( string $html ): array {
 	$dom->loadHTML( '<?xml encoding="utf-8"?>' . $html );
 	libxml_clear_errors();
 	$xpath = new DOMXPath( $dom );
-	$tables = $xpath->query( '//table[thead/tr/th[normalize-space(.)="Current"]]' );
-	eq( $tables->length, 1, 'exactly one Current item table' );
+	$tables = $xpath->query( '//table[@data-writeleash-results="1"]' );
+	eq( $tables->length, 1, 'exactly one results item table' );
 	$headers = array();
 	foreach ( $xpath->query( './thead/tr/th', $tables->item( 0 ) ) as $cell ) { $headers[] = trim( $cell->textContent ); }
-	eq( $headers, array( 'Product', 'Expected', 'Current', 'Planned', 'Apply', 'Undo' ), 'Current column order' );
+	eq( $headers, array( 'Product', 'Regular price expected', 'Regular price now', 'Regular price planned', 'Apply', 'Undo' ), 'field-labelled column order' );
 	$rows = array();
 	foreach ( $xpath->query( './tbody/tr', $tables->item( 0 ) ) as $row ) {
 		if ( ! $row->hasAttribute( 'data-product-id' ) ) { continue; }
