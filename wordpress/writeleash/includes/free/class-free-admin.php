@@ -1296,11 +1296,20 @@ final class Free_Admin {
 		if ( $blocked ) {
 			echo '<div class="notice notice-error" role="alert"><p><strong>' . esc_html( 'This plan cannot be executed.' ) . '</strong>: ' . esc_html( 'the safety policy blocks every changing product. Approval and execution are impossible for this plan; build a new preview with different inputs.' ) . '</p>';
 			$identities = array_column( $data['items'], null, 'product_id' );
-			foreach ( $data['policy_result']['blockers'] as $blocker ) {
-				echo '<p>';
+			$blockers = $data['policy_result']['blockers'];
+			$blocked_products = 0;
+			foreach ( $blockers as $blocker ) { if ( (int) ( $blocker['product_id'] ?? 0 ) > 0 ) { ++$blocked_products; } }
+			$listed = 0;
+			foreach ( $blockers as $blocker ) {
 				$id = (int) ( $blocker['product_id'] ?? 0 );
+				if ( $id > 0 && $listed >= self::PREVIEW_PAGE_SIZE ) { continue; }
+				if ( $id > 0 ) { ++$listed; }
+				echo '<p>';
 				if ( $id > 0 && isset( $identities[ $id ] ) ) { self::render_identity( $identities[ $id ] ); echo '<br>'; }
 				echo esc_html( self::reason_message( (string) ( $blocker['reason'] ?? 'blocked' ) ) ) . '</p>';
+			}
+			if ( $blocked_products > self::PREVIEW_PAGE_SIZE ) {
+				echo '<p>' . esc_html( 'Showing the first ' . self::PREVIEW_PAGE_SIZE . ' blocked products in this summary. Each product page below shows its own reason; ' . ( $blocked_products - self::PREVIEW_PAGE_SIZE ) . ' more blocked products are not listed here.' ) . '</p>';
 			}
 			echo '</div>';
 		}

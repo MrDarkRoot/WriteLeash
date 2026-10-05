@@ -97,6 +97,9 @@ $thousandone167 = Admin::process_preview( preview_post( array( 'picker_present' 
 eq( $thousandone167['reason'], 'supported_job_limit_exceeded', '1001 picker products refused before import' );
 eq( Admin::process_preview( preview_post( array( 'picker_present' => '0', 'ids' => implode( ',', range( 1, 1001 ) ) ) ), 'POST' )['reason'], 'supported_job_limit_exceeded', '1001 explicit IDs refused before resolution' );
 eq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $before_jobs167, '1001 refusal creates no job' );
+$blocked_thousand167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 1000 ) ), 'max_decrease' => '1' ) ), 'POST' );
+$blocked_html167 = render_view( 'preview', $blocked_thousand167['public_id'], 0 );
+ok( str_contains( $blocked_html167, 'Showing the first 20 blocked products in this summary' ) && str_contains( $blocked_html167, '980 more blocked products are not listed here' ), 'blocked 1000-item preview bounds its reason summary' );
 $blocked167 = Admin::process_preview( preview_post( array( 'ids' => (string) $duplicate167[0], 'max_decrease' => '1' ) ), 'POST' );
 ok( str_contains( render_view( 'preview', $blocked167['public_id'], 0 ), 'This plan cannot be executed.' ), 'saved blocked preview explanation' );
 ok( str_contains( render_view( 'job', $blocked167['public_id'], 0 ), 'Review blocked plan' ), 'direct blocked status has review action' );
