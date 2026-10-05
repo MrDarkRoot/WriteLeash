@@ -52,19 +52,19 @@ Status values:
   * `wordpress/tests/acceptance/EVIDENCE.md` — completed rows applied exact frozen targets; percentage targets stayed absolute, never recomputed.
   * Unit suite `wordpress/tests/admin/`, the pure-PHP `wordpress/tests/free/sale-price.php` harness and the #107 suite on the #178 final head.
 * **ALLOWED WORDING:** "Set, + fixed, - fixed, + percent or - percent" for the stored regular or sale price.
-* **REQUIRED LIMITATION:** Applies only to the stored regular or sale price of eligible simple products; no variation editing.
+* **REQUIRED LIMITATION:** Applies only to the stored regular or sale price of eligible core simple products and eligible variations; the variable parent is never targeted directly.
 * **STATUS:** PUBLISHABLE.
 
 ## 4. Supported product scope
 
-* **COPY CLAIM:** "Published core simple WooCommerce products", "Stored regular and sale prices in the base store currency", "Regular-price edits on products with an existing sale price or schedule".
-* **SUPPORTING ISSUE:** #107 (contract), #108 (mutation proof), #111 (Admin), #112 (acceptance rows), #178 (sale field).
+* **COPY CLAIM:** "Published core simple WooCommerce products", "Published core variable WooCommerce products: selecting the parent targets all of its variations, or select individual variations", "Stored regular and sale prices in the base store currency", "Regular-price edits on products with an existing sale price or schedule".
+* **SUPPORTING ISSUE:** #107 (contract), #108 (mutation proof), #111 (Admin), #112 (acceptance rows), #178 (sale field), #179 (variations).
 * **SUPPORTING TEST/EVIDENCE:**
-  * `FREE-PRICE-CONTRACT.md` — eligibility rules for published simple products, the stored regular or sale price, base currency and the sale-clearing refusals (`regular_price_not_above_sale`, `sale_price_not_below_regular`, `empty_sale_price`).
-  * `wordpress/writeleash/FREE-PRICE-APPLY-CONTRACT.md` — stock `WC_Product_Data_Store_CPT` and Woo CRUD path.
+  * `FREE-PRICE-CONTRACT.md` — eligibility rules for published simple products and variations of published core variable products, the stored regular or sale price, base currency and the sale-clearing refusals (`regular_price_not_above_sale`, `sale_price_not_below_regular`, `empty_sale_price`).
+  * `wordpress/writeleash/FREE-PRICE-APPLY-CONTRACT.md` — stock `WC_Product_Data_Store_CPT` / `WC_Product_Variation_Data_Store_CPT` and Woo CRUD path.
   * `wordpress/tests/acceptance/EVIDENCE.md` — price/meta/lookup/cache/journal parity on every completed row.
-* **ALLOWED WORDING:** "Not changed: sale dates, variations, stock and orders."
-* **REQUIRED LIMITATION:** Sale-date editing, variations, stock, orders and non-simple product types are unsupported; a regular or sale target that WooCommerce would use to clear the sale is refused.
+* **ALLOWED WORDING:** "Not changed: sale dates, stock and orders. Variable parent price ranges are refreshed with WooCommerce's own sync after every variation change."
+* **REQUIRED LIMITATION:** Sale-date editing, stock, orders and non-simple/non-variation product types are unsupported; variation selections freeze their exact variation IDs at preview; a regular or sale target that WooCommerce would use to clear the sale is refused.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 5. WooCommerce version
