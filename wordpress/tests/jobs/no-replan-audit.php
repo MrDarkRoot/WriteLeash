@@ -24,7 +24,12 @@ $forbidden = array(
 	'Product_Price_Selector',
 	'Price_Selection_Spec',
 	'Price_Calculator',
-	'Price_Operation',
+	// Field identity constants/helpers (regular_price vs sale_price) are frozen
+	// plan vocabulary, not planning: forbid construction and operation payload
+	// reads instead of the class name.
+	'new Price_Operation',
+	'Price_Operation::data',
+	'Price_Operation::calculate',
 	'Price_Store_Context::current',
 	'WP_Query',
 	'wc_get_products',

@@ -56,6 +56,11 @@ $date_only = wl107_product( 'WL107-date-only', '100' );
 $date_only->set_date_on_sale_from( time() + 86400 ); $date_only->save();
 $sale_zero = wl107_product( 'WL107-sale-zero', '100' );
 $sale_zero->set_sale_price( '0' ); $sale_zero->save();
+// #181 fixtures are created before the no-save planning guard below; the
+// corruption itself stays in the dirty-catalog block.
+$catalog_clean = wl107_product( 'WL107-catalog-clean', '100' );
+$catalog_malformed = wl107_product( 'WL107-catalog-malformed', '100' );
+$catalog_unreadable = wl107_product( 'WL107-catalog-unreadable', '100' );
 $a->set_category_ids( array( $category, $other ) ); $a->save();
 $b->set_category_ids( array( $category ) ); $b->save();
 $child_product = wl107_product( 'WL107-child', '100' );
@@ -136,10 +141,8 @@ wl107_marker( 'published/core simple; 13 typed unsupported cases; date-only/zero
 
 // #181 dirty catalog: a malformed stored price and a throwing Woo read are
 // classified per product while the clean sibling still plans. No repair path
-// is exercised and no malformed value is guessed.
-$catalog_clean = wl107_product( 'WL107-catalog-clean', '100' );
-$catalog_malformed = wl107_product( 'WL107-catalog-malformed', '100' );
-$catalog_unreadable = wl107_product( 'WL107-catalog-unreadable', '100' );
+// is exercised and no malformed value is guessed. Fixtures were created above,
+// before the no-save planning guard.
 update_post_meta( $catalog_malformed->get_id(), '_regular_price', 'not-a-price' ); // Fixture corruption only.
 \WriteLeash\Price_Cache_Verifier::invalidate( $catalog_malformed->get_id() );
 $catalog_filter = static function ( $class, $type, $post_type, $id ) use ( $catalog_unreadable ) {
