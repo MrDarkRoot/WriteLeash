@@ -149,25 +149,30 @@ async function responsive(page) {
         const np = await native.newPage(); await np.goto(home);
         const nativeSearch = np.locator('#writeleash-free-product_search');
         const nativeSelect = np.locator('#writeleash-free-products');
-        let nativeMatches = 0;
-        for (let attempt = 0; attempt < 2 && !nativeMatches; attempt++) {
-            await tabTo(np, nativeSearch); await np.keyboard.press('ControlOrMeta+A'); await np.keyboard.type(f.skus[0]);
-            await enter(np, button(np, 'Search products'));
-            nativeMatches = await nativeSelect.locator('option').count();
+        let nativeMatches = 0, nativeSelected = 0;
+        // A native POST renders a fresh nonce each time, so retry the whole
+        // state-based sequence once if a submission is dropped or refused.
+        for (let round = 0; round < 2 && !nativeSelected; round++) {
+            for (let attempt = 0; attempt < 2 && !nativeMatches; attempt++) {
+                await tabTo(np, nativeSearch); await np.keyboard.press('ControlOrMeta+A'); await np.keyboard.type(f.skus[0]);
+                await enter(np, button(np, 'Search products'));
+                nativeMatches = await nativeSelect.locator('option').count();
+            }
+            if (!nativeMatches) { break; }
+            const nativeFirst = nativeSelect.locator('option').first();
+            await tabTo(np, nativeSelect); await np.keyboard.press('Home');
+            if (!(await nativeFirst.evaluate(el => el.selected))) { await np.keyboard.press('Space'); }
+            ok(await nativeFirst.evaluate(el => el.selected), 'native keyboard navigation selects the first match');
+            await enter(np, button(np, 'Update selected products'));
+            nativeSelected = await np.locator('#writeleash-free-selected button').count();
+            if (!nativeSelected) { nativeMatches = 0; }
         }
-        if (!nativeMatches) { console.error('Native search diagnostics: ' + JSON.stringify({ term: await nativeSearch.inputValue(), body: (await np.locator('#wpbody-content').innerText()).slice(0, 600) })); }
-        ok(nativeMatches > 0, 'native search returns the actual product match');
-        const nativeFirst = nativeSelect.locator('option').first();
-        await tabTo(np, nativeSelect); await np.keyboard.press('Home');
-        if (!(await nativeFirst.evaluate(el => el.selected))) { await np.keyboard.press('Space'); }
-        ok(await nativeFirst.evaluate(el => el.selected), 'native keyboard navigation selects the first match');
-        await enter(np, button(np, 'Update selected products'));
-        const nativeSelected = await np.locator('#writeleash-free-selected button').count();
         const nativeAfter = durable(fixture());
         if (1 !== nativeSelected || nativeAfter !== beforeNetwork) {
-            console.error('Native fallback diagnostics: ' + JSON.stringify({ nativeSelected, nativeOptions: await nativeSelect.locator('option').allTextContents(), before: JSON.parse(beforeNetwork), after: JSON.parse(nativeAfter) }));
+            console.error('Native fallback diagnostics: ' + JSON.stringify({ nativeMatches, nativeSelected, nativeOptions: await nativeSelect.locator('option').allTextContents(), term: await nativeSearch.inputValue(), notice: await np.locator('.notice-error').allTextContents(), body: (await np.locator('#wpbody-content').innerText()).slice(0, 600), before: JSON.parse(beforeNetwork), after: JSON.parse(nativeAfter) }));
             await capture(np, 'native-fallback');
         }
+        ok(nativeMatches > 0, 'native search returns the actual product match');
         ok(1 === nativeSelected && nativeAfter === beforeNetwork, 'keyboard native fallback selects actual product without mutation');
         await native.close(); await page.goto(home);
         for (let i = 0; i < f.skus.length; i++) {
