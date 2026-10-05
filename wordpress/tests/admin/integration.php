@@ -275,7 +275,7 @@ foreach ( $plan->preview_page( 0, 20 )['items'] as $item ) {
 }
 eq( $reasons[ $draft ], 'unsupported_status', 'draft reason' );
 eq( $reasons[ $grouped ], 'unsupported_product_type', 'grouped reason' );
-eq( $reasons[ $sale ], 'sale_configured', 'sale reason' );
+eq( $reasons[ $sale ], 'regular_price_not_above_sale', 'sale-clearing regular target reason' );
 eq( $reasons[ $empty ], 'empty_regular_price', 'empty reason' );
 $approval = Admin::process_approve( approve_post( $job ), 'POST' );
 eq( $approval['status'], 'OK', 'mixed approve' );

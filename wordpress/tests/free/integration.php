@@ -88,7 +88,7 @@ wl107_equal( $plan->data()['resolved_product_ids'], array( $a->get_id(), $b->get
 wl107_equal( $plan->data()['selection']['warnings'], array( 'duplicate_selection' ), 'typed duplicate warning' );
 $json = json_decode( $plan->json(), true );
 wl107_equal( array_column( $json['items'], 'planned_regular_price' ), array( '80.00', '40.00' ), 'serialized absolute values' );
-wl107_equal( $json['operation'], array( 'input' => '20', 'type' => O::DECREASE_PERCENT ), 'canonical operation provenance' );
+wl107_equal( $json['operation'], array( 'field' => O::FIELD_REGULAR, 'input' => '20', 'type' => O::DECREASE_PERCENT ), 'canonical operation provenance' );
 wl107_equal( $plan->summary()['selected'], 2, 'selected count' );
 wl107_equal( $plan->summary()['changing'], 2, 'changing count' );
 wl107_equal( $plan->summary()['warning_count'], 2, 'per-item warnings' );
@@ -114,13 +114,17 @@ wl107_marker( 'five Woo planning operations; store precision matrix; absolute JS
 $matrix = array(
 	$draft->get_id() => 'unsupported_status', $private->get_id() => 'unsupported_status', $trash->get_id() => 'unsupported_status',
 	$variable->get_id() => 'unsupported_product_type', $variation->get_id() => 'unsupported_product_type', $grouped->get_id() => 'unsupported_product_type', $external->get_id() => 'unsupported_product_type',
-	$active->get_id() => 'sale_configured', $future->get_id() => 'sale_configured', $expired->get_id() => 'sale_configured', $date_only->get_id() => 'sale_configured', $sale_zero->get_id() => 'sale_configured',
+	$active->get_id() => 'regular_price_not_above_sale', $future->get_id() => 'regular_price_not_above_sale', $expired->get_id() => 'regular_price_not_above_sale',
 	$empty->get_id() => 'empty_regular_price', $zero->get_id() => 'percent_from_zero_undefined', 2147483647 => 'missing_product',
 );
+$eligibility_text = array( $date_only->get_id() => 'date-only', $sale_zero->get_id() => 'zero sale' );
 $mixed = Planner::preview( S::ids( array_merge( $ids, array( 2147483647 ) ) ), $op, $policy );
 foreach ( $matrix as $id => $reason ) { wl107_equal( $mixed->item( $id )->data()['eligibility']['reason'], $reason, 'eligibility ' . $id ); }
-wl107_equal( $mixed->summary()['eligible'], 2, 'mixed eligible count' );
-wl107_equal( $mixed->summary()['unsupported'], 15, 'mixed unsupported count' );
+foreach ( $eligibility_text as $id => $label ) {
+	wl107_equal( $mixed->item( $id )->data()['result'], 'CHANGING', 'sale configuration no longer excludes ' . $label . ' from regular-price edits' );
+}
+wl107_equal( $mixed->summary()['eligible'], 4, 'mixed eligible count' );
+wl107_equal( $mixed->summary()['unsupported'], 13, 'mixed unsupported count' );
 wl107_equal( wc_get_product( $future->get_id() )->is_on_sale(), false, 'scheduled sale not active yet' );
 wl107_equal( wc_get_product( $expired->get_id() )->is_on_sale(), false, 'expired sale not active' );
 wl107_equal( $before[$expired->get_id()]['sale_price'], '80', 'expired sale metadata remains configured' );
@@ -128,7 +132,7 @@ class WL107_Complex extends WC_Product_Simple {}
 $complex = new WL107_Complex( $a->get_id() );
 wl107_equal( Eligibility::evaluate( Snapshot::read( $a->get_id(), $complex ), Context::current() )->data()['reason'], 'unsupported_product_type', 'extension subclass excluded' );
 wl107_equal( Eligibility::evaluate( Snapshot::read( $a->get_id(), $a ), new Context( 'USD', 2, get_bloginfo( 'version' ), WC_VERSION, false ) )->data()['reason'], 'unsupported_currency_context', 'non-base context' );
-wl107_marker( 'published/core simple; 15 typed unsupported cases; active/future/expired/date-only/zero-sale exclusion' );
+wl107_marker( 'published/core simple; 13 typed unsupported cases; date-only/zero-sale regular edits stay eligible; sale-clearing targets refused' );
 
 $category_plan = Planner::preview( S::category( $category ), $op, $policy );
 wl107_equal( $category_plan->data()['resolved_product_ids'], array( $a->get_id(), $b->get_id() ), 'direct category excludes child; multi membership unique' );
@@ -222,16 +226,16 @@ wl107_equal( $one->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $a 
 $a->set_status( 'draft' );
 wl107_equal( $one->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $a ), Context::current() )['reasons'], array( 'product_status_changed' ), 'status drift' );
 $a->set_status( 'publish' ); $a->set_sale_price( '90' );
-wl107_equal( $one->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $a ), Context::current() )['reasons'], array( 'sale_configuration_changed' ), 'sale drift' );
+wl107_equal( $one->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $a ), Context::current() )['state'], 'MATCH', 'sale price drift is preserved by a regular-price plan' );
 $a->set_sale_price( '' ); $a->set_date_on_sale_to( time() + 86400 );
-wl107_equal( $one->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $a ), Context::current() )['reasons'], array( 'sale_configuration_changed' ), 'date-only drift' );
+wl107_equal( $one->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $a ), Context::current() )['state'], 'MATCH', 'sale schedule drift is preserved by a regular-price plan' );
 $a->set_date_on_sale_to( null );
 $changed_type = new WC_Product_External( $a->get_id() );
 wl107_equal( $one->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $changed_type ), Context::current() )['reasons'], array( 'product_type_changed' ), 'type drift' );
 $a->set_category_ids( array( $other ) );
 wl107_equal( $category_plan->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $a ), Context::current() )['state'], 'MATCH', 'category drift provenance only' );
 wl107_equal( $category_plan->data()['resolved_product_ids'], array( $a->get_id(), $b->get_id() ), 'category remains frozen' );
-wl107_marker( 'CONFLICT on price/type/status/sale/currency/decimals/out-of-range versions; in-range WP/Woo patch drift MATCH; category provenance; no target recomputation' );
+wl107_marker( 'CONFLICT on price/type/status/currency/decimals/out-of-range versions; sale drift preserved; in-range WP/Woo patch drift MATCH; category provenance; no target recomputation' );
 
 wl107_equal( $saves, 0, 'zero Woo saves during ALL planning calls' );
 foreach ( $ids as $id ) { wl107_equal( Snapshot::read( $id, wc_get_product( $id ) )->data(), $before[$id], 'persisted product untouched ' . $id ); }
