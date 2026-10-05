@@ -283,7 +283,8 @@ async function responsive(page) {
         ok((await text(page)).includes('Undo finished') && durable(fixture()) === unchanged, 'older in-range Woo 11.0.1 keeps saved work without mutation');
         fixture('restore-version'); older = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'supported Woo restored without lost work');
-        const reads = fixture().reads; ok(!reads.unbounded && !reads.oversized && reads.search <= 11 && reads.selected <= 100, 'bounded catalog windows throughout browser journey');
+        // #177 supports 1,000 products per job, so the selected window is bounded by MAX_JOB_PRODUCTS + 1.
+        const reads = fixture().reads; ok(!reads.unbounded && !reads.oversized && reads.search <= 11 && reads.selected <= 1001, 'bounded catalog windows throughout browser journey');
         safety.negatives = { no_mutation: durable(fixture()) === unchanged, reads };
         if (out) fs.writeFileSync(out + '/170-' + engine + '-result.json', JSON.stringify({ engine, version: await browser.version(), checks, scans, safety, evidence, viewport: '1440/1024/782/375', keyboard: 'PASS', screen_reader: 'NOT_TESTED', safari: 'NOT_TESTED' }, null, 2));
         console.log('#170 ' + engine + ' integrated keyboard/accessibility/safety: PASS (' + checks + ' assertions); version=' + await browser.version());
