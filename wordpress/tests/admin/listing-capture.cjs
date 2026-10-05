@@ -17,7 +17,7 @@ async function capture(page, name) {
     fs.mkdirSync(evidence, { recursive: true });
     await page.evaluate(() => { if (document.activeElement) document.activeElement.blur(); window.scrollTo(0, 0); });
     await page.waitForLoadState('networkidle');
-    await page.screenshot({ path: evidence + '/' + name + '.png', fullPage: true });
+    await page.screenshot({ path: evidence + '/' + name + '.png' });
 }
 async function login(page) {
     await page.goto(base + '/wp-login.php');

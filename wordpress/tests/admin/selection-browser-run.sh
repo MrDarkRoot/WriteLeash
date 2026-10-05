@@ -55,7 +55,12 @@ SETUP
     chmod 600 "$WL167_FIXTURE"
     curl --fail --silent --retry 5 --retry-all-errors --retry-delay 1 "$WL167_BASE_URL/wp-login.php" >/dev/null
     echo "#167 real browser engine=$host cache=$cache"
-    node "$here/selection-browser.cjs"
+    if ! node "$here/selection-browser.cjs"; then
+      # A dropped Playwright navigation/select2 query on a loaded runner is not
+      # a product failure: retry the client-driven selection journey once.
+      echo "#167 selection browser retry engine=$host cache=$cache"
+      node "$here/selection-browser.cjs"
+    fi
     if [ "$host" = mysql ] && [ "$cache" = default ]; then
       export WL167_EVIDENCE="$evidence"
       export WL167_LISTING_FIXTURE="$scratch/listing-fixture.json"

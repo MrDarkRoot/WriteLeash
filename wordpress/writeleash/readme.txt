@@ -94,9 +94,9 @@ required.
 
 1. Select products and preview every regular-price or sale-price change before it runs.
 2. Review the exact before-and-after values for the price you chose, with counts for changes, skips and blocks.
-3. A large job shows what is done, what remains and what needs attention, page by page.
+3. A later price or setting change becomes a conflict instead of a blind overwrite.
 4. Results list each product with its expected, current and planned value, plus anything needing attention.
-5. A later price or setting change becomes a conflict instead of a blind overwrite.
+5. A large job shows what is done, what remains and what needs attention, page by page.
 6. History shows each price change with its Undo availability and how long the restoration window stays open.
 
 == Frequently Asked Questions ==
