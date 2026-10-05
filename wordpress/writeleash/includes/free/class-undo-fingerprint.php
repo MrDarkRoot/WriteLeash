@@ -131,21 +131,6 @@ final class Undo_Fingerprint {
 					break;
 				}
 			}
-			foreach ( array( 'sale_price', 'sale_from', 'sale_to' ) as $compare ) {
-				if ( ( $blocking[$compare] ?? null ) !== ( $fresh[$compare] ?? null ) ) {
-					$reasons[] = 'sale_configuration_changed';
-					break;
-				}
-			}
-			if ( ( $blocking['currency'] ?? null ) !== ( $fresh['currency'] ?? null ) ) {
-				$reasons[] = 'currency_context_changed';
-			}
-			if ( (int) ( $blocking['price_decimals'] ?? -1 ) !== (int) ( $fresh['price_decimals'] ?? -2 ) ) {
-				$reasons[] = 'price_decimals_changed';
-			}
-			if ( '0' !== (string) ( $fresh['lookup_onsale'] ?? '' ) || '0' !== (string) ( $blocking['lookup_onsale'] ?? '' ) ) {
-				$reasons[] = 'lookup_changed';
-			}
 		} else {
 			if ( ! self::decimal_equal( $blocking['applied_price'] ?? null, $fresh['applied_price'] ?? null ) ) {
 				$reasons[] = 'applied_price_changed';
@@ -153,18 +138,29 @@ final class Undo_Fingerprint {
 			if ( Price_Operation::FIELD_SALE === $field && ! self::decimal_equal( $blocking['regular_context'] ?? null, $fresh['regular_context'] ?? null ) ) {
 				$reasons[] = 'regular_context_changed';
 			}
-			if ( ( $blocking['currency'] ?? null ) !== ( $fresh['currency'] ?? null ) ) {
-				$reasons[] = 'currency_context_changed';
-			}
-			if ( (int) ( $blocking['price_decimals'] ?? -1 ) !== (int) ( $fresh['price_decimals'] ?? -2 ) ) {
-				$reasons[] = 'price_decimals_changed';
-			}
 		}
 		if ( ( $blocking['product_type'] ?? null ) !== ( $fresh['product_type'] ?? null ) || (bool) ( $blocking['core_simple'] ?? false ) !== (bool) ( $fresh['core_simple'] ?? false ) ) {
 			$reasons[] = 'product_type_changed';
 		}
 		if ( ( $blocking['status'] ?? null ) !== ( $fresh['status'] ?? null ) ) {
 			$reasons[] = 'product_status_changed';
+		}
+		if ( null === $field ) {
+			foreach ( array( 'sale_price', 'sale_from', 'sale_to' ) as $compare ) {
+				if ( ( $blocking[$compare] ?? null ) !== ( $fresh[$compare] ?? null ) ) {
+					$reasons[] = 'sale_configuration_changed';
+					break;
+				}
+			}
+		}
+		if ( ( $blocking['currency'] ?? null ) !== ( $fresh['currency'] ?? null ) ) {
+			$reasons[] = 'currency_context_changed';
+		}
+		if ( (int) ( $blocking['price_decimals'] ?? -1 ) !== (int) ( $fresh['price_decimals'] ?? -2 ) ) {
+			$reasons[] = 'price_decimals_changed';
+		}
+		if ( null === $field && ( '0' !== (string) ( $fresh['lookup_onsale'] ?? '' ) || '0' !== (string) ( $blocking['lookup_onsale'] ?? '' ) ) ) {
+			$reasons[] = 'lookup_changed';
 		}
 		// Same rule as the apply precondition: routine supported version
 		// drift is not a product-state change. Only drift outside the
