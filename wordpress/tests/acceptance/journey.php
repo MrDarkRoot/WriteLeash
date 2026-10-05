@@ -149,6 +149,7 @@ try {
         wl112_assert( false !== strpos( $page['body'], 'supports up to 100 products per job' ), 'oversized category not visibly refused' );
         if ( $size <= 1000 ) { wl112_assert( false !== strpos( $page['body'], $size . ' products were selected.' ), 'category selected count missing' ); }
         $fields['selector'] = 'ids';
+        $fields['picker_present'] = '0';
         $fields['ids'] = implode( ',', $ids );
         $second = wl112_post( $fields );
         wl112_assert( false === strpos( $second['location'], 'wl_job=' ), 'oversized IDs unexpectedly accepted' );
