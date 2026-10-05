@@ -60,6 +60,26 @@ try { Discovery::selected( array( $duplicate167[0] ) ); ok( false, 'cannot resto
 catch ( WriteLeash\Price_Validation_Error $error ) { eq( $error->reason(), 'permission_denied', 'selected identity also authorized' ); }
 remove_filter( 'map_meta_cap', $deny167, 10 );
 
+// #181 unreadable products stay listed and skippable instead of failing the
+// whole search or silently disappearing from the selected population.
+$readable181 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Readable 181' ) );
+$unreadable181 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Unreadable 181' ) );
+$unreadable_filter181 = static function ( $class, $type, $post_type, $id ) use ( $unreadable181 ) {
+	if ( (int) $id === $unreadable181 ) { throw new RuntimeException( 'test-only unreadable product' ); }
+	return $class;
+};
+add_filter( 'woocommerce_product_class', $unreadable_filter181, 10, 4 );
+try {
+	$found181 = Discovery::products( $tag167 . ' Unreadable 181' );
+	eq( array_column( $found181['results'], 'id' ), array( (string) $unreadable181 ), 'unreadable product still listed' );
+	ok( str_contains( $found181['results'][0]['text'], 'Needs attention:' ), 'unreadable product labeled for the merchant' );
+	$selected181 = Discovery::selected( array( $readable181, $unreadable181 ) );
+	$expected181 = array( $readable181, $unreadable181 );
+	sort( $expected181, SORT_NUMERIC );
+	eq( array_keys( $selected181 ), $expected181, 'selected list stays complete with unreadable product' );
+	ok( str_contains( $selected181[ $unreadable181 ]['text'], 'Needs attention:' ), 'selected unreadable row carries its reason' );
+} finally { remove_filter( 'woocommerce_product_class', $unreadable_filter181, 10 ); }
+
 $form167 = preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', $duplicate167 ), 'selection_action' => 'update-products', 'discovery_nonce' => wp_create_nonce( Discovery::ACTION ), 'product_search' => $tag167 . ' Café', 'amount' => 'bad-price' ) );
 $selected167 = Admin::process_selection( $form167, 'POST' );
 eq( $selected167['status'], 'OK', 'native update selection is read-only' );

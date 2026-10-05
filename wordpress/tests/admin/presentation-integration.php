@@ -11,6 +11,11 @@ foreach ( array( 'UNKNOWN', 'NEEDS_REVIEW', 'not_a_state' ) as $state168 ) {
 	ok( ! preg_match( '/safe|unchanged|retry/i', Admin::job_label( $state168 ) ), 'unproven job remains honest: ' . $state168 );
 }
 eq( Admin::item_label( 'PENDING', 'BLOCKED' ), 'Will not run', 'blocked pending is not queued work' );
+eq( Admin::item_label( 'UNSUPPORTED', 'PLANNED' ), 'Skipped at preview; unchanged', 'preview skip is a clean skip' );
+eq( Admin::item_label( 'FAILED', 'COMPLETED_WITH_ISSUES' ), 'Needs attention; not changed', 'apply failure is a needs-attention outcome' );
+ok( str_contains( Admin::reason_message( 'LOOKUP_MISMATCH' ), 'lookup' ) && str_contains( Admin::reason_message( 'UNSUPPORTED_PRODUCT_STATE' ), 'save it again' ), 'apply-time refusals carry Woo-supported recovery guidance' );
+$summary181 = Admin::result_summary( array( 'planned' => 4, 'pending' => 0, 'applying' => 0, 'applied' => 1, 'unchanged' => 0, 'conflict' => 0, 'failed' => 2, 'needs_review' => 1, 'unsupported' => 1 ), 'COMPLETED_WITH_ISSUES', true );
+ok( str_contains( $summary181, '1 changed' ) && str_contains( $summary181, '1 skipped at preview' ) && str_contains( $summary181, '2 needing attention' ) && str_contains( $summary181, '1 uncertain' ), 'summary distinguishes changed, skipped and needs attention' );
 $identity168 = make_product( '18.00', 'publish', array( 'name' => 'Áo xanh 日本 <script>alert("168")</script>', 'sku' => 'WL168-' . wp_generate_uuid4() ) );
 $nochange168 = make_product( '14.40' );
 $sale168 = make_product( '18.00' );
@@ -21,7 +26,7 @@ $job168 = Repo::read_by_public_id( $preview168['public_id'] );
 $plan168 = Repo::hydrate_plan( $job168 );
 $preview_html168 = render_view( 'preview', $job168['public_id'], 0 );
 ok( str_contains( $preview_html168, '<strong>Áo xanh 日本 &lt;script&gt;' ), 'preview escaped name first' );
-ok( str_contains( $preview_html168, 'Excluded; unchanged' ) && str_contains( $preview_html168, 'sale configuration' ), 'exclusion explains actual stored reason' );
+ok( str_contains( $preview_html168, 'Skipped at preview; unchanged' ) && str_contains( $preview_html168, 'sale configuration' ), 'exclusion explains actual stored reason' );
 eq( Admin::process_approve( approve_post( $job168 ), 'POST' )['status'], 'OK', 'presentation fixture approved' );
 $p168 = wc_get_product( $identity168 ); $p168->set_name( 'Renamed later' ); $p168->set_regular_price( '21.00' ); $p168->save();
 $p168 = wc_get_product( $sale168 ); $p168->set_sale_price( '11.00' ); $p168->save();
@@ -32,8 +37,9 @@ ok( str_contains( $rows168[$identity168][0], 'Áo xanh 日本 <script>' ) && ! s
 eq( array_slice( $rows168[$identity168], 1, 3 ), array( '$18.00 USD', '$21.00 USD', '$14.40 USD' ), 'truthful expected/current/target conflict values' );
 ok( str_contains( $rows168[$sale168][4], 'sale price or schedule' ), 'equal-regular-price conflict explains live eligibility drift' );
 eq( $rows168[$sale168][2], '$18.00 USD', 'sale drift regular price still matches expected' );
-ok( str_contains( $html168, '2 conflicts' ) && str_contains( $html168, '1 already at target' ) && str_contains( $html168, '1 excluded' ), 'disjoint results categories visible' );
+ok( str_contains( $html168, '2 conflicts' ) && str_contains( $html168, '1 already at target' ) && str_contains( $html168, '1 skipped at preview' ), 'disjoint results categories visible' );
 ok( ! str_contains( $html168, 'name="action" value="' . Admin::ACTION_RESUME . '"' ), 'terminal conflict never offers Resume' );
+ok( str_contains( $html168, 'Apply failures needing attention' ), 'needs-attention results filter is exposed' );
 wp_delete_post( $identity168, true );
 $html168 = render_view( 'job', $job168['public_id'], 0 );
 $rows168 = wl122_current_rows( $html168 );

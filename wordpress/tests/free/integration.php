@@ -130,6 +130,33 @@ wl107_equal( Eligibility::evaluate( Snapshot::read( $a->get_id(), $complex ), Co
 wl107_equal( Eligibility::evaluate( Snapshot::read( $a->get_id(), $a ), new Context( 'USD', 2, get_bloginfo( 'version' ), WC_VERSION, false ) )->data()['reason'], 'unsupported_currency_context', 'non-base context' );
 wl107_marker( 'published/core simple; 15 typed unsupported cases; active/future/expired/date-only/zero-sale exclusion' );
 
+// #181 dirty catalog: a malformed stored price and a throwing Woo read are
+// classified per product while the clean sibling still plans. No repair path
+// is exercised and no malformed value is guessed.
+$catalog_clean = wl107_product( 'WL107-catalog-clean', '100' );
+$catalog_malformed = wl107_product( 'WL107-catalog-malformed', '100' );
+$catalog_unreadable = wl107_product( 'WL107-catalog-unreadable', '100' );
+update_post_meta( $catalog_malformed->get_id(), '_regular_price', 'not-a-price' ); // Fixture corruption only.
+\WriteLeash\Price_Cache_Verifier::invalidate( $catalog_malformed->get_id() );
+$catalog_filter = static function ( $class, $type, $post_type, $id ) use ( $catalog_unreadable ) {
+	if ( (int) $id === $catalog_unreadable->get_id() ) { throw new RuntimeException( 'test-only unreadable product' ); }
+	return $class;
+};
+add_filter( 'woocommerce_product_class', $catalog_filter, 10, 4 );
+try { $catalog_plan = Planner::preview( S::ids( array( $catalog_unreadable->get_id(), $catalog_clean->get_id(), $catalog_malformed->get_id() ) ), $op, $policy ); }
+finally { remove_filter( 'woocommerce_product_class', $catalog_filter, 10 ); }
+wl107_equal( $catalog_plan->summary()['selected'], 3, 'dirty catalog selection stays complete' );
+wl107_equal( $catalog_plan->summary()['changing'], 1, 'one clean product still changes' );
+wl107_equal( $catalog_plan->summary()['unsupported'], 2, 'two dirty products skipped' );
+wl107_equal( $catalog_plan->item( $catalog_clean->get_id() )->data()['result'], 'CHANGING', 'clean sibling unaffected' );
+wl107_equal( $catalog_plan->item( $catalog_malformed->get_id() )->data()['eligibility']['reason'], 'invalid_price', 'malformed stored price typed' );
+wl107_equal( $catalog_plan->item( $catalog_malformed->get_id() )->data()['planned_regular_price'], null, 'malformed price never guessed' );
+wl107_equal( $catalog_plan->item( $catalog_unreadable->get_id() )->data()['eligibility']['reason'], 'unreadable_product_data', 'throwing read typed unreadable' );
+wl107_equal( $catalog_plan->item( $catalog_unreadable->get_id() )->data()['snapshot']['exists'], false, 'unreadable keeps exists false' );
+wl107_equal( $catalog_plan->item( $catalog_unreadable->get_id() )->data()['snapshot']['unreadable'], true, 'unreadable flag frozen' );
+wl107_equal( $catalog_plan->item( $catalog_unreadable->get_id() )->data()['planned_regular_price'], null, 'unreadable never guessed' );
+wl107_marker( 'dirty catalog: clean sibling plans, malformed and unreadable stay skipped' );
+
 $category_plan = Planner::preview( S::category( $category ), $op, $policy );
 wl107_equal( $category_plan->data()['resolved_product_ids'], array( $a->get_id(), $b->get_id() ), 'direct category excludes child; multi membership unique' );
 $sku_plan = Planner::preview( S::sku( 'WL107-A' ), $op, $policy );

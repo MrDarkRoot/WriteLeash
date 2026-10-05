@@ -94,10 +94,10 @@ async function row(page, id) { return page.locator('tr[data-product-id="' + id +
         ok((await text(page)).includes('will not run') && !(await text(page)).includes('1 remaining'), 'blocked internal pending is not remaining work');
         await capture(page, 'blocked');
         await open(page, 'nochange', 'preview');
-        ok((await text(page)).includes('Already at target; unchanged') && (await text(page)).includes('Excluded; unchanged'), 'exclusion/no-change preview');
+        ok((await text(page)).includes('Already at target; unchanged') && (await text(page)).includes('Skipped at preview; unchanged'), 'exclusion/no-change preview');
         await action(page, 'Approve and queue execution');
         await action(page, 'Resume remaining products');
-        ok((await text(page)).includes('1 already at target') && (await text(page)).includes('1 excluded'), 'disjoint no-change results');
+        ok((await text(page)).includes('1 already at target') && (await text(page)).includes('1 skipped at preview'), 'disjoint no-change results');
         ok((await text(page)).includes('no products were changed by this job'), 'Undo unavailable exact reason');
         await capture(page, 'exclusions');
         await open(page, 'mixed', 'preview');

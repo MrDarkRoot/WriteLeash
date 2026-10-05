@@ -81,3 +81,4 @@ wl107_error( static fn() => \WriteLeash\Plan_Hasher::canonical_json( array( 'bad
 wl107_error( static fn() => \WriteLeash\Price_Selection_Spec::ids( array_fill( 0, 1001, 1 ) ), 'invalid_selection_size' );
 foreach ( array( '', '*', 'A B', '<bad>', "A\n" ) as $sku ) { wl107_error( static fn() => \WriteLeash\Price_Selection_Spec::sku( $sku ), 'invalid_sku' ); }
 wl107_marker( 'canonical hash ordering, invalid encoding, bounded selector input' );
+require __DIR__ . '/dirty-catalog-stubs.php';
