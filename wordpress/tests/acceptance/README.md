@@ -1,11 +1,14 @@
 # #112 Free acceptance evidence gate
 
 This fixture drives the **merged Admin product** over authenticated HTTP:
-selection → immutable preview → approval → progress → reopen → protected
-bounded manual resume → history → Undo. It does not benchmark a planner or
-worker loop instead of the product. The original measurement is preserved in
-`EVIDENCE.md`/`results-cbee8b6.csv`; PR #119's repair makes the production
-boundary match that decision. See `SUPPORT-REPAIR.md`.
+selection → immutable preview → approval → background progress → reopen →
+protected bounded manual resume → history → Undo. It does not benchmark a
+planner or worker loop instead of the product. The current product supports
+**1,000 products per new job**; the suite exercises that boundary, regular and
+sale price targets, variable-product variation freezes and parent-range
+refresh, dirty-catalog tolerance, and truthful mixed outcomes. The original
+measurement is preserved in `EVIDENCE.md`/`results-cbee8b6.csv`; see
+`SUPPORT-REPAIR.md` for the refused-before-journal and recovery boundary.
 
 Run with the exact image pins in
 `.github/workflows/wordpress-woo-acceptance.yml` and:
@@ -15,7 +18,7 @@ export WL112_SHA="$(git rev-parse HEAD)"
 export WL112_RESULTS=/absolute/existing/evidence-directory
 export WL112_CORE_IMAGE=... # exact pinned image from the workflow
 export WL112_CLI_IMAGE=...  # exact pinned image from the workflow
-export WL112_SIZES='100 101 1000 10000'
+export WL112_SIZES='100 101 1000'
 export WL112_WOO=11.1.2
 export WL112_CACHE=persistent
 bash wordpress/tests/acceptance/run.sh
@@ -37,7 +40,7 @@ query counts. The JSON request start/end line indices attribute metrics to
 each actual size. Logical field bytes and exact row counts are measured per
 job, alongside explicitly approximate physical table allocations. None of
 these metrics is a measurement of process RSS or graphical-browser render time.
-The selected fixtures contain exactly 100/101/1,000/10,000 products. Earlier
+The selected fixtures contain exactly 100/101/1,000 products. Earlier
 fixtures plus the one first-use refusal product remain in the shop, so the
 whole catalog count is recorded separately. These are not mislabeled as
 empty-shop catalogs of the selected size.
@@ -65,35 +68,51 @@ not a release ZIP, SVN submission or release authorization.
 
 ## Interpretation
 
-The final Free Admin **new-work** boundary is **100**, distinct from the unchanged internal
-engineering selector maximum **1,000**. `100` runs a complete workflow; `101`,
-`1,000` and `10,000` run actual category/ID requests and record
-`REFUSED_BEFORE_JOURNAL`, exact unchanged evidence counts and zero Woo saves.
-There is no post-cap throughput/Undo measurement for those refused sizes.
-Woo 11.1.2 and Woo 11.0.1 both run the complete Preview → Apply → History →
-Undo workflow (two supported-range releases, not one exact fixture). Woo 9.9.7,
+The Free Admin **new-work** boundary and the engineering selector maximum are
+both **1,000**. `journey.php` runs a complete merchant workflow per size: the
+frozen population is the full selected size, while only three reviewed products
+change, so a real 1,000-product plan stays CI-practical. The 1,000 leg proves a
+frozen category plan completes in one durable job with paginated
+preview/results; one product is edited externally after approval, so Apply ends
+`COMPLETED_WITH_ISSUES` with the newer price preserved and Undo restores only
+the applied products. A requested size above 1,000 records
+`REFUSED_BEFORE_JOURNAL` with the typed support message and zero Woo saves. Woo
+11.1.2 and Woo 11.0.1 both run the complete Preview → Apply → History → Undo
+workflow (two supported-range releases, not one exact fixture). Woo 9.9.7,
 below the supported 10.0 floor, records `UNSUPPORTED_EARLY`, with no usable
 preview/approval/resume path and zero jobs/journal rows/price mutations.
 Do not bypass these boundaries for a helper-only run.
 
-`support-boundaries.php` additionally proves 100 explicit IDs' ordinary
-preview/approval, UI default/max 100, server-side rejection of policy 101,
-101 explicit/category typed refusals independent of the safety policy, and a
-valid internal 101-selected PLANNED job refused by the Admin approval controller
-before journal seed—even when its stored convenience counter says 100. Its
-historical item pagination beyond 100 remains readable. The lower-level plan
-contract is preserved, not weakened to manufacture this fixture.
+`support-boundaries.php` proves UI default/max 1,000, a 1,000-item explicit
+preview/approval using the frozen population rather than a tampered counter,
+and 1,001 explicit/category typed refusals independent of the safety policy
+that create no job, journal or Undo evidence. It also builds a hash-consistent
+durable predecessor above 1,000, refuses its approval, and then proves that an
+already-approved older-large job still finishes and Undoes through the real
+Admin HTTP contract with its frozen 1,001-item plan unchanged. The lower-level
+plan contract is preserved, not weakened to manufacture these fixtures.
 
 `legacy-recovery.php` uses trusted internal predecessor construction/approval
-of 101 items before any recovery assertion. The registered scheduler callback
-and real HTTP protected Resume consume the same #109 lease/generation/fence
-authority (including a common live-lease refusal), with frozen/journal bindings
-unchanged. Existing completed work keeps conflict-aware Undo; a partial Undo
-continues the same operation after fresh-session reopen. Legacy warnings are
-not new >100 support claims. An out-of-range Woo still refuses recovery with
-the supported range shown.
-PLANNED/BLOCKED oversized work remains non-executable/unapprovable. The fixture
-does not install a public bypass or a production migration flag.
+of 101 items — a supported size now — before any recovery assertion. The
+registered scheduler callback and real HTTP protected Resume consume the same
+#109 lease/generation/fence authority (including a common live-lease refusal),
+with frozen/journal bindings unchanged. Existing completed work keeps
+conflict-aware Undo; a partial Undo continues the same operation after
+fresh-session reopen. The above-1,000 recovery path is proved in
+`support-boundaries.php`; a 101-item job is never labeled legacy-oversized. An
+out-of-range Woo still refuses recovery with the supported range shown.
+PLANNED/BLOCKED work remains non-executable/unapprovable. The fixture does not
+install a public bypass or a production migration flag.
+
+`variations.php` proves a selected variable parent freezes its exact variation
+IDs at preview, a variation created after preview never enters that frozen
+plan, two variations Apply and Undo with the parent lookup min/max refreshed
+after both, and one externally edited variation conflicts without failing its
+sibling. `dirty-catalog.php` proves a malformed stored regular/sale price and an
+unreadable Woo read are skipped at preview with typed reasons while a clean
+sibling still changes, and duplicate `_regular_price` rows or a missing
+`_price` fail closed at the write boundary as needs-attention with zero
+overwrite. Both legs use the real Admin HTTP transport.
 
 Failed/partial results and logs are uploaded on **every attempt**, with the
 attempt number. CI artifacts carry detailed batch/request data; checked
