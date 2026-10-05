@@ -1,0 +1,6 @@
+main-configuration { width: 720, outer: 1440, dpr: 2, overflow: 720 }
+preview { width: 720, outer: 1440, dpr: 2, overflow: 720 }
+mixed-conflict { width: 720, outer: 1440, dpr: 2, overflow: 720 }
+undo-conflict { width: 720, outer: 1440, dpr: 2, overflow: 720 }
+history { width: 720, outer: 1440, dpr: 2, overflow: 720 }
+#169 actual browser zoom 200%: PASS; Chromium 153.0.8010.12

@@ -18,9 +18,32 @@ function observe(mode = 'observe') {
     return JSON.parse(execFileSync(process.env.WL167_CONTAINER ? 'docker' : 'wp', args, { env: { ...process.env, WL168_MODE: mode }, encoding: 'utf8' }));
 }
 async function capture(page, name) {
-    if (!process.env.WL167_EVIDENCE) return;
-    fs.mkdirSync(process.env.WL167_EVIDENCE, { recursive: true });
-    await page.locator('#wpbody-content').screenshot({ path: process.env.WL167_EVIDENCE + '/168-' + name + '.png' });
+    const representative = ['main-configuration', 'preview', 'mixed-conflict', 'undo-conflict', 'history'].includes(name);
+    if (!representative) {
+        if (process.env.WL167_EVIDENCE) {
+            fs.mkdirSync(process.env.WL167_EVIDENCE, { recursive: true });
+            await page.locator('#wpbody-content').screenshot({ path: process.env.WL167_EVIDENCE + '/168-' + name + '.png' });
+        }
+        return;
+    }
+    for (const width of [1440, 1024, 782, 375]) {
+        await page.setViewportSize({ width, height: 900 });
+        ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), name + ': no page overflow at ' + width);
+        ok(await page.locator('.writeleash-admin .button-primary').count() <= 1, name + ': one primary action');
+        for (const region of await page.locator('.writeleash-table-scroll').all()) {
+            await region.focus(); await page.keyboard.press('Tab'); await page.keyboard.press('Shift+Tab');
+            ok(await region.evaluate(el => document.activeElement === el && getComputedStyle(el).outlineStyle !== 'none'), name + ': keyboard scroll region focus visible');
+            await page.keyboard.press('ArrowRight');
+            if (width === 375) ok(await region.evaluate(el => el.scrollLeft > 0), name + ': table scrolls by keyboard');
+            await region.evaluate(el => { el.scrollLeft = 0; });
+        }
+        if (process.env.WL167_EVIDENCE) {
+            fs.mkdirSync(process.env.WL167_EVIDENCE, { recursive: true });
+            await page.evaluate(() => { document.activeElement.blur(); window.scrollTo(0, 0); });
+            await page.screenshot({ path: process.env.WL167_EVIDENCE + '/169-' + name + '-' + width + '.png', fullPage: true });
+        }
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
 }
 async function login(page, username = fixture.username, password = fixture.password) {
     await page.goto(base + '/wp-login.php');
@@ -53,6 +76,14 @@ async function row(page, id) { return page.locator('tr[data-product-id="' + id +
         page.on('dialog', () => { throw new Error('Markup-shaped name executed'); });
         page.on('pageerror', error => errors.push(error.message));
         await login(page);
+        await page.goto(home); await capture(page, 'main-configuration');
+        await page.locator('#writeleash-free-amount').focus();
+        await page.keyboard.press('Tab'); await page.keyboard.press('Shift+Tab');
+        ok(await page.locator('#writeleash-free-amount').evaluate(el => document.activeElement === el && getComputedStyle(el).outlineStyle !== 'none'), 'keyboard input focus visible');
+        for (const path of ['/wp-admin/edit.php?post_type=product', '/wp-admin/admin.php?page=wc-orders', '/wp-admin/admin.php?page=wc-settings']) {
+            await page.goto(base + path);
+            ok(await page.locator('link[href*="free-selection.css"], .writeleash-admin').count() === 0, 'WriteLeash style absent on ' + path);
+        }
         await open(page, 'blocked', 'preview');
         ok((await text(page)).includes('This plan cannot be executed.'), 'blocked plan clear');
         ok(await page.getByRole('button', { name: 'Approve and queue execution' }).count() === 0, 'blocked no execution action');
@@ -67,6 +98,7 @@ async function row(page, id) { return page.locator('tr[data-product-id="' + id +
         ok((await text(page)).includes('no products were changed by this job'), 'Undo unavailable exact reason');
         await capture(page, 'exclusions');
         await open(page, 'mixed', 'preview');
+        await capture(page, 'preview');
         ok((await text(page)).includes('Blue T-Shirt') && !(await text(page)).includes('Renamed externally'), 'frozen saved identity after rename');
         await action(page, 'Approve and queue execution');
         ok((await text(page)).includes('12 remaining'), 'queued progress honest');
@@ -74,7 +106,7 @@ async function row(page, id) { return page.locator('tr[data-product-id="' + id +
         ok((await text(page)).includes('9 changed') && (await text(page)).includes('1 conflict') && (await text(page)).includes('2 remaining'), 'partial 10 processed separates conflicts and remaining');
         const conflict = await row(page, fixture.mixed_ids[0]);
         const cells = await conflict.locator('td').allTextContents();
-        ok(cells[1] === '18.00' && cells[2] === '21.00' && cells[3] === '14.40', 'exact stale expected/current/target in same row');
+        ok(cells[1] === '$18.00 USD' && cells[2] === '$21.00 USD' && cells[3] === '$14.40 USD', 'exact stale expected/current/target in same row');
         ok((await conflict.locator('td strong').allTextContents()).includes('Not changed'), 'merchant conflict label primary');
         ok((await conflict.innerText()).includes('left the newer value unchanged'), 'preserved newer edit explanation');
         ok(await conflict.getByRole('link', { name: 'Review product', exact: true }).count() === 1 && await conflict.getByRole('link', { name: 'Create a new preview', exact: true }).count() === 1, 'safe conflict next actions');

@@ -211,7 +211,7 @@ ok( str_contains( $zhtml, 'Large increases 0' ), 'rendered large increases' );
 ok( str_contains( $zhtml, 'large decreases 2' ), 'rendered large decreases' );
 ok( str_contains( $zhtml, 'zero-price targets 2' ), 'rendered zero targets' );
 ok( str_contains( $zhtml, '2 planned changes' ), 'preview categories do not double-count policy-blocked changes' );
-ok( str_contains( $zhtml, '-100.000000%' ), 'rendered full-decrease percentage' );
+ok( str_contains( $zhtml, '-100%' ), 'rendered full-decrease percentage' );
 $li_ids = array( make_product( '100.00' ), make_product( '150.00' ), make_product( '200.00' ) );
 $res = Admin::process_preview( preview_post( array( 'ids' => implode( ',', $li_ids ), 'operation' => Operation::SET, 'amount' => '200.00', 'max_increase' => '500', 'max_decrease' => '500', 'warning_threshold' => '20' ) ), 'POST' );
 eq( $res['status'], 'OK', 'large-increase preview' );
@@ -221,15 +221,15 @@ $liextra = Admin::preview_extra_counts( $liplan->data()['items'] );
 eq( $liextra, array( 'large_increase' => 2, 'large_decrease' => 0, 'zero_target' => 0 ), 'increase-plan extra counts' );
 $lihtml = render_view( 'preview', $lijob['public_id'], 0 );
 ok( str_contains( $lihtml, 'Large increases 2' ), 'rendered large increases 2' );
-ok( str_contains( $lihtml, '100.000000%' ), 'rendered full-increase percentage' );
+ok( str_contains( $lihtml, '100%' ), 'rendered full-increase percentage' );
 // Every rendered row matches its frozen plan row exactly.
 foreach ( $liplan->preview_page( 0, 20 )['items'] as $prow ) {
-	ok( str_contains( $lihtml, (string) $prow['stored_regular_price'] ), 'row before matches plan' );
-	ok( str_contains( $lihtml, (string) $prow['planned_regular_price'] ), 'row after matches plan' );
-	ok( str_contains( $lihtml, (string) $prow['absolute_delta'] ), 'row delta matches plan' );
+	ok( str_contains( $lihtml, Admin::money_display( $prow['stored_regular_price'], $liplan->data()['store'] ) ), 'row before matches plan' );
+	ok( str_contains( $lihtml, Admin::money_display( $prow['planned_regular_price'], $liplan->data()['store'] ) ), 'row after matches plan' );
+	ok( str_contains( $lihtml, Admin::money_display( $prow['absolute_delta'], $liplan->data()['store'], true ) ), 'row delta matches plan' );
 	$disp = $prow['percentage_delta']['display'] ?? null;
 	if ( is_string( $disp ) ) {
-		ok( str_contains( $lihtml, $disp . '%' ), 'row percentage matches plan' );
+		ok( str_contains( $lihtml, Admin::percentage_display( $disp, $prow['percentage_delta']['numerator'] ?? null ) ), 'row percentage matches plan' );
 	}
 }
 marker( 'complete preview information contract' );
@@ -653,9 +653,9 @@ add_filter( 'query', $trace_queries );
 try { $current_html = render_view( 'job', $current_job['public_id'], 0 ); }
 finally { remove_filter( 'query', $trace_queries ); remove_filter( 'woocommerce_product_get_regular_price', $shopper_price ); }
 $current_rows = wl122_current_rows( $current_html );
-eq( array_slice( $current_rows[$current_id], 1, 3 ), array( '18.00', '21.00', '14.40' ), 'same conflict row preserves saved and current decimal strings' );
+eq( array_slice( $current_rows[$current_id], 1, 3 ), array( '$18.00 USD', '$21.00 USD', '$14.40 USD' ), 'same conflict row preserves saved and current decimal strings' );
 ok( str_contains( $current_rows[$current_id][4], 'Not changed' ) && str_contains( $current_rows[$current_id][4], 'left the newer value unchanged' ), 'merchant conflict explanation in the affected row' );
-eq( $current_rows[$current_other][2], '19.20', 'ordinary applied row also uses fresh Current' );
+eq( $current_rows[$current_other][2], '$19.20 USD', 'ordinary applied row also uses fresh Current' );
 foreach ( $render_queries as $query ) {
 	ok( ! preg_match( '/^\s*(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|START\s+TRANSACTION|BEGIN|LOCK)\b|\bFOR\s+UPDATE\b/i', $query ), 'Current render is SELECT-only, with no mutation/worker lock' );
 }
@@ -681,7 +681,7 @@ update_post_meta( $malformed_current_id, '_regular_price', 'not-a-price' ); // F
 $missing_rows = wl122_current_rows( render_view( 'job', $missing_job['public_id'], 0 ) );
 eq( $missing_rows[$missing_current_id][2], 'Unavailable', 'missing product Current unavailable' );
 eq( $missing_rows[$malformed_current_id][2], 'Unavailable', 'malformed stored price Current unavailable' );
-eq( $missing_rows[$valid_current_id][2], '18.00', 'one unavailable Current does not prevent other rows' );
+eq( $missing_rows[$valid_current_id][2], '$18.00 USD', 'one unavailable Current does not prevent other rows' );
 $unreadable = static function ( $class, $type, $post_type, $id ) use ( $current_id ) {
 	if ( $id === $current_id ) { throw new RuntimeException( 'test-only unreadable product' ); }
 	return $class;
@@ -690,7 +690,7 @@ add_filter( 'woocommerce_product_class', $unreadable, 10, 4 );
 try { $unreadable_rows = wl122_current_rows( render_view( 'job', $current_job['public_id'], 0 ) ); }
 finally { remove_filter( 'woocommerce_product_class', $unreadable, 10 ); }
 eq( $unreadable_rows[$current_id][2], 'Unavailable', 'read exception does not fatal or fall back to Expected/Planned' );
-eq( $unreadable_rows[$current_other][2], '19.20', 'read exception isolated to one row' );
+eq( $unreadable_rows[$current_other][2], '$19.20 USD', 'read exception isolated to one row' );
 marker( 'missing malformed unreadable Current remains nonfatal' );
 
 // A 51-product job must read only the 50 visible rows, then only the last row.
@@ -719,6 +719,7 @@ marker( 'Current reads bounded to rendered page only' );
 
 require __DIR__ . '/selection-integration.php';
 require __DIR__ . '/presentation-integration.php';
+require __DIR__ . '/polish-integration.php';
 
 // WooCommerce dependency loss fails closed at the Admin boundary. Plugin
 // code cannot be unloaded in-process, so the loss itself is asserted in a

@@ -1,16 +1,175 @@
-/* Keep the native and enhanced picker within the existing wp-admin column. */
-#writeleash-free-selection-form fieldset {
-    min-inline-size: 0;
+/* Native Admin presentation, confined to the WriteLeash page. */
+.writeleash-admin {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
-#writeleash-free-selection-form .select2-container {
+.writeleash-admin h2 {
+    margin: 32px 0 16px;
+    font-size: 18px;
+}
+.writeleash-admin h3 {
+    margin: 16px 0 8px;
+}
+.writeleash-admin p {
+    margin: 8px 0 16px;
+    line-height: 1.6;
+}
+.writeleash-admin > p {
+    max-width: 1000px;
+}
+.writeleash-admin details {
+    margin: 16px 0;
+}
+.writeleash-admin summary {
+    cursor: pointer;
+    width: fit-content;
+    max-width: 100%;
+}
+.writeleash-admin details p,
+.writeleash-admin .description {
+    color: #50575e;
+    font-size: 13px;
+}
+.writeleash-admin .button {
+    white-space: normal;
+    height: auto;
+    margin: 0 4px 8px 0;
+}
+.writeleash-admin .button-link {
+    text-align: start;
+}
+.writeleash-admin #writeleash-free-selection-form {
+    max-width: 900px;
+}
+.writeleash-admin #writeleash-free-selection-form fieldset {
+    min-inline-size: 0;
+    margin: 0 0 24px;
+    padding: 16px 24px 8px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+}
+.writeleash-admin #writeleash-free-selection-form legend {
+    padding: 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+}
+.writeleash-admin #writeleash-free-selection-form label {
+    display: inline-block;
+    margin-bottom: 4px;
+}
+.writeleash-admin #writeleash-free-selection-form input:not([type="checkbox"]):not([type="hidden"]),
+.writeleash-admin #writeleash-free-selection-form select {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.writeleash-admin #writeleash-free-selection-form .select2-container {
     max-width: 600px;
 }
-#writeleash-free-selection-form .select2-selection__choice {
+.writeleash-admin #writeleash-free-selection-form .select2-selection__choice {
     box-sizing: border-box;
     max-width: 100%;
     white-space: normal;
     overflow-wrap: anywhere;
 }
-#writeleash-free-selected li {
+.writeleash-admin #writeleash-free-selected {
+    margin: 8px 0 16px;
+}
+.writeleash-admin #writeleash-free-selected li {
+    padding: 4px 0;
     overflow-wrap: anywhere;
+}
+.writeleash-admin #writeleash-free-selection-form .writeleash-safety {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+}
+.writeleash-admin .writeleash-full-width {
+    grid-column: 1 / -1;
+}
+.writeleash-admin .writeleash-summary,
+.writeleash-admin .writeleash-undo {
+    padding: 16px 24px;
+    border: 1px solid #c3c4c7;
+    background: #fff;
+    margin-bottom: 24px;
+}
+.writeleash-admin .writeleash-summary p:first-child,
+.writeleash-admin .writeleash-undo h2 {
+    margin-top: 0;
+}
+.writeleash-admin .writeleash-summary p:first-child {
+    font-size: 16px;
+}
+.writeleash-admin .writeleash-summary > :last-child,
+.writeleash-admin .writeleash-undo > :last-child {
+    margin-bottom: 0;
+}
+.writeleash-admin .writeleash-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+}
+.writeleash-admin .writeleash-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 16px 0;
+}
+.writeleash-admin .widefat {
+    table-layout: fixed;
+    min-width: 900px;
+}
+.writeleash-admin .widefat th,
+.writeleash-admin .widefat td {
+    padding: 16px;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+}
+.writeleash-admin .writeleash-prices th:first-child {
+    width: 22%;
+}
+.writeleash-admin .writeleash-prices th:last-child {
+    width: 24%;
+}
+.writeleash-admin .writeleash-results th:nth-child(5),
+.writeleash-admin .writeleash-results th:last-child {
+    width: 22%;
+}
+.writeleash-admin .writeleash-prices td:nth-child(2),
+.writeleash-admin .writeleash-prices td:nth-child(3),
+.writeleash-admin .writeleash-prices td:nth-child(4),
+.writeleash-admin .writeleash-prices td:nth-child(5) {
+    font-variant-numeric: tabular-nums;
+}
+.writeleash-admin .writeleash-history th:first-child {
+    width: 30%;
+}
+.writeleash-admin .writeleash-history th:last-child {
+    width: 15%;
+}
+.writeleash-admin .widefat p,
+.writeleash-admin .widefat details {
+    margin: 8px 0;
+}
+.writeleash-admin .writeleash-attention > strong {
+    color: #795000;
+}
+.writeleash-admin :is(a, button, input, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+@media screen and (max-width: 782px) {
+    .writeleash-admin #writeleash-free-selection-form fieldset,
+    .writeleash-admin .writeleash-summary,
+    .writeleash-admin .writeleash-undo {
+        padding: 16px;
+    }
+    .writeleash-admin #writeleash-free-selection-form .writeleash-safety {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .writeleash-admin .widefat th,
+    .writeleash-admin .widefat td {
+        padding: 12px;
+    }
 }
