@@ -244,8 +244,8 @@ final class Free_Admin {
 			$reason = $error->reason();
 		} elseif ( $error instanceof Undo_Error ) {
 			$reason = $error->reason();
-		} elseif ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug-only diagnostic file; never used on a normal site.
+		} else {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Temporary CI diagnostic file.
 			error_log( 'writeleash unclassified request failure: ' . get_class( $error ) . ': ' . $error->getMessage() . ' at ' . $error->getFile() . ':' . $error->getLine() . "\n", 3, WP_CONTENT_DIR . '/writeleash-debug.log' );
 		}
 		return array( 'status' => 'INVALID', 'reason' => $reason );
