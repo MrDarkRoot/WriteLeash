@@ -34,7 +34,17 @@ async function login(page) {
     await page.waitForLoadState('networkidle');
 }
 async function action(page, name) {
-    await Promise.all([page.waitForEvent('framenavigated', { predicate: frame => frame === page.mainFrame() }), page.getByRole('button', { name, exact: true }).click()]);
+    // Server-side form submission; the heavy multi-engine suite can queue the
+    // request behind other work, so allow a longer budget than the default.
+    try {
+        await Promise.all([
+            page.waitForEvent('framenavigated', { predicate: frame => frame === page.mainFrame(), timeout: 60000 }),
+            page.getByRole('button', { name, exact: true }).click()
+        ]);
+    } catch (error) {
+        await capture(page, 'action-timeout-' + name.replace(/[^a-z0-9]+/gi, '-').toLowerCase());
+        throw error;
+    }
     await page.waitForLoadState('networkidle');
 }
 function input(page) { return page.locator('#writeleash-free-products + .select2-container .select2-search__field'); }
