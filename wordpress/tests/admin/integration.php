@@ -484,6 +484,90 @@ eq( $expired['reason'], 'UNDO_EXPIRED', 'expiry reason' );
 eq( fresh_price( $exp[0] ), '80.00', 'expired job price untouched' );
 marker( 'eligible conflict expired Undo' );
 
+// #178: sale-price targets and regular edits on sale-configured products.
+$sale_target_id = make_product( '100.00' );
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $sale_target_id, 'operation' => Operation::SET, 'amount' => '80.00', 'price_field' => Operation::FIELD_SALE ) ), 'POST' );
+eq( $res['status'], 'OK', 'sale SET preview' );
+$sale_job = Repo::read_by_public_id( $res['public_id'] );
+$sale_plan = Repo::hydrate_plan( $sale_job );
+eq( $sale_plan->price_field(), Operation::FIELD_SALE, 'sale plan records its field' );
+eq( Admin::task_description( $sale_plan->data() ) !== '' && str_contains( Admin::task_description( $sale_plan->data() ), 'sale prices' ), true, 'sale task copy names the field' );
+eq( Admin::process_approve( approve_post( $sale_job ), 'POST' )['status'], 'OK', 'sale plan approved' );
+run_job_terminal( (int) $sale_job['id'] );
+Verifier::invalidate( $sale_target_id );
+$sale_product = wc_get_product( $sale_target_id );
+eq( $sale_product->get_regular_price( 'edit' ), '100.00', 'first-sale apply preserves the regular baseline' );
+eq( $sale_product->get_sale_price( 'edit' ), '80.00', 'first-sale target applied' );
+eq( Decimal::parse( $sale_product->get_price( 'edit' ) ), Decimal::parse( '80.00' ), 'active price follows the applied sale' );
+$observer178 = Verifier::observer();
+try {
+	$storage178 = Verifier::storage( $observer178, $sale_target_id );
+	eq( (string) $storage178['lookup']['onsale'], '1', 'lookup onsale proves the sale is the active price' );
+	eq( Decimal::parse( $storage178['lookup']['min_price'] ), Decimal::parse( '80.00' ), 'lookup active price follows the sale' );
+} finally { $observer178->close(); }
+$csv178 = fopen( 'php://temp', 'w+' );
+try {
+	Admin::write_job_csv( $csv178, $sale_job, $sale_plan );
+	rewind( $csv178 );
+	$header178 = fgetcsv( $csv178, 0, ',', '"', '' );
+	$row178 = fgetcsv( $csv178, 0, ',', '"', '' );
+	$field178 = array_search( 'price_field', $header178, true );
+	eq( $field178 !== false && $row178[ $field178 ] === 'Sale price', true, 'CSV names the changed field' );
+} finally { fclose( $csv178 ); }
+// Percentage change on the existing sale uses the sale baseline.
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $sale_target_id, 'operation' => Operation::INCREASE_PERCENT, 'amount' => '10', 'price_field' => Operation::FIELD_SALE ) ), 'POST' );
+$sale_job2 = Repo::read_by_public_id( $res['public_id'] );
+eq( Repo::hydrate_plan( $sale_job2 )->item( $sale_target_id )->data()['planned_regular_price'], '88.00', 'sale percent baseline is the sale price' );
+eq( Admin::process_approve( approve_post( $sale_job2 ), 'POST' )['status'], 'OK', 'sale percentage plan approved' );
+run_job_terminal( (int) $sale_job2['id'] );
+Verifier::invalidate( $sale_target_id );
+eq( wc_get_product( $sale_target_id )->get_sale_price( 'edit' ), '88.00', 'sale percentage applied and regular preserved' );
+// Regular edit on a product with an active sale and dates preserves both.
+$preserve_id = make_product( '100.00' );
+$p = wc_get_product( $preserve_id ); $p->set_sale_price( '80.00' ); $p->set_date_on_sale_from( time() - 3600 ); $p->set_date_on_sale_to( time() + 86400 ); $p->save();
+$preserve_from = wc_get_product( $preserve_id )->get_date_on_sale_from( 'edit' );
+$preserve_to = wc_get_product( $preserve_id )->get_date_on_sale_to( 'edit' );
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $preserve_id, 'operation' => Operation::SET, 'amount' => '90.00' ) ), 'POST' );
+eq( $res['status'], 'OK', 'regular edit on an active sale previews' );
+$preserve_job = Repo::read_by_public_id( $res['public_id'] );
+eq( Admin::process_approve( approve_post( $preserve_job ), 'POST' )['status'], 'OK', 'regular-on-sale plan approved' );
+run_job_terminal( (int) $preserve_job['id'] );
+Verifier::invalidate( $preserve_id );
+$preserved = wc_get_product( $preserve_id );
+eq( $preserved->get_regular_price( 'edit' ), '90.00', 'regular target applied' );
+eq( $preserved->get_sale_price( 'edit' ), '80.00', 'active sale preserved by a regular edit' );
+eq( $preserved->get_date_on_sale_from( 'edit' )->getTimestamp(), $preserve_from->getTimestamp(), 'sale start preserved' );
+eq( $preserved->get_date_on_sale_to( 'edit' )->getTimestamp(), $preserve_to->getTimestamp(), 'sale end preserved' );
+eq( Decimal::parse( $preserved->get_price( 'edit' ) ), Decimal::parse( '80.00' ), 'active shopper price stays the sale' );
+$lookup_observer178 = Verifier::observer();
+try { $lookup178 = Verifier::storage( $lookup_observer178, $preserve_id ); }
+finally { $lookup_observer178->close(); }
+eq( (string) $lookup178['lookup']['onsale'], '1', 'lookup onsale survives a regular edit' );
+// Refusals: never let WooCommerce silently clear the sale.
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $preserve_id, 'operation' => Operation::SET, 'amount' => '80.00' ) ), 'POST' );
+$refused_plan = Repo::hydrate_plan( Repo::read_by_public_id( $res['public_id'] ) );
+eq( $refused_plan->item( $preserve_id )->data()['eligibility']['reason'], 'regular_price_not_above_sale', 'regular target at the sale is refused' );
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $preserve_id, 'operation' => Operation::INCREASE_FIXED, 'amount' => '20', 'price_field' => Operation::FIELD_SALE ) ), 'POST' );
+$refused_plan = Repo::hydrate_plan( Repo::read_by_public_id( $res['public_id'] ) );
+eq( $refused_plan->item( $preserve_id )->data()['eligibility']['reason'], 'sale_price_not_below_regular', 'sale target at the regular price is refused' );
+$no_sale_id = make_product( '100.00' );
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $no_sale_id, 'operation' => Operation::INCREASE_FIXED, 'amount' => '5', 'price_field' => Operation::FIELD_SALE ) ), 'POST' );
+$refused_plan = Repo::hydrate_plan( Repo::read_by_public_id( $res['public_id'] ) );
+eq( $refused_plan->item( $no_sale_id )->data()['eligibility']['reason'], 'empty_sale_price', 'fixed increase from a missing sale is refused' );
+// Undo restores only the sale field and removes a sale WriteLeash added.
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $no_sale_id, 'operation' => Operation::SET, 'amount' => '70.00', 'price_field' => Operation::FIELD_SALE ) ), 'POST' );
+$remove_job = Repo::read_by_public_id( $res['public_id'] );
+Admin::process_approve( approve_post( $remove_job ), 'POST' );
+run_job_terminal( (int) $remove_job['id'] );
+Admin::process_undo( undo_post( Repo::read( (int) $remove_job['id'] ) ), 'POST' );
+run_undo_terminal( (int) UndoRepo::read_operation_by_job( (int) $remove_job['id'] )['id'] );
+Verifier::invalidate( $no_sale_id );
+$removed = wc_get_product( $no_sale_id );
+eq( $removed->get_regular_price( 'edit' ), '100.00', 'sale-field undo leaves the regular price untouched' );
+eq( $removed->get_sale_price( 'edit' ), '', 'sale-field undo removes the WriteLeash-added sale' );
+eq( Decimal::parse( $removed->get_price( 'edit' ) ), Decimal::parse( '100.00' ), 'active price returns to the regular price' );
+marker( 'sale targets, preserved sale configuration and field-scoped sale Undo' );
+
 // Security negatives: subscriber, insufficient editor, revoked actor, wrong
 // owner, malformed inputs, invalid operation, XSS escaping.
 $subscriber = wp_insert_user( array( 'user_login' => 'wl111-sub-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'subscriber' ) );

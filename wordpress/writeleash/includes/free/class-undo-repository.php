@@ -280,7 +280,6 @@ final class Undo_Repository {
 				foreach ( array( 'regular', 'active', 'lookup_min', 'lookup_max' ) as $key ) {
 					if ( ! isset( $evidence[$key] ) || Price_Decimal::parse( $evidence[$key] ) !== $applied ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
 				}
-				if ( ! isset( $evidence['sale'] ) ) { $evidence['sale'] = ''; }
 			} else {
 				Price_Operation::assert_field( $field );
 				if ( ! is_string( $evidence['field_value'] ?? null ) || ! Price_Decimal::equal( $evidence['field_value'], $job_item['planned_price'] )
