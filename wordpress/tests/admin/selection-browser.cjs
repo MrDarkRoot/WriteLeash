@@ -49,6 +49,7 @@ async function action(page, name) {
 }
 function input(page) { return page.locator('#writeleash-free-products + .select2-container .select2-search__field'); }
 async function typeSearch(page, term) {
+    await input(page).click();
     await input(page).fill('');
     // Let SelectWoo's native focus/keydown handling settle between keys.
     // Keep real keyboard typing, including spaces, instead of zero-delay input.
@@ -56,26 +57,29 @@ async function typeSearch(page, term) {
     assert.equal(await input(page).inputValue(), term, 'search text preserves spaces');
 }
 async function search(page, term) {
-    await typeSearch(page, term);
-    // Wait on the merchant-visible outcome instead of the raw network event:
-    // SelectWoo can serve or reuse a result without a matching response event
-    // reaching Playwright, which made the network wait intermittently time out.
-    const status = page.locator('#writeleash-free-discovery-status');
-    try {
-        await status.filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor({ timeout: 60000 });
-    } catch (error) {
-        console.error('Search diagnostics:', JSON.stringify(await page.evaluate(() => ({
-            status: document.getElementById('writeleash-free-discovery-status').textContent,
-            action: document.getElementById('writeleash-free-selection-form').dataset.discoveryAction,
-            value: document.querySelector('#writeleash-free-products + .select2-container .select2-search__field').value
-        }))));
-        await capture(page, 'failed-search');
-        throw error;
-    }
-    if (/Choose matches/.test(await status.innerText())) {
-        // Wait for this search's own rendered rows, not a stale option list
-        // from the previous query that the status text can briefly outlive.
-        await page.locator('.select2-results__option[data-selected]').filter({ hasText: term }).first().waitFor({ timeout: 60000 });
+    // SelectWoo occasionally drops a query keyed before its dropdown settles
+    // (and its result list can outlive the status text). Type once, wait on
+    // this query's own rows, and retry once before failing with diagnostics.
+    for (let attempt = 0; attempt < 2; attempt++) {
+        await typeSearch(page, term);
+        const status = page.locator('#writeleash-free-discovery-status');
+        try {
+            await status.filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor({ timeout: 15000 });
+            if (/Choose matches/.test(await status.innerText())) {
+                await page.locator('.select2-results__option[data-selected]').filter({ hasText: term }).first().waitFor({ timeout: 15000 });
+            }
+            return;
+        } catch (error) {
+            if (attempt === 0) { continue; }
+            console.error('Search diagnostics:', JSON.stringify(await page.evaluate(() => ({
+                status: document.getElementById('writeleash-free-discovery-status').textContent,
+                action: document.getElementById('writeleash-free-selection-form').dataset.discoveryAction,
+                value: document.querySelector('#writeleash-free-products + .select2-container .select2-search__field').value,
+                options: Array.from(document.querySelectorAll('.select2-results__option')).map(option => option.textContent)
+            }))));
+            await capture(page, 'failed-search');
+            throw error;
+        }
     }
 }
 (async () => {
