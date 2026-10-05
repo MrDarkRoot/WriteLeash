@@ -149,9 +149,19 @@ async function responsive(page) {
         const np = await native.newPage(); await np.goto(home);
         await tabTo(np, np.locator('#writeleash-free-product_search')); await np.keyboard.type(f.skus[0]);
         await enter(np, button(np, 'Search products'));
-        await tabTo(np, np.locator('#writeleash-free-products')); await np.keyboard.press('Home');
+        const nativeSelect = np.locator('#writeleash-free-products');
+        const nativeFirst = nativeSelect.locator('option').first();
+        await tabTo(np, nativeSelect); await np.keyboard.press('Home');
+        if (!(await nativeFirst.evaluate(el => el.selected))) { await np.keyboard.press('Space'); }
+        ok(await nativeFirst.evaluate(el => el.selected), 'native keyboard navigation selects the first match');
         await enter(np, button(np, 'Update selected products'));
-        ok(await np.locator('#writeleash-free-selected button').count() === 1 && durable(fixture()) === beforeNetwork, 'keyboard native fallback selects actual product without mutation');
+        const nativeSelected = await np.locator('#writeleash-free-selected button').count();
+        const nativeAfter = durable(fixture());
+        if (1 !== nativeSelected || nativeAfter !== beforeNetwork) {
+            console.error('Native fallback diagnostics: ' + JSON.stringify({ nativeSelected, nativeOptions: await nativeSelect.locator('option').allTextContents(), before: JSON.parse(beforeNetwork), after: JSON.parse(nativeAfter) }));
+            await capture(np, 'native-fallback');
+        }
+        ok(1 === nativeSelected && nativeAfter === beforeNetwork, 'keyboard native fallback selects actual product without mutation');
         await native.close(); await page.goto(home);
         for (let i = 0; i < f.skus.length; i++) {
             await search(page, f.skus[i]);
