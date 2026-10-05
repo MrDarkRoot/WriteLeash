@@ -147,9 +147,16 @@ async function responsive(page) {
         // Same real server form works with the enhancement entirely unavailable.
         const native = await browser.newContext({ javaScriptEnabled: false, storageState: await context.storageState() });
         const np = await native.newPage(); await np.goto(home);
-        await tabTo(np, np.locator('#writeleash-free-product_search')); await np.keyboard.type(f.skus[0]);
-        await enter(np, button(np, 'Search products'));
+        const nativeSearch = np.locator('#writeleash-free-product_search');
         const nativeSelect = np.locator('#writeleash-free-products');
+        let nativeMatches = 0;
+        for (let attempt = 0; attempt < 2 && !nativeMatches; attempt++) {
+            await tabTo(np, nativeSearch); await np.keyboard.press('ControlOrMeta+A'); await np.keyboard.type(f.skus[0]);
+            await enter(np, button(np, 'Search products'));
+            nativeMatches = await nativeSelect.locator('option').count();
+        }
+        if (!nativeMatches) { console.error('Native search diagnostics: ' + JSON.stringify({ term: await nativeSearch.inputValue(), body: (await np.locator('#wpbody-content').innerText()).slice(0, 600) })); }
+        ok(nativeMatches > 0, 'native search returns the actual product match');
         const nativeFirst = nativeSelect.locator('option').first();
         await tabTo(np, nativeSelect); await np.keyboard.press('Home');
         if (!(await nativeFirst.evaluate(el => el.selected))) { await np.keyboard.press('Space'); }
