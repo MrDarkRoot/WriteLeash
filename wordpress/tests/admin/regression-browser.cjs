@@ -285,7 +285,7 @@ async function responsive(page) {
         ok((await text(page)).includes('Undo finished'), 'supported Woo restored without lost work');
         // #177 supports 1,000 products per job, so the selected window is bounded by MAX_JOB_PRODUCTS + 1.
         const reads = fixture().reads;
-        if (reads.unbounded || reads.oversized || reads.search > 11 || reads.selected > 1001) { console.error('Catalog window diagnostics: ' + JSON.stringify(reads)); }
+        if (reads.unbounded || reads.oversized || !(reads.search <= 11) || !(reads.selected <= 1001)) { console.error('Catalog window diagnostics: ' + JSON.stringify(reads)); }
         ok(!reads.unbounded && !reads.oversized && reads.search <= 11 && reads.selected <= 1001, 'bounded catalog windows throughout browser journey');
         safety.negatives = { no_mutation: durable(fixture()) === unchanged, reads };
         if (out) fs.writeFileSync(out + '/170-' + engine + '-result.json', JSON.stringify({ engine, version: await browser.version(), checks, scans, safety, evidence, viewport: '1440/1024/782/375', keyboard: 'PASS', screen_reader: 'NOT_TESTED', safari: 'NOT_TESTED' }, null, 2));

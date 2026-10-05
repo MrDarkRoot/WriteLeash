@@ -38,7 +38,7 @@ add_action('woocommerce_before_product_object_save', static function($p) {
  $s=get_option('wl170_saves', array()); $id=$p->get_id(); $s[$id]=($s[$id]??0)+1; update_option('wl170_saves', $s, false);
 });
 add_filter('posts_results', static function($posts,$query) {
- if ('product' !== $query->get('post_type')) return $posts;
+ $pt=(array)$query->get('post_type'); if (!in_array('product',$pt,true)) return $posts;
  $r=get_option('wl170_reads', array()); $kind=$query->get('post__in')?'selected':'search';
  $r[$kind]=max($r[$kind]??0,count($posts)); $pp=(int)$query->get('posts_per_page'); $limit=$kind==='selected'?max(\WriteLeash\Free_Support_Contract::MAX_JOB_PRODUCTS,\WriteLeash\Product_Selector::MAX_SELECTED)+1:11; $r['unbounded']=($r['unbounded']??false)||$pp<1; $r['oversized']=($r['oversized']??false)||$pp>$limit; if(($pp<1||$pp>$limit)&&count($r['offenders']??array())<20){$in=$query->get('post__in'); $r['offenders'][]=array('kind'=>$kind,'pp'=>$pp,'returned'=>count($posts),'in'=>is_array($in)?count($in):(int)(bool)$in);}
  update_option('wl170_reads',$r,false); return $posts;
