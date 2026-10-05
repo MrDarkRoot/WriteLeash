@@ -52,16 +52,30 @@ final class Product_Price_Selector {
 		$query = new \WP_Query( $args );
 		if ( count( $query->posts ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
 		$products = array();
+		$unreadable = array();
 		foreach ( $query->posts as $post ) {
-			$product = wc_get_product( $post->ID );
-			if ( 'SKU' === $s['type'] && ( ! $product || $product->get_sku( 'edit' ) !== $s['sku'] ) ) { continue; }
-			$products[ $post->ID ] = $product;
+			try {
+				$product = wc_get_product( $post->ID );
+				if ( 'SKU' === $s['type'] && ( ! $product instanceof \WC_Product || $product->get_sku( 'edit' ) !== $s['sku'] ) ) { continue; }
+				$products[ $post->ID ] = $product instanceof \WC_Product ? $product : false;
+			} catch ( \Throwable $error ) {
+				// One malformed product stays in the frozen population as explicitly
+				// unreadable instead of aborting the plan or silently disappearing.
+				$unreadable[ $post->ID ] = true;
+			}
 		}
 		if ( 'SKU' === $s['type'] && count( $products ) > 1 ) { throw new Price_Validation_Error( 'ambiguous_sku' ); }
-		$ids = 'IDS' === $s['type'] ? $s['ids'] : array_keys( $products );
+		$ids = 'IDS' === $s['type'] ? $s['ids'] : array_merge( array_keys( $products ), array_keys( $unreadable ) );
 		sort( $ids, SORT_NUMERIC );
 		$snapshots = array();
-		foreach ( $ids as $id ) { $snapshots[] = Product_Price_Snapshot::read( $id, $products[$id] ?? false ); }
+		foreach ( $ids as $id ) {
+			if ( isset( $unreadable[ $id ] ) ) { $snapshots[] = Product_Price_Snapshot::unreadable( $id ); continue; }
+			try {
+				$snapshots[] = Product_Price_Snapshot::read( $id, $products[ $id ] ?? false );
+			} catch ( \Throwable $error ) {
+				$snapshots[] = Product_Price_Snapshot::unreadable( $id );
+			}
+		}
 		return $snapshots;
 	}
 }

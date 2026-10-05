@@ -851,9 +851,9 @@ final class Free_Admin {
 		}
 		$labels = array(
 			'APPLIED' => 'Changed', 'UNCHANGED' => 'Already at target; unchanged',
-			'UNSUPPORTED' => 'Excluded; unchanged', 'BLOCKED' => 'Will not run',
+			'UNSUPPORTED' => 'Skipped at preview; unchanged', 'BLOCKED' => 'Will not run',
 			'APPLYING' => 'In progress; outcome not yet confirmed', 'CONFLICT' => 'Not changed',
-			'FAILED' => 'Needs checking', 'NEEDS_REVIEW' => 'Outcome uncertain; needs checking',
+			'FAILED' => 'Needs attention; not changed', 'NEEDS_REVIEW' => 'Outcome uncertain; needs checking',
 			'UNDO_PENDING' => 'Awaiting restoration', 'UNDO_APPLYING' => 'Restoration in progress; outcome not yet confirmed',
 			'UNDONE' => 'Restored', 'UNDO_CONFLICT' => 'Not restored',
 			'UNDO_FAILED' => 'Restoration needs checking', 'UNDO_NEEDS_REVIEW' => 'Restoration uncertain; needs checking',
@@ -865,9 +865,9 @@ final class Free_Admin {
 		$pending = (int) $counts['pending'];
 		$parts = array(
 			(int) $counts['applied'] . ' changed', (int) $counts['unchanged'] . ' already at target; unchanged',
-			(int) $counts['unsupported'] . ' excluded; unchanged', (int) $counts['conflict'] . ' conflict' . ( 1 === (int) $counts['conflict'] ? '' : 's' ),
+			(int) $counts['unsupported'] . ' skipped at preview; unchanged', (int) $counts['conflict'] . ' conflict' . ( 1 === (int) $counts['conflict'] ? '' : 's' ),
 			$pending . ( 'BLOCKED' === $state ? ' will not run' : ( 'PLANNED' === $state ? ' awaiting approval' : ( Job_State::is_terminal( $state ) ? ' not processed' : ' remaining' ) ) ),
-			(int) $counts['applying'] . ' in progress', (int) $counts['failed'] . ' failed',
+			(int) $counts['applying'] . ' in progress', (int) $counts['failed'] . ' needing attention',
 			(int) $counts['needs_review'] . ' uncertain',
 		);
 		if ( $compact ) { $parts = array_values( array_filter( $parts, static fn( $part ) => ! str_starts_with( $part, '0 ' ) ) ); }
@@ -1001,6 +1001,11 @@ final class Free_Admin {
 			echo '<p>Review the product, then <a href="' . esc_url( self::page_url() ) . '">Create a new preview</a> if you still want to change it.</p>';
 		} elseif ( in_array( $state, array( 'NEEDS_REVIEW', 'UNKNOWN', 'UNDO_NEEDS_REVIEW', 'FAILED', 'UNDO_FAILED' ), true ) ) {
 			echo '<p>Check the product and saved results before taking further action. This outcome is not confirmed as unchanged.</p>';
+			// Known apply-time refusals get their exact merchant recovery copy;
+			// unknown reasons never invent an explanation.
+			if ( null !== $reason && in_array( $reason, array( 'LOOKUP_MISMATCH', 'UNSUPPORTED_PRODUCT_STATE' ), true ) ) {
+				echo '<p>' . esc_html( self::reason_message( $reason ) ) . '</p>';
+			}
 		} elseif ( null !== $reason && in_array( $state, array( 'UNSUPPORTED', 'UNCHANGED' ), true ) ) {
 			echo '<p>' . esc_html( self::reason_message( $reason ) ) . '</p>';
 		}
@@ -1330,7 +1335,7 @@ final class Free_Admin {
 		echo '<h2>' . esc_html( 'Review price change' ) . '</h2><div class="writeleash-summary">';
 		echo '<p><strong>' . esc_html( self::task_description( $data ) ) . '</strong></p>';
 		self::support_details( $data['plan_id'] . ' · ' . $plan->hash() );
-		echo '<p>' . esc_html( 'Selected ' . $summary['selected'] . ' products: ' . ( $summary['changing'] ) . ' planned changes · ' . $summary['unchanged'] . ' already at target · ' . $summary['unsupported'] . ' excluded.' ) . '</p>';
+		echo '<p>' . esc_html( 'Selected ' . $summary['selected'] . ' products: ' . ( $summary['changing'] ) . ' planned changes · ' . $summary['unchanged'] . ' already at target · ' . $summary['unsupported'] . ' skipped at preview.' ) . '</p>';
 		$extra_counts = self::preview_extra_counts( $data['items'] );
 		echo '<p>' . esc_html( 'Large increases ' . $extra_counts['large_increase'] . ' · large decreases ' . $extra_counts['large_decrease'] . ' · zero-price targets ' . $extra_counts['zero_target'] . ' · ' . $summary['warning_items'] . ' products with warnings.' ) . '</p></div>';
 		if ( $blocked ) {
@@ -1500,7 +1505,7 @@ final class Free_Admin {
 		else { echo '<p>Undo availability cannot be verified while product outcomes are missing. Reload this job or ask an administrator to check its saved records.</p>'; }
 		echo '</section>';
 		echo '<h2>' . esc_html( 'Products' ) . '</h2>';
-		$filters = array( '' => array( 'All products', null, null ), 'conflict' => array( 'Apply conflicts', 'CONFLICT', null ), 'review' => array( 'Uncertain Apply outcomes', 'NEEDS_REVIEW', null ), 'undo_conflict' => array( 'Undo conflicts', null, 'UNDO_CONFLICT' ), 'undo_review' => array( 'Uncertain Undo outcomes', null, 'UNDO_NEEDS_REVIEW' ) );
+		$filters = array( '' => array( 'All products', null, null ), 'conflict' => array( 'Apply conflicts', 'CONFLICT', null ), 'attention' => array( 'Apply failures needing attention', 'FAILED', null ), 'review' => array( 'Uncertain Apply outcomes', 'NEEDS_REVIEW', null ), 'undo_conflict' => array( 'Undo conflicts', null, 'UNDO_CONFLICT' ), 'undo_review' => array( 'Uncertain Undo outcomes', null, 'UNDO_NEEDS_REVIEW' ) );
 		if ( ! isset( $filters[ $filter ] ) ) { $filter = ''; }
 		echo '<p class="writeleash-filters">';
 		foreach ( $filters as $key => $choice ) {
