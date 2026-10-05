@@ -244,6 +244,9 @@ final class Free_Admin {
 			$reason = $error->reason();
 		} elseif ( $error instanceof Undo_Error ) {
 			$reason = $error->reason();
+		} else {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Temporary CI diagnostic for an unclassified request failure.
+			error_log( 'writeleash unclassified request failure: ' . get_class( $error ) . ': ' . $error->getMessage() );
 		}
 		return array( 'status' => 'INVALID', 'reason' => $reason );
 	}
