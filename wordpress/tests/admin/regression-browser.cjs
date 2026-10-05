@@ -62,7 +62,7 @@ async function search(page, term) {
             ok(data.success && data.data.results.length <= 20, 'bounded real discovery response');
             return;
         } catch (error) {
-            if (attempt === 0) { continue; }
+            if (attempt === 0) { console.error('Discovery query retried after a dropped/stale response: ' + term); continue; }
             throw error;
         }
     }
@@ -136,7 +136,13 @@ async function responsive(page) {
         await page.route('**/admin-ajax.php*', r => r.abort('timedout'));
         await tabTo(page, picker); await page.keyboard.press('ControlOrMeta+A'); await page.keyboard.type('failed request', { delay: 20 });
         await page.getByText('Search is unavailable. Try again, reload if your session expired, or use the native search below.', { exact: true }).waitFor();
-        ok(await page.locator('#writeleash-free-selected button').count() === 0 && durable(fixture()) === beforeNetwork, 'network failure has no phantom selection or mutation');
+        const networkSelected = await page.locator('#writeleash-free-selected button').count();
+        const networkAfter = durable(fixture());
+        if (0 !== networkSelected || networkAfter !== beforeNetwork) {
+            console.error('Network-failure diagnostics: ' + JSON.stringify({ selected: networkSelected, chosenText: await page.locator('#writeleash-free-selected').innerText(), before: JSON.parse(beforeNetwork), after: JSON.parse(networkAfter) }));
+            await capture(page, 'network-failure');
+        }
+        ok(0 === networkSelected && networkAfter === beforeNetwork, 'network failure has no phantom selection or mutation');
         await scan(page, 'search failure'); await page.unroute('**/admin-ajax.php*');
         // Same real server form works with the enhancement entirely unavailable.
         const native = await browser.newContext({ javaScriptEnabled: false, storageState: await context.storageState() });
