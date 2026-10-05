@@ -61,16 +61,16 @@ if ( 'edit-apply' === $mode || 'edit-undo' === $mode ) {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php'; deactivate_plugins( 'woocommerce/woocommerce.php' );
 } elseif ( 'restore-woo' === $mode ) {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php'; activate_plugin( 'woocommerce/woocommerce.php' );
-} elseif ( 'unsupported-woo' === $mode ) {
-	$zip = getenv( 'WL170_UNSUPPORTED_ZIP' ) ?: '/opt/woo-zips/woocommerce.11.0.1.zip';
+} elseif ( 'older-woo' === $mode ) {
+	$zip = getenv( 'WL170_OLDER_ZIP' ) ?: '/opt/woo-zips/woocommerce.11.0.1.zip';
 	$expected = 'da189b6616c610d15a2106f93151dab81b78f83e075bcefce221ac0d00b4fa21';
-	if ( hash_file( 'sha256', $zip ) !== $expected ) { throw new RuntimeException( 'Wrong unsupported Woo package' ); }
+	if ( hash_file( 'sha256', $zip ) !== $expected ) { throw new RuntimeException( 'Wrong older Woo package' ); }
 	$backup = ABSPATH . 'wp-content/wl170-supported-woo';
 	if ( file_exists( $backup ) ) { throw new RuntimeException( 'Unrestored Woo fixture' ); }
 	if ( ! rename( WP_PLUGIN_DIR . '/woocommerce', $backup ) ) { throw new RuntimeException( 'Woo fixture backup failed' ); }
 	$archive = new ZipArchive(); $archive->open( $zip ); $archive->extractTo( WP_PLUGIN_DIR ); $archive->close();
 } elseif ( 'restore-version' === $mode ) {
-	if ( ! rename( WP_PLUGIN_DIR . '/woocommerce', ABSPATH . 'wp-content/wl170-unsupported-woo-' . wp_generate_uuid4() ) || ! rename( ABSPATH . 'wp-content/wl170-supported-woo', WP_PLUGIN_DIR . '/woocommerce' ) ) { throw new RuntimeException( 'Woo fixture restoration failed' ); }
+	if ( ! rename( WP_PLUGIN_DIR . '/woocommerce', ABSPATH . 'wp-content/wl170-older-woo-' . wp_generate_uuid4() ) || ! rename( ABSPATH . 'wp-content/wl170-supported-woo', WP_PLUGIN_DIR . '/woocommerce' ) ) { throw new RuntimeException( 'Woo fixture restoration failed' ); }
 } elseif ( 'observe' !== $mode ) { throw new RuntimeException( 'Unknown #170 fixture mode' ); }
 // Rejected actions are checked against prices, full durable rows and save counts.
 $prices = array();

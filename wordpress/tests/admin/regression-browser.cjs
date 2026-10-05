@@ -109,7 +109,7 @@ async function responsive(page) {
 (async () => {
     const browser = await pw[engine].launch({ headless: true, ...(process.env.WL170_EXECUTABLE ? { executablePath: process.env.WL170_EXECUTABLE } : (engine === 'chromium' ? { executablePath: process.env.WL167_CHROME || '/usr/bin/google-chrome' } : {})) });
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
-    let missing = false, unsupported = false;
+    let missing = false, older = false;
     try {
         let page = await context.newPage();
         await login(page); await page.goto(home);
@@ -277,9 +277,11 @@ async function responsive(page) {
         ok((await text(page)).includes('WooCommerce') && durable(fixture()) === unchanged, 'missing dependency message preserves durable work'); await scan(page, 'missing dependency');
         fixture('restore-woo'); missing = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'reactivated Woo recovers saved job');
-        fixture('unsupported-woo'); unsupported = true; await page.reload();
-        ok((await text(page)).includes('11.0.1') && (await text(page)).includes('through 11.x') && durable(fixture()) === unchanged, 'actual unsupported Woo refuses with supported-version guidance');
-        fixture('restore-version'); unsupported = false; await page.reload();
+        // #180 supports the whole 10.x-11.x range, so the real 11.0.1 package is
+        // an in-range install: the saved job must stay reachable and unchanged.
+        fixture('older-woo'); older = true; await page.reload();
+        ok((await text(page)).includes('Undo finished') && durable(fixture()) === unchanged, 'older in-range Woo 11.0.1 keeps saved work without mutation');
+        fixture('restore-version'); older = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'supported Woo restored without lost work');
         const reads = fixture().reads; ok(!reads.unbounded && !reads.oversized && reads.search <= 11 && reads.selected <= 100, 'bounded catalog windows throughout browser journey');
         safety.negatives = { no_mutation: durable(fixture()) === unchanged, reads };
@@ -287,7 +289,7 @@ async function responsive(page) {
         console.log('#170 ' + engine + ' integrated keyboard/accessibility/safety: PASS (' + checks + ' assertions); version=' + await browser.version());
     } finally {
         fixture('normal-nonce'); fixture('restore-rights');
-        if (missing) fixture('restore-woo'); if (unsupported) fixture('restore-version');
+        if (missing) fixture('restore-woo'); if (older) fixture('restore-version');
         await context.close(); await browser.close();
     }
 })().catch(e => { console.error(e.stack); process.exitCode = 1; });

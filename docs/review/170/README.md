@@ -34,8 +34,9 @@ prove exact frozen IDs/hash, no preview saves, one Apply save per eligible
 product despite duplicate Resume, preserved 120.00 Apply conflict, preserved
 93.00 Undo conflict and restoration of 20 eligible prices. Lost approval response
 is simulated by forwarding the real POST then dropping its browser response;
-no mutation provider is mocked. Role/session/nonce/GET and real missing/11.0.1
-Woo dependency negatives preserve the observed durable rows and prices.
+no mutation provider is mocked. Role/session/nonce/GET, a real missing-Woo
+dependency negative and an older in-range 11.0.1 install preserve the observed
+durable rows and prices.
 
 Both engines check 1440/1024/782/375 CSS px on critical views. Actual 200% zoom
 uses Chromium's `chrome.tabs.setZoom(..., 2)`, verified by a 1440 px outer window,
