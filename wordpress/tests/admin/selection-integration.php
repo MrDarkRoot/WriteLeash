@@ -15,6 +15,9 @@ $parent167 = wp_insert_term( $tag167 . ' Collection', 'product_cat' );
 $child167 = wp_insert_term( $tag167 . ' Collection', 'product_cat', array( 'parent' => (int) $parent167['term_id'] ) );
 $parent_product167 = make_product( '100.00', 'publish', array( 'category' => $parent167['term_id'], 'name' => $tag167 . ' Parent product' ) );
 $child_product167 = make_product( '100.00', 'publish', array( 'category' => $child167['term_id'], 'name' => $tag167 . ' Child product' ) );
+// #181 fixtures are created before the read-only save observer below.
+$readable181 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Readable 181' ) );
+$unreadable181 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Unreadable 181' ) );
 $large167 = array();
 for ( $i167 = 0; $i167 < 1001; ++$i167 ) { $large167[] = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Bounded ' . $i167 ) ); }
 for ( $i167 = 0; $i167 < 121; ++$i167 ) { wp_insert_term( $tag167 . ' Taxonomy ' . $i167, 'product_cat' ); }
@@ -65,8 +68,7 @@ remove_filter( 'map_meta_cap', $deny167, 10 );
 
 // #181 unreadable products stay listed and skippable instead of failing the
 // whole search or silently disappearing from the selected population.
-$readable181 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Readable 181' ) );
-$unreadable181 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Unreadable 181' ) );
+// Fixtures were created above, before the read-only save observer.
 $unreadable_filter181 = static function ( $class, $type, $post_type, $id ) use ( $unreadable181 ) {
 	if ( (int) $id === $unreadable181 ) { throw new RuntimeException( 'test-only unreadable product' ); }
 	return $class;

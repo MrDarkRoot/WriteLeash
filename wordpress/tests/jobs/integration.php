@@ -269,23 +269,22 @@ marker( 'basic E2E 17 items: no false generic success' );
 $dirty_clean = create_product( '100.00' );
 $dirty_duplicate = create_product( '100.00' );
 $dirty_missing_price = create_product( '100.00' );
-$dirty_sale_date = create_product( '100.00' );
-$dirty_ids = array( $dirty_clean, $dirty_duplicate, $dirty_missing_price, $dirty_sale_date );
+$dirty_sale_price = create_product( '100.00' );
+$dirty_ids = array( $dirty_clean, $dirty_duplicate, $dirty_missing_price, $dirty_sale_price );
 sort( $dirty_ids, SORT_NUMERIC );
 Verifier::invalidate( $dirty_duplicate );
 add_post_meta( $dirty_duplicate, '_regular_price', '100.00' );
 Verifier::invalidate( $dirty_missing_price );
 delete_post_meta( $dirty_missing_price, '_price' );
-Verifier::invalidate( $dirty_sale_date );
-update_post_meta( $dirty_sale_date, '_sale_price', '80.00' );
-update_post_meta( $dirty_sale_date, '_sale_price_dates_from', 'not-a-date' );
-$dirty_plan = Planner::preview( Selection::ids( $dirty_ids ), new Operation( Operation::SET, '80.00' ), new Policy( 1000, '100', '100', true, '100' ) );
+Verifier::invalidate( $dirty_sale_price );
+update_post_meta( $dirty_sale_price, '_sale_price', 'not-a-price' );
+$dirty_plan = Planner::preview( Selection::ids( $dirty_ids ), new Operation( Operation::SET, '120.00' ), new Policy( 1000, '100', '100', true, '100' ) );
 eq( $dirty_plan->summary()['selected'], 4, 'dirty catalog selection stays complete' );
 eq( $dirty_plan->item( $dirty_clean )->data()['result'], 'CHANGING', 'clean sibling still changes' );
 eq( $dirty_plan->item( $dirty_duplicate )->data()['result'], 'CHANGING', 'duplicate-meta plan read is left unchanged' );
 eq( $dirty_plan->item( $dirty_missing_price )->data()['result'], 'CHANGING', 'missing-price plan read is left unchanged' );
-$dirty_sale_reason = $dirty_plan->item( $dirty_sale_date )->data()['eligibility']['reason'];
-eq( in_array( $dirty_sale_reason, array( 'sale_configured', 'unreadable_product_data' ), true ), true, 'garbage sale date stays skipped: ' . $dirty_sale_reason );
+$dirty_sale_reason = $dirty_plan->item( $dirty_sale_price )->data()['eligibility']['reason'];
+eq( $dirty_sale_reason, 'invalid_price', 'malformed sale price stays skipped without guessing' );
 $dirty_job = Repo::create_from_plan( $dirty_plan, 1 );
 Repo::approve( (int) $dirty_job['id'], 1 );
 Worker::queue_job( (int) $dirty_job['id'] );
@@ -296,9 +295,9 @@ eq( Repo::read( (int) $dirty_job['id'] )['status'], JState::COMPLETED_WITH_ISSUE
 $dirty_counts = assert_counts( (int) $dirty_job['id'], 'dirty' );
 eq( $dirty_counts['applied'], 1, 'one clean product applied' );
 eq( $dirty_counts['failed'], 2, 'two apply refusals terminal' );
-eq( $dirty_counts['unsupported'], 1, 'garbage sale date skipped at preview' );
+eq( $dirty_counts['unsupported'], 1, 'malformed sale price skipped at preview' );
 eq( $dirty_counts['pending'] + $dirty_counts['applying'], 0, 'no dirty item left pending' );
-eq( fresh_price( $dirty_clean ), '80.00', 'clean product reached its target' );
+eq( fresh_price( $dirty_clean ), '120.00', 'clean product reached its target' );
 eq( saves( $dirty_clean ), 1, 'clean product one save' );
 $dirty_items = item_map( (int) $dirty_job['id'] );
 foreach ( array( $dirty_duplicate, $dirty_missing_price ) as $dirty_id ) {
@@ -308,9 +307,9 @@ foreach ( array( $dirty_duplicate, $dirty_missing_price ) as $dirty_id ) {
 	eq( saves( $dirty_id ), 0, 'dirty product zero saves ' . $dirty_id );
 	eq( journal_row( $dirty_plan->data()['plan_id'], $dirty_id )['state'], 'FAILED', 'journal refusal recorded ' . $dirty_id );
 }
-eq( $dirty_items[ $dirty_sale_date ]['state'], IState::UNSUPPORTED, 'garbage sale date skipped at import' );
-eq( fresh_price( $dirty_sale_date ), '100.00', 'garbage sale date product untouched' );
-eq( saves( $dirty_sale_date ), 0, 'garbage sale date zero saves' );
+eq( $dirty_items[ $dirty_sale_price ]['state'], IState::UNSUPPORTED, 'malformed sale price skipped at import' );
+eq( fresh_price( $dirty_sale_price ), '100.00', 'malformed sale price product untouched' );
+eq( saves( $dirty_sale_price ), 0, 'malformed sale price zero saves' );
 marker( 'dirty catalog: clean applies while malformed siblings fail per item' );
 
 // ---------------------------------------------------------------------------
