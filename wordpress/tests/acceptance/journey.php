@@ -139,15 +139,15 @@ try {
         return;
     }
     $fields = wl112_form( $home['body'], 'writeleash_free_preview' );
-    $fields = array_merge( $fields, array( 'selector' => 'category', 'category' => (string) $term['term_id'], 'ids' => '', 'operation' => 'DECREASE_PERCENT', 'amount' => '20', 'max_products' => (string) \WriteLeash\Free_Support_Contract::MAX_JOB_PRODUCTS, 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
+    $fields = array_merge( $fields, array( 'selector' => 'category', 'category' => (string) $term['term_id'], 'ids' => '', 'operation' => 'DECREASE_PERCENT', 'amount' => '20', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
     unset( $fields['block_zero'] );
     $post = wl112_post( $fields );
     $facts['plan_post_seconds'] = $post['seconds'];
-    if ( $size > \WriteLeash\Free_Support_Contract::MAX_JOB_PRODUCTS ) {
+    if ( $size > 100 ) {
         wl112_assert( false === strpos( $post['location'], 'wl_job=' ), 'oversized category unexpectedly accepted' );
         $page = wl112_get( $post['location'] );
-        wl112_assert( false !== strpos( $page['body'], 'supports up to ' . \WriteLeash\Free_Support_Contract::MAX_JOB_PRODUCTS . ' products per job' ), 'oversized category not visibly refused' );
-        if ( $size <= \WriteLeash\Product_Price_Selector::MAX_SELECTED ) { wl112_assert( false !== strpos( $page['body'], $size . ' products were selected.' ), 'category selected count missing' ); }
+        wl112_assert( false !== strpos( $page['body'], 'supports up to 100 products per job' ), 'oversized category not visibly refused' );
+        if ( $size <= 1000 ) { wl112_assert( false !== strpos( $page['body'], $size . ' products were selected.' ), 'category selected count missing' ); }
         $fields['selector'] = 'ids';
         $fields['picker_present'] = '0';
         $fields['ids'] = implode( ',', $ids );
@@ -160,7 +160,7 @@ try {
         wl112_parity( $ids, '100' );
         $facts['outcome'] = 'REFUSED_BEFORE_JOURNAL';
         $facts['reason'] = 'supported_job_limit_exceeded';
-        $facts['classification_reason'] = 'Post-cap Free Admin selection refused before durable import or journal seed; the Free supported ceiling now matches the engineering selector maximum. No post-cap Apply/Undo throughput exists.';
+        $facts['classification_reason'] = 'Post-cap Free Admin selection refused before durable import or journal seed; engineering selector max remains 1000 internally. No post-cap Apply/Undo throughput exists.';
         $facts['owned_evidence_before'] = $before;
         $facts['owned_evidence_after'] = wl112_evidence_rows();
         $facts['actual_job_size'] = 0;
