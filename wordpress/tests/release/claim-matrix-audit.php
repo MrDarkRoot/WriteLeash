@@ -85,7 +85,7 @@ foreach ( $unsupported as $claim ) {
 
 foreach ( array(
 	'Up to 100 selected products per new job in the tested configuration.',
-	'WooCommerce 11.1.2 exactly.',
+	'WooCommerce 10.0 through 11.x',
 	'Multisite is unsupported.',
 	'Real managed or shared hosting has not been tested.',
 ) as $exact ) {

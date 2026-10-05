@@ -23,14 +23,17 @@ final class Woo_Undo_Mutator {
 	}
 
 	private static function schema( \wpdb $db ): void {
-		if ( ! Free_Support_Contract::woocommerce_ok() || is_multisite() || 'wpdb' !== get_class( $db ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+		$reason = Free_Support_Contract::execution_reason( $db );
+		if ( null !== $reason ) { throw new Price_Apply_Error( Free_Support_Contract::item_reason( $reason ) ); }
 		Price_Apply_Journal::assert_schema( $db );
 		Undo_Schema::assert_schema( $db );
 		Job_Schema::assert_schema( $db );
 		foreach ( array( $db->posts, $db->postmeta, $db->wc_product_meta_lookup, Price_Apply_Journal::table( $db ), Undo_Schema::items_table( $db ), Undo_Schema::operations_table( $db ), Job_Schema::jobs_table( $db ), Job_Schema::items_table( $db ), $db->options, $db->users, $db->usermeta ) as $table ) {
 			if ( ! preg_match( '/\A[a-zA-Z0-9_]+\z/D', $table ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 			$engine = $db->get_var( $db->prepare( 'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) );
-			if ( 'InnoDB' !== $engine ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+			// A non-transactional engine cannot hold the item transaction:
+			// refuse with an actionable reason instead of a generic one.
+			if ( 'InnoDB' !== $engine ) { throw new Price_Apply_Error( 'DB_TRANSACTIONS_UNSUPPORTED' ); }
 		}
 	}
 
@@ -173,7 +176,7 @@ final class Woo_Undo_Mutator {
 			if ( $had_transaction && ! $rolled_back && 'AMBIGUOUS_COMMIT' !== $reason ) { $reason = 'TRANSACTION_LOST'; }
 			$wpdb = $original;
 			$review = $committed || in_array( $reason, array( 'TRANSACTION_LOST', 'AMBIGUOUS_COMMIT', 'CACHE_VERIFICATION_FAILED', 'LOOKUP_MISMATCH', 'JOURNAL_MISMATCH', 'UNDO_PROVENANCE_MISMATCH' ), true );
-			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'UNDO_CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED', 'UNDO_EXPIRED', 'UNDO_NOT_ELIGIBLE', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' );
+			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'UNDO_CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED', 'UNDO_EXPIRED', 'UNDO_NOT_ELIGIBLE', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' );
 			if ( in_array( $code, array( 'UNDO_CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED' ), true ) ) { $code = 'UNDO_CONFLICT'; }
 			try {
 				// Connection loss: cleanup uses independent live DB, never a dead writer.
@@ -182,9 +185,12 @@ final class Woo_Undo_Mutator {
 				if ( $tx && ( $rolled_back || $review ) && null !== $job ) {
 					// Known rollback FAILED/FENCE_LOST/TRANSACTION_UNAVAILABLE remains
 					// UNDO_PENDING for an explicit retry or the authoritative newer
-					// generation. Review never auto-retries. Conflict is terminal
+					// generation. Environment refusals (unsupported Woo/multisite/
+					// non-transactional tables) likewise stay pending: fixing the
+					// environment and resuming continues the same operation.
+					// Review never auto-retries. Conflict is terminal
 					// with zero overwrite.
-					$state = $review ? Undo_Item_State::NEEDS_REVIEW : ( in_array( $code, array( 'FAILED', 'FENCE_LOST', 'DEACTIVATED', 'TRANSACTION_UNAVAILABLE' ), true ) ? Undo_Item_State::PENDING : ( 'UNDO_CONFLICT' === $code ? Undo_Item_State::CONFLICT : Undo_Item_State::FAILED ) );
+					$state = $review ? Undo_Item_State::NEEDS_REVIEW : ( in_array( $code, array( 'FAILED', 'FENCE_LOST', 'DEACTIVATED', 'TRANSACTION_UNAVAILABLE', 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED' ), true ) ? Undo_Item_State::PENDING : ( 'UNDO_CONFLICT' === $code ? Undo_Item_State::CONFLICT : Undo_Item_State::FAILED ) );
 					self::refusal( $job_id, $undo_id, $product_id, $state, $reason, $attempt );
 				}
 			} catch ( \Throwable $cleanup ) { $code = 'NEEDS_REVIEW'; $reason = 'CACHE_VERIFICATION_FAILED'; }

@@ -755,8 +755,14 @@ final class Free_Admin {
 				. 'Narrow the selection and build a new preview. No additional job or journal was created and no product was changed.';
 		}
 		if ( 'woocommerce_version_unsupported' === $reason ) {
-			return 'WriteLeash currently supports WooCommerce ' . Free_Support_Contract::WOOCOMMERCE_VERSION . ' for price mutations. Installed version: '
+			return 'WriteLeash supports ' . Free_Support_Contract::range_text() . ' for price mutations. Installed version: '
 				. ( defined( 'WC_VERSION' ) ? (string) WC_VERSION : 'unavailable' ) . '. No job was created and no product was changed.';
+		}
+		if ( 'multisite_unsupported' === $reason ) {
+			return 'WriteLeash does not support multisite. Use a single-site installation. No job was created and no product was changed.';
+		}
+		if ( 'db_transactions_unsupported' === $reason ) {
+			return 'WriteLeash needs a standard transactional database connection (mysqli with InnoDB tables). No job was created and no product was changed.';
 		}
 		$messages = array(
 			'capability_required' => 'You need WooCommerce product management capabilities for this action.',

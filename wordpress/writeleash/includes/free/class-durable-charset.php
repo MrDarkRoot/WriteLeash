@@ -50,7 +50,9 @@ final class Durable_Charset {
 		self::owned( $db, $table );
 		$default = $db->get_var( $db->prepare( 'SELECT TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) );
 		if ( null === $default ) { return; }
-		if ( 'wpdb' !== get_class( $db ) ) { throw new \RuntimeException( 'Durable encoding migration cannot run on a writer transaction.' ); }
+		// DDL must never run inside an item writer transaction. Standard
+		// wpdb subclasses and drop-ins on the normal connection are fine.
+		if ( $db instanceof Price_Apply_Connection ) { throw new \RuntimeException( 'Durable encoding migration cannot run on a writer transaction.' ); }
 		$clause = self::table_clause( $db );
 		$columns = self::columns( $db, $table );
 		$changes = array();

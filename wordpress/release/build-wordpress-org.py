@@ -164,7 +164,7 @@ def build(root, requested, output):
         candidate = output / 'extracted/writeleash'
         for name, args in [('package-preflight.php', [root / MANIFEST]),
                            ('inventory-audit.php', [root / 'wordpress/release/PUBLIC-PAYLOAD.md', root / MANIFEST, '--candidate']),
-                           ('source-audit.php', []), ('readme-validate.php', [])]:
+                           ('source-audit.php', []), ('readme-validate.php', ['--frozen-artifact'])]:
             subprocess.run(['php', str(audits / name), str(candidate), *map(str, args)], check=True)
         clean_source(root, requested)
         asset_rows = inventory(assets)

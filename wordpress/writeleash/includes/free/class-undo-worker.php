@@ -252,6 +252,13 @@ final class Undo_Worker {
 			if ( $fresh ) { Undo_Repository::clear_claim( (int) $fresh['id'], $token ); }
 			return array( 'pause' => 'SCHEMA_UNAVAILABLE', 'review' => false );
 		}
+		// Unsupported environment, refused before any Woo write: the claim
+		// is released and the operation pauses under the truthful reason, so
+		// fixing the environment and resuming continues the same operation.
+		if ( in_array( $code, array( 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED' ), true ) ) {
+			if ( $fresh ) { Undo_Repository::clear_claim( (int) $fresh['id'], $token ); }
+			return array( 'pause' => $code, 'review' => false );
+		}
 		if ( 'UNDO_EXPIRED' === $code || 'UNDO_NOT_ELIGIBLE' === $code ) {
 			if ( $fresh ) { Undo_Repository::clear_claim( (int) $fresh['id'], $token ); }
 			return array( 'pause' => 'UNDO_EXPIRED', 'review' => false );
@@ -307,7 +314,7 @@ final class Undo_Worker {
 		catch ( \Throwable $error ) { return false; }
 	}
 
-	/** WooCommerce and its exact supported version must be active and initialized. */
+	/** WooCommerce inside its supported range must be active and initialized; multisite stays unsupported. */
 	private static function dependency_ok(): bool {
 		return Free_Support_Contract::woocommerce_ok() && ! is_multisite();
 	}

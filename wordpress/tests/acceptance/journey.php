@@ -106,9 +106,11 @@ try {
     $t = microtime( true );
     $home = wl112_get( $base );
     $before = wl112_evidence_rows();
-    if ( WC_VERSION !== '11.1.2' ) {
+    // Out-of-range WooCommerce is refused early with an actionable reason;
+    // any supported-range release runs the full Preview → Apply → Undo flow.
+    if ( ! \WriteLeash\Free_Support_Contract::woocommerce_ok() ) {
         wl112_assert( false !== strpos( $home['body'], 'Installed version: ' . WC_VERSION ), 'unsupported Woo version must be visible' );
-        wl112_assert( false !== strpos( $home['body'], 'currently supports WooCommerce 11.1.2' ), 'supported Woo exact version must be visible' );
+        wl112_assert( false !== strpos( $home['body'], \WriteLeash\Free_Support_Contract::range_text() ), 'supported Woo range must be visible' );
         wl112_assert( false === strpos( $home['body'], 'name="action" value="writeleash_free_preview"' ), 'unsupported Woo exposes preview form' );
         $post = wl112_post( array( 'action' => 'writeleash_free_preview', '_wpnonce' => wl112_nonce( 'writeleash_free_preview' ), 'selector' => 'ids', 'ids' => implode( ',', $ids ), 'operation' => 'SET', 'amount' => '80', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '10' ) );
         $page = wl112_get( $post['location'] );

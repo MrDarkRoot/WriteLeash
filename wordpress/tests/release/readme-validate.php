@@ -4,10 +4,15 @@
 // that the release matrix and PR must not silently diverge from. The public
 // listing is the WooCommerce Free product; historical Redirection setup copy
 // must never return.
-if ( 2 !== $argc ) {
-	throw new RuntimeException( 'Usage: readme-validate.php <plugin-root>' );
+if ( $argc < 2 || $argc > 3 || ( 3 === $argc && '--frozen-artifact' !== $argv[2] ) ) {
+	throw new RuntimeException( 'Usage: readme-validate.php <plugin-root> [--frozen-artifact]' );
 }
 $root   = rtrim( $argv[1], '/' );
+// The pinned #123/#124 artifact reproduces a historical source whose listing
+// states the exact then-supported WooCommerce release; the live tree must
+// state the current supported range instead. Each mode requires its own exact
+// wording, so neither the frozen artifact nor the live listing is loosened.
+$frozen = 3 === $argc;
 $readme = $root . '/readme.txt';
 $main   = $root . '/writeleash.php';
 $fail   = static function ( string $message ): void {
@@ -65,7 +70,7 @@ if ( ! $tags || count( $tags ) > 5 || count( $tags ) !== count( array_unique( $t
 	$fail( 'Tags must be 1-5 unique comma-separated terms' );
 }
 if ( ! preg_match( '/\A\d+\.\d\z/', $headers['requires at least'] ) || '7.0' !== $headers['requires at least'] ) {
-	$fail( 'Requires at least must be the narrowest coherent value 7.0 (WooCommerce 11.1.2 package minimum)' );
+	$fail( 'Requires at least must be the narrowest coherent value 7.0 (WooCommerce 11 package minimum)' );
 }
 if ( ! preg_match( '/\A\d+\.\d\z/', $headers['tested up to'] ) || '7.1' !== $headers['tested up to'] ) {
 	$fail( 'Tested up to must be the tested current-stable major/minor 7.1' );
@@ -140,7 +145,8 @@ foreach ( array( '1,000', '1000', '10,000', '10000', 'universal rollback', 'all 
 		$fail( 'unsupported public claim in readme: ' . $unsupported );
 	}
 }
-foreach ( array( 'Up to 100', 'WooCommerce 11.1.2 exactly', 'Multisite is unsupported', 'has not been tested' ) as $required_scope ) {
+$woo_claim = $frozen ? 'WooCommerce 11.1.2 exactly' : 'WooCommerce 10.0 through 11.x';
+foreach ( array( 'Up to 100', $woo_claim, 'Multisite is unsupported', 'has not been tested' ) as $required_scope ) {
 	if ( false === stripos( $text, $required_scope ) ) {
 		$fail( 'required scope limitation missing from readme: ' . $required_scope );
 	}

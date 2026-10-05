@@ -61,7 +61,9 @@ final class Lifecycle {
 		try {
 			if ( ! function_exists( 'get_option' ) ) { return; }
 			global $wpdb;
-			if ( ! ( $wpdb instanceof \wpdb ) || 'wpdb' !== get_class( $wpdb ) || ! Job_Schema::ready( $wpdb ) ) { return; }
+			// Best-effort lease recovery: standard wpdb subclasses and
+			// drop-ins are ordinary supported setups, not a reason to skip.
+			if ( ! ( $wpdb instanceof \wpdb ) || ! Job_Schema::ready( $wpdb ) ) { return; }
 			Job_Repository::reap_stalled_leases();
 			if ( Undo_Schema::ready( $wpdb ) ) { Undo_Repository::reap_stalled_leases(); }
 		} catch ( \Throwable $error ) {

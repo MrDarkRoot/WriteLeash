@@ -70,9 +70,11 @@ engineering selector maximum **1,000**. `100` runs a complete workflow; `101`,
 `1,000` and `10,000` run actual category/ID requests and record
 `REFUSED_BEFORE_JOURNAL`, exact unchanged evidence counts and zero Woo saves.
 There is no post-cap throughput/Undo measurement for those refused sizes.
-Woo 11.0.1 records `UNSUPPORTED_EARLY`, with no usable preview/approval/resume
-path and zero jobs/journal rows/price mutations. Woo 11.1.2 remains the sole
-exact supported version. Do not bypass these boundaries for a helper-only run.
+Woo 11.1.2 and Woo 11.0.1 both run the complete Preview → Apply → History →
+Undo workflow (two supported-range releases, not one exact fixture). Woo 9.9.7,
+below the supported 10.0 floor, records `UNSUPPORTED_EARLY`, with no usable
+preview/approval/resume path and zero jobs/journal rows/price mutations.
+Do not bypass these boundaries for a helper-only run.
 
 `support-boundaries.php` additionally proves 100 explicit IDs' ordinary
 preview/approval, UI default/max 100, server-side rejection of policy 101,
@@ -88,7 +90,8 @@ and real HTTP protected Resume consume the same #109 lease/generation/fence
 authority (including a common live-lease refusal), with frozen/journal bindings
 unchanged. Existing completed work keeps conflict-aware Undo; a partial Undo
 continues the same operation after fresh-session reopen. Legacy warnings are
-not new >100 support claims. Current unsupported Woo still refuses recovery.
+not new >100 support claims. An out-of-range Woo still refuses recovery with
+the supported range shown.
 PLANNED/BLOCKED oversized work remains non-executable/unapprovable. The fixture
 does not install a public bypass or a production migration flag.
 

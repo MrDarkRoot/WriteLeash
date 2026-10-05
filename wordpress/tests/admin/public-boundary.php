@@ -4,7 +4,7 @@ function wl120_assert( bool $condition, string $label ): void {
 	if ( ! $condition ) { throw new RuntimeException( '#120 public boundary: ' . $label ); }
 }
 wl120_assert( is_plugin_active( 'writeleash/writeleash.php' ), 'public plugin active' );
-wl120_assert( '11.1.2' === WC_VERSION, 'exact supported Woo active' );
+wl120_assert( WriteLeash\Free_Support_Contract::woo_supported( WC_VERSION ), 'supported-range Woo active' );
 foreach ( array( 'USER', 'PASSWORD', 'NAME', 'HOST' ) as $suffix ) {
 	wl120_assert( ! defined( 'WRITELEASH_DB_' . $suffix ), 'no restricted DB config: ' . $suffix );
 }

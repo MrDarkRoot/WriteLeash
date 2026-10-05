@@ -10,8 +10,11 @@ use WriteLeash\Price_Store_Context as Context;
 use WriteLeash\Change_Plan as Plan;
 use WriteLeash\Product_Price_Eligibility as Eligibility;
 $wl107_assertions = 0;
-wl107_equal( WC_VERSION, '11.1.2', 'pinned Woo version' );
-wl107_equal( get_bloginfo( 'version' ), '7.1.2', 'pinned WordPress version' );
+// The fixture version must sit inside the supported range; the product never
+// pins one exact release.
+wl107_equal( \WriteLeash\Free_Support_Contract::woo_supported( WC_VERSION ), true, 'fixture Woo inside supported range' );
+wl107_equal( \WriteLeash\Free_Support_Contract::wp_supported( get_bloginfo( 'version' ) ), true, 'fixture WP inside supported range' );
+wl107_equal( get_bloginfo( 'version' ), '7.1.2', 'pinned WordPress fixture' );
 wl107_equal( PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION, '8.2', 'pinned PHP minor version' );
 wp_set_current_user( 1 );
 update_option( 'woocommerce_currency', 'USD' );
@@ -68,7 +71,7 @@ foreach ( array( 0 => '100', 1 => '100.0', 2 => '1.01', 3 => '0.001', 6 => '1234
 }
 update_option( 'woocommerce_price_num_decimals', 2 );
 wl107_equal( wc_format_decimal( '1.005', false ), '1.005', 'false does NOT round to two decimals' );
-wl107_marker( 'Woo 11.1.2 public setter/save/read roundtrip 0/1/2/3/6; formatter false evidence' );
+wl107_marker( 'Woo public setter/save/read roundtrip 0/1/2/3/6; formatter false evidence' );
 
 $ids = array_map( static fn( $p ) => $p->get_id(), array( $a, $b, $draft, $private, $trash, $variable, $variation, $grouped, $external, $empty, $zero, $active, $future, $expired, $date_only, $sale_zero ) );
 $before = array();
@@ -193,12 +196,23 @@ wl107_marker( 'immutable DTO/JSON; deterministic hash identity exclusion + eight
 
 $current = Snapshot::read( $a->get_id(), $a );
 wl107_equal( $one->precondition( $a->get_id(), $current, Context::current() )['state'], 'MATCH', 'matching precondition' );
+// Routine supported patch drift is not a product-state change: bump the
+// trailing component of each frozen version and require MATCH.
+$bump = static function ( string $version ): string {
+	$parts = explode( '.', $version );
+	$parts[ count( $parts ) - 1 ] = (string) ( (int) end( $parts ) + 1 );
+	return implode( '.', $parts );
+};
+wl107_equal( $one->precondition( $a->get_id(), $current, new Context( 'USD', 2, $bump( get_bloginfo( 'version' ) ), WC_VERSION ) )['state'], 'MATCH', 'routine WordPress patch drift' );
+wl107_equal( $one->precondition( $a->get_id(), $current, new Context( 'USD', 2, get_bloginfo( 'version' ), $bump( WC_VERSION ) ) )['state'], 'MATCH', 'routine WooCommerce patch drift' );
 foreach ( array(
-	'currency_context_changed' => new Context( 'EUR', 2, get_bloginfo( 'version' ), WC_VERSION ),
-	'price_decimals_changed' => new Context( 'USD', 3, get_bloginfo( 'version' ), WC_VERSION ),
-	'software_version_changed' => new Context( 'USD', 2, 'other-version', WC_VERSION ),
-) as $reason => $context ) {
-	wl107_equal( $one->precondition( $a->get_id(), $current, $context ), array( 'state' => 'CONFLICT', 'reasons' => array( $reason ) ), 'store drift' );
+	array( 'currency_context_changed', new Context( 'EUR', 2, get_bloginfo( 'version' ), WC_VERSION ) ),
+	array( 'price_decimals_changed', new Context( 'USD', 3, get_bloginfo( 'version' ), WC_VERSION ) ),
+	array( 'software_version_changed', new Context( 'USD', 2, 'other-version', WC_VERSION ) ),
+	// Below the supported WooCommerce floor: not routine drift.
+	array( 'software_version_changed', new Context( 'USD', 2, get_bloginfo( 'version' ), '9.9.9' ) ),
+) as $case ) {
+	wl107_equal( $one->precondition( $a->get_id(), $current, $case[1] ), array( 'state' => 'CONFLICT', 'reasons' => array( $case[0] ) ), 'store drift' );
 }
 $a->set_regular_price( '110' );
 wl107_equal( $one->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $a ), Context::current() )['reasons'], array( 'regular_price_changed' ), 'price drift no recompute' );
@@ -217,7 +231,7 @@ wl107_equal( $one->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $ch
 $a->set_category_ids( array( $other ) );
 wl107_equal( $category_plan->precondition( $a->get_id(), Snapshot::read( $a->get_id(), $a ), Context::current() )['state'], 'MATCH', 'category drift provenance only' );
 wl107_equal( $category_plan->data()['resolved_product_ids'], array( $a->get_id(), $b->get_id() ), 'category remains frozen' );
-wl107_marker( 'CONFLICT on price/type/status/sale/currency/decimals/version; category provenance; no target recomputation' );
+wl107_marker( 'CONFLICT on price/type/status/sale/currency/decimals/out-of-range versions; in-range WP/Woo patch drift MATCH; category provenance; no target recomputation' );
 
 wl107_equal( $saves, 0, 'zero Woo saves during ALL planning calls' );
 foreach ( $ids as $id ) { wl107_equal( Snapshot::read( $id, wc_get_product( $id ) )->data(), $before[$id], 'persisted product untouched ' . $id ); }

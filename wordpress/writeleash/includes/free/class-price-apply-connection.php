@@ -20,7 +20,10 @@ final class Price_Apply_Connection extends \wpdb {
 	private string $sentinel;
 	private bool $owned = false;
 	public function __construct( \wpdb $original ) {
-		if ( 'wpdb' !== get_class( $original ) || ! $original->dbh instanceof \mysqli ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+		// Standard wpdb subclasses and drop-ins (HyperDB, LudicrousDB) share
+		// this transport: only the mysqli handle semantics below are
+		// required for correctness, not the exact class name.
+		if ( ! $original instanceof \wpdb || ! $original->dbh instanceof \mysqli ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		// Release original query-result ownership before sharing configuration.
 		$original->flush();
 		// Parent protected/public configuration is accessible in its subclass.

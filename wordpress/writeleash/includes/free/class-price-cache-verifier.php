@@ -6,16 +6,23 @@ defined( 'ABSPATH' ) || exit;
 /** All additional rollback/recovery eviction lives here; no global cache flush. */
 final class Price_Cache_Verifier {
 	public static function invalidate( int $id ): void {
-		if ( ! Free_Support_Contract::woocommerce_ok() ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+		// Cache eviction correctness never depended on the WooCommerce
+		// release line, only on Woo being active: refuse a dead dependency
+		// without pinning a version.
+		if ( ! function_exists( 'wc_get_product' ) || ! function_exists( 'wc_delete_product_transients' ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		if ( ! empty( $GLOBALS['_wp_suspend_cache_invalidation'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 		clean_post_cache( $id ); // posts, post_meta, term cache and posts last_changed.
 		wp_cache_delete( $id, 'post_meta' );
-		// Key/group certified for Free_Support_Contract::WOOCOMMERCE_VERSION.
 		wp_cache_delete( 'lookup_table', 'object_' . $id );
 		wc_delete_product_transients( $id );
 		\WC_Cache_Helper::invalidate_cache_group( 'product_' . $id );
-		// Version-gated by the attempt, including optional product instance cache.
-		wc_get_container()->get( \Automattic\WooCommerce\Internal\Caches\ProductCache::class )->remove( $id );
+		// ProductCache exists since Woo 10.5; older supported releases and
+		// future renames simply skip this optional instance-cache eviction.
+		$cache_class = 'Automattic\\WooCommerce\\Internal\\Caches\\ProductCache';
+		if ( class_exists( $cache_class ) && function_exists( 'wc_get_container' ) ) {
+			try { wc_get_container()->get( $cache_class )->remove( $id ); }
+			catch ( \Throwable $error ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+		}
 	}
 	/** A new independent autocommit connection through the normal WP identity. */
 	public static function observer(): \wpdb {

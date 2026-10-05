@@ -240,6 +240,14 @@ final class Job_Worker {
 			Job_Repository::record_item( $item, $token, Job_Item_State::PENDING, 'TRANSACTION_UNAVAILABLE', null, true );
 			return array( 'pause' => 'SCHEMA_UNAVAILABLE', 'review' => false );
 		}
+		// Unsupported environment, refused before any Woo write: the item
+		// stays pending with its truthful reason and the job pauses under
+		// that same reason, so fixing the environment and resuming continues
+		// the same job with zero overwrite.
+		if ( in_array( $code, array( 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED' ), true ) ) {
+			Job_Repository::record_item( $item, $token, Job_Item_State::PENDING, $code, null, true );
+			return array( 'pause' => $code, 'review' => false );
+		}
 		if ( 'FAILED' === $code ) {
 			// #108 known caught rollback: journal is PENDING, bounded retry is safe.
 			Job_Repository::record_item( $item, $token, Job_Item_State::PENDING, 'FAILED', null, true );
@@ -329,7 +337,7 @@ final class Job_Worker {
 		catch ( \Throwable $error ) { return false; }
 	}
 
-	/** WooCommerce and its exact supported version must be active and initialized. */
+	/** WooCommerce inside its supported range must be active and initialized; multisite stays unsupported. */
 	private static function dependency_ok(): bool {
 		return Free_Support_Contract::woocommerce_ok() && ! is_multisite();
 	}
