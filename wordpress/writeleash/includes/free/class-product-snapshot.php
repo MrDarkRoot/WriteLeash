@@ -57,18 +57,47 @@ final class Eligibility_Result {
 }
 
 final class Product_Price_Eligibility {
-	public static function evaluate( Product_Price_Snapshot $snapshot, Price_Store_Context $context ): Eligibility_Result {
+	/**
+	 * Field-aware eligibility. The third argument defaults to the regular
+	 * price so discovery's existing two-argument call keeps its meaning; the
+	 * optional operation/planned arguments add the target-relative safety
+	 * checks when a concrete target exists.
+	 */
+	public static function evaluate( Product_Price_Snapshot $snapshot, Price_Store_Context $context, string $field = Price_Operation::FIELD_REGULAR, ?string $operation_type = null, ?string $planned_target = null ): Eligibility_Result {
 		$s = $snapshot->data();
+		if ( ! in_array( $field, Price_Operation::FIELDS, true ) ) { throw new Price_Validation_Error( 'unsupported_price_field' ); }
 		$reason = null;
 		if ( ! $s['exists'] ) { $reason = 'missing_product'; }
 		elseif ( ! $context->data()['base_currency_context'] ) { $reason = 'unsupported_currency_context'; }
 		elseif ( ! $s['core_simple'] || 'simple' !== $s['type'] ) { $reason = 'unsupported_product_type'; }
 		elseif ( 'publish' !== $s['status'] ) { $reason = 'unsupported_status'; }
-		elseif ( '' !== $s['sale_price'] || null !== $s['sale_from'] || null !== $s['sale_to'] ) { $reason = 'sale_configured'; }
+		// Both fields need a parseable non-empty regular price: WooCommerce
+		// validates every sale against it and would clear the sale without one.
 		elseif ( '' === $s['regular_price'] ) { $reason = 'empty_regular_price'; }
 		else {
 			try { Price_Decimal::parse( $s['regular_price'] ); }
 			catch ( Price_Validation_Error $e ) { $reason = 'invalid_price'; }
+			if ( null === $reason && '' !== $s['sale_price'] ) {
+				try { Price_Decimal::parse( $s['sale_price'] ); }
+				catch ( Price_Validation_Error $e ) { $reason = 'invalid_price'; }
+			}
+		}
+		if ( null === $reason && Price_Operation::FIELD_SALE === $field ) {
+			// A first sale price has no percentage/fixed baseline to adjust.
+			if ( '' === $s['sale_price'] && null !== $operation_type && Price_Operation::SET !== $operation_type ) { $reason = 'empty_sale_price'; }
+			// WooCommerce silently clears a sale that is not below the regular price.
+			if ( null === $reason && null !== $planned_target && '' !== $s['regular_price'] ) {
+				try {
+					if ( Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $planned_target ) ), Price_Decimal::units( Price_Decimal::parse( $s['regular_price'] ) ) ) >= 0 ) { $reason = 'sale_price_not_below_regular'; }
+				} catch ( Price_Validation_Error $e ) { $reason = 'invalid_price'; }
+			}
+		}
+		if ( null === $reason && Price_Operation::FIELD_REGULAR === $field && null !== $planned_target && '' !== $s['sale_price'] ) {
+			// WooCommerce clears the sale when the new regular price is not
+			// above it; refuse instead of losing sale configuration silently.
+			try {
+				if ( Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $planned_target ) ), Price_Decimal::units( Price_Decimal::parse( $s['sale_price'] ) ) ) <= 0 ) { $reason = 'regular_price_not_above_sale'; }
+			} catch ( Price_Validation_Error $e ) { $reason = 'invalid_price'; }
 		}
 		return new Eligibility_Result( $reason );
 	}
@@ -85,6 +114,10 @@ final class Price_Reason_Messages {
 			'empty_regular_price' => 'The stored regular price is empty, not zero.',
 			'invalid_price' => 'The stored price is outside the supported decimal contract.',
 			'unsupported_currency_context' => 'A base-store-currency context is required.',
+			'unsupported_price_field' => 'Choose either the regular price or the sale price as the target.',
+			'regular_price_not_above_sale' => 'The planned regular price is not above the current sale price; WooCommerce would clear the sale. Remove or reprice the sale first.',
+			'sale_price_not_below_regular' => 'The planned sale price must be below the current regular price; WooCommerce would clear the sale. Create a new preview.',
+			'empty_sale_price' => 'This product has no stored sale price to adjust; use Set to add the first sale price.',
 			'duplicate_selection' => 'Repeated IDs were included once.',
 			'ambiguous_sku' => 'More than one product has this exact SKU.',
 			'percent_from_zero_undefined' => 'A percentage operation on zero is unsupported.',
@@ -101,6 +134,7 @@ final class Price_Reason_Messages {
 			'large_price_increase' => 'The planned increase exceeds the warning threshold.',
 			'large_price_decrease' => 'The planned decrease exceeds the warning threshold.',
 			'regular_price_changed' => 'The stored regular price changed; create a new preview.',
+			'sale_price_changed' => 'The stored sale price changed; create a new preview.',
 			'product_type_changed' => 'The product type changed; create a new preview.',
 			'product_status_changed' => 'The publication status changed; create a new preview.',
 			'sale_configuration_changed' => 'Sale configuration changed; create a new preview.',

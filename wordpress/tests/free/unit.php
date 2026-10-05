@@ -32,7 +32,10 @@ $cases = array(
 	array( '1', O::DECREASE_FIXED, '1', 2, '0.00' ), array( '1', O::DECREASE_PERCENT, '100', 2, '0.00' ),
 );
 foreach ( $cases as $case ) { wl107_equal( C::calculate( $case[0], new O( $case[1], $case[2] ), $case[3] ), $case[4], 'rounding/large/zero' ); }
-wl107_error( static fn() => C::calculate( '', new O( O::SET, '0' ), 2 ), 'empty_regular_price' );
+wl107_equal( C::calculate( '', new O( O::SET, '80' ), 2 ), '80.00', 'SET has a defined target without a stored baseline' );
+foreach ( array( O::INCREASE_FIXED, O::DECREASE_FIXED, O::INCREASE_PERCENT, O::DECREASE_PERCENT ) as $empty_type ) {
+	wl107_error( static fn() => C::calculate( '', new O( $empty_type, '1' ), 2 ), 'empty_sale_price' );
+}
 wl107_error( static fn() => C::calculate( 1.5, new O( O::SET, '1' ), 2 ), 'malformed_decimal' );
 wl107_error( static fn() => C::delta( '1', 1.5 ), 'malformed_decimal' );
 foreach ( array( O::INCREASE_PERCENT, O::DECREASE_PERCENT ) as $type ) { wl107_error( static fn() => C::calculate( '0', new O( $type, '10' ), 2 ), 'percent_from_zero_undefined' ); }
@@ -49,6 +52,14 @@ wl107_error( static fn() => D::parse( '1000000000000' ), 'price_overflow' );
 wl107_equal( D::parse( '10.000000' ), '10', 'canonical insignificant zeros' );
 wl107_equal( D::parse( '0.000000' ), '0', 'canonical numeric zero' );
 wl107_error( static fn() => new O( 'OTHER', '1' ), 'unsupported_operation' );
+wl107_equal( ( new O( O::SET, '1' ) )->data()['field'], O::FIELD_REGULAR, 'legacy two-argument operation defaults to the regular price' );
+wl107_equal( ( new O( O::SET, '1', O::FIELD_SALE ) )->data()['field'], O::FIELD_SALE, 'sale field is exposed through data()' );
+wl107_error( static fn() => new O( O::SET, '1', 'cost_price' ), 'unsupported_price_field' );
+wl107_equal( D::equal( '1', '1.000000' ), true, 'canonical equality' );
+wl107_equal( D::equal( '', '' ), true, 'empty equals empty (no stored sale)' );
+wl107_equal( D::equal( '', '0' ), false, 'no stored sale differs from a zero target' );
+wl107_equal( D::equal( 'abc', 'abc' ), true, 'identical malformed strings stay identical' );
+wl107_equal( D::equal( 'abc', '0' ), false, 'malformed never equals a decimal' );
 wl107_marker( 'strict parser rejects locale, whitespace, symbols, floats and excess precision' );
 $policy = new P( 50, '20', '20', true, '10' );
 foreach ( array( array( '120', 'ALLOW_WITH_WARNINGS' ), array( '120.000001', 'BLOCKED' ), array( '80', 'ALLOW_WITH_WARNINGS' ), array( '79.999999', 'BLOCKED' ), array( '100', 'ALLOW' ) ) as $case ) {

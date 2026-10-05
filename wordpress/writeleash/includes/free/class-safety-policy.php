@@ -41,11 +41,19 @@ final class Policy_Evaluator {
 	}
 	public static function item( string $expected, string $target, Safety_Policy $policy ): Policy_Result {
 		$p = $policy->data();
-		$old = Price_Decimal::units( Price_Decimal::parse( $expected ) );
 		$new = Price_Decimal::units( Price_Decimal::parse( $target ) );
-		$direction = Price_Decimal::compare( $new, $old );
 		$blockers = array();
 		$warnings = array();
+		if ( '' === $expected ) {
+			// Adding a first sale price has no ratio baseline: skip only the
+			// ratio caps/warnings, never the zero-target blocker or the
+			// plan-level max_products check.
+			if ( $p['block_zero'] && '0' === $new ) { $blockers[] = 'zero_target_blocked'; }
+			return new Policy_Result( $blockers, $warnings );
+		}
+		$old = Price_Decimal::units( Price_Decimal::parse( $expected ) );
+		$direction = Price_Decimal::compare( $new, $old );
+		// Unchanged targets never trigger a blocker or a warning.
 		if ( 0 === $direction ) { return new Policy_Result( $blockers, $warnings ); }
 		if ( $p['block_zero'] && '0' === $new ) { $blockers[] = 'zero_target_blocked'; }
 		if ( '0' === $old ) {
