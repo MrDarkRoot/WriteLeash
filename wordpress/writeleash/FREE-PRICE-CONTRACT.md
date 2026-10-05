@@ -156,6 +156,22 @@ concurrency boundary, check edit rights and approved binding, then consume only
 the persisted ID/expected/target strings. This API supplies no locks, freshness,
 transactions, product saves, crash/cache/concurrency guarantees or approval.
 
+## Admin display formatting (#169)
+
+Admin formats money using the saved plan currency and `price_decimals`, with
+WooCommerce's presentation separators and symbol placement. A visibly labeled
+exact decimal remains alongside the usual amount whenever minor-unit rounding
+would conceal a stored fractional difference. Unknown amounts and undefined
+ratios display `Unavailable`; they are never treated as zero. CSV retains the
+original decimal strings.
+
+Percentage labels trim zeros and round to at most two decimal places, marking
+rounded values with `≈`. Nonzero changes smaller than 0.01% keep their direction
+and display `<0.01%`, including ratios whose frozen six-place display is zero.
+The frozen ratio, policy comparisons, absolute targets and hashes do not change.
+Timestamps remain stored in UTC and display with the site's date/time format
+and explicit timezone context.
+
 ## Preview and entry boundary
 
 `summary()` is independent of paginated detail. `preview_page(offset, limit)`

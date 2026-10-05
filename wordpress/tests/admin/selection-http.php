@@ -37,8 +37,8 @@ $http_rows167 = static function ( string $html ): array {
 $http_original_rows167 = $http_rows167( $http_saved167['body'] );
 beq( count( $http_original_rows167 ), 2, 'saved picker preview renders two product rows' );
 foreach ( $http_original_rows167 as $row ) {
- beq( WriteLeash\Price_Decimal::parse( $row[1] ), '100', 'saved expected price after prior Undo' );
- beq( WriteLeash\Price_Decimal::parse( $row[2] ), '80', 'saved absolute target' );
+ beq( $row[1], '$100.00 USD', 'saved expected price after prior Undo' );
+ beq( $row[2], '$80.00 USD', 'saved absolute target' );
 }
 login_session();
 $http_recent167 = admin_get( $bulk_url );

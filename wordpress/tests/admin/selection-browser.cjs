@@ -40,7 +40,10 @@ async function action(page, name) {
 function input(page) { return page.locator('#writeleash-free-products + .select2-container .select2-search__field'); }
 async function typeSearch(page, term) {
     await input(page).fill('');
-    await input(page).pressSequentially(term);
+    // Let SelectWoo's native focus/keydown handling settle between keys.
+    // Keep real keyboard typing, including spaces, instead of zero-delay input.
+    await input(page).pressSequentially(term, { delay: 20 });
+    assert.equal(await input(page).inputValue(), term, 'search text preserves spaces');
 }
 async function search(page, term) {
     const response = page.waitForResponse(response => {

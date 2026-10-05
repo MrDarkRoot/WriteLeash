@@ -216,7 +216,7 @@ if ( ! (bool) preg_match( '/wl_view=preview&wl_job=([0-9a-f-]{36})/', (string) $
 $public_id = $match[1];
 $preview_page = admin_get( (string) $preview['location'] );
 beq( $preview_page['code'], 200, 'frozen preview renders' );
-bok( str_contains( $preview_page['body'], 'Frozen preview' ), 'preview heading' );
+bok( str_contains( $preview_page['body'], 'Review price change' ), 'preview heading' );
 bok( str_contains( $preview_page['body'], '12 planned changes' ), 'preview changing count' );
 bok( str_contains( $preview_page['body'], '80.00' ), 'frozen target visible' );
 a11y_check( $preview_page['body'], 'frozen preview' );
