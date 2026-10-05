@@ -311,7 +311,7 @@ final class Free_Admin {
 		$values = array();
 		foreach ( array( 'selector', 'ids', 'sku', 'category', 'operation', 'amount', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
 			$value = $post[$key] ?? null;
-			if ( is_string( $value ) && strlen( $value ) <= ( 'ids' === $key ? 1500 : 100 ) ) { $values[$key] = $value; }
+			if ( is_string( $value ) && strlen( $value ) <= ( 'ids' === $key ? 20000 : 100 ) ) { $values[$key] = $value; }
 		}
 		try { $values['product_ids'] = array_map( 'strval', self::picker_ids( $post ) ); }
 		catch ( \Throwable $error ) { $values['product_ids'] = array(); }
@@ -1137,7 +1137,7 @@ final class Free_Admin {
 
 	private static function render_selector_form( array $values = array() ): void {
 		if ( ! self::can_mutate() ) { return; }
-		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'operation' => Price_Operation::SET, 'amount' => '', 'max_products' => '100', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
+		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'operation' => Price_Operation::SET, 'amount' => '', 'max_products' => (string) Free_Support_Contract::MAX_JOB_PRODUCTS, 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
 		$values = array_merge( $defaults, $values );
 		$selected = array(); $matches = array( 'results' => array(), 'more' => false ); $categories = $matches;
 		try {
@@ -1147,12 +1147,12 @@ final class Free_Admin {
 		} catch ( \Throwable $error ) {
 			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( self::reason_message( $error instanceof Price_Validation_Error ? $error->reason() : 'discovery_unavailable' ) ) . '</p></div>';
 		}
-		echo '<form id="writeleash-free-selection-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-discovery-url="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '" data-discovery-action="' . esc_attr( Product_Discovery::ACTION ) . '" data-discovery-nonce="' . esc_attr( wp_create_nonce( Product_Discovery::ACTION ) ) . '">';
+		echo '<form id="writeleash-free-selection-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-discovery-url="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '" data-discovery-action="' . esc_attr( Product_Discovery::ACTION ) . '" data-discovery-nonce="' . esc_attr( wp_create_nonce( Product_Discovery::ACTION ) ) . '" data-max-selection="' . esc_attr( (string) Free_Support_Contract::MAX_JOB_PRODUCTS ) . '">';
 		echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_PREVIEW ) . '"><input type="hidden" name="picker_present" value="1">';
 		wp_nonce_field( self::ACTION_PREVIEW );
 		echo '<input type="hidden" name="discovery_nonce" value="' . esc_attr( wp_create_nonce( Product_Discovery::ACTION ) ) . '">';
 		echo '<fieldset><legend>' . esc_html( '1. Select products' ) . '</legend>';
-		echo '<p id="writeleash-free-selector-help">' . esc_html( 'Choose specific products or one category. Categories include direct members only; subcategories are not included. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum 100 selected products.' ) . '</p>';
+		echo '<p id="writeleash-free-selector-help">' . esc_html( 'Choose specific products or one category. Categories include direct members only; subcategories are not included. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' selected products.' ) . '</p>';
 		echo '<p><label for="writeleash-free-selector">Selection method</label><br><select id="writeleash-free-selector" name="selector" aria-describedby="writeleash-free-selector-help">';
 		foreach ( array( 'ids' => 'Choose products by name or SKU', 'category' => 'Named product category', 'sku' => 'Advanced: one exact SKU', 'manual_ids' => 'Advanced: manual product IDs' ) as $value => $label ) {
 			echo '<option value="' . esc_attr( $value ) . '"' . selected( $values['selector'], $value, false ) . '>' . esc_html( $label ) . '</option>';
