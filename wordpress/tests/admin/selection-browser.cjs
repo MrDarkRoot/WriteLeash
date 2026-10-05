@@ -73,7 +73,9 @@ async function search(page, term) {
         throw error;
     }
     if (/Choose matches/.test(await status.innerText())) {
-        await page.locator('.select2-results__option[data-selected]').first().waitFor({ timeout: 60000 });
+        // Wait for this search's own rendered rows, not a stale option list
+        // from the previous query that the status text can briefly outlive.
+        await page.locator('.select2-results__option[data-selected]').filter({ hasText: term }).first().waitFor({ timeout: 60000 });
     }
 }
 (async () => {
