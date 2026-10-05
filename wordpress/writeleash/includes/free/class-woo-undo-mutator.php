@@ -129,8 +129,12 @@ final class Woo_Undo_Mutator {
 			foreach ( array( 'woocommerce_currency', 'woocommerce_price_num_decimals', $role_key ) as $key ) { wp_cache_delete( $key, 'options' ); }
 			Price_Cache_Verifier::invalidate( $product_id );
 			$product = wc_get_product( $product_id );
-			if ( ! $product || 'WC_Product_Data_Store_CPT' !== $product->get_data_store()->get_current_class_name() ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
+			if ( ! $product || ! Price_Cache_Verifier::core_data_store( $product ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
 			$snapshot = Product_Price_Snapshot::read( $product_id, $product );
+			$snapshot_data = $snapshot->data();
+			$is_variation = ! empty( $snapshot_data['core_variation'] );
+			$parent_id = $is_variation ? (int) ( $snapshot_data['parent_id'] ?? 0 ) : 0;
+			if ( $is_variation && ( 'WC_Product_Variation' !== get_class( $product ) || $parent_id < 1 ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
 			$fresh = self::fresh_facts( $product_id, $product, $snapshot, $truth, $field );
 			$check = Undo_Fingerprint::verify( $provenance, $fresh );
 			if ( ! $check['match'] ) { throw new Price_Apply_Error( self::conflict_code( $check['reasons'] ) ); }
@@ -176,6 +180,9 @@ final class Woo_Undo_Mutator {
 			} else {
 				Price_Cache_Verifier::matches_field( $after, $field, $provenance['expected_price'], $preserved );
 			}
+			// Restoring a variation's field must refresh the parent range on
+			// this same transaction connection before any Undo evidence.
+			if ( $is_variation ) { Price_Cache_Verifier::sync_variable_parent( $tx, $parent_id ); }
 			$evidence = array(
 				'attempt_id' => $attempt,
 				'job_id' => $job_id,
@@ -192,6 +199,7 @@ final class Woo_Undo_Mutator {
 				'lookup_min' => $after['lookup']['min_price'],
 				'lookup_max' => $after['lookup']['max_price'],
 			);
+			if ( $is_variation ) { $evidence['parent_id'] = $parent_id; }
 			if ( null !== $field ) {
 				$evidence['price_field'] = $field;
 				$evidence['field_value'] = $after['meta'][ '_' . Price_Operation::meta_key( $field ) ][0] ?? '';
@@ -325,7 +333,9 @@ final class Woo_Undo_Mutator {
 			$GLOBALS['wpdb'] = $db;
 			Price_Cache_Verifier::invalidate( $product_id );
 			$product = wc_get_product( $product_id );
-			if ( ! $product || 'WC_Product_Simple' !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+			$is_variation = $product instanceof \WC_Product && 'WC_Product_Variation' === get_class( $product );
+			if ( ! $product || ( $is_variation ? 'WC_Product_Variation' : 'WC_Product_Simple' ) !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+			if ( $is_variation && (int) ( $evidence['parent_id'] ?? 0 ) !== (int) $product->get_parent_id( 'edit' ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 			if ( null === $field ) {
 				if ( '' !== $product->get_sale_price( 'edit' ) || $product->get_date_on_sale_from( 'edit' ) || $product->get_date_on_sale_to( 'edit' ) || Price_Decimal::parse( $product->get_regular_price( 'edit' ) ) !== Price_Decimal::parse( $provenance['expected_price'] ) || Price_Decimal::parse( $product->get_price( 'edit' ) ) !== Price_Decimal::parse( $provenance['expected_price'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 			} else {
@@ -339,6 +349,7 @@ final class Woo_Undo_Mutator {
 					throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' );
 				}
 			}
+			if ( $is_variation ) { Price_Cache_Verifier::observe_variable_parent( $db, (int) $product->get_parent_id( 'edit' ) ); }
 			return array( 'undo' => $undo, 'storage' => $truth, 'observer_connection' => (int) $db->dbh->thread_id );
 		} catch ( \Throwable $error ) {
 			if ( $error instanceof Price_Apply_Error ) { throw $error; }

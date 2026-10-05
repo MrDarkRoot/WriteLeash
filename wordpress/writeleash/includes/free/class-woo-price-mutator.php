@@ -29,6 +29,17 @@ final class Woo_Price_Mutator {
 		$user = new \WP_User( $actor );
 		if ( get_current_user_id() !== $actor || ! user_can( $user, 'manage_woocommerce' ) || ! user_can( $user, 'edit_products' ) || ! user_can( $user, 'edit_post', $id ) ) { throw new Price_Apply_Error( 'PERMISSION_DENIED' ); }
 	}
+	/**
+	 * Product-meta-neutral helper: only the plan's field is visited through
+	 * Woo CRUD. Kept next to `apply` so no second pricing path can appear.
+	 */
+	private static function set_field( \WC_Product $product, string $field, string $target ): void {
+		if ( Price_Operation::FIELD_SALE === $field ) {
+			$product->set_sale_price( $target );
+		} else {
+			$product->set_regular_price( $target );
+		}
+	}
 	/** Diagnostic write after rollback, separately locked; never demote APPLIED. */
 	private static function refusal( Change_Plan $plan, int $id, string $state, string $reason, string $attempt ): void {
 		$db = Price_Cache_Verifier::observer();
@@ -91,7 +102,10 @@ final class Woo_Price_Mutator {
 			foreach ( array( 'woocommerce_currency', 'woocommerce_price_num_decimals', $role_key ) as $key ) { wp_cache_delete( $key, 'options' ); }
 			Price_Cache_Verifier::invalidate( $id );
 			$product = wc_get_product( $id );
-			if ( ! $product || 'WC_Product_Data_Store_CPT' !== $product->get_data_store()->get_current_class_name() ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
+			if ( ! $product || ! Price_Cache_Verifier::core_data_store( $product ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
+			$is_variation = ! empty( $item['snapshot']['core_variation'] );
+			$parent_id = $is_variation ? (int) ( $item['snapshot']['parent_id'] ?? 0 ) : 0;
+			if ( $is_variation && ( 'WC_Product_Variation' !== get_class( $product ) || $parent_id < 1 ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
 			$precondition = $plan->precondition( $id, Product_Price_Snapshot::read( $id, $product ), Price_Store_Context::current() );
 			if ( 'MATCH' !== $precondition['state'] ) { throw new Price_Apply_Error( 'CONFLICT' ); }
 			// A concurrent, supported Woo edit may commit while this process has
@@ -124,18 +138,19 @@ final class Woo_Price_Mutator {
 			self::authorize( $plan, $id, $tx );
 			self::checkpoint( 'BEFORE_WOO_SAVE', $id, $attempt );
 			$tx->assert_owned();
-			if ( Price_Operation::FIELD_SALE === $field ) {
-				$product->set_sale_price( $item['planned_regular_price'] );
-			} else {
-				$product->set_regular_price( $item['planned_regular_price'] );
-			}
+			self::set_field( $product, $field, $item['planned_regular_price'] );
 			$product->save();
 			self::checkpoint( 'AFTER_WOO_SAVE_BEFORE_JOURNAL', $id, $attempt );
 			$tx->assert_owned();
 			$after = Price_Cache_Verifier::storage( $tx, $id );
 			Price_Cache_Verifier::matches_field( $after, $field, $item['planned_regular_price'], $preserved );
+			// A variation save never refreshes its parent. Sync on this same
+			// transaction connection and refuse a divergent parent range
+			// before any journal evidence exists.
+			if ( $is_variation ) { Price_Cache_Verifier::sync_variable_parent( $tx, $parent_id ); }
 			$after_field = $after['meta'][ '_' . Price_Operation::meta_key( $field ) ][0] ?? '';
 			$evidence = array( 'attempt_id' => $attempt, 'plan_id' => $plan->data()['plan_id'], 'plan_schema_version' => Change_Plan::SCHEMA_VERSION, 'plan_hash_version' => Change_Plan::HASH_VERSION, 'plan_hash' => $plan->hash(), 'product_id' => $id, 'target' => $item['planned_regular_price'], 'price_field' => $field, 'field_value' => $after_field, 'connection_id' => $tx->id(), 'regular' => $after['meta']['_regular_price'][0], 'sale' => $after['meta']['_sale_price'][0] ?? '', 'active' => $after['meta']['_price'][0], 'lookup_min' => $after['lookup']['min_price'], 'lookup_max' => $after['lookup']['max_price'], 'onsale' => (string) ( $after['lookup']['onsale'] ?? '0' ) );
+			if ( $is_variation ) { $evidence['parent_id'] = $parent_id; }
 			if ( $guard && $guard->connection_id() > 0 ) { $evidence['fence_connection_id'] = $guard->connection_id(); }
 			$evidence = Plan_Hasher::canonical_json( $evidence );
 			Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, 'APPLIED', 'WOO_CRUD_VERIFIED', $attempt, $evidence );
