@@ -22,27 +22,26 @@ Status values:
 
 ---
 
-## 1. New-job product ceiling: 100
+## 1. New-job product ceiling: 1,000
 
-* **COPY CLAIM:** "Up to 100 selected products per new job in the tested configuration."
-* **SUPPORTING ISSUE:** #112 (accepted by PR #119); enforcement in #111/#119.
+* **COPY CLAIM:** "Up to 1,000 selected products per new job in the tested configuration."
+* **SUPPORTING ISSUE:** #112 shipping boundary, raised to the #107 engineering selector maximum by #177.
 * **SUPPORTING TEST/EVIDENCE:**
-  * `wordpress/tests/acceptance/EVIDENCE.md` — complete 100-product workflow passes on every advertised row; 101/1,000/10,000 refused before journal.
-  * `wordpress/tests/acceptance/SUPPORT-REPAIR.md` — production `Free_Support_Contract::MAX_JOB_PRODUCTS = 100`; explicit/category/approval/HTML/policy enforcement.
-  * `wordpress/tests/acceptance/README.md` — `REFUSED_BEFORE_JOURNAL`, zero Woo saves, unchanged prices for oversized requests.
-  * Final-head CI: `woo-admin-111`, `woo-acceptance` artifacts on `83b3b58`; #112 run 37002200860 (per PR #132).
-* **ALLOWED WORDING:** "Up to 100 selected products per new job in the tested configuration."
-* **REQUIRED LIMITATION:** Must be tied to "new job" and the tested configuration; must not say 100 is guaranteed for arbitrary shops, metadata sizes or hook loads.
+  * `wordpress/tests/acceptance/support-boundaries.php` — 1,001 selected products refused before journal; 1,000 accepted; explicit/category/approval/HTML/policy enforcement.
+  * `wordpress/tests/acceptance/journey.php` — complete 1,000-product workflow on the advertised rows; 10,000 refused before journal.
+  * `wordpress/tests/admin/selection-integration.php` — 1,000 picker products accepted, 1,001 refused before import.
+* **ALLOWED WORDING:** "Up to 1,000 selected products per new job in the tested configuration."
+* **REQUIRED LIMITATION:** Must be tied to "new job" and the tested configuration; must not say 1,000 is guaranteed for arbitrary shops, metadata sizes or hook loads.
 * **STATUS:** PUBLISHABLE.
 
 ## 2. Engineering selector maximum 1,000
 
-* **COPY CLAIM:** none. The word "1,000"/"1000" does not appear in the public listing.
-* **SUPPORTING ISSUE:** #107 internal engineering selector; #112 decision; #119 shipping boundary.
-* **SUPPORTING TEST/EVIDENCE:** `SUPPORT-REPAIR.md` ("Engineering selector maximum: 1000 internally"; "not a public support claim"); `readme-validate.php` rejects `1,000`/`1000` in the listing.
-* **ALLOWED WORDING:** Internal/repository documentation only.
-* **REQUIRED LIMITATION:** Never present as a supported size, throughput or host promise.
-* **STATUS:** INTERNAL ONLY.
+* **COPY CLAIM:** "Up to 1,000 selected products per new job in the tested configuration." (the Free new-job ceiling now equals the #107 selector maximum; no larger size is advertised.)
+* **SUPPORTING ISSUE:** #107 internal engineering selector; #112 decision; #177 raise.
+* **SUPPORTING TEST/EVIDENCE:** `Product_Price_Selector::MAX_SELECTED = 1000`; `Free_Support_Contract::MAX_JOB_PRODUCTS = 1000`; selector overflow above 1,000 still maps to the support refusal.
+* **ALLOWED WORDING:** The tested-configuration ceiling above. No larger supported size may be advertised.
+* **REQUIRED LIMITATION:** Never present a size above 1,000 as supported, and never present either constant as a throughput or host promise.
+* **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 3. Five price operations
 
@@ -103,7 +102,7 @@ Status values:
   * `wordpress/writeleash/writeleash.php` — runtime guard fails closed below PHP 7.4.
   * Exact Woo 11.1.2 package `Requires PHP: 7.4`.
 * **ALLOWED WORDING:** "Requires PHP 7.4 or newer" with the four exact exercised patch versions.
-* **REQUIRED LIMITATION:** No claim that 1,000 items passed on PHP 7.4/8.0/8.1 (only 8.2 evaluated 1,000), and no unlisted PHP version claim.
+* **REQUIRED LIMITATION:** No claim that the full 1,000-product Apply/Undo journey passed on PHP 7.4/8.0/8.1 (the full journey runs on 8.2; the boundary preview/approval suite runs on all four), and no unlisted PHP version claim.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 8. Database engines
@@ -242,7 +241,7 @@ Status values:
 
 ## Forbidden public claims (must never appear)
 
-* 1,000 or 10,000 supported products; the internal selector maximum as a support promise.
+* 10,000 or more supported products; any size above the tested 1,000-product new-job ceiling as a support promise.
 * Support for WooCommerce versions outside 10.0 through 11.x, or "all WooCommerce versions".
 * "Old WordPress support" below 7.0 (the Woo 11.1.2 package refuses WP 6.8.3).
 * Real managed/shared-host certification.
@@ -252,7 +251,7 @@ Status values:
 * Package-upgrade certification from a released Free package (none exists).
 * Multisite support.
 
-The `#121` readme guard in `readme-validate.php` fails the listing if `1,000`/`1000`,
+The `#121` readme guard in `readme-validate.php` fails the listing if
 `10,000`/`10000`, "universal rollback", "all bad edits", "every shared host",
 "all WooCommerce versions" or "any WooCommerce version" appears.
 

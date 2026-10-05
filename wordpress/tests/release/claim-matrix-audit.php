@@ -54,7 +54,7 @@ if ( false !== strpos( $mf, 'CLAIM-MATRIX' ) ) {
 }
 
 $required_topics = array(
-	'100-product ceiling'      => '100 selected products',
+	'1,000-product ceiling'    => '1,000 selected products',
 	'five operations'          => 'Five price operations',
 	'simple-product scope'     => 'Supported product scope',
 	'Woo exact version'        => 'WooCommerce version',
@@ -76,7 +76,7 @@ foreach ( $required_topics as $label => $needle ) {
 	}
 }
 
-$unsupported = array( '1,000', '1000', '10,000', '10000', 'universal rollback', 'all bad edits', 'every shared host', 'all WooCommerce versions', 'any WooCommerce version' );
+$unsupported = array( '10,000', '10000', 'universal rollback', 'all bad edits', 'every shared host', 'all WooCommerce versions', 'any WooCommerce version' );
 foreach ( $unsupported as $claim ) {
 	if ( false !== stripos( $read, $claim ) ) {
 		$fail( 'unsupported public claim in readme: ' . $claim );
@@ -84,7 +84,7 @@ foreach ( $unsupported as $claim ) {
 }
 
 foreach ( array(
-	'Up to 100 selected products per new job in the tested configuration.',
+	'Up to 1,000 selected products per new job in the tested configuration.',
 	'WooCommerce 10.0 through 11.x',
 	'Multisite is unsupported.',
 	'Real managed or shared hosting has not been tested.',

@@ -66,7 +66,7 @@ side effects.
 
 == Supported scope ==
 
-* Up to 100 selected products per new job in the tested configuration.
+* Up to 1,000 selected products per new job in the tested configuration.
 * Published core simple WooCommerce products.
 * Stored regular prices in the base store currency.
 * Products with no sale-price/date configuration.
@@ -135,7 +135,7 @@ effects are not reversed.
 
 = How many products can one job change? =
 
-Up to 100 selected products per new job in the tested configuration.
+Up to 1,000 selected products per new job in the tested configuration.
 
 = Which versions are supported? =
 
@@ -149,5 +149,5 @@ managed or shared hosting has not been tested, and multisite is unsupported.
 = 0.1.0 =
 
 * Initial WooCommerce product: frozen bulk regular-price previews, approval-bound execution, durable progress, protected bounded Resume, bounded history and conflict-aware eligible Undo.
-* Supports up to 100 selected products per new job in the tested configuration.
+* Supports up to 1,000 selected products per new job in the tested configuration.
 * Requires WooCommerce 10.0 through 11.x and uses the normal WordPress database connection.
