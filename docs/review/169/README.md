@@ -63,3 +63,10 @@ resolved by running browser journeys on a fresh DB, separate from integration
 fixtures. Native keyboard scrolling is asynchronous; the local zoom check waits
 for scrolling to finish before asserting. Passing results above use those clean
 runs. No backend behavior was modified to accommodate the fixtures.
+
+The first hosted run [37261736177](https://github.com/MrDarkRoot/WriteLeash/actions/runs/37261736177)
+failed in the existing selection browser harness: zero-delay `pressSequentially`
+produced `WL167 BrowserCafé` instead of `WL167 Browser Café`, then the exact-term
+response wait timed out. The test now types with a short per-key delay and asserts
+its exact text; keyboard selection/removal and all safety assertions remain.
+This is a test input correction, with no selector or runtime JavaScript change.
