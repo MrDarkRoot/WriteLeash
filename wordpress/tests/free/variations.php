@@ -281,6 +281,9 @@ namespace {
 	wl179_equal( Selector::resolved_selection( $cat_spec, $cat_snapshots )->data(), $cat_spec->data(), 'non-IDS selections are not rewritten' );
 	$skus = Selector::resolve( S::sku( 'HOOD-BLUE-M' ) );
 	wl179_equal( array_map( static fn( $s ) => $s->data()['product_id'], $skus ), array( 11 ), 'an exact variation SKU resolves that variation (advanced SKU stays one exact product)' );
+	$ext_expansion = Selector::resolve( S::ids( array( 50 ) ) );
+	wl179_equal( array_map( static fn( $s ) => $s->data()['product_id'], $ext_expansion ), array( 50 ), 'an extension variable parent is never expanded' );
+	wl179_equal( Eligibility::evaluate( $ext_expansion[0], wl179_context() )->data()['reason'], 'unsupported_product_type', 'an extension variable parent stays one explained refusal' );
 	wl179_marker( 'parent expansion, dedupe, category expansion and the exact preview freeze' );
 
 	// ------------------------------------------------------------------

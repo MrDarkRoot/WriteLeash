@@ -135,6 +135,17 @@ final class Woo_Undo_Mutator {
 			$is_variation = ! empty( $snapshot_data['core_variation'] );
 			$parent_id = $is_variation ? (int) ( $snapshot_data['parent_id'] ?? 0 ) : 0;
 			if ( $is_variation && ( 'WC_Product_Variation' !== get_class( $product ) || $parent_id < 1 ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
+			// A variation whose parent is no longer the same published core
+			// variable product is a product-state conflict, not a restore.
+			if ( $is_variation && ( empty( $snapshot_data['parent_core_variable'] ) || 'publish' !== ( $snapshot_data['parent_status'] ?? '' ) || $parent_id !== (int) $product->get_parent_id( 'edit' ) ) ) {
+				throw new Price_Apply_Error( 'PRODUCT_TYPE_CHANGED' );
+			}
+			// The applied provenance decides what the product was: a recorded
+			// core variation that is no longer the exact core class is a type
+			// conflict, never a restore through an extension subclass.
+			if ( 'variation' === (string) ( $provenance['blocking']['product_type'] ?? '' ) && ! $is_variation ) {
+				throw new Price_Apply_Error( 'PRODUCT_TYPE_CHANGED' );
+			}
 			$fresh = self::fresh_facts( $product_id, $product, $snapshot, $truth, $field );
 			$check = Undo_Fingerprint::verify( $provenance, $fresh );
 			if ( ! $check['match'] ) { throw new Price_Apply_Error( self::conflict_code( $check['reasons'] ) ); }
@@ -224,8 +235,8 @@ final class Woo_Undo_Mutator {
 			if ( $had_transaction && ! $rolled_back && 'AMBIGUOUS_COMMIT' !== $reason ) { $reason = 'TRANSACTION_LOST'; }
 			$wpdb = $original;
 			$review = $committed || in_array( $reason, array( 'TRANSACTION_LOST', 'AMBIGUOUS_COMMIT', 'CACHE_VERIFICATION_FAILED', 'LOOKUP_MISMATCH', 'JOURNAL_MISMATCH', 'UNDO_PROVENANCE_MISMATCH' ), true );
-			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'UNDO_CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED', 'UNDO_EXPIRED', 'UNDO_NOT_ELIGIBLE', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' );
-			if ( in_array( $code, array( 'UNDO_CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED' ), true ) ) { $code = 'UNDO_CONFLICT'; }
+			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'UNDO_CONFLICT', 'CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED', 'UNDO_EXPIRED', 'UNDO_NOT_ELIGIBLE', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' );
+			if ( in_array( $code, array( 'UNDO_CONFLICT', 'CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED' ), true ) ) { $code = 'UNDO_CONFLICT'; }
 			try {
 				// Connection loss: cleanup uses independent live DB, never a dead writer.
 				$observer = Price_Cache_Verifier::observer();

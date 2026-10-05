@@ -850,8 +850,13 @@ $vfound = \WriteLeash\Product_Discovery::products( $var_name );
 $vresult_ids = array_map( 'intval', array_column( $vfound['results'], 'id' ) );
 ok( in_array( $v_blue, $vresult_ids, true ) && in_array( $v_red, $vresult_ids, true ), 'discovery lists individual variations of the parent' );
 $vblue_text = '';
-foreach ( $vfound['results'] as $vrow ) { if ( (int) $vrow['id'] === $v_blue ) { $vblue_text = $vrow['text']; } }
+$vparent_text = '';
+foreach ( $vfound['results'] as $vrow ) {
+	if ( (int) $vrow['id'] === $v_blue ) { $vblue_text = $vrow['text']; }
+	if ( (int) $vrow['id'] === $var_parent_id ) { $vparent_text = $vrow['text']; }
+}
 ok( str_contains( $vblue_text, '— Blue / M' ) && str_contains( $vblue_text, 'ID: ' . $v_blue ), 'variation discovery label shows attributes and ID' );
+ok( str_contains( $vparent_text, 'Targets all 2 variations' ), 'variable parent is offered as an all-variations choice' );
 
 // A variation created after preview is not in the frozen ID list.
 $v_green = $mk_variation179( '60.00', array( 'color' => 'Green', 'size' => 'S' ) );
@@ -878,6 +883,29 @@ eq( fresh_price( $v_green ), '60.00', 'post-preview variation untouched by Undo'
 $lookup = $parent_lookup179( $var_parent_id );
 eq( Decimal::parse( $lookup['min_price'] ), Decimal::parse( '50.00' ), 'parent lookup min refreshed after Undo' );
 eq( Decimal::parse( $lookup['max_price'] ), Decimal::parse( '100.00' ), 'parent lookup max refreshed after Undo' );
+
+// One conflicted variation never fails an unrelated sibling: the external edit
+// conflicts on its own row while the explicitly selected sibling applies and
+// the parent range still refreshes from the visible child prices.
+$vpreview2 = Admin::process_preview( preview_post( array( 'ids' => $v_blue . ',' . $v_red, 'amount' => '30.00' ) ), 'POST' );
+eq( $vpreview2['status'], 'OK', 'second variable preview created from explicit variation IDs' );
+$vjob2 = Repo::read_by_public_id( $vpreview2['public_id'] );
+eq( Repo::hydrate_plan( $vjob2 )->data()['resolved_product_ids'], array( $v_blue, $v_red ), 'explicit variation IDs stay the frozen pair' );
+$vapprove2 = Admin::process_approve( approve_post( $vjob2 ), 'POST' );
+eq( $vapprove2['status'], 'OK', 'second variation plan approves' );
+$vred_product = wc_get_product( $v_red );
+$vred_product->set_regular_price( '60.00' );
+$vred_product->save();
+run_job_terminal( (int) $vjob2['id'] );
+eq( fresh_price( $v_blue ), '30.00', 'unrelated variation still applies' );
+eq( fresh_price( $v_red ), '60.00', 'externally edited variation keeps its newer value' );
+eq( fresh_price( $v_green ), '60.00', 'variation outside the frozen pair stays untouched' );
+$vjob2_counts = Repo::counts( (int) $vjob2['id'] );
+eq( $vjob2_counts['applied'], 1, 'exactly one sibling applied' );
+eq( $vjob2_counts['conflict'], 1, 'exactly one sibling conflicted' );
+$lookup = $parent_lookup179( $var_parent_id );
+eq( Decimal::parse( $lookup['min_price'] ), Decimal::parse( '30.00' ), 'parent lookup min refreshed with a conflicted sibling' );
+eq( Decimal::parse( $lookup['max_price'] ), Decimal::parse( '60.00' ), 'parent lookup max refreshed with a conflicted sibling' );
 marker( 'variable products: expansion, variation Apply/Undo and parent range refresh' );
 
 require __DIR__ . '/selection-integration.php';

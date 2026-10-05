@@ -37,6 +37,7 @@ final class Product_Discovery {
 		$name = '';
 		$sku = '';
 		$reason = 'unreadable_product_data';
+		$targets_variations = 0;
 		if ( $product instanceof \WC_Product ) {
 			try {
 				$snapshot = Product_Price_Snapshot::read( $id, $product );
@@ -46,12 +47,21 @@ final class Product_Discovery {
 				$name = ! empty( $s['core_variation'] ) && '' !== (string) $s['variation_label'] ? (string) $s['variation_label'] : (string) $s['name'];
 				$sku = (string) $s['sku'];
 				$reason = Product_Price_Eligibility::evaluate( $snapshot, Price_Store_Context::current() )->data()['reason'];
+				// A core variable parent is selected for its children: it is a
+				// valid picker choice even though the parent itself is never a
+				// price target at execution time.
+				if ( 'WC_Product_Variable' === get_class( $product ) && method_exists( $product, 'get_children' ) ) {
+					$children = array_values( array_filter( array_map( 'intval', (array) $product->get_children() ), static fn( $child_id ) => $child_id > 0 ) );
+					if ( $children ) { $targets_variations = count( $children ); $reason = null; }
+				}
 			} catch ( \Throwable $error ) {
 				$reason = 'unreadable_product_data';
 			}
 		}
 		$text = ( '' === $name ? ( 'unreadable_product_data' === $reason ? 'Name unavailable' : 'Unnamed product' ) : $name ) . ( '' === $sku ? ' · No SKU' : ' · SKU: ' . $sku ) . ' · ID: ' . $id;
-		if ( null !== $reason ) {
+		if ( $targets_variations > 0 ) {
+			$text .= ' · Targets all ' . $targets_variations . ( 1 === $targets_variations ? ' variation' : ' variations' );
+		} elseif ( null !== $reason ) {
 			$message = Price_Reason_Messages::all()[$reason] ?? 'Not supported for price changes.';
 			$text .= ( 'unreadable_product_data' === $reason ? ' · Needs attention: ' : ' · Excluded: ' ) . $message;
 		}
