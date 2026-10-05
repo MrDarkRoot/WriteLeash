@@ -1,5 +1,13 @@
 # Free conflict-aware Undo, history and retention: #110 engineering contract
 
+> #178 supersedes the strict regular-only fingerprint below for new provenance:
+> blocking is field-scoped. A regular-field Undo guards the applied regular
+> price plus identity/type/status/store/version and preserves any later sale
+> change (refusing only a restore that would force WooCommerce to clear that
+> sale); a sale-field Undo also guards the regular price recorded at apply time
+> and removes a WriteLeash-added sale when the expected value is empty. Legacy
+> provenance without `price_field` keeps the old strict behavior exactly.
+
 This layer turns the #108 Woo CRUD + price journal facts and the #109
 durable per-item outcomes into Free conflict-aware Undo and bounded history.
 It contains no price arithmetic, selector query, approval UI, full Admin

@@ -17,11 +17,28 @@ extensions are not this price field. Filtered currency differing from the base
 option yields `unsupported_currency_context`; caller integrations must not
 claim extension-defined per-product currency support.
 
-Sale exclusion uses edit-context sale price **strictly unequal to empty string**
-(including numeric zero), or either non-null edit-context sale date. It does not
-use `is_on_sale()`: configured inactive, future and expired sales and date-only
-configuration are excluded (`sale_configured`). Empty regular price is distinct
-from zero and is unsupported for every operation, including SET.
+Sale configuration is no longer a blanket exclusion (#178). A sale-configured
+simple product is eligible for a regular-price edit, and the stored sale price
+and dates are preserved. Both fields require a parseable non-empty regular price
+as the sale baseline, and a target WooCommerce would use to clear the sale is
+refused: a regular target at or below the sale (`regular_price_not_above_sale`),
+a sale target at or above the regular price (`sale_price_not_below_regular`), or
+a fixed/percent operation from an empty sale (`empty_sale_price`). Empty regular
+price is distinct from zero and is unsupported for every operation, including SET.
+
+## Price field (#178)
+
+`Price_Operation` carries a third `field` value, `regular_price` or
+`sale_price`, exposed through `data()['field']` and covered by the plan hash.
+Legacy plans without the key default to `regular_price`; hydration never injects
+the key into hashed material, so old `plan_hash` values keep verifying. Item keys
+`expected_regular_price`/`planned_regular_price` keep their names and mean the
+expected/planned value of the plan's field. The sale field accepts an empty
+expected value (a plan that adds the first sale); fixed/percent operations from
+that empty baseline are refused because no ratio exists. When the expected value
+is empty, policy skips the ratio caps/warnings but still applies the zero-target
+blocker and the plan-level max-products limit. `Change_Plan::price_field()` is
+the reader for every consumer.
 
 ## Decimal contract, v1
 
@@ -147,14 +164,17 @@ are ALLOW, ALLOW_WITH_WARNINGS or BLOCKED. ALLOW describes policy only, not appr
 
 `Change_Plan::precondition(id, current_snapshot, current_context)` returns MATCH,
 CONFLICT, BLOCKED or NOT_CHANGING. It never calculates a new price or resolves a
-selector. Missing/wrong ID, numeric regular-price change, type/core-class change,
-status change, any sale configuration change, currency/base-context change,
-decimals change, or WP/Woo version change conflicts. Numeric equivalent `100`
-and `100.00` match; malformed/empty live prices conflict. Category/SKU/title are
-provenance only. The worker must re-read public Woo state freshly under its own
-concurrency boundary, check edit rights and approved binding, then consume only
-the persisted ID/expected/target strings. This API supplies no locks, freshness,
-transactions, product saves, crash/cache/concurrency guarantees or approval.
+selector. Missing/wrong ID, type/core-class change, status change, currency/
+base-context change, decimals change, or WP/Woo version change conflicts. For a
+regular-field plan only the stored regular price is guarded; an external sale
+price or schedule change is preserved, not a conflict. For a sale-field plan the
+stored sale price is guarded and the planned sale must remain strictly below the
+current regular price. Numeric equivalent `100` and `100.00` match; malformed/
+empty live prices conflict. Category/SKU/title are provenance only. The worker
+must re-read public Woo state freshly under its own concurrency boundary, check
+edit rights and approved binding, then consume only the persisted ID/expected/
+target strings. This API supplies no locks, freshness, transactions, product
+saves, crash/cache/concurrency guarantees or approval.
 
 ## Admin display formatting (#169)
 

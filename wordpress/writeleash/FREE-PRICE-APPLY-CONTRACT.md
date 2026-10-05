@@ -1,5 +1,13 @@
 # Free price apply: #108 engineering contract
 
+> #178 supersedes the regular-only statements below: Apply targets the plan's
+> price field (`regular_price` or `sale_price`). Verification proves the target
+> field, the preserved other field and sale dates, the computed active `_price`,
+> lookup min/max and onsale. Evidence adds `price_field`, `field_value`,
+> preserved regular/sale, active and lookup values; fresh observer
+> certification is field-aware and no longer requires a sale-free product.
+> Legacy evidence without `price_field` keeps the old strict path exactly.
+
 This is an item correctness experiment consumed through PHP, with no public
 mutation endpoint, automatic journal installation, approval UI, job engine,
 Action Scheduler execution, full Undo or release claim. #109 must retain these
