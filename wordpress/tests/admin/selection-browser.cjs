@@ -56,14 +56,14 @@ async function typeSearch(page, term) {
     assert.equal(await input(page).inputValue(), term, 'search text preserves spaces');
 }
 async function search(page, term) {
-    const response = page.waitForResponse(response => {
-        const url = new URL(response.url());
-        return url.pathname.endsWith('/admin-ajax.php') && url.searchParams.get('action') === 'writeleash_free_discovery' && url.searchParams.get('term') === term;
-    });
     await typeSearch(page, term);
-    let result;
-    try { result = await (await response).json(); }
-    catch (error) {
+    // Wait on the merchant-visible outcome instead of the raw network event:
+    // SelectWoo can serve or reuse a result without a matching response event
+    // reaching Playwright, which made the network wait intermittently time out.
+    const status = page.locator('#writeleash-free-discovery-status');
+    try {
+        await status.filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor({ timeout: 60000 });
+    } catch (error) {
         console.error('Search diagnostics:', JSON.stringify(await page.evaluate(() => ({
             status: document.getElementById('writeleash-free-discovery-status').textContent,
             action: document.getElementById('writeleash-free-selection-form').dataset.discoveryAction,
@@ -72,8 +72,9 @@ async function search(page, term) {
         await capture(page, 'failed-search');
         throw error;
     }
-    await page.locator('#writeleash-free-discovery-status').filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor();
-    if (result.data.results.length) await page.locator('.select2-results__option[data-selected]').first().waitFor();
+    if (/Choose matches/.test(await status.innerText())) {
+        await page.locator('.select2-results__option[data-selected]').first().waitFor({ timeout: 60000 });
+    }
 }
 (async () => {
     const browser = await chromium.launch({ headless: true, executablePath: process.env.WL167_CHROME || '/usr/bin/google-chrome' });
