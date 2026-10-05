@@ -29,17 +29,26 @@ async function login(page) {
 function searchInput(page) { return page.locator('#writeleash-free-products + .select2-container .select2-search__field'); }
 async function selectThree(page) {
     const input = searchInput(page);
-    await input.waitFor();
-    await input.click();
-    await input.fill('');
-    await input.pressSequentially(fixture.search, { delay: 20 });
     const status = page.locator('#writeleash-free-discovery-status');
-    await status.filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor({ timeout: 30000 });
-    await page.locator('.select2-results__option[data-selected="false"]').filter({ hasText: fixture.search }).first().waitFor({ timeout: 30000 });
-    for (let i = 0; i < 3; i++) {
-        await page.locator('.select2-results__option[data-selected="false"]').first().click();
+    const options = page.locator('.select2-results__option[data-selected="false"]').filter({ hasText: fixture.search });
+    // A SelectWoo query can be dropped before its dropdown settles; retry once
+    // so a capture-only run is not failed by that race.
+    for (let attempt = 0; attempt < 2; attempt++) {
+        await input.waitFor();
+        await input.click();
+        await input.fill('');
+        await input.pressSequentially(fixture.search, { delay: 20 });
+        try {
+            await status.filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor({ timeout: 30000 });
+            await options.first().waitFor({ timeout: 30000 });
+            for (let i = 0; i < 3; i++) { await options.first().click(); }
+            ok(await page.locator('#writeleash-free-selected button').count() === 3, 'selection capture shows three chosen products');
+            return;
+        } catch (error) {
+            if (attempt === 1) { throw error; }
+        }
+        await page.keyboard.press('Escape').catch(() => {});
     }
-    ok(await page.locator('#writeleash-free-selected button').count() === 3, 'selection capture shows three chosen products');
 }
 (async () => {
     const browser = await chromium.launch({ headless: true, executablePath: process.env.WL167_CHROME || '/usr/bin/google-chrome' });

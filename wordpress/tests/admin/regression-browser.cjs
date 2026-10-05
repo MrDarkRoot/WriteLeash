@@ -49,13 +49,23 @@ function button(page, name) { return page.getByRole('button', { name, exact: tru
 function link(page, name) { return page.getByRole('link', { name, exact: true }); }
 async function search(page, term) {
     const field = page.locator('#writeleash-free-products + .select2-container .select2-search__field');
-    await tabTo(page, field); await page.keyboard.press('ControlOrMeta+A');
-    const response = page.waitForResponse(r => { const u = new URL(r.url()); return u.searchParams.get('action') === 'writeleash_free_discovery' && u.searchParams.get('term') === term; });
-    await page.keyboard.type(term, { delay: 20 });
-    assert.equal(await field.inputValue(), term);
-    const data = await (await response).json();
-    await page.locator('.select2-results__option[data-selected]').first().waitFor();
-    ok(data.success && data.data.results.length <= 20, 'bounded real discovery response');
+    // SelectWoo can drop a query keyed before its dropdown settles. Type once,
+    // wait on this query's own rows, and retry once before failing.
+    for (let attempt = 0; attempt < 2; attempt++) {
+        await tabTo(page, field); await page.keyboard.press('ControlOrMeta+A');
+        const response = page.waitForResponse(r => { const u = new URL(r.url()); return u.searchParams.get('action') === 'writeleash_free_discovery' && u.searchParams.get('term') === term; });
+        await page.keyboard.type(term, { delay: 20 });
+        assert.equal(await field.inputValue(), term);
+        try {
+            const data = await (await response).json();
+            await page.locator('.select2-results__option[data-selected]').first().waitFor({ timeout: 15000 });
+            ok(data.success && data.data.results.length <= 20, 'bounded real discovery response');
+            return;
+        } catch (error) {
+            if (attempt === 0) { continue; }
+            throw error;
+        }
+    }
 }
 async function form(page, action) {
     return page.locator('form').filter({ has: page.locator('input[name="action"][value="' + action + '"]') }).evaluate(el => Object.fromEntries(new FormData(el)));
@@ -151,11 +161,11 @@ async function responsive(page) {
         await tabTo(page, page.locator('#writeleash-free-operation'));
         await page.keyboard.press('End'); // Last native option = decrease percent.
         await tabTo(page, page.locator('#writeleash-free-amount')); await page.keyboard.type('bad-price');
-        await enter(page, button(page, 'Build frozen preview'));
+        await enter(page, button(page, 'Preview price changes'));
         ok((await page.locator('#writeleash-free-amount').inputValue()) === 'bad-price' && await page.locator('#writeleash-free-selected button').count() === 22, 'validation retains selection and input');
         await scan(page, 'validation error');
         await tabTo(page, page.locator('#writeleash-free-amount')); await page.keyboard.press('ControlOrMeta+A'); await page.keyboard.type('20');
-        await enter(page, button(page, 'Build frozen preview'));
+        await enter(page, button(page, 'Preview price changes'));
         const previewURL = page.url(); const publicId = new URL(previewURL).searchParams.get('wl_job');
         let observed = fixture(); const job = observed.jobs.find(j => j.public_id === publicId);
         const frozen = { json: job.plan_json, hash: job.plan_hash };
@@ -174,7 +184,7 @@ async function responsive(page) {
             await route.fetch({ maxRedirects: 0 }); // Real server approval commits; browser receives no response.
             await route.abort('failed'); approvalForwarded();
         });
-        await tabTo(page, button(page, 'Approve and queue execution')); await page.keyboard.press('Enter');
+        await tabTo(page, button(page, 'Approve and apply')); await page.keyboard.press('Enter');
         await forwarded;
         await page.unroute('**/admin-post.php');
         const jobURL = home + '&wl_view=job&wl_job=' + publicId;
@@ -246,7 +256,7 @@ async function responsive(page) {
             ok(durable(fixture()) === unchanged, who + ': independent no mutation'); await c.close();
         }
         fixture('revoke'); await page.goto(home);
-        ok((await text(page)).includes('cannot plan or execute'), 'removed permission recovery message');
+        ok((await text(page)).includes('cannot preview or apply'), 'removed permission recovery message');
         const r = await context.request.get(base + '/wp-admin/admin-ajax.php', { params: { action: 'writeleash_free_discovery', nonce: 'wrong', term: f.skus[0] } });
         ok(r.status() === 403 && !(await r.text()).includes(f.skus[0]), 'removed permission search denied');
         fixture('restore-rights'); fixture('short-nonce'); await page.goto(home);

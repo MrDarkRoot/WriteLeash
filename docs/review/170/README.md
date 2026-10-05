@@ -58,3 +58,15 @@ commit; use Shift+Tab when returning to earlier controls instead of relying on
 Firefox wrapping Tab out of browser chrome; disable opcode caching in the
 version-swap fixture server; require successful package restoration. Preparation
 failures were not counted as product passes.
+
+## Source refresh after the product/core-backlog merge
+
+`source_hashes` above were refreshed when `origin/main` (#184) was merged into
+`product/core-backlog` (#177–#182). The product backlog intentionally renames
+merchant-facing labels and extends the picker (regular/sale target, 1,000-product
+ceiling) in `class-free-admin.php` and `free-selection.js`, while #184 adds
+close-on-empty/error and ARIA naming. The PNG captures in this directory are the
+original #170 images: they show the same same-row conflict, preservation and Undo
+evidence but predate the #182 copy changes. The #170 Chromium/Firefox journey is
+re-executed by the Admin CI job against the merged source on every run, and its
+result JSONs are uploaded as CI artifacts alongside the refreshed hashes.
