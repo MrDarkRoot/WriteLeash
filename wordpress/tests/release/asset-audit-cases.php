@@ -14,6 +14,9 @@ $prepare = static function () use ( $repo, $fixture, $remove ): void {
     $remove( $fixture );
     foreach ( array( 'wordpress/assets', 'wordpress/release/assets-122', 'wordpress/writeleash' ) as $dir ) { mkdir( $fixture . '/' . $dir, 0700, true ); }
     $files = array_merge( glob( $repo . '/wordpress/assets/*' ), array( $repo . '/wordpress/release/assets-122/proof.json', $repo . '/wordpress/release/writeleash-distribution-files.txt', $repo . '/wordpress/writeleash/readme.txt' ) );
+    if ( is_dir( $repo . '/docs/review/170' ) ) { mkdir( $fixture . '/docs/review/170', 0700, true ); $files = array_merge( $files, glob( $repo . '/docs/review/170/*' ) ); }
+    mkdir( $fixture . '/wordpress/writeleash/includes/free', 0700, true );
+    $files = array_merge( $files, array_map( static fn( $n ) => $repo . '/wordpress/writeleash/includes/free/' . $n, array( 'class-free-admin.php', 'free-selection.js', 'free-selection.css' ) ) );
     foreach ( $files as $file ) { copy( $file, $fixture . substr( $file, strlen( $repo ) ) ); }
 };
 $run = static function () use ( $repo, $fixture ): int {
@@ -51,6 +54,30 @@ $cases = array(
     'format differs from extension' => static function ( $f ) { file_put_contents( $f . '/wordpress/assets/icon-256x256.png', '<svg/>'); },
     'capture bytes differ from proof' => static function ( $f ) { file_put_contents( $f . '/wordpress/assets/screenshot-1.png', 'different capture', FILE_APPEND ); },
 );
+
+if ( is_file( $repo . '/docs/review/170/proof.json' ) ) {
+    $cases['missing #170 reviewed evidence'] = static function ( $f ) { unlink( $f . '/docs/review/170/proof.json' ); };
+    foreach ( array( 'hash', 'dimensions', 'caption', 'source', 'current', 'identity', 'preservation' ) as $kind ) {
+        $cases['#170 tampering ' . $kind] = static function ( $f ) use ( $kind ) {
+            $path = $f . '/docs/review/170/';
+            $proof = json_decode( file_get_contents( $path . 'proof.json' ), true );
+            if ( 'hash' === $kind ) { file_put_contents( $path . $proof['screenshots'][0]['filename'], 'tamper', FILE_APPEND ); return; }
+            if ( 'dimensions' === $kind ) { ++$proof['screenshots'][0]['width']; }
+            if ( 'caption' === $kind ) { $proof['screenshots'][0]['caption'] = 'All products changed successfully'; }
+            if ( 'source' === $kind ) { $proof['source_hashes']['free-selection.js'] = str_repeat( '0', 64 ); }
+            if ( in_array( $kind, array( 'current', 'identity', 'preservation' ), true ) ) {
+                $result = json_decode( file_get_contents( $path . '170-chromium-result.json' ), true );
+                $a = &$result['safety']['apply'];
+                if ( 'current' === $kind ) { $a['html'] = str_replace( '$120.00 USD', '$100.00 USD', $a['html'] ) . '<p>$120.00 USD</p>'; }
+                if ( 'identity' === $kind ) { ++$a['product_id']; }
+                if ( 'preservation' === $kind ) { $a['html'] = str_replace( 'left the newer value unchanged', 'overwrote the value', $a['html'] ); }
+                file_put_contents( $path . '170-chromium-result.json', json_encode( $result ) ); return;
+            }
+            file_put_contents( $path . 'proof.json', json_encode( $proof ) );
+        };
+    }
+}
+
 try {
     $prepare();
     if ( 0 !== $run() ) { throw new RuntimeException( 'Valid asset control failed' ); }

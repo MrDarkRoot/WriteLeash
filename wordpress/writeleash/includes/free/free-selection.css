@@ -38,6 +38,9 @@
 .writeleash-admin .button-link {
     text-align: start;
 }
+.writeleash-admin p a:not(.button) {
+    text-decoration: underline;
+}
 .writeleash-admin #writeleash-free-selection-form {
     max-width: 900px;
 }
@@ -156,6 +159,11 @@
     color: #795000;
 }
 .writeleash-admin :is(a, button, input, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+/* Woo hides the inline search outline; keep its enclosing picker visible. */
+.writeleash-admin #writeleash-free-selection-form .select2-container--focus .select2-selection {
     outline: 2px solid #2271b1;
     outline-offset: 2px;
 }

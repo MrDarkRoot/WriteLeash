@@ -1,0 +1,101 @@
+{
+  "engine": "firefox",
+  "version": "155.0",
+  "checks": 247,
+  "scans": [
+    {
+      "name": "configuration",
+      "violations": []
+    },
+    {
+      "name": "category search",
+      "violations": []
+    },
+    {
+      "name": "search failure",
+      "violations": []
+    },
+    {
+      "name": "open search",
+      "violations": []
+    },
+    {
+      "name": "validation error",
+      "violations": []
+    },
+    {
+      "name": "preview",
+      "violations": []
+    },
+    {
+      "name": "queued",
+      "violations": []
+    },
+    {
+      "name": "mixed results",
+      "violations": []
+    },
+    {
+      "name": "history",
+      "violations": []
+    },
+    {
+      "name": "Undo results",
+      "violations": []
+    },
+    {
+      "name": "failed action",
+      "violations": []
+    },
+    {
+      "name": "missing dependency",
+      "violations": []
+    }
+  ],
+  "safety": {
+    "apply": {
+      "expected": "100.00",
+      "current": "120.00",
+      "planned": "80.00",
+      "state": "CONFLICT",
+      "html": "<tr data-product-id=\"199\"><td><strong>Gate 9d5a27b1 product 0 Café 日本 long name long name long name long name long name long name long name long name</strong><br><span class=\"description\">SKU: G170-9d5a27b1-00 · Product #199 · identity at preview</span><br><a href=\"http://127.0.0.1:8170/wp-admin/post.php?post=199&amp;action=edit\">Review product</a></td><td>$100.00 USD</td><td>$120.00 USD</td><td>$80.00 USD</td><td class=\"writeleash-attention\"><strong>Not changed</strong><p>This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.</p><p>Review the product, then <a href=\"http://127.0.0.1:8170/wp-admin/admin.php?page=writeleash-bulk-prices\">Create a new preview</a> if you still want to change it.</p><details><summary>Support details</summary><p>CONFLICT · ITEM_CONFLICT</p></details></td><td class=\"\">Unavailable: no confirmed WriteLeash change to restore</td></tr>",
+      "product_id": 199
+    },
+    "undo": {
+      "preserved": "93.00",
+      "restored": 20,
+      "conflict": 1
+    },
+    "negatives": {
+      "no_mutation": true,
+      "reads": {
+        "search": 11,
+        "unbounded": false,
+        "oversized": false,
+        "selected": 22
+      }
+    }
+  },
+  "evidence": [
+    {
+      "name": "preview",
+      "filename": "170-firefox-preview.png"
+    },
+    {
+      "name": "apply-conflict",
+      "filename": "170-firefox-apply-conflict.png"
+    },
+    {
+      "name": "history",
+      "filename": "170-firefox-history.png"
+    },
+    {
+      "name": "undo-results",
+      "filename": "170-firefox-undo-results.png"
+    }
+  ],
+  "viewport": "1440/1024/782/375",
+  "keyboard": "PASS",
+  "screen_reader": "NOT_TESTED",
+  "safari": "NOT_TESTED"
+}
