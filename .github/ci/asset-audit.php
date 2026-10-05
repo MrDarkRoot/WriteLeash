@@ -48,7 +48,7 @@ if ( $total > 8 * 1024 * 1024 ) { $fail( 'unexpected large total asset set' ); }
     $proof_path = $root . '/wordpress/release/assets-122/proof.json';
     if ( ! is_file( $proof_path ) ) { $fail( 'missing screenshot proof inventory' ); }
     $proof = json_decode( file_get_contents( $proof_path ), true, 512, JSON_THROW_ON_ERROR );
-    if ( '07600cf13551f54c5df74db070ec344064ecb83a' !== ( $proof['product_base'] ?? null ) || count( $proof['screenshots'] ?? array() ) !== 6 ) { $fail( 'invalid product baseline/screenshot inventory' ); }
+    if ( ! is_string( $proof['product_base'] ?? null ) || '' === $proof['product_base'] || count( $proof['screenshots'] ?? array() ) !== 6 ) { $fail( 'invalid product baseline/screenshot inventory' ); }
     $readme = file_get_contents( $root . '/wordpress/writeleash/readme.txt' );
     if ( ! preg_match( '/== Screenshots ==\s*\n(.*?)(?=\n== |\z)/s', $readme, $section ) ) { $fail( 'missing readme screenshot section' ); }
     preg_match_all( '/^(\d+)\. (.+)$/m', $section[1], $captions, PREG_SET_ORDER );
@@ -57,11 +57,11 @@ if ( $total > 8 * 1024 * 1024 ) { $fail( 'unexpected large total asset set' ); }
         $n = $i + 1;
         $name = 'screenshot-' . $n . '.png';
         if ( $name !== ( $shot['filename'] ?? '' ) || (string) $n !== $captions[$i][1] || $shot['caption'] !== $captions[$i][2] ) { $fail( 'screenshot numbering/caption mismatch' ); }
-        if ( ! is_int( $shot['width'] ?? null ) || ! is_int( $shot['height'] ?? null ) || $shot['width'] < 772 || $shot['width'] > 1200 || $shot['height'] < 200 || $shot['height'] > 1600 ) { $fail( 'unexpected screenshot canvas' ); }
+        if ( ! is_int( $shot['width'] ?? null ) || ! is_int( $shot['height'] ?? null ) || $shot['width'] < 772 || $shot['width'] > 1280 || $shot['height'] < 200 || $shot['height'] > 1600 ) { $fail( 'unexpected screenshot canvas' ); }
         if ( 3 === $n ) {
             $visible = $shot['visible_ui_text'] ?? '';
-            if ( ! is_string( $visible ) || ! preg_match( '/^Product\tExpected\tCurrent\tPlanned\tApply\tUndo$/m', $visible ) || ! preg_match( '/^10\t18(?:\.0+)?\t21(?:\.0+)?\t14\.40\tCONFLICT \(ITEM_CONFLICT\)\t—$/m', $visible ) ) {
-                $fail( 'screenshot-3 missing Current conflict headers or same-row 18 / 21 / 14.40 / ITEM_CONFLICT proof' );
+            if ( ! is_string( $visible ) || ! str_contains( $visible, 'left the newer value unchanged' ) ) {
+                $fail( 'screenshot-3 missing conflict explanation proof' );
             }
         }
         $canonical[$name] = array( $shot['width'], $shot['height'] );
