@@ -9,7 +9,7 @@ scratch="$(mktemp -d)"
 cleanup() {
   local status=$?
   trap - EXIT
-  if [ "$status" -ne 0 ]; then docker exec "$container" sh -c 'tail -40 /tmp/wl167-web.log' 2>/dev/null | sed 's/?.*/?[query redacted]/' || true; fi
+  if [ "$status" -ne 0 ]; then docker exec "$container" sh -c 'tail -200 /tmp/wl167-web.log' 2>/dev/null | sed 's/?.*/?[query redacted]/' || true; fi
   docker rm -f "$container" >/dev/null 2>&1 || true
   rm -rf "$scratch"
   exit "$status"
