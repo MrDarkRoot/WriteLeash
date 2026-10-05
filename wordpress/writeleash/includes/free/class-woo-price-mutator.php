@@ -53,6 +53,7 @@ final class Woo_Price_Mutator {
 		$reason = 'FAILED';
 		try {
 			self::schema( $original );
+			$field = $plan->price_field();
 			$item = $plan->item( $id )->data();
 			if ( 'CHANGING' !== $item['result'] || 'BLOCKED' === $plan->data()['status'] ) { throw new Price_Apply_Error( 'PLAN_POLICY_BLOCKED' ); }
 			$tx = new Price_Apply_Connection( $original );
@@ -96,25 +97,45 @@ final class Woo_Price_Mutator {
 			// A concurrent, supported Woo edit may commit while this process has
 			// cached its previous Woo object. Even after targeted eviction, the
 			// newly locked storage can be newer than the public object. Only a
-			// coherent stored regular/active/lookup triple at a DIFFERENT price
-			// is an optimistic CONFLICT; malformed/duplicate/lookup-divergent
-			// storage still takes #108's JOURNAL_MISMATCH/NEEDS_REVIEW path.
-			if ( Price_Decimal::parse( $truth['meta']['_regular_price'][0] ) !== Price_Decimal::parse( $item['expected_regular_price'] ) ) {
-				Price_Cache_Verifier::matches( $truth, $truth['meta']['_regular_price'][0] );
+			// coherent stored field state at a DIFFERENT price is an optimistic
+			// CONFLICT; malformed/duplicate/lookup-divergent storage still takes
+			// #108's JOURNAL_MISMATCH/NEEDS_REVIEW path.
+			Price_Cache_Verifier::coherence( $truth );
+			$field_meta = '_' . Price_Operation::meta_key( $field );
+			if ( ! Price_Decimal::equal( $truth['meta'][ $field_meta ][0] ?? '', $item['expected_regular_price'] ) ) {
 				throw new Price_Apply_Error( 'CONFLICT' );
 			}
-			Price_Cache_Verifier::matches( $truth, $item['expected_regular_price'] );
+			// A concurrent edit that would make WooCommerce's own save clear
+			// the other price field (regular <= sale, or sale >= regular) is
+			// an optimistic conflict: never lose stored sale configuration.
+			if ( Price_Operation::FIELD_REGULAR === $field ) {
+				$current_sale = $truth['meta']['_sale_price'][0] ?? '';
+				if ( '' !== $current_sale && Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $item['planned_regular_price'] ) ), Price_Decimal::units( Price_Decimal::parse( $current_sale ) ) ) <= 0 ) { throw new Price_Apply_Error( 'CONFLICT' ); }
+			} elseif ( Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $item['planned_regular_price'] ) ), Price_Decimal::units( Price_Decimal::parse( $truth['meta']['_regular_price'][0] ) ) ) >= 0 ) {
+				throw new Price_Apply_Error( 'CONFLICT' );
+			}
+			$preserved = array(
+				'regular_price' => $truth['meta']['_regular_price'][0],
+				'sale_price' => $truth['meta']['_sale_price'][0] ?? '',
+				'sale_from' => $truth['meta']['_sale_price_dates_from'][0] ?? '',
+				'sale_to' => $truth['meta']['_sale_price_dates_to'][0] ?? '',
+			);
 			// Recheck capabilities at the mutation boundary, not as WP root.
 			self::authorize( $plan, $id, $tx );
 			self::checkpoint( 'BEFORE_WOO_SAVE', $id, $attempt );
 			$tx->assert_owned();
-			$product->set_regular_price( $item['planned_regular_price'] );
+			if ( Price_Operation::FIELD_SALE === $field ) {
+				$product->set_sale_price( $item['planned_regular_price'] );
+			} else {
+				$product->set_regular_price( $item['planned_regular_price'] );
+			}
 			$product->save();
 			self::checkpoint( 'AFTER_WOO_SAVE_BEFORE_JOURNAL', $id, $attempt );
 			$tx->assert_owned();
 			$after = Price_Cache_Verifier::storage( $tx, $id );
-			Price_Cache_Verifier::matches( $after, $item['planned_regular_price'] );
-			$evidence = array( 'attempt_id' => $attempt, 'plan_id' => $plan->data()['plan_id'], 'plan_schema_version' => Change_Plan::SCHEMA_VERSION, 'plan_hash_version' => Change_Plan::HASH_VERSION, 'plan_hash' => $plan->hash(), 'product_id' => $id, 'target' => $item['planned_regular_price'], 'connection_id' => $tx->id(), 'regular' => $after['meta']['_regular_price'][0], 'active' => $after['meta']['_price'][0], 'lookup_min' => $after['lookup']['min_price'], 'lookup_max' => $after['lookup']['max_price'] );
+			Price_Cache_Verifier::matches_field( $after, $field, $item['planned_regular_price'], $preserved );
+			$after_field = $after['meta'][ '_' . Price_Operation::meta_key( $field ) ][0] ?? '';
+			$evidence = array( 'attempt_id' => $attempt, 'plan_id' => $plan->data()['plan_id'], 'plan_schema_version' => Change_Plan::SCHEMA_VERSION, 'plan_hash_version' => Change_Plan::HASH_VERSION, 'plan_hash' => $plan->hash(), 'product_id' => $id, 'target' => $item['planned_regular_price'], 'price_field' => $field, 'field_value' => $after_field, 'connection_id' => $tx->id(), 'regular' => $after['meta']['_regular_price'][0], 'sale' => $after['meta']['_sale_price'][0] ?? '', 'active' => $after['meta']['_price'][0], 'lookup_min' => $after['lookup']['min_price'], 'lookup_max' => $after['lookup']['max_price'], 'onsale' => (string) ( $after['lookup']['onsale'] ?? '0' ) );
 			if ( $guard && $guard->connection_id() > 0 ) { $evidence['fence_connection_id'] = $guard->connection_id(); }
 			$evidence = Plan_Hasher::canonical_json( $evidence );
 			Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, 'APPLIED', 'WOO_CRUD_VERIFIED', $attempt, $evidence );

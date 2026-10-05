@@ -59,6 +59,72 @@ final class Price_Cache_Verifier {
 			if ( $actual !== $price ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
 		}
 	}
+	/** The shopper-active price implied by stored values (sale if valid and active, else regular). */
+	public static function active_price( string $regular, string $sale, $from, $to, int $now ): string {
+		$regular = Price_Decimal::parse( $regular );
+		if ( '' !== $sale ) {
+			$sale = Price_Decimal::parse( $sale );
+			$from_at = self::timestamp( $from );
+			$to_at = self::timestamp( $to );
+			if ( Price_Decimal::compare( Price_Decimal::units( $regular ), Price_Decimal::units( $sale ) ) > 0
+				&& ( null === $from_at || $from_at <= $now )
+				&& ( null === $to_at || $to_at >= $now ) ) {
+				return $sale;
+			}
+		}
+		return $regular;
+	}
+	/** Non-empty timestamps must be integer strings; anything else is unsupported storage. */
+	private static function timestamp( $value ): ?int {
+		if ( null === $value || '' === $value ) { return null; }
+		if ( ! is_string( $value ) || ! preg_match( '/\A[0-9]{1,12}\z/D', $value ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
+		return (int) $value;
+	}
+	/** `_price`, lookup min/max and onsale must agree with the computed active price. */
+	private static function assert_active( array $storage, string $active, string $sale ): void {
+		if ( Price_Decimal::parse( $storage['meta']['_price'][0] ) !== $active ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+		$lookup = $storage['lookup'];
+		foreach ( array( 'min_price', 'max_price' ) as $key ) {
+			try { $actual = Price_Decimal::parse( $lookup[$key] ); } catch ( \Throwable $e ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
+			if ( $actual !== $active ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
+		}
+		$onsale = ( '' !== $sale && Price_Decimal::parse( $sale ) === $active ) ? '1' : '0';
+		if ( (string) ( $lookup['onsale'] ?? '' ) !== $onsale ) { throw new Price_Apply_Error( 'LOOKUP_MISMATCH' ); }
+	}
+	/** Self-consistency of the stored regular/sale/date/_price/lookup state. Returns the active price. */
+	public static function coherence( array $storage ): string {
+		$regular = $storage['meta']['_regular_price'][0];
+		$sale = $storage['meta']['_sale_price'][0] ?? '';
+		if ( '' !== $sale ) {
+			try { Price_Decimal::parse( $sale ); }
+			catch ( Price_Validation_Error $error ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
+		}
+		$active = self::active_price( $regular, $sale, $storage['meta']['_sale_price_dates_from'][0] ?? '', $storage['meta']['_sale_price_dates_to'][0] ?? '', time() );
+		self::assert_active( $storage, $active, $sale );
+		return $active;
+	}
+	/**
+	 * Field-aware verification of one plan/Undo write. The target field must
+	 * equal the target; the other field and the sale dates must equal the
+	 * preserved values; `_price`, lookup and onsale must match the computed
+	 * active price. `$preserved` uses raw meta values:
+	 * regular_price, sale_price, sale_from, sale_to (empty string = unset).
+	 */
+	public static function matches_field( array $storage, string $field, string $target, array $preserved ): void {
+		Price_Operation::assert_field( $field );
+		$regular = Price_Operation::FIELD_SALE === $field ? (string) ( $preserved['regular_price'] ?? '' ) : $target;
+		$sale = Price_Operation::FIELD_SALE === $field ? $target : (string) ( $preserved['sale_price'] ?? '' );
+		if ( '' === $regular ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+		if ( ! Price_Decimal::equal( $storage['meta']['_regular_price'][0], $regular ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+		if ( ! Price_Decimal::equal( $storage['meta']['_sale_price'][0] ?? '', $sale ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+		$from = (string) ( $preserved['sale_from'] ?? ( $storage['meta']['_sale_price_dates_from'][0] ?? '' ) );
+		$to = (string) ( $preserved['sale_to'] ?? ( $storage['meta']['_sale_price_dates_to'][0] ?? '' ) );
+		if ( self::timestamp( $storage['meta']['_sale_price_dates_from'][0] ?? '' ) !== self::timestamp( $from )
+			|| self::timestamp( $storage['meta']['_sale_price_dates_to'][0] ?? '' ) !== self::timestamp( $to ) ) {
+			throw new Price_Apply_Error( 'JOURNAL_MISMATCH' );
+		}
+		self::assert_active( $storage, self::active_price( $regular, $sale, $from, $to, time() ), $sale );
+	}
 	/** DB truth first; Woo reads use a NEW object and independent DB connection. */
 	public static function observe( Change_Plan $plan, int $id ): array {
 		$db = self::observer();
@@ -70,17 +136,53 @@ final class Price_Cache_Verifier {
 			Price_Apply_Journal::assert_binding( $row, $plan, $id );
 			$evidence = json_decode( $row['evidence'], true );
 			if ( ! is_array( $evidence ) || ( $evidence['plan_id'] ?? '' ) !== $row['plan_id'] || ( $evidence['plan_schema_version'] ?? 0 ) !== (int) $row['plan_schema_version'] || ( $evidence['plan_hash_version'] ?? '' ) !== $row['plan_hash_version'] || ( $evidence['attempt_id'] ?? '' ) !== $row['attempt_id'] || ( $evidence['plan_hash'] ?? '' ) !== $row['plan_hash'] || ( $evidence['target'] ?? '' ) !== $row['target_price'] || ( $evidence['product_id'] ?? 0 ) !== $id || ( $evidence['connection_id'] ?? 0 ) < 1 ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
-			foreach ( array( 'regular', 'active', 'lookup_min', 'lookup_max' ) as $key ) {
-				try { $match = isset( $evidence[$key] ) && Price_Decimal::parse( $evidence[$key] ) === Price_Decimal::parse( $row['target_price'] ); }
-				catch ( \Throwable $error ) { $match = false; }
-				if ( ! $match ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			$field = $evidence['price_field'] ?? null;
+			if ( null !== $field && ! in_array( $field, Price_Operation::FIELDS, true ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			if ( null === $field ) {
+				foreach ( array( 'regular', 'active', 'lookup_min', 'lookup_max' ) as $key ) {
+					try { $match = isset( $evidence[$key] ) && Price_Decimal::parse( $evidence[$key] ) === Price_Decimal::parse( $row['target_price'] ); }
+					catch ( \Throwable $error ) { $match = false; }
+					if ( ! $match ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+				}
+			} else {
+				foreach ( array( 'field_value', 'regular', 'sale', 'active', 'lookup_min', 'lookup_max' ) as $key ) {
+					if ( ! isset( $evidence[$key] ) || ! is_string( $evidence[$key] ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+				}
+				if ( ! isset( $evidence['onsale'] ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+				if ( ! Price_Decimal::equal( $evidence['field_value'], $row['target_price'] )
+					|| ! Price_Decimal::equal( Price_Operation::FIELD_SALE === $field ? $evidence['sale'] : $evidence['regular'], $row['target_price'] ) ) {
+					throw new Price_Apply_Error( 'JOURNAL_MISMATCH' );
+				}
 			}
 			$truth = self::storage( $db, $id );
-			self::matches( $truth, $item['planned_regular_price'] );
+			if ( null === $field ) {
+				self::matches( $truth, $item['planned_regular_price'] );
+			} else {
+				self::matches_field( $truth, $field, $row['target_price'], array( 'regular_price' => $evidence['regular'], 'sale_price' => $evidence['sale'] ) );
+				if ( ! Price_Decimal::equal( $truth['meta']['_price'][0], $evidence['active'] )
+					|| ! Price_Decimal::equal( (string) $truth['lookup']['min_price'], $evidence['lookup_min'] )
+					|| ! Price_Decimal::equal( (string) $truth['lookup']['max_price'], $evidence['lookup_max'] )
+					|| (string) ( $truth['lookup']['onsale'] ?? '' ) !== (string) $evidence['onsale'] ) {
+					throw new Price_Apply_Error( 'JOURNAL_MISMATCH' );
+				}
+			}
 			$GLOBALS['wpdb'] = $db;
 			self::invalidate( $id );
 			$product = wc_get_product( $id );
-			if ( ! $product || 'WC_Product_Simple' !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) || '' !== $product->get_sale_price( 'edit' ) || $product->get_date_on_sale_from( 'edit' ) || $product->get_date_on_sale_to( 'edit' ) || Price_Decimal::parse( $product->get_regular_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) || Price_Decimal::parse( $product->get_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+			if ( ! $product || 'WC_Product_Simple' !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+			if ( null === $field ) {
+				if ( '' !== $product->get_sale_price( 'edit' ) || $product->get_date_on_sale_from( 'edit' ) || $product->get_date_on_sale_to( 'edit' ) || Price_Decimal::parse( $product->get_regular_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) || Price_Decimal::parse( $product->get_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+			} else {
+				$fresh_regular = (string) $product->get_regular_price( 'edit' );
+				$fresh_sale = (string) $product->get_sale_price( 'edit' );
+				$fresh_field = Price_Operation::FIELD_SALE === $field ? $fresh_sale : $fresh_regular;
+				if ( ! Price_Decimal::equal( $fresh_regular, $evidence['regular'] )
+					|| ! Price_Decimal::equal( $fresh_sale, $evidence['sale'] )
+					|| ! Price_Decimal::equal( $fresh_field, $row['target_price'] )
+					|| ! Price_Decimal::equal( (string) $product->get_price( 'edit' ), $evidence['active'] ) ) {
+					throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' );
+				}
+			}
 			return array( 'journal' => $row, 'storage' => $truth, 'observer_connection' => (int) $db->dbh->thread_id );
 		} catch ( \Throwable $error ) {
 			if ( $error instanceof Price_Apply_Error ) { throw $error; }
