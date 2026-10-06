@@ -338,7 +338,10 @@ try {
     foreach ( array( $ids[0], $ids[1] ) as $id ) { wl112_assert( 2 === ( $save_counts[$id] ?? 0 ), 'KILL: duplicate or missing Undo save' ); }
     wl112_assert( 0 === ( $save_counts[$conflict_id] ?? 0 ) && 2 === count( $save_counts ), 'KILL: Undo saved an unapplied product' );
     wp_cache_flush_runtime();
-    $expected_undo = array_fill_keys( $ids, '100' );
+    // Only the first three reviewed products started at 100.00; the rest of
+    // the frozen population was already at the 80.00 target and stays there.
+    $expected_undo = array();
+    foreach ( $ids as $index => $id ) { $expected_undo[ $id ] = $index < 3 ? '100' : '80'; }
     $expected_undo[ $conflict_id ] = '75';
     wl112_parity_prices( $expected_undo, $sale_id, '70' );
     $facts['db_after_undo'] = wl112_sizes();
