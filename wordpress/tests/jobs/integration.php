@@ -1220,4 +1220,85 @@ ok( in_array( fresh_price( $product ), array( '80.00', '90.00' ), true ), 'winne
 echo "#109 transactional fence deadlock stress: same job duplicate / different jobs same product / cancel / takeover finished without DB deadlock or lock wait timeout\n";
 marker( 'overlapping item transactions: deterministic lock order, no deadlock or timeout outcome' );
 
+// Compact journal migration with actual partial Apply and pending Undo.
+// Historical layout construction is test-only; job/price/progress authority
+// is produced by the existing public repository/worker paths, not fabricated.
+wp_set_current_user( 1 );
+function compact_migration_fixture( int $count, string $prefix ): array {
+	$ids = array(); for ( $i = 0; $i < $count; ++$i ) { $ids[] = create_product( '100.00' ); }
+	$plan = Planner::preview( Selection::ids( $ids ), new Operation( Operation::DECREASE_PERCENT, '20' ), new Policy( 1000, '100', '100', true, '100' ) );
+	$data = $plan->data(); $data['plan_id'] = $prefix . wp_generate_uuid4(); $plan = WriteLeash\Change_Plan::hydrate( $data );
+	$job = Repo::create_from_plan( $plan, 1 ); Repo::approve( (int) $job['id'], 1 );
+	return array( 'plan' => $plan, 'job' => $job, 'ids' => $ids );
+}
+function compact_legacy_rows( array $f ): array {
+	global $wpdb;
+	$table = Journal::table( $wpdb );
+	$wpdb->update( $table, array( 'schema_version' => 2, 'plan_json' => $f['plan']->json(), 'plan_fingerprint' => '', 'price_field' => '' ), array( 'plan_id' => $f['plan']->data()['plan_id'] ) );
+	update_option( 'writeleash_price_journal_schema', 2, false );
+	return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE plan_id=%s ORDER BY id', $table, $f['plan']->data()['plan_id'] ), ARRAY_A );
+}
+$partial = compact_migration_fixture( 3, 'compact-partial-' );
+$finished = compact_migration_fixture( 2, 'compact-finished-' );
+Worker::run( (int) $partial['job']['id'], limits( 1 ), true );
+Worker::run( (int) $finished['job']['id'], limits( 10 ), true );
+eq( Repo::counts( (int) $partial['job']['id'] )['applied'], 1, 'migration has genuine partial Apply' );
+eq( Repo::read( (int) $finished['job']['id'] )['status'], JState::COMPLETED, 'migration has genuine completed Apply' );
+$pending_undo = WriteLeash\Undo_Repository::initiate( (int) $finished['job']['id'], 1 );
+$authority_before = array( Repo::read( (int) $partial['job']['id'] ), Repo::read( (int) $finished['job']['id'] ), WriteLeash\Undo_Repository::read_operation( (int) $pending_undo['id'] ) );
+$partial_rows = compact_legacy_rows( $partial ); $finished_rows = compact_legacy_rows( $finished );
+Journal::install(); Journal::install();
+eq( array( Repo::read( (int) $partial['job']['id'] ), Repo::read( (int) $finished['job']['id'] ), WriteLeash\Undo_Repository::read_operation( (int) $pending_undo['id'] ) ), $authority_before, 'migration preserves job/progress/Undo authority exactly' );
+foreach ( array( array( $partial, $partial_rows ), array( $finished, $finished_rows ) ) as $migration ) {
+	foreach ( $migration[1] as $old_row ) {
+		$new_row = journal_row( $old_row['plan_id'], (int) $old_row['product_id'] );
+		foreach ( array( 'id', 'plan_id', 'plan_hash', 'product_id', 'expected_price', 'target_price', 'state', 'attempt_id', 'reason', 'evidence', 'created_at', 'updated_at', 'applied_at' ) as $field ) { eq( $new_row[$field], $old_row[$field], 'migration preserves journal ' . $field ); }
+		eq( $new_row['plan_json'], null, 'migration clears only redundant full JSON' );
+		eq( $new_row['plan_fingerprint'], hash( 'sha256', $migration[0]['plan']->json() ), 'migration binds exact canonical job JSON' );
+		Journal::assert_binding( $new_row, $migration[0]['plan'], (int) $new_row['product_id'] );
+	}
+}
+// A fresh process reopens the partial job and uses its frozen absolute target.
+$external = wc_get_product( $partial['ids'][2] ); $external->set_regular_price( '90.00' ); $external->save();
+$resumed = run_worker( array( 'job_id' => (int) $partial['job']['id'], 'mode' => 'run', 'limits' => limits( 10 ), 'manual' => true ) );
+eq( $resumed['status'], JState::COMPLETED_WITH_ISSUES, 'migrated partial Resume reports its conflict' );
+eq( fresh_price( $partial['ids'][0] ), '80.00', 'Resume does not apply the percentage twice' );
+eq( fresh_price( $partial['ids'][1] ), '80.00', 'clean migrated sibling continues' );
+eq( fresh_price( $partial['ids'][2] ), '90.00', 'external edit is not overwritten after migration' );
+$external = wc_get_product( $finished['ids'][1] ); $external->set_regular_price( '93.00' ); $external->save();
+WriteLeash\Undo_Worker::run( (int) $pending_undo['id'], limits( 10 ), true );
+eq( Decimal::parse( fresh_price( $finished['ids'][0] ) ), '100', 'pending historical Undo restores eligible price after migration' );
+eq( fresh_price( $finished['ids'][1] ), '93.00', 'pending historical Undo preserves external edit after migration' );
+eq( WriteLeash\Undo_Repository::history_job( (int) $partial['job']['id'] )['status'], JState::COMPLETED_WITH_ISSUES, 'migrated History remains truthful' );
+marker( 'compact v2 migration preserves partial Resume, absolute percentages, conflicts, History and pending Undo' );
+
+// The later inconsistent row must roll back earlier compacted rows as well.
+$good = compact_migration_fixture( 1, 'compact-A-' ); $bad = compact_migration_fixture( 1, 'zz-compact-bad-' );
+$good_legacy = compact_legacy_rows( $good ); $bad_legacy = compact_legacy_rows( $bad );
+$journal_table = Journal::table( $wpdb );
+$wpdb->update( $journal_table, array( 'target_price' => '69.00' ), array( 'id' => $bad_legacy[0]['id'] ) );
+try { Journal::install(); throw new RuntimeException( 'Inconsistent migration accepted' ); }
+catch ( WriteLeash\Price_Apply_Error $error ) { eq( $error->getMessage(), 'JOURNAL_MISMATCH', 'inconsistent v2 migration fails closed' ); }
+eq( (int) get_option( 'writeleash_price_journal_schema' ), 2, 'failed migration is not advertised as ready' );
+try { Repo::create_from_plan( $good['plan'], 1 ); throw new RuntimeException( 'Partial migration layout bypassed validation' ); }
+catch ( WriteLeash\Job_Error $error ) { eq( $error->reason(), 'SCHEMA_UNAVAILABLE', 'normalized columns alone cannot bypass a failed migration' ); }
+eq( journal_row( $good['plan']->data()['plan_id'], $good['ids'][0] ), $good_legacy[0], 'failed migration rolls back earlier good row including full evidence' );
+eq( Decimal::parse( fresh_price( $good['ids'][0] ) ), '100', 'migration failure performs no Woo mutation' );
+$wpdb->update( $journal_table, array( 'target_price' => $bad_legacy[0]['target_price'] ), array( 'id' => $bad_legacy[0]['id'] ) );
+Journal::install();
+eq( journal_row( $good['plan']->data()['plan_id'], $good['ids'][0] )['plan_json'], null, 'validated retry compacts the good row' );
+marker( 'compact migration rollback and safe retry on inconsistent target' );
+
+// The old trusted item primitive could exist without a durable job. Do not
+// discard its only plan material, and do not reinterpret it as an approved job.
+$orphan_id = create_product( '100.00' );
+$orphan_plan = Planner::preview( Selection::ids( array( $orphan_id ) ), new Operation( Operation::DECREASE_PERCENT, '20' ), new Policy( 1000, '100', '100', true, '100' ) );
+$orphan_data = $orphan_plan->data(); $orphan_data['plan_id'] = '0'; $orphan_plan = WriteLeash\Change_Plan::hydrate( $orphan_data );
+Journal::seed( $orphan_plan );
+$orphan = array( 'plan' => $orphan_plan, 'ids' => array( $orphan_id ) ); $orphan_before = compact_legacy_rows( $orphan )[0];
+Journal::install();
+eq( journal_row( '0', $orphan_id ), $orphan_before, 'opaque zero identity and orphan v2 full material preserved exactly' );
+Journal::assert_binding( journal_row( '0', $orphan_id ), $orphan_plan, $orphan_id );
+marker( 'orphan legacy journal remains readable without inventing a job authority' );
+
 echo "#109 complete durable job engine lab: {$assertions} assertions\n";

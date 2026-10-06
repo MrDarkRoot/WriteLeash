@@ -1396,7 +1396,7 @@ final class Free_Admin {
 		$field = $plan->price_field();
 		$field_label = Price_Operation::label( $field );
 		echo '<p>' . esc_html( 'Price to change: ' . $field_label . '. ' . ( Price_Operation::FIELD_SALE === $field ? 'The regular price is the sale baseline and is preserved.' : 'The sale price and schedule are preserved.' ) ) . '</p>';
-		echo '<div class="writeleash-table-scroll" role="region" aria-label="Product prices and outcomes" tabindex="0"><table class="widefat striped writeleash-prices"><thead><tr><th scope="col">' . esc_html( 'Product' ) . '</th><th scope="col">' . esc_html( $field_label . ' before' ) . '</th><th scope="col">' . esc_html( $field_label . ' after' ) . '</th><th scope="col">' . esc_html( 'Delta' ) . '</th><th scope="col">' . esc_html( 'Change %' ) . '</th><th scope="col">' . esc_html( 'Shoppers pay now' ) . '</th><th scope="col">' . esc_html( 'What will happen' ) . '</th></tr></thead><tbody>';
+		echo '<div class="writeleash-table-scroll" role="region" aria-label="Product prices and outcomes" tabindex="0"><table class="widefat striped writeleash-prices"><thead><tr><th scope="col">' . esc_html( 'Product' ) . '</th><th scope="col">' . esc_html( $field_label . ' before' ) . '</th><th scope="col">' . esc_html( $field_label . ' after' ) . '</th><th scope="col">' . esc_html( 'Delta' ) . '</th><th scope="col">' . esc_html( 'Change %' ) . '</th><th scope="col">' . esc_html( 'Shoppers would pay after Apply' ) . '</th><th scope="col">' . esc_html( 'What will happen' ) . '</th></tr></thead><tbody>';
 		foreach ( $page['items'] as $item ) {
 			$state = (string) $item['result'];
 			$detail = array();

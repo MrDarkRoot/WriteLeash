@@ -32,6 +32,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+add_action( 'before_woocommerce_init', static function () {
+	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+	}
+} );
+
 define( 'WRITELEASH_VERSION', '0.1.0' );
 define( 'WRITELEASH_PLUGIN_FILE', __FILE__ );
 

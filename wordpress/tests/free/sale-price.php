@@ -317,5 +317,29 @@ namespace {
 	wl178_undo_error( static fn() => UFingerprint::fingerprint_of( $tampered ), 'UNDO_PROVENANCE_MISMATCH' );
 	wl178_marker( 'legacy fingerprint stability and field-scoped undo blocking facts' );
 
+	// Compact journal bindings must reject material/identity substitution even
+	// when targets look plausible or the reviewed material hash is unchanged.
+	require __DIR__ . '/../../writeleash/includes/free/class-price-apply-journal.php';
+	foreach ( array( O::FIELD_REGULAR, O::FIELD_SALE ) as $binding_field ) {
+		$binding_plan = wl178_plan( array( wl178_product( 501, '100', '80' ) ), new O( O::SET, '70', $binding_field ) );
+		$binding_data = $binding_plan->data(); $binding_item = $binding_plan->item( 501 )->data();
+		$binding_row = array( 'schema_version' => \WriteLeash\Price_Apply_Journal::SCHEMA_VERSION, 'plan_id' => $binding_data['plan_id'], 'plan_schema_version' => Plan::SCHEMA_VERSION, 'plan_hash_version' => Plan::HASH_VERSION, 'plan_hash' => $binding_plan->hash(), 'product_id' => 501, 'plan_json' => null, 'plan_fingerprint' => hash( 'sha256', $binding_plan->json() ), 'price_field' => $binding_field, 'expected_price' => $binding_item['expected_regular_price'], 'target_price' => $binding_item['planned_regular_price'] );
+		\WriteLeash\Price_Apply_Journal::assert_binding( $binding_row, $binding_plan, 501 );
+		wl178_equal( $binding_row['plan_json'], null, 'compact journal stores no full plan for ' . $binding_field );
+		foreach ( array( 'schema_version' => 99, 'plan_id' => 'wrong-plan', 'product_id' => 502, 'plan_schema_version' => 99, 'plan_hash_version' => 'wrong-version', 'plan_hash' => str_repeat( '0', 64 ), 'plan_fingerprint' => str_repeat( '0', 64 ), 'price_field' => 'wrong-field', 'expected_price' => '99', 'target_price' => '69.00', 'plan_json' => '{}' ) as $binding_key => $binding_bad ) {
+			try {
+				\WriteLeash\Price_Apply_Journal::assert_binding( array_merge( $binding_row, array( $binding_key => $binding_bad ) ), $binding_plan, 501 );
+				throw new RuntimeException( 'Journal accepted substituted ' . $binding_key );
+			} catch ( \WriteLeash\Price_Apply_Error $binding_error ) { wl178_equal( $binding_error->getMessage(), 'JOURNAL_MISMATCH', 'compact journal rejects ' . $binding_key ); }
+		}
+		$reissued = $binding_data; $reissued['created_at'] = '2026-10-06T00:00:00Z'; $reissued_plan = Plan::hydrate( $reissued );
+		wl178_equal( $reissued_plan->hash(), $binding_plan->hash(), 'journal does not change reviewed material hash semantics' );
+		try { \WriteLeash\Price_Apply_Journal::assert_binding( $binding_row, $reissued_plan, 501 ); throw new RuntimeException( 'Journal accepted reissued identity/time' ); }
+		catch ( \WriteLeash\Price_Apply_Error $binding_error ) { wl178_equal( $binding_error->getMessage(), 'JOURNAL_MISMATCH', 'supplemental digest retains exact JSON binding' ); }
+		$legacy_row = array_merge( $binding_row, array( 'schema_version' => 2, 'plan_json' => $binding_plan->json() ) );
+		\WriteLeash\Price_Apply_Journal::assert_binding( $legacy_row, $binding_plan, 501 );
+		wl178_equal( $legacy_row['plan_json'], $binding_plan->json(), 'legacy v2 evidence remains readable unchanged' );
+	}
+	wl178_marker( 'compact journal regular/sale identity, versions, exact material and legacy binding' );
 	echo "#178 sale-price domain harness: PASS ($wl178_assertions assertions)\n";
 }
