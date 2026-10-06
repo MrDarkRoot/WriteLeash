@@ -57,8 +57,10 @@ SETUP
     echo "#167 real browser engine=$host cache=$cache"
     if ! node "$here/selection-browser.cjs"; then
       # A dropped Playwright navigation/select2 query on a loaded runner is not
-      # a product failure: retry the client-driven selection journey once.
+      # a product failure: reset the disposable baseline and retry once.
       echo "#167 selection browser retry engine=$host cache=$cache"
+      docker exec -e WL167_MODE=reset -e WL167_FIXTURE=/tmp/wl167-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/selection-browser-fixture.php >/dev/null
+      docker cp "$container:/tmp/wl167-fixture.json" "$WL167_FIXTURE"
       node "$here/selection-browser.cjs"
     fi
     if [ "$host" = mysql ] && [ "$cache" = default ]; then

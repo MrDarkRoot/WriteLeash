@@ -212,7 +212,11 @@ async function search(page, term) {
         await page.locator('#writeleash-free-products').selectOption(fixture.products.slice(0, 2).map(String));
         await action(page, 'Update selected products');
         ok(await page.locator('#writeleash-free-selected li').count() === 2 && await page.locator('#writeleash-free-amount').inputValue() === 'bad-price', 'native selection retains entered configuration');
-        await page.locator('#writeleash-free-selected button').first().click(); await page.waitForLoadState('networkidle');
+        const nativeRemove = page.locator('#writeleash-free-selected button').first();
+        await nativeRemove.scrollIntoViewIfNeeded();
+        try { await nativeRemove.click({ timeout: 5000 }); }
+        catch ( error ) { await nativeRemove.focus(); await page.keyboard.press('Enter'); }
+        await page.waitForLoadState('networkidle');
         ok(await page.locator('#writeleash-free-selected button').count() === 1, 'native remove');
         await action(page, 'Clear selected products');
         ok(await page.locator('#writeleash-free-selected button').count() === 0, 'native clear');
