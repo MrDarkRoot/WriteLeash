@@ -1,5 +1,14 @@
 # Free price apply: #108 engineering contract
 
+> Journal schema 3 supersedes the full-JSON-per-item statements below. Public
+> jobs retain the canonical full plan once in `writeleash_jobs`; item rows keep
+> identity/versions, the existing material hash, a supplemental SHA-256 of the
+> complete canonical JSON, the price field and expected/absolute target values.
+> New rows have NULL legacy `plan_json`. Validated job-backed v2 rows compact
+> transactionally without changing progress, attempts, evidence or timestamps.
+> Primitive v2 rows without a durable job keep their original full material and
+> strict legacy binding; migration never invents approval or Undo authority.
+
 > #178 supersedes the regular-only statements below: Apply targets the plan's
 > price field (`regular_price` or `sale_price`). Verification proves the target
 > field, the preserved other field and sale dates, the computed active `_price`,

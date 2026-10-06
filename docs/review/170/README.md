@@ -71,3 +71,12 @@ original #170 images: they show the same same-row conflict, preservation and Und
 evidence but predate the #182 copy changes. The #170 Chromium/Firefox journey is
 re-executed by the Admin CI job against the merged source on every run, and its
 result JSONs are uploaded as CI artifacts alongside the refreshed hashes.
+
+## Final journal release fix: copy identity refresh
+
+The source hash now includes the one-heading correction from “Shoppers pay
+now” to “Shoppers would pay after Apply”. The reference PNGs and their capture
+baseline remain historical and unchanged; this refresh does not claim new
+screenshots. The existing Admin browser journey must pass against the exact
+PR head, as with the earlier source refresh above. No asset or CI assertion is
+relaxed to accommodate the wording correction.

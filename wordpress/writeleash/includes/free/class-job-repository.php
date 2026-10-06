@@ -52,11 +52,12 @@ final class Job_Repository {
 		}
 	}
 	private static function journal_ready( \wpdb $db ): bool {
+		if ( (int) get_option( 'writeleash_price_journal_schema', 0 ) !== Price_Apply_Journal::SCHEMA_VERSION ) { return false; }
 		try { $table = Price_Apply_Journal::table( $db ); }
 		catch ( \Throwable $error ) { return false; }
 		$exists = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) );
 		if ( 1 !== $exists ) { return false; }
-		try { Price_Apply_Journal::assert_schema( $db ); return true; }
+		try { Price_Apply_Journal::assert_schema( $db, false ); return true; }
 		catch ( \Throwable $error ) { return false; }
 	}
 

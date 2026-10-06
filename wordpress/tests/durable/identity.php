@@ -36,18 +36,25 @@ $m3_product = wc_get_product( $m3_source['id'] ); $m3_product->set_name( 'Cà ph
 $m3_plan = Planner::preview( Selection::ids( array( $m3_source['id'] ) ), new Operation( Operation::DECREASE_PERCENT, '20' ), new Policy( 2, '100', '100', true, '100' ) );
 $m3 = identity_fixture( $m3_source, $m3_plan ); J::seed( $m3_plan );
 $m3_before = J::read( $wpdb, $m3_plan->data()['plan_id'], $m3['id'] );
+// Genuine job storage is the single durable plan authority for compact rows.
+foreach ( array( $m1, $m2, $m3_source, $m3 ) as $migration_fixture ) {
+	WriteLeash\Job_Repository::create_from_plan( $migration_fixture['object'], $migration_fixture['object']->data()['actor_id'] );
+}
 eq( run_item( $m1 )['code'], 'APPLIED', 'migration applied fixture' );
 $before = J::read( $wpdb, $m1['object']->data()['plan_id'], $m1['id'] );
+foreach ( array( $m1, $m2, $m3_source, $m3 ) as $migration_fixture ) {
+	$wpdb->update( $table, array( 'plan_json' => $migration_fixture['object']->json() ), array( 'plan_id' => $migration_fixture['object']->data()['plan_id'] ) );
+}
 $legacy_evidence = json_decode( $before['evidence'], true );
 unset( $legacy_evidence['plan_id'], $legacy_evidence['plan_schema_version'], $legacy_evidence['plan_hash_version'] );
 $table = J::table( $wpdb );
 $wpdb->update( $table, array( 'evidence' => WriteLeash\Plan_Hasher::canonical_json( $legacy_evidence ) ), array( 'id' => $before['id'] ) );
 $wpdb->query( $wpdb->prepare( 'UPDATE %i SET schema_version=1', $table ) );
-$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX plan_instance_product, DROP COLUMN plan_id, DROP COLUMN plan_schema_version, DROP COLUMN plan_hash_version, ADD UNIQUE KEY plan_product (plan_hash,product_id)', $table ) );
+$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX plan_instance_product, DROP COLUMN plan_id, DROP COLUMN plan_schema_version, DROP COLUMN plan_hash_version, DROP COLUMN plan_fingerprint, DROP COLUMN price_field, MODIFY plan_json longtext NOT NULL, ADD UNIQUE KEY plan_product (plan_hash,product_id)', $table ) );
 update_option( 'writeleash_price_journal_schema', 1, false );
 J::install(); J::install(); J::assert_schema( $wpdb );
 $upgraded = truth( $m1, '80', 'APPLIED' ); truth( $m2, '100', 'PENDING' );
-eq( (int) $upgraded['schema_version'], J::SCHEMA_VERSION, 'v2 journal schema' );
+eq( (int) $upgraded['schema_version'], J::SCHEMA_VERSION, 'compact journal schema' );
 eq( $upgraded['plan_id'], $m1['object']->data()['plan_id'], 'v1 identity recovered from JSON' );
 eq( (int) $upgraded['plan_schema_version'], WriteLeash\Change_Plan::SCHEMA_VERSION, 'existing #107 schema constant' );
 eq( $upgraded['plan_hash_version'], WriteLeash\Change_Plan::HASH_VERSION, 'existing #107 hash constant' );
@@ -61,7 +68,9 @@ eq( hook_count( $m1 ), 1, 'migration no Woo save replay' );
 $columns = $wpdb->get_results( $wpdb->prepare( "SELECT COLUMN_NAME,IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME IN ('plan_id','plan_schema_version','plan_hash_version')", $table ), ARRAY_A );
 eq( count( $columns ), 3, 'three plan binding columns' );
 eq( array_unique( array_column( $columns, 'IS_NULLABLE' ) ), array( 'NO' ), 'binding columns nonnullable' );
-marker( 'journal schema 1→2: APPLIED/PENDING/evidence preserved; install replay idempotent' );
+eq( $upgraded['plan_fingerprint'], hash( 'sha256', $m1['object']->json() ), 'full frozen JSON digest preserved' );
+eq( $upgraded['price_field'], Operation::FIELD_REGULAR, 'migration preserves the field' );
+marker( 'journal schema 1→3: APPLIED/PENDING/evidence preserved; install replay idempotent' );
 $wpdb->query( $wpdb->prepare( 'DROP TABLE %i', $table ) );
 $wpdb->query( $wpdb->prepare( 'RENAME TABLE %i TO %i', $backup, $table ) );
 J::assert_schema( $wpdb );
@@ -107,13 +116,27 @@ truth( $f, '100', 'PENDING' );
 marker( 'plan identity mismatch: same plan_id / changed material / JOURNAL_MISMATCH / zero Woo save' );
 
 // Every persisted immutable binding field is verified by seed and the mutator.
-foreach ( array( 'plan_hash' => str_repeat( '0', 64 ), 'plan_schema_version' => 99, 'plan_hash_version' => 'unknown', 'plan_json' => '{}', 'expected_price' => '99', 'target_price' => '70.00' ) as $field => $corrupt ) {
+foreach ( array( 'schema_version' => 99, 'plan_hash' => str_repeat( '0', 64 ), 'plan_schema_version' => 99, 'plan_hash_version' => 'unknown', 'plan_fingerprint' => str_repeat( '0', 64 ), 'price_field' => Operation::FIELD_SALE, 'plan_json' => '{}', 'expected_price' => '99', 'target_price' => '70.00' ) as $field => $corrupt ) {
 	$wpdb->update( $table, array( $field => $corrupt ), array( 'id' => $original['id'] ) );
 	identity_seed_mismatch( $f['object'] );
 	eq( run_item( $f )['reason'], 'JOURNAL_MISMATCH', 'tampered binding refused: ' . $field );
 	eq( hook_count( $f ), 0, 'tampered binding zero mutation' );
 	$wpdb->update( $table, array( $field => $original[$field] ), array( 'id' => $original['id'] ) );
 }
+// Location fields cannot be silently accepted, even for an otherwise valid row.
+foreach ( array( 'plan_id' => 'wrong-plan', 'product_id' => $f['id'] + 1 ) as $field => $corrupt ) {
+	$wrong = array_merge( $original, array( $field => $corrupt ) );
+	try { J::assert_binding( $wrong, $f['object'], $f['id'] ); throw new RuntimeException( 'Wrong journal location accepted' ); }
+	catch ( WriteLeash\Price_Apply_Error $error ) { eq( $error->getMessage(), 'JOURNAL_MISMATCH', 'wrong identity rejected: ' . $field ); }
+}
+// The reviewed material hash intentionally excludes identity/time; the new
+// supplemental digest must still bind the exact original canonical JSON.
+$reissued = $f['object']->data(); $reissued['created_at'] = '2026-10-06T00:00:00Z';
+if ( $reissued['created_at'] === $f['object']->data()['created_at'] ) { $reissued['created_at'] = '2026-10-07T00:00:00Z'; }
+$reissued_plan = WriteLeash\Change_Plan::hydrate( $reissued );
+eq( $reissued_plan->hash(), $f['object']->hash(), 'material hash semantics unchanged' );
+identity_seed_mismatch( $reissued_plan );
+eq( J::read( $wpdb, $f['object']->data()['plan_id'], $f['id'] ), $original, 'JSON identity/time substitution cannot rewrite journal' );
 // Independent observation may not certify another identical-material plan's evidence.
 $row2 = J::read( $wpdb, $p2_plan->data()['plan_id'], $p2['id'] );
 $wrong_evidence = json_decode( $row2['evidence'], true ); $wrong_evidence['plan_id'] = $p1['object']->data()['plan_id'];

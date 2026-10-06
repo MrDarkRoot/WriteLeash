@@ -94,7 +94,12 @@ u171_eq( $observer171->get_var( $observer171->prepare( 'SELECT plan_json FROM %i
 for ( $i171 = 0; $i171 < 3; ++$i171 ) { W171::run( (int) $job171['id'], array( 'max_items' => 2, 'budget_seconds' => 20 ), true ); }
 u171_eq( R171::counts( (int) $job171['id'] )['applied'], 5, 'Resume completes exact frozen targets' );
 u171_eq( $saves171, 5, 'one apply save per Unicode product, no replay' );
-foreach ( $ids171 as $id171 ) { u171_eq( J171::read( $wpdb, $job171['plan_id'], $id171 )['plan_json'], $json171, 'journal retains exact UTF-8 frozen plan' ); }
+foreach ( $ids171 as $id171 ) {
+ $journal171 = J171::read( $wpdb, $job171['plan_id'], $id171 );
+ u171_eq( $journal171['plan_json'], null, 'journal does not duplicate the UTF-8 frozen plan' );
+ u171_eq( $journal171['plan_fingerprint'], hash( 'sha256', $json171 ), 'journal binds exact UTF-8 frozen bytes' );
+ J171::assert_binding( $journal171, $plan171, $id171 );
+}
 $history171 = UR171::history_job( (int) $job171['id'] ); u171_eq( $history171['undo_eligible'], true, 'Unicode job History/Undo eligibility truthful' );
 $undo171 = UR171::initiate( (int) $job171['id'], 1 );
 u171_eq( in_array( 'name', WriteLeash\Undo_Fingerprint::fields(), true ), false, 'name is not a conflict fingerprint' );
