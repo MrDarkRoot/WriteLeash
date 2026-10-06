@@ -70,6 +70,28 @@ foreach ( $data as $item ) {
 		$reviewed[] = "$code ($path) post array passed to guarded process before mutation";
 		continue;
 	}
+	// The compact-journal upgrade must inspect and alter its own durable schema.
+	// These are fixed information_schema/SHOW statements and a single ALTER
+	// assembled only from literal column definitions; the table name is %i-bound
+	// after table() validates its identifier. Such metadata/DDL calls must not be
+	// object-cached, and PCP cannot infer the literal-only $changes construction.
+	$line = (int) ( $item['line'] ?? 0 );
+	$journal_install = 'includes/free/class-price-apply-journal.php' === $path && is_string( $source ) &&
+		str_contains( $source, "preg_match( '/\\A[a-zA-Z0-9_]+\\z/D', $name )" ) &&
+		str_contains( $source, "\$changes = array( 'MODIFY plan_json longtext NULL' );" ) &&
+		str_contains( $source, "\$changes[] = \"ADD plan_fingerprint char(64) NOT NULL DEFAULT ''\"" ) &&
+		str_contains( $source, "\$changes[] = \"ADD price_field varchar(16) NOT NULL DEFAULT ''\"" );
+	$expected_journal_sql = array(
+		121 => "\$wpdb->get_var( \$wpdb->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', \$table ) )",
+		123 => "\$wpdb->get_col( \$wpdb->prepare( 'SHOW COLUMNS FROM %i', \$table ) )",
+		127 => "\$wpdb->query( \$wpdb->prepare( 'ALTER TABLE %i ', \$table ) . implode( ', ', \$changes ) )",
+	);
+	if ( $journal_install && isset( $expected_journal_sql[ $line ], $lines[ $line - 1 ] ) &&
+		str_contains( $lines[ $line - 1 ], $expected_journal_sql[ $line ] ) &&
+		in_array( $code, array( 'WordPress.DB.DirectDatabaseQuery.DirectQuery', 'WordPress.DB.DirectDatabaseQuery.NoCaching', 'WordPress.DB.DirectDatabaseQuery.SchemaChange', 'PluginCheck.Security.DirectDB.UnescapedDBParameter' ), true ) ) {
+		$reviewed[] = "$code ($path:$line) fixed journal schema introspection/DDL with validated table identifier";
+		continue;
+	}
 
 	$failures[] = $type . ':' . $code . ' (' . $item['file'] . ':' . ( $item['line'] ?? '?' ) . ') ' . strip_tags( $item['message'] ?? '' );
 }
