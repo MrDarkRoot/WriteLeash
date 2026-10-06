@@ -24,9 +24,10 @@ trusted objects; production has no unserialization or untrusted import endpoint.
 The #107 contract is unchanged. This discrepancy must remain visible in review.
 
 Scope is core `WC_Product_Simple`, `publish`, no configured sale price/dates,
-base currency, unchanged store decimals and WP/Woo versions. The attempt is pinned
-to Woo **11.1.2**, the stock `WC_Product_Data_Store_CPT`, stock mysqli `wpdb`, a
-single site, and InnoDB tables. Routed/custom DB drop-ins are refused. Active
+base currency, unchanged store decimals and supported WP/Woo versions. The attempt
+runs on WooCommerce 10.0 through 11.x, the stock `WC_Product_Data_Store_CPT`, a
+standard transactional mysqli `wpdb` (ordinary drop-in subclasses included), a
+single site, and InnoDB tables. Active
 price must already agree with regular price and lookup before apply. Ambiguous,
 missing, duplicate or malformed price metadata is refused, not repaired silently.
 Observed abnormal storage in both engines: duplicate `_regular_price` rows make
@@ -200,7 +201,8 @@ All additional invalidation lives in `Price_Cache_Verifier::invalidate()`:
 - `wc_delete_product_transients(id)` and Woo product-group invalidation retain
   Woo's own invalidation semantics. Woo's helper also deletes some shared product
   transients; this is the public helper's cost, not a global object-cache flush.
-- `ProductCache::remove(id)` also covers optional instance caching. Woo 11.1.2
+- `ProductCache::remove(id)` also covers optional instance caching where the
+  class exists (Woo 10.5+); older supported releases skip this step. Woo 11.1.2
   deliberately marks its `product_objects` group nonpersistent; the lab primes
   and evicts an actual entry via the cache API. Post/meta/lookup cache entries
   still use Redis when enabled.

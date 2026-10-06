@@ -9,10 +9,13 @@ defined( 'ABSPATH' ) || exit;
  * Blocking fields (a mismatch refuses the restore with zero overwrite):
  * product identity, applied regular price, active price, core simple type,
  * publish status, sale price and sale dates, store currency, store price
- * decimals, lookup min/max with onsale=0, and the WordPress/WooCommerce
- * versions pinned at apply time. Every blocking value is a durable fact:
- * journal COMMIT evidence, the frozen #107 plan snapshot (proven MATCH by the
- * apply precondition), or the frozen job store context.
+ * decimals and lookup min/max with onsale=0. The WordPress/WooCommerce
+ * versions pinned at apply time are durable provenance too, but routine
+ * drift inside the supported ranges is not a product-state change: only
+ * drift outside the supported range blocks the restore. Every blocking
+ * value is a durable fact: journal COMMIT evidence, the frozen #107 plan
+ * snapshot (proven MATCH by the apply precondition), or the frozen job
+ * store context.
  *
  * ABA limitation (documented, never overstated): an external edit that moves
  * the price away from the applied value and back (80 -> 70 -> 80) through the
@@ -120,7 +123,10 @@ final class Undo_Fingerprint {
 		if ( '0' !== (string) ( $fresh['lookup_onsale'] ?? '' ) || '0' !== (string) ( $blocking['lookup_onsale'] ?? '' ) ) {
 			$reasons[] = 'lookup_changed';
 		}
-		if ( ( $blocking['wordpress_version'] ?? null ) !== ( $fresh['wordpress_version'] ?? null ) || ( $blocking['woocommerce_version'] ?? null ) !== ( $fresh['woocommerce_version'] ?? null ) ) {
+		// Same rule as the apply precondition: routine supported version
+		// drift is not a product-state change. Only drift outside the
+		// supported ranges refuses the restore.
+		if ( ! Free_Support_Contract::versions_compatible( (string) ( $blocking['wordpress_version'] ?? '' ), (string) ( $blocking['woocommerce_version'] ?? '' ), (string) ( $fresh['wordpress_version'] ?? '' ), (string) ( $fresh['woocommerce_version'] ?? '' ) ) ) {
 			$reasons[] = 'software_version_changed';
 		}
 		return array( 'match' => array() === $reasons, 'reasons' => $reasons );

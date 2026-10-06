@@ -226,7 +226,7 @@ wp_set_current_user( 1 );
 // writes it; missing authority is intentionally fail-closed.
 WriteLeash\Lifecycle::activate();
 eq( get_option( 'writeleash_runner_state' ), 'active', 'suite start: explicit active lifecycle authority' );
-eq( WC_VERSION, '11.1.2', 'pinned Woo' );
+eq( \WriteLeash\Free_Support_Contract::woo_supported( WC_VERSION ), true, 'fixture Woo inside supported range' );
 eq( get_bloginfo( 'version' ), '7.1.2', 'pinned WordPress' );
 eq( PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION, '8.2', 'pinned PHP' );
 eq( (bool) wp_using_ext_object_cache(), 'persistent' === getenv( 'WL110_CACHE' ), 'real persistent cache mode' );

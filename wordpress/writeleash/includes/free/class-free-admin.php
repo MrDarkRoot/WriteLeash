@@ -755,8 +755,14 @@ final class Free_Admin {
 				. 'Narrow the selection and build a new preview. No additional job or journal was created and no product was changed.';
 		}
 		if ( 'woocommerce_version_unsupported' === $reason ) {
-			return 'WriteLeash currently supports WooCommerce ' . Free_Support_Contract::WOOCOMMERCE_VERSION . ' for price mutations. Installed version: '
+			return 'WriteLeash supports ' . Free_Support_Contract::range_text() . ' for price mutations. Installed version: '
 				. ( defined( 'WC_VERSION' ) ? (string) WC_VERSION : 'unavailable' ) . '. No job was created and no product was changed.';
+		}
+		if ( 'multisite_unsupported' === $reason ) {
+			return 'WriteLeash does not support multisite. Use a single-site installation. No job was created and no product was changed.';
+		}
+		if ( 'db_transactions_unsupported' === $reason ) {
+			return 'WriteLeash needs a standard transactional database connection (mysqli with InnoDB tables). No job was created and no product was changed.';
 		}
 		$messages = array(
 			'capability_required' => 'You need WooCommerce product management capabilities for this action.',
@@ -1074,6 +1080,7 @@ final class Free_Admin {
 			if ( false === $stream ) { throw new \RuntimeException( 'CSV unavailable' ); }
 			self::write_job_csv( $stream, $result['job'], $result['plan'] );
 		} catch ( \Throwable $error ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Streaming the generated CSV response; WP_Filesystem is not an output stream.
 			if ( is_resource( $stream ) ) { fclose( $stream ); }
 			wp_die( esc_html( 'Saved export evidence is unavailable. No products were changed.' ), '', array( 'response' => 409 ) );
 		}
@@ -1083,6 +1090,7 @@ final class Free_Admin {
 		header( 'X-Content-Type-Options: nosniff' );
 		rewind( $stream );
 		fpassthru( $stream );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Streaming the generated CSV response; WP_Filesystem is not an output stream.
 		fclose( $stream );
 		exit;
 	}

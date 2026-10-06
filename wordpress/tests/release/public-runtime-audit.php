@@ -30,7 +30,7 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 	}
 	foreach ( array( 'js', 'css' ) as $extension ) {
 		$asset = 'includes/free/free-selection.' . $extension;
-		if ( in_array( $asset, $entries, true ) && ! str_contains( (string) file_get_contents( $root . '/includes/free/class-free-admin.php' ), "plugins_url( '" . $asset . "', WRITELEASH_PLUGIN_FILE )" ) ) { $fail( 'unreferenced public selection asset' ); }
+		if ( in_array( $asset, $entries, true ) && false === strpos( (string) file_get_contents( $root . '/includes/free/class-free-admin.php' ), "plugins_url( '" . $asset . "', WRITELEASH_PLUGIN_FILE )" ) ) { $fail( 'unreferenced public selection asset' ); }
 	}
 	$pending = array( 'writeleash.php', 'uninstall.php' );
 	$seen = array();

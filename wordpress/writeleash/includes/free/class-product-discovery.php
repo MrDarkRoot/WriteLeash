@@ -19,6 +19,7 @@ final class Product_Discovery {
 			throw new Price_Validation_Error( 'permission_denied' );
 		}
 		if ( ! Free_Admin::dependency_ok() ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Typed dependency reason code; not HTML output.
 			throw new Price_Validation_Error( (string) Free_Support_Contract::woocommerce_reason() );
 		}
 	}

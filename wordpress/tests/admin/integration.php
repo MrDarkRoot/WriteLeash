@@ -107,7 +107,7 @@ function render_view( string $view, string $job_param, int $offset ): string {
 }
 
 wp_set_current_user( 1 );
-eq( WC_VERSION, '11.1.2', 'pinned Woo' );
+eq( \WriteLeash\Free_Support_Contract::woo_supported( WC_VERSION ), true, 'fixture Woo inside supported range' );
 eq( get_bloginfo( 'version' ), '7.1.2', 'pinned WordPress' );
 ok( ! is_plugin_active( 'redirection/redirection.php' ), 'Redirection absent for the default Free path' );
 ok( Admin::dependency_ok(), 'Woo dependency satisfied without Redirection' );

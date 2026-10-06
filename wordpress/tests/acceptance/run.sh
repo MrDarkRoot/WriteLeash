@@ -20,6 +20,8 @@ fetch() {
 }
 fetch woocommerce.11.1.2.zip 9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e
 fetch woocommerce.11.0.1.zip da189b6616c610d15a2106f93151dab81b78f83e075bcefce221ac0d00b4fa21
+# Out-of-range refusal proof: the newest Woo below the supported 10.0 floor.
+fetch woocommerce.9.9.7.zip 96facedd12e32b6e0b120dcaa4a62b9c6b1ae12159d32510ea416c8e9b44f4dd
 fetch redis-cache.2.7.0.zip 0cbc41dea351688693b8e7db1165b5d92b6c8ef7231ac0ff5abec7b83d62c635
 compose=(docker compose -p writeleash_woo112 -f "$here/docker-compose.yml")
 cleanup() {

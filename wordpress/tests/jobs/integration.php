@@ -126,7 +126,7 @@ function run_worker( array $spec, string $script = 'worker.php' ): array { retur
 function limits( int $items, int $seconds = 20 ): array { return array( 'max_items' => $items, 'budget_seconds' => $seconds ); }
 
 wp_set_current_user( 1 );
-eq( WC_VERSION, '11.1.2', 'pinned Woo' );
+eq( \WriteLeash\Free_Support_Contract::woo_supported( WC_VERSION ), true, 'fixture Woo inside supported range' );
 eq( get_bloginfo( 'version' ), '7.1.2', 'pinned WordPress' );
 eq( PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION, '8.2', 'pinned PHP' );
 eq( (bool) wp_using_ext_object_cache(), 'persistent' === getenv( 'WL109_CACHE' ), 'real persistent cache mode' );

@@ -53,7 +53,10 @@ function wl112_rows( string $html ): array {
     $xp = new DOMXPath( $dom );
     $ids = array();
     foreach ( $xp->query( '//table/tbody/tr/td[1]' ) as $td ) {
-        if ( preg_match( '/^([0-9]+)/', trim( $td->textContent ), $m ) ) { $ids[] = (int) $m[1]; }
+        // The Admin identity cell leads with the product name and carries the
+        // stable "Product #<id>" marker; a numeric-first cell is also accepted.
+        $text = trim( $td->textContent );
+        if ( preg_match( '/Product #([0-9]+)/', $text, $m ) || preg_match( '/^([0-9]+)/', $text, $m ) ) { $ids[] = (int) $m[1]; }
     }
     return $ids;
 }

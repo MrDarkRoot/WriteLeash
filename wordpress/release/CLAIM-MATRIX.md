@@ -70,15 +70,15 @@ Status values:
 
 ## 5. WooCommerce version
 
-* **COPY CLAIM:** "WooCommerce 11.1.2 exactly."
-* **SUPPORTING ISSUE:** #108/#111 execution gate; #112 compatibility row; #119 support boundary.
+* **COPY CLAIM:** "WooCommerce 10.0 through 11.x."
+* **SUPPORTING ISSUE:** #108/#111 execution gate; #112 compatibility row; #119 support boundary; #180 supported range.
 * **SUPPORTING TEST/EVIDENCE:**
-  * `FREE-PRICE-APPLY-CONTRACT.md` — pinned to Woo 11.1.2 stock data store; official ZIP SHA-256 recorded.
-  * `wordpress/tests/acceptance/EVIDENCE.md` — row `7.1.2 / 11.0.1 / 8.2.34` → `UNSUPPORTED: existing execution gate; zero applied`.
-  * `wordpress/writeleash/includes/free/class-free-support-contract.php` — `WOOCOMMERCE_VERSION = '11.1.2'`.
+  * `FREE-PRICE-APPLY-CONTRACT.md` — Woo 10.0 through 11.x storage/API basis (CPT data store, lookup shape, CRUD price setters, cache helpers; ProductCache guarded for pre-10.5); official 11.1.2 ZIP SHA-256 recorded as the exercised point.
+  * `wordpress/tests/acceptance/EVIDENCE.md` — row `7.1.2 / 11.0.1 / 8.2.34` → `UNSUPPORTED: existing execution gate; zero applied` (now out-of-range refusal with a typed reason).
+  * `wordpress/writeleash/includes/free/class-free-support-contract.php` — `WOOCOMMERCE_MIN = '10.0.0'`, `WOOCOMMERCE_MAX_EXCLUSIVE = '12.0.0'`.
   * Canonical immutable artifact: https://downloads.wordpress.org/plugin/woocommerce.11.1.2.zip → `Version: 11.1.2`, `Requires at least: 7.0`; SHA-256 `9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e`.
-* **ALLOWED WORDING:** "WooCommerce 11.1.2 exactly."
-* **REQUIRED LIMITATION:** No older, newer or range support; the Admin refuses unsupported versions before creating jobs.
+* **ALLOWED WORDING:** "WooCommerce 10.0 through 11.x."
+* **REQUIRED LIMITATION:** No versions below 10.0.0 or at/above 12.0.0; the Admin refuses out-of-range versions before creating jobs.
 * **STATUS:** PUBLISHABLE.
 
 ## 6. WordPress versions and minimum metadata
@@ -243,7 +243,7 @@ Status values:
 ## Forbidden public claims (must never appear)
 
 * 1,000 or 10,000 supported products; the internal selector maximum as a support promise.
-* Support for WooCommerce versions other than 11.1.2, or "all WooCommerce versions".
+* Support for WooCommerce versions outside 10.0 through 11.x, or "all WooCommerce versions".
 * "Old WordPress support" below 7.0 (the Woo 11.1.2 package refuses WP 6.8.3).
 * Real managed/shared-host certification.
 * Universal rollback; "rolls everything back"; "prevents all bad edits"; any protection claim for every Woo write.

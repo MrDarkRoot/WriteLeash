@@ -88,7 +88,7 @@ function edit( array $f, string $value ): void {
 }
 
 wp_set_current_user( 1 );
-eq( WC_VERSION, '11.1.2', 'pinned Woo' );
+eq( \WriteLeash\Free_Support_Contract::woo_supported( WC_VERSION ), true, 'fixture Woo inside supported range' );
 eq( get_bloginfo( 'version' ), '7.1.2', 'pinned WordPress' );
 eq( PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION, '8.2', 'pinned PHP' );
 eq( (bool) wp_using_ext_object_cache(), 'persistent' === getenv( 'WL108_CACHE' ), 'real persistent drop-in loaded' );
@@ -344,10 +344,11 @@ foreach ( array( 'duplicate', 'missing', 'malformed' ) as $anomaly ) {
 }
 $f = fixture();
 $table = J::table( $wpdb ); $wpdb->query( "ALTER TABLE $table ENGINE=MyISAM" );
-eq( run_item( $f )['code'], 'TRANSACTION_UNAVAILABLE', 'nontransactional journal refused' );
+eq( run_item( $f )['code'], 'DB_TRANSACTIONS_UNSUPPORTED', 'nontransactional journal refused with actionable reason' );
+eq( run_item( $f )['reason'], 'DB_TRANSACTIONS_UNSUPPORTED', 'nontransactional typed reason' );
 eq( hook_count( $f ), 0, 'nontransactional zero mutation' );
 $wpdb->query( "ALTER TABLE $table ENGINE=InnoDB" );
-truth( $f, '100', 'PENDING' ); marker( 'non-InnoDB journal: TRANSACTION_UNAVAILABLE / zero mutation' );
+truth( $f, '100', 'PENDING' ); marker( 'non-InnoDB journal: DB_TRANSACTIONS_UNSUPPORTED / zero mutation' );
 
 $a = fixture(); $b = fixture( '90' );
 eq( run_item( $a )['code'], 'APPLIED', 'undo A fixture' ); eq( run_item( $b )['code'], 'APPLIED', 'undo B fixture' );

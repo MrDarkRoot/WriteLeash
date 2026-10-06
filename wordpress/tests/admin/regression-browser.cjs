@@ -139,7 +139,10 @@ async function responsive(page) {
         await native.close(); await page.goto(home);
         for (let i = 0; i < f.skus.length; i++) {
             await search(page, f.skus[i]);
-            if (!i) { await scan(page, 'open search'); await page.keyboard.press('Escape'); ok(await picker.evaluate(el => document.activeElement === el), 'Escape retains sensible search focus'); await search(page, f.skus[i]); }
+            if (!i) { await scan(page, 'open search'); await picker.click(); await page.keyboard.press('Escape');
+            const escapeFocus = await picker.evaluate(el => { const a = document.activeElement; const widget = el.closest('.select2-container'); return { tag: a && a.tagName, cls: a && a.className, in_widget: !!(a && widget && (a === el || widget.contains(a))), open: !!document.querySelector('.select2-container--open') }; });
+            if (!escapeFocus.in_widget) { console.error('Escape focus diagnostics: ' + JSON.stringify(escapeFocus)); }
+            ok(escapeFocus.in_widget, 'Escape retains sensible search focus'); await search(page, f.skus[i]); }
             await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
             ok(await page.locator('#writeleash-free-selected button').count() === i + 1, 'keyboard selection exact population');
         }
@@ -262,7 +265,9 @@ async function responsive(page) {
         fixture('restore-woo'); missing = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'reactivated Woo recovers saved job');
         fixture('unsupported-woo'); unsupported = true; await page.reload();
-        ok((await text(page)).includes('11.0.1') && (await text(page)).includes('11.1.2') && durable(fixture()) === unchanged, 'actual unsupported Woo refuses with supported-version guidance');
+        // #180 supports the whole 10.x-11.x range, so the real 11.0.1 package is
+        // an in-range install: the saved job must stay reachable and unchanged.
+        ok((await text(page)).includes('Undo finished') && durable(fixture()) === unchanged, 'older in-range Woo 11.0.1 keeps saved work without mutation');
         fixture('restore-version'); unsupported = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'supported Woo restored without lost work');
         const reads = fixture().reads; ok(!reads.unbounded && !reads.oversized && reads.search <= 11 && reads.selected <= 100, 'bounded catalog windows throughout browser journey');

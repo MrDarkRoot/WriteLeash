@@ -65,9 +65,9 @@ try {
     $operation = new WriteLeash\Price_Operation( 'DECREASE_PERCENT', '20' );
     $policy = new WriteLeash\Safety_Policy( 1000, '50', '50', false, '10' );
     // Freeze a historical supported Woo context even when the CURRENT runtime
-    // is the unsupported-Woo matrix row. Trusted domain construction models
+    // is an out-of-range matrix row. Trusted domain construction models
     // old stored evidence, not permission to execute against that runtime.
-    if ( WC_VERSION === '11.1.2' ) {
+    if ( \WriteLeash\Free_Support_Contract::woocommerce_ok() ) {
         $plan = WriteLeash\Woo_Price_Planner::preview( $selection, $operation, $policy );
     } else {
         $plan = WriteLeash\Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), 1,
@@ -87,7 +87,7 @@ try {
     wl112_login();
     $url = 'http://127.0.0.1:8080/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=' . $job['public_id'];
 
-    if ( WC_VERSION !== '11.1.2' ) {
+    if ( ! \WriteLeash\Free_Support_Contract::woocommerce_ok() ) {
         $before = wl112_evidence_rows();
         $page = wl112_get( $url );
         wl112_assert( false !== strpos( $page['body'], 'Installed version: ' . WC_VERSION ), 'legacy job must not grandfather Woo version' );

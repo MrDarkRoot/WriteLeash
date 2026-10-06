@@ -70,8 +70,8 @@ side effects.
 * Published core simple WooCommerce products.
 * Stored regular prices in the base store currency.
 * Products with no sale-price/date configuration.
-* WooCommerce 11.1.2 exactly.
-* WordPress 7.0.1 and 7.1.2 were exercised. Requires WordPress 7.0 or newer, the minimum of the supported WooCommerce package.
+* WooCommerce 10.0 through 11.x (version 10.0.0 or newer, below 12.0.0).
+* WordPress 7.0 through 7.x is supported. WordPress 7.0.1 and 7.1.2 were exercised. Requires WordPress 7.0 or newer.
 * PHP 7.4.33, 8.0.30, 8.1.34 and 8.2.34 were exercised. Requires PHP 7.4 or newer.
 * MySQL 8.0.44 and MariaDB 10.11.15 were exercised, with default and Redis Object Cache 2.7.0 (Redis 7.4.2) persistent cache modes.
 * Not changed: sale prices, sale dates, variations, stock and orders.
@@ -80,7 +80,7 @@ side effects.
 
 == Installation ==
 
-1. Install and activate WooCommerce 11.1.2.
+1. Install and activate a supported WooCommerce version (10.0 through 11.x).
 2. Install and activate WriteLeash.
 3. Open Products → Bulk Prices.
 4. Select products and an operation, then build a frozen preview.
@@ -112,8 +112,10 @@ the supported scope.
 If the stored regular price or another execution precondition no longer matches
 the approved plan, that item is reported as a conflict instead of being blindly
 overwritten. Execution preconditions include product existence, core-simple/type
-state, publication status, sale configuration, currency/base context, price
-decimals and WordPress/WooCommerce versions. SKU, name/title and category
+state, publication status, sale configuration, currency/base context and price
+decimals. Routine WordPress/WooCommerce updates inside the supported ranges do
+not cause conflicts on their own; versions outside the supported ranges do.
+SKU, name/title and category
 membership are provenance-only; changes to those fields alone do not necessarily
 cause an execution conflict.
 
@@ -137,7 +139,8 @@ Up to 100 selected products per new job in the tested configuration.
 
 = Which versions are supported? =
 
-WooCommerce 11.1.2 exactly. WordPress 7.0.1 and 7.1.2, PHP 7.4.33, 8.0.30,
+WooCommerce 10.0 through 11.x. WordPress 7.0 through 7.x (7.0.1 and 7.1.2
+exercised), PHP 7.4.33, 8.0.30,
 8.1.34 and 8.2.34, MySQL 8.0.44 and MariaDB 10.11.15 were exercised. Real
 managed or shared hosting has not been tested, and multisite is unsupported.
 
@@ -147,4 +150,4 @@ managed or shared hosting has not been tested, and multisite is unsupported.
 
 * Initial WooCommerce product: frozen bulk regular-price previews, approval-bound execution, durable progress, protected bounded Resume, bounded history and conflict-aware eligible Undo.
 * Supports up to 100 selected products per new job in the tested configuration.
-* Requires WooCommerce 11.1.2 and uses the normal WordPress database connection.
+* Requires WooCommerce 10.0 through 11.x and uses the normal WordPress database connection.

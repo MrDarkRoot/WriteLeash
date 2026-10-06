@@ -213,9 +213,15 @@ MANUAL_PAUSE`. Display copy is separate
   not Undo (#110). Uninstall removes only the three exact options; job tables
   are left to the operator lifecycle (the #58 uninstall SQL classifier forbids
   DDL in `uninstall.php`).
-- Multisite and routed/custom `wpdb` drop-ins are refused. The supported
-  execution dependency is exactly WooCommerce 11.1.2 with initialized
-  Action Scheduler 4.0.0.
+- Multisite stays unsupported. The supported execution dependency is
+  WooCommerce 10.0 through 11.x with initialized Action Scheduler 4.0.0,
+  on a standard transactional setup (mysqli `wpdb`, including ordinary
+  drop-in subclasses, single site, InnoDB tables). Unsupported
+  environments are refused before any Woo write with a typed reason
+  (`WOOCOMMERCE_VERSION_UNSUPPORTED`, `MULTISITE_UNSUPPORTED` or
+  `DB_TRANSACTIONS_UNSUPPORTED`); the item stays pending and the job
+  pauses under that reason, so fixing the environment and resuming
+  continues the same job.
 
 ## Observable truth
 
