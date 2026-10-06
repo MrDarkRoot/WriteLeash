@@ -77,7 +77,7 @@ foreach ( $data as $item ) {
 	// object-cached, and PCP cannot infer the literal-only $changes construction.
 	$line = (int) ( $item['line'] ?? 0 );
 	$journal_install = 'includes/free/class-price-apply-journal.php' === $path && is_string( $source ) &&
-		str_contains( $source, "preg_match( '/\\A[a-zA-Z0-9_]+\\z/D', $name )" ) &&
+		str_contains( $source, "preg_match( '/\\A[a-zA-Z0-9_]+\\z/D', \$name )" ) &&
 		str_contains( $source, "\$changes = array( 'MODIFY plan_json longtext NULL' );" ) &&
 		str_contains( $source, "\$changes[] = \"ADD plan_fingerprint char(64) NOT NULL DEFAULT ''\"" ) &&
 		str_contains( $source, "\$changes[] = \"ADD price_field varchar(16) NOT NULL DEFAULT ''\"" );
