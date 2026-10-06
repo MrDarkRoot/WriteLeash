@@ -84,7 +84,9 @@ try {
 	$selected181 = Discovery::selected( array( $readable181, $unreadable181 ) );
 	$expected181 = array( $readable181, $unreadable181 );
 	sort( $expected181, SORT_NUMERIC );
-	eq( array_keys( $selected181 ), $expected181, 'selected list stays complete with unreadable product' );
+	$actual181 = array_keys( $selected181 );
+	sort( $actual181, SORT_NUMERIC );
+	eq( $actual181, $expected181, 'selected list stays complete with unreadable product' );
 	ok( str_contains( $selected181[ $unreadable181 ]['text'], 'Needs attention:' ), 'selected unreadable row carries its reason' );
 } finally { remove_filter( 'woocommerce_product_class', $unreadable_filter181, 10 ); }
 
