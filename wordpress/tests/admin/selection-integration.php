@@ -74,6 +74,9 @@ $unreadable_filter181 = static function ( $class, $type, $post_type, $id ) use (
 	return $class;
 };
 add_filter( 'woocommerce_product_class', $unreadable_filter181, 10, 4 );
+// Woo's optional product instance cache must be evicted or the factory returns
+// the object saved by the fixture and never consults the filter.
+\WriteLeash\Price_Cache_Verifier::invalidate( $unreadable181 );
 try {
 	$found181 = Discovery::products( $tag167 . ' Unreadable 181' );
 	eq( array_column( $found181['results'], 'id' ), array( (string) $unreadable181 ), 'unreadable product still listed' );
