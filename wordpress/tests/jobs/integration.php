@@ -1301,4 +1301,10 @@ eq( journal_row( '0', $orphan_id ), $orphan_before, 'opaque zero identity and or
 Journal::assert_binding( journal_row( '0', $orphan_id ), $orphan_plan, $orphan_id );
 marker( 'orphan legacy journal remains readable without inventing a job authority' );
 
+// The next cache profile's no-CREATE fixture intentionally resets job IDs.
+// Remove only this test's verified Undo operation/items before that reset;
+// retaining them would correctly trigger provenance refusal for the new job.
+eq( $wpdb->delete( WriteLeash\Undo_Schema::items_table( $wpdb ), array( 'undo_id' => $pending_undo['id'], 'plan_id' => $finished['plan']->data()['plan_id'] ) ), 2, 'cleanup only this migration fixture Undo items' );
+eq( $wpdb->delete( WriteLeash\Undo_Schema::operations_table( $wpdb ), array( 'id' => $pending_undo['id'], 'plan_id' => $finished['plan']->data()['plan_id'] ) ), 1, 'cleanup only this migration fixture Undo operation' );
+
 echo "#109 complete durable job engine lab: {$assertions} assertions\n";
