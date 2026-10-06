@@ -96,6 +96,7 @@ try {
     wl112_assert( false !== strpos( $progress['body'], 'Finished with products needing attention' ), 'mixed dirty state label' );
     wl112_assert( false !== strpos( $progress['body'], 'missing, duplicated, or malformed' ), 'dirty reason copy must explain the saved-price damage' );
 
+    wp_cache_flush_runtime();
     wl112_assert( D::parse( get_post_meta( $clean, '_regular_price', true ) ) === D::parse( '80.00' ), 'clean product changed' );
     wl112_assert( 'not-a-price' === get_post_meta( $bad_regular, '_regular_price', true ), 'malformed regular price must not be overwritten' );
     wl112_assert( 'not-a-price' === get_post_meta( $bad_sale, '_sale_price', true ), 'malformed sale price must not be overwritten' );
@@ -116,6 +117,7 @@ try {
     }
     $op = U::read_operation_by_job( (int) $job['id'] );
     wl112_assert( 'UNDO_COMPLETED' === $op['status'] && 1 === (int) $op['undone'] && 0 === (int) $op['undo_conflict'], 'only the confirmed clean change may restore' );
+    wp_cache_flush_runtime();
     wl112_assert( D::parse( get_post_meta( $clean, '_regular_price', true ) ) === D::parse( '100.00' ), 'clean product must restore' );
     wl112_assert( 'not-a-price' === get_post_meta( $bad_regular, '_regular_price', true ) && 0 === dc_meta_count( $missing_price, '_price' ), 'Undo must not touch dirty products' );
     $report['undo'] = 'PASS: only the clean applied product restored; dirty products untouched';
