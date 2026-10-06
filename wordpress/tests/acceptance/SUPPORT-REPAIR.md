@@ -1,5 +1,11 @@
 # PR #119 repair: shipping boundary matches #112 evidence
 
+> Current note (#177/#183): the Free new-job ceiling is **1,000**, equal to the
+> engineering selector maximum. This document is preserved as the historical
+> #119 repair record at the 100 ceiling. `EVIDENCE.md` and
+> `support-boundaries.php` describe the current 1,000/1,001 boundary and the
+> above-1,000 grandfathered recovery proof.
+
 Audited predecessor: `39bf91bcf60c566cee68b304984aff7057aa5c6b`.
 Recovery-semantics audit: `ce3ae08ba1359469f06450d8c9d80ef7829c6f08`.
 Base main: `061d5f5ff4e1867327495c8ca07dd903f1f16b06`.
