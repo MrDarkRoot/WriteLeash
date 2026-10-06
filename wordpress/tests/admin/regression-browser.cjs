@@ -262,7 +262,9 @@ async function responsive(page) {
         fixture('restore-woo'); missing = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'reactivated Woo recovers saved job');
         fixture('unsupported-woo'); unsupported = true; await page.reload();
-        ok((await text(page)).includes('11.0.1') && (await text(page)).includes('11.1.2') && durable(fixture()) === unchanged, 'actual unsupported Woo refuses with supported-version guidance');
+        // #180 supports the whole 10.x-11.x range, so the real 11.0.1 package is
+        // an in-range install: the saved job must stay reachable and unchanged.
+        ok((await text(page)).includes('Undo finished') && durable(fixture()) === unchanged, 'older in-range Woo 11.0.1 keeps saved work without mutation');
         fixture('restore-version'); unsupported = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'supported Woo restored without lost work');
         const reads = fixture().reads; ok(!reads.unbounded && !reads.oversized && reads.search <= 11 && reads.selected <= 100, 'bounded catalog windows throughout browser journey');
