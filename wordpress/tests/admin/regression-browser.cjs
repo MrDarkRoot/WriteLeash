@@ -139,7 +139,7 @@ async function responsive(page) {
         await native.close(); await page.goto(home);
         for (let i = 0; i < f.skus.length; i++) {
             await search(page, f.skus[i]);
-            if (!i) { await scan(page, 'open search'); await page.keyboard.press('Escape'); ok(await picker.evaluate(el => document.activeElement === el), 'Escape retains sensible search focus'); await search(page, f.skus[i]); }
+            if (!i) { await scan(page, 'open search'); await picker.click(); await page.keyboard.press('Escape'); ok(await picker.evaluate(el => document.activeElement === el), 'Escape retains sensible search focus'); await search(page, f.skus[i]); }
             await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
             ok(await page.locator('#writeleash-free-selected button').count() === i + 1, 'keyboard selection exact population');
         }
