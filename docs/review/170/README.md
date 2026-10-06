@@ -34,8 +34,9 @@ prove exact frozen IDs/hash, no preview saves, one Apply save per eligible
 product despite duplicate Resume, preserved 120.00 Apply conflict, preserved
 93.00 Undo conflict and restoration of 20 eligible prices. Lost approval response
 is simulated by forwarding the real POST then dropping its browser response;
-no mutation provider is mocked. Role/session/nonce/GET and real missing/11.0.1
-Woo dependency negatives preserve the observed durable rows and prices.
+no mutation provider is mocked. Role/session/nonce/GET, a real missing-Woo
+dependency negative and an older in-range 11.0.1 install preserve the observed
+durable rows and prices.
 
 Both engines check 1440/1024/782/375 CSS px on critical views. Actual 200% zoom
 uses Chromium's `chrome.tabs.setZoom(..., 2)`, verified by a 1440 px outer window,
@@ -58,3 +59,15 @@ commit; use Shift+Tab when returning to earlier controls instead of relying on
 Firefox wrapping Tab out of browser chrome; disable opcode caching in the
 version-swap fixture server; require successful package restoration. Preparation
 failures were not counted as product passes.
+
+## Source refresh after the product/core-backlog merge
+
+`source_hashes` above were refreshed when `origin/main` (#184) was merged into
+`product/core-backlog` (#177–#182). The product backlog intentionally renames
+merchant-facing labels and extends the picker (regular/sale target, 1,000-product
+ceiling) in `class-free-admin.php` and `free-selection.js`, while #184 adds
+close-on-empty/error and ARIA naming. The PNG captures in this directory are the
+original #170 images: they show the same same-row conflict, preservation and Undo
+evidence but predate the #182 copy changes. The #170 Chromium/Firefox journey is
+re-executed by the Admin CI job against the merged source on every run, and its
+result JSONs are uploaded as CI artifacts alongside the refreshed hashes.

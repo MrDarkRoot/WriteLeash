@@ -1,5 +1,20 @@
 # Free price apply: #108 engineering contract
 
+> #178 supersedes the regular-only statements below: Apply targets the plan's
+> price field (`regular_price` or `sale_price`). Verification proves the target
+> field, the preserved other field and sale dates, the computed active `_price`,
+> lookup min/max and onsale. Evidence adds `price_field`, `field_value`,
+> preserved regular/sale, active and lookup values; fresh observer
+> certification is field-aware and no longer requires a sale-free product.
+> Legacy evidence without `price_field` keeps the old strict path exactly.
+>
+> #179 supersedes the simple-only statements below: eligible core variations
+> use the same CRUD path. After a variation save the item transaction locks the
+> parent row, calls `WC_Product_Variable::sync()` on the same pinned connection,
+> and certifies the parent lookup min/max against the visible children's
+> `_price` values (typed `LOOKUP_MISMATCH` => review, zero commit). Evidence adds
+> the frozen `parent_id`. Stock simple evidence keeps its exact legacy shape.
+
 This is an item correctness experiment consumed through PHP, with no public
 mutation endpoint, automatic journal installation, approval UI, job engine,
 Action Scheduler execution, full Undo or release claim. #109 must retain these

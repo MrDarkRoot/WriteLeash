@@ -10,24 +10,46 @@ final class Price_Operation {
 	public const DECREASE_FIXED = 'DECREASE_FIXED';
 	public const INCREASE_PERCENT = 'INCREASE_PERCENT';
 	public const DECREASE_PERCENT = 'DECREASE_PERCENT';
+	public const FIELD_REGULAR = 'regular_price';
+	public const FIELD_SALE = 'sale_price';
+	/** The two first-class price fields a plan may target. */
+	public const FIELDS = array( self::FIELD_REGULAR, self::FIELD_SALE );
 	private string $type;
 	private string $input;
-	public function __construct( string $type, $input ) {
+	private string $field;
+	public function __construct( string $type, $input, string $field = self::FIELD_REGULAR ) {
 		if ( ! in_array( $type, array( self::SET, self::INCREASE_FIXED, self::DECREASE_FIXED, self::INCREASE_PERCENT, self::DECREASE_PERCENT ), true ) ) {
 			throw new Price_Validation_Error( 'unsupported_operation' );
 		}
+		if ( ! in_array( $field, self::FIELDS, true ) ) {
+			throw new Price_Validation_Error( 'unsupported_price_field' );
+		}
 		$this->type = $type;
 		$this->input = Price_Decimal::parse( $input );
+		$this->field = $field;
 	}
-	public function data(): array { return array( 'type' => $this->type, 'input' => $this->input ); }
+	public function data(): array { return array( 'type' => $this->type, 'input' => $this->input, 'field' => $this->field ); }
+	/** Snapshot/item meta key for a price field. */
+	public static function meta_key( string $field ): string { return self::FIELD_SALE === $field ? 'sale_price' : 'regular_price'; }
+	/** Fail-closed field validation for trusted persistence boundaries. */
+	public static function assert_field( $field ): string {
+		if ( ! in_array( $field, self::FIELDS, true ) ) { throw new Price_Validation_Error( 'unsupported_price_field' ); }
+		return $field;
+	}
+	/** Merchant-facing field label; display only. */
+	public static function label( string $field ): string { return self::FIELD_SALE === $field ? 'Sale price' : 'Regular price'; }
 }
 
 final class Price_Calculator {
 	public static function calculate( $old, Price_Operation $operation, int $decimals ): string {
 		Price_Decimal::decimals( $decimals );
-		if ( '' === $old ) { throw new Price_Validation_Error( 'empty_regular_price' ); }
-		$old = Price_Decimal::units( Price_Decimal::parse( $old ) );
 		$op = $operation->data();
+		if ( '' === $old ) {
+			// No stored baseline: only an absolute SET has a defined target.
+			if ( Price_Operation::SET !== $op['type'] ) { throw new Price_Validation_Error( 'empty_sale_price' ); }
+			return Price_Decimal::target( Price_Decimal::units( $op['input'] ), Price_Decimal::SCALE, $decimals );
+		}
+		$old = Price_Decimal::units( Price_Decimal::parse( $old ) );
 		$input = Price_Decimal::units( $op['input'] );
 		$scale = Price_Decimal::SCALE;
 		switch ( $op['type'] ) {

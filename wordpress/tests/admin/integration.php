@@ -275,7 +275,7 @@ foreach ( $plan->preview_page( 0, 20 )['items'] as $item ) {
 }
 eq( $reasons[ $draft ], 'unsupported_status', 'draft reason' );
 eq( $reasons[ $grouped ], 'unsupported_product_type', 'grouped reason' );
-eq( $reasons[ $sale ], 'sale_configured', 'sale reason' );
+eq( $reasons[ $sale ], 'regular_price_not_above_sale', 'sale-clearing regular target reason' );
 eq( $reasons[ $empty ], 'empty_regular_price', 'empty reason' );
 $approval = Admin::process_approve( approve_post( $job ), 'POST' );
 eq( $approval['status'], 'OK', 'mixed approve' );
@@ -484,6 +484,90 @@ eq( $expired['reason'], 'UNDO_EXPIRED', 'expiry reason' );
 eq( fresh_price( $exp[0] ), '80.00', 'expired job price untouched' );
 marker( 'eligible conflict expired Undo' );
 
+// #178: sale-price targets and regular edits on sale-configured products.
+$sale_target_id = make_product( '100.00' );
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $sale_target_id, 'operation' => Operation::SET, 'amount' => '80.00', 'price_field' => Operation::FIELD_SALE ) ), 'POST' );
+eq( $res['status'], 'OK', 'sale SET preview' );
+$sale_job = Repo::read_by_public_id( $res['public_id'] );
+$sale_plan = Repo::hydrate_plan( $sale_job );
+eq( $sale_plan->price_field(), Operation::FIELD_SALE, 'sale plan records its field' );
+eq( Admin::task_description( $sale_plan->data() ) !== '' && str_contains( Admin::task_description( $sale_plan->data() ), 'sale prices' ), true, 'sale task copy names the field' );
+eq( Admin::process_approve( approve_post( $sale_job ), 'POST' )['status'], 'OK', 'sale plan approved' );
+run_job_terminal( (int) $sale_job['id'] );
+Verifier::invalidate( $sale_target_id );
+$sale_product = wc_get_product( $sale_target_id );
+eq( $sale_product->get_regular_price( 'edit' ), '100.00', 'first-sale apply preserves the regular baseline' );
+eq( $sale_product->get_sale_price( 'edit' ), '80.00', 'first-sale target applied' );
+eq( Decimal::parse( $sale_product->get_price( 'edit' ) ), Decimal::parse( '80.00' ), 'active price follows the applied sale' );
+$observer178 = Verifier::observer();
+try {
+	$storage178 = Verifier::storage( $observer178, $sale_target_id );
+	eq( (string) $storage178['lookup']['onsale'], '1', 'lookup onsale proves the sale is the active price' );
+	eq( Decimal::parse( $storage178['lookup']['min_price'] ), Decimal::parse( '80.00' ), 'lookup active price follows the sale' );
+} finally { $observer178->close(); }
+$csv178 = fopen( 'php://temp', 'w+' );
+try {
+	Admin::write_job_csv( $csv178, $sale_job, $sale_plan );
+	rewind( $csv178 );
+	$header178 = fgetcsv( $csv178, 0, ',', '"', '' );
+	$row178 = fgetcsv( $csv178, 0, ',', '"', '' );
+	$field178 = array_search( 'price_field', $header178, true );
+	eq( $field178 !== false && $row178[ $field178 ] === 'Sale price', true, 'CSV names the changed field' );
+} finally { fclose( $csv178 ); }
+// Percentage change on the existing sale uses the sale baseline.
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $sale_target_id, 'operation' => Operation::INCREASE_PERCENT, 'amount' => '10', 'price_field' => Operation::FIELD_SALE ) ), 'POST' );
+$sale_job2 = Repo::read_by_public_id( $res['public_id'] );
+eq( Repo::hydrate_plan( $sale_job2 )->item( $sale_target_id )->data()['planned_regular_price'], '88.00', 'sale percent baseline is the sale price' );
+eq( Admin::process_approve( approve_post( $sale_job2 ), 'POST' )['status'], 'OK', 'sale percentage plan approved' );
+run_job_terminal( (int) $sale_job2['id'] );
+Verifier::invalidate( $sale_target_id );
+eq( wc_get_product( $sale_target_id )->get_sale_price( 'edit' ), '88.00', 'sale percentage applied and regular preserved' );
+// Regular edit on a product with an active sale and dates preserves both.
+$preserve_id = make_product( '100.00' );
+$p = wc_get_product( $preserve_id ); $p->set_sale_price( '80.00' ); $p->set_date_on_sale_from( time() - 3600 ); $p->set_date_on_sale_to( time() + 86400 ); $p->save();
+$preserve_from = wc_get_product( $preserve_id )->get_date_on_sale_from( 'edit' );
+$preserve_to = wc_get_product( $preserve_id )->get_date_on_sale_to( 'edit' );
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $preserve_id, 'operation' => Operation::SET, 'amount' => '90.00' ) ), 'POST' );
+eq( $res['status'], 'OK', 'regular edit on an active sale previews' );
+$preserve_job = Repo::read_by_public_id( $res['public_id'] );
+eq( Admin::process_approve( approve_post( $preserve_job ), 'POST' )['status'], 'OK', 'regular-on-sale plan approved' );
+run_job_terminal( (int) $preserve_job['id'] );
+Verifier::invalidate( $preserve_id );
+$preserved = wc_get_product( $preserve_id );
+eq( $preserved->get_regular_price( 'edit' ), '90.00', 'regular target applied' );
+eq( $preserved->get_sale_price( 'edit' ), '80.00', 'active sale preserved by a regular edit' );
+eq( $preserved->get_date_on_sale_from( 'edit' )->getTimestamp(), $preserve_from->getTimestamp(), 'sale start preserved' );
+eq( $preserved->get_date_on_sale_to( 'edit' )->getTimestamp(), $preserve_to->getTimestamp(), 'sale end preserved' );
+eq( Decimal::parse( $preserved->get_price( 'edit' ) ), Decimal::parse( '80.00' ), 'active shopper price stays the sale' );
+$lookup_observer178 = Verifier::observer();
+try { $lookup178 = Verifier::storage( $lookup_observer178, $preserve_id ); }
+finally { $lookup_observer178->close(); }
+eq( (string) $lookup178['lookup']['onsale'], '1', 'lookup onsale survives a regular edit' );
+// Refusals: never let WooCommerce silently clear the sale.
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $preserve_id, 'operation' => Operation::SET, 'amount' => '80.00' ) ), 'POST' );
+$refused_plan = Repo::hydrate_plan( Repo::read_by_public_id( $res['public_id'] ) );
+eq( $refused_plan->item( $preserve_id )->data()['eligibility']['reason'], 'regular_price_not_above_sale', 'regular target at the sale is refused' );
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $preserve_id, 'operation' => Operation::INCREASE_FIXED, 'amount' => '20', 'price_field' => Operation::FIELD_SALE ) ), 'POST' );
+$refused_plan = Repo::hydrate_plan( Repo::read_by_public_id( $res['public_id'] ) );
+eq( $refused_plan->item( $preserve_id )->data()['eligibility']['reason'], 'sale_price_not_below_regular', 'sale target at the regular price is refused' );
+$no_sale_id = make_product( '100.00' );
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $no_sale_id, 'operation' => Operation::INCREASE_FIXED, 'amount' => '5', 'price_field' => Operation::FIELD_SALE ) ), 'POST' );
+$refused_plan = Repo::hydrate_plan( Repo::read_by_public_id( $res['public_id'] ) );
+eq( $refused_plan->item( $no_sale_id )->data()['eligibility']['reason'], 'empty_sale_price', 'fixed increase from a missing sale is refused' );
+// Undo restores only the sale field and removes a sale WriteLeash added.
+$res = Admin::process_preview( preview_post( array( 'ids' => (string) $no_sale_id, 'operation' => Operation::SET, 'amount' => '70.00', 'price_field' => Operation::FIELD_SALE ) ), 'POST' );
+$remove_job = Repo::read_by_public_id( $res['public_id'] );
+Admin::process_approve( approve_post( $remove_job ), 'POST' );
+run_job_terminal( (int) $remove_job['id'] );
+Admin::process_undo( undo_post( Repo::read( (int) $remove_job['id'] ) ), 'POST' );
+run_undo_terminal( (int) UndoRepo::read_operation_by_job( (int) $remove_job['id'] )['id'] );
+Verifier::invalidate( $no_sale_id );
+$removed = wc_get_product( $no_sale_id );
+eq( $removed->get_regular_price( 'edit' ), '100.00', 'sale-field undo leaves the regular price untouched' );
+eq( $removed->get_sale_price( 'edit' ), '', 'sale-field undo removes the WriteLeash-added sale' );
+eq( Decimal::parse( $removed->get_price( 'edit' ) ), Decimal::parse( '100.00' ), 'active price returns to the regular price' );
+marker( 'sale targets, preserved sale configuration and field-scoped sale Undo' );
+
 // Security negatives: subscriber, insufficient editor, revoked actor, wrong
 // owner, malformed inputs, invalid operation, XSS escaping.
 $subscriber = wp_insert_user( array( 'user_login' => 'wl111-sub-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'subscriber' ) );
@@ -571,7 +655,7 @@ marker( 'security negatives and escaping' );
 // Accessibility and honest scope copy in the rendered product.
 wp_set_current_user( 1 );
 $home = render_view( '', '', 0 );
-foreach ( array( 'Build frozen preview', '<label for=', 'aria-describedby=', 'Variations', 'sale prices', 'not guaranteed shopper prices' ) as $needle ) {
+foreach ( array( 'Preview price changes', '<label for=', 'aria-describedby=', 'Variations', 'sale prices', 'not guaranteed shopper prices' ) as $needle ) {
 	ok( str_contains( $home, $needle ), 'home copy: ' . $needle );
 }
 ok( false !== strpos( $home, 'Explicit product IDs' ), 'only proved selectors offered' );
@@ -607,11 +691,11 @@ function wl122_current_rows( string $html ): array {
 	$dom->loadHTML( '<?xml encoding="utf-8"?>' . $html );
 	libxml_clear_errors();
 	$xpath = new DOMXPath( $dom );
-	$tables = $xpath->query( '//table[thead/tr/th[normalize-space(.)="Current"]]' );
-	eq( $tables->length, 1, 'exactly one Current item table' );
+	$tables = $xpath->query( '//table[@data-writeleash-results="1"]' );
+	eq( $tables->length, 1, 'exactly one results item table' );
 	$headers = array();
 	foreach ( $xpath->query( './thead/tr/th', $tables->item( 0 ) ) as $cell ) { $headers[] = trim( $cell->textContent ); }
-	eq( $headers, array( 'Product', 'Expected', 'Current', 'Planned', 'Apply', 'Undo' ), 'Current column order' );
+	eq( $headers, array( 'Product', 'Regular price expected', 'Regular price now', 'Regular price planned', 'Apply', 'Undo' ), 'field-labelled column order' );
 	$rows = array();
 	foreach ( $xpath->query( './tbody/tr', $tables->item( 0 ) ) as $row ) {
 		if ( ! $row->hasAttribute( 'data-product-id' ) ) { continue; }
@@ -716,6 +800,130 @@ try {
 	eq( $current_reads, array(), 'empty page makes zero Current Woo reads' );
 } finally { remove_action( 'woocommerce_product_read', $trace_reads ); }
 marker( 'Current reads bounded to rendered page only' );
+
+// ---------------------------------------------------------------------------
+// #179 variable products: preview freezes exact variations with attribute
+// identity, Apply refreshes the Woo parent price range, a variation created
+// after preview cannot execute, and Undo restores per variation while
+// re-syncing the parent.
+// ---------------------------------------------------------------------------
+$var_name = 'WL179 Hoodie ' . wp_generate_uuid4();
+$var_parent = new WC_Product_Variable();
+$var_parent->set_name( $var_name );
+$var_parent->set_status( 'publish' );
+// A real variable product declares its variation attributes on the parent;
+// Woo only surfaces variation attribute values declared here.
+$var_color_attr = new WC_Product_Attribute();
+$var_color_attr->set_id( 0 );
+$var_color_attr->set_name( 'Color' );
+$var_color_attr->set_options( array( 'Blue', 'Red', 'Green' ) );
+$var_color_attr->set_position( 0 );
+$var_color_attr->set_visible( true );
+$var_color_attr->set_variation( true );
+$var_size_attr = new WC_Product_Attribute();
+$var_size_attr->set_id( 0 );
+$var_size_attr->set_name( 'Size' );
+$var_size_attr->set_options( array( 'M', 'L', 'S' ) );
+$var_size_attr->set_position( 1 );
+$var_size_attr->set_visible( true );
+$var_size_attr->set_variation( true );
+$var_parent->set_attributes( array( $var_color_attr, $var_size_attr ) );
+$var_parent->save();
+$var_parent_id = $var_parent->get_id();
+$mk_variation179 = static function ( string $price, array $attrs ) use ( $var_parent_id ): int {
+	$v = new WC_Product_Variation();
+	$v->set_parent_id( $var_parent_id );
+	$v->set_regular_price( $price );
+	$v->set_attributes( $attrs );
+	$v->save();
+	return $v->get_id();
+};
+$v_blue = $mk_variation179( '100.00', array( 'color' => 'Blue', 'size' => 'M' ) );
+$v_red = $mk_variation179( '50.00', array( 'color' => 'Red', 'size' => 'L' ) );
+$parent_lookup179 = static function ( int $parent_id ): array {
+	$db = Verifier::observer();
+	try {
+		$row = $db->get_row( $db->prepare( 'SELECT min_price,max_price,onsale FROM ' . $db->wc_product_meta_lookup . ' WHERE product_id=%d', $parent_id ), ARRAY_A );
+	} finally { $db->close(); }
+	if ( ! is_array( $row ) ) { throw new RuntimeException( 'parent lookup row missing' ); }
+	return $row;
+};
+$vpreview = Admin::process_preview( preview_post( array( 'ids' => (string) $var_parent_id, 'operation' => Operation::DECREASE_PERCENT, 'amount' => '20' ) ), 'POST' );
+eq( $vpreview['status'], 'OK', 'variable parent creates a preview' );
+$vjob = Repo::read_by_public_id( $vpreview['public_id'] );
+$vplan = Repo::hydrate_plan( $vjob );
+eq( $vplan->summary()['selected'], 2, 'parent selection freezes both variations' );
+eq( in_array( $var_parent_id, $vplan->data()['resolved_product_ids'], true ), false, 'the variable parent is replaced by its variations' );
+eq( $vplan->data()['selection']['ids'], array( $v_blue, $v_red ), 'frozen IDS selection holds the resolved variation IDs' );
+$vfrozen = $vplan->item( $v_blue )->data()['snapshot'];
+eq( $vfrozen['core_variation'], true, 'variation identity frozen' );
+eq( $vfrozen['parent_id'], $var_parent_id, 'variation parent frozen' );
+eq( $vfrozen['variation_label'], $var_name . ' — Blue / M', 'variation attribute identity frozen' );
+$vhtml = render_view( 'preview', $vjob['public_id'], 0 );
+ok( str_contains( $vhtml, 'Variation #' . $v_blue ), 'preview labels the row as a variation' );
+ok( str_contains( $vhtml, '— Blue / M' ), 'preview shows human-readable attributes' );
+ok( str_contains( $vhtml, '2 variations' ), 'task copy counts variations honestly' );
+$vfound = \WriteLeash\Product_Discovery::products( $var_name );
+$vresult_ids = array_map( 'intval', array_column( $vfound['results'], 'id' ) );
+ok( in_array( $v_blue, $vresult_ids, true ) && in_array( $v_red, $vresult_ids, true ), 'discovery lists individual variations of the parent' );
+$vblue_text = '';
+$vparent_text = '';
+foreach ( $vfound['results'] as $vrow ) {
+	if ( (int) $vrow['id'] === $v_blue ) { $vblue_text = $vrow['text']; }
+	if ( (int) $vrow['id'] === $var_parent_id ) { $vparent_text = $vrow['text']; }
+}
+ok( str_contains( $vblue_text, '— Blue / M' ) && str_contains( $vblue_text, 'ID: ' . $v_blue ), 'variation discovery label shows attributes and ID' );
+ok( str_contains( $vparent_text, 'Targets all 2 variations' ), 'variable parent is offered as an all-variations choice' );
+
+// A variation created after preview is not in the frozen ID list.
+$v_green = $mk_variation179( '60.00', array( 'color' => 'Green', 'size' => 'S' ) );
+ok( ! in_array( $v_green, $vplan->data()['resolved_product_ids'], true ), 'a later variation is outside the frozen population' );
+try { $vplan->item( $v_green ); ok( false, 'frozen plan must refuse the later variation' ); }
+catch ( WriteLeash\Price_Validation_Error $error ) { eq( $error->reason(), 'unpreviewed_product', 'frozen plan refuses the later variation' ); }
+
+$vapprove = Admin::process_approve( approve_post( $vjob ), 'POST' );
+eq( $vapprove['status'], 'OK', 'variation plan approves' );
+run_job_terminal( (int) $vjob['id'] );
+eq( fresh_price( $v_blue ), '80.00', 'first variation applied' );
+eq( fresh_price( $v_red ), '40.00', 'sibling variation applied independently' );
+eq( fresh_price( $v_green ), '60.00', 'post-preview variation untouched by Apply' );
+$lookup = $parent_lookup179( $var_parent_id );
+eq( Decimal::parse( $lookup['min_price'] ), Decimal::parse( '40.00' ), 'parent lookup min refreshed after Apply' );
+eq( Decimal::parse( $lookup['max_price'] ), Decimal::parse( '80.00' ), 'parent lookup max refreshed after Apply' );
+eq( (string) $lookup['onsale'], '0', 'parent stays offsale after Apply' );
+
+Admin::process_undo( undo_post( Repo::read( (int) $vjob['id'] ) ), 'POST' );
+run_undo_terminal( (int) UndoRepo::read_operation_by_job( (int) $vjob['id'] )['id'] );
+price_eq( fresh_price( $v_blue ), '100.00', 'first variation restored' );
+price_eq( fresh_price( $v_red ), '50.00', 'sibling variation restored' );
+eq( fresh_price( $v_green ), '60.00', 'post-preview variation untouched by Undo' );
+$lookup = $parent_lookup179( $var_parent_id );
+eq( Decimal::parse( $lookup['min_price'] ), Decimal::parse( '50.00' ), 'parent lookup min refreshed after Undo' );
+eq( Decimal::parse( $lookup['max_price'] ), Decimal::parse( '100.00' ), 'parent lookup max refreshed after Undo' );
+
+// One conflicted variation never fails an unrelated sibling: the external edit
+// conflicts on its own row while the explicitly selected sibling applies and
+// the parent range still refreshes from the visible child prices.
+$vpreview2 = Admin::process_preview( preview_post( array( 'ids' => $v_blue . ',' . $v_red, 'amount' => '30.00' ) ), 'POST' );
+eq( $vpreview2['status'], 'OK', 'second variable preview created from explicit variation IDs' );
+$vjob2 = Repo::read_by_public_id( $vpreview2['public_id'] );
+eq( Repo::hydrate_plan( $vjob2 )->data()['resolved_product_ids'], array( $v_blue, $v_red ), 'explicit variation IDs stay the frozen pair' );
+$vapprove2 = Admin::process_approve( approve_post( $vjob2 ), 'POST' );
+eq( $vapprove2['status'], 'OK', 'second variation plan approves' );
+$vred_product = wc_get_product( $v_red );
+$vred_product->set_regular_price( '60.00' );
+$vred_product->save();
+run_job_terminal( (int) $vjob2['id'] );
+eq( fresh_price( $v_blue ), '30.00', 'unrelated variation still applies' );
+eq( fresh_price( $v_red ), '60.00', 'externally edited variation keeps its newer value' );
+eq( fresh_price( $v_green ), '60.00', 'variation outside the frozen pair stays untouched' );
+$vjob2_counts = Repo::counts( (int) $vjob2['id'] );
+eq( $vjob2_counts['applied'], 1, 'exactly one sibling applied' );
+eq( $vjob2_counts['conflict'], 1, 'exactly one sibling conflicted' );
+$lookup = $parent_lookup179( $var_parent_id );
+eq( Decimal::parse( $lookup['min_price'] ), Decimal::parse( '30.00' ), 'parent lookup min refreshed with a conflicted sibling' );
+eq( Decimal::parse( $lookup['max_price'] ), Decimal::parse( '60.00' ), 'parent lookup max refreshed with a conflicted sibling' );
+marker( 'variable products: expansion, variation Apply/Undo and parent range refresh' );
 
 require __DIR__ . '/selection-integration.php';
 require __DIR__ . '/presentation-integration.php';

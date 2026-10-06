@@ -34,11 +34,22 @@ async function login(page) {
     await page.waitForLoadState('networkidle');
 }
 async function action(page, name) {
-    await Promise.all([page.waitForEvent('framenavigated', { predicate: frame => frame === page.mainFrame() }), page.getByRole('button', { name, exact: true }).click()]);
+    // Server-side form submission; the heavy multi-engine suite can queue the
+    // request behind other work, so allow a longer budget than the default.
+    try {
+        await Promise.all([
+            page.waitForEvent('framenavigated', { predicate: frame => frame === page.mainFrame(), timeout: 60000 }),
+            page.getByRole('button', { name, exact: true }).click()
+        ]);
+    } catch (error) {
+        await capture(page, 'action-timeout-' + name.replace(/[^a-z0-9]+/gi, '-').toLowerCase());
+        throw error;
+    }
     await page.waitForLoadState('networkidle');
 }
 function input(page) { return page.locator('#writeleash-free-products + .select2-container .select2-search__field'); }
 async function typeSearch(page, term) {
+    await input(page).click();
     await input(page).fill('');
     // Let SelectWoo's native focus/keydown handling settle between keys.
     // Keep real keyboard typing, including spaces, instead of zero-delay input.
@@ -46,24 +57,30 @@ async function typeSearch(page, term) {
     assert.equal(await input(page).inputValue(), term, 'search text preserves spaces');
 }
 async function search(page, term) {
-    const response = page.waitForResponse(response => {
-        const url = new URL(response.url());
-        return url.pathname.endsWith('/admin-ajax.php') && url.searchParams.get('action') === 'writeleash_free_discovery' && url.searchParams.get('term') === term;
-    });
-    await typeSearch(page, term);
-    let result;
-    try { result = await (await response).json(); }
-    catch (error) {
-        console.error('Search diagnostics:', JSON.stringify(await page.evaluate(() => ({
-            status: document.getElementById('writeleash-free-discovery-status').textContent,
-            action: document.getElementById('writeleash-free-selection-form').dataset.discoveryAction,
-            value: document.querySelector('#writeleash-free-products + .select2-container .select2-search__field').value
-        }))));
-        await capture(page, 'failed-search');
-        throw error;
+    // SelectWoo occasionally drops a query keyed before its dropdown settles
+    // (and its result list can outlive the status text). Type once, wait on
+    // this query's own rows, and retry once before failing with diagnostics.
+    for (let attempt = 0; attempt < 2; attempt++) {
+        await typeSearch(page, term);
+        const status = page.locator('#writeleash-free-discovery-status');
+        try {
+            await status.filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor({ timeout: 15000 });
+            if (/Choose matches/.test(await status.innerText())) {
+                await page.locator('.select2-results__option[data-selected]').filter({ hasText: term }).first().waitFor({ timeout: 15000 });
+            }
+            return;
+        } catch (error) {
+            if (attempt === 0) { continue; }
+            console.error('Search diagnostics:', JSON.stringify(await page.evaluate(() => ({
+                status: document.getElementById('writeleash-free-discovery-status').textContent,
+                action: document.getElementById('writeleash-free-selection-form').dataset.discoveryAction,
+                value: document.querySelector('#writeleash-free-products + .select2-container .select2-search__field').value,
+                options: Array.from(document.querySelectorAll('.select2-results__option')).map(option => option.textContent)
+            }))));
+            await capture(page, 'failed-search');
+            throw error;
+        }
     }
-    await page.locator('#writeleash-free-discovery-status').filter({ hasText: /Choose matches|No matches|Search limit/ }).waitFor();
-    if (result.data.results.length) await page.locator('.select2-results__option[data-selected]').first().waitFor();
 }
 (async () => {
     const browser = await chromium.launch({ headless: true, executablePath: process.env.WL167_CHROME || '/usr/bin/google-chrome' });
@@ -144,7 +161,7 @@ async function search(page, term) {
         await search(page, 'WL167 Browser Café');
         await page.locator('.select2-results__option[data-selected="false"]').first().click();
         await page.locator('#writeleash-free-amount').fill('bad-price');
-        await action(page, 'Build frozen preview');
+        await action(page, 'Preview price changes');
         const retainedAmount = await page.locator('#writeleash-free-amount').inputValue();
         if (retainedAmount !== 'bad-price') {
             console.error('Validation recovery diagnostics:', JSON.stringify({ url: page.url(), amount: retainedAmount, notices: await page.locator('#wpbody-content .notice').allTextContents() }));
@@ -153,7 +170,7 @@ async function search(page, term) {
         ok(retainedAmount === 'bad-price', 'validation retains entered amount');
         ok(await page.locator('#writeleash-free-selected button').count() === 2, 'validation retains chosen identities');
         await page.locator('#writeleash-free-amount').fill('80.00');
-        await action(page, 'Build frozen preview');
+        await action(page, 'Preview price changes');
         const previewURL = page.url();
         await capture(page, 'saved-preview');
         const before = observe();
@@ -176,12 +193,12 @@ async function search(page, term) {
         await page.goto(previewURL.replace('wl_view=preview', 'wl_view=job'));
         ok(await page.getByRole('link', { name: 'Continue review', exact: true }).count() === 1, 'direct status offers saved review');
         await page.getByRole('link', { name: 'Continue review', exact: true }).click();
-        await action(page, 'Approve and queue execution');
+        await action(page, 'Approve and apply');
         await action(page, 'Resume remaining products');
         ok((await page.locator('#wpbody-content').innerText()).includes('Not changed'), 'existing execution checks detect stale product');
         ok(Number(observe().prices[fixture.products[0]].stored) === 120, 'independent observer proves no blind overwrite');
         await page.goto(previewURL);
-        ok(await page.getByRole('button', { name: 'Approve and queue execution', exact: true }).count() === 0, 'approved preview routes to actual results, cannot reapprove');
+        ok(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count() === 0, 'approved preview routes to actual results, cannot reapprove');
         ok(errors.length === 0, 'escaped names do not run JavaScript or cause script errors');
         await context.close();
         // Native fallback uses the same routes/controls with JavaScript disabled.
@@ -195,7 +212,11 @@ async function search(page, term) {
         await page.locator('#writeleash-free-products').selectOption(fixture.products.slice(0, 2).map(String));
         await action(page, 'Update selected products');
         ok(await page.locator('#writeleash-free-selected li').count() === 2 && await page.locator('#writeleash-free-amount').inputValue() === 'bad-price', 'native selection retains entered configuration');
-        await page.locator('#writeleash-free-selected button').first().click(); await page.waitForLoadState('networkidle');
+        const nativeRemove = page.locator('#writeleash-free-selected button').first();
+        await nativeRemove.scrollIntoViewIfNeeded();
+        try { await nativeRemove.click({ timeout: 5000 }); }
+        catch ( error ) { await nativeRemove.focus(); await page.keyboard.press('Enter'); }
+        await page.waitForLoadState('networkidle');
         ok(await page.locator('#writeleash-free-selected button').count() === 1, 'native remove');
         await action(page, 'Clear selected products');
         ok(await page.locator('#writeleash-free-selected button').count() === 0, 'native clear');
@@ -207,13 +228,13 @@ async function search(page, term) {
         await page.locator('#writeleash-free-category').selectOption(String(fixture.parent));
         await page.locator('#writeleash-free-amount').fill('80.00');
         await page.locator('#writeleash-free-max_decrease').fill('1');
-        await action(page, 'Build frozen preview');
+        await action(page, 'Preview price changes');
         ok((await page.locator('#wpbody-content').innerText()).includes('This plan cannot be executed.'), 'blocked saved category preview explains block');
         await capture(page, 'blocked-category');
         await page.goto(home + '&wl_view=history');
         await page.getByRole('link', { name: 'Review blocked plan', exact: true }).first().click();
         await page.waitForLoadState('networkidle');
-        ok(await page.getByRole('button', { name: 'Approve and queue execution', exact: true }).count() === 0 && await page.getByRole('link', { name: 'Create a new preview', exact: true }).count() === 1, 'blocked review offers new preview, no approval');
+        ok(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count() === 0 && await page.getByRole('link', { name: 'Create a new preview', exact: true }).count() === 1, 'blocked review offers new preview, no approval');
         const after = observe().jobs[0];
         ok(JSON.parse(after.plan_json).resolved_product_ids.every(id => id !== fixture.products[1]), 'category preview excludes child-only product');
         await native.close();

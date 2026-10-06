@@ -38,9 +38,9 @@ add_action('woocommerce_before_product_object_save', static function($p) {
  $s=get_option('wl170_saves', array()); $id=$p->get_id(); $s[$id]=($s[$id]??0)+1; update_option('wl170_saves', $s, false);
 });
 add_filter('posts_results', static function($posts,$query) {
- if ('product' !== $query->get('post_type')) return $posts;
+ $pt=(array)$query->get('post_type'); if (!in_array('product',$pt,true)) return $posts;
  $r=get_option('wl170_reads', array()); $kind=$query->get('post__in')?'selected':'search';
- $r[$kind]=max($r[$kind]??0,count($posts)); $r['unbounded']=($r['unbounded']??false)||$query->get('posts_per_page')<1; $r['oversized']=($r['oversized']??false)||$query->get('posts_per_page')>($kind==='selected'?100:11);
+ $r[$kind]=max($r[$kind]??0,count($posts)); $pp=(int)$query->get('posts_per_page'); $limit=$kind==='selected'?max(\WriteLeash\Free_Support_Contract::MAX_JOB_PRODUCTS,\WriteLeash\Product_Price_Selector::MAX_SELECTED)+1:11; $r['unbounded']=($r['unbounded']??false)||$pp<1; $r['oversized']=($r['oversized']??false)||$pp>$limit; if(($pp<1||$pp>$limit)&&count($r['offenders']??array())<20){$in=$query->get('post__in'); $r['offenders'][]=array('kind'=>$kind,'pp'=>$pp,'returned'=>count($posts),'in'=>is_array($in)?count($in):(int)(bool)$in);}
  update_option('wl170_reads',$r,false); return $posts;
 },10,2);
 MU
@@ -61,16 +61,16 @@ if ( 'edit-apply' === $mode || 'edit-undo' === $mode ) {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php'; deactivate_plugins( 'woocommerce/woocommerce.php' );
 } elseif ( 'restore-woo' === $mode ) {
 	require_once ABSPATH . 'wp-admin/includes/plugin.php'; activate_plugin( 'woocommerce/woocommerce.php' );
-} elseif ( 'unsupported-woo' === $mode ) {
-	$zip = getenv( 'WL170_UNSUPPORTED_ZIP' ) ?: '/opt/woo-zips/woocommerce.11.0.1.zip';
+} elseif ( 'older-woo' === $mode ) {
+	$zip = getenv( 'WL170_OLDER_ZIP' ) ?: '/opt/woo-zips/woocommerce.11.0.1.zip';
 	$expected = 'da189b6616c610d15a2106f93151dab81b78f83e075bcefce221ac0d00b4fa21';
-	if ( hash_file( 'sha256', $zip ) !== $expected ) { throw new RuntimeException( 'Wrong unsupported Woo package' ); }
+	if ( hash_file( 'sha256', $zip ) !== $expected ) { throw new RuntimeException( 'Wrong older Woo package' ); }
 	$backup = ABSPATH . 'wp-content/wl170-supported-woo';
 	if ( file_exists( $backup ) ) { throw new RuntimeException( 'Unrestored Woo fixture' ); }
 	if ( ! rename( WP_PLUGIN_DIR . '/woocommerce', $backup ) ) { throw new RuntimeException( 'Woo fixture backup failed' ); }
 	$archive = new ZipArchive(); $archive->open( $zip ); $archive->extractTo( WP_PLUGIN_DIR ); $archive->close();
 } elseif ( 'restore-version' === $mode ) {
-	if ( ! rename( WP_PLUGIN_DIR . '/woocommerce', ABSPATH . 'wp-content/wl170-unsupported-woo-' . wp_generate_uuid4() ) || ! rename( ABSPATH . 'wp-content/wl170-supported-woo', WP_PLUGIN_DIR . '/woocommerce' ) ) { throw new RuntimeException( 'Woo fixture restoration failed' ); }
+	if ( ! rename( WP_PLUGIN_DIR . '/woocommerce', ABSPATH . 'wp-content/wl170-older-woo-' . wp_generate_uuid4() ) || ! rename( ABSPATH . 'wp-content/wl170-supported-woo', WP_PLUGIN_DIR . '/woocommerce' ) ) { throw new RuntimeException( 'Woo fixture restoration failed' ); }
 } elseif ( 'observe' !== $mode ) { throw new RuntimeException( 'Unknown #170 fixture mode' ); }
 // Rejected actions are checked against prices, full durable rows and save counts.
 $prices = array();

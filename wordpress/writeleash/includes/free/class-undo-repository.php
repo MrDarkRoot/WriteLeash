@@ -270,18 +270,33 @@ final class Undo_Repository {
 		catch ( Price_Apply_Error $error ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
 		$evidence = json_decode( $journal['evidence'], true );
 		if ( ! is_array( $evidence ) || empty( $evidence['attempt_id'] ) ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
-		foreach ( array( 'regular', 'active', 'lookup_min', 'lookup_max' ) as $key ) {
-			if ( ! isset( $evidence[$key] ) ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
-		}
+		$field = $evidence['price_field'] ?? null;
 		try {
 			$frozen = $plan->item( $product_id )->data();
 			$applied = Price_Decimal::parse( $job_item['planned_price'] );
-			if ( Price_Decimal::parse( $evidence['regular'] ) !== $applied || Price_Decimal::parse( $evidence['active'] ) !== $applied ||
-				Price_Decimal::parse( $evidence['lookup_min'] ) !== $applied || Price_Decimal::parse( $evidence['lookup_max'] ) !== $applied ||
-				Price_Decimal::parse( $evidence['target'] ) !== $applied || $journal['target_price'] !== $job_item['planned_price'] ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
+			if ( Price_Decimal::parse( $evidence['target'] ) !== $applied || $journal['target_price'] !== $job_item['planned_price'] ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
+			if ( null === $field ) {
+				// Legacy evidence (no price field): strict sale-free proof exactly as before.
+				foreach ( array( 'regular', 'active', 'lookup_min', 'lookup_max' ) as $key ) {
+					if ( ! isset( $evidence[$key] ) || Price_Decimal::parse( $evidence[$key] ) !== $applied ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
+				}
+			} else {
+				Price_Operation::assert_field( $field );
+				if ( ! is_string( $evidence['field_value'] ?? null ) || ! Price_Decimal::equal( $evidence['field_value'], $job_item['planned_price'] )
+					|| ! is_string( $evidence['regular'] ?? null ) || ! is_string( $evidence['sale'] ?? null ) ) {
+					throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' );
+				}
+				if ( Price_Operation::FIELD_REGULAR === $field ) {
+					if ( ! Price_Decimal::equal( $evidence['regular'], $job_item['planned_price'] ) ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
+				} else {
+					if ( ! Price_Decimal::equal( $evidence['sale'], $job_item['planned_price'] ) || '' === $evidence['regular'] ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
+					try { Price_Decimal::parse( $evidence['regular'] ); }
+					catch ( Price_Validation_Error $error ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
+				}
+			}
 		} catch ( Price_Validation_Error $error ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
 		$snapshot = $frozen['snapshot'];
-		return array(
+		$facts = array(
 			'job_id' => (int) $job['id'],
 			'plan_id' => $plan->data()['plan_id'],
 			'product_id' => $product_id,
@@ -298,15 +313,21 @@ final class Undo_Repository {
 			'product_type' => $snapshot['type'],
 			'core_simple' => (bool) $snapshot['core_simple'],
 			'status' => $snapshot['status'],
-			'sale_price' => $snapshot['sale_price'],
-			'sale_from' => $snapshot['sale_from'],
-			'sale_to' => $snapshot['sale_to'],
-			'active_price' => $evidence['active'],
-			'lookup_min' => $evidence['lookup_min'],
-			'lookup_max' => $evidence['lookup_max'],
-			'lookup_onsale' => '0',
 			'initiated_post_modified_gmt' => self::advisory_modified_gmt( $product_id ),
 		);
+		if ( null === $field ) {
+			$facts['sale_price'] = $snapshot['sale_price'];
+			$facts['sale_from'] = $snapshot['sale_from'];
+			$facts['sale_to'] = $snapshot['sale_to'];
+			$facts['active_price'] = $evidence['active'];
+			$facts['lookup_min'] = $evidence['lookup_min'];
+			$facts['lookup_max'] = $evidence['lookup_max'];
+			$facts['lookup_onsale'] = '0';
+		} else {
+			$facts['price_field'] = $field;
+			if ( Price_Operation::FIELD_SALE === $field ) { $facts['regular_context'] = $evidence['regular']; }
+		}
+		return $facts;
 	}
 
 	/** Advisory only: never a blocking safety claim. */

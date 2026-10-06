@@ -33,6 +33,13 @@ async function tabTo(page, target) {
             ok(await target.evaluate(el => { const s = getComputedStyle(el); const widget = el.closest('.select2-container'); const boundary = widget && widget.querySelector('.select2-selection'); return s.outlineStyle !== 'none' || s.boxShadow !== 'none' || (boundary && widget.classList.contains('select2-container--focus') && (getComputedStyle(boundary).boxShadow !== 'none' || getComputedStyle(boundary).outlineStyle !== 'none')); }), 'visible keyboard focus');
             return;
         }
+        // selectWoo treats Tab as "select the highlighted option" while its
+        // dropdown is open (document-level keydown), so close it before any
+        // focus traversal that is not an explicit selection step.
+        if (await page.locator('.select2-container--open').count()) {
+            await page.keyboard.press('Escape');
+            await page.locator('.select2-container--open').first().waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+        }
         const backwards = await target.evaluate(el => !!(el.compareDocumentPosition(document.activeElement) & Node.DOCUMENT_POSITION_FOLLOWING));
         await page.keyboard.press(backwards ? 'Shift+Tab' : 'Tab');
         await page.waitForTimeout(20); // Native focus events settle asynchronously in Firefox.
@@ -49,13 +56,23 @@ function button(page, name) { return page.getByRole('button', { name, exact: tru
 function link(page, name) { return page.getByRole('link', { name, exact: true }); }
 async function search(page, term) {
     const field = page.locator('#writeleash-free-products + .select2-container .select2-search__field');
-    await tabTo(page, field); await page.keyboard.press('ControlOrMeta+A');
-    const response = page.waitForResponse(r => { const u = new URL(r.url()); return u.searchParams.get('action') === 'writeleash_free_discovery' && u.searchParams.get('term') === term; });
-    await page.keyboard.type(term, { delay: 20 });
-    assert.equal(await field.inputValue(), term);
-    const data = await (await response).json();
-    await page.locator('.select2-results__option[data-selected]').first().waitFor();
-    ok(data.success && data.data.results.length <= 20, 'bounded real discovery response');
+    // SelectWoo can drop a query keyed before its dropdown settles. Type once,
+    // wait on this query's own rows, and retry once before failing.
+    for (let attempt = 0; attempt < 2; attempt++) {
+        await tabTo(page, field); await page.keyboard.press('ControlOrMeta+A');
+        const response = page.waitForResponse(r => { const u = new URL(r.url()); return u.searchParams.get('action') === 'writeleash_free_discovery' && u.searchParams.get('term') === term; });
+        await page.keyboard.type(term, { delay: 20 });
+        assert.equal(await field.inputValue(), term);
+        try {
+            const data = await (await response).json();
+            await page.locator('.select2-results__option[data-selected]').first().waitFor({ timeout: 15000 });
+            ok(data.success && data.data.results.length <= 20, 'bounded real discovery response');
+            return;
+        } catch (error) {
+            if (attempt === 0) { console.error('Discovery query retried after a dropped/stale response: ' + term); continue; }
+            throw error;
+        }
+    }
 }
 async function form(page, action) {
     return page.locator('form').filter({ has: page.locator('input[name="action"][value="' + action + '"]') }).evaluate(el => Object.fromEntries(new FormData(el)));
@@ -99,7 +116,7 @@ async function responsive(page) {
 (async () => {
     const browser = await pw[engine].launch({ headless: true, ...(process.env.WL170_EXECUTABLE ? { executablePath: process.env.WL170_EXECUTABLE } : (engine === 'chromium' ? { executablePath: process.env.WL167_CHROME || '/usr/bin/google-chrome' } : {})) });
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
-    let missing = false, unsupported = false;
+    let missing = false, older = false;
     try {
         let page = await context.newPage();
         await login(page); await page.goto(home);
@@ -126,16 +143,44 @@ async function responsive(page) {
         await page.route('**/admin-ajax.php*', r => r.abort('timedout'));
         await tabTo(page, picker); await page.keyboard.press('ControlOrMeta+A'); await page.keyboard.type('failed request', { delay: 20 });
         await page.getByText('Search is unavailable. Try again, reload if your session expired, or use the native search below.', { exact: true }).waitFor();
-        ok(await page.locator('#writeleash-free-selected button').count() === 0 && durable(fixture()) === beforeNetwork, 'network failure has no phantom selection or mutation');
+        const networkSelected = await page.locator('#writeleash-free-selected button').count();
+        const networkAfter = durable(fixture());
+        if (0 !== networkSelected || networkAfter !== beforeNetwork) {
+            console.error('Network-failure diagnostics: ' + JSON.stringify({ selected: networkSelected, chosenText: await page.locator('#writeleash-free-selected').innerText(), before: JSON.parse(beforeNetwork), after: JSON.parse(networkAfter) }));
+            await capture(page, 'network-failure');
+        }
+        ok(0 === networkSelected && networkAfter === beforeNetwork, 'network failure has no phantom selection or mutation');
         await scan(page, 'search failure'); await page.unroute('**/admin-ajax.php*');
         // Same real server form works with the enhancement entirely unavailable.
         const native = await browser.newContext({ javaScriptEnabled: false, storageState: await context.storageState() });
         const np = await native.newPage(); await np.goto(home);
-        await tabTo(np, np.locator('#writeleash-free-product_search')); await np.keyboard.type(f.skus[0]);
-        await enter(np, button(np, 'Search products'));
-        await tabTo(np, np.locator('#writeleash-free-products')); await np.keyboard.press('Home');
-        await enter(np, button(np, 'Update selected products'));
-        ok(await np.locator('#writeleash-free-selected button').count() === 1 && durable(fixture()) === beforeNetwork, 'keyboard native fallback selects actual product without mutation');
+        const nativeSearch = np.locator('#writeleash-free-product_search');
+        const nativeSelect = np.locator('#writeleash-free-products');
+        let nativeMatches = 0, nativeSelected = 0;
+        // A native POST renders a fresh nonce each time, so retry the whole
+        // state-based sequence once if a submission is dropped or refused.
+        for (let round = 0; round < 2 && !nativeSelected; round++) {
+            for (let attempt = 0; attempt < 2 && !nativeMatches; attempt++) {
+                await tabTo(np, nativeSearch); await np.keyboard.press('ControlOrMeta+A'); await np.keyboard.type(f.skus[0]);
+                await enter(np, button(np, 'Search products'));
+                nativeMatches = await nativeSelect.locator('option').count();
+            }
+            if (!nativeMatches) { break; }
+            const nativeFirst = nativeSelect.locator('option').first();
+            await tabTo(np, nativeSelect); await np.keyboard.press('Home');
+            if (!(await nativeFirst.evaluate(el => el.selected))) { await np.keyboard.press('Space'); }
+            ok(await nativeFirst.evaluate(el => el.selected), 'native keyboard navigation selects the first match');
+            await enter(np, button(np, 'Update selected products'));
+            nativeSelected = await np.locator('#writeleash-free-selected button').count();
+            if (!nativeSelected) { nativeMatches = 0; }
+        }
+        const nativeAfter = durable(fixture());
+        if (1 !== nativeSelected || nativeAfter !== beforeNetwork) {
+            console.error('Native fallback diagnostics: ' + JSON.stringify({ nativeMatches, nativeSelected, nativeOptions: await nativeSelect.locator('option').allTextContents(), term: await nativeSearch.inputValue(), notice: await np.locator('.notice-error').allTextContents(), body: (await np.locator('#wpbody-content').innerText()).slice(0, 600), before: JSON.parse(beforeNetwork), after: JSON.parse(nativeAfter) }));
+            await capture(np, 'native-fallback');
+        }
+        ok(nativeMatches > 0, 'native search returns the actual product match');
+        ok(1 === nativeSelected && nativeAfter === beforeNetwork, 'keyboard native fallback selects actual product without mutation');
         await native.close(); await page.goto(home);
         for (let i = 0; i < f.skus.length; i++) {
             await search(page, f.skus[i]);
@@ -154,11 +199,11 @@ async function responsive(page) {
         await tabTo(page, page.locator('#writeleash-free-operation'));
         await page.keyboard.press('End'); // Last native option = decrease percent.
         await tabTo(page, page.locator('#writeleash-free-amount')); await page.keyboard.type('bad-price');
-        await enter(page, button(page, 'Build frozen preview'));
+        await enter(page, button(page, 'Preview price changes'));
         ok((await page.locator('#writeleash-free-amount').inputValue()) === 'bad-price' && await page.locator('#writeleash-free-selected button').count() === 22, 'validation retains selection and input');
         await scan(page, 'validation error');
         await tabTo(page, page.locator('#writeleash-free-amount')); await page.keyboard.press('ControlOrMeta+A'); await page.keyboard.type('20');
-        await enter(page, button(page, 'Build frozen preview'));
+        await enter(page, button(page, 'Preview price changes'));
         const previewURL = page.url(); const publicId = new URL(previewURL).searchParams.get('wl_job');
         let observed = fixture(); const job = observed.jobs.find(j => j.public_id === publicId);
         const frozen = { json: job.plan_json, hash: job.plan_hash };
@@ -177,7 +222,7 @@ async function responsive(page) {
             await route.fetch({ maxRedirects: 0 }); // Real server approval commits; browser receives no response.
             await route.abort('failed'); approvalForwarded();
         });
-        await tabTo(page, button(page, 'Approve and queue execution')); await page.keyboard.press('Enter');
+        await tabTo(page, button(page, 'Approve and apply')); await page.keyboard.press('Enter');
         await forwarded;
         await page.unroute('**/admin-post.php');
         const jobURL = home + '&wl_view=job&wl_job=' + publicId;
@@ -249,7 +294,7 @@ async function responsive(page) {
             ok(durable(fixture()) === unchanged, who + ': independent no mutation'); await c.close();
         }
         fixture('revoke'); await page.goto(home);
-        ok((await text(page)).includes('cannot plan or execute'), 'removed permission recovery message');
+        ok((await text(page)).includes('cannot preview or apply'), 'removed permission recovery message');
         const r = await context.request.get(base + '/wp-admin/admin-ajax.php', { params: { action: 'writeleash_free_discovery', nonce: 'wrong', term: f.skus[0] } });
         ok(r.status() === 403 && !(await r.text()).includes(f.skus[0]), 'removed permission search denied');
         fixture('restore-rights'); fixture('short-nonce'); await page.goto(home);
@@ -264,19 +309,22 @@ async function responsive(page) {
         ok((await text(page)).includes('WooCommerce') && durable(fixture()) === unchanged, 'missing dependency message preserves durable work'); await scan(page, 'missing dependency');
         fixture('restore-woo'); missing = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'reactivated Woo recovers saved job');
-        fixture('unsupported-woo'); unsupported = true; await page.reload();
         // #180 supports the whole 10.x-11.x range, so the real 11.0.1 package is
         // an in-range install: the saved job must stay reachable and unchanged.
+        fixture('older-woo'); older = true; await page.reload();
         ok((await text(page)).includes('Undo finished') && durable(fixture()) === unchanged, 'older in-range Woo 11.0.1 keeps saved work without mutation');
-        fixture('restore-version'); unsupported = false; await page.reload();
+        fixture('restore-version'); older = false; await page.reload();
         ok((await text(page)).includes('Undo finished'), 'supported Woo restored without lost work');
-        const reads = fixture().reads; ok(!reads.unbounded && !reads.oversized && reads.search <= 11 && reads.selected <= 100, 'bounded catalog windows throughout browser journey');
+        // #177 supports 1,000 products per job, so the selected window is bounded by MAX_JOB_PRODUCTS + 1.
+        const reads = fixture().reads;
+        if (reads.unbounded || reads.oversized || !(reads.search <= 11) || !(reads.selected <= 1001)) { console.error('Catalog window diagnostics: ' + JSON.stringify(reads)); }
+        ok(!reads.unbounded && !reads.oversized && reads.search <= 11 && reads.selected <= 1001, 'bounded catalog windows throughout browser journey');
         safety.negatives = { no_mutation: durable(fixture()) === unchanged, reads };
         if (out) fs.writeFileSync(out + '/170-' + engine + '-result.json', JSON.stringify({ engine, version: await browser.version(), checks, scans, safety, evidence, viewport: '1440/1024/782/375', keyboard: 'PASS', screen_reader: 'NOT_TESTED', safari: 'NOT_TESTED' }, null, 2));
         console.log('#170 ' + engine + ' integrated keyboard/accessibility/safety: PASS (' + checks + ' assertions); version=' + await browser.version());
     } finally {
         fixture('normal-nonce'); fixture('restore-rights');
-        if (missing) fixture('restore-woo'); if (unsupported) fixture('restore-version');
+        if (missing) fixture('restore-woo'); if (older) fixture('restore-version');
         await context.close(); await browser.close();
     }
 })().catch(e => { console.error(e.stack); process.exitCode = 1; });

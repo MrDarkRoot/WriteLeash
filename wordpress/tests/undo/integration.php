@@ -285,7 +285,8 @@ eq( Decimal::parse( fresh_price( $s1['ids'][0] ) ), Decimal::parse( '100.00' ), 
 marker( 'undo schema unknown/partial/wrong-engine fail closed with zero mutation' );
 
 // ---------------------------------------------------------------------------
-// Partial Undo E2E: A untouched, B external 90, C sale configured, D deleted.
+// Partial Undo E2E: A untouched, B external 90, C sale configured (regular
+// field restores; the sale configuration is preserved), D deleted.
 // ---------------------------------------------------------------------------
 $f = apply_fixture( array( 'changing' => 4 ) );
 $job_id = (int) $f['job']['id'];
@@ -310,19 +311,21 @@ eq( (int) $op_again['id'], $undo_id, 're-initiation returns the same operation' 
 $result = run_worker( array( 'undo_id' => $undo_id, 'mode' => 'undo', 'limits' => limits( 10 ), 'manual' => true ) );
 eq( $result['status'], UState::COMPLETED_WITH_ISSUES, 'partial undo is not generic success' );
 $counts = undo_counts( $undo_id );
-eq( $counts['undone'], 1, 'one undone' );
-eq( $counts['conflict'], 3, 'three conflicts' );
+eq( $counts['undone'], 2, 'two undone' );
+eq( $counts['conflict'], 2, 'two conflicts' );
 eq( Decimal::parse( fresh_price( $id_a ) ), Decimal::parse( '100.00' ), 'A restored to original' );
 eq( fresh_price( $id_b ), '90.00', 'B external price not overwritten' );
-eq( fresh_price( $id_c ), '80.00', 'C sale context not overwritten' );
+eq( Decimal::parse( fresh_price( $id_c ) ), Decimal::parse( '100.00' ), 'C regular price restored under its sale' );
+Verifier::invalidate( $id_c );
+eq( (string) wc_get_product( $id_c )->get_sale_price( 'edit' ), '70.00', 'C sale configuration preserved by the regular-field undo' );
 eq( undo_row( $job_id, $id_a )['state'], UItem::UNDONE, 'A durable UNDONE' );
 eq( undo_row( $job_id, $id_b )['state'], UItem::CONFLICT, 'B durable UNDO_CONFLICT' );
-eq( undo_row( $job_id, $id_c )['state'], UItem::CONFLICT, 'C durable UNDO_CONFLICT' );
+eq( undo_row( $job_id, $id_c )['state'], UItem::UNDONE, 'C durable UNDONE' );
 eq( undo_row( $job_id, $id_d )['state'], UItem::CONFLICT, 'D durable UNDO_CONFLICT' );
 eq( undo_row( $job_id, $id_d )['reason'], 'PRODUCT_MISSING', 'D typed product missing' );
 eq( saves( $id_a ) - $apply_saves[$id_a], 1, 'A exactly one restore save' );
 eq( saves( $id_b ) - $apply_saves[$id_b], 0, 'B zero restore saves' );
-eq( saves( $id_c ) - $apply_saves[$id_c], 0, 'C zero restore saves' );
+eq( saves( $id_c ) - $apply_saves[$id_c], 1, 'C exactly one restore save' );
 // Apply history is preserved, never rewritten.
 eq( journal_row( $plan_id, $id_a )['state'], 'APPLIED', 'apply journal remains APPLIED' );
 $job_items = Repo::items( $job_id, IState::APPLIED, 0, 100 );
@@ -559,8 +562,8 @@ marker( 'provenance tampering: applied price, fingerprint and original all fail 
 $history = URepo::history_job( $job_id );
 eq( $history['job_id'], $job_id, 'history job identity' );
 eq( $history['apply']['applied'], 4, 'history apply counts preserved' );
-eq( $history['undo']['undone'], 1, 'history undo counts additive' );
-eq( $history['undo']['conflict'], 3, 'history undo conflict counts' );
+eq( $history['undo']['undone'], 2, 'history undo counts additive' );
+eq( $history['undo']['conflict'], 2, 'history undo conflict counts' );
 eq( $history['undo_eligible'], false, 'finished Undo operation not eligible again' );
 ok( null !== $history['undo_expires_at'], 'history exposes undo expiry' );
 $page = URepo::history_jobs( 0, 1, 1 );
@@ -570,7 +573,7 @@ ok( $page['jobs'][0]['job_id'] !== $page2['jobs'][0]['job_id'], 'history jobs de
 $items_page = URepo::history_items( $job_id, null, null, 0, 50 );
 eq( count( $items_page['items'] ), 4, 'history items page' );
 $undone_only = URepo::history_items( $job_id, null, UItem::UNDONE, 0, 50 );
-eq( count( $undone_only['items'] ), 1, 'history items undo-state filter' );
+eq( count( $undone_only['items'] ), 2, 'history items undo-state filter' );
 eq( Decimal::parse( $undone_only['items'][0]['restored_price'] ), Decimal::parse( '100.00' ), 'history restored price' );
 $subscriber = wp_insert_user( array( 'user_login' => 'wl110-sub-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'subscriber' ) );
 $foreign = wp_insert_user( array( 'user_login' => 'wl110-mgr-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );
@@ -586,7 +589,7 @@ WriteLeash\Free_Admin::render_view( 'job', $job_row['public_id'], 0 );
 $merchant_undo168 = (string) ob_get_clean();
 ok( str_contains( $merchant_undo168, 'Undo finished with conflicts' ), 'merchant Undo clearly finished with issues' );
 ok( str_contains( $merchant_undo168, 'preserved the newer value instead of restoring over it' ), 'merchant Undo explains external edit preservation' );
-ok( str_contains( $merchant_undo168, '1 restored · 3 conflicts' ), 'merchant Undo uses disjoint proven counts' );
+ok( str_contains( $merchant_undo168, '2 restored · 2 conflicts' ), 'merchant Undo uses disjoint proven counts' );
 ok( ! str_contains( $merchant_undo168, 'name="action" value="writeleash_free_undo"' ), 'terminal conflicted Undo never offers restoration retry' );
 ok( str_contains( $merchant_undo168, 'does not reverse: orders' ), 'merchant Undo explains external effects boundary' );
 marker( 'history model: pagination, filters, authorization, eligibility, expiry' );

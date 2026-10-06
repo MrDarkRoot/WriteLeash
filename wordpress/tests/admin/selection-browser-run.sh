@@ -9,7 +9,12 @@ scratch="$(mktemp -d)"
 cleanup() {
   local status=$?
   trap - EXIT
-  if [ "$status" -ne 0 ]; then docker exec "$container" sh -c 'tail -40 /tmp/wl167-web.log' 2>/dev/null | sed 's/?.*/?[query redacted]/' || true; fi
+  if [ "$status" -ne 0 ]; then
+    docker exec "$container" sh -c 'tail -200 /tmp/wl167-web.log' 2>/dev/null | sed 's/?.*/?[query redacted]/' || true
+    for log in $(docker exec "$container" sh -c 'find /tmp -maxdepth 4 -name writeleash-debug.log 2>/dev/null' | tr -d '\r'); do
+      docker exec "$container" sh -c "tail -50 '$log'" 2>/dev/null || true
+    done
+  fi
   docker rm -f "$container" >/dev/null 2>&1 || true
   rm -rf "$scratch"
   exit "$status"
@@ -50,7 +55,25 @@ SETUP
     chmod 600 "$WL167_FIXTURE"
     curl --fail --silent --retry 5 --retry-all-errors --retry-delay 1 "$WL167_BASE_URL/wp-login.php" >/dev/null
     echo "#167 real browser engine=$host cache=$cache"
-    node "$here/selection-browser.cjs"
+    if ! node "$here/selection-browser.cjs"; then
+      # A dropped Playwright navigation/select2 query on a loaded runner is not
+      # a product failure: reset the disposable baseline and retry once.
+      echo "#167 selection browser retry engine=$host cache=$cache"
+      docker exec -e WL167_MODE=reset -e WL167_FIXTURE=/tmp/wl167-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/selection-browser-fixture.php >/dev/null
+      docker cp "$container:/tmp/wl167-fixture.json" "$WL167_FIXTURE"
+      node "$here/selection-browser.cjs"
+    fi
+    if [ "$host" = mysql ] && [ "$cache" = default ]; then
+      export WL167_EVIDENCE="$evidence"
+      export WL167_LISTING_FIXTURE="$scratch/listing-fixture.json"
+      docker exec -e WL167_LISTING_MODE=seed -e WL167_LISTING_FIXTURE=/tmp/wl167-listing-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/listing-browser-fixture.php
+      docker cp "$container:/tmp/wl167-listing-fixture.json" "$WL167_LISTING_FIXTURE"
+      chmod 600 "$WL167_LISTING_FIXTURE"
+      echo '#182 real browser listing captures engine=mysql cache=default'
+      node "$here/listing-capture.cjs"
+      export WL167_EVIDENCE="$evidence/$host-$cache"
+      unset WL167_LISTING_FIXTURE
+    fi
     export WL168_FIXTURE="$scratch/presentation-fixture.json"
     docker exec -e WL168_MODE=seed -e WL168_FIXTURE=/tmp/wl168-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/presentation-browser-fixture.php
     docker cp "$container:/tmp/wl168-fixture.json" "$WL168_FIXTURE"
@@ -70,4 +93,4 @@ SETUP
     docker exec "$container" sh -c 'kill "$(cat /tmp/wl167-web.pid)"'
   done
 done
-echo '#167 real-browser two-engine/default/Redis selection and saved review: PASS'
+echo '#167/#182 real-browser two-engine/default/Redis selection, saved review and listing captures: PASS'

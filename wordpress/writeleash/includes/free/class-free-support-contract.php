@@ -3,9 +3,9 @@ namespace WriteLeash;
 
 defined( 'ABSPATH' ) || exit;
 
-/** #112 shipping boundary, separate from the #107 engineering selector limit. */
+/** #112 shipping boundary, aligned with the #107 engineering selector maximum by #177. */
 final class Free_Support_Contract {
-	public const MAX_JOB_PRODUCTS = 100;
+	public const MAX_JOB_PRODUCTS = 1000;
 	/**
 	 * Supported WooCommerce range. Every storage/API assumption WriteLeash
 	 * relies on is stable across this span: CPT data-store CRUD price

@@ -2,7 +2,7 @@
 // #167 disposable browser fixture/independent observer. Never use on a store.
 $mode = (string) getenv( 'WL167_MODE' );
 $file = (string) getenv( 'WL167_FIXTURE' );
-if ( ! $file || ! in_array( $mode, array( 'seed', 'observe', 'edit' ), true ) ) { throw new RuntimeException( 'Explicit #167 fixture file/mode required.' ); }
+if ( ! $file || ! in_array( $mode, array( 'seed', 'observe', 'edit', 'reset' ), true ) ) { throw new RuntimeException( 'Explicit #167 fixture file/mode required.' ); }
 if ( 'seed' === $mode ) {
  wp_set_current_user( 1 );
  delete_transient( '_wc_activation_redirect' ); // Fixture onboarding is not the merchant journey.
@@ -21,6 +21,16 @@ if ( 'seed' === $mode ) {
  $mu = ABSPATH . 'wp-content/mu-plugins'; if ( ! is_dir( $mu ) ) { mkdir( $mu ); }
  file_put_contents( $mu . '/wl167-observer.php', '<?php add_action("woocommerce_before_product_object_save", static function () { update_option("wl167_browser_saves", (int) get_option("wl167_browser_saves", 0) + 1, false); }); add_filter("action_scheduler_allow_async_request_runner", "__return_false");' );
  echo "#167 browser fixture seeded\n";
+} elseif ( 'reset' === $mode ) {
+ // A retried browser journey needs the same disposable baseline: restore the
+ // fixture prices and zero the save observer before re-running.
+ $fixture = json_decode( file_get_contents( $file ), true );
+ foreach ( $fixture['products'] as $id ) {
+  $product = wc_get_product( $id );
+  if ( $product ) { $product->set_regular_price( '100.00' ); $product->set_sale_price( '' ); $product->save(); }
+ }
+ update_option( 'wl167_browser_saves', 0, false );
+ echo "#167 browser fixture reset\n";
 } else {
  $fixture = json_decode( file_get_contents( $file ), true );
  if ( 'edit' === $mode ) { $product = wc_get_product( $fixture['products'][0] ); $product->set_regular_price( '120.00' ); $product->save(); }

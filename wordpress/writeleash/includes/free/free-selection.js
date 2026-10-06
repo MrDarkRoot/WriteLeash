@@ -4,6 +4,7 @@
     $(function () {
         var form = $('#writeleash-free-selection-form');
         if (!form.length || !$.fn.selectWoo) { return; }
+        var maxSelection = parseInt(form.data('max-selection'), 10) || 1000;
         var status = $('#writeleash-free-discovery-status');
         var products = $('#writeleash-free-products');
         var category = $('#writeleash-free-category');
@@ -26,7 +27,7 @@
             var fallback = $('#writeleash-free-' + kind + '-fallback');
             control.selectWoo({
                 width: '100%', minimumInputLength: kind === 'products' ? 1 : 0,
-                maximumSelectionLength: kind === 'products' ? 100 : 0,
+                maximumSelectionLength: kind === 'products' ? maxSelection : 0,
                 placeholder: kind === 'products' ? 'Search product name or SKU' : 'Choose a named category',
                 ajax: {
                     delay: 300,

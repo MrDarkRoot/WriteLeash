@@ -35,11 +35,11 @@ $change_conflict_text = static function ( string $f, callable $change ): void {
     file_put_contents( $p, json_encode( $proof, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
 };
 $cases = array(
-    'missing Current header' => static function ( $f ) use ( $change_conflict_text ) { $change_conflict_text( $f, static fn( $s ) => str_replace( "\tCurrent\t", "\tOld\t", $s ) ); },
-    'Current equals Expected despite other 21 text' => static function ( $f ) use ( $change_conflict_text ) { $change_conflict_text( $f, static fn( $s ) => str_replace( "10\t18\t21\t14.40", "10\t18\t18\t14.40", $s ) . "\n21\n" ); },
-    'Current equals Planned' => static function ( $f ) use ( $change_conflict_text ) { $change_conflict_text( $f, static fn( $s ) => str_replace( "10\t18\t21\t14.40", "10\t18\t14.40\t14.40", $s ) ); },
-    'conflict tokens exist only outside row' => static function ( $f ) use ( $change_conflict_text ) { $change_conflict_text( $f, static fn( $s ) => str_replace( 'CONFLICT (ITEM_CONFLICT)', 'APPLIED (WOO_CRUD_VERIFIED)', $s ) . "\nCONFLICT (ITEM_CONFLICT)\n" ); },
-    'numbers are split across unrelated lines' => static function ( $f ) use ( $change_conflict_text ) { $change_conflict_text( $f, static fn( $s ) => "Product\tExpected\tCurrent\tPlanned\tApply\tUndo\n18\n21\n14.40\nCONFLICT (ITEM_CONFLICT)\n" ); },
+    'conflict explanation missing' => static function ( $f ) use ( $change_conflict_text ) { $change_conflict_text( $f, static fn( $s ) => str_replace( 'left the newer value unchanged', 'changed the newer value', $s ) ); },
+    'conflict explanation deleted' => static function ( $f ) use ( $change_conflict_text ) { $change_conflict_text( $f, static fn( $s ) => str_replace( 'left the newer value unchanged', '', $s ) ); },
+    'conflict explanation emptied' => static function ( $f ) use ( $change_conflict_text ) { $change_conflict_text( $f, static fn( $s ) => str_replace( 'left the newer value unchanged', 'x', $s ) ); },
+    'conflict explanation reworded' => static function ( $f ) use ( $change_conflict_text ) { $change_conflict_text( $f, static fn( $s ) => str_replace( 'left the newer value unchanged', 'overwrote the value', $s ) ); },
+    'conflict explanation not text' => static function ( $f ) use ( $change_conflict_text ) { $change_conflict_text( $f, static fn( $s ) => strtoupper( $s ) ); },
     'entire asset directory missing' => static function ( $f ) use ( $remove ) { $remove( $f . '/wordpress/assets' ); },
     'missing required SVG icon' => static function ( $f ) { unlink( $f . '/wordpress/assets/icon.svg' ); },
     'missing required icon / SVG fallback' => static function ( $f ) { unlink( $f . '/wordpress/assets/icon-128x128.png' ); },

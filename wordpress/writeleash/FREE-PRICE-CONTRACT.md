@@ -8,20 +8,41 @@ path remains intact. Loadable classes do not require Woo until invoked.
 ## Product domain
 
 Only the exact core `WC_Product_Simple` class, `type=simple`, `status=publish`,
-stored `get_regular_price('edit')`, base store currency. Extension subclasses
-are conservatively excluded even if they claim to be simple. Variable parents,
-variations, grouped, external, subscriptions, bundles, composites and custom
-types are unsupported; draft/pending/private/future/trash are unsupported.
+or the exact core `WC_Product_Variation` class, `type=variation`,
+`status=publish`, whose parent is a published exact core `WC_Product_Variable`
+(#179), stored `get_regular_price('edit')` / `get_sale_price('edit')`, base
+store currency. Extension subclasses are conservatively excluded even if they
+claim to be simple or a variation. Variable parents targeted directly, grouped,
+external, subscriptions, bundles, composites and custom types are unsupported;
+draft/pending/private/future/trash are unsupported.
 Tax-inclusive/exclusive storefront prices, discounts and multi-currency
 extensions are not this price field. Filtered currency differing from the base
 option yields `unsupported_currency_context`; caller integrations must not
 claim extension-defined per-product currency support.
 
-Sale exclusion uses edit-context sale price **strictly unequal to empty string**
-(including numeric zero), or either non-null edit-context sale date. It does not
-use `is_on_sale()`: configured inactive, future and expired sales and date-only
-configuration are excluded (`sale_configured`). Empty regular price is distinct
-from zero and is unsupported for every operation, including SET.
+Sale configuration is no longer a blanket exclusion (#178). A sale-configured
+simple product or variation is eligible for a regular-price edit, and the stored
+sale price and dates are preserved. Both fields require a parseable non-empty
+regular price as the sale baseline, and a target WooCommerce would use to clear
+the sale is refused: a regular target at or below the sale
+(`regular_price_not_above_sale`), a sale target at or above the regular price
+(`sale_price_not_below_regular`), or a fixed/percent operation from an empty
+sale (`empty_sale_price`). Empty regular price is distinct from zero and is
+unsupported for every operation, including SET.
+
+## Price field (#178)
+
+`Price_Operation` carries a third `field` value, `regular_price` or
+`sale_price`, exposed through `data()['field']` and covered by the plan hash.
+Legacy plans without the key default to `regular_price`; hydration never injects
+the key into hashed material, so old `plan_hash` values keep verifying. Item keys
+`expected_regular_price`/`planned_regular_price` keep their names and mean the
+expected/planned value of the plan's field. The sale field accepts an empty
+expected value (a plan that adds the first sale); fixed/percent operations from
+that empty baseline are refused because no ratio exists. When the expected value
+is empty, policy skips the ratio caps/warnings but still applies the zero-target
+blocker and the plan-level max-products limit. `Change_Plan::price_field()` is
+the reader for every consumer.
 
 ## Decimal contract, v1
 
@@ -64,8 +85,10 @@ Planning is bounded to 1,000 concrete IDs; overflow fails the entire selection
 without a partial plan. This is an initial planning ceiling, not #112 scale proof.
 IDs and items sort ascending numerically. The public WP query primes post/meta/
 term caches before Woo object reads; no N × full-catalog query. Missing explicit
-IDs remain preview items with `missing_product`. Unsupported selected products
-remain with typed reasons, not silently dropped. Duplicate requested IDs are
+IDs remain preview items with `missing_product`; an ID whose Woo read throws
+remains a preview item with `unreadable_product_data` instead of aborting the
+whole selection. Unsupported selected products remain with typed reasons, not
+silently dropped. Duplicate requested IDs are
 deduplicated with a `duplicate_selection` selection warning; selected count is
 the unique count. An empty explicit list is invalid; an unmatched SKU/category
 may yield an empty, non-executable preview.
@@ -79,8 +102,10 @@ Unexpected duplicate exact matches fail `ambiguous_sku`, never select the first.
 Woo setter uniqueness checks are not a planner uniqueness guarantee.
 
 Category uses public WP taxonomy query `product_cat`, term ID, **no descendants**.
-Multiple memberships do not duplicate IDs. Missing term is invalid. Both products
-and variations are queried so selected unsupported variations remain explainable.
+Multiple memberships do not duplicate IDs. Missing term is invalid. Products and
+variations are queried; selected core variable parents are expanded to their
+exact child variations at preview, and a variable parent with no children stays
+one explained unsupported item.
 Concrete IDs are frozen; subsequent membership changes are **provenance only**,
 not drift conflicts. SKU/name changes are also provenance only. Workers do not
 re-query selectors. Title search: **DEFER** (search interpretation/cost unproven).
@@ -147,14 +172,17 @@ are ALLOW, ALLOW_WITH_WARNINGS or BLOCKED. ALLOW describes policy only, not appr
 
 `Change_Plan::precondition(id, current_snapshot, current_context)` returns MATCH,
 CONFLICT, BLOCKED or NOT_CHANGING. It never calculates a new price or resolves a
-selector. Missing/wrong ID, numeric regular-price change, type/core-class change,
-status change, any sale configuration change, currency/base-context change,
-decimals change, or WP/Woo version change conflicts. Numeric equivalent `100`
-and `100.00` match; malformed/empty live prices conflict. Category/SKU/title are
-provenance only. The worker must re-read public Woo state freshly under its own
-concurrency boundary, check edit rights and approved binding, then consume only
-the persisted ID/expected/target strings. This API supplies no locks, freshness,
-transactions, product saves, crash/cache/concurrency guarantees or approval.
+selector. Missing/wrong ID, type/core-class change, status change, currency/
+base-context change, decimals change, or WP/Woo version change conflicts. For a
+regular-field plan only the stored regular price is guarded; an external sale
+price or schedule change is preserved, not a conflict. For a sale-field plan the
+stored sale price is guarded and the planned sale must remain strictly below the
+current regular price. Numeric equivalent `100` and `100.00` match; malformed/
+empty live prices conflict. Category/SKU/title are provenance only. The worker
+must re-read public Woo state freshly under its own concurrency boundary, check
+edit rights and approved binding, then consume only the persisted ID/expected/
+target strings. This API supplies no locks, freshness, transactions, product
+saves, crash/cache/concurrency guarantees or approval.
 
 ## Admin display formatting (#169)
 

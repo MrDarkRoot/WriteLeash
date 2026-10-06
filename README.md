@@ -1,17 +1,26 @@
 # WriteLeash
 
-**WriteLeash Free 1.0 is planned for safe WooCommerce bulk price changes.** The
-current public-product authority is [#106](https://github.com/MrDarkRoot/WriteLeash/issues/106).
-That WooCommerce workflow is not implemented: its ordered build and proof gates
-are #107–#112. **Public release is deferred.**
+**Bulk price changes for WooCommerce, on a short leash.**
 
-This repository also contains two distinct, existing technical assets: a
+Preview bulk price changes before they happen. Run them safely. If the price or
+a checked setting changed after review, WriteLeash leaves the newer value alone.
+Undo changes that are still safe to restore.
+
+* Preview the exact before-and-after value of the chosen regular price or sale price for every selected product before anything is saved.
+* Approve exactly what you reviewed; later price or checked-setting changes become a conflict instead of an overwrite.
+* Saved progress survives a closed browser; an interrupted background step resumes in small steps.
+* Undo restores eligible regular-price or sale-price values that are still safe to restore.
+* Published core simple products and variations of published core variable products are supported, up to 1,000 selected products per new job in the tested configuration. Multisite is unsupported and real managed or shared hosting has not been tested.
+
+The merchant listing is [readme.txt](wordpress/writeleash/readme.txt); the
+release claim matrix is [CLAIM-MATRIX.md](wordpress/release/CLAIM-MATRIX.md).
+
+This repository also contains two distinct technical research assets: a
 PostgreSQL/native mutation-budget research fixture and an advanced WordPress
 V0.1 Guard/Doctor/Redirection substrate. Their tested behavior and limitations
-remain useful engineering evidence; neither is the planned WooCommerce Free
-product, and neither makes the WooCommerce workflow available today. See the
-[advanced WordPress technical documentation](wordpress/writeleash/README.md)
-and the [current product umbrella #106](https://github.com/MrDarkRoot/WriteLeash/issues/106).
+remain useful engineering evidence and are separate from the public Free
+product. See the
+[advanced WordPress technical documentation](wordpress/writeleash/README.md).
 
 ## Existing PostgreSQL/native research substrate
 

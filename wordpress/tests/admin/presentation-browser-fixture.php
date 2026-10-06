@@ -27,10 +27,10 @@ if ( 'seed' === $mode ) {
 	$mixed_job = plan168( $mixed );
 	$p = wc_get_product( $mixed[0] ); $p->set_name( 'Renamed externally' ); $p->set_regular_price( '21.00' ); $p->save();
 	$sale = product168( 'Sale context changed' ); $sale_job = plan168( array( $sale ) );
-	$p = wc_get_product( $sale ); $p->set_sale_price( '11.00' ); $p->save();
+	$p = wc_get_product( $sale ); $p->set_sale_price( '15.00' ); $p->save();
 	$deleted = product168( 'Deleted but recognizable' ); $deleted_job = plan168( array( $deleted ) ); wp_delete_post( $deleted, true );
 	$nochange = product168( 'Already at target', '14.40' );
-	$excluded = product168( 'Has a sale', '18.00' ); $p = wc_get_product( $excluded ); $p->set_sale_price( '10.00' ); $p->save();
+	$excluded = product168( 'Has a sale', '18.00' ); $p = wc_get_product( $excluded ); $p->set_sale_price( '15.00' ); $p->save();
 	$nochange_job = plan168( array( $nochange, $excluded ), 'SET', '14.40' );
 	$blocked = plan168( array( product168( 'Blocked T-Shirt' ) ), 'DECREASE_PERCENT', '20', array( 'max_decrease' => '1' ) );
 	$markup = product168( '<script>alert("168")</script> Café 日本' );

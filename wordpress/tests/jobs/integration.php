@@ -106,9 +106,13 @@ function start_worker( array $spec, string $script = 'worker.php' ): array {
 }
 function await_file( string $file, float $timeout = 25 ): void {
 	$deadline = microtime( true ) + $timeout;
-	while ( ! is_file( $file ) ) {
+	clearstatcache( true, $file );
+	// file_put_contents creates the file before its content lands; wait for
+	// the deterministic payload so a loaded runner cannot read an empty barrier.
+	while ( ! is_file( $file ) || '' === (string) file_get_contents( $file ) ) {
 		if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'missing deterministic barrier: ' . $file ); }
 		usleep( 10000 );
+		clearstatcache( true, $file );
 	}
 }
 function finish_worker( array $worker, bool $killed = false ): array {
@@ -261,6 +265,56 @@ $obs = Repo::observe( $job_id );
 eq( $obs['counts']['applied'], 12, 'observe counts from rows' );
 eq( $obs['stalled'], false, 'completed job not stalled' );
 marker( 'basic E2E 17 items: no false generic success' );
+
+// ---------------------------------------------------------------------------
+// #181 Dirty catalog: per-product apply refusals never block clean siblings.
+// Fixture corruption only; no repair path and no newest-row-wins logic.
+// ---------------------------------------------------------------------------
+$dirty_clean = create_product( '100.00' );
+$dirty_duplicate = create_product( '100.00' );
+$dirty_missing_price = create_product( '100.00' );
+$dirty_sale_price = create_product( '100.00' );
+$dirty_ids = array( $dirty_clean, $dirty_duplicate, $dirty_missing_price, $dirty_sale_price );
+sort( $dirty_ids, SORT_NUMERIC );
+Verifier::invalidate( $dirty_duplicate );
+add_post_meta( $dirty_duplicate, '_regular_price', '100.00' );
+Verifier::invalidate( $dirty_missing_price );
+delete_post_meta( $dirty_missing_price, '_price' );
+Verifier::invalidate( $dirty_sale_price );
+update_post_meta( $dirty_sale_price, '_sale_price', 'not-a-price' );
+$dirty_plan = Planner::preview( Selection::ids( $dirty_ids ), new Operation( Operation::SET, '120.00' ), new Policy( 1000, '100', '100', true, '100' ) );
+eq( $dirty_plan->summary()['selected'], 4, 'dirty catalog selection stays complete' );
+eq( $dirty_plan->item( $dirty_clean )->data()['result'], 'CHANGING', 'clean sibling still changes' );
+eq( $dirty_plan->item( $dirty_duplicate )->data()['result'], 'CHANGING', 'duplicate-meta plan read is left unchanged' );
+eq( $dirty_plan->item( $dirty_missing_price )->data()['result'], 'CHANGING', 'missing-price plan read is left unchanged' );
+$dirty_sale_reason = $dirty_plan->item( $dirty_sale_price )->data()['eligibility']['reason'];
+eq( $dirty_sale_reason, 'invalid_price', 'malformed sale price stays skipped without guessing' );
+$dirty_job = Repo::create_from_plan( $dirty_plan, 1 );
+Repo::approve( (int) $dirty_job['id'], 1 );
+Worker::queue_job( (int) $dirty_job['id'] );
+for ( $i = 0; $i < 10 && ! JState::is_terminal( Repo::read( (int) $dirty_job['id'] )['status'] ); ++$i ) {
+	run_worker( array( 'job_id' => (int) $dirty_job['id'], 'mode' => 'run', 'limits' => limits( 10 ) ) );
+}
+eq( Repo::read( (int) $dirty_job['id'] )['status'], JState::COMPLETED_WITH_ISSUES, 'dirty catalog finishes with issues' );
+$dirty_counts = assert_counts( (int) $dirty_job['id'], 'dirty' );
+eq( $dirty_counts['applied'], 1, 'one clean product applied' );
+eq( $dirty_counts['failed'], 2, 'two apply refusals terminal' );
+eq( $dirty_counts['unsupported'], 1, 'malformed sale price skipped at preview' );
+eq( $dirty_counts['pending'] + $dirty_counts['applying'], 0, 'no dirty item left pending' );
+eq( fresh_price( $dirty_clean ), '120.00', 'clean product reached its target' );
+eq( saves( $dirty_clean ), 1, 'clean product one save' );
+$dirty_items = item_map( (int) $dirty_job['id'] );
+foreach ( array( $dirty_duplicate, $dirty_missing_price ) as $dirty_id ) {
+	eq( $dirty_items[ $dirty_id ]['state'], IState::FAILED, 'apply refusal terminal ' . $dirty_id );
+	eq( $dirty_items[ $dirty_id ]['reason'], 'UNSUPPORTED_PRODUCT_STATE', 'apply refusal typed reason ' . $dirty_id );
+	eq( fresh_price( $dirty_id ), '100.00', 'dirty stored price untouched ' . $dirty_id );
+	eq( saves( $dirty_id ), 0, 'dirty product zero saves ' . $dirty_id );
+	eq( journal_row( $dirty_plan->data()['plan_id'], $dirty_id )['state'], 'FAILED', 'journal refusal recorded ' . $dirty_id );
+}
+eq( $dirty_items[ $dirty_sale_price ]['state'], IState::UNSUPPORTED, 'malformed sale price skipped at import' );
+eq( fresh_price( $dirty_sale_price ), '100.00', 'malformed sale price product untouched' );
+eq( saves( $dirty_sale_price ), 0, 'malformed sale price zero saves' );
+marker( 'dirty catalog: clean applies while malformed siblings fail per item' );
 
 // ---------------------------------------------------------------------------
 // Host without CREATE TABLE: typed setup failure, zero job execution.

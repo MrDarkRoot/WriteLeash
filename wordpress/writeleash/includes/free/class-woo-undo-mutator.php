@@ -112,6 +112,8 @@ final class Woo_Undo_Mutator {
 			}
 			$provenance = json_decode( $undo['provenance'], true );
 			if ( ! is_array( $provenance ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			$field = $provenance['price_field'] ?? null;
+			if ( null !== $field && ! in_array( $field, Price_Operation::FIELDS, true ) ) { throw new Price_Apply_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
 			if ( Undo_Fingerprint::fingerprint_of( $provenance ) !== $undo['fingerprint'] ) { throw new Price_Apply_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
 			$post = $tx->get_row( $tx->prepare( "SELECT ID FROM {$tx->posts} WHERE ID=%d FOR UPDATE", $product_id ) );
 			if ( ! $post ) { throw new Price_Apply_Error( 'PRODUCT_MISSING' ); }
@@ -127,22 +129,71 @@ final class Woo_Undo_Mutator {
 			foreach ( array( 'woocommerce_currency', 'woocommerce_price_num_decimals', $role_key ) as $key ) { wp_cache_delete( $key, 'options' ); }
 			Price_Cache_Verifier::invalidate( $product_id );
 			$product = wc_get_product( $product_id );
-			if ( ! $product || 'WC_Product_Data_Store_CPT' !== $product->get_data_store()->get_current_class_name() ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
+			if ( ! $product || ! Price_Cache_Verifier::core_data_store( $product ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
 			$snapshot = Product_Price_Snapshot::read( $product_id, $product );
-			$fresh = self::fresh_facts( $product_id, $product, $snapshot, $truth );
+			$snapshot_data = $snapshot->data();
+			$is_variation = ! empty( $snapshot_data['core_variation'] );
+			$parent_id = $is_variation ? (int) ( $snapshot_data['parent_id'] ?? 0 ) : 0;
+			if ( $is_variation && ( 'WC_Product_Variation' !== get_class( $product ) || $parent_id < 1 ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
+			// A variation whose parent is no longer the same published core
+			// variable product is a product-state conflict, not a restore.
+			if ( $is_variation && ( empty( $snapshot_data['parent_core_variable'] ) || 'publish' !== ( $snapshot_data['parent_status'] ?? '' ) || $parent_id !== (int) $product->get_parent_id( 'edit' ) ) ) {
+				throw new Price_Apply_Error( 'PRODUCT_TYPE_CHANGED' );
+			}
+			// The applied provenance decides what the product was: a recorded
+			// core variation that is no longer the exact core class is a type
+			// conflict, never a restore through an extension subclass.
+			if ( 'variation' === (string) ( $provenance['blocking']['product_type'] ?? '' ) && ! $is_variation ) {
+				throw new Price_Apply_Error( 'PRODUCT_TYPE_CHANGED' );
+			}
+			$fresh = self::fresh_facts( $product_id, $product, $snapshot, $truth, $field );
 			$check = Undo_Fingerprint::verify( $provenance, $fresh );
 			if ( ! $check['match'] ) { throw new Price_Apply_Error( self::conflict_code( $check['reasons'] ) ); }
-			Price_Cache_Verifier::matches( $truth, $provenance['applied_price'] );
+			if ( null === $field ) {
+				Price_Cache_Verifier::matches( $truth, $provenance['applied_price'] );
+			} else {
+				// Field-scoped pre-check: the changed field must still hold the
+				// applied value; the other field/active/lookup may have moved
+				// with a promotion and are preserved, not blocked on.
+				Price_Cache_Verifier::coherence( $truth );
+				$field_meta = '_' . Price_Operation::meta_key( $field );
+				if ( ! Price_Decimal::equal( $truth['meta'][ $field_meta ][0] ?? '', $provenance['applied_price'] ) ) { throw new Price_Apply_Error( 'UNDO_CONFLICT' ); }
+				// Restoring the original regular price must not force
+				// WooCommerce to clear a newer sale: that would lose external
+				// work and is a conflict, not a silent overwrite.
+				$current_sale = $truth['meta']['_sale_price'][0] ?? '';
+				if ( Price_Operation::FIELD_REGULAR === $field && '' !== $current_sale
+					&& Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $provenance['expected_price'] ) ), Price_Decimal::units( Price_Decimal::parse( $current_sale ) ) ) <= 0 ) {
+					throw new Price_Apply_Error( 'UNDO_CONFLICT' );
+				}
+			}
+			$preserved = array(
+				'regular_price' => $truth['meta']['_regular_price'][0],
+				'sale_price' => $truth['meta']['_sale_price'][0] ?? '',
+				'sale_from' => $truth['meta']['_sale_price_dates_from'][0] ?? '',
+				'sale_to' => $truth['meta']['_sale_price_dates_to'][0] ?? '',
+			);
 			// Recheck capabilities at the mutation boundary, not as WP root.
 			self::authorize( $product_id );
 			self::checkpoint( 'UNDO_BEFORE_WOO_SAVE', $product_id, $attempt );
 			$tx->assert_owned();
-			$product->set_regular_price( $provenance['expected_price'] );
+			if ( Price_Operation::FIELD_SALE === $field ) {
+				$product->set_sale_price( $provenance['expected_price'] );
+			} else {
+				$product->set_regular_price( $provenance['expected_price'] );
+			}
 			$product->save();
 			self::checkpoint( 'UNDO_AFTER_WOO_SAVE_BEFORE_JOURNAL', $product_id, $attempt );
 			$tx->assert_owned();
 			$after = Price_Cache_Verifier::storage( $tx, $product_id );
-			Price_Cache_Verifier::matches( $after, $provenance['expected_price'] );
+			if ( null === $field ) {
+				Price_Cache_Verifier::matches( $after, $provenance['expected_price'] );
+			} else {
+				Price_Cache_Verifier::matches_field( $after, $field, $provenance['expected_price'], $preserved );
+			}
+			// Restoring a variation's field must refresh the parent range on
+			// this same transaction connection before any Undo evidence.
+			if ( $is_variation ) { Price_Cache_Verifier::sync_variable_parent( $tx, $parent_id ); }
 			$evidence = array(
 				'attempt_id' => $attempt,
 				'job_id' => $job_id,
@@ -159,6 +210,13 @@ final class Woo_Undo_Mutator {
 				'lookup_min' => $after['lookup']['min_price'],
 				'lookup_max' => $after['lookup']['max_price'],
 			);
+			if ( $is_variation ) { $evidence['parent_id'] = $parent_id; }
+			if ( null !== $field ) {
+				$evidence['price_field'] = $field;
+				$evidence['field_value'] = $after['meta'][ '_' . Price_Operation::meta_key( $field ) ][0] ?? '';
+				$evidence['sale'] = $after['meta']['_sale_price'][0] ?? '';
+				$evidence['onsale'] = (string) ( $after['lookup']['onsale'] ?? '0' );
+			}
 			if ( $guard && $guard->connection_id() > 0 ) { $evidence['fence_connection_id'] = $guard->connection_id(); }
 			$evidence = Plan_Hasher::canonical_json( $evidence );
 			Undo_Repository::transition_item( $tx, array_merge( $undo, array( 'state' => Undo_Item_State::APPLYING ) ), Undo_Item_State::UNDONE, 'UNDO_RESTORED', $attempt, $evidence );
@@ -177,8 +235,8 @@ final class Woo_Undo_Mutator {
 			if ( $had_transaction && ! $rolled_back && 'AMBIGUOUS_COMMIT' !== $reason ) { $reason = 'TRANSACTION_LOST'; }
 			$wpdb = $original;
 			$review = $committed || in_array( $reason, array( 'TRANSACTION_LOST', 'AMBIGUOUS_COMMIT', 'CACHE_VERIFICATION_FAILED', 'LOOKUP_MISMATCH', 'JOURNAL_MISMATCH', 'UNDO_PROVENANCE_MISMATCH' ), true );
-			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'UNDO_CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED', 'UNDO_EXPIRED', 'UNDO_NOT_ELIGIBLE', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' );
-			if ( in_array( $code, array( 'UNDO_CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED' ), true ) ) { $code = 'UNDO_CONFLICT'; }
+			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'UNDO_CONFLICT', 'CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED', 'UNDO_EXPIRED', 'UNDO_NOT_ELIGIBLE', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' );
+			if ( in_array( $code, array( 'UNDO_CONFLICT', 'CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED' ), true ) ) { $code = 'UNDO_CONFLICT'; }
 			try {
 				// Connection loss: cleanup uses independent live DB, never a dead writer.
 				$observer = Price_Cache_Verifier::observer();
@@ -207,30 +265,40 @@ final class Woo_Undo_Mutator {
 		return 'UNDO_CONFLICT';
 	}
 
-	/** Fresh mutation-boundary facts keyed like `Undo_Fingerprint::fields()`. */
-	private static function fresh_facts( int $product_id, \WC_Product $product, Product_Price_Snapshot $snapshot, array $truth ): array {
+	/** Fresh mutation-boundary facts keyed to the provenance that will verify them. */
+	private static function fresh_facts( int $product_id, \WC_Product $product, Product_Price_Snapshot $snapshot, array $truth, ?string $field ): array {
 		global $wp_version;
 		$s = $snapshot->data();
-		$from = $product->get_date_on_sale_from( 'edit' );
-		$to = $product->get_date_on_sale_to( 'edit' );
-		return array(
+		$facts = array(
 			'product_id' => $product_id,
-			'applied_price' => (string) $product->get_regular_price( 'edit' ),
-			'active_price' => (string) $product->get_price( 'edit' ),
 			'product_type' => $s['type'],
 			'core_simple' => $s['core_simple'],
 			'status' => $product->get_status( 'edit' ),
-			'sale_price' => $product->get_sale_price( 'edit' ),
-			'sale_from' => $from ? (string) $from->getTimestamp() : null,
-			'sale_to' => $to ? (string) $to->getTimestamp() : null,
 			'currency' => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
 			'price_decimals' => function_exists( 'wc_get_price_decimals' ) ? wc_get_price_decimals() : -1,
-			'lookup_min' => $truth['lookup']['min_price'],
-			'lookup_max' => $truth['lookup']['max_price'],
-			'lookup_onsale' => (string) $truth['lookup']['onsale'],
 			'wordpress_version' => (string) $wp_version,
 			'woocommerce_version' => defined( 'WC_VERSION' ) ? WC_VERSION : '',
 		);
+		if ( Price_Operation::FIELD_SALE === $field ) {
+			$facts['applied_price'] = (string) $product->get_sale_price( 'edit' );
+			$facts['regular_context'] = (string) $product->get_regular_price( 'edit' );
+			return $facts;
+		}
+		if ( Price_Operation::FIELD_REGULAR === $field ) {
+			$facts['applied_price'] = (string) $product->get_regular_price( 'edit' );
+			return $facts;
+		}
+		$from = $product->get_date_on_sale_from( 'edit' );
+		$to = $product->get_date_on_sale_to( 'edit' );
+		$facts['applied_price'] = (string) $product->get_regular_price( 'edit' );
+		$facts['active_price'] = (string) $product->get_price( 'edit' );
+		$facts['sale_price'] = $product->get_sale_price( 'edit' );
+		$facts['sale_from'] = $from ? (string) $from->getTimestamp() : null;
+		$facts['sale_to'] = $to ? (string) $to->getTimestamp() : null;
+		$facts['lookup_min'] = $truth['lookup']['min_price'];
+		$facts['lookup_max'] = $truth['lookup']['max_price'];
+		$facts['lookup_onsale'] = (string) $truth['lookup']['onsale'];
+		return $facts;
 	}
 
 	/**
@@ -250,17 +318,49 @@ final class Woo_Undo_Mutator {
 				( $evidence['product_id'] ?? 0 ) !== $product_id || ( $evidence['attempt_id'] ?? '' ) !== $attempt ||
 				( $evidence['from_applied_price'] ?? '' ) !== $provenance['applied_price'] || ( $evidence['restored_price'] ?? '' ) !== $provenance['expected_price'] ||
 				( $evidence['connection_id'] ?? 0 ) < 1 ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
-			foreach ( array( 'regular', 'active', 'lookup_min', 'lookup_max' ) as $key ) {
-				try { $match = isset( $evidence[$key] ) && Price_Decimal::parse( $evidence[$key] ) === Price_Decimal::parse( $provenance['expected_price'] ); }
-				catch ( \Throwable $error ) { $match = false; }
-				if ( ! $match ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			$field = $provenance['price_field'] ?? null;
+			if ( null !== $field && ! in_array( $field, Price_Operation::FIELDS, true ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			if ( null === $field ) {
+				foreach ( array( 'regular', 'active', 'lookup_min', 'lookup_max' ) as $key ) {
+					try { $match = isset( $evidence[$key] ) && Price_Decimal::parse( $evidence[$key] ) === Price_Decimal::parse( $provenance['expected_price'] ); }
+					catch ( \Throwable $error ) { $match = false; }
+					if ( ! $match ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+				}
+			} elseif ( ! isset( $evidence['price_field'] ) || $evidence['price_field'] !== $field || ! is_string( $evidence['field_value'] ?? null ) || ! Price_Decimal::equal( $evidence['field_value'], $provenance['expected_price'] ) || ! is_string( $evidence['regular'] ?? null ) || ! is_string( $evidence['sale'] ?? null ) || ! is_string( $evidence['active'] ?? null ) || ! is_string( $evidence['lookup_min'] ?? null ) || ! is_string( $evidence['lookup_max'] ?? null ) || ! isset( $evidence['onsale'] ) ) {
+				throw new Price_Apply_Error( 'JOURNAL_MISMATCH' );
 			}
 			$truth = Price_Cache_Verifier::storage( $db, $product_id );
-			Price_Cache_Verifier::matches( $truth, $provenance['expected_price'] );
+			if ( null === $field ) {
+				Price_Cache_Verifier::matches( $truth, $provenance['expected_price'] );
+			} else {
+				Price_Cache_Verifier::matches_field( $truth, $field, $provenance['expected_price'], array( 'regular_price' => $evidence['regular'], 'sale_price' => $evidence['sale'] ) );
+				if ( ! Price_Decimal::equal( $truth['meta']['_price'][0], $evidence['active'] )
+					|| ! Price_Decimal::equal( (string) $truth['lookup']['min_price'], $evidence['lookup_min'] )
+					|| ! Price_Decimal::equal( (string) $truth['lookup']['max_price'], $evidence['lookup_max'] )
+					|| (string) ( $truth['lookup']['onsale'] ?? '' ) !== (string) $evidence['onsale'] ) {
+					throw new Price_Apply_Error( 'JOURNAL_MISMATCH' );
+				}
+			}
 			$GLOBALS['wpdb'] = $db;
 			Price_Cache_Verifier::invalidate( $product_id );
 			$product = wc_get_product( $product_id );
-			if ( ! $product || 'WC_Product_Simple' !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) || '' !== $product->get_sale_price( 'edit' ) || $product->get_date_on_sale_from( 'edit' ) || $product->get_date_on_sale_to( 'edit' ) || Price_Decimal::parse( $product->get_regular_price( 'edit' ) ) !== Price_Decimal::parse( $provenance['expected_price'] ) || Price_Decimal::parse( $product->get_price( 'edit' ) ) !== Price_Decimal::parse( $provenance['expected_price'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+			$is_variation = $product instanceof \WC_Product && 'WC_Product_Variation' === get_class( $product );
+			if ( ! $product || ( $is_variation ? 'WC_Product_Variation' : 'WC_Product_Simple' ) !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+			if ( $is_variation && (int) ( $evidence['parent_id'] ?? 0 ) !== (int) $product->get_parent_id( 'edit' ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			if ( null === $field ) {
+				if ( '' !== $product->get_sale_price( 'edit' ) || $product->get_date_on_sale_from( 'edit' ) || $product->get_date_on_sale_to( 'edit' ) || Price_Decimal::parse( $product->get_regular_price( 'edit' ) ) !== Price_Decimal::parse( $provenance['expected_price'] ) || Price_Decimal::parse( $product->get_price( 'edit' ) ) !== Price_Decimal::parse( $provenance['expected_price'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+			} else {
+				$fresh_regular = (string) $product->get_regular_price( 'edit' );
+				$fresh_sale = (string) $product->get_sale_price( 'edit' );
+				$fresh_field = Price_Operation::FIELD_SALE === $field ? $fresh_sale : $fresh_regular;
+				if ( ! Price_Decimal::equal( $fresh_regular, $evidence['regular'] )
+					|| ! Price_Decimal::equal( $fresh_sale, $evidence['sale'] )
+					|| ! Price_Decimal::equal( $fresh_field, $provenance['expected_price'] )
+					|| ! Price_Decimal::equal( (string) $product->get_price( 'edit' ), $evidence['active'] ) ) {
+					throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' );
+				}
+			}
+			if ( $is_variation ) { Price_Cache_Verifier::observe_variable_parent( $db, (int) $product->get_parent_id( 'edit' ) ); }
 			return array( 'undo' => $undo, 'storage' => $truth, 'observer_connection' => (int) $db->dbh->thread_id );
 		} catch ( \Throwable $error ) {
 			if ( $error instanceof Price_Apply_Error ) { throw $error; }

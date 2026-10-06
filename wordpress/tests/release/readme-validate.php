@@ -26,7 +26,7 @@ foreach ( array( $readme, $main ) as $file ) {
 }
 $text = (string) file_get_contents( $readme );
 require_once __DIR__ . '/conflict-copy.php';
-writeleash_conflict_copy_audit( $text );
+writeleash_conflict_copy_audit( $text, $frozen );
 if ( strlen( $text ) > 10240 ) {
 	$fail( 'readme.txt is larger than the 10k directory guidance' );
 }
@@ -137,16 +137,20 @@ foreach ( array( '7.0.1', '7.1.2' ) as $tested_core ) {
 }
 
 // #121 release-claim guard: the public listing must not widen the accepted
-// #111/#112/#120 evidence. The engineering selector maximum (1,000) is not a
-// public support claim; universal rollback and all-host/all-version promises
+// #111/#112/#177 evidence. The current supported new-job ceiling is 1,000
+// (#177); the pinned historical release artifact predates #177 and keeps its
+// reviewed 100 ceiling. Universal rollback and all-host/all-version promises
 // are forbidden.
-foreach ( array( '1,000', '1000', '10,000', '10000', 'universal rollback', 'all bad edits', 'every shared host', 'all WooCommerce versions', 'any WooCommerce version' ) as $unsupported ) {
-	if ( false !== stripos( $text, $unsupported ) ) {
-		$fail( 'unsupported public claim in readme: ' . $unsupported );
+$unsupported = array( '10,000', '10000', 'universal rollback', 'all bad edits', 'every shared host', 'all WooCommerce versions', 'any WooCommerce version' );
+if ( $frozen ) { $unsupported[] = '1,000'; $unsupported[] = '1000'; }
+foreach ( $unsupported as $claim ) {
+	if ( false !== stripos( $text, $claim ) ) {
+		$fail( 'unsupported public claim in readme: ' . $claim );
 	}
 }
 $woo_claim = $frozen ? 'WooCommerce 11.1.2 exactly' : 'WooCommerce 10.0 through 11.x';
-foreach ( array( 'Up to 100', $woo_claim, 'Multisite is unsupported', 'has not been tested' ) as $required_scope ) {
+$ceiling = $frozen ? 'Up to 100' : 'Up to 1,000';
+foreach ( array( $ceiling, $woo_claim, 'Multisite is unsupported', 'has not been tested' ) as $required_scope ) {
 	if ( false === stripos( $text, $required_scope ) ) {
 		$fail( 'required scope limitation missing from readme: ' . $required_scope );
 	}

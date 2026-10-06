@@ -32,17 +32,50 @@ final class Product_Discovery {
 		return trim( $term );
 	}
 
-	private static function product_label( \WC_Product $product ): array {
-		$id = $product->get_id();
-		$name = $product->get_name( 'edit' );
-		$sku = $product->get_sku( 'edit' );
-		$eligibility = Product_Price_Eligibility::evaluate( Product_Price_Snapshot::read( $id, $product ), Price_Store_Context::current() )->data();
-		$reason = $eligibility['reason'];
-		$text = ( '' === $name ? 'Unnamed product' : $name ) . ( '' === $sku ? ' · No SKU' : ' · SKU: ' . $sku ) . ' · ID: ' . $id;
-		if ( null !== $reason ) {
-			$text .= ' · Excluded: ' . ( Price_Reason_Messages::all()[$reason] ?? 'Not supported for price changes.' );
+	/** A malformed product is labeled for the merchant; one bad row never fails the page. */
+	private static function product_label( int $id, $product ): array {
+		$name = '';
+		$sku = '';
+		$reason = 'unreadable_product_data';
+		$targets_variations = 0;
+		if ( $product instanceof \WC_Product ) {
+			try {
+				$snapshot = Product_Price_Snapshot::read( $id, $product );
+				$s = $snapshot->data();
+				// A variation is identified by its product name and human-readable
+				// attributes; the parent name alone would be ambiguous.
+				$name = ! empty( $s['core_variation'] ) && '' !== (string) $s['variation_label'] ? (string) $s['variation_label'] : (string) $s['name'];
+				$sku = (string) $s['sku'];
+				$reason = Product_Price_Eligibility::evaluate( $snapshot, Price_Store_Context::current() )->data()['reason'];
+				// A core variable parent is selected for its children: it is a
+				// valid picker choice even though the parent itself is never a
+				// price target at execution time.
+				if ( 'WC_Product_Variable' === get_class( $product ) && method_exists( $product, 'get_children' ) ) {
+					$children = array_values( array_filter( array_map( 'intval', (array) $product->get_children() ), static fn( $child_id ) => $child_id > 0 ) );
+					if ( $children ) { $targets_variations = count( $children ); $reason = null; }
+				}
+			} catch ( \Throwable $error ) {
+				$reason = 'unreadable_product_data';
+			}
+		}
+		$text = ( '' === $name ? ( 'unreadable_product_data' === $reason ? 'Name unavailable' : 'Unnamed product' ) : $name ) . ( '' === $sku ? ' · No SKU' : ' · SKU: ' . $sku ) . ' · ID: ' . $id;
+		if ( $targets_variations > 0 ) {
+			$text .= ' · Targets all ' . $targets_variations . ( 1 === $targets_variations ? ' variation' : ' variations' );
+		} elseif ( null !== $reason ) {
+			$message = Price_Reason_Messages::all()[$reason] ?? 'Not supported for price changes.';
+			$text .= ( 'unreadable_product_data' === $reason ? ' · Needs attention: ' : ' · Excluded: ' ) . $message;
 		}
 		return array( 'id' => (string) $id, 'text' => $text );
+	}
+
+	/** Read the Woo object without letting one throwing product break the list. */
+	private static function readable_product( int $id ) {
+		try {
+			$product = wc_get_product( $id );
+		} catch ( \Throwable $error ) {
+			return null;
+		}
+		return $product instanceof \WC_Product ? $product : null;
 	}
 
 	/** Two capped WP queries: title discovery and literal partial SKU, never a broad saved selector. */
@@ -50,7 +83,7 @@ final class Product_Discovery {
 		$term = self::bounds( $term, $page );
 		if ( '' === $term ) { return array( 'results' => array(), 'more' => false, 'capped' => false ); }
 		$args = array(
-			'post_type' => 'product', 'post_status' => 'publish',
+			'post_type' => array( 'product', 'product_variation' ), 'post_status' => 'publish',
 			'posts_per_page' => self::WINDOW + 1, 'offset' => ( $page - 1 ) * self::WINDOW,
 			'orderby' => 'ID', 'order' => 'ASC', 'no_found_rows' => true,
 			'update_post_meta_cache' => true, 'update_post_term_cache' => true,
@@ -62,8 +95,7 @@ final class Product_Discovery {
 		$results = array();
 		foreach ( $posts as $post ) {
 			if ( ! current_user_can( 'edit_post', $post->ID ) || ! current_user_can( 'read_post', $post->ID ) ) { continue; }
-			$product = wc_get_product( $post->ID );
-			if ( $product instanceof \WC_Product ) { $results[$post->ID] = self::product_label( $product ); }
+			$results[ $post->ID ] = self::product_label( (int) $post->ID, self::readable_product( (int) $post->ID ) );
 		}
 		ksort( $results, SORT_NUMERIC );
 		return array( 'results' => array_values( $results ), 'more' => $more && $page < self::MAX_PAGE, 'capped' => $more && self::MAX_PAGE === $page );
@@ -76,15 +108,16 @@ final class Product_Discovery {
 		foreach ( $ids as $id ) { if ( ! is_int( $id ) || $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); } }
 		if ( ! $ids ) { return array(); }
 		$posts = new \WP_Query( array(
-			'post_type' => 'product', 'post_status' => 'publish', 'post__in' => $ids,
+			'post_type' => array( 'product', 'product_variation' ), 'post_status' => 'publish', 'post__in' => $ids,
 			'posts_per_page' => Free_Support_Contract::MAX_JOB_PRODUCTS, 'no_found_rows' => true,
 			'update_post_meta_cache' => true, 'update_post_term_cache' => true,
 		) );
 		$results = array();
 		foreach ( $posts->posts as $post ) {
 			if ( ! current_user_can( 'edit_post', $post->ID ) || ! current_user_can( 'read_post', $post->ID ) ) { continue; }
-			$product = wc_get_product( $post->ID );
-			if ( $product instanceof \WC_Product ) { $results[$post->ID] = self::product_label( $product ); }
+			// An unreadable but permitted product stays in the selected list as a
+			// needs-attention item, so the preview population remains complete.
+			$results[ $post->ID ] = self::product_label( (int) $post->ID, self::readable_product( (int) $post->ID ) );
 		}
 		if ( count( $results ) !== count( $ids ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
 		return $results;

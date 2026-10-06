@@ -9,13 +9,17 @@ $tag167 = 'WL167-' . wp_generate_uuid4();
 $duplicate167 = array( make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Café <script>alert("167")</script>', 'sku' => $tag167 . '-SKU-ONE' ) ), make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Café <script>alert("167")</script>' ) ) );
 $long167 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' ' . str_repeat( 'Long product ', 25 ), 'sku' => $tag167 . '-SKU-TWO' ) );
 $sale167 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Sale', 'sale' => '90.00' ) );
+$empty167 = make_product( '', 'publish', array( 'name' => $tag167 . ' Sale empty' ) );
 $private167 = make_product( '100.00', 'private', array( 'name' => $tag167 . ' Private' ) );
 $parent167 = wp_insert_term( $tag167 . ' Collection', 'product_cat' );
 $child167 = wp_insert_term( $tag167 . ' Collection', 'product_cat', array( 'parent' => (int) $parent167['term_id'] ) );
 $parent_product167 = make_product( '100.00', 'publish', array( 'category' => $parent167['term_id'], 'name' => $tag167 . ' Parent product' ) );
 $child_product167 = make_product( '100.00', 'publish', array( 'category' => $child167['term_id'], 'name' => $tag167 . ' Child product' ) );
+// #181 fixtures are created before the read-only save observer below.
+$readable181 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Readable 181' ) );
+$unreadable181 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Unreadable 181' ) );
 $large167 = array();
-for ( $i167 = 0; $i167 < 121; ++$i167 ) { $large167[] = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Bounded ' . $i167 ) ); }
+for ( $i167 = 0; $i167 < 1001; ++$i167 ) { $large167[] = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Bounded ' . $i167 ) ); }
 for ( $i167 = 0; $i167 < 121; ++$i167 ) { wp_insert_term( $tag167 . ' Taxonomy ' . $i167, 'product_cat' ); }
 
 // Observe reads/planning only, after fixture writes. No simulated mutation provider.
@@ -30,11 +34,13 @@ $partial167 = Discovery::products( $tag167 . '-SKU-' );
 eq( array_column( $partial167['results'], 'id' ), array( (string) $duplicate167[0], (string) $long167 ), 'literal partial SKU discovery' );
 eq( Discovery::products( $tag167 . ' does-not-exist' )['results'], array(), 'empty search' );
 eq( Discovery::products( '' )['results'], array(), 'empty term does not load catalog' );
-ok( str_contains( Discovery::products( $tag167 . ' Sale' )['results'][0]['text'], 'Excluded:' ), 'search match explicitly does not mean eligible' );
+$sale_matches167 = Discovery::products( $tag167 . ' Sale' );
+ok( ! str_contains( $sale_matches167['results'][0]['text'], 'Excluded:' ), 'sale-configured product is offered for regular/sale price choice' );
+ok( str_contains( $sale_matches167['results'][1]['text'], 'Excluded:' ), 'search match explicitly does not mean eligible' );
 eq( Discovery::products( $tag167 . ' Private' )['results'], array(), 'private products never exposed by published discovery' );
 $query_start167 = $wpdb->num_queries;
 $one167 = Discovery::products( $tag167 . ' Bounded' );
-echo '#167 discovery load: catalog fixture 121 matches; first-page results ' . count( $one167['results'] ) . '; SQL queries ' . ( $wpdb->num_queries - $query_start167 ) . "; two candidate windows capped at 11 rows each\n";
+echo '#167 discovery load: catalog fixture 1001 matches; first-page results ' . count( $one167['results'] ) . '; SQL queries ' . ( $wpdb->num_queries - $query_start167 ) . "; two candidate windows capped at 11 rows each\n";
 $two167 = Discovery::products( $tag167 . ' Bounded', 2 );
 ok( count( $one167['results'] ) <= 20 && $one167['more'], 'bounded larger-catalog discovery offers pagination' );
 eq( array_intersect( array_column( $one167['results'], 'id' ), array_column( $two167['results'], 'id' ) ), array(), 'candidate windows advance' );
@@ -59,6 +65,30 @@ eq( array_column( Discovery::products( $tag167 . ' Café' )['results'], 'id' ), 
 try { Discovery::selected( array( $duplicate167[0] ) ); ok( false, 'cannot restore denied selection label' ); }
 catch ( WriteLeash\Price_Validation_Error $error ) { eq( $error->reason(), 'permission_denied', 'selected identity also authorized' ); }
 remove_filter( 'map_meta_cap', $deny167, 10 );
+
+// #181 unreadable products stay listed and skippable instead of failing the
+// whole search or silently disappearing from the selected population.
+// Fixtures were created above, before the read-only save observer.
+$unreadable_filter181 = static function ( $class, $type, $post_type, $id ) use ( $unreadable181 ) {
+	if ( (int) $id === $unreadable181 ) { throw new RuntimeException( 'test-only unreadable product' ); }
+	return $class;
+};
+// Evict Woo's optional product instance cache before installing the throwing
+// filter: invalidate() itself instantiates the product through the factory.
+\WriteLeash\Price_Cache_Verifier::invalidate( $unreadable181 );
+add_filter( 'woocommerce_product_class', $unreadable_filter181, 10, 4 );
+try {
+	$found181 = Discovery::products( $tag167 . ' Unreadable 181' );
+	eq( array_column( $found181['results'], 'id' ), array( (string) $unreadable181 ), 'unreadable product still listed' );
+	ok( str_contains( $found181['results'][0]['text'], 'Needs attention:' ), 'unreadable product labeled for the merchant' );
+	$selected181 = Discovery::selected( array( $readable181, $unreadable181 ) );
+	$expected181 = array( $readable181, $unreadable181 );
+	sort( $expected181, SORT_NUMERIC );
+	$actual181 = array_keys( $selected181 );
+	sort( $actual181, SORT_NUMERIC );
+	eq( $actual181, $expected181, 'selected list stays complete with unreadable product' );
+	ok( str_contains( $selected181[ $unreadable181 ]['text'], 'Needs attention:' ), 'selected unreadable row carries its reason' );
+} finally { remove_filter( 'woocommerce_product_class', $unreadable_filter181, 10 ); }
 
 $form167 = preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', $duplicate167 ), 'selection_action' => 'update-products', 'discovery_nonce' => wp_create_nonce( Discovery::ACTION ), 'product_search' => $tag167 . ' Café', 'amount' => 'bad-price' ) );
 $selected167 = Admin::process_selection( $form167, 'POST' );
@@ -85,16 +115,21 @@ foreach ( array( '', 'history', 'job' ) as $view167 ) {
  ok( str_contains( $html167, 'Continue review' ) && str_contains( $html167, 'wl_view=preview' ), 'saved review action on ' . $view167 );
 }
 $html167 = render_view( 'preview', $job167['public_id'], 0 );
-ok( str_contains( $html167, 'Approve and queue execution' ) && str_contains( $html167, 'Create a new preview' ), 'saved preview approval plus separate new-preview action' );
+ok( str_contains( $html167, 'Approve and apply' ) && str_contains( $html167, 'Create a new preview' ), 'saved preview approval plus separate new-preview action' );
 $direct167 = Admin::process_preview( preview_post( array( 'selector' => 'category', 'category' => (string) $parent167['term_id'] ) ), 'POST' );
 $parent_plan167 = Repo::hydrate_plan( Repo::read_by_public_id( $direct167['public_id'] ) );
 eq( array_column( $parent_plan167->data()['items'], 'product_id' ), array( $parent_product167 ), 'parent category excludes child-only member' );
-$hundred167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 100 ) ) ) ), 'POST' );
-eq( $hundred167['status'], 'OK', '100 picker products permitted by existing policy' );
+$thousand167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 1000 ) ) ) ), 'POST' );
+eq( $thousand167['status'], 'OK', '1000 picker products permitted at the supported ceiling' );
+eq( Repo::hydrate_plan( Repo::read_by_public_id( $thousand167['public_id'] ) )->summary()['selected'], 1000, '1000 picker products frozen exactly' );
 $before_jobs167 = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) );
-$hundredone167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 101 ) ) ) ), 'POST' );
-eq( $hundredone167['reason'], 'supported_job_limit_exceeded', '101 picker products refused before import' );
-eq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $before_jobs167, '101 refusal creates no job' );
+$thousandone167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 1001 ) ) ) ), 'POST' );
+eq( $thousandone167['reason'], 'supported_job_limit_exceeded', '1001 picker products refused before import' );
+eq( Admin::process_preview( preview_post( array( 'picker_present' => '0', 'ids' => implode( ',', range( 1, 1001 ) ) ) ), 'POST' )['reason'], 'supported_job_limit_exceeded', '1001 explicit IDs refused before resolution' );
+eq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $before_jobs167, '1001 refusal creates no job' );
+$blocked_thousand167 = Admin::process_preview( preview_post( array( 'picker_present' => '1', 'product_ids' => array_map( 'strval', array_slice( $large167, 0, 1000 ) ), 'max_decrease' => '1' ) ), 'POST' );
+$blocked_html167 = render_view( 'preview', $blocked_thousand167['public_id'], 0 );
+ok( str_contains( $blocked_html167, 'Showing the first 20 blocked products in this summary' ) && str_contains( $blocked_html167, '980 more blocked products are not listed here' ), 'blocked 1000-item preview bounds its reason summary' );
 $blocked167 = Admin::process_preview( preview_post( array( 'ids' => (string) $duplicate167[0], 'max_decrease' => '1' ) ), 'POST' );
 ok( str_contains( render_view( 'preview', $blocked167['public_id'], 0 ), 'This plan cannot be executed.' ), 'saved blocked preview explanation' );
 ok( str_contains( render_view( 'job', $blocked167['public_id'], 0 ), 'Review blocked plan' ), 'direct blocked status has review action' );
@@ -114,7 +149,7 @@ eq( Repo::read_by_public_id( $job167['public_id'] )['plan_hash'], $hash167, 'reo
 eq( Admin::process_approve( approve_post( $job167 ), 'POST' )['status'], 'OK', 'saved original plan approval' );
 run_job_terminal( (int) $job167['id'] );
 price_eq( fresh_price( $duplicate167[0] ), '120.00', 'fresh conflict preserves newer Woo price' );
-ok( ! str_contains( render_view( 'preview', $job167['public_id'], 0 ), 'Approve and queue execution' ), 'old preview link after approval routes to progress' );
+ok( ! str_contains( render_view( 'preview', $job167['public_id'], 0 ), 'Approve and apply' ), 'old preview link after approval routes to progress' );
 eq( Admin::process_approve( approve_post( $job167 ), 'POST' )['reason'], 'already_approved', 'cannot approve existing job twice' );
 
 $other167 = wp_insert_user( array( 'user_login' => 'wl167-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );

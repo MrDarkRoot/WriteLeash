@@ -63,9 +63,16 @@ function forms_for_action( string $html, string $action ): array {
 		}
 		foreach ( $form->getElementsByTagName( 'select' ) as $select ) {
 			$name = $select->getAttribute( 'name' );
-			if ( '' !== $name && ! isset( $fields[ $name ] ) ) {
-				$fields[ $name ] = $select->getAttribute( 'value' );
+			if ( '' === $name || isset( $fields[ $name ] ) ) { continue; }
+			// A <select> has no value attribute: use the selected option, else
+			// the browser default first option, so a real form POST is faithful.
+			$value = '';
+			$options = $select->getElementsByTagName( 'option' );
+			foreach ( $options as $option ) {
+				if ( $option->hasAttribute( 'selected' ) ) { $value = $option->getAttribute( 'value' ); break; }
 			}
+			if ( '' === $value && $options->length > 0 ) { $value = $options->item( 0 )->getAttribute( 'value' ); }
+			$fields[ $name ] = $value;
 		}
 		if ( ( $fields['action'] ?? null ) === $action ) { $matches[] = $fields; }
 	}
@@ -186,7 +193,7 @@ if ( 200 !== $home['code'] ) {
 	throw new RuntimeException( 'Bulk Prices GET returned ' . $home['code'] . ' location=' . (string) $home['location'] . ' body=' . substr( $home['body'], 0, 500 ) );
 }
 bok( str_contains( $home['body'], 'WriteLeash Bulk Prices' ), 'menu navigation lands on Bulk Prices' );
-bok( str_contains( $home['body'], 'Build frozen preview' ), 'preview form present' );
+bok( str_contains( $home['body'], 'Preview price changes' ), 'preview form present' );
 a11y_check( $home['body'], 'bulk prices home' );
 $preview_forms = forms_for_action( $home['body'], 'writeleash_free_preview' );
 beq( count( $preview_forms ), 1, 'exactly one preview form' );

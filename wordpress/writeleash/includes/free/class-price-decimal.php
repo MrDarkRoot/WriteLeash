@@ -62,6 +62,16 @@ final class Price_Decimal {
 		$b = self::natural( $b );
 		return strlen( $a ) === strlen( $b ) ? strcmp( $a, $b ) <=> 0 : strlen( $a ) <=> strlen( $b );
 	}
+	/**
+	 * Canonical decimal equality. The empty string means "no stored price"
+	 * and equals only itself; null and malformed values equal nothing.
+	 */
+	public static function equal( $a, $b ): bool {
+		if ( $a === $b ) { return true; }
+		if ( ! is_string( $a ) || ! is_string( $b ) || '' === $a || '' === $b ) { return false; }
+		try { return self::parse( $a ) === self::parse( $b ); }
+		catch ( Price_Validation_Error $e ) { return false; }
+	}
 	public static function add( string $a, string $b ): string {
 		$out = '';
 		$carry = 0;
