@@ -16,9 +16,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm install --ignore-scripts --no-audit --no-fund --prefix "$RUNNER_TEMP/wl167-browser-tools" playwright@1.61.0 axe-core@4.11.0
-          "$RUNNER_TEMP/wl167-browser-tools/node_modules/.bin/playwright" install --with-deps firefox
-          export NODE_PATH="$RUNNER_TEMP/wl167-browser-tools/node_modules"
+          browser_tools="$RUNNER_TEMP/wl167-browser-tools"
+          mkdir -p "$browser_tools"
+          cp wordpress/tests/admin/browser-tools/package.json wordpress/tests/admin/browser-tools/package-lock.json "$browser_tools/"
+          npm ci --ignore-scripts --no-audit --no-fund --prefix "$browser_tools"
+          "$browser_tools/node_modules/.bin/playwright" install --with-deps firefox
+          export NODE_PATH="$browser_tools/node_modules"
           export WL167_EVIDENCE="$RUNNER_TEMP/woo-selection-167"
           bash wordpress/tests/admin/run.sh 2>&1 | tee "$RUNNER_TEMP/woo-admin-111.txt"
       - name: Preserve lab activity

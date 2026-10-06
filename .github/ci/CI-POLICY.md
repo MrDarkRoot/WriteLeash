@@ -169,6 +169,23 @@ durable accounting and no-stale-success assertions are unchanged. A failed
 intentional run remains failed-attempt evidence; a budgeted retry must use the
 **unchanged exact SHA**, never assertion/timing relaxation.
 
+## Admin browser bootstrap integrity (#133)
+
+`wordpress/tests/admin/browser-tools/package.json` and `package-lock.json` lock
+the existing Playwright 1.61.0 / axe-core 4.11.0 npm graph, including transitive
+and optional packages, to public-registry URLs and SHA512 integrity hashes.
+The Admin workflow copies both manifests to runner temporary storage and uses
+`npm ci --ignore-scripts`; PR_FAST/release preflight audit the lock and its use.
+These files retain the existing Admin path owner.
+
+**Reviewed browser/OS exception:** the locked Playwright version selects Firefox's
+revision, but its downloaded browser payload has no repository checksum lock.
+`playwright install --with-deps firefox` resolves OS packages from the runner's
+configured repositories; hosted Chrome and Node are also runner-managed. The
+dependency audit reports this exception explicitly. The npm lock does not make
+the browser/OS toolchain immutable. This is disposable test tooling, outside the
+WordPress runtime package; the separate Alpine research acknowledgement is unchanged.
+
 ## Public fork policy and exact settings review
 
 All jobs have `contents: read`; no release secret, PAT, SVN credential, OIDC token
