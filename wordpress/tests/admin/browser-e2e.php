@@ -63,9 +63,16 @@ function forms_for_action( string $html, string $action ): array {
 		}
 		foreach ( $form->getElementsByTagName( 'select' ) as $select ) {
 			$name = $select->getAttribute( 'name' );
-			if ( '' !== $name && ! isset( $fields[ $name ] ) ) {
-				$fields[ $name ] = $select->getAttribute( 'value' );
+			if ( '' === $name || isset( $fields[ $name ] ) ) { continue; }
+			// A <select> has no value attribute: use the selected option, else
+			// the browser default first option, so a real form POST is faithful.
+			$value = '';
+			$options = $select->getElementsByTagName( 'option' );
+			foreach ( $options as $option ) {
+				if ( $option->hasAttribute( 'selected' ) ) { $value = $option->getAttribute( 'value' ); break; }
 			}
+			if ( '' === $value && $options->length > 0 ) { $value = $options->item( 0 )->getAttribute( 'value' ); }
+			$fields[ $name ] = $value;
 		}
 		if ( ( $fields['action'] ?? null ) === $action ) { $matches[] = $fields; }
 	}

@@ -73,6 +73,9 @@ $unreadable_filter181 = static function ( $class, $type, $post_type, $id ) use (
 	if ( (int) $id === $unreadable181 ) { throw new RuntimeException( 'test-only unreadable product' ); }
 	return $class;
 };
+// Evict Woo's optional product instance cache before installing the throwing
+// filter: invalidate() itself instantiates the product through the factory.
+\WriteLeash\Price_Cache_Verifier::invalidate( $unreadable181 );
 add_filter( 'woocommerce_product_class', $unreadable_filter181, 10, 4 );
 try {
 	$found181 = Discovery::products( $tag167 . ' Unreadable 181' );
