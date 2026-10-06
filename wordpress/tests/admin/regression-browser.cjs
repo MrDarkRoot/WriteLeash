@@ -139,7 +139,10 @@ async function responsive(page) {
         await native.close(); await page.goto(home);
         for (let i = 0; i < f.skus.length; i++) {
             await search(page, f.skus[i]);
-            if (!i) { await scan(page, 'open search'); await picker.click(); await page.keyboard.press('Escape'); ok(await picker.evaluate(el => document.activeElement === el), 'Escape retains sensible search focus'); await search(page, f.skus[i]); }
+            if (!i) { await scan(page, 'open search'); await picker.click(); await page.keyboard.press('Escape');
+            const escapeFocus = await picker.evaluate(el => { const a = document.activeElement; const widget = el.closest('.select2-container'); return { tag: a && a.tagName, cls: a && a.className, in_widget: !!(a && widget && (a === el || widget.contains(a))), open: !!document.querySelector('.select2-container--open') }; });
+            if (!escapeFocus.in_widget) { console.error('Escape focus diagnostics: ' + JSON.stringify(escapeFocus)); }
+            ok(escapeFocus.in_widget, 'Escape retains sensible search focus'); await search(page, f.skus[i]); }
             await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
             ok(await page.locator('#writeleash-free-selected button').count() === i + 1, 'keyboard selection exact population');
         }
