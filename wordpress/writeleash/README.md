@@ -1,159 +1,94 @@
-# WriteLeash
+# WriteLeash for WooCommerce
 
 **Bulk price changes without blindly overwriting newer edits.**
 
-For the current WooCommerce plugin, installation instructions and supported
-workflow, see the [root product overview](../../README.md) and
-[merchant listing](readme.txt).
+WriteLeash for WooCommerce is the first commercial product from the broader
+WriteLeash database-safety research project.
 
-**HISTORICAL / SUPERSEDED — research documentation.** The sections below
-preserve the advanced WordPress Guard/Doctor/Redirection V0.1 research contract.
-They are not current WooCommerce installation or public release instructions.
-Historical package descriptions refer to that research baseline, not the
-current plugin distribution.
+WriteLeash helps WooCommerce store owners, Shop Managers, catalog operators and
+agencies change Regular Price or Sale Price across simple products and
+variations. Select the products you want, Preview the exact before/after prices,
+then Apply the plan you reviewed. If a relevant price or checked product setting
+changes before WriteLeash reaches it, the newer edit is preserved as a conflict
+instead of being overwritten.
 
-## Existing advanced WordPress V0.1 technical substrate (repository research)
+![A conflict shows expected $100, current $120 and planned $80; the newer $120 price is preserved and the item is marked Not changed](../assets/screenshot-5.png)
 
-> The default Free product changes WooCommerce prices through the workflow
-> above. This section documents and tests the separate advanced
-> Guard/Doctor/Redirection V0.1 substrate, which is repository-only research and
-> is not part of the public Free listing.
+**A newer edit wins.** The planned change here was $100 → $80, but the price had
+already been changed to $120. WriteLeash leaves the $120 value alone and explains
+why that product was not changed.
 
-Brand tagline: "Keep dangerous database writes on a short leash." That is a
-brand-level statement, not a claim about the WooCommerce Free product.
-The V0.1 technical contract documented here is narrow: one certified
-Redirection 5.5.2 global/select-all Bulk Disable operation with a logical
-mutation budget.
+![Sale Price Preview showing before/after prices, variation names and a skipped product](../assets/screenshot-2.png)
 
-Naming: the active WordPress/PHP/package/local identity is WriteLeash, and the
-low-level MySQL helper table, routine family, session variables, transaction
-probes and rotation marker now use the canonical `writeleash_v01_*` family. The
-PostgreSQL/native research identity (`writeleash_native_tx_state`) follows the
-same product name. There is no runtime migration from the pre-rebrand
-development graph: old-only or mixed low-level graphs are NOT_READY and require
-trusted reprovisioning.
+**Review exactly what will change.** Preview lists each product and variation
+with its current price, planned price and the size of the change, so you approve
+the plan you actually saw.
 
-Internal source: `wordpress/writeleash/`. Public slug and text domain:
-`writeleash`; the installed WordPress basename is `writeleash/writeleash.php`.
-Disposable CI copies this subtree to `wp-content/plugins/writeleash/`.
+![History listing completed price-change jobs and Undo availability](../assets/screenshot-6.png)
 
-This subtree is a developmental WordPress plugin, not a released security control.
-#55 adds a loadable plugin, baseline activation checks, conservative deactivation,
-and explicit uninstall of the plugin's local WordPress state. Loading the plugin
-registers hooks only; activation reads WordPress/PHP/database version facts and
-stores the version option if the basic runtime checks pass. It does not change
-user data, database objects, or storage engines. Deactivation retains those
-options and makes no database changes: **deactivation is not uninstall**.
-WordPress uninstall removes only WriteLeash-owned local WordPress state:
-`writeleash_version`, the certified-operation config option and the last-outcome
-evidence option, plus the stale #87 budget option when present. A finite,
-exact-name pre-release development cleanup list also deletes the old
-CommitCap-named development options without reading them; this is cleanup, not
-migration or compatibility support. An unrelated option with a similar
-`writeleash_` or `commitcap_` prefix is never removed, and no wildcard option
-deletion is used. It does **not** remove trusted DB users, triggers, routines,
-demo objects or grants; those remain explicit operator lifecycle tasks under
-[PROVISIONING.md](PROVISIONING.md) and [DEMO.md](DEMO.md). The 120-second Admin
-notice transient is allowed to expire naturally and is never wildcard-scanned.
-Network activation and multisite cleanup have not been validated; network
-activation is refused without writing plugin metadata. The #64 founder license
-decision is **GPL version 2 or later** (`GPL-2.0-or-later`); the full GNU GPLv2
-text ships as `LICENSE`, and [LICENSE-AUDIT.md](LICENSE-AUDIT.md) records the
-third-party/copyright audit. The V0.1 package version is `0.1.0`. The
-distribution allowlist for the `writeleash/` technical package root is
-`wordpress/release/writeleash-distribution-files.txt`; the historical V0.1
-package metadata is [readme.txt](readme.txt), and the operator guide shipped with
-the distribution is [operator-setup.txt](operator-setup.txt). WriteLeash declares
-`Requires Plugins: woocommerce` for the default Free product; the advanced Guard
-substrate still enforces Redirection 5.5.2 exactly at
-runtime. The full #63/#64 contract is in
-[RELEASE-MATRIX.md](RELEASE-MATRIX.md). The #77/#76 release instructions and
-#107–#112 build sequence cited by this V0.1 research document are historical
-planning context, not current WooCommerce release authorization.
+**Review results and recover.** History keeps each job, its outcome and which
+changes are still eligible for Undo, so a bulk update is not a one-way door.
 
-**MySQL/MariaDB does not currently provide the PostgreSQL-equivalent sticky
-transaction boundary demonstrated by WriteLeash's PostgreSQL research path.**
-This advanced WordPress V0.1 contract is a **cooperative guarded-transaction
-model**, implemented and tested in this subtree (#54/#56/#57/#78/#82–#84/#87/#58/#60).
-See the [#53
-feasibility experiment](../../experiments/mysql_tx_budget/README.md): event six
-was denied on the pinned test servers, but COMMIT still succeeded after savepoint
-recovery. Autocommit issues separate transaction authority for each statement.
-This plugin does not claim to protect arbitrary WordPress writes.
+## Why merchants use it
 
-The intended investigation targets are MySQL 8.0+, MariaDB 10.11+, and InnoDB.
-#57 adds a read-only, fail-closed [compatibility doctor](DOCTOR.md) for the
-accepted cooperative path; its PASS requires separate restricted runtime and
-trusted installer evidence. It does not approve generic hosting compatibility.
-#54 adds a lower-level engine candidate and its deliberately narrow contract in
-[`ENGINE.md`](ENGINE.md); #56 adds the cooperative guarded UPDATE transaction
-API in [`GUARD.md`](GUARD.md). #78 adds the single certified V0.1
-operation descriptor and its minimal config: [`OPERATION.md`](OPERATION.md).
-The #54 routines remain callable by a DB writer: CLOSE→OPEN in one transaction
-can reset its own budget, and the session denial signal is writable. The
-split-privilege fixture is only a cooperative mechanism, not an adversarial
-database-writer security boundary. Application code must not invoke these
-lifecycle routines directly; only `WriteLeash\Guard::update()` owns them for a
-supported job.
-[THREAT-MODEL.md](THREAT-MODEL.md) is the final #61 cooperative threat model:
-actors/authorities, reachable DB graph, budget semantics, fail-closed rules, the
-adversarial test matrix and every documented outside-contract/UNKNOWN path.
-This V0.1 development surface supports **one** certified operation:
-Redirection 5.5.2 unfiltered global/select-all Bulk Disable. #58's
-[WriteLeash-owned disposable demo](DEMO.md) is independent of that real
-operation. #60 adds the restrained [Tools → WriteLeash / WP-CLI experience](ADMIN-CLI.md)
-on top of the existing adapter; trusted [operator provisioning](PROVISIONING.md)
-is separate. No telemetry, external network requests or cloud feature is
-included in the advanced research surface. The WooCommerce bulk-price workflow
-is the separate public Free product described at the top of this document; the
-advanced classes are not loaded by the public Free package.
+- **Review before you apply** — Preview shows the exact before/after price for every selected product and variation.
+- **Regular Price and Sale Price** — set a price, add or subtract an amount, or increase or decrease by a percentage.
+- **Simple products and variations** — select a variable product to include its variations, or choose individual variations.
+- **Select by name, SKU or category** — build the list the way your catalog is organized.
+- **Up to 1,000 products per job** — in the tested configuration.
+- **Runs in the background** — close the browser and come back; progress is saved.
+- **Resume** — continue an interrupted job without starting over or repeating completed work.
+- **History** — see what changed, what was skipped and what needs attention.
+- **Eligible Undo** — restore prices WriteLeash changed while the current state still allows it; newer edits are preserved as conflicts.
+- **Explained skips** — invalid or unsupported items show a reason and are skipped while clean work continues where safe.
+- **Newer edits preserved** — if a relevant price or setting changed after Preview, WriteLeash shows a conflict rather than overwriting it.
 
-## Guarded UPDATE example
+## Select → Preview → Apply
 
-```php
-$result = \WriteLeash\Guard::update(
-	$wpdb->prefix . 'repair_items',
-	50,
-	function () use ( $wpdb ) {
-		// Ordinary bounded UPDATE statements on the protected table.
-		foreach ( $ids as $id ) {
-			$wpdb->query( $wpdb->prepare( 'UPDATE ' . $wpdb->prefix . 'repair_items SET repaired = 1 WHERE id = %d', $id ) );
-		}
-		return count( $ids );
-	}
-);
-```
+1. **Select** products by name, SKU or category and choose Regular Price or Sale Price.
+2. **Preview** the exact before/after values, warnings and skipped items.
+3. **Apply** the reviewed plan, then follow progress, History or eligible Undo.
 
-`Guard` starts and finishes its own transaction, counts row events with the #54
-policy, rolls back on failures observed while its owned transaction is still
-intact before its COMMIT call, and returns the callback result only after COMMIT.
-Failures at or after a commit attempt (a callback-issued COMMIT, an
-unconfirmable Guard COMMIT, or a post-commit state anomaly) are reported
-without claiming an undo, because durability may already exist.
-SQL outside `Guard::update()`, manual transaction control, direct #54 routine
-calls, side-effecting stored functions with extra EXECUTE privilege, and direct
-mysqli/`$wpdb->dbh` SQL are outside the supported cooperative contract. See
-[`GUARD.md`](GUARD.md) for the exact contract, detection behavior
-and limitations. This is not a hostile-writer database security boundary and it
-does not protect all WordPress writes.
+## Install and use
 
-## Development checks
+1. Install and activate a supported WooCommerce version.
+2. Install and activate WriteLeash.
+3. Open **Products → Bulk Prices**.
 
-From the repository root with Docker Engine and Compose:
+Requirements, supported versions and the full capability details are in
+[readme.txt](readme.txt), the WordPress.org listing source. No SSH access,
+custom database account or manual SQL setup is required.
 
-```sh
-bash wordpress/tests/run.sh mysql
-bash wordpress/tests/run.sh mariadb
-bash wordpress/tests/engine/run.sh      # #54 engine + #56 Guard + #57 doctor on both pinned DBs
-bash wordpress/tests/adapter/run.sh     # real Redirection, descriptor, demo, Admin and CLI on both pinned DBs
-bash wordpress/tests/current-core/run.sh # #63 current-stable WordPress 7.1.2 compatibility gate
-bash wordpress/tests/release/run.sh     # #62/#63 release matrix, package allowlist, Plugin Check
-```
+- Plugin entry point: [`writeleash.php`](writeleash.php)
+- Supported scope and limitations: [readme.txt](readme.txt)
+- License: [GPL-2.0-or-later](LICENSE)
 
-Each foundation run boots WordPress 6.8.3 under PHP 8.2 against a fresh,
-disposable MySQL 8.0.44 or MariaDB 10.11.15 fixture. It stages only the
-canonical distribution allowlist into `wp-content/plugins/writeleash/`, performs
-real activation/deactivation/uninstall calls, checks failure paths and database
-objects, runs PHP lint/direct-access/license/readme checks, and destroys the
-fixture on exit. The release matrix composes the existing suites plus the
-package preflight and the official Plugin Check stable/static run.
+The listing is being prepared for submission; this repository does not announce
+a published download.
+
+## Repository research
+
+The advanced WordPress Guard/Doctor/Redirection work is a separate research
+substrate in this repository. It is not part of the WooCommerce plugin or its
+package. The full technical narrative and contract links live in
+[RESEARCH.md](RESEARCH.md).
+
+Repository contribution and security policy:
+[CONTRIBUTING.md](../../CONTRIBUTING.md) and [SECURITY.md](../../SECURITY.md).
+
+## About the broader WriteLeash research
+
+WriteLeash Research is the parent database-safety research project. Its core
+thesis is **Writes consume authority.** WriteLeash for WooCommerce is its first
+commercial product.
+
+The PostgreSQL/native mutation-budget work is a separate research track. This
+plugin applies related design principles — reviewed intent, bounded targets,
+re-checking before mutation, preserving newer state, conflict instead of blind
+overwrite, and recoverability — but it does **not** implement the
+PostgreSQL/native mutation-budget mechanism and is not a database security
+control.
+
+- [Root project README](../../README.md)
+- [PostgreSQL research overview](../../docs/postgresql-research.md)
+- [Research support matrix](../../docs/support-matrix.md)

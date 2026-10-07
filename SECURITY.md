@@ -1,12 +1,13 @@
 # Security Policy
 
-WriteLeash's current product is a WooCommerce bulk-pricing plugin. Its supported
-workflow is described in the [plugin listing](wordpress/writeleash/readme.txt).
-Reports should identify the affected product operation and version or commit.
+WriteLeash's first commercial product is a WooCommerce bulk-pricing plugin. Its
+supported workflow is described in the
+[plugin listing](wordpress/writeleash/readme.txt). Reports should identify the
+affected product operation and version or commit.
 
-The repository also preserves PostgreSQL/native research and an advanced
-WordPress Guard/Doctor/Redirection substrate. Those are separate research
-assets, not generally released database security controls. Their historical
+The repository also carries PostgreSQL/native research and an advanced WordPress
+Guard/Doctor/Redirection research substrate. Those are separate **WRITELEASH
+RESEARCH** tracks, not generally released database security controls. Their
 boundaries below do not describe the WooCommerce product's installation path.
 
 ## Reporting A Vulnerability
@@ -43,10 +44,10 @@ edit. Include the actor role, selected price field, steps and observed result.
 Ordinary conflicts and ineligible Undo are expected protections, not proof of a
 security failure.
 
-## Historical PostgreSQL research criteria
+## PostgreSQL research security criteria
 
-**HISTORICAL / SUPERSEDED — product identity.** The following criteria and
-research documents apply to the separate PostgreSQL fixture.
+**WRITELEASH RESEARCH — RESEARCH TRACK.** The following criteria and research
+documents apply to the separate PostgreSQL fixture.
 
 For behavior documented as supported, a high-severity security failure is:
 

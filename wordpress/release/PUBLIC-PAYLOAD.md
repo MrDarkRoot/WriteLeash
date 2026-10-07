@@ -146,7 +146,7 @@ inventory (multi-class files included):
 
 | Element | Boundary | Classification |
 |---|---|---|
-| README.md, ADMIN-CLI.md, CANDIDATES.md, DEMO.md, DOCTOR.md, ENGINE.md, GUARD.md, OPERATION.md, PROVISIONING.md, REDIRECTION.md, RELEASE-MATRIX.md, THREAT-MODEL.md, LICENSE-AUDIT.md under plugin source | Historical research/supporting provenance; excluded from allowlist | REPOSITORY_ONLY_HISTORICAL |
+| README.md (product-facing), RESEARCH.md and ADMIN-CLI.md, CANDIDATES.md, DEMO.md, DOCTOR.md, ENGINE.md, GUARD.md, OPERATION.md, PROVISIONING.md, REDIRECTION.md, RELEASE-MATRIX.md, THREAT-MODEL.md, LICENSE-AUDIT.md under plugin source | Repository product/research documentation; excluded from allowlist | REPOSITORY_ONLY_HISTORICAL |
 | FREE-PRICE-CONTRACT.md, FREE-PRICE-APPLY-CONTRACT.md, FREE-JOB-ENGINE-CONTRACT.md, FREE-UNDO-HISTORY-CONTRACT.md under plugin source | Repository engineering contracts/evidence for the public Woo domain; not user package files | REPOSITORY_ONLY_HISTORICAL |
 | Root docs/, experiments/, sql/, tests/ and historical plugin research source/tests | Engineering evidence only; no public manifest path | REPOSITORY_ONLY_HISTORICAL |
 | Historical Redirection/operator/Doctor instructions formerly in readme.txt | Removed from packaged readme; original remains in git history and research docs/operator-setup.txt | REMOVE_FROM_PUBLIC_PACKAGE |
