@@ -1,10 +1,10 @@
 # Public mutation-incident evidence corpus (initial pass)
 
 Research for [#37](https://github.com/MrDarkRoot/WriteLeash/issues/37), 2026-09-26.
-This is a dated PostgreSQL mutation-budget research corpus, not a current Free
-product thesis. #106 governs planned WooCommerce bulk price changes; that work
-is not implemented, #107–#112 remain pending, and public release is deferred.
-References to `CommitCap` in the dated analysis preserve the former product
+This is a dated PostgreSQL mutation-budget research corpus for the WriteLeash
+research track, not a WooCommerce product thesis. WriteLeash for WooCommerce is
+the first commercial product derived from these principles.
+References to `CommitCap` in the dated analysis preserve the former working
 name and are not current active identity.
 This is **not** evidence that CommitCap prevented any incident, nor a claim of
 deployment compatibility. All links below are public project-authored issues or

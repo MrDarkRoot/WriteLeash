@@ -1,10 +1,10 @@
 # Mutation Budgets
 
 This document preserves PostgreSQL/native research semantics. It does not
-define the intended public Free product: #106 governs planned safe WooCommerce
-bulk price changes, which remain unimplemented pending #107–#112. Public release
-is deferred. The advanced WordPress Guard/Doctor/Redirection substrate is
-separate and is not changed by this research document.
+define the WooCommerce product: WriteLeash for WooCommerce is the first
+commercial product derived from the WriteLeash research principles. The advanced
+WordPress Guard/Doctor/Redirection substrate is separate and is not changed by
+this research document.
 
 ## Core Model
 

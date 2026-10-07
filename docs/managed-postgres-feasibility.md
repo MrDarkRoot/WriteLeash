@@ -2,11 +2,11 @@
 
 **Documentary review snapshot: 2026-09-23.** The analysis was originally performed against `origin/main` `2538963906967f2a7d7ae79e6dfdc992a3b7d199`; PR #13 was later refreshed onto current `main` without changing the substantive feasibility conclusions. Candidate: **Amazon RDS for PostgreSQL 16** (including the 16.4 column in the provider's [extension-version table](https://docs.aws.amazon.com/AmazonRDS/latest/PostgreSQLReleaseNotes/postgresql-extensions.html#postgresql-extensions-16x)). Verdict for the **existing C `.so`/preload mechanism unchanged: BLOCKED by the documented service model**. Real managed deployment: **NOT TESTED** (no authorized instance/access/cost approval). This is a compatibility analysis, not a provider-side failure log or a statement about all architectures/clouds.
 
-> Current product authority is #106: safe WooCommerce bulk price changes,
-> planned but not implemented; #107–#112 remain pending and public release is
-> deferred. This dated assessment covers only the prior PostgreSQL/native
-> research mechanism. Any `CommitCap` wording below is historical terminology
-> from the 2026-09-23 review, not active repository or product identity.
+> WriteLeash for WooCommerce is the first commercial product derived from the
+> WriteLeash research principles. This dated assessment covers only the
+> PostgreSQL/native research mechanism. Any `CommitCap` wording below is
+> historical terminology from the 2026-09-23 review, not active repository or
+> product identity.
 
 ## Existing mechanism and compatibility/constraint matrix
 
