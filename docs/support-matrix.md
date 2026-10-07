@@ -2,14 +2,14 @@
 
 Last updated: 2026-09-30.
 
-This is the technical support matrix for the existing WriteLeash PostgreSQL
-research mechanism. It is not the current public Free product roadmap. The
-intended public Free product is safe WooCommerce bulk price changes under
-[#106](https://github.com/MrDarkRoot/WriteLeash/issues/106); its implementation
-gates #107–#112 remain pending and **public release is deferred**. The separate
-advanced WordPress Guard/Doctor/Redirection substrate remains documented under
-`wordpress/writeleash/`. Neither technical asset implements the planned
-WooCommerce workflow. The PostgreSQL Public Research Preview ([#31](https://github.com/MrDarkRoot/WriteLeash/issues/31))
+**HISTORICAL / SUPERSEDED — product identity.** This technical support matrix
+covers the PostgreSQL research mechanism, not the implemented WooCommerce
+bulk-pricing product. Current plugin capabilities and limitations are in the
+[root README](../README.md) and
+[plugin listing](../wordpress/writeleash/readme.txt). The advanced WordPress
+Guard/Doctor/Redirection substrate is separate research under
+`wordpress/writeleash/`.
+The PostgreSQL Public Research Preview ([#31](https://github.com/MrDarkRoot/WriteLeash/issues/31))
 is **not released**. This matrix summarizes behavior present in the reviewed
 code and linked research evidence. The denial-evidence row requires the
 implementation and tests from [#34's PR
@@ -117,15 +117,15 @@ rerun is required before any overhead statement is published.
 ## E. Product and release status
 
 For the PostgreSQL/native substrate, the local research mechanism is current
-technical work, not a released Public Research Preview. Separately, the public
-Free product direction is the planned WooCommerce workflow in #106:
+technical work, not a released Public Research Preview. The separate WooCommerce
+product is implemented; this table does not establish its release authorization:
 
 | Status | Current | Reason |
 | --- | --- | --- |
 | Research mechanism | **CURRENT** | Native backend-local transaction-state experiment exists and passes its research suite. |
 | PostgreSQL Public Research Preview ([#31](https://github.com/MrDarkRoot/WriteLeash/issues/31)) | **NOT RELEASED** | The historical research-preview issue remains open; this local evidence does not authorize publication. |
-| Intended WriteLeash Free 1.0 product ([#106](https://github.com/MrDarkRoot/WriteLeash/issues/106)) | **PLANNED; implementation pending** | Safe WooCommerce bulk price changes are the intended public Free product. Build/proof gates #107–#112 must complete first; **public release is deferred**. |
-| Supported public Free release | **NO — DEFERRED** | #106's WooCommerce workflow is not implemented; #107–#112 and later rewritten release gates remain. |
+| WriteLeash WooCommerce product | **IMPLEMENTED** | Preview, Apply, newer-edit protection, Resume, History and eligible Undo are documented in the [plugin listing](../wordpress/writeleash/readme.txt). Earlier build-gate instructions are historical. |
+| WooCommerce publication | **PREPARING PUBLIC SUBMISSION** | See the [root README](../README.md) for current product identity. This research matrix does not announce publication or authorize release. |
 | Production-ready security control | **NO** | Do not deploy this PostgreSQL research mechanism as a security control; see [README](../README.md) and [SECURITY.md](../SECURITY.md). |
 
 Open research gates, none of them passed and none claimed here: real managed

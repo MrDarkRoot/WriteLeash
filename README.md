@@ -1,303 +1,75 @@
-# WriteLeash
+# WriteLeash for WooCommerce
 
-**Bulk price changes for WooCommerce, on a short leash.**
+**Bulk price changes without blindly overwriting newer edits.**
 
-Preview bulk price changes before they happen. Run them safely. If the price or
-a checked setting changed after review, WriteLeash leaves the newer value alone.
-Undo changes that are still safe to restore.
+WriteLeash helps store owners, Shop Managers, catalog operators and agencies
+update Regular Price or Sale Price across simple products and variable-product
+variations. Select by product name, SKU or category, then Preview the exact
+before/after prices for up to **1,000 products in one job**.
 
-* Preview the exact before-and-after value of the chosen regular price or sale price for every selected product before anything is saved.
-* Approve exactly what you reviewed; later price or checked-setting changes become a conflict instead of an overwrite.
-* Saved progress survives a closed browser; an interrupted background step resumes in small steps.
-* Undo restores eligible regular-price or sale-price values that are still safe to restore.
-* Published core simple products and variations of published core variable products are supported, up to 1,000 selected products per new job in the tested configuration. Multisite is unsupported and real managed or shared hosting has not been tested.
+Apply the Preview you reviewed. Work runs in the background; if a relevant
+price or checked product setting changed after Preview, WriteLeash preserves
+the newer edit and marks that item as a conflict. Items with invalid prices or
+unsupported settings show a reason and are skipped while clean work continues
+where safe. Resume interrupted work, review results in History, and Undo
+eligible changes when the current product state still allows restoration.
 
-The merchant listing is [readme.txt](wordpress/writeleash/readme.txt); the
-release claim matrix is [CLAIM-MATRIX.md](wordpress/release/CLAIM-MATRIX.md).
+## Install and use
 
-This repository also contains two distinct technical research assets: a
-PostgreSQL/native mutation-budget research fixture and an advanced WordPress
-V0.1 Guard/Doctor/Redirection substrate. Their tested behavior and limitations
-remain useful engineering evidence and are separate from the public Free
-product. See the
-[advanced WordPress technical documentation](wordpress/writeleash/README.md).
+1. Install and activate WooCommerce within the [supported versions](wordpress/writeleash/readme.txt).
+2. Install and activate the WriteLeash plugin ZIP.
+3. Open **Products → Bulk Prices**.
+4. Select products, choose Regular Price or Sale Price, and Preview the change.
+5. Review exact prices and warnings, then approve and Apply. Use Resume if work
+   is interrupted; review History and eligible Undo afterward.
 
-## Existing PostgreSQL/native research substrate
+For installation requirements, supported price operations and limitations, see
+[the plugin listing](wordpress/writeleash/readme.txt). This repository is
+preparing the public plugin submission; it does not announce a WordPress.org
+listing or a published download. Plugin source is in
+[`wordpress/writeleash/`](wordpress/writeleash/).
 
-**Mutation budgets for PostgreSQL.** The local research fixture puts a hard
-limit on how much a PostgreSQL write transaction can change *within its tested
-envelope*.
+WriteLeash changes prices, not stock, orders or sale dates. Selecting a variable
+parent targets its variations; you can also select individual variations.
+Undo is conditional: a later relevant edit is preserved rather than overwritten.
+Multisite is unsupported. Managed and shared hosting have not been tested.
 
-A writer with permission to update a table may intend to repair two rows but
-accidentally update many. A **mutation budget** is a finite limit on a declared
-relational effect, such as the number of row-update events or the cumulative
-positive change to a numeric column. The current mechanism measures those
-effects across supported writes in **one top-level transaction**; an excess
-attempt denies that entire transaction, including earlier writes in it. It is
-not a limit on a whole job that uses multiple transactions.
+## See the workflow
 
-## Run the arbitrary-table PostgreSQL research demo locally
+These static screenshots show real product screens with sample products.
 
-With Docker Engine, Docker Compose v2, Bash, and network access to pull the
-pinned PostgreSQL image, run from a checkout:
+**Preview exact before/after prices before approving.**
 
-```bash
-./writeleash doctor
-./writeleash demo
-```
+![Preview showing exact before and after regular prices for three sample products](wordpress/assets/screenshot-1.png)
 
-The research demo creates **two new, runtime-named ordinary tables** on a
-disposable local PostgreSQL 16.4 fixture. It uses the actual `protect-update`
-command to generate trusted-owner trigger SQL and catalog verification for
-budgets of 5 and 3 UPDATE row events per top-level transaction. It prints each
-catalog PASS, an ordinary restricted-writer safe COMMIT (5 + 3 independent
-events), an over-budget denial that stays denied after a savepoint rollback,
-a separate second-policy denial, and exact durable-state checks from fresh
-trusted-admin connections. It removes its own Compose containers, volumes,
-and network. Expect `Product Demo: PASS` and `Product Demo exit status: 0`.
+**Preserve a newer edit and see why that item was skipped.**
 
-To inspect the trusted-owner SQL for **your own** table, next run:
+![A conflict shows the expected, current and planned regular price; the newer current price is preserved](wordpress/assets/screenshot-3.png)
 
-```bash
-./writeleash protect-update \
-  --table public.orders \
-  --budget 50 \
-  --writer-role app_writer
-```
+**Review History and which changes are eligible for Undo.**
 
-This prints a review-only installation and catalog preflight plan; it does not
-apply changes to your database. See [the #27 input and trust
-boundary](#generate-a-v0-table-protection-plan). This is local research
-evidence, not a production or managed-PostgreSQL installation path.
+![History lists a completed job with a conflict and shows Undo eligibility](wordpress/assets/screenshot-6.png)
 
-## See the deeper research fixture's safe write and denial
+These examples show Regular Price changes. Sale Price changes and variations
+are supported as described in [the plugin listing](wordpress/writeleash/readme.txt).
 
-These selected lines are from the **real `./demo.sh` output** on the local
-PostgreSQL 16.4 research fixture (intervening command tags, error details and
-other cases omitted; order and wording of shown lines preserved):
+## Contributing and security
 
-```text
-1. SAFE: subscriptions repairs + allowed role transition
-writer SQL result:
-BEGIN
-UPDATE 2
-UPDATE 1
-policy=2|1|0.00|false
-COMMIT
-  ✓ safe mutation committed
-fresh trusted-admin durable state:
-subscriptions=1=repaired,2=repaired,3=baseline,4=baseline,5=baseline,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline
-users=1=moderator,2=member,3=member,4=member,5=member,6=member
-refunds=1=0.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00
-audit=0
-  ✓ fresh trusted verification: exact expected durable state confirmed
+For source changes and existing checks, read [CONTRIBUTING.md](CONTRIBUTING.md).
+Report suspected vulnerabilities privately as described in
+[SECURITY.md](SECURITY.md). Use [GitHub issues](https://github.com/MrDarkRoot/WriteLeash/issues)
+for non-sensitive questions and bug reports, without customer data or secrets.
 
-2. DENIED: six small subscriptions statements; savepoint cannot clear denial
-ERROR:  WriteLeash mutation budget exceeded (limit 5, attempted 6)
-policy / metric: subscriptions.rows_updated
-granted: 5
-consumed before attempt: 5
-attempted effect: 6 row-update events
-result: DENIED; top-level COMMIT will be rejected
-sixth_SQLSTATE 54000
-ROLLBACK
-policy=5|1|20.00|true
-ERROR:  WriteLeash top-level transaction denied after mutation authority violation
-result: ABORTED
-commit_SQLSTATE 54000
-fresh trusted-admin durable state:
-subscriptions=1=baseline,2=baseline,3=baseline,4=baseline,5=baseline,6=baseline,7=baseline,8=baseline,9=baseline,10=baseline
-users=1=member,2=member,3=member,4=member,5=member,6=member
-refunds=1=0.00,2=0.00,3=0.00,4=0.00,5=0.00,6=0.00,7=0.00,8=0.00
-audit=0
-  ✓ fresh trusted verification: no protected over-authority mutation became durable
-```
+The WordPress plugin is **GPL-2.0-or-later**; see its
+[license](wordpress/writeleash/LICENSE). The rest of the repository has no
+selected repository-wide open-source license; see
+[repository license status](LICENSE-TODO.md).
 
-The denied case first writes five subscription rows and also writes to sibling
-relations. The sixth row-update attempt fails; even after rolling back to a
-savepoint, the top-level `COMMIT` is rejected. A *new trusted-admin connection*
-checks that none of that transaction's changes became durable. See the
-[demo script](demo/phase0/run.sh) for the SQL and exact assertions; this is
-fixture evidence, not a general PostgreSQL guarantee.
+## Historical research
 
-## Run the historical research/security demo
-
-With Docker Engine running, Docker Compose v2, Bash, and network access to pull
-the pinned image, from a checkout run:
-
-```bash
-./demo.sh
-```
-
-The script builds the pinned `postgres:16.4-alpine` native research fixture,
-runs three safe and three denied real writer transactions, verifies exact durable
-state after each from fresh trusted-admin connections, and tears down its
-disposable Compose project. Expect `Demo: PASS` and `Demo exit status: 0`.
-See [demo prerequisites, output, and cleanup](demo/phase0/README.md).
-
-## Exactly what is tested today
-
-**PostgreSQL/native research mechanism: CURRENT, RESEARCH ONLY. PostgreSQL
-Public Research Preview: NOT RELEASED ([#31](https://github.com/MrDarkRoot/WriteLeash/issues/31)
-remains open). WriteLeash Free 1.0 is planned under #106; implementation gates
-#107–#112 are pending. Public release: DEFERRED. Supported release: NO.
-Production-ready security control: NO.** Do not deploy this research fixture as
-a production security control.
-
-The exact tested environment is a local Docker **PostgreSQL 16.4** fixture with
-a restricted, non-owner writer, trusted installer/owner roles, and native
-backend-local transaction state. The historical research demo below uses
-hard-coded test policies; the separate PostgreSQL research demo above uses runtime-named
-tables and generated #47 UPDATE budgets. Within the historical fixture:
-
-- `subscriptions` and `users` have independently counted `UPDATE` row-event
-  budgets of five per top-level transaction. Multiple statements share each
-  budget; a denied event stays denied through tested savepoint and exception
-  recovery paths and rejects the final `COMMIT`.
-- The fixture denies `users.role` updates to `admin` and measures positive
-  `refunds.amount` deltas with a per-transaction limit of `100.00`. These are
-  declared **relational** measurements, not evidence of external money movement.
-- The tested restricted writer cannot change enforcement objects or the
-  test-only budgets; separate trusted-admin connections verify durable results.
-
-For tested statement forms, concurrency/role assumptions, and untested paths,
-use the [support, compatibility, performance, and security matrix](docs/support-matrix.md),
-the [canonical test plan](docs/test-plan.md), and the
-[native experiment evidence](experiments/native_tx_state/README.md). Research
-evidence is not a supported installation or policy interface.
-
-### Generic UPDATE row budget candidate (#47)
-
-In the pinned local PostgreSQL 16.4 environment, the trusted owner can attach
-an UPDATE row-event budget to an ordinary table **not compiled into the native
-module**. For a trusted-owner table `public.repair_items`, the reviewed SQL
-surface is:
-
-```sql
-CREATE TRIGGER writeleash_rows_updated
-BEFORE UPDATE ON public.repair_items
-FOR EACH ROW
-EXECUTE FUNCTION writeleash_native.enforce_rows_updated('5');
-```
-
-The argument is a strict decimal integer from `0` through `2147483647`, fixed
-by the trusted installer; `0` denies the first UPDATE row event. State is keyed
-by relation OID per top-level transaction, not by this diagnostic table name.
-The writer must not own the table, trigger or enforcement function. The new
-[isolated product security tests](experiments/native_tx_state/product_update_run.sh)
-exercise two independently budgeted arbitrary tables plus same-named tables
-in different schemas. **`./demo.sh` still shows the historical hard-coded
-research fixture**; the first-run arbitrary-table acceptance path is now
-`./writeleash demo` ([#48](https://github.com/MrDarkRoot/WriteLeash/issues/48)).
-This is a V0 locally reviewed research candidate, not a released or supported
-installer.
-The fixed `users.role` and `refunds.amount` rules remain research-only
-fixtures, not general policy APIs. See the [configuration and support
-boundary](experiments/native_tx_state/README.md#v0-generic-update-row-budget-47).
-
-### Generate a V0 table-protection plan
-
-The root `./writeleash` Bash command gives the reviewed #47 SQL surface a small,
-local entry point. On the supported preview path, first check the local tools:
-
-```bash
-./writeleash doctor
-```
-
-Then generate (but do not apply) the trusted-admin SQL and catalog verification
-script for one table and budget:
-
-```bash
-./writeleash protect-update \
-  --table public.orders \
-  --budget 50 \
-  --writer-role app_writer
-```
-
-The table and writer role accept only lowercase simple unquoted PostgreSQL
-identifiers of at most 63 bytes each (quoted/mixed-case names are unsupported);
-the budget accepts only canonical decimal `0..2147483647`. Review/apply the
-printed `CREATE TRIGGER` as a trusted table owner/admin, then run the included
-verification script in `psql` using that same trusted account. The verification
-must say `OVERALL | PASS` before describing the table as protected. It checks
-the PostgreSQL 16.4 version and relation/trigger catalog shape (including no
-other direct user-defined trigger), exact reviewed budget, and the supplied
-writer's role attributes, ownership, `TRIGGER` privilege, and access to the
-trusted WriteLeash native schema. It also checks effective `SET` and `ALTER SYSTEM`
-privileges on `session_replication_role`: setting it to `replica` skips an
-ordinary origin trigger. This conservative V0 preflight fails if the writer can
-`SET ROLE` to **any** other role, including one reached through a membership
-chain. SET-able group-role topologies are unsupported; this is not a general
-group-role privilege verifier. It does not recursively prove arbitrary
-trigger/cascade graphs. Check each actual application writer separately and
-rerun after DDL/grant changes; the query does not discover all possible
-writers or mutation paths.
-
-Without `--writer-role`, the trust checks intentionally fail. The command does
-not connect to a database, store credentials, replace an existing trigger, or
-apply SQL. See [the #27 CLI/catalog tests](tests/writeleash_catalog.sh) for the
-catalog cases exercised on the disposable PG16.4 fixture.
-
-This remains a **local PostgreSQL 16.4 V0 research generator**, not an
-installer or production-ready control; the Public Research Preview is still
-being prepared, not released. It describes only `UPDATE` row events per
-top-level transaction. It does not protect `INSERT`/`DELETE`, transaction
-splitting, retries across committed transactions, or task-wide work; owners and
-superusers are outside the writer threat model. Managed PostgreSQL, other
-versions, partitions, inheritance, and arbitrary trigger graphs are not
-validated. The first-run arbitrary-table PostgreSQL research demo is `./writeleash demo`;
-`./demo.sh` remains the separate historical research fixture.
-
-## What it does not protect
-
-- **Transaction-local authority only.** Task-wide/cross-transaction authority
-  is **not implemented**. Each new top-level transaction gets a new budget;
-  **transaction splitting is not protected**, nor are retries across committed
-  transactions bounded as one logical job.
-- This does not cover all PostgreSQL writes or arbitrary SQL. Other versions,
-  privileges, trigger graphs, cascades, partitions, stored procedures, INSERT /
-  DELETE paths, real poolers, external side effects, and unprotected relations
-  have no general protection claim. Superusers and protected-object owners are
-  outside the protected-writer trust model. See the [support matrix](docs/support-matrix.md)
-  and [threat model](docs/threat-model.md).
-- **Actual managed PostgreSQL deployment: NOT TESTED.** Documentary feasibility
-  work is not managed-service support; the unchanged native mechanism is blocked
-  via standard Amazon RDS customer interfaces. See
-  [managed feasibility](docs/managed-postgres-feasibility.md) and
-  [#10](https://github.com/MrDarkRoot/WriteLeash/issues/10).
-- **Performance: INCONCLUSIVE.** Issue [#15](https://github.com/MrDarkRoot/WriteLeash/issues/15)
-  / [PR #22](https://github.com/MrDarkRoot/WriteLeash/pull/22) did not establish a
-  stable overhead estimate or PASS threshold. See the
-  [performance matrix](docs/support-matrix.md#d-performance).
-
-## Why this primitive, and where to dig deeper
-
-Database privileges answer *what a credential may modify*. A mutation budget
-asks *how much of a declared relational effect one transaction may make
-durable*. This is a potential backstop for flexible repair, backfill, operator,
-or background-worker writes when credentials can modify more than one intended
-operation should. AI-driven automation is only one possible writer, not the
-product definition. When a stable, narrow API or stored procedure expresses the
-workflow cleanly, prefer it.
-
-The PostgreSQL research substrate is not a SQL linter, IAM/RLS replacement, generic database safety
-system, or workflow engine. The [specification](docs/spec.md) defines intended
-semantics; the [product thesis](docs/product.md) and [roadmap](docs/roadmap.md)
-separate later hypotheses from current research. The first SQL/PLpgSQL
-experiment **failed** irreversible denial after savepoint/exception recovery;
-the later native transaction-state experiment passed the tested local cases.
-See [research history and limitations](docs/limitations.md) and
-[architecture decisions](docs/decisions.md). Historical `CC-*` labels there
-are legacy experiment IDs, not equivalent to the
-[canonical current test IDs](docs/test-plan.md).
-
-## Bring a workflow or report a problem
-
-If you have a real repair/backfill/worker workflow, describe what one run was
-meant to change, what the writer could change, and which simpler guardrails you
-already have. If installation fails, include the exact PostgreSQL version,
-deployment type, attempted commit, documented step, and sanitized error in an
-[issue](https://github.com/MrDarkRoot/WriteLeash/issues/new/choose) when intake
-is available. For suspected security bypasses, **do not publish sensitive
-details** in an issue: follow [SECURITY.md](SECURITY.md) for private reporting
-or the non-sensitive fallback. Remove secrets and production data from examples.
+**HISTORICAL / SUPERSEDED — product identity.** The earlier PostgreSQL/native
+mutation-budget research and advanced WordPress Guard/Doctor/Redirection work
+remain available as technical research, separate from the WooCommerce plugin.
+See the [preserved PostgreSQL overview and local demos](docs/postgresql-research.md),
+[research thesis](docs/product.md), [research support matrix](docs/support-matrix.md),
+and [advanced WordPress research documentation](wordpress/writeleash/README.md).

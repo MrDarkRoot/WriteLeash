@@ -9,8 +9,10 @@ plugin header and notice implement that decision; see
 `wordpress/writeleash/LICENSE-AUDIT.md`. The rest of this research
 repository remains undecided.
 
-Do not publish the repository publicly until the founder selects and reviews a
-repository-wide license.
+This repository is public. Public visibility does not grant an open-source
+license to the research outside the licensed WordPress plugin subtree. A
+repository-wide license remains a founder decision; this document does not
+change that decision or extend the plugin license to unrelated research.
 
 Potential options may be evaluated separately.
 

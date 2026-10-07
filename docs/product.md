@@ -2,15 +2,12 @@
 
 Historical thesis snapshot: 2026-09-23
 
-> **Current product authority:** this is the preserved PostgreSQL-era thesis,
-> not the current public Free product definition. [#106](https://github.com/MrDarkRoot/WriteLeash/issues/106)
-> supersedes the old thesis as authority for intended Free 1.0: safe WooCommerce
-> bulk price changes. That workflow is planned, not implemented; #107–#112 are
-> its build/proof gates. **Public release is deferred.** Existing PostgreSQL
-> research and advanced WordPress Guard/Doctor/Redirection behavior remain
-> separate technical substrates. The historical `CommitCap` references below
-> are retained to preserve the original thesis wording and are not active
-> product identity.
+> **HISTORICAL / SUPERSEDED — product identity.** This is the preserved
+> PostgreSQL-era thesis. The current WooCommerce bulk-pricing product is
+> implemented; see the [root README](../README.md) and
+> [plugin listing](../wordpress/writeleash/readme.txt). PostgreSQL research and
+> advanced WordPress Guard/Doctor/Redirection remain separate technical assets.
+> Historical `CommitCap` references below preserve the original thesis wording.
 
 **Status:** Historical product thesis and intended PostgreSQL semantics.
 Research experiments exist; this document makes no released or supported
