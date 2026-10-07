@@ -2,16 +2,17 @@
 
 **A seatbelt for database writes.**
 
-WriteLeash is a research and product project exploring how dangerous data
+WriteLeash is a database-safety research project exploring how dangerous data
 mutations can be reviewed, bounded and recovered instead of giving automation
-effectively unlimited write authority.
+effectively unlimited write authority. Its commercial products apply these
+principles to real workflows.
 
 The core research thesis is simple:
 
 > **Writes consume authority.**
 
-**WriteLeash for WooCommerce** is the first shipping commercial product built
-from these principles.
+**WriteLeash for WooCommerce** is the first commercial product built from these
+principles.
 
 ## Research
 
