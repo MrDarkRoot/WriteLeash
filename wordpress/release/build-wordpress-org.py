@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local-only #123 artifact builder; never contacts SVN or publishes."""
+"""Local-only reviewed WordPress.org artifact builder; never publishes."""
 import argparse
 import hashlib
 import json
@@ -13,7 +13,9 @@ import subprocess
 import sys
 import zipfile
 
-SOURCE = '5ccc75c1d895a2fb379866ce4cf0e9901d1c276c'
+# Reviewed v0.1 submission payload (main plus the #194 discovery nonce repair).
+# Run this builder against a separate clean checkout of this exact source.
+SOURCE = '6f8ae7de58afd7f33cd5889738f7b79cdc35b0e6'
 MANIFEST = 'wordpress/release/writeleash-distribution-files.txt'
 ASSETS = sorted(['icon-128x128.png', 'icon-256x256.png', 'icon.svg',
                  'banner-772x250.png', 'banner-1544x500.png'] +
@@ -40,7 +42,8 @@ def read_manifest(data):
     lines = data.decode().splitlines()
     require(all(x == x.strip() for x in lines), 'manifest whitespace')
     paths = [x for x in lines if x and not x.startswith('#')]
-    require(paths == sorted(set(paths)) and len(paths) in (37, 42), 'manifest count/order/duplicates')
+    require(paths == sorted(set(paths)) and len(paths) == 42, 'manifest count/order/duplicates')
+    require(paths.count('includes/free/admin-logo.png') == 1, 'missing runtime Admin logo')
     require(all(re.fullmatch(r'[A-Za-z0-9_.\-/]+', x) and
                 not x.startswith('/') and '..' not in x and
                 all(p not in ('', '.') for p in x.split('/')) for x in paths), 'unsafe manifest')
@@ -83,7 +86,8 @@ def metadata(payload):
                 'plugin metadata mismatch: ' + key)
     require(re.search(r'^Tested up to:\s*7\.1\s*$', readme, re.M), 'tested-up-to mismatch')
     require(re.search(r'^Stable tag:\s*0\.1\.0\s*$', readme, re.M), 'stable-tag mismatch')
-    require('11.1.2' in readme, 'missing Woo support claim')
+    require(re.search(r'^\* WooCommerce 10\.0 through 11\.x \(version 10\.0\.0 or newer, below 12\.0\.0\)\.\s*$',
+                      readme, re.M), 'Woo support contract mismatch')
     require(sum(bool(re.search(rb'^\s*\*?\s*Plugin Name:', d, re.M))
                 for p, d in payload.items() if p.endswith('.php')) == 1, 'duplicate plugin header')
 
@@ -164,7 +168,7 @@ def build(root, requested, output):
         candidate = output / 'extracted/writeleash'
         for name, args in [('package-preflight.php', [root / MANIFEST]),
                            ('inventory-audit.php', [root / 'wordpress/release/PUBLIC-PAYLOAD.md', root / MANIFEST, '--candidate']),
-                           ('source-audit.php', []), ('readme-validate.php', ['--frozen-artifact'])]:
+                           ('source-audit.php', []), ('readme-validate.php', [])]:
             subprocess.run(['php', str(audits / name), str(candidate), *map(str, args)], check=True)
         clean_source(root, requested)
         asset_rows = inventory(assets)

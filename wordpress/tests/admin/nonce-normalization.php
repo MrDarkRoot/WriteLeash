@@ -108,6 +108,36 @@ foreach ( $actions as $name => $action ) {
 	$eq( $GLOBALS['wl124_nonce_events'], array(), $name . ' capability before nonce' );
 	\wp_set_current_user( $other );
 }
+// #194: the AJAX discovery nonce must cross the same real WP boundary.
+\wp_set_current_user( $other );
+$discovery_action = Product_Discovery::ACTION;
+$discovery_nonce = \wp_create_nonce( $discovery_action );
+$discovery_input = array( 'nonce' => $discovery_nonce, 'term' => '', 'page' => '1', 'kind' => 'products' );
+foreach ( array( 'valid' => $discovery_nonce, 'invalid' => 'invalid_nonce', 'slashed' => '\\<b>' . $discovery_nonce . '</b>', 'html' => '<b>' . $discovery_nonce . '</b>' ) as $case => $raw ) {
+	$GLOBALS['wl124_nonce_events'] = array();
+	$result = Product_Discovery::request( array_merge( $discovery_input, array( 'nonce' => $raw ) ), 'GET' );
+	$unslashed = \wp_unslash( $raw );
+	$clean = \sanitize_text_field( $unslashed );
+	$eq( $GLOBALS['wl124_nonce_events'], array( array( 'unslash', $raw ), array( 'sanitize', $unslashed ), array( 'verify', $clean, $discovery_action ) ), 'discovery/' . $case . ' exact boundary and order' );
+	$eq( $result['status'], 'invalid' === $case ? 'INVALID' : 'OK', 'discovery/' . $case . ' real nonce result' );
+}
+foreach ( array( null, 42, true, array( $discovery_nonce ), new \stdClass() ) as $raw ) {
+	$GLOBALS['wl124_nonce_events'] = array();
+	$eq( Product_Discovery::request( array_merge( $discovery_input, array( 'nonce' => $raw ) ), 'GET' )['reason'], 'invalid_nonce', 'discovery nonstring rejection' );
+	$eq( $GLOBALS['wl124_nonce_events'], array(), 'discovery nonstring never verified' );
+}
+$GLOBALS['wl124_nonce_events'] = array();
+$eq( Product_Discovery::request( $discovery_input, 'POST' )['reason'], 'invalid_nonce', 'discovery method before nonce' );
+$eq( $GLOBALS['wl124_nonce_events'], array(), 'discovery wrong method never verified' );
+\wp_set_current_user( $owner );
+$eq( Product_Discovery::request( $discovery_input, 'GET' )['reason'], 'invalid_nonce', 'discovery cross-actor nonce rejected' );
+\wp_set_current_user( $low );
+$GLOBALS['wl124_nonce_events'] = array();
+$eq( Product_Discovery::request( $discovery_input, 'GET' )['reason'], 'permission_denied', 'discovery capability independent of nonce' );
+$eq( $GLOBALS['wl124_nonce_events'], array(), 'discovery capability before nonce' );
+\wp_set_current_user( 0 );
+$eq( Product_Discovery::request( $discovery_input, 'GET' )['reason'], 'permission_denied', 'discovery anonymous request rejected' );
+\wp_set_current_user( $other );
 $eq( $durable_snapshot(), $durable_before, 'all durable table rows and runner unchanged' );
 $eq( Job_Repository::read( $job['id'] ), $baseline, 'rejected requests preserve durable job' );
 foreach ( $baseline_counts as $suffix => $count ) {
@@ -116,4 +146,4 @@ foreach ( $baseline_counts as $suffix => $count ) {
 Price_Cache_Verifier::invalidate( $id );
 $eq( array( \get_post( $id, ARRAY_A ), \get_post_meta( $id ) ), $product_before, 'rejected requests preserve full product/post/meta' );
 $eq( \wc_get_product( $id )->get_regular_price( 'edit' ), '21.00', 'rejected requests preserve product' );
-echo 'C124-001 four Admin actions, real WP normalization/verification, capability/method/cross-actor negatives, unchanged job/product PASS (' . $assertions . " assertions)\n";
+echo 'C124-001/#194 Admin and discovery, real WP normalization/verification, capability/method/cross-actor negatives, unchanged job/product PASS (' . $assertions . " assertions)\n";
