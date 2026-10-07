@@ -3,6 +3,16 @@
     min-width: 0;
     overflow-wrap: anywhere;
 }
+.writeleash-admin .writeleash-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.writeleash-admin .writeleash-heading img {
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+}
 .writeleash-admin h2 {
     margin: 32px 0 16px;
     font-size: 18px;

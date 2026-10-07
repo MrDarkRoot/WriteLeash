@@ -659,7 +659,7 @@ final class Free_Admin {
 		$filter = is_string( $filter_raw ) ? $filter_raw : '';
 		$offset_raw = filter_input( INPUT_GET, 'wl_offset' );
 		$offset = is_string( $offset_raw ) && preg_match( '/\A[0-9]{1,7}\z/', $offset_raw ) ? (int) $offset_raw : 0;
-		echo '<div class="wrap writeleash-admin"><h1>WriteLeash Bulk Prices</h1>';
+		echo '<div class="wrap writeleash-admin"><h1 class="writeleash-heading"><img src="' . esc_url( plugins_url( 'includes/free/admin-logo.png', WRITELEASH_PLUGIN_FILE ) ) . '" width="64" height="64" alt="" decoding="async"><span>WriteLeash Bulk Prices</span></h1>';
 		$form = get_transient( self::form_key() );
 		delete_transient( self::form_key() );
 		$form = is_array( $form ) ? $form : array();

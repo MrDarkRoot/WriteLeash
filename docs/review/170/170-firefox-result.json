@@ -1,54 +1,10 @@
 {
   "engine": "firefox",
   "version": "151.0",
-  "checks": 253,
+  "checks": 10,
   "scans": [
     {
-      "name": "configuration",
-      "violations": []
-    },
-    {
-      "name": "category search",
-      "violations": []
-    },
-    {
-      "name": "search failure",
-      "violations": []
-    },
-    {
-      "name": "open search",
-      "violations": []
-    },
-    {
-      "name": "validation error",
-      "violations": []
-    },
-    {
-      "name": "preview",
-      "violations": []
-    },
-    {
-      "name": "queued",
-      "violations": []
-    },
-    {
-      "name": "mixed results",
-      "violations": []
-    },
-    {
-      "name": "history",
-      "violations": []
-    },
-    {
-      "name": "Undo results",
-      "violations": []
-    },
-    {
-      "name": "failed action",
-      "violations": []
-    },
-    {
-      "name": "missing dependency",
+      "name": "logo result capture",
       "violations": []
     }
   ],
@@ -58,44 +14,15 @@
       "current": "120.00",
       "planned": "80.00",
       "state": "CONFLICT",
-      "html": "<tr data-product-id=\"106\"><td><strong>Gate a0a31ab8 product 0 Café 日本 long name long name long name long name long name long name long name long name</strong><br><span class=\"description\">SKU: G170-a0a31ab8-00 · Product #106 · as reviewed</span><br><a href=\"http://127.0.0.1:32772/wp-admin/post.php?post=106&amp;action=edit\">Review product</a></td><td>$100.00 USD</td><td>$120.00 USD</td><td>$80.00 USD</td><td class=\"writeleash-attention\"><strong>Not changed</strong><p>This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.</p><p>Review the product, then <a href=\"http://127.0.0.1:32772/wp-admin/admin.php?page=writeleash-bulk-prices\">Create a new preview</a> if you still want to change it.</p><details><summary>Support details</summary><p>CONFLICT · ITEM_CONFLICT</p></details></td><td class=\"\">Unavailable: no confirmed WriteLeash change to restore</td></tr>",
-      "product_id": 106
-    },
-    "undo": {
-      "preserved": "93.00",
-      "restored": 20,
-      "conflict": 1
+      "html": "<tr data-product-id=\"10\"><td><strong>Gate 3a56380a product 0 Café 日本 long name long name long name long name long name long name long name long name</strong><br><span class=\"description\">SKU: G170-3a56380a-00 · Product #10 · as reviewed</span><br><a href=\"http://127.0.0.1:32775/wp-admin/post.php?post=10&amp;action=edit\">Review product</a></td><td>$100.00 USD</td><td>$120.00 USD</td><td>$80.00 USD</td><td class=\"writeleash-attention\"><strong>Not changed</strong><p>This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.</p><p>Review the product, then <a href=\"http://127.0.0.1:32775/wp-admin/admin.php?page=writeleash-bulk-prices\">Create a new preview</a> if you still want to change it.</p><details><summary>Support details</summary><p>CONFLICT · ITEM_CONFLICT</p></details></td><td class=\"\">Unavailable: no confirmed WriteLeash change to restore</td></tr>",
+      "product_id": 10
     },
     "negatives": {
-      "no_mutation": true,
-      "reads": {
-        "search": 11,
-        "unbounded": false,
-        "oversized": false,
-        "selected": 22
-      }
+      "no_mutation": true
     }
   },
-  "evidence": [
-    {
-      "name": "preview",
-      "filename": "170-firefox-preview.png"
-    },
-    {
-      "name": "apply-conflict",
-      "filename": "170-firefox-apply-conflict.png"
-    },
-    {
-      "name": "history",
-      "filename": "170-firefox-history.png"
-    },
-    {
-      "name": "undo-results",
-      "filename": "170-firefox-undo-results.png"
-    }
-  ],
-  "viewport": "1440/1024/782/375",
-  "keyboard": "PASS",
+  "capture_only": true,
+  "keyboard": "NOT_TESTED",
   "screen_reader": "NOT_TESTED",
   "safari": "NOT_TESTED"
 }
