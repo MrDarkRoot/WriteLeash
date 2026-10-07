@@ -159,7 +159,7 @@ final class Product_Discovery {
 	public static function request( array $input, string $method ): array {
 		try {
 			self::authorize();
-			if ( 'GET' !== $method || ! isset( $input['nonce'] ) || ! is_string( $input['nonce'] ) || ! wp_verify_nonce( $input['nonce'], self::ACTION ) ) {
+			if ( 'GET' !== $method || ! isset( $input['nonce'] ) || ! is_string( $input['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $input['nonce'] ) ), self::ACTION ) ) {
 				throw new Price_Validation_Error( 'invalid_nonce' );
 			}
 			$term = $input['term'] ?? '';
