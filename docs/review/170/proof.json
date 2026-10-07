@@ -11,15 +11,15 @@
       "filename": "170-chromium-apply-conflict.png",
       "caption": "Chromium: newer Woo price preserved; expected/current/planned values remain in the same product row.",
       "width": 1440,
-      "height": 3890,
-      "sha256": "81b0ccf34ee77990487f060ccbc1fb0563a9e3f600428eb290e98fc97d5530ae"
+      "height": 3856,
+      "sha256": "593d0ef79e121185b8c5b32a1e1988abfb61ea333c7f79a8d870f805a42d15d8"
     },
     {
       "filename": "170-firefox-apply-conflict.png",
       "caption": "Firefox: newer Woo price preserved; expected/current/planned values remain in the same product row.",
       "width": 1440,
-      "height": 3890,
-      "sha256": "d468332129bffaa936642947eaed2b2a733081d53ff2851270c0313c4b326da1"
+      "height": 3856,
+      "sha256": "ae4bfd29539bc424fecfb3a3d9927fa8c7b16ffa62d82929b2de626c2160b39d"
     }
   ]
 }
