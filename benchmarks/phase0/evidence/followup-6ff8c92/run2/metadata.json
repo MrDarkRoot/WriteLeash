@@ -1,0 +1,486 @@
+{
+  "tested_commit": "6ff8c929dea52d4671067f05765855f67c377075",
+  "status": "complete_with_reproducibility_warning",
+  "run": 2,
+  "method": {
+    "planned_runs": 2,
+    "rounds_per_run": 3,
+    "pairs_per_case_per_round": 2,
+    "warmup_tx_per_pair_arm": 25,
+    "measured_tx_per_pair_arm": 100,
+    "denied_trials_per_case": 30,
+    "baseline_pair_tps_max_min_spread_warning": 0.2,
+    "baseline_round_tps_sample_cv_warning": 0.1,
+    "sign_reversing_paired_change_span_warning_percentage_points": 20.0,
+    "threshold_scope": "measurement reproducibility warning; NOT product PASS or safety threshold"
+  },
+  "schedule": [
+    {
+      "run": 2,
+      "round": 1,
+      "case": "1",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 882166095,
+      "measured_seed": 1116324407
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "1",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 757706870,
+      "measured_seed": 1408918242
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "5",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 1435938193,
+      "measured_seed": 917421720
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "5",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 1767025240,
+      "measured_seed": 1514389195
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "100",
+      "pair": 1,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 610515712,
+      "measured_seed": 1132272787
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "100",
+      "pair": 2,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 1811887531,
+      "measured_seed": 1111369500
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "users",
+      "pair": 1,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 554194104,
+      "measured_seed": 945156089
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "users",
+      "pair": 2,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 215167960,
+      "measured_seed": 1068863926
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "refunds",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 146668890,
+      "measured_seed": 69148122
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "refunds",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 131469692,
+      "measured_seed": 2077374258
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "mixed",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 1578782876,
+      "measured_seed": 1642573218
+    },
+    {
+      "run": 2,
+      "round": 1,
+      "case": "mixed",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 735097862,
+      "measured_seed": 1416449985
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "1",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 1837756093,
+      "measured_seed": 1617012861
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "1",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 1094884247,
+      "measured_seed": 1820764737
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "5",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 463706770,
+      "measured_seed": 507422926
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "5",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 1064026061,
+      "measured_seed": 261620573
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "100",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 2023656357,
+      "measured_seed": 635458746
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "100",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 1026170529,
+      "measured_seed": 674680569
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "users",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 1270692409,
+      "measured_seed": 734704957
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "users",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 1033384858,
+      "measured_seed": 1530069638
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "refunds",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 1279429890,
+      "measured_seed": 37314351
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "refunds",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 2122082345,
+      "measured_seed": 1528862427
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "mixed",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 1375554277,
+      "measured_seed": 128967581
+    },
+    {
+      "run": 2,
+      "round": 2,
+      "case": "mixed",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 942669098,
+      "measured_seed": 1045066455
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "1",
+      "pair": 1,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 511861826,
+      "measured_seed": 942010298
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "1",
+      "pair": 2,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 1378546634,
+      "measured_seed": 717385094
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "5",
+      "pair": 1,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 1046118967,
+      "measured_seed": 1638595111
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "5",
+      "pair": 2,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 1776406461,
+      "measured_seed": 1411616735
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "100",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 1836284423,
+      "measured_seed": 2083217214
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "100",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 563111730,
+      "measured_seed": 1939660582
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "users",
+      "pair": 1,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 1930521005,
+      "measured_seed": 1030293032
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "users",
+      "pair": 2,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 995133657,
+      "measured_seed": 267949118
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "refunds",
+      "pair": 1,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 701828198,
+      "measured_seed": 1140998452
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "refunds",
+      "pair": 2,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 2307293,
+      "measured_seed": 1302116286
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "mixed",
+      "pair": 1,
+      "arms": [
+        "baseline",
+        "protected"
+      ],
+      "warmup_seed": 2073919630,
+      "measured_seed": 371216293
+    },
+    {
+      "run": 2,
+      "round": 3,
+      "case": "mixed",
+      "pair": 2,
+      "arms": [
+        "protected",
+        "baseline"
+      ],
+      "warmup_seed": 266216176,
+      "measured_seed": 1768479170
+    }
+  ],
+  "base_digest": "sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c",
+  "postgres_version": "16.4",
+  "pgbench_version": "pgbench (PostgreSQL) 16.4",
+  "compose_project": "commitcap_bench",
+  "container_resource_limits": {
+    "NanoCpus": 0,
+    "CpuQuota": 0,
+    "CpuPeriod": 0,
+    "CpusetCpus": "",
+    "Memory": 0,
+    "MemorySwap": 0,
+    "PidsLimit": null
+  },
+  "docker_engine": "29.5.2",
+  "host_uname": "Linux pop-os 6.18.7-76061807-generic #202601231045~1778249322~24.04~b44a3c3 SMP PREEMPT_DYNAMIC Fri M x86_64 x86_64 x86_64 GNU/Linux",
+  "host_cpu_count": 12,
+  "host_meminfo": [
+    "MemTotal:       15685196 kB",
+    "MemFree:         1067116 kB",
+    "MemAvailable:    4058320 kB"
+  ],
+  "host_cpu_model": "model name\t: AMD Ryzen 5 5500U with Radeon Graphics",
+  "container_resources": "/sys/fs/cgroup/cpu.max\nmax 100000\n/sys/fs/cgroup/memory.max\nmax\n/sys/fs/cgroup/cpuset.cpus.effective\n0-11",
+  "rows_per_table": 10000,
+  "warmup_tx_per_round_arm": 50,
+  "measured_tx_per_round_arm": 200,
+  "rounds": 3,
+  "denied_trials_per_case": 30,
+  "clients": 1,
+  "jobs": 1,
+  "query_mode": "prepared",
+  "isolation": "read committed",
+  "fixture_source": "experiments/native_tx_state/setup.sql (verbatim) + benchmarks/phase0/fixture.sql",
+  "started_utc": "2026-09-24T02:51:45Z",
+  "finished_utc": "2026-09-24T02:58:36Z"
+}

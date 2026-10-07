@@ -1,0 +1,854 @@
+{
+  "accepted": [
+    {
+      "case": "1",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 731.0,
+        "p95_us": 1088.0,
+        "p99_us": 2217.0,
+        "mean_tps": 1216.0641009559452,
+        "tps_sample_sd": 86.74768287668701,
+        "mean_rows_per_sec": 1216.0641009559452,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 647.0,
+            "p95_us": 996.0,
+            "p99_us": 2217.0,
+            "tps": 1293.5606555332602,
+            "rows_per_sec": 1293.5606555332602
+          },
+          {
+            "round": 2,
+            "p50_us": 805.0,
+            "p95_us": 1155.0,
+            "p99_us": 1508.0,
+            "tps": 1122.3533500515725,
+            "rows_per_sec": 1122.3533500515725
+          },
+          {
+            "round": 3,
+            "p50_us": 727.0,
+            "p95_us": 988.0,
+            "p99_us": 1188.0,
+            "tps": 1232.278297283003,
+            "rows_per_sec": 1232.278297283003
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 762.0,
+        "p95_us": 1239.0,
+        "p99_us": 2775.0,
+        "mean_tps": 1059.2483194659073,
+        "tps_sample_sd": 132.24349736020363,
+        "mean_rows_per_sec": 1059.2483194659073,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 728.0,
+            "p95_us": 1111.0,
+            "p99_us": 1330.0,
+            "tps": 1177.197681007115,
+            "rows_per_sec": 1177.197681007115
+          },
+          {
+            "round": 2,
+            "p50_us": 825.0,
+            "p95_us": 1380.0,
+            "p99_us": 2775.0,
+            "tps": 916.2837364565564,
+            "rows_per_sec": 916.2837364565564
+          },
+          {
+            "round": 3,
+            "p50_us": 781.0,
+            "p95_us": 1144.0,
+            "p99_us": 1487.0,
+            "tps": 1084.2635409340505,
+            "rows_per_sec": 1084.2635409340505
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 4.240766073871405,
+      "protected_mean_tps_change_pct": -12.895354888510013,
+      "paired_round_tps_change_pct": [
+        -8.99555610542092,
+        -18.360493474318684,
+        -12.011471489460114
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 1316.655695,
+          "protected_tps": 1133.59406,
+          "protected_tps_change_pct": -13.903531173349004
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 1271.261855,
+          "protected_tps": 1224.289912,
+          "protected_tps_change_pct": -3.6949069788615674
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 1260.668406,
+          "protected_tps": 897.859503,
+          "protected_tps_change_pct": -28.779090621550807
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 1011.3882309999999,
+          "protected_tps": 935.479948,
+          "protected_tps_change_pct": -7.50535557695251
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 1156.162926,
+          "protected_tps": 1068.444558,
+          "protected_tps_change_pct": -7.587024806571252
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 1319.121992,
+          "protected_tps": 1100.557983,
+          "protected_tps_change_pct": -16.568900399319563
+        }
+      ],
+      "baseline_round_tps_cv": 0.07133479461197387,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%"
+      ]
+    },
+    {
+      "case": "5",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 760.0,
+        "p95_us": 1322.0,
+        "p99_us": 1822.0,
+        "mean_tps": 1121.8465850492148,
+        "tps_sample_sd": 131.77516849737398,
+        "mean_rows_per_sec": 5609.232925246074,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 675.0,
+            "p95_us": 969.0,
+            "p99_us": 1321.0,
+            "tps": 1244.338260911207,
+            "rows_per_sec": 6221.691304556035
+          },
+          {
+            "round": 2,
+            "p50_us": 921.0,
+            "p95_us": 1449.0,
+            "p99_us": 1772.0,
+            "tps": 982.4244269125338,
+            "rows_per_sec": 4912.122134562669
+          },
+          {
+            "round": 3,
+            "p50_us": 764.0,
+            "p95_us": 1221.0,
+            "p99_us": 1822.0,
+            "tps": 1138.7770673239038,
+            "rows_per_sec": 5693.885336619519
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 831.0,
+        "p95_us": 1256.0,
+        "p99_us": 2120.0,
+        "mean_tps": 1043.4152961872185,
+        "tps_sample_sd": 20.773558320353025,
+        "mean_rows_per_sec": 5217.076480936093,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 818.0,
+            "p95_us": 1214.0,
+            "p99_us": 2120.0,
+            "tps": 1060.1306080869463,
+            "rows_per_sec": 5300.653040434731
+          },
+          {
+            "round": 2,
+            "p50_us": 878.0,
+            "p95_us": 1320.0,
+            "p99_us": 1835.0,
+            "tps": 1020.1583286304306,
+            "rows_per_sec": 5100.791643152153
+          },
+          {
+            "round": 3,
+            "p50_us": 795.0,
+            "p95_us": 1251.0,
+            "p99_us": 1416.0,
+            "tps": 1049.9569518442788,
+            "rows_per_sec": 5249.784759221394
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 9.342105263157885,
+      "protected_mean_tps_change_pct": -6.991266890432756,
+      "paired_round_tps_change_pct": [
+        -14.803663811588397,
+        3.840896122308668,
+        -7.799605210557137
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 1277.661369,
+          "protected_tps": 1107.55463,
+          "protected_tps_change_pct": -13.313914244205327
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 1212.709192,
+          "protected_tps": 1016.601096,
+          "protected_tps_change_pct": -16.171073600636156
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 1094.738686,
+          "protected_tps": 1072.213585,
+          "protected_tps_change_pct": -2.0575778757123353
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 891.011476,
+          "protected_tps": 972.923538,
+          "protected_tps_change_pct": 9.193154544734504
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 1035.175255,
+          "protected_tps": 1009.173386,
+          "protected_tps_change_pct": -2.5118325495522065
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 1265.422335,
+          "protected_tps": 1094.175703,
+          "protected_tps_change_pct": -13.532765090636701
+        }
+      ],
+      "baseline_round_tps_cv": 0.11746273532721328,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%",
+        "baseline round TPS sample CV > 10%",
+        "paired overhead reverses sign with > 20 percentage-point spread"
+      ]
+    },
+    {
+      "case": "100",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 1071.0,
+        "p95_us": 1699.0,
+        "p99_us": 3246.0,
+        "mean_tps": 817.5857104991394,
+        "tps_sample_sd": 90.62652789719783,
+        "mean_rows_per_sec": 81758.57104991394,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1183.0,
+            "p95_us": 1804.0,
+            "p99_us": 8292.0,
+            "tps": 713.5670507199517,
+            "rows_per_sec": 71356.70507199517
+          },
+          {
+            "round": 2,
+            "p50_us": 1068.0,
+            "p95_us": 1683.0,
+            "p99_us": 2593.0,
+            "tps": 859.6826051678719,
+            "rows_per_sec": 85968.2605167872
+          },
+          {
+            "round": 3,
+            "p50_us": 995.0,
+            "p95_us": 1574.0,
+            "p99_us": 1926.0,
+            "tps": 879.5074756095946,
+            "rows_per_sec": 87950.74756095945
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 1723.0,
+        "p95_us": 2410.0,
+        "p99_us": 3698.0,
+        "mean_tps": 534.7691639373044,
+        "tps_sample_sd": 23.049856210523714,
+        "mean_rows_per_sec": 53476.91639373044,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1747.0,
+            "p95_us": 2401.0,
+            "p99_us": 3206.0,
+            "tps": 536.1455961275738,
+            "rows_per_sec": 53614.55961275737
+          },
+          {
+            "round": 2,
+            "p50_us": 1643.0,
+            "p95_us": 2338.0,
+            "p99_us": 3005.0,
+            "tps": 557.0999605739315,
+            "rows_per_sec": 55709.99605739315
+          },
+          {
+            "round": 3,
+            "p50_us": 1752.0,
+            "p95_us": 2534.0,
+            "p99_us": 4746.0,
+            "tps": 511.06193511040794,
+            "rows_per_sec": 51106.193511040794
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 60.877684407096176,
+      "protected_mean_tps_change_pct": -34.591669464131705,
+      "paired_round_tps_change_pct": [
+        -24.864020054368964,
+        -35.19701838504159,
+        -41.89225796447196
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 852.573066,
+          "protected_tps": 588.311429,
+          "protected_tps_change_pct": -30.99577590925211
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 613.534573,
+          "protected_tps": 492.477408,
+          "protected_tps_change_pct": -19.731107312839235
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 833.736306,
+          "protected_tps": 555.935445,
+          "protected_tps_change_pct": -33.319990865313244
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 887.2957,
+          "protected_tps": 558.269365,
+          "protected_tps_change_pct": -37.081926014067236
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 838.012235,
+          "protected_tps": 449.527097,
+          "protected_tps_change_pct": -46.35793151635787
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 925.326177,
+          "protected_tps": 592.115391,
+          "protected_tps_change_pct": -36.0100896616048
+        }
+      ],
+      "baseline_round_tps_cv": 0.11084651643663142,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%",
+        "baseline round TPS sample CV > 10%"
+      ]
+    },
+    {
+      "case": "users",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 742.0,
+        "p95_us": 1136.0,
+        "p99_us": 2962.0,
+        "mean_tps": 1163.1330924035542,
+        "tps_sample_sd": 65.4081983733594,
+        "mean_rows_per_sec": 1163.1330924035542,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 771.0,
+            "p95_us": 1299.0,
+            "p99_us": 2962.0,
+            "tps": 1087.9794591385937,
+            "rows_per_sec": 1087.9794591385937
+          },
+          {
+            "round": 2,
+            "p50_us": 717.0,
+            "p95_us": 1103.0,
+            "p99_us": 1266.0,
+            "tps": 1207.2045968465143,
+            "rows_per_sec": 1207.2045968465143
+          },
+          {
+            "round": 3,
+            "p50_us": 737.0,
+            "p95_us": 1027.0,
+            "p99_us": 1594.0,
+            "tps": 1194.2152212255548,
+            "rows_per_sec": 1194.2152212255548
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 818.0,
+        "p95_us": 1327.0,
+        "p99_us": 2713.0,
+        "mean_tps": 1046.487088555391,
+        "tps_sample_sd": 32.99556561460552,
+        "mean_rows_per_sec": 1046.487088555391,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 756.0,
+            "p95_us": 1292.0,
+            "p99_us": 1522.0,
+            "tps": 1084.0989781182413,
+            "rows_per_sec": 1084.0989781182413
+          },
+          {
+            "round": 2,
+            "p50_us": 845.0,
+            "p95_us": 1336.0,
+            "p99_us": 2713.0,
+            "tps": 1032.9458064280873,
+            "rows_per_sec": 1032.9458064280873
+          },
+          {
+            "round": 3,
+            "p50_us": 854.0,
+            "p95_us": 1346.0,
+            "p99_us": 1993.0,
+            "tps": 1022.4164811198444,
+            "rows_per_sec": 1022.4164811198444
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 10.242587601078167,
+      "protected_mean_tps_change_pct": -10.028603313754946,
+      "paired_round_tps_change_pct": [
+        -0.3566685922016144,
+        -14.434901165355862,
+        -14.385911103142968
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 1196.888091,
+          "protected_tps": 1132.220738,
+          "protected_tps_change_pct": -5.402957342985215
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 997.2376520000001,
+          "protected_tps": 1039.901001,
+          "protected_tps_change_pct": 4.2781526464064745
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 1134.906313,
+          "protected_tps": 1044.942998,
+          "protected_tps_change_pct": -7.926937577974336
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 1289.341018,
+          "protected_tps": 1021.220972,
+          "protected_tps_change_pct": -20.79512264458184
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 1232.058153,
+          "protected_tps": 1021.158402,
+          "protected_tps_change_pct": -17.117678291927174
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 1158.627721,
+          "protected_tps": 1023.677664,
+          "protected_tps_change_pct": -11.647404472898849
+        }
+      ],
+      "baseline_round_tps_cv": 0.0562344918225968,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%",
+        "paired overhead reverses sign with > 20 percentage-point spread"
+      ]
+    },
+    {
+      "case": "refunds",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 761.0,
+        "p95_us": 1223.0,
+        "p99_us": 2455.0,
+        "mean_tps": 1145.728949965185,
+        "tps_sample_sd": 80.13299456091302,
+        "mean_rows_per_sec": 1145.728949965185,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 850.0,
+            "p95_us": 1353.0,
+            "p99_us": 1584.0,
+            "tps": 1054.679878302203,
+            "rows_per_sec": 1054.679878302203
+          },
+          {
+            "round": 2,
+            "p50_us": 727.0,
+            "p95_us": 1125.0,
+            "p99_us": 2455.0,
+            "tps": 1176.9759954961642,
+            "rows_per_sec": 1176.9759954961642
+          },
+          {
+            "round": 3,
+            "p50_us": 700.0,
+            "p95_us": 1086.0,
+            "p99_us": 1414.0,
+            "tps": 1205.5309760971875,
+            "rows_per_sec": 1205.5309760971875
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 769.0,
+        "p95_us": 1166.0,
+        "p99_us": 2111.0,
+        "mean_tps": 1133.056391515458,
+        "tps_sample_sd": 35.99927031641443,
+        "mean_rows_per_sec": 1133.056391515458,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 744.0,
+            "p95_us": 1242.0,
+            "p99_us": 1772.0,
+            "tps": 1121.5351572369143,
+            "rows_per_sec": 1121.5351572369143
+          },
+          {
+            "round": 2,
+            "p50_us": 763.0,
+            "p95_us": 1126.0,
+            "p99_us": 2111.0,
+            "tps": 1173.4059278896302,
+            "rows_per_sec": 1173.4059278896302
+          },
+          {
+            "round": 3,
+            "p50_us": 805.0,
+            "p95_us": 1166.0,
+            "p99_us": 1768.0,
+            "tps": 1104.2280894198295,
+            "rows_per_sec": 1104.2280894198295
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 1.0512483574244502,
+      "protected_mean_tps_change_pct": -1.1060694983845876,
+      "paired_round_tps_change_pct": [
+        6.338916699760433,
+        -0.30332543910794874,
+        -8.403175752921598
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 1187.563832,
+          "protected_tps": 1087.890689,
+          "protected_tps_change_pct": -8.393076676319655
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 948.5416170000001,
+          "protected_tps": 1157.327037,
+          "protected_tps_change_pct": 22.0112029096136
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 1230.375511,
+          "protected_tps": 1235.162609,
+          "protected_tps_change_pct": 0.38907617692336416
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 1128.01886,
+          "protected_tps": 1117.530704,
+          "protected_tps_change_pct": -0.929785517947801
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 1239.188084,
+          "protected_tps": 1112.161486,
+          "protected_tps_change_pct": -10.25079240513419
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 1173.653819,
+          "protected_tps": 1096.407074,
+          "protected_tps_change_pct": -6.581731661369917
+        }
+      ],
+      "baseline_round_tps_cv": 0.06994062126417248,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%",
+        "paired overhead reverses sign with > 20 percentage-point spread"
+      ]
+    },
+    {
+      "case": "mixed",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 1125.0,
+        "p95_us": 1708.0,
+        "p99_us": 2369.0,
+        "mean_tps": 793.1670748485976,
+        "tps_sample_sd": 35.78457317362363,
+        "mean_rows_per_sec": 5552.169523940183,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1185.0,
+            "p95_us": 1685.0,
+            "p99_us": 2288.0,
+            "tps": 752.2756337604688,
+            "rows_per_sec": 5265.929436323282
+          },
+          {
+            "round": 2,
+            "p50_us": 1072.0,
+            "p95_us": 1721.0,
+            "p99_us": 2369.0,
+            "tps": 818.756063956571,
+            "rows_per_sec": 5731.292447695997
+          },
+          {
+            "round": 3,
+            "p50_us": 1074.0,
+            "p95_us": 1708.0,
+            "p99_us": 2238.0,
+            "tps": 808.469526828753,
+            "rows_per_sec": 5659.286687801271
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 1189.0,
+        "p95_us": 1812.0,
+        "p99_us": 2532.0,
+        "mean_tps": 756.8911003024962,
+        "tps_sample_sd": 60.043829185426254,
+        "mean_rows_per_sec": 5298.237702117473,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1061.0,
+            "p95_us": 1574.0,
+            "p99_us": 2199.0,
+            "tps": 820.5936176190082,
+            "rows_per_sec": 5744.155323333058
+          },
+          {
+            "round": 2,
+            "p50_us": 1260.0,
+            "p95_us": 1933.0,
+            "p99_us": 2532.0,
+            "tps": 701.3385043633343,
+            "rows_per_sec": 4909.36953054334
+          },
+          {
+            "round": 3,
+            "p50_us": 1206.0,
+            "p95_us": 1823.0,
+            "p99_us": 2047.0,
+            "tps": 748.7411789251458,
+            "rows_per_sec": 5241.188252476021
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 5.688888888888899,
+      "protected_mean_tps_change_pct": -4.573560312375036,
+      "paired_round_tps_change_pct": [
+        9.081509594698955,
+        -14.340969766480383,
+        -7.387829215764441
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 713.607787,
+          "protected_tps": 827.848835,
+          "protected_tps_change_pct": 16.008940776875225
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 795.374104,
+          "protected_tps": 813.464464,
+          "protected_tps_change_pct": 2.2744466923202866
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 838.23702,
+          "protected_tps": 666.68,
+          "protected_tps_change_pct": -20.466409369512228
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 800.160032,
+          "protected_tps": 739.798183,
+          "protected_tps_change_pct": -7.543722078835346
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 781.3232489999999,
+          "protected_tps": 780.71326,
+          "protected_tps_change_pct": -0.07807127213744769
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 837.570042,
+          "protected_tps": 719.284743,
+          "protected_tps_change_pct": -14.122436700046148
+        }
+      ],
+      "baseline_round_tps_cv": 0.04511605979163256,
+      "reproducibility_warnings": [
+        "paired overhead reverses sign with > 20 percentage-point spread"
+      ]
+    }
+  ],
+  "denied_protected_only": {
+    "row": {
+      "latency_us": {
+        "p50_us": 2913.0,
+        "p95_us": 3506.0,
+        "p99_us": 3755.0
+      },
+      "commit_us": {
+        "p50_us": 135.0,
+        "p95_us": 229.0,
+        "p99_us": 246.0
+      }
+    },
+    "transition": {
+      "latency_us": {
+        "p50_us": 1684.0,
+        "p95_us": 2387.0,
+        "p99_us": 2922.0
+      },
+      "commit_us": {
+        "p50_us": 115.0,
+        "p95_us": 194.0,
+        "p99_us": 264.0
+      }
+    },
+    "numeric": {
+      "latency_us": {
+        "p50_us": 1710.0,
+        "p95_us": 2401.0,
+        "p99_us": 2480.0
+      },
+      "commit_us": {
+        "p50_us": 122.0,
+        "p95_us": 190.0,
+        "p99_us": 264.0
+      }
+    }
+  },
+  "interpretation_warning": true,
+  "percentile_method": "nearest rank across all measured transactions; per-round values retained",
+  "throughput_method": "per-pair pgbench TPS without initial connection; per-round 200 transactions / sum of both pair elapsed times; arithmetic mean of rounds and sample SD"
+}
