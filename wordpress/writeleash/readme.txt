@@ -8,60 +8,90 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Preview WooCommerce bulk price changes, run them safely, and undo changes that are still safe to restore.
+Bulk price changes without blindly overwriting newer edits.
 
 == Description ==
 
-Preview bulk price changes before they happen. Run them safely. If the price or
-a checked setting changed after review, WriteLeash leaves the newer value alone.
-Undo changes that are still safe to restore.
+**Bulk price changes without blindly overwriting newer edits.**
 
-WriteLeash Free changes the stored regular price or sale price of published
-simple WooCommerce products and variations of published variable products in
-the base store currency. Open Products → Bulk Prices, choose the products,
-choose whether to change regular prices or sale prices, pick an operation
-(Set, + fixed, - fixed, + percent or - percent), then preview the exact
-before-and-after values before anything is saved.
+Review exact before-and-after prices before you Apply. If a relevant price or
+checked product setting changes after Preview, WriteLeash preserves the newer
+edit and shows a conflict instead of overwriting it.
 
-= What you see before anything runs =
+Change Regular Price or Sale Price for simple products and variable-product
+variations. Select by product name, SKU or category, with up to 1,000 products
+in one job. Work runs in the background; Resume interrupted jobs, review
+History and Undo eligible changes.
 
-* The selected products and the exact before-and-after value of the chosen price.
-* Items that would not change, are unsupported or are blocked by your safety settings, with a plain-language reason.
-* Counts for planned changes, products already at the target price and skips.
-* Safety limits for product count, maximum increase, maximum decrease and zero-price targets.
-* For variable products, every selected variation named by its product and attributes.
+For store owners, Shop Managers, catalog operators, agencies and freelancers
+managing WooCommerce stores, WriteLeash keeps price reviews, progress and
+results together in Products → Bulk Prices.
 
-Approving applies exactly the products and target prices shown in the preview.
-Changing the selection or the price settings requires a new preview.
+= What you can change =
 
-= What happens when a product changes after review =
+Set a price, add or subtract a fixed amount, or increase or decrease by a
+percentage. Choose Regular Price or Sale Price for published simple products
+and variations of published variable products, in your base store currency.
+Select a variable product to include its variations, or choose individual
+variations. Category selection includes direct members, not subcategories.
 
-The preview saves the intended products and target prices. When the change
-runs, WriteLeash rechecks the price being changed and the checked product
-settings. If the stored price WriteLeash is changing or another checked setting
-no longer matches the preview, WriteLeash leaves the newer value alone and
-marks that product as a conflict. A regular-price change preserves an external
-sale price or schedule and never overwrites it; a sale-price change requires
-the sale to stay below the regular price. SKU, product name and category are
-reference details only; changing them does not by itself cause a conflict.
+A Regular Price change preserves the existing Sale Price and sale schedule.
+Use Set to add a first Sale Price; all operations work on an existing Sale
+Price. Sale dates, stock and orders are not changed.
 
-= What happens when the change stops =
+= Preview exact changes before Apply =
 
-Progress is saved, so a closed browser or an interrupted background step does
-not lose the change. A stalled job pauses and shows truthful remaining work.
-The Resume action continues the existing job in small steps without rebuilding
-the preview.
+Preview shows the current and proposed price for each selected product, along
+with how much it changes. Variations include their product and attributes so
+you can tell them apart.
 
-= What Undo can restore =
+See which products will change, which are already at the target price and
+which need attention. Invalid prices, unsupported products and items blocked
+by your safety settings have a reason. Skipped items do not prevent valid
+changes from continuing where it is safe to do so.
 
-Undo restores eligible stored regular-price or sale-price values that WriteLeash
-previously applied, when the saved details and the current product state permit
-it. If a stored price value or another checked setting no longer matches what
-WriteLeash recorded when it applied, that product is left alone and shown as a
-conflict instead of being overwritten. A regular-price Undo is not blocked by a
-later sale change and preserves it; a sale-price Undo checks the regular price
-recorded at apply time. Undo does not reverse orders, completed sales, emails,
-webhooks, remote HTTP requests, external queues or other plugin side effects.
+Set limits for product count, price increases, price decreases and zero-price
+targets. Apply uses the products and target prices you reviewed. Changing the
+selection or price settings requires a new Preview.
+
+= Preserve newer edits =
+
+If the stored price WriteLeash is changing or another checked setting no
+longer matches the preview, WriteLeash leaves the newer value alone and marks
+that product as a conflict. Other eligible products can continue.
+
+A Regular Price change preserves a later Sale Price or schedule. A Sale Price
+change must still stay below the Regular Price. Product name, SKU and category
+are reference details only; changing them alone does not cause a conflict.
+
+= Background processing and Resume =
+
+Jobs run in the background with saved progress. You can close the browser and
+return to see what changed, what remains and what needs attention. If work
+stalls, Resume continues the remaining products in the same job without
+starting again or repeating completed changes.
+
+= History and eligible Undo =
+
+History keeps your price-change jobs together with their results and Undo
+availability. Open a job to review progress, conflicts and products needing
+attention.
+
+Undo restores eligible Regular Price or Sale Price values that WriteLeash
+changed, within the available Undo window. If the price or a checked setting
+has changed since Apply, Undo leaves that product alone and shows a conflict.
+A Regular Price Undo preserves later sale changes; a Sale Price Undo checks
+the Regular Price recorded when the sale change ran.
+
+Undo restores eligible prices only. It does not reverse orders, completed
+sales, emails, webhooks, remote requests, external queues or other plugins'
+effects.
+
+= Select → Preview → Apply =
+
+1. **Select** products by name, SKU or category, then choose Regular Price or Sale Price and the operation.
+2. **Preview** exact before-and-after values, skipped items and warnings.
+3. **Apply** the reviewed changes, then check progress and History. Use Resume or eligible Undo when needed.
 
 == Supported scope ==
 
@@ -84,60 +114,60 @@ webhooks, remote HTTP requests, external queues or other plugin side effects.
 1. Install and activate a supported WooCommerce version (10.0 through 11.x).
 2. Install and activate WriteLeash.
 3. Open Products → Bulk Prices.
-4. Select products, choose the regular price or sale price and the operation.
-5. Preview the before-and-after prices and any warnings, then approve the preview.
+4. Select products and choose Regular Price or Sale Price and the operation.
+5. Preview the exact changes and any warnings, then Apply the reviewed changes.
 
-WriteLeash uses the normal WordPress database connection and normal WooCommerce
-product APIs. No SSH access, custom database account or manual SQL setup is
-required.
+No SSH access, custom database account or manual SQL setup is required.
 
 == Screenshots ==
 
-1. Select products and preview every regular-price or sale-price change before it runs.
-2. Review the exact before-and-after values for the price you chose, with counts for changes, skips and blocks.
+1. Select products by name, SKU or category before reviewing your price changes.
+2. Review exact before-and-after Regular Price changes, including variations and skipped products, before Apply.
 3. A later price or setting change becomes a conflict instead of a blind overwrite.
-4. Results list each product with its expected, current and planned value, plus anything needing attention.
-5. A large job shows what is done, what remains and what needs attention, page by page.
-6. History shows each price change with its Undo availability and how long the restoration window stays open.
+4. Review completed changes and restore eligible prices with Undo.
+5. See completed and remaining products, and Resume interrupted work.
+6. Review History, job outcomes and the availability of eligible Undo.
 
 == Frequently Asked Questions ==
 
 = Does WriteLeash change sale prices, variations or stock? =
 
-It changes the stored regular price or the stored sale price you choose for
-published core simple products and for variations of published core variable
-products. Selecting a variable parent targets all of its variations; you can
-also select individual variations. A regular-price change preserves an existing
-sale price and schedule. Sale dates themselves, stock and orders are outside
-the supported scope. Setting a sale price at or above the regular price (or a
-regular price at or below the sale) is refused because WooCommerce would clear
-the sale.
+Choose Regular Price or Sale Price for published simple products and variations
+of published variable products. Select a variable product to include all of
+its variations, or choose individual variations. Regular Price changes
+preserve the existing Sale Price and schedule. Sale dates, stock and orders
+are not changed. A Sale Price at or above the Regular Price, or a Regular
+Price at or below an existing sale, is refused because WooCommerce would
+clear the sale.
 
-= What happens if the price or a checked setting changes after approval? =
+= Which newer edits are protected? =
 
-If the stored price WriteLeash is changing or another checked setting no longer
-matches the preview, WriteLeash leaves the newer value alone and marks that
-product as a conflict. The checked settings include product existence, product type
-(including a variation's published variable parent), publication status, the
-stored value of the price being changed, currency and price precision. Routine
-WordPress or WooCommerce updates inside the supported ranges do not cause
-conflicts on their own; versions outside the supported ranges do. SKU, product
-name and category are reference details only; changing them does not by itself
-cause a conflict.
+WriteLeash checks the price being changed and relevant settings: whether the
+product exists, its type and publication status, its variation's published
+variable parent, currency and price precision. A mismatch becomes a conflict
+and the newer value is left alone. Product name, SKU and category changes
+alone do not cause a conflict. Routine WordPress or WooCommerce updates within
+the supported ranges do not cause conflicts on their own; versions outside
+those ranges do.
 
-= What happens if the change is interrupted? =
+= What happens to invalid or unsupported products? =
 
-Progress is saved, so a closed browser does not lose the job. If work stalls,
-the Resume action continues the existing job in small steps.
+Preview explains why an item cannot change. Those items are skipped while
+eligible products continue where safe. Review the results for conflicts and
+anything needing attention.
+
+= What happens if the job is interrupted? =
+
+Progress is saved. Return to the job to see its results and remaining work.
+If background work stalls, use Resume to continue the existing job.
 
 = Can Undo reverse everything? =
 
-No. Undo restores eligible stored regular-price or sale-price values that
-WriteLeash applied when the saved details and the current product state permit
-it. A stored price or checked-setting mismatch is left alone and shown as a
-conflict instead of being overwritten. Orders, completed sales, emails,
-webhooks, remote HTTP requests, external queues and other plugin side effects
-are not reversed.
+No. Undo restores eligible Regular Price or Sale Price values WriteLeash
+changed, while the Undo window is open and the checked price and settings
+still allow restoration. It preserves relevant newer edits as conflicts.
+Orders, completed sales, emails, webhooks, remote requests, external queues
+and other plugins' effects are not reversed.
 
 = How many products can one job change? =
 
@@ -154,6 +184,7 @@ and multisite is unsupported.
 
 = 0.1.0 =
 
-* Initial WooCommerce product: preview bulk regular- or sale-price changes, approve the exact preview, keep saved progress, resume interrupted work in small steps, and undo changes that are still safe to restore.
-* Supports up to 1,000 selected products per new job in the tested configuration.
-* Requires WooCommerce 10.0 through 11.x and uses the normal WordPress database connection.
+* Bulk Regular Price and Sale Price changes for simple products and variations, with exact Preview before Apply and protection for relevant newer edits.
+* Select by product name, SKU or category, with up to 1,000 selected products per new job in the tested configuration.
+* Background processing, saved progress, Resume, History and eligible Undo.
+* Requires WooCommerce 10.0 through 11.x.

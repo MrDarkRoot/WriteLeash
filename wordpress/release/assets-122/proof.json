@@ -62,7 +62,7 @@
       "sha256": "78adbbc08784c716f0c6de62ea7fba2da83bfea40e986bddd70112a391a7819a",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "Select products and choose the price target",
-      "caption": "Select products and preview every regular-price or sale-price change before it runs.",
+      "caption": "Select products by name, SKU or category before reviewing your price changes.",
       "visible_ui_text": "WriteLeash Bulk Prices\nSelect products and preview every regular-price or sale-price change before it runs.\n1. Select products\n2. Choose the price change\nPrice to change\nRegular price\nSale price\n3. Safety limits\nPreview price changes\nNothing is saved until you approve the preview.",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     },
@@ -74,7 +74,7 @@
       "sha256": "0160d8930a1f16e2ca9d06e22bb567140cc03dbb1cc88cfffeaa806dc601b83a",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "Frozen regular-price preview",
-      "caption": "Review the exact before-and-after values for the price you chose, with counts for changes, skips and blocks.",
+      "caption": "Review exact before-and-after Regular Price changes, including variations and skipped products, before Apply.",
       "visible_ui_text": "WriteLeash Bulk Prices\nReview price change\nSet regular prices to $80.00 USD\nPrice to change: Regular price. The sale price and schedule are preserved.\nProduct\tRegular price before\tRegular price after\tDelta\tChange %\tShoppers pay now\tWhat will happen\nApprove and apply",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     },
@@ -98,7 +98,7 @@
       "sha256": "cb785056a03d8f62bfaa26395ef0aedc8590946fc2c4975219293b60225dc62a",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "Results with per-product outcomes",
-      "caption": "Results list each product with its expected, current and planned value, plus anything needing attention.",
+      "caption": "Review completed changes and restore eligible prices with Undo.",
       "visible_ui_text": "WriteLeash Bulk Prices\nProgress and results\nResults list each product with its expected, current and planned value, plus anything needing attention.\nProduct\tRegular price expected\tRegular price now\tRegular price planned\tApply\tUndo\nChanged\nNot changed",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     },
@@ -110,7 +110,7 @@
       "sha256": "a12d8a9a0e2413d3c54c75f66194fc6eef68e44e91d2e6e1152d39b343a8227b",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "Large-job progress and pagination",
-      "caption": "A large job shows what is done, what remains and what needs attention, page by page.",
+      "caption": "See completed and remaining products, and Resume interrupted work.",
       "visible_ui_text": "WriteLeash Bulk Prices\nProgress and results\nA large job shows what is done, what remains and what needs attention, page by page.\nchanged · already at the target price · skipped · conflicts · remaining\nPrevious page\nNext page",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     },
@@ -122,7 +122,7 @@
       "sha256": "df7c40f4552bd8f9511e5c9320756fa5efba30cc834a0665bba78c476428d767",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "History and Undo availability",
-      "caption": "History shows each price change with its Undo availability and how long the restoration window stays open.",
+      "caption": "Review History, job outcomes and the availability of eligible Undo.",
       "visible_ui_text": "WriteLeash Bulk Prices\nHistory\nTask / operator / time\tOutcome\tUndo\tAction\nUndo available for prices changed by this job.\nUntil ",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     }
