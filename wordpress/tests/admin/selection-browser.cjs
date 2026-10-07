@@ -227,6 +227,7 @@ async function search(page, term) {
         ok((await page.locator('#writeleash-free-selector-help').innerText()).includes('subcategories are not included'), 'direct-category limitation explained');
         await page.locator('#writeleash-free-category').selectOption(String(fixture.parent));
         await page.locator('#writeleash-free-amount').fill('80.00');
+        await page.locator('#writeleash-free-safety-limits > summary').click();
         await page.locator('#writeleash-free-max_decrease').fill('1');
         await action(page, 'Preview price changes');
         ok((await page.locator('#wpbody-content').innerText()).includes('This plan cannot be executed.'), 'blocked saved category preview explains block');

@@ -1,7 +1,7 @@
 {
   "engine": "chromium",
   "version": "148.0.7778.178",
-  "checks": 247,
+  "checks": 253,
   "scans": [
     {
       "name": "configuration",
@@ -58,8 +58,8 @@
       "current": "120.00",
       "planned": "80.00",
       "state": "CONFLICT",
-      "html": "<tr data-product-id=\"151\"><td><strong>Gate 1b2298cf product 0 Café 日本 long name long name long name long name long name long name long name long name</strong><br><span class=\"description\">SKU: G170-1b2298cf-00 · Product #151 · identity at preview</span><br><a href=\"http://127.0.0.1:8170/wp-admin/post.php?post=151&amp;action=edit\">Review product</a></td><td>$100.00 USD</td><td>$120.00 USD</td><td>$80.00 USD</td><td class=\"writeleash-attention\"><strong>Not changed</strong><p>This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.</p><p>Review the product, then <a href=\"http://127.0.0.1:8170/wp-admin/admin.php?page=writeleash-bulk-prices\">Create a new preview</a> if you still want to change it.</p><details><summary>Support details</summary><p>CONFLICT · ITEM_CONFLICT</p></details></td><td class=\"\">Unavailable: no confirmed WriteLeash change to restore</td></tr>",
-      "product_id": 151
+      "html": "<tr data-product-id=\"81\"><td><strong>Gate a5529b3c product 0 Café 日本 long name long name long name long name long name long name long name long name</strong><br><span class=\"description\">SKU: G170-a5529b3c-00 · Product #81 · as reviewed</span><br><a href=\"http://127.0.0.1:32772/wp-admin/post.php?post=81&amp;action=edit\">Review product</a></td><td>$100.00 USD</td><td>$120.00 USD</td><td>$80.00 USD</td><td class=\"writeleash-attention\"><strong>Not changed</strong><p>This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.</p><p>Review the product, then <a href=\"http://127.0.0.1:32772/wp-admin/admin.php?page=writeleash-bulk-prices\">Create a new preview</a> if you still want to change it.</p><details><summary>Support details</summary><p>CONFLICT · ITEM_CONFLICT</p></details></td><td class=\"\">Unavailable: no confirmed WriteLeash change to restore</td></tr>",
+      "product_id": 81
     },
     "undo": {
       "preserved": "93.00",
