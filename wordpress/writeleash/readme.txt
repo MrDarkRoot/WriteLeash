@@ -1,4 +1,5 @@
 === WriteLeash ===
+Contributors: duyytrann
 Tags: woocommerce, bulk edit, prices, undo, safety
 Requires at least: 7.0
 Tested up to: 7.1
