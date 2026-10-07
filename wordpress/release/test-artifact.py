@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cheap, network-free adversarial tests for #123."""
+"""Cheap, network-free adversarial tests for the reviewed submission artifact."""
 import importlib.util
 import json
 import sys
@@ -165,27 +165,35 @@ class ArtifactCases(unittest.TestCase):
         subprocess.run(['git', '-C', str(source2), 'checkout', '--quiet', '--detach', a.SOURCE], check=True)
         second = a.build(source2, a.SOURCE, self.base / 'build2')
         self.assertNotEqual(first['ZIP_SHA256'], '2ecfd3edf667c15b36fc75fbb525551df07b075bdfc5696a07813a704eb6cf57')
-        subprocess.run([sys.executable, str(Path(__file__).with_name('nonce-artifact-audit.py')), str(self.base / 'build1/extracted/writeleash')], check=True)
+        # The current candidate has its own reviewed checksum and manifest.
+        # Historical #124 evidence and its four-nonce source audit stay frozen.
+        reviewed = json.loads(Path(__file__).with_name('artifact-194-evidence.json').read_text())
         audit_spec = importlib.util.spec_from_file_location('reaudit', Path(__file__).with_name('compliance-reaudit-124.py'))
         reaudit = importlib.util.module_from_spec(audit_spec)
         audit_spec.loader.exec_module(reaudit)
         archive = self.base / 'build1/writeleash-0.1.0.zip'
         installed = self.base / 'build1/extracted/writeleash'
-        reaudit.audit(archive, installed, identity_only=True)
+        def checked_current(candidate_archive, candidate_tree):
+            self.assertEqual(a.sha(candidate_archive.read_bytes()), reviewed['ZIP_SHA256'])
+            self.assertEqual(candidate_archive.stat().st_size, reviewed['ZIP_SIZE'])
+            self.assertEqual(a.tree(candidate_tree), self.payload)
+            a.audit_zip(candidate_archive, self.payload)
+        checked_current(archive, installed)
         for result in ['ERROR', 'WARNING', 'NOTICE', 'INFO', '', '[]', 'Success: Checks complete. No errors found.\nERROR unknown']:
             self.rejected(reaudit.plugin_check_output, result)
         changed = self.base / 'changed.zip'
         changed.write_bytes(archive.read_bytes() + b'drift')
-        self.rejected(reaudit.audit, changed, installed, None, True)
+        with self.assertRaises(AssertionError):
+            checked_current(changed, installed)
         extra = installed / 'fixture.php'
         extra.write_text('<?php')
         try:
-            self.rejected(reaudit.audit, archive, installed, None, True)
+            with self.assertRaises(AssertionError):
+                checked_current(archive, installed)
         finally:
             extra.unlink()
         self.assertEqual(first['ZIP_SHA256'], second['ZIP_SHA256'])
         self.assertEqual(first['ZIP_SIZE'], second['ZIP_SIZE'])
-        reviewed = json.loads(Path(__file__).with_name('artifact-124-evidence.json').read_text())
         for field in ['SOURCE_GIT_SHA', 'VERSION', 'STABLE_TAG', 'PUBLIC_MANIFEST_SHA256',
                       'ZIP_SHA256', 'ZIP_SIZE', 'RUNTIME_FILE_COUNT', 'SVN_TRUNK_TREE_HASH',
                       'SVN_TAG_TREE_HASH', 'ASSET_SHA256_SET', 'RUNTIME_FILES']:

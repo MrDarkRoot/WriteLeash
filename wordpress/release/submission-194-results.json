@@ -1,0 +1,137 @@
+{
+  "source_git_sha": "6f8ae7de58afd7f33cd5889738f7b79cdc35b0e6",
+  "reviewed_main_git_sha": "e4f2859c63ab30217c734485ae32d24b00a5edc8",
+  "zip_filename": "writeleash-0.1.0.zip",
+  "zip_size_bytes": 1878448,
+  "zip_sha256": "b8bd5f406667f6f686348ea67453ec25b90e09607cd9a13b542e6054c9f8a3e8",
+  "packaged_file_count": 42,
+  "canonical_builder": "PASS",
+  "installed_tree_matches_zip_and_source": "PASS",
+  "upload_install_activate": "PASS",
+  "products_bulk_prices": "PASS",
+  "admin_logo_rendered_pixels": [
+    64,
+    64
+  ],
+  "environment": {
+    "wordpress": "7.1.2",
+    "woocommerce": "11.1.2",
+    "php": "8.2.34",
+    "mysql": "8.0.44"
+  },
+  "plugin_check": {
+    "version": "2.1.0",
+    "command": "wp plugin check writeleash --require=/var/www/html/wp-content/plugins/plugin-check/cli.php --format=json",
+    "stable_checks_available": 34,
+    "exclusions": [],
+    "error_count": 1,
+    "warning_count": 7,
+    "real_blockers": [],
+    "findings": [
+      {
+        "line": 121,
+        "column": 25,
+        "type": "WARNING",
+        "code": "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "message": "Use of a direct database call is discouraged.",
+        "docs": "",
+        "file": "includes/free/class-price-apply-journal.php",
+        "classification": "REVIEWED FALSE POSITIVE / justified low-level implementation",
+        "reason": "Required journal schema introspection/DDL; live database structure must not be object-cached. Values and identifiers are bound with %s/%i."
+      },
+      {
+        "line": 121,
+        "column": 25,
+        "type": "WARNING",
+        "code": "WordPress.DB.DirectDatabaseQuery.NoCaching",
+        "message": "Direct database call without caching detected. Consider using wp_cache_get() / wp_cache_set() or wp_cache_delete().",
+        "docs": "",
+        "file": "includes/free/class-price-apply-journal.php",
+        "classification": "REVIEWED FALSE POSITIVE / justified low-level implementation",
+        "reason": "Required journal schema introspection/DDL; live database structure must not be object-cached. Values and identifiers are bound with %s/%i."
+      },
+      {
+        "line": 123,
+        "column": 24,
+        "type": "WARNING",
+        "code": "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "message": "Use of a direct database call is discouraged.",
+        "docs": "",
+        "file": "includes/free/class-price-apply-journal.php",
+        "classification": "REVIEWED FALSE POSITIVE / justified low-level implementation",
+        "reason": "Required journal schema introspection/DDL; live database structure must not be object-cached. Values and identifiers are bound with %s/%i."
+      },
+      {
+        "line": 123,
+        "column": 24,
+        "type": "WARNING",
+        "code": "WordPress.DB.DirectDatabaseQuery.NoCaching",
+        "message": "Direct database call without caching detected. Consider using wp_cache_get() / wp_cache_set() or wp_cache_delete().",
+        "docs": "",
+        "file": "includes/free/class-price-apply-journal.php",
+        "classification": "REVIEWED FALSE POSITIVE / justified low-level implementation",
+        "reason": "Required journal schema introspection/DDL; live database structure must not be object-cached. Values and identifiers are bound with %s/%i."
+      },
+      {
+        "line": 127,
+        "column": 26,
+        "type": "ERROR",
+        "code": "PluginCheck.Security.DirectDB.UnescapedDBParameter",
+        "message": "Unescaped parameter $changes used in $wpdb->query()\\n$changes assigned unsafely at line 126.",
+        "docs": "",
+        "file": "includes/free/class-price-apply-journal.php",
+        "classification": "REVIEWED FALSE POSITIVE / justified low-level implementation",
+        "reason": "Changes contains only three hardcoded DDL fragments. No input is interpolated; table() validates its identifier and prepare(%i) binds it."
+      },
+      {
+        "line": 127,
+        "column": 28,
+        "type": "WARNING",
+        "code": "WordPress.DB.DirectDatabaseQuery.DirectQuery",
+        "message": "Use of a direct database call is discouraged.",
+        "docs": "",
+        "file": "includes/free/class-price-apply-journal.php",
+        "classification": "REVIEWED FALSE POSITIVE / justified low-level implementation",
+        "reason": "Required journal schema introspection/DDL; live database structure must not be object-cached. Values and identifiers are bound with %s/%i."
+      },
+      {
+        "line": 127,
+        "column": 28,
+        "type": "WARNING",
+        "code": "WordPress.DB.DirectDatabaseQuery.NoCaching",
+        "message": "Direct database call without caching detected. Consider using wp_cache_get() / wp_cache_set() or wp_cache_delete().",
+        "docs": "",
+        "file": "includes/free/class-price-apply-journal.php",
+        "classification": "REVIEWED FALSE POSITIVE / justified low-level implementation",
+        "reason": "Required journal schema introspection/DDL; live database structure must not be object-cached. Values and identifiers are bound with %s/%i."
+      },
+      {
+        "line": 127,
+        "column": 58,
+        "type": "WARNING",
+        "code": "WordPress.DB.DirectDatabaseQuery.SchemaChange",
+        "message": "Attempting a database schema change is discouraged.",
+        "docs": "",
+        "file": "includes/free/class-price-apply-journal.php",
+        "classification": "REVIEWED FALSE POSITIVE / justified low-level implementation",
+        "reason": "Required upgrade of the plugin-owned journal schema."
+      }
+    ]
+  },
+  "official_readme_validator": {
+    "url": "https://wordpress.org/plugins/developers/readme-validator/",
+    "exact_zip_readme_bytes_verified": true,
+    "errors": [],
+    "warnings": [],
+    "informational_notes": [
+      "No == Upgrade Notice == section was found",
+      "No donate link was found"
+    ]
+  },
+  "metadata": "PASS",
+  "compliance_scan": "PASS",
+  "nonce_regression_assertions": 146,
+  "artifact_tests": 10,
+  "pr_fast": "PASS",
+  "recommendation": "READY TO SUBMIT"
+}
