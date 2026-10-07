@@ -1,7 +1,9 @@
-# Historical PostgreSQL/native research overview
+# WriteLeash Research — PostgreSQL/native research overview
 
-**HISTORICAL / SUPERSEDED — product identity.** This preserves the former root
-README research overview. For the current WooCommerce product and installation
+**WRITELEASH RESEARCH — RESEARCH TRACK.** This is the research overview for the
+PostgreSQL/native mutation-budget substrate. It is research, not a
+production-ready database security control and not a released PostgreSQL
+security product. For the current WooCommerce product and installation
 instructions, see the [root README](../README.md). The research boundaries and
 local demos below apply only to the PostgreSQL research fixture.
 

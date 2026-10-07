@@ -1,10 +1,10 @@
 # WriteLeash PostgreSQL Research — Security & Correctness Test Plan
 
 This plan names regression IDs for the existing PostgreSQL/native research
-substrate, not acceptance criteria for the intended public Free product. #106
-governs planned WooCommerce bulk price changes; implementation gates #107–#112
-are pending and public release is deferred. Advanced WordPress Guard/Doctor
-tests remain a separate technical suite.
+substrate, not acceptance criteria for the WooCommerce product. WriteLeash for
+WooCommerce is the first commercial product derived from the WriteLeash research
+principles. Advanced WordPress Guard/Doctor tests remain a separate technical
+suite.
 
 Last updated: 2026-09-23
 

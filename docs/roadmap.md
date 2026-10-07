@@ -1,17 +1,17 @@
 # WriteLeash — Roadmap
 
-## Current product and historical roadmap
+## Research and product tracks
 
 The WooCommerce bulk-pricing product is implemented and is being prepared for
 public submission. See the [root README](../README.md) and
 [plugin listing](../wordpress/writeleash/readme.txt) for current capabilities
 and limitations. This is not a publication announcement.
 
-**HISTORICAL / SUPERSEDED.** The earlier #106 / #107–#112 build sequence and
-PostgreSQL roadmap below are preserved planning history, not pending product
-implementation or current release instructions. Existing PostgreSQL/native
-research and advanced WordPress Guard/Doctor/Redirection remain separate
-technical assets.
+**WRITELEASH RESEARCH — RESEARCH TRACK.** The PostgreSQL mutation-authority
+phases below are the research planning record, not pending WooCommerce product
+implementation or current release instructions. The earlier #106 / #107–#112
+WooCommerce build sequence is completed planning history. The advanced WordPress
+Guard/Doctor/Redirection substrate remains a separate research track.
 
 ## Rule
 
@@ -177,7 +177,7 @@ Ask people to show a recent task, then investigate:
 - whether database-level denial is acceptable
 - managed-database deployment objections
 
-For every candidate use case, run a “narrow-operation challenge”: try to solve it with one API, one stored procedure, one trigger, or one approval step. The former PostgreSQL product thesis only wins if broad-but-bounded authority remains materially better or a valuable independent backstop.
+For every candidate use case, run a “narrow-operation challenge”: try to solve it with one API, one stored procedure, one trigger, or one approval step. The PostgreSQL research thesis only wins if broad-but-bounded authority remains materially better or a valuable independent backstop.
 
 ## Build only repeated needs
 
@@ -320,7 +320,7 @@ Do NOT build early:
 
 ---
 
-# Historical PostgreSQL research status (snapshot from 2026-09-23)
+# PostgreSQL research status (snapshot from 2026-09-23)
 
 ```text
 CURRENT PHASE:

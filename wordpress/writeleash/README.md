@@ -2,12 +2,15 @@
 
 **Bulk price changes without blindly overwriting newer edits.**
 
-For the current WooCommerce plugin, installation instructions and supported
-workflow, see the [root product overview](../../README.md) and
+WriteLeash for WooCommerce is the first commercial product from the broader
+WriteLeash database-safety research project.
+
+For the WooCommerce plugin, installation instructions and supported workflow,
+see the [root project overview](../../README.md) and
 [merchant listing](readme.txt).
 
-**HISTORICAL / SUPERSEDED — research documentation.** The sections below
-preserve the advanced WordPress Guard/Doctor/Redirection V0.1 research contract.
+**WRITELEASH RESEARCH — advanced WordPress substrate.** The sections below
+document the advanced WordPress Guard/Doctor/Redirection V0.1 research contract.
 They are not current WooCommerce installation or public release instructions.
 Historical package descriptions refer to that research baseline, not the
 current plugin distribution.

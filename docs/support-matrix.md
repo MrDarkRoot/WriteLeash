@@ -2,10 +2,9 @@
 
 Last updated: 2026-09-30.
 
-**HISTORICAL / SUPERSEDED — product identity.** This technical support matrix
-covers the PostgreSQL research mechanism, not the implemented WooCommerce
-bulk-pricing product. Current plugin capabilities and limitations are in the
-[root README](../README.md) and
+**WRITELEASH RESEARCH — RESEARCH TRACK.** This technical support matrix covers
+the PostgreSQL research mechanism, not the WooCommerce product. Current plugin
+capabilities and limitations are in the [root README](../README.md) and
 [plugin listing](../wordpress/writeleash/readme.txt). The advanced WordPress
 Guard/Doctor/Redirection substrate is separate research under
 `wordpress/writeleash/`.
@@ -125,7 +124,7 @@ product is implemented; this table does not establish its release authorization:
 | Research mechanism | **CURRENT** | Native backend-local transaction-state experiment exists and passes its research suite. |
 | PostgreSQL Public Research Preview ([#31](https://github.com/MrDarkRoot/WriteLeash/issues/31)) | **NOT RELEASED** | The historical research-preview issue remains open; this local evidence does not authorize publication. |
 | WriteLeash WooCommerce product | **IMPLEMENTED** | Preview, Apply, newer-edit protection, Resume, History and eligible Undo are documented in the [plugin listing](../wordpress/writeleash/readme.txt). Earlier build-gate instructions are historical. |
-| WooCommerce publication | **PREPARING PUBLIC SUBMISSION** | See the [root README](../README.md) for current product identity. This research matrix does not announce publication or authorize release. |
+| WooCommerce publication | **PREPARING PUBLIC SUBMISSION** | See the [root README](../README.md) for current product documentation. This research matrix does not announce publication or authorize release. |
 | Production-ready security control | **NO** | Do not deploy this PostgreSQL research mechanism as a security control; see [README](../README.md) and [SECURITY.md](../SECURITY.md). |
 
 Open research gates, none of them passed and none claimed here: real managed
