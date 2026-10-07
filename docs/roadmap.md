@@ -1,25 +1,17 @@
 # WriteLeash — Roadmap
 
-Last updated: 2026-09-30
+## Current product and historical roadmap
 
-## Current product authority and sequence
+The WooCommerce bulk-pricing product is implemented and is being prepared for
+public submission. See the [root README](../README.md) and
+[plugin listing](../wordpress/writeleash/readme.txt) for current capabilities
+and limitations. This is not a publication announcement.
 
-- [#106](https://github.com/MrDarkRoot/WriteLeash/issues/106) supersedes #67
-  as authority for the intended public Free product. #67 remains historical
-  V0.1 technical/product-development context; preserve its implementation and
-  evidence.
-- The intended Free 1.0 product is safe WooCommerce bulk price changes. It is
-  planned, not implemented. The ordered build/proof sequence is #107 → #108 →
-  #109 → #110 → #111 → #112, from post-#98 main.
-- **Public release is deferred.** After #112, rewrite the old release gates
-  (#77/#76/#65/#66) for the proven product before considering release work.
-- Existing PostgreSQL/native research and advanced WordPress Guard/Doctor/
-  Redirection capabilities remain distinct technical substrates; they do not
-  imply that the WooCommerce Free workflow exists or change Guard semantics.
-
-The roadmap below records the earlier PostgreSQL research sequence. Its Phase 0
-status and product sequence are historical, not the current public-product
-roadmap.
+**HISTORICAL / SUPERSEDED.** The earlier #106 / #107–#112 build sequence and
+PostgreSQL roadmap below are preserved planning history, not pending product
+implementation or current release instructions. Existing PostgreSQL/native
+research and advanced WordPress Guard/Doctor/Redirection remain separate
+technical assets.
 
 ## Rule
 

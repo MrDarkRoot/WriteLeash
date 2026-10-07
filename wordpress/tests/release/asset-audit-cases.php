@@ -31,7 +31,7 @@ $run = static function () use ( $repo, $fixture ): int {
 $change_conflict_text = static function ( string $f, callable $change ): void {
     $p = $f . '/wordpress/release/assets-122/proof.json';
     $proof = json_decode( file_get_contents( $p ), true, 512, JSON_THROW_ON_ERROR );
-    $proof['screenshots'][2]['visible_ui_text'] = $change( $proof['screenshots'][2]['visible_ui_text'] );
+    $proof['screenshots'][4]['visible_ui_text'] = $change( $proof['screenshots'][4]['visible_ui_text'] );
     file_put_contents( $p, json_encode( $proof, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
 };
 $cases = array(
@@ -45,8 +45,8 @@ $cases = array(
     'missing required icon / SVG fallback' => static function ( $f ) { unlink( $f . '/wordpress/assets/icon-128x128.png' ); },
     'wrong exact icon dimensions' => static function ( $f ) { copy( $f . '/wordpress/assets/icon-128x128.png', $f . '/wordpress/assets/icon-256x256.png' ); },
     'screenshot numbering gap' => static function ( $f ) { rename( $f . '/wordpress/assets/screenshot-3.png', $f . '/wordpress/assets/screenshot-7.png' ); },
-    'readme caption count mismatch' => static function ( $f ) { $p = $f . '/wordpress/writeleash/readme.txt'; file_put_contents( $p, preg_replace( '/^6\. History shows.*\n/m', '', file_get_contents( $p ) ) ); },
-    'readme caption content mismatch' => static function ( $f ) { $p = $f . '/wordpress/writeleash/readme.txt'; file_put_contents( $p, str_replace( 'Review the exact before-and-after', 'Review different', file_get_contents( $p ) ) ); },
+    'readme caption count mismatch' => static function ( $f ) { $p = $f . '/wordpress/writeleash/readme.txt'; file_put_contents( $p, preg_replace( '/^6\. Review History.*\n/m', '', file_get_contents( $p ) ) ); },
+    'readme caption content mismatch' => static function ( $f ) { $p = $f . '/wordpress/writeleash/readme.txt'; file_put_contents( $p, str_replace( 'Review exact before-and-after', 'Review different', file_get_contents( $p ) ) ); },
     'SVG outside supported icon role' => static function ( $f ) { copy( $f . '/wordpress/assets/icon.svg', $f . '/wordpress/assets/banner.svg' ); },
     'active SVG content' => static function ( $f ) { $p = $f . '/wordpress/assets/icon.svg'; file_put_contents( $p, str_replace( '</svg>', '<script>alert(1)</script></svg>', file_get_contents( $p ) ) ); },
     'unexpected large binary' => static function ( $f ) { file_put_contents( $f . '/wordpress/assets/banner-772x250.png', str_repeat( 'x', 2 * 1024 * 1024 + 1 ), FILE_APPEND ); },

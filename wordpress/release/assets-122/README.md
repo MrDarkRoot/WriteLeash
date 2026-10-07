@@ -1,3 +1,10 @@
+> Current listing curation: see [#195 visual handoff](../../../docs/visual-assets-v0.1.md).
+> The capture sessions below are historical. #195 reuses three #182 images,
+> reorders progress to 3, replaces the clipped conflict viewport with a retained
+> #170 table crop at 5, minimally captures Sale/variation Preview at 2 and
+> completed/invalid-price results at 4, and refreshes banner copy. Current file/caption/hash
+> inventory is in `proof.json`; no new customer validation was run.
+
 # #122 WordPress.org assets and real product proof
 
 Product baseline: `07600cf13551f54c5df74db070ec344064ecb83a` (merged Phase A #137).

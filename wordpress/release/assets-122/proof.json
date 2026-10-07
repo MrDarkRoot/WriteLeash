@@ -62,57 +62,80 @@
       "sha256": "78adbbc08784c716f0c6de62ea7fba2da83bfea40e986bddd70112a391a7819a",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "Select products and choose the price target",
-      "caption": "Select products and preview every regular-price or sale-price change before it runs.",
+      "caption": "Select products by name, SKU or category before reviewing your price changes.",
       "visible_ui_text": "WriteLeash Bulk Prices\nSelect products and preview every regular-price or sale-price change before it runs.\n1. Select products\n2. Choose the price change\nPrice to change\nRegular price\nSale price\n3. Safety limits\nPreview price changes\nNothing is saved until you approve the preview.",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     },
     {
       "filename": "screenshot-2.png",
-      "width": 1280,
-      "height": 900,
+      "width": 1238,
+      "height": 1442,
       "format": "PNG",
-      "sha256": "0160d8930a1f16e2ca9d06e22bb567140cc03dbb1cc88cfffeaa806dc601b83a",
-      "captured_at_utc": "2026-10-05T22:53:47.382416Z",
-      "real_state": "Frozen regular-price preview",
-      "caption": "Review the exact before-and-after values for the price you chose, with counts for changes, skips and blocks.",
-      "visible_ui_text": "WriteLeash Bulk Prices\nReview price change\nSet regular prices to $80.00 USD\nPrice to change: Regular price. The sale price and schedule are preserved.\nProduct\tRegular price before\tRegular price after\tDelta\tChange %\tShoppers pay now\tWhat will happen\nApprove and apply",
-      "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
+      "sha256": "543326ae8ff365407d6cd0d637c28bf55c5ac504d80fdcf6f641e50076833d03",
+      "captured_at_utc": "2026-10-07T04:28:55.750290+00:00",
+      "real_state": "Real prepared local #188 Woo Admin fixture; minimal static capture for #195",
+      "caption": "Review exact before-and-after Sale Price changes, including variations and skipped products, before Apply.",
+      "visible_ui_text": "Review price change\nSet sale prices to $20.00 USD · 5 products (2 variations)\nSale price before\tSale price after\nCotton tee — Small\nSKU: TEE-SMALL · Variation #29\n$24.00 USD\t$20.00 USD\nCotton tee — Large\nSKU: TEE-LARGE · Variation #30\n$28.00 USD\t$20.00 USD\nApprove and apply",
+      "captured_product_base": "2e059cacf46977cc3ae1eba15eba628ad6e7570e",
+      "capture_job_id": "5b36537d-13d8-40ca-993f-2f2e428e7918",
+      "capture_scope": "Existing synthetic Mixed catalog; no fixture reseed, source change or new customer validation."
     },
     {
       "filename": "screenshot-3.png",
       "width": 1280,
       "height": 900,
       "format": "PNG",
-      "sha256": "85065e8c1deab2659c56b9b07210c7849d716c0b26e0e3f15ba1eddcc3a6c969",
+      "sha256": "a12d8a9a0e2413d3c54c75f66194fc6eef68e44e91d2e6e1152d39b343a8227b",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
-      "real_state": "Conflict-aware results",
-      "caption": "A later price or setting change becomes a conflict instead of a blind overwrite.",
-      "visible_ui_text": "WriteLeash Bulk Prices\nProgress and results\nSet regular prices to $80.00 USD\nFinished with products needing attention\nPlanned 3 products: 2 changed\nUndo\nUndo restores eligible regular price values changed by WriteLeash.\nProducts\nApply conflicts\nRegular price expected\tRegular price now\tRegular price planned\tApply\tUndo\nNot changed\nThis product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.",
+      "real_state": "Large-job progress and pagination",
+      "caption": "See changed and remaining products in a background job, and Resume interrupted work.",
+      "visible_ui_text": "WriteLeash Bulk Prices\nProgress and results\nA large job shows what is done, what remains and what needs attention, page by page.\nchanged · already at the target price · skipped · conflicts · remaining\nPrevious page\nNext page",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     },
     {
       "filename": "screenshot-4.png",
-      "width": 1280,
-      "height": 900,
+      "width": 1238,
+      "height": 1600,
       "format": "PNG",
-      "sha256": "cb785056a03d8f62bfaa26395ef0aedc8590946fc2c4975219293b60225dc62a",
-      "captured_at_utc": "2026-10-05T22:53:47.382416Z",
-      "real_state": "Results with per-product outcomes",
-      "caption": "Results list each product with its expected, current and planned value, plus anything needing attention.",
-      "visible_ui_text": "WriteLeash Bulk Prices\nProgress and results\nResults list each product with its expected, current and planned value, plus anything needing attention.\nProduct\tRegular price expected\tRegular price now\tRegular price planned\tApply\tUndo\nChanged\nNot changed",
-      "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
+      "sha256": "a5ebbd44629931c4788ee4624a0b96dfb233b54b9c6bff448655a1cfe1175e37",
+      "captured_at_utc": "2026-10-07T04:28:55.750290+00:00",
+      "real_state": "Real prepared local #188 Woo Admin fixture; minimal static capture for #195",
+      "caption": "Review completed changes and explained skips; one invalid price does not stop the useful result.",
+      "visible_ui_text": "Progress and results\nDecrease regular prices by 10% · 5 products (2 variations)\nFinished\nPlanned 5 products: 4 changed · 1 skipped.\nImported damaged price\nSkipped at preview\nThe stored price is outside the supported decimal contract.\nClean ceramic mug\nChanged\nUndo available for prices changed by this job.",
+      "captured_product_base": "2e059cacf46977cc3ae1eba15eba628ad6e7570e",
+      "capture_job_id": "8368c469-9bbd-4974-a160-5b7d28550306",
+      "capture_scope": "Existing synthetic Mixed catalog; no fixture reseed, source change or new customer validation.",
+      "crop": {
+        "x": 0,
+        "y": 0,
+        "width": 1238,
+        "height": 1600
+      },
+      "source_canvas": {
+        "width": 1238,
+        "height": 1632
+      }
     },
     {
       "filename": "screenshot-5.png",
-      "width": 1280,
-      "height": 900,
+      "width": 1240,
+      "height": 480,
       "format": "PNG",
-      "sha256": "a12d8a9a0e2413d3c54c75f66194fc6eef68e44e91d2e6e1152d39b343a8227b",
-      "captured_at_utc": "2026-10-05T22:53:47.382416Z",
-      "real_state": "Large-job progress and pagination",
-      "caption": "A large job shows what is done, what remains and what needs attention, page by page.",
-      "visible_ui_text": "WriteLeash Bulk Prices\nProgress and results\nA large job shows what is done, what remains and what needs attention, page by page.\nchanged · already at the target price · skipped · conflicts · remaining\nPrevious page\nNext page",
-      "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
+      "sha256": "5181b4fba8643483cc0b57c2ebeffe4eba61c69ed278b6efd91d2b6d8dd9f956",
+      "captured_at_utc": null,
+      "real_state": "Real Regular Price conflict row and two completed rows from retained #170 Chromium capture",
+      "caption": "A later price or setting change becomes a conflict instead of a blind overwrite. A planned $100 to $80 change leaves a newer $120 edit alone.",
+      "visible_ui_text": "Product\tExpected\tCurrent\tPlanned\tApply\tUndo\n$100.00 USD\t$120.00 USD\t$80.00 USD\tNot changed\nThis product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.\nChanged",
+      "captured_product_base": "bd66a79",
+      "source_capture": "docs/review/170/170-chromium-apply-conflict.png",
+      "source_sha256": "ed331d74a07afdaa88bbdff10084f2fc07ac0768703d581c2e1932c284686a24",
+      "crop": {
+        "x": 180,
+        "y": 1055,
+        "width": 1240,
+        "height": 480
+      },
+      "capture_date_note": "Retained #170 capture; original timestamp not recorded in its proof. No new capture."
     },
     {
       "filename": "screenshot-6.png",
@@ -122,7 +145,7 @@
       "sha256": "df7c40f4552bd8f9511e5c9320756fa5efba30cc834a0665bba78c476428d767",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "History and Undo availability",
-      "caption": "History shows each price change with its Undo availability and how long the restoration window stays open.",
+      "caption": "Review History, job outcomes and the availability of eligible Undo.",
       "visible_ui_text": "WriteLeash Bulk Prices\nHistory\nTask / operator / time\tOutcome\tUndo\tAction\nUndo available for prices changed by this job.\nUntil ",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     }
@@ -467,5 +490,19 @@
       6
     ],
     "reason": "Durable item tables now expose merged Phase A Current; preview and history views are unchanged."
+  },
+  "curation_195": {
+    "positioning_base": "f1a4150",
+    "reused_original_numbers": {
+      "1": 1,
+      "3": 5,
+      "6": 6
+    },
+    "replacement": {
+      "5": "Unaltered crop of retained real #170 conflict table; prior #182 conflict viewport hid the row.",
+      "2": "Minimal real Sale Price Preview capture including variation attributes.",
+      "4": "Minimal real completed Regular Price task including invalid-price skip reason."
+    },
+    "note": "Historical observations and phase_b remain unchanged; listing inventory above reflects #195 curation."
   }
 }

@@ -298,11 +298,10 @@ The `#121` readme guard in `readme-validate.php` fails the listing if
   — run 2026-10-02; no errors; only non-blocking notes (Contributors omitted, no
   Upgrade Notice section, no donate link).
 
-## #122 screenshot caption mapping
+## #122/#182/#195 screenshot caption mapping
 
-The readme captions are written to match the #122/#182 listing capture plan and
-#111 UI states, in order: (1) product selection; (2) before/after preview for
-the chosen regular or sale price; (3) large-job progress with what is done,
-remaining and needing attention; (4) results with expected, current and planned
-values; (5) "A later price or setting change becomes a conflict instead of a blind overwrite."; (6) history with Undo eligibility. No #122 asset files
-were created or modified by #121.
+The current readme captions and filenames follow #195 curation: (1) product
+selection; (2) exact Sale Price Preview; (3) background progress and Resume;
+(4) completed Regular Price changes and explained invalid-price skip; (5) a $100 expected / $120 current / $80
+planned conflict with the newer edit preserved; (6) History and eligible Undo.
+See `docs/visual-assets-v0.1.md` for exact captions and capture provenance.

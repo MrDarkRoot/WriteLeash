@@ -1,12 +1,12 @@
 # Contributing To WriteLeash
 
-WriteLeash contains security-sensitive technical substrates. Small, explicit,
-adversarially tested changes are preferred over broad abstractions. The
-intended public Free 1.0 product is governed by #106: safe WooCommerce bulk
-price changes. It is planned, not implemented; #107–#112 are ordered build and
-proof gates, and public release is deferred. Existing PostgreSQL/native
-research and advanced WordPress Guard/Doctor/Redirection capabilities remain
-separate technical assets.
+WriteLeash's current product is a WooCommerce bulk-pricing plugin: Preview,
+newer-edit protection, background work and Resume, History and eligible Undo.
+See the [root README](README.md) and
+[plugin listing](wordpress/writeleash/readme.txt) for the product scope.
+Small, explicit changes are preferred over broad abstractions. PostgreSQL/native
+research and advanced WordPress Guard/Doctor/Redirection remain separate
+historical technical assets.
 
 ## Before Making A Change
 
@@ -18,7 +18,7 @@ review and promotion of the exact audited SHA to a same-repository PR branch.
 Full release evidence is an intentional exact-SHA dispatch. See
 [CI policy](.github/ci/CI-POLICY.md) for requirements and contributor approval.
 
-Contributors MUST read:
+For PostgreSQL research changes, contributors MUST read:
 
 1. [docs/spec.md](docs/spec.md), the PostgreSQL research semantics.
 2. [docs/test-plan.md](docs/test-plan.md), the canonical PostgreSQL research test IDs; WordPress suite coverage is under `wordpress/tests/`.
@@ -49,7 +49,7 @@ For every meaningful security behavior:
 3. Add a negative or adversarial test for denied behavior.
 4. Implement the smallest change that can satisfy or falsify the requirement.
 5. Inspect transaction failure, rollback, and cleanup semantics.
-6. Attempt a bypass using alternate PostgreSQL execution paths.
+6. Attempt a bypass using alternate execution paths for the affected component.
 7. Document every unsupported or unknown case discovered.
 
 Green CI alone is not sufficient evidence for a security-sensitive change.
@@ -75,8 +75,8 @@ claim being made.
 
 Before accepting a feature, ask:
 
-> Does this help prove the mutation-authority primitive, make the OSS security
-> demo easier to adopt, or solve a repeated request from real users?
+> Does this improve the supported WooCommerce workflow or solve a repeated
+> request from its users? Research changes require their own explicit scope.
 
 If not, defer it.
 
@@ -101,11 +101,10 @@ privilege escalation.
 
 ## Scope and current product sequence
 
-The PostgreSQL/native experiment plan is historical technical context, not the
-current public-product roadmap. Use [docs/roadmap.md](docs/roadmap.md) and
-[#106](https://github.com/MrDarkRoot/WriteLeash/issues/106) for current product
-authority. Implement WooCommerce behavior only in its ordered #107–#112 gates;
-do not add product functionality during unrelated rebrand or Guard work.
-Changes to the existing Guard/Doctor/Redirection security contract require
-their own explicit scope and regression review. Do not change those semantics
-to make a separate product path easier.
+The PostgreSQL/native experiment plan and the earlier #107–#112 build sequence
+are **HISTORICAL / SUPERSEDED** planning context. Current WooCommerce scope is
+summarized in the [root README](README.md) and [plugin listing](wordpress/writeleash/readme.txt).
+Use the current issue and CI policy for the proposed change; do not add product
+functionality during unrelated metadata or documentation work. Changes to the
+separate Guard/Doctor/Redirection security contract require their own explicit
+scope and regression review.

@@ -1,7 +1,9 @@
 <?php
 /**
  * Plugin Name: WriteLeash
- * Description: WooCommerce bulk regular-price changes with frozen previews, safety limits and Undo.
+ * Description: Preview WooCommerce bulk price changes, preserve newer edits, resume interrupted jobs, and undo eligible changes.
+ * Author: Duy Tran
+ * Author URI: https://profiles.wordpress.org/duyytrann
  * Version: 0.1.0
  * Requires at least: 7.0
  * Requires PHP: 7.4

@@ -1,13 +1,13 @@
 # Security Policy
 
-WriteLeash contains PostgreSQL/native research implementations and an advanced
-WordPress V0.1 Guard/Doctor/Redirection technical substrate. These have
-narrowly tested behavior, but are not a generally released or supported
-security control. The intended public Free 1.0 product is safe WooCommerce
-bulk price changes under #106; that workflow is not implemented, #107–#112 are
-pending, and public release is deferred. Installing this repository does not
-make the planned WooCommerce workflow available or imply a general database
-protection claim.
+WriteLeash's current product is a WooCommerce bulk-pricing plugin. Its supported
+workflow is described in the [plugin listing](wordpress/writeleash/readme.txt).
+Reports should identify the affected product operation and version or commit.
+
+The repository also preserves PostgreSQL/native research and an advanced
+WordPress Guard/Doctor/Redirection substrate. Those are separate research
+assets, not generally released database security controls. Their historical
+boundaries below do not describe the WooCommerce product's installation path.
 
 ## Reporting A Vulnerability
 
@@ -35,7 +35,18 @@ A useful private report includes:
   or elevated privileges are involved;
 - any proposed mitigation, if known.
 
-## What Constitutes A Security Bug
+## WooCommerce product reports
+
+Report unauthorized price changes or access to jobs, overwriting a newer relevant
+edit after Preview, or Undo restoring a value when it should preserve a later
+edit. Include the actor role, selected price field, steps and observed result.
+Ordinary conflicts and ineligible Undo are expected protections, not proof of a
+security failure.
+
+## Historical PostgreSQL research criteria
+
+**HISTORICAL / SUPERSEDED — product identity.** The following criteria and
+research documents apply to the separate PostgreSQL fixture.
 
 For behavior documented as supported, a high-severity security failure is:
 
@@ -68,7 +79,7 @@ escalation, SQL injection in trusted functions, and policy-state corruption are
 also security relevant even when they do not directly exceed a declared
 mutation budget.
 
-## Support Boundaries
+## PostgreSQL research support boundaries
 
 Security reports and public claims MUST be evaluated against:
 

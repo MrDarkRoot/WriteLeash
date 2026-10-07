@@ -1,19 +1,16 @@
 # WriteLeash
 
-Bulk price changes for WooCommerce, on a short leash.
+**Bulk price changes without blindly overwriting newer edits.**
 
-Preview bulk price changes before they happen. Run them safely. If the price or
-a checked setting changed after review, WriteLeash leaves the newer value alone.
-Undo changes that are still safe to restore.
+For the current WooCommerce plugin, installation instructions and supported
+workflow, see the [root product overview](../../README.md) and
+[merchant listing](readme.txt).
 
-* Preview the exact before-and-after value of the chosen regular price or sale price for every selected product before anything is saved.
-* Approve exactly what you reviewed. A later price or checked-setting change becomes a conflict instead of an overwrite.
-* Saved progress survives a closed browser; an interrupted background step resumes in small steps.
-* Undo restores eligible regular-price or sale-price values that are still safe to restore.
-* Published core simple products and variations of published core variable products are supported, up to 1,000 selected products per new job in the tested configuration. Multisite is unsupported and real managed or shared hosting has not been tested.
-
-The merchant listing is [readme.txt](readme.txt); the release claim matrix is
-[../release/CLAIM-MATRIX.md](../release/CLAIM-MATRIX.md).
+**HISTORICAL / SUPERSEDED — research documentation.** The sections below
+preserve the advanced WordPress Guard/Doctor/Redirection V0.1 research contract.
+They are not current WooCommerce installation or public release instructions.
+Historical package descriptions refer to that research baseline, not the
+current plugin distribution.
 
 ## Existing advanced WordPress V0.1 technical substrate (repository research)
 
@@ -70,9 +67,9 @@ the distribution is [operator-setup.txt](operator-setup.txt). WriteLeash declare
 `Requires Plugins: woocommerce` for the default Free product; the advanced Guard
 substrate still enforces Redirection 5.5.2 exactly at
 runtime. The full #63/#64 contract is in
-[RELEASE-MATRIX.md](RELEASE-MATRIX.md); release issues #77/#76 are deferred and
-must be rewritten for #106 after the #107–#112 product gates pass before they
-can be used as release authorization.
+[RELEASE-MATRIX.md](RELEASE-MATRIX.md). The #77/#76 release instructions and
+#107–#112 build sequence cited by this V0.1 research document are historical
+planning context, not current WooCommerce release authorization.
 
 **MySQL/MariaDB does not currently provide the PostgreSQL-equivalent sticky
 transaction boundary demonstrated by WriteLeash's PostgreSQL research path.**
