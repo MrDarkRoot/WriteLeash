@@ -6,11 +6,11 @@
 > the canonical current plan in [test-plan.md](test-plan.md); do not infer
 > current test coverage from those historical results. The state-transition
 > evidence section at the end is separately marked as canonical.
-> Current public Free product authority is #106: safe WooCommerce bulk price
-> changes, planned but not implemented. Build/proof gates #107–#112 are pending
-> and public release is deferred. The PostgreSQL matrix below is historical
-> research context; advanced WordPress Guard/Doctor/Redirection behavior has a
-> separate contract under `wordpress/writeleash/`.
+> Product context: WriteLeash for WooCommerce is the first commercial product
+> derived from the WriteLeash research principles. The PostgreSQL matrix below
+> is the historical research record for the research track; advanced WordPress
+> Guard/Doctor/Redirection behavior has a separate contract under
+> `wordpress/writeleash/`.
 
 ## Current Status
 

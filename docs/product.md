@@ -1,17 +1,18 @@
-# WriteLeash — Historical PostgreSQL Product Thesis
+# WriteLeash Research — PostgreSQL Product Thesis
 
-Historical thesis snapshot: 2026-09-23
+Thesis snapshot: 2026-09-23
 
-> **HISTORICAL / SUPERSEDED — product identity.** This is the preserved
-> PostgreSQL-era thesis. The current WooCommerce bulk-pricing product is
-> implemented; see the [root README](../README.md) and
-> [plugin listing](../wordpress/writeleash/readme.txt). PostgreSQL research and
-> advanced WordPress Guard/Doctor/Redirection remain separate technical assets.
+> **WRITELEASH RESEARCH — RESEARCH TRACK.** This is the preserved PostgreSQL-era
+> research thesis, the parent intellectual program behind WriteLeash.
+> WriteLeash for WooCommerce is the first commercial product derived from these
+> principles; it does not implement this PostgreSQL mechanism. See the
+> [root README](../README.md) and
+> [plugin listing](../wordpress/writeleash/readme.txt).
 > Historical `CommitCap` references below preserve the original thesis wording.
 
-**Status:** Historical product thesis and intended PostgreSQL semantics.
-Research experiments exist; this document makes no released or supported
-PostgreSQL implementation claim.
+**Status:** Research thesis and intended PostgreSQL semantics. Research
+experiments exist; this document makes no released or supported PostgreSQL
+implementation claim.
 
 ## 1. One-line definition
 

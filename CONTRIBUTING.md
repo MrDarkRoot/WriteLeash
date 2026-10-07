@@ -1,12 +1,12 @@
 # Contributing To WriteLeash
 
-WriteLeash's current product is a WooCommerce bulk-pricing plugin: Preview,
-newer-edit protection, background work and Resume, History and eligible Undo.
-See the [root README](README.md) and
+WriteLeash is a research and product project. Its first commercial product is a
+WooCommerce bulk-pricing plugin: Preview, newer-edit protection, background work
+and Resume, History and eligible Undo. See the [root README](README.md) and
 [plugin listing](wordpress/writeleash/readme.txt) for the product scope.
 Small, explicit changes are preferred over broad abstractions. PostgreSQL/native
-research and advanced WordPress Guard/Doctor/Redirection remain separate
-historical technical assets.
+research and advanced WordPress Guard/Doctor/Redirection are separate research
+tracks in this repository.
 
 ## Before Making A Change
 
@@ -101,9 +101,10 @@ privilege escalation.
 
 ## Scope and current product sequence
 
-The PostgreSQL/native experiment plan and the earlier #107–#112 build sequence
-are **HISTORICAL / SUPERSEDED** planning context. Current WooCommerce scope is
-summarized in the [root README](README.md) and [plugin listing](wordpress/writeleash/readme.txt).
+The PostgreSQL/native experiment plan is the **WRITELEASH RESEARCH** track; the
+#107–#112 WooCommerce build sequence is completed product planning history.
+Current WooCommerce scope is summarized in the [root README](README.md) and
+[plugin listing](wordpress/writeleash/readme.txt).
 Use the current issue and CI policy for the proposed change; do not add product
 functionality during unrelated metadata or documentation work. Changes to the
 separate Guard/Doctor/Redirection security contract require their own explicit

@@ -3,11 +3,10 @@
 Last updated: 2026-09-23
 
 > This threat model describes the existing PostgreSQL/native research
-> mechanism. It does not specify the planned public Free product: #106 governs
-> safe WooCommerce bulk price changes, whose implementation is pending #107–
-> #112. Public release is deferred. The advanced WordPress Guard/Doctor/
-> Redirection substrate has a separate threat model in
-> `wordpress/writeleash/THREAT-MODEL.md`.
+> mechanism. It does not specify the WooCommerce product: WriteLeash for
+> WooCommerce is the first commercial product derived from the WriteLeash
+> research principles. The advanced WordPress Guard/Doctor/Redirection substrate
+> has a separate threat model in `wordpress/writeleash/THREAT-MODEL.md`.
 
 ## 1. Purpose
 

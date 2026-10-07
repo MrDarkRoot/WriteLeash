@@ -5,10 +5,10 @@ Last updated: 2026-09-23
 ## Status
 
 This document defines intended semantics for the existing WriteLeash PostgreSQL
-research substrate. It does not define the intended public Free product: #106
-is the authority for safe WooCommerce bulk price changes, which remain planned
-and unimplemented pending #107–#112. Public release is deferred. The separate
-advanced WordPress Guard/Doctor/Redirection substrate has its own contract.
+research substrate. It does not define the WooCommerce product: WriteLeash for
+WooCommerce is the first commercial product derived from the WriteLeash research
+principles. The separate advanced WordPress Guard/Doctor/Redirection substrate
+has its own contract.
 
 Research experiments exist, but no released or supported implementation is
 claimed by this specification.
