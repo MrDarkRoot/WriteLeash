@@ -19,7 +19,7 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 	foreach ( $entries as $entry ) {
 		// Finite release files + reviewed common classes + Woo class directory.
 		// The closure below further rejects even an unused PHP file here.
-		if ( ! in_array( $entry, array( 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-selection.css',
+		if ( ! in_array( $entry, array( 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-selection.css', 'includes/free/admin-logo.png',
 			'includes/class-environment.php', 'includes/class-lifecycle.php', 'includes/class-plugin.php' ), true ) &&
 			! preg_match( '#\Aincludes/free/class-[a-z-]+\.php\z#D', $entry ) ) {
 			$fail( 'non-public artifact in manifest: ' . $entry );
@@ -27,6 +27,12 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 		if ( ! is_file( $root . '/' . $entry ) || is_link( $root . '/' . $entry ) ) {
 			$fail( 'missing or symlinked public file: ' . $entry );
 		}
+	}
+	if ( in_array( 'includes/free/admin-logo.png', $entries, true ) ) {
+		$logo = $root . '/includes/free/admin-logo.png';
+		$image = getimagesize( $logo );
+		if ( ! $image || IMAGETYPE_PNG !== $image[2] || $image[0] !== $image[1] || filesize( $logo ) > 2 * 1024 * 1024 ) { $fail( 'invalid Admin logo' ); }
+		if ( false === strpos( (string) file_get_contents( $root . '/includes/free/class-free-admin.php' ), "plugins_url( 'includes/free/admin-logo.png', WRITELEASH_PLUGIN_FILE )" ) ) { $fail( 'unreferenced Admin logo' ); }
 	}
 	foreach ( array( 'js', 'css' ) as $extension ) {
 		$asset = 'includes/free/free-selection.' . $extension;

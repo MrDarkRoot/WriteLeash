@@ -3,7 +3,26 @@
     'use strict';
     $(function () {
         var form = $('#writeleash-free-selection-form');
-        if (!form.length || !$.fn.selectWoo) { return; }
+        if (!form.length) { return; }
+        var method = $('#writeleash-free-selector');
+        function selectionMethod() {
+            var kind = method.val();
+            $('#writeleash-free-product-picker').prop('hidden', kind !== 'ids');
+            $('#writeleash-free-category-picker').prop('hidden', kind !== 'category');
+            $('#writeleash-free-advanced-selection').prop('hidden', kind !== 'sku' && kind !== 'manual_ids').prop('open', kind === 'sku' || kind === 'manual_ids');
+            $('#writeleash-free-sku').closest('p').prop('hidden', kind !== 'sku');
+            $('#writeleash-free-ids').closest('p').prop('hidden', kind !== 'manual_ids');
+            $('#writeleash-free-discovery-status').text(kind === 'ids' ? 'Search and choose products to add them.' : (kind === 'category' ? 'All direct members of this category will be checked in Preview, including variations. Subcategories are not included.' : ''));
+        }
+        function amountLabel() {
+            var operation = $('#writeleash-free-operation').val();
+            $('label[for="writeleash-free-amount"]').text(operation === 'SET' ? 'New price' : (operation.indexOf('PERCENT') !== -1 ? 'Percentage (e.g. 8 for 8%)' : 'Amount to ' + (operation.indexOf('INCREASE') === 0 ? 'increase' : 'decrease') + ' by'));
+        }
+        method.on('change', selectionMethod);
+        $('#writeleash-free-operation').on('change', amountLabel);
+        selectionMethod();
+        amountLabel();
+        if (!$.fn.selectWoo) { return; }
         var maxSelection = parseInt(form.data('max-selection'), 10) || 1000;
         var status = $('#writeleash-free-discovery-status');
         var products = $('#writeleash-free-products');

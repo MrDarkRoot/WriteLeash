@@ -6,6 +6,7 @@ LICENSE
 includes/class-environment.php
 includes/class-lifecycle.php
 includes/class-plugin.php
+includes/free/admin-logo.png
 includes/free/class-change-plan.php
 includes/free/class-durable-charset.php
 includes/free/class-free-admin.php

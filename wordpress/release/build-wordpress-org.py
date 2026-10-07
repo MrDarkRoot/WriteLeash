@@ -40,7 +40,7 @@ def read_manifest(data):
     lines = data.decode().splitlines()
     require(all(x == x.strip() for x in lines), 'manifest whitespace')
     paths = [x for x in lines if x and not x.startswith('#')]
-    require(paths == sorted(set(paths)) and len(paths) == 37, 'manifest count/order/duplicates')
+    require(paths == sorted(set(paths)) and len(paths) in (37, 42), 'manifest count/order/duplicates')
     require(all(re.fullmatch(r'[A-Za-z0-9_.\-/]+', x) and
                 not x.startswith('/') and '..' not in x and
                 all(p not in ('', '.') for p in x.split('/')) for x in paths), 'unsafe manifest')
