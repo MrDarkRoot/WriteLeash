@@ -40,17 +40,17 @@ These static screenshots show real product screens with sample products.
 
 **Preview exact before/after prices before approving.**
 
-![Preview showing exact before and after regular prices for three sample products](wordpress/assets/screenshot-1.png)
+![Preview showing exact before and after Sale Price changes, including variations and skipped products](wordpress/assets/screenshot-2.png)
 
 **Preserve a newer edit and see why that item was skipped.**
 
-![A conflict shows the expected, current and planned regular price; the newer current price is preserved](wordpress/assets/screenshot-3.png)
+![A conflict shows the expected, current and planned regular price; the newer current price is preserved](wordpress/assets/screenshot-5.png)
 
 **Review History and which changes are eligible for Undo.**
 
 ![History lists a completed job with a conflict and shows Undo eligibility](wordpress/assets/screenshot-6.png)
 
-These examples show Regular Price changes. Sale Price changes and variations
+These examples show Regular Price and Sale Price changes. Sale Price changes and variations
 are supported as described in [the plugin listing](wordpress/writeleash/readme.txt).
 
 ## Contributing and security

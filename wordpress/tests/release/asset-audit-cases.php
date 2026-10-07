@@ -31,7 +31,7 @@ $run = static function () use ( $repo, $fixture ): int {
 $change_conflict_text = static function ( string $f, callable $change ): void {
     $p = $f . '/wordpress/release/assets-122/proof.json';
     $proof = json_decode( file_get_contents( $p ), true, 512, JSON_THROW_ON_ERROR );
-    $proof['screenshots'][2]['visible_ui_text'] = $change( $proof['screenshots'][2]['visible_ui_text'] );
+    $proof['screenshots'][4]['visible_ui_text'] = $change( $proof['screenshots'][4]['visible_ui_text'] );
     file_put_contents( $p, json_encode( $proof, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
 };
 $cases = array(

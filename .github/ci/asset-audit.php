@@ -58,10 +58,10 @@ if ( $total > 8 * 1024 * 1024 ) { $fail( 'unexpected large total asset set' ); }
         $name = 'screenshot-' . $n . '.png';
         if ( $name !== ( $shot['filename'] ?? '' ) || (string) $n !== $captions[$i][1] || $shot['caption'] !== $captions[$i][2] ) { $fail( 'screenshot numbering/caption mismatch' ); }
         if ( ! is_int( $shot['width'] ?? null ) || ! is_int( $shot['height'] ?? null ) || $shot['width'] < 772 || $shot['width'] > 1280 || $shot['height'] < 200 || $shot['height'] > 1600 ) { $fail( 'unexpected screenshot canvas' ); }
-        if ( 3 === $n ) {
+        if ( 5 === $n ) {
             $visible = $shot['visible_ui_text'] ?? '';
             if ( ! is_string( $visible ) || ! str_contains( $visible, 'left the newer value unchanged' ) ) {
-                $fail( 'screenshot-3 missing conflict explanation proof' );
+                $fail( 'screenshot-5 missing conflict explanation proof' );
             }
         }
         $canonical[$name] = array( $shot['width'], $shot['height'] );

@@ -122,10 +122,10 @@ No SSH access, custom database account or manual SQL setup is required.
 == Screenshots ==
 
 1. Select products by name, SKU or category before reviewing your price changes.
-2. Review exact before-and-after Regular Price changes, including variations and skipped products, before Apply.
-3. A later price or setting change becomes a conflict instead of a blind overwrite.
-4. Review completed changes and restore eligible prices with Undo.
-5. See completed and remaining products, and Resume interrupted work.
+2. Review exact before-and-after Sale Price changes, including variations and skipped products, before Apply.
+3. See changed and remaining products in a background job, and Resume interrupted work.
+4. Review completed changes and explained skips; one invalid price does not stop the useful result.
+5. A later price or setting change becomes a conflict instead of a blind overwrite. A planned $100 to $80 change leaves a newer $120 edit alone.
 6. Review History, job outcomes and the availability of eligible Undo.
 
 == Frequently Asked Questions ==
