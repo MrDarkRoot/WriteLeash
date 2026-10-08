@@ -128,7 +128,13 @@ final class Woo_Undo_Mutator {
 			wp_cache_delete( 'alloptions', 'options' );
 			foreach ( array( 'woocommerce_currency', 'woocommerce_price_num_decimals', $role_key ) as $key ) { wp_cache_delete( $key, 'options' ); }
 			Price_Cache_Verifier::invalidate( $product_id );
-			$product = Product_Price_Snapshot::fresh_product( $product_id );
+			try { $product = Product_Price_Snapshot::fresh_product( $product_id ); }
+			catch ( Price_Validation_Error $error ) {
+				// A stable unsupported product class keeps its terminal refusal;
+				// a transient read failure is rethrown and stays retryable FAILED.
+				if ( 'unsupported_product_type' !== $error->getMessage() ) { throw $error; }
+				throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' );
+			}
 			if ( ! $product || ! Price_Cache_Verifier::core_data_store( $product ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
 			$snapshot = Product_Price_Snapshot::read( $product_id, $product );
 			$snapshot_data = $snapshot->data();
@@ -343,7 +349,13 @@ final class Woo_Undo_Mutator {
 			}
 			$GLOBALS['wpdb'] = $db;
 			Price_Cache_Verifier::invalidate( $product_id );
-			$product = Product_Price_Snapshot::fresh_product( $product_id );
+			try { $product = Product_Price_Snapshot::fresh_product( $product_id ); }
+			catch ( Price_Validation_Error $error ) {
+				// Pre-change outcome for a non-core live class here: the exact-class
+				// comparison below produced CACHE_VERIFICATION_FAILED.
+				if ( 'unsupported_product_type' !== $error->getMessage() ) { throw $error; }
+				throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' );
+			}
 			$is_variation = $product instanceof \WC_Product && 'WC_Product_Variation' === get_class( $product );
 			if ( ! $product || ( $is_variation ? 'WC_Product_Variation' : 'WC_Product_Simple' ) !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 			if ( $is_variation && (int) ( $evidence['parent_id'] ?? 0 ) !== (int) $product->get_parent_id( 'edit' ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
