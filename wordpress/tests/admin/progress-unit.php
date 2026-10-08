@@ -10,6 +10,9 @@ namespace {
 	function get_current_user_id() { return $GLOBALS['wl204_actor']; }
 	function current_user_can( $cap ) { return $GLOBALS['wl204_capable']; }
 	function sanitize_text_field( $value ) { return $value; }
+	function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
+	function esc_url( $url ) { return is_string( $url ) ? $url : ''; }
+	function esc_attr( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 	function wp_unslash( $value ) { return $value; }
 	function wp_verify_nonce( $nonce, $action ) { return $nonce === 'nonce:' . $action; }
 	function wp_create_nonce( $action ) { return 'nonce:' . $action; }
@@ -124,6 +127,15 @@ namespace {
 	check204( str_contains( $conflicted['undo'], $long_undo ), true, 'UNDO_CONFLICT row copy is exact' );
 	check204( str_contains( $conflicted['undo'], $short_undo ), false, 'UNDO_CONFLICT row never fabricates the short variant' );
 	Undo::$state = null; Undo::$undo_state = null; Undo::$undo_reason = null;
+	// Hosted #223 admin failure: polled rows flattened the outcome cells to plain
+	// text, dropping the outcome emphasis and the conflict next-action links that
+	// the server-rendered cells carry. The payload must ship the same markup.
+	$html_rows = Admin::progress_snapshot( $post, 'POST' )['rows'][0];
+	check204( str_contains( $html_rows['apply_html'], '<strong>Not changed</strong>' ), true, 'polled Apply cell keeps the outcome emphasis' );
+	check204( str_contains( $html_rows['apply_html'], $long_apply ), true, 'polled Apply cell keeps the long guidance' );
+	check204( str_contains( $html_rows['apply_html'], 'Create a new preview' ), true, 'polled Apply cell keeps the conflict next action' );
+	check204( str_contains( $html_rows['apply_html'], '<script' ), false, 'polled Apply markup carries no executable bytes' );
+	check204( $html_rows['apply'], $result['rows'][0]['apply'], 'plain-text Apply field unchanged for older clients' );
 	// Single source of truth: both long sentences live once, in the helper both
 	// renderers share; the polled path references it instead of re-spelling copy.
 	check204( substr_count( (string) file_get_contents( __DIR__ . '/../../writeleash/includes/free/class-free-admin.php' ), $long_apply ), 1, 'CONFLICT guidance stored exactly once' );
