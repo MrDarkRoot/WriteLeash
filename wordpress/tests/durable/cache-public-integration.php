@@ -16,7 +16,7 @@ $assert209 = static function ( $actual, $expected, string $label ) use ( &$check
 	if ( $actual !== $expected ) { throw new RuntimeException( '#209 ' . $label . ': ' . wp_json_encode( array( $actual, $expected ) ) ); }
 };
 $assert209( WriteLeash\Free_Support_Contract::woo_supported( WC_VERSION ), true, 'supported Woo fixture' );
-$assert209( wp_using_ext_object_cache(), 'persistent' === getenv( 'WL209_CACHE' ), 'actual cache profile' );
+$assert209( (bool) wp_using_ext_object_cache(), 'persistent' === getenv( 'WL209_CACHE' ), 'actual cache profile' );
 $instance209 = version_compare( WC_VERSION, '10.5', '>=' );
 if ( $instance209 ) {
 	$assert209( Automattic\WooCommerce\Utilities\FeaturesUtil::feature_is_enabled( 'product_instance_caching' ), true, 'instance feature enabled before request init' );
