@@ -161,10 +161,6 @@ final class Product_Price_Selector {
 		}
 		return $snapshots;
 	}
-	/** The one stable refusal that must never be treated as a retryable read failure. */
-	private static function unsupported_type_error( \Throwable $error ): bool {
-		return $error instanceof Price_Validation_Error && 'unsupported_product_type' === $error->getMessage();
-	}
 	/**
 	 * Run the bounded discovery query. The tax_query join returns one row per
 	 * matching descendant term, so a CATEGORY query asks the database for
@@ -206,6 +202,10 @@ final class Product_Price_Selector {
 			elseif ( ! $row['exists'] ) { ++$missing; }
 		}
 		return array( 'selected' => count( $snapshots ), 'unreadable' => $unreadable, 'missing' => $missing );
+	}
+	/** The one stable refusal that must never be treated as a retryable read failure. */
+	private static function unsupported_type_error( \Throwable $error ): bool {
+		return $error instanceof Price_Validation_Error && 'unsupported_product_type' === $error->getMessage();
 	}
 	/** The exact resolved IDS selection a preview must freeze; other kinds keep their spec. */
 	public static function resolved_selection( Price_Selection_Spec $spec, array $snapshots ): Price_Selection_Spec {
@@ -254,7 +254,7 @@ final class Product_Price_Selector {
 			}
 			$expanded_children[ $product_id ] = $children;
 			foreach ( $children as $child_id ) {
-				if ( isset( $products[ $child_id ] ) || isset( $unreadable[ $child_id ] ) || isset( $unsupported_type[ $child_id ] ) || array_key_exists( $child_id, $expanded_products ) || isset( $expanded_unreadable[ $child_id ] ) ) { continue; }
+				if ( isset( $products[ $child_id ] ) || isset( $unreadable[ $child_id ] ) || isset( $unsupported_type[ $child_id ] ) || array_key_exists( $child_id, $expanded_products ) || isset( $expanded_unreadable[ $child_id ] ) || isset( $expanded_unsupported[ $child_id ] ) ) { continue; }
 				try {
 					$child = Product_Price_Snapshot::fresh_product( $child_id );
 					$expanded_products[ $child_id ] = $child instanceof \WC_Product ? $child : false;
