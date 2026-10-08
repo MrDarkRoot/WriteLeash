@@ -166,3 +166,5 @@ wp_set_current_user( 0 );
 eq( Discovery::request( $discovery_input167, 'GET' )['reason'], 'permission_denied', 'anonymous discovery refused' );
 wp_set_current_user( 1 );
 marker( '#167 merchant discovery, native selection, frozen reopen and security' );
+
+require __DIR__ . '/subcategory-integration.php';

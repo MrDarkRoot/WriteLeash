@@ -36,9 +36,9 @@ final class Price_Selection_Spec {
 		if ( '' === $sku || strlen( $sku ) > 100 || preg_match( '/[\x00-\x20\x7f<>]/', $sku ) || '*' === $sku || ! preg_match( '//u', $sku ) ) { throw new Price_Validation_Error( 'invalid_sku' ); }
 		return new self( array( 'type' => 'SKU', 'sku' => $sku, 'warnings' => array() ) );
 	}
-	public static function category( int $term_id ): self {
+	public static function category( int $term_id, bool $include_children = false ): self {
 		if ( $term_id < 1 ) { throw new Price_Validation_Error( 'invalid_category' ); }
-		return new self( array( 'type' => 'CATEGORY', 'term_id' => $term_id, 'include_children' => false, 'warnings' => array() ) );
+		return new self( array( 'type' => 'CATEGORY', 'term_id' => $term_id, 'include_children' => $include_children, 'warnings' => array() ) );
 	}
 	public function data(): array { return $this->values; }
 }
@@ -63,13 +63,51 @@ final class Product_Price_Selector {
 		} else {
 			$term = get_term( $s['term_id'], 'product_cat' );
 			if ( ! $term || is_wp_error( $term ) ) { throw new Price_Validation_Error( 'invalid_category' ); }
-			$args['tax_query'] = array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => array( $s['term_id'] ), 'include_children' => false ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+			$args['tax_query'] = array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => array( $s['term_id'] ), 'include_children' => $s['include_children'] ?? false ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 		}
-		$query = new \WP_Query( $args );
-		if ( count( $query->posts ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
+		// A supported variation has one core parent. At most 1000 final targets
+		// can therefore include 1000 extra parent rows before expansion. Keep
+		// discovery bounded without rejecting parent + directly categorized child overlap.
+		$raw_limit = 'CATEGORY' === $s['type'] ? 2 * self::MAX_SELECTED : self::MAX_SELECTED;
+		$args['posts_per_page'] = $raw_limit + 1;
+		$query = self::bounded_discovery_query( $args, 'CATEGORY' === $s['type'] );
+		// WP_Query does not add SQL DISTINCT for tax_query joins, so a post in
+		// several overlapping descendant terms is returned once per matching
+		// join. Key rows by post ID before the raw-bound check and before any
+		// Woo read: duplicate rows must not inflate the count or be resolved
+		// twice. Sufficiency: every distinct raw post is either a final target
+		// or the core parent of at least one expanded variation; distinct core
+		// parents own disjoint child sets, so the parent count never exceeds
+		// the final-target count and the distinct raw population is at most
+		// 2 x final targets <= 2,000 for <=1,000 final targets. Any distinct
+		// raw population above 2,000 therefore implies more than 1,000 final
+		// targets, so the sentinel refusal is never a refusal of an otherwise
+		// valid selection.
+		$raw_posts = array();
+		foreach ( $query->posts as $post ) { $raw_posts[ (int) $post->ID ] = $post; }
+		if ( 'CATEGORY' === $s['type'] ) {
+			// Fail-closed completeness. The sentinel above can bound the
+			// population only when the raw page provably holds every matching
+			// row. Two observable rewrites break that: a filter rewrote the
+			// bounded window (posts_per_page no longer equals the requested
+			// sentinel), or the page is full and carries duplicate join rows,
+			// so the SQL LIMIT may have truncated distinct posts before the
+			// PHP keying could see them. Duplicates on a short (not-full) page
+			// are safe: LIMIT was not reached, every matching row was returned
+			// and keying is exact. In an environment where DISTINCT cannot be
+			// guaranteed (a cache, plugin or filter stripped it) this refuses
+			// some otherwise-valid selections by design instead of resolving a
+			// possibly incomplete population.
+			$observed_rows = count( $query->posts );
+			$window = (int) $query->get( 'posts_per_page' );
+			if ( $window !== $raw_limit + 1 || ( $observed_rows > count( $raw_posts ) && $observed_rows >= $window ) ) {
+				throw new Price_Validation_Error( 'selection_limit_exceeded' );
+			}
+		}
+		if ( count( $raw_posts ) > $raw_limit ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
 		$products = array();
 		$unreadable = array();
-		foreach ( $query->posts as $post ) {
+		foreach ( $raw_posts as $post ) {
 			try {
 				$product = wc_get_product( $post->ID );
 				if ( 'SKU' === $s['type'] && ( ! $product instanceof \WC_Product || $product->get_sku( 'edit' ) !== $s['sku'] ) ) { continue; }
@@ -101,7 +139,7 @@ final class Product_Price_Selector {
 			$ids = array_values( array_unique( $ids ) );
 			sort( $ids, SORT_NUMERIC );
 		} else {
-			$ids = array_merge( array_keys( $products ), array_keys( $unreadable ) );
+			$ids = array_values( array_unique( array_merge( array_keys( $products ), array_keys( $unreadable ) ) ) );
 			sort( $ids, SORT_NUMERIC );
 		}
 		$snapshots = array();
@@ -114,6 +152,48 @@ final class Product_Price_Selector {
 			}
 		}
 		return $snapshots;
+	}
+	/**
+	 * Run the bounded discovery query. The tax_query join returns one row per
+	 * matching descendant term, so a CATEGORY query asks the database for
+	 * DISTINCT to make the posts_per_page sentinel count distinct posts. The
+	 * posts_distinct guard is scoped to this exact query through a private
+	 * token query var: an unrelated or nested query built while the guard is
+	 * registered (for example from pre_get_posts) keeps its own clause. The
+	 * guard is removed in finally so both normal and exceptional exits leave
+	 * no global query change behind. A minimal harness without the WP filter
+	 * API falls back to the plain query; resolve() then fails closed when the
+	 * page shows duplicate rows it may have truncated. Rows are keyed by ID
+	 * in resolve() so the bound is exact whenever completeness holds.
+	 */
+	private static function bounded_discovery_query( array $args, bool $distinct ): \WP_Query {
+		if ( ! $distinct || ! function_exists( 'add_filter' ) || ! function_exists( 'remove_filter' ) ) {
+			return new \WP_Query( $args );
+		}
+		$token = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : uniqid( 'writeleash_discovery_', true );
+		$args['writeleash_discovery_token'] = $token;
+		$guard = static function ( $requested, $query ) use ( $token ) {
+			if ( $query instanceof \WP_Query && $token === $query->get( 'writeleash_discovery_token' ) ) { return 'DISTINCT'; }
+			return $requested;
+		};
+		add_filter( 'posts_distinct', $guard, 10, 2 );
+		try { return new \WP_Query( $args ); }
+		finally { remove_filter( 'posts_distinct', $guard, 10 ); }
+	}
+	/** Informational read only. Preview independently resolves and freezes its own population. */
+	public static function discover_count( Price_Selection_Spec $spec ): array {
+		if ( ! get_current_user_id() || ! current_user_can( 'manage_woocommerce' ) || ! current_user_can( 'edit_products' ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
+		$snapshots = self::resolve( $spec );
+		$unreadable = 0;
+		$missing = 0;
+		foreach ( $snapshots as $snapshot ) {
+			$row = $snapshot->data();
+			// Do not disclose even a count for a population this actor cannot inspect.
+			if ( ! current_user_can( 'edit_post', $row['product_id'] ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
+			if ( ! empty( $row['unreadable'] ) ) { ++$unreadable; }
+			elseif ( ! $row['exists'] ) { ++$missing; }
+		}
+		return array( 'selected' => count( $snapshots ), 'unreadable' => $unreadable, 'missing' => $missing );
 	}
 	/** The exact resolved IDS selection a preview must freeze; other kinds keep their spec. */
 	public static function resolved_selection( Price_Selection_Spec $spec, array $snapshots ): Price_Selection_Spec {
@@ -159,13 +239,15 @@ final class Product_Price_Selector {
 			}
 			$expanded_children[ $product_id ] = $children;
 			foreach ( $children as $child_id ) {
-				if ( isset( $products[ $child_id ] ) || isset( $unreadable[ $child_id ] ) ) { continue; }
+				if ( isset( $products[ $child_id ] ) || isset( $unreadable[ $child_id ] ) || array_key_exists( $child_id, $expanded_products ) || isset( $expanded_unreadable[ $child_id ] ) ) { continue; }
 				try {
 					$child = wc_get_product( $child_id );
 					$expanded_products[ $child_id ] = $child instanceof \WC_Product ? $child : false;
 				} catch ( \Throwable $error ) {
 					$expanded_unreadable[ $child_id ] = true;
 				}
+				// Stop at the sentinel instead of reading every variation in an oversized parent.
+				if ( count( $expanded_products ) + count( $expanded_unreadable ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
 			}
 		}
 		foreach ( $unreadable as $product_id => $flag ) { $expanded_unreadable[ $product_id ] = true; }
