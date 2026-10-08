@@ -19,6 +19,7 @@ function get_current_user_id() { return $GLOBALS['actor206']; }
 function current_user_can( $cap, $id = 0 ) { return $GLOBALS['actor206'] > 0 && ! in_array( $id, $GLOBALS['denied206'], true ); }
 function clean_post_cache( $id ) {}
 function wp_cache_delete( $key, $group = '' ) { return true; }
+class WC_Cache_Helper { public static function invalidate_cache_group( $group ): void {} }
 function did_action( $hook ) { return 1; }
 function get_woocommerce_currency() { return 'USD'; }
 function wc_get_price_decimals() { return 2; }
