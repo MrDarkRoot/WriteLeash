@@ -138,6 +138,19 @@ Any `.pot`/`.po`/`.mo`/JS `.json` catalog or generated asset added later must fo
 - Re-run the inventory and `i18n make-pot` after the accepted UI set is merged; reconcile by file/line, then convert in small PRs isolated from changing Admin views (coordinate `class-free-admin.php` with #204/#205/#209).
 - Final #210 acceptance still requires: a real extracted catalog for the shipped source; plural/context extraction; a controlled non-English/pseudo-translation covering selection/Preview/progress/errors/conflicts/History/Undo with 0/1/many counts and long labels; proof that canonical values/hashes/IDs/CSV keys are unchanged and old plans hydrate; and existing keyboard/browser accessibility checks on the touched flows. None of those were executable in this lane.
 
+### 8.1 Changed-file accounting for the eventual conversion inventory (round-3, 2026-10-08)
+
+The default inventory is manifest-driven: every run re-reads `wordpress/release/writeleash-distribution-files.txt` and scans each existing `.php`/`.js` entry, so the files the final #210 conversion touches are included with no tool or manifest change from this lane:
+
+| Conversion file | Manifest entry | Inventory status |
+|---|---|---|
+| `class-product-selector.php` | `includes/free/class-product-selector.php` | scanned automatically by the default run (90 candidates: 40 `text` / 50 `machine`) |
+| `class-free-admin.php` | `includes/free/class-free-admin.php` | scanned automatically (2,054 candidates: 861 `text` / 1,193 `machine`) |
+| `free-selection.js` | `includes/free/free-selection.js` | scanned automatically (131 candidates: 91 `text` / 40 `machine`) |
+| `free-progress.js` | added by PR #221 (file **and** manifest entry) | auto-included once #221 merges: the tool enumerates manifest entries at runtime (fixture-verified: a manifest without the entry scans 2 files, with the entry 3, including `free-progress.js` rows; this branch's own default run is unchanged because the file is not yet shipped) |
+
+The inventory remains a candidate aid, not a catalog; #210 is still **PARTIAL — PREPARATION COMPLETE.**
+
 ## 9. Evidence commands and observed results (2026-10-08)
 
 Environment: PHP 8.2.32; WP-CLI 2.12.0 (`wp-cli.phar` fetched from `wp-cli/builds` gh-pages, sha512 `be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832` verified with `sha512sum -c`); Docker daemon absent; network available but no push/PR.
@@ -155,6 +168,8 @@ Environment: PHP 8.2.32; WP-CLI 2.12.0 (`wp-cli.phar` fetched from `wp-cli/build
 | `bash .github/ci/pr-fast.sh` | **PASS** — `#133 PR_FAST PASS` (tooling/docs only; no Admin source/package change) |
 
 The make-pot fixture lives only in `/tmp/opencode/i18n-fixture/` as tooling evidence and is intentionally **not** committed: the repository's PR_FAST gate is network-free, and adding a WP-CLI download step to CI would violate that policy. If a permanent extraction test is wanted later, it must be a proper artifact under `wordpress/tests/release/` that does not require network access.
+
+Round-3 re-verification (2026-10-08, branch `work/210-i18n-preparation` at `4c7f6b2`): `php wordpress/tests/release/i18n-inventory-cases.php` **PASS**; two runs of each mode byte-identical (`cmp`) — `--summary` `9cf090ec…0256a5` (equals the committed artifact), full `0e62bb58…b5a46c`, `--all` `06223803…f5168ed` byte-identical to the round-2 raw evidence (9,436 candidates / 60 files); default run scanned exactly the 38 allowlisted PHP/JS files and zero non-allowlisted files; defaults are cwd-independent (manifest and root resolved from the tool location); `python3 .github/ci/ownership.py --audit` and `bash .github/ci/pr-fast.sh` **PASS**. No tooling defect (failing test, nondeterminism, manifest mis-scoping) was demonstrated, so the tool/test/manifest were not changed by this re-check; only this docs note and `docs/review/210/IMPLEMENTATION.md` changed. Evidence: `/tmp/writeleash-approved-20261008/evidence/pr-fix3/222/`.
 
 ## 10. Known gaps in the baseline inventory
 
