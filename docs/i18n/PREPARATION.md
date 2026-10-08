@@ -1,6 +1,6 @@
 # #210 — Merchant-facing UI translation readiness (preparation)
 
-Status: **PARTIAL — preparation only.** No production Admin PHP/JS string was converted, no gettext catalog was generated for the shipped source, and no catalog/asset was added to the release allowlist. This document records the baseline inventory, the conversion strategy, the never-translate boundary and the follow-up needed once the #204–#208 UI changes settle. The baseline inventory does **not** certify any unmerged #206/#204 UI string.
+Status: **PARTIAL — preparation only.** No production Admin PHP/JS string was converted, no gettext catalog was generated for the shipped source, and no catalog/asset was added to the release allowlist. This document records the baseline inventory, the conversion strategy, the never-translate boundary and the follow-up needed once the #204–#208 UI changes settle. The baseline inventory does **not** certify any unmerged #206/#204 UI string. Review fix 2026-10-08: the inventory is now scoped to the public distribution allowlist and the 1.8 MB raw dump was removed from the repository in favour of a small deterministic summary (see §1.1).
 
 Baseline: `c48e307efe7750d0fb36015c39d50a34675f9579` (live `main`, 2026-10-07). Scope: inventory/tooling/docs/tests under `wordpress/release/`, `wordpress/tests/release/` and `docs/i18n/` only.
 
@@ -8,43 +8,66 @@ Baseline: `c48e307efe7750d0fb36015c39d50a34675f9579` (live `main`, 2026-10-07). 
 
 | File | SHA-256 | Role |
 |---|---|---|
-| `wordpress/release/i18n-inventory.php` | `4e5956cb6da1a66e6ea7a6a7cb007a6e800cca76cad1556cdcffc81efd1672b6` | PHP-tokenizer-backed literal inventory + conservative JS candidate scan. Not a gettext extractor and not a catalog. |
-| `wordpress/tests/release/i18n-inventory-cases.php` | `90ccdb9e2a967081de7adae5ffd48bdc0b898d9d2f749e9d75f86906df9f01ae` | Tooling tests: PHP comment exclusion, source lines, JS candidates, machine-string `review` field, byte determinism, missing-root refusal. |
-| `docs/i18n/baseline-literals.json` | `7276a68c4e71cdfceaae7549311c03d5e2774634d226b0e7157f8247239e99ac` | Generated baseline inventory (raw candidates, not translations). |
+| `wordpress/release/i18n-inventory.php` | `bb5d0411a888529c229a501b3bae7cc96d23853daef2fd5c97a081e9e3b5fe01` | Manifest-scoped literal inventory (PHP tokenizer + conservative JS scan) with deterministic `text`/`machine` classification. Not a gettext extractor and not a catalog. |
+| `wordpress/tests/release/i18n-inventory-cases.php` | `3a6a1600e19322fb4f68a3c4dd3ae5d2eeac0b404fb1791a8672424a5f6bbb4b` | Tooling tests: manifest scoping (fixture; unlisted file excluded), PHP comment exclusion, source lines, JS candidates, `text`/`machine` classification, summary counts, byte determinism, `--all` raw scan, missing root/manifest/entry, unsafe entry, empty manifest, unknown option. |
+| `docs/i18n/inventory-summary.json` | `9cf090ecb01483cc1034854ce19d3dff45e30bab334b6229400d965a510256a5` | Committed review artifact: per-file candidate counts with `text`/`machine` totals. The full inventory is reproducible on demand and is intentionally not committed. |
 
-Regenerate with `php wordpress/release/i18n-inventory.php` (default root `wordpress/writeleash`) or pass an explicit root. Verified 2026-10-08: two consecutive regenerations and the committed baseline are byte-identical (same SHA-256). Ordering is file-path `SORT_STRING` then token/offset order; the tool sorts paths before scanning, so filesystem enumeration order cannot affect output.
+Regeneration (byte-identical, verified 2026-10-08; commands run from the repo root):
+
+| Artifact | Command | SHA-256 |
+|---|---|---|
+| Committed summary | `php wordpress/release/i18n-inventory.php --summary > docs/i18n/inventory-summary.json` | `9cf090ec…0256a5` |
+| Full allowlisted inventory (on demand, **not** committed) | `php wordpress/release/i18n-inventory.php > /tmp/i18n-inventory.json` | `0e62bb58…b5a46c` |
+| Historical raw source-tree scan (legacy comparison, **not** committed) | `php wordpress/release/i18n-inventory.php --all > /tmp/i18n-raw.json` | `06223803…f5168ed` — exactly **9,436** candidates, the superseded baseline |
+
+Ordering is file-path `SORT_STRING`, then source line, then encounter order within the line; the tool sorts paths before scanning and applies an explicit stable sort (`file`, `line`, `seq`), so filesystem enumeration order cannot affect output. JSON key order is fixed by construction; regeneration is byte-identical (verified two runs per artifact).
+
+### 1.1 Artifact policy (review fix P2)
+
+The previous `docs/i18n/baseline-literals.json` (56,628 lines / 1,797,569 bytes) mixed non-shipped historical code, machine identifiers and false-positive candidates and created avoidable git/review overhead. It was removed with `git rm`. Policy now:
+
+- Only the small deterministic `inventory-summary.json` (7,020 bytes / 263 lines, ~99.6% smaller) is committed; it carries the per-file/purpose counts a reviewer can act on.
+- The full candidate inventory is regenerated on demand with the tool (command above); it is never committed.
+- `--all` preserves exact reproducibility of the historical 9,436-candidate raw run for comparison, but the default (and all #210 conversion work) is manifest-scoped.
+- Only manifest entries that exist under the source root are scanned; a missing/unsafe manifest entry, a missing manifest/root or a manifest without scannable PHP/JS files exits non-zero (2/3/4/5) rather than silently emitting an empty inventory.
 
 Tool limits (declared in its JSON `limitations`):
+- Scope: only `wordpress/release/writeleash-distribution-files.txt` entries ending in `.php`/`.js` are scanned; non-shipped PHP/JS cannot appear. `--all` is the deliberate legacy override.
 - PHP: only `T_CONSTANT_ENCAPSED_STRING` (single/double quoted, non-interpolated). Interpolated strings and heredocs are not captured.
 - JS: conservative regex over `'…'` / `"…"` that deliberately includes comments. Template literals are not captured; comment quotes can bridge across code and produce multi-line pseudo-candidates and can skip real strings (see §2).
-- No translation-completeness or extractor-correctness claim is made by the tool.
+- Classification is a conservative deterministic aid (`text` is the default); it is not a reviewed or merchant-facing inventory.
+- No translation-completeness or extractor-correctness claim is made by the tool; WP-CLI `i18n make-pot` remains the extraction authority.
 
-## 2. Baseline composition and noise
+## 2. Baseline composition and classification
 
-`docs/i18n/baseline-literals.json`: format 1, text domain `writeleash`, **9,436 candidates** (9,305 PHP / 131 JS) across 60 PHP/JS source files; 2,623 distinct literals; 6,813 duplicate occurrences.
+Manifest-scoped baseline (default invocation): format 2, text domain `writeleash`, **6,362 candidates** (6,231 PHP / 131 JS) across the 38 allowlisted PHP/JS files; 1,735 distinct literals. 42 manifest entries were read; the 4 non-PHP/JS entries (LICENSE, readme.txt, admin-logo.png, free-selection.css) are not scanned. The 22 non-shipped PHP files that contributed **3,074** candidates to the superseded raw dump can no longer appear (9,436 raw − 3,074 = 6,362; exact match with the pre-removal artifact).
 
-Heuristic classes (overlapping, not a reviewed classification; `review` stays `unclassified` for every row):
+Deterministic classification (`class` + `reason` per row; conservative, `text` default):
 
-| Class | Source tree | Shipped allowlist subset |
+| Class | Count | Comment |
 |---|---|---|
-| Sentence-like (has letters and whitespace) | 1,389 | 736 |
-| Machine code (ALLCAPS/digits/underscore) | 1,462 | 1,017 |
-| Machine key (snake_case) | 5,064 | 3,489 |
-| Machine key (slug/path-like) | 53 | 50 |
-| Single-token (other non-whitespace) | 285 | 231 |
-| HTML fragment / markup | 393 | 342 |
-| Numeric/symbol only | 417 | 236 |
-| Empty string | 373 | 261 |
-| Contains printf placeholder (`%s`, `%d`, `%1$s`) | 187 | 134 |
-| Accessibility keyword hit (`aria`, `label`, `role`, `announce`, `focus`…) | 48 | 36 |
+| `text` — review candidates | 2,479 | 889 sentence-like (letters + whitespace); 134 carry printf placeholders; 103 hit accessibility keywords (`aria`/`label`/`role`/`announce`/`focus`) |
+| `machine` — identifiers/format/markup | 3,883 | see reasons below; not merchant copy by construction |
 
-Obvious noise for conversion triage: empty strings, numeric/format tokens, HTML markup and attributes, stored machine keys/status codes/reason codes/option names/meta keys/action names (the large majority), and repeated state labels across views. Task-anticipated URL noise is absent: `0` candidates match `https?://` under `wordpress/writeleash` because URLs are built at runtime (`admin_url()`, `plugins_url()`); plugin-header URLs live in the file comment and are extracted by WP-CLI, not by this inventory. CSS noise is minimal: only 2 inline `style="…"` fragments, and `includes/free/free-selection.css` contains no `content:` literals (verified), so no translatable CSS string exists today.
+| Machine reason | Count | Examples in scope |
+|---|---|---|
+| `key` (snake_case/dot/colon/kebab) | 1,895 | `woocommerce_version_unsupported`, `writeleash_free_*`, `aria-live` |
+| `code` (ALLCAPS) | 998 | `CONFLICT`, `UNDO_CONFLICT`, `PLANNED`, `SET`, `PERCENT` |
+| `html` | 320 | markup fragments/attributes |
+| `empty` | 261 | empty strings |
+| `symbols-only` | 152 | punctuation/separators without letters/digits |
+| `identifier` (camelCase/underscored) | 114 | `selectWoo`, `WP_Error` |
+| `numeric` | 75 | pure numbers |
+| `path` | 45 | single tokens containing `/` |
+| `selector` | 17 | `#id` / `.class` tokens |
+| `url` | 3 | **none HTTP**: `php://temp/maxmemory:1048576` (stream wrapper) and `//u` (regex modifier) ×2; URLs are otherwise built at runtime (`admin_url()`, `plugins_url()`) and plugin-header URLs live in the file comment (make-pot territory) |
+| `format-placeholder` | 3 | printf-only values such as `%1$s` |
 
-Coverage scope caveat: the inventory scans the source tree, but the public distribution allowlist (`wordpress/release/writeleash-distribution-files.txt`, 42 entries: 37 PHP + 1 JS + 1 CSS + LICENSE/readme/txt/png) is smaller. **22 non-shipped PHP files contribute 3,074 candidates** (legacy/research classes such as `class-admin-page.php`, `class-update-engine.php`, `class-compatibility-doctor.php`, `class-provisioning-plan.php`). #210 conversion must be restricted to the allowlisted merchant path; the extra candidates are inventory noise for this issue.
+Machine keys/codes dominating is expected: the shipped PHP stores status/reason/option/meta keys as literals. Empty/numeric/symbol/HTML noise is now labelled rather than mixed into an unclassified dump. CSS noise remains minimal: `includes/free/free-selection.css` is not a scannable extension, only 2 inline `style="…"` fragments exist in PHP, and the CSS contains no `content:` literals.
 
-Hot spots inside the allowlist: `includes/free/class-free-admin.php` 2,054 candidates (281 sentence-like), `includes/free/free-selection.js` 131 (39 sentence-like), `class-undo-repository.php` 614, `class-woo-undo-mutator.php` 353, `class-job-repository.php` 253, `class-price-cache-verifier.php` 246, `class-product-snapshot.php` 270. Many sentence-like literals in repository/state classes are exception or diagnostic text; the `review` field is intentionally unclassified and merchant visibility must be triaged per call site.
+Hot spots inside the allowlist (candidates / `text`): `includes/free/class-free-admin.php` 2,054 / 861, `class-undo-repository.php` 614 / 254, `class-woo-undo-mutator.php` 353 / 105, `class-change-plan.php` 298 / 121, `class-product-snapshot.php` 270 / 97, `class-job-repository.php` 253 / 126, `class-price-cache-verifier.php` 246 / 71, `free-selection.js` 131 / 91. Many `text` literals in repository/state classes are exception or diagnostic text; merchant visibility must still be triaged per call site.
 
-JS caveat: the 131 JS rows are candidates, not a complete literal list. The conservative scan includes comment text and can bridge from a quote in a comment to a later quote, producing multi-line pseudo-strings (for example around `free-selection.js:78`), while real strings can be consumed by a spanning match. During conversion, WP-CLI `i18n make-pot` (which parses JS `wp.i18n` calls) is the extraction authority; the raw inventory alone must not be treated as the JS catalog.
+JS caveat: the 131 JS rows (91 `text`) are candidates, not a complete literal list. The conservative scan includes comment text and can bridge from a quote in a comment to a later quote, producing multi-line pseudo-strings (for example around `free-selection.js:78`), while real strings can be consumed by a spanning match. During conversion, WP-CLI `i18n make-pot` (which parses JS `wp.i18n` calls) is the extraction authority; the raw inventory alone must not be treated as the JS catalog.
 
 ## 3. Conversion strategy
 
@@ -111,7 +134,7 @@ Any `.pot`/`.po`/`.mo`/JS `.json` catalog or generated asset added later must fo
 
 ## 8. Follow-up after #204–#208 settle
 
-- A (#206) and C (#204) UI changes are **unmerged** at this baseline; their strings (selection-count copy, progress client `free-progress.js`, focused/announcement text) are not in `baseline-literals.json` and are **not certified** by it. B (#209) has no merchant copy.
+- A (#206) and C (#204) UI changes are **unmerged** at this baseline; their strings (selection-count copy, progress client `free-progress.js`, focused/announcement text) are not in the manifest-scoped inventory and are **not certified** by it. B (#209) has no merchant copy.
 - Re-run the inventory and `i18n make-pot` after the accepted UI set is merged; reconcile by file/line, then convert in small PRs isolated from changing Admin views (coordinate `class-free-admin.php` with #204/#205/#209).
 - Final #210 acceptance still requires: a real extracted catalog for the shipped source; plural/context extraction; a controlled non-English/pseudo-translation covering selection/Preview/progress/errors/conflicts/History/Undo with 0/1/many counts and long labels; proof that canonical values/hashes/IDs/CSV keys are unchanged and old plans hydrate; and existing keyboard/browser accessibility checks on the touched flows. None of those were executable in this lane.
 
@@ -121,13 +144,15 @@ Environment: PHP 8.2.32; WP-CLI 2.12.0 (`wp-cli.phar` fetched from `wp-cli/build
 
 | Command | Result |
 |---|---|
-| `php wordpress/tests/release/i18n-inventory-cases.php` | **PASS** — `i18n literal inventory: PASS (PHP comments, source lines, JS candidates, machine-string review, determinism, missing root)` |
+| `php wordpress/tests/release/i18n-inventory-cases.php` | **PASS** — `i18n literal inventory: PASS (manifest scoping, PHP comments, source lines, JS candidates, text/machine classification, summary counts, determinism, --all raw scan, missing root/manifest/entry, unsafe entry, empty manifest, unknown option)` |
 | `php -l wordpress/release/i18n-inventory.php` / `php -l wordpress/tests/release/i18n-inventory-cases.php` | **PASS** — no syntax errors |
-| `php wordpress/release/i18n-inventory.php > regen1.json && … > regen2.json && cmp …` | **PASS** — both regenerations and `docs/i18n/baseline-literals.json` share SHA-256 `7276a68c…e99ac` |
+| `php wordpress/release/i18n-inventory.php --summary > docs/i18n/inventory-summary.json` (twice) | **PASS** — byte-identical SHA-256 `9cf090ec…0256a5`; 6,362 candidates / 38 files; 2,479 `text` / 3,883 `machine` |
+| `php wordpress/release/i18n-inventory.php` (full, twice) | **PASS** — byte-identical SHA-256 `0e62bb58…b5a46c`; manifest-scoped output (non-shipped files absent) |
+| `php wordpress/release/i18n-inventory.php --all` (twice) | **PASS** — byte-identical SHA-256 `06223803…f5168ed`; exactly **9,436** candidates across 60 files, reproducing the pre-rework raw run |
 | `php wp-cli.phar i18n make-pot wordpress/writeleash … --domain=writeleash` | **exit 0**, 989-byte POT, **4 extracted entries, all plugin header** (`Plugin Name`, `Description`, `Author`, `Author URI`); zero code strings because the shipped source has no gettext calls |
 | `php wp-cli.phar i18n make-pot /tmp/opencode/i18n-fixture …` | **exit 0**, 13 extracted entries: headers (2), PHP `__()/_n()/_x()/esc_html__()/esc_attr_e()` (8), JS `wp.i18n` calls (3); 2 `msgid_plural` pairs, 1 `msgctxt` ("Apply" as a button label, referenced from both PHP and JS), 1 `#. translators:` comment round-trip; 5 placeholder warnings demonstrate the translators-comment audit |
 | `python3 .github/ci/ownership.py --audit` | **PASS** — new paths classify PR_FAST-only (`wordpress/release/**`, `wordpress/tests/release/*.php`, `docs/**`); no policy weakening |
-| `bash .github/ci/pr-fast.sh` | **PASS** — `#133 PR_FAST PASS` (baseline-like source; no D change touches runtime/source/package) |
+| `bash .github/ci/pr-fast.sh` | **PASS** — `#133 PR_FAST PASS` (tooling/docs only; no Admin source/package change) |
 
 The make-pot fixture lives only in `/tmp/opencode/i18n-fixture/` as tooling evidence and is intentionally **not** committed: the repository's PR_FAST gate is network-free, and adding a WP-CLI download step to CI would violate that policy. If a permanent extraction test is wanted later, it must be a proper artifact under `wordpress/tests/release/` that does not require network access.
 
@@ -136,6 +161,8 @@ The make-pot fixture lives only in `/tmp/opencode/i18n-fixture/` as tooling evid
 - PHP interpolated double-quoted strings, heredocs/nowdocs, and `printf`-built messages that hide literals in variables are not listed; conversion must still find them (text search + make-pot).
 - JS template literals and some real strings are not listed; JS rows include comment-derived false positives (multi-line pseudo-candidates) and are not a complete literal set.
 - No gettext-function usage exists yet; make-pot on the current source extracts only plugin headers (4 msgids) and is expected to stay near-empty until conversion.
-- The inventory is source-tree-wide, not allowlist-filtered (22 extra non-shipped files / 3,074 candidates).
+- The inventory is manifest-scoped by default (38 allowlisted PHP/JS files); the 22 non-shipped PHP files (3,074 candidates) are excluded by construction. The raw source-tree run remains available via `--all` for legacy comparison only and is never committed.
+- Classification is heuristic and conservative: single lowercase words (for example `role`, `csv`, `woocommerce`) stay `text` and still need reviewer triage, while ALLCAPS/identifier values are `machine`; the `class` field must not be used to skip per-call-site merchant-visibility triage.
+- `docs/i18n/inventory-summary.json` holds candidate counts, not translations and not review status; the committed artifact is not a catalog and is not shipped.
 - Unmerged #206/#204 UI strings are absent and uncertified.
 - No pseudo-locale, browser, keyboard or runtime evidence exists in this lane; no catalog/asset was shipped.
