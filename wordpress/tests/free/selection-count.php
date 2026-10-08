@@ -54,29 +54,51 @@ class WC_Product_Factory {
  public static function get_product_type( $id ) { ++$GLOBALS['reads206']; if ( in_array( $id, $GLOBALS['throw206'], true ) ) { throw new RuntimeException( 'fixture unreadable' ); } return isset( $GLOBALS['products206'][$id] ) ? $GLOBALS['products206'][$id]->get_type() : false; }
  public static function get_product_classname( $id, $type, $post_type = '' ) { return get_class( $GLOBALS['products206'][$id] ); }
 }
+$GLOBALS['filters206'] = array();
+function add_filter( $tag, $callback, $priority = 10, $accepted_args = 1 ) { $GLOBALS['filters206'][ $tag ][ (int) $priority ][] = $callback; return true; }
+function remove_filter( $tag, $callback, $priority = 10 ) {
+ if ( empty( $GLOBALS['filters206'][ $tag ][ (int) $priority ] ) ) { return false; }
+ foreach ( $GLOBALS['filters206'][ $tag ][ (int) $priority ] as $key => $registered ) {
+  if ( $registered === $callback ) { unset( $GLOBALS['filters206'][ $tag ][ (int) $priority ][ $key ] ); }
+ }
+ if ( ! $GLOBALS['filters206'][ $tag ][ (int) $priority ] ) { unset( $GLOBALS['filters206'][ $tag ][ (int) $priority ] ); }
+ if ( ! $GLOBALS['filters206'][ $tag ] ) { unset( $GLOBALS['filters206'][ $tag ] ); }
+ return true;
+}
 class WP_Query {
  public array $posts = array();
  public function __construct( array $args ) {
   $GLOBALS['query206'] = $args;
   $ids = $args['post__in'] ?? array_keys( $GLOBALS['products206'] );
+  $rows = array();
   foreach ( $ids as $id ) {
    $product = $GLOBALS['products206'][$id] ?? null;
    if ( ! $product ) { continue; }
+   $matches = 1;
    $tax = $args['tax_query'][0] ?? null;
    if ( $tax ) {
-    $match = false;
+    $matches = 0;
     foreach ( $product->get_category_ids() as $category ) {
+     $category = (int) $category;
      do {
-      if ( in_array( $category, $tax['terms'], true ) ) { $match = true; break; }
+      if ( in_array( $category, $tax['terms'], true ) ) { ++$matches; break; }
       $category = $tax['include_children'] ? ( $GLOBALS['terms206'][$category] ?? 0 ) : 0;
      } while ( $category );
     }
-    if ( ! $match ) { continue; }
+    if ( ! $matches ) { continue; }
    }
-   $this->posts[] = (object) array( 'ID' => $id );
+   // A real tax_query join is one row per matching membership; SQL keeps the
+   // duplicate rows unless DISTINCT is requested (posts_distinct, production's
+   // CATEGORY query). force_raw_rows206 models an environment that ignores it.
+   for ( $row = 0; $row < $matches; ++$row ) { $rows[] = (object) array( 'ID' => (int) $id ); }
   }
-  usort( $this->posts, static fn( $a, $b ) => $a->ID <=> $b->ID );
-  $this->posts = array_slice( $this->posts, 0, $args['posts_per_page'] );
+  usort( $rows, static fn( $a, $b ) => $a->ID <=> $b->ID );
+  if ( empty( $GLOBALS['force_raw_rows206'] ) && ! empty( $GLOBALS['filters206']['posts_distinct'] ) ) {
+   $collapsed = array();
+   foreach ( $rows as $row ) { $collapsed[ $row->ID ] = $row; }
+   $rows = array_values( $collapsed );
+  }
+  $this->posts = array_slice( $rows, 0, $args['posts_per_page'] );
  }
 }
 $checks206 = 0;
@@ -145,4 +167,62 @@ error206( static fn() => Selector::discover_count( S::category( 1 ) ), 'selectio
 $GLOBALS['products206'] = array();
 for ( $id206 = 1; $id206 <= 1001; ++$id206 ) { $GLOBALS['products206'][$id206] = new WC_Product_Variable( $id206, array( 'categories' => array( 1 ) ) ); }
 error206( static fn() => Selector::discover_count( S::category( 1 ) ), 'selection_limit_exceeded' );
+
+// #206 P1 defensive regression: a tax_query join returns one row per matching
+// descendant term. Duplicate rows must not refuse a valid selection, and the
+// distinct population must still be bounded. force_raw_rows206 makes the stub
+// behave like a backend that did not collapse the DISTINCT join.
+$GLOBALS['terms206'] = array( 1 => 0 );
+for ( $t206 = 2; $t206 <= 2501; ++$t206 ) { $GLOBALS['terms206'][$t206] = 1; }
+$GLOBALS['products206'] = array( 9000 => new WC_Product_Simple( 9000, array( 'categories' => range( 1, 2501 ) ) ) );
+$GLOBALS['force_raw_rows206'] = true;
+$GLOBALS['reads206'] = 0;
+eq206( Selector::discover_count( S::category( 1, true ) ), array( 'selected' => 1, 'unreadable' => 0, 'missing' => 0 ), '2,501 duplicate raw rows no longer falsely refuse a valid selection' );
+eq206( $GLOBALS['reads206'], 1, 'duplicate raw rows resolve the distinct product once' );
+eq206( $GLOBALS['filters206'], array(), 'posts_distinct guard removed after the query' );
+$GLOBALS['force_raw_rows206'] = false;
+eq206( Selector::discover_count( S::category( 1, true ) )['selected'], 1, 'DISTINCT query accepts the same duplicate-member population' );
+eq206( $GLOBALS['query206']['posts_per_page'], 2001, 'category sentinel remains 2,001' );
+
+// DISTINCT collapses joins before LIMIT, so an otherwise-valid population is
+// never truncated by its own overlapping memberships. 1,003 rows for one
+// product plus 999 simple targets is a valid 1,000-target selection; without
+// collapsing, the 2,001-row page exposes only 999 distinct products.
+$GLOBALS['terms206'] = array( 1 => 0 );
+for ( $t206 = 2; $t206 <= 1003; ++$t206 ) { $GLOBALS['terms206'][$t206] = 1; }
+$GLOBALS['products206'] = array( 8000 => new WC_Product_Simple( 8000, array( 'categories' => range( 1, 1003 ) ) ) );
+for ( $id206 = 8001; $id206 <= 8999; ++$id206 ) { $GLOBALS['products206'][$id206] = new WC_Product_Simple( $id206, array( 'categories' => array( 1 ) ) ); }
+eq206( Selector::discover_count( S::category( 1, true ) )['selected'], 1000, 'DISTINCT exposes a crowded valid population completely' );
+$GLOBALS['force_raw_rows206'] = true;
+eq206( Selector::discover_count( S::category( 1, true ) )['selected'], 999, 'raw duplicate page truncates without DISTINCT (regression discriminator)' );
+$GLOBALS['force_raw_rows206'] = false;
+
+// A distinct raw population above the bound is still refused before any read:
+// 2,001 distinct rows imply more than 1,000 final targets.
+$GLOBALS['terms206'] = array( 1 => 0 );
+$GLOBALS['products206'] = array();
+for ( $id206 = 1; $id206 <= 2001; ++$id206 ) { $GLOBALS['products206'][$id206] = new WC_Product_Simple( $id206, array( 'categories' => array( 1 ) ) ); }
+$GLOBALS['reads206'] = 0;
+error206( static fn() => Selector::discover_count( S::category( 1 ) ), 'selection_limit_exceeded' );
+eq206( $GLOBALS['reads206'], 0, '2,001 distinct raw rows refuse before any Woo read' );
+
+// Exact raw boundary: 2,000 distinct rows (1,000 core parents plus their
+// directly categorized 1,000 children) deduplicate to 1,000 accepted targets;
+// one further distinct row is refused.
+$GLOBALS['terms206'] = array( 1 => 0 );
+$GLOBALS['products206'] = array();
+for ( $i206 = 0; $i206 < 1000; ++$i206 ) {
+ $parent206 = 5000 + $i206;
+ $child206 = 7000 + $i206;
+ $GLOBALS['products206'][$parent206] = new WC_Product_Variable( $parent206, array( 'categories' => array( 1 ), 'children' => array( $child206 ) ) );
+ $GLOBALS['products206'][$child206] = new WC_Product_Variation( $child206, array( 'parent' => $parent206, 'categories' => array( 1 ) ) );
+}
+eq206( Selector::discover_count( S::category( 1 ) )['selected'], 1000, '2,000 distinct raw rows deduplicate to 1,000 accepted targets' );
+$GLOBALS['products206'][9000] = new WC_Product_Simple( 9000, array( 'categories' => array( 1 ) ) );
+$GLOBALS['reads206'] = 0;
+error206( static fn() => Selector::discover_count( S::category( 1 ) ), 'selection_limit_exceeded' );
+eq206( $GLOBALS['reads206'], 0, '2,001 distinct raw rows refuse before expansion reads' );
+
+eq206( Selector::MAX_SELECTED, 1000, 'MAX_SELECTED untouched' );
+eq206( WriteLeash\Free_Support_Contract::MAX_JOB_PRODUCTS, 1000, 'MAX_JOB_PRODUCTS untouched' );
 echo '#206 stub contract PASS (' . $checks206 . " assertions); actual Woo runtime NOT_TESTED\n";

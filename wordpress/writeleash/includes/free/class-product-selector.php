@@ -70,12 +70,27 @@ final class Product_Price_Selector {
 		// discovery bounded without rejecting parent + directly categorized child overlap.
 		$raw_limit = 'CATEGORY' === $s['type'] ? 2 * self::MAX_SELECTED : self::MAX_SELECTED;
 		$args['posts_per_page'] = $raw_limit + 1;
-		$query = new \WP_Query( $args );
-		if ( count( $query->posts ) > $raw_limit ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
+		$query = self::bounded_discovery_query( $args, 'CATEGORY' === $s['type'] );
+		// WP_Query does not add SQL DISTINCT for tax_query joins, so a post in
+		// several overlapping descendant terms is returned once per matching
+		// join. Key rows by post ID before the raw-bound check and before any
+		// Woo read: duplicate rows must not inflate the count, refuse a valid
+		// selection or be resolved twice. Sufficiency: every distinct raw post
+		// is either a final target or the core parent of at least one expanded
+		// variation; distinct core parents own disjoint child sets, so the
+		// parent count never exceeds the final-target count and the distinct
+		// raw population is at most 2 x final targets <= 2,000 for <=1,000
+		// final targets. Any distinct raw population above 2,000 therefore
+		// implies more than 1,000 final targets, so refusal is never a refusal
+		// of an otherwise-valid selection, and a population at or below the
+		// bound is complete (the sentinel is the 2,001st distinct row).
+		$raw_posts = array();
+		foreach ( $query->posts as $post ) { $raw_posts[ (int) $post->ID ] = $post; }
+		if ( count( $raw_posts ) > $raw_limit ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
 		$products = array();
 		$unreadable = array();
 		$unsupported_type = array();
-		foreach ( $query->posts as $post ) {
+		foreach ( $raw_posts as $post ) {
 			try {
 				$product = Product_Price_Snapshot::fresh_product( (int) $post->ID );
 				if ( 'SKU' === $s['type'] && ( ! $product instanceof \WC_Product || $product->get_sku( 'edit' ) !== $s['sku'] ) ) { continue; }
@@ -131,6 +146,24 @@ final class Product_Price_Selector {
 	/** The one stable refusal that must never be treated as a retryable read failure. */
 	private static function unsupported_type_error( \Throwable $error ): bool {
 		return $error instanceof Price_Validation_Error && 'unsupported_product_type' === $error->getMessage();
+	}
+	/**
+	 * Run the bounded discovery query. The tax_query join returns one row per
+	 * matching descendant term, so a CATEGORY query asks the database for
+	 * DISTINCT to make the posts_per_page sentinel count distinct posts; the
+	 * rows are still keyed by ID in resolve() so the bound stays exact even if
+	 * an environment, cache or filter ignores the DISTINCT request. A minimal
+	 * harness without the WP filter API falls back to the plain query and the
+	 * PHP-side keying.
+	 */
+	private static function bounded_discovery_query( array $args, bool $distinct ): \WP_Query {
+		if ( ! $distinct || ! function_exists( 'add_filter' ) || ! function_exists( 'remove_filter' ) ) {
+			return new \WP_Query( $args );
+		}
+		$guard = static function () { return 'DISTINCT'; };
+		add_filter( 'posts_distinct', $guard );
+		try { return new \WP_Query( $args ); }
+		finally { remove_filter( 'posts_distinct', $guard ); }
 	}
 	/** Informational read only. Preview independently resolves and freezes its own population. */
 	public static function discover_count( Price_Selection_Spec $spec ): array {

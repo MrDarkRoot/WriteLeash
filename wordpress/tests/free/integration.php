@@ -347,7 +347,17 @@ wl107_equal( $category_plan->data()['resolved_product_ids'], array( $a->get_id()
 update_post_meta( $similar->get_id(), '_sku', 'WL107-A' );
 wl107_error( static fn() => Planner::preview( S::sku( 'WL107-A' ), $op, $policy ), 'ambiguous_sku' );
 wl107_error( static fn() => Planner::preview( S::category( 2147483647 ), $op, $policy ), 'invalid_category' );
-$overflow_query = static fn( $posts ) => array_fill( 0, 1001, $posts[0] );
+// Overlapping membership returns one join row per matching term. Duplicate
+// rows must neither inflate the bound nor refuse a valid selection: 1,003
+// rows collapse to the same two frozen IDs.
+$duplicate_query = static fn( $posts ) => array_merge( $posts, array_fill( 0, 1001, $posts[1] ) );
+add_filter( 'posts_results', $duplicate_query );
+try {
+	$duplicate_plan = Planner::preview( $sel, $op, $policy );
+	wl107_equal( $duplicate_plan->data()['resolved_product_ids'], array( $a->get_id(), $b->get_id() ), 'duplicate rows neither inflate nor refuse the frozen population' );
+} finally { remove_filter( 'posts_results', $duplicate_query ); }
+// A genuinely larger distinct population still refuses.
+$overflow_query = static fn( $posts ) => array_map( static fn( $i ) => (object) array( 'ID' => 900000 + $i ), range( 0, 1000 ) );
 add_filter( 'posts_results', $overflow_query );
 try { wl107_error( static fn() => Planner::preview( $sel, $op, $policy ), 'selection_limit_exceeded' ); }
 finally { remove_filter( 'posts_results', $overflow_query ); }
