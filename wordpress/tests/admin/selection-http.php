@@ -57,6 +57,8 @@ $wl111_jar = $http_jar167;
 echo "#167 real HTTP discovery/native selection/session recovery/saved-review continuity: PASS\n";
 
 // #206 actual filter_input transport, including no-JavaScript native count.
+// eval-file scope: import the database handle like every sibling fixture.
+global $wpdb;
 $http_root206 = wp_insert_term( $tag . '-206-root', 'product_cat' )['term_id'];
 $http_child206 = wp_insert_term( $tag . '-206-child', 'product_cat', array( 'parent' => $http_root206 ) )['term_id'];
 wp_set_object_terms( $ids[0], array( $http_root206 ), 'product_cat' );
