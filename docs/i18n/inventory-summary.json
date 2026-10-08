@@ -1,0 +1,263 @@
+{
+    "format": 1,
+    "purpose": "literal-review-candidates-not-gettext-catalog",
+    "text_domain": "writeleash",
+    "source": {
+        "mode": "distribution-manifest",
+        "root": "wordpress/writeleash",
+        "manifest": "wordpress/release/writeleash-distribution-files.txt",
+        "manifest_entries": 42,
+        "scanned_files": 38
+    },
+    "classification": {
+        "text": 2479,
+        "machine": 3883,
+        "machine_reasons": {
+            "empty": 261,
+            "symbols-only": 152,
+            "numeric": 75,
+            "url": 3,
+            "html": 320,
+            "format-placeholder": 3,
+            "code": 998,
+            "path": 45,
+            "key": 1895,
+            "selector": 17,
+            "identifier": 114
+        }
+    },
+    "totals": {
+        "candidates": 6362,
+        "files": 38
+    },
+    "files": [
+        {
+            "file": "includes/class-environment.php",
+            "candidates": 5,
+            "text": 0,
+            "machine": 5
+        },
+        {
+            "file": "includes/class-lifecycle.php",
+            "candidates": 18,
+            "text": 8,
+            "machine": 10
+        },
+        {
+            "file": "includes/class-plugin.php",
+            "candidates": 7,
+            "text": 4,
+            "machine": 3
+        },
+        {
+            "file": "includes/free/class-change-plan.php",
+            "candidates": 298,
+            "text": 121,
+            "machine": 177
+        },
+        {
+            "file": "includes/free/class-durable-charset.php",
+            "candidates": 96,
+            "text": 62,
+            "machine": 34
+        },
+        {
+            "file": "includes/free/class-free-admin.php",
+            "candidates": 2054,
+            "text": 861,
+            "machine": 1193
+        },
+        {
+            "file": "includes/free/class-free-support-contract.php",
+            "candidates": 29,
+            "text": 2,
+            "machine": 27
+        },
+        {
+            "file": "includes/free/class-job-repository.php",
+            "candidates": 253,
+            "text": 126,
+            "machine": 127
+        },
+        {
+            "file": "includes/free/class-job-resume-rest.php",
+            "candidates": 53,
+            "text": 28,
+            "machine": 25
+        },
+        {
+            "file": "includes/free/class-job-scheduler.php",
+            "candidates": 5,
+            "text": 1,
+            "machine": 4
+        },
+        {
+            "file": "includes/free/class-job-schema.php",
+            "candidates": 99,
+            "text": 26,
+            "machine": 73
+        },
+        {
+            "file": "includes/free/class-job-state.php",
+            "candidates": 120,
+            "text": 47,
+            "machine": 73
+        },
+        {
+            "file": "includes/free/class-job-transaction-fence.php",
+            "candidates": 8,
+            "text": 2,
+            "machine": 6
+        },
+        {
+            "file": "includes/free/class-job-worker.php",
+            "candidates": 198,
+            "text": 77,
+            "machine": 121
+        },
+        {
+            "file": "includes/free/class-price-apply-connection.php",
+            "candidates": 19,
+            "text": 2,
+            "machine": 17
+        },
+        {
+            "file": "includes/free/class-price-apply-journal.php",
+            "candidates": 212,
+            "text": 59,
+            "machine": 153
+        },
+        {
+            "file": "includes/free/class-price-apply-transaction-guard.php",
+            "candidates": 1,
+            "text": 0,
+            "machine": 1
+        },
+        {
+            "file": "includes/free/class-price-cache-verifier.php",
+            "candidates": 246,
+            "text": 71,
+            "machine": 175
+        },
+        {
+            "file": "includes/free/class-price-decimal.php",
+            "candidates": 34,
+            "text": 1,
+            "machine": 33
+        },
+        {
+            "file": "includes/free/class-price-operation.php",
+            "candidates": 38,
+            "text": 13,
+            "machine": 25
+        },
+        {
+            "file": "includes/free/class-product-discovery.php",
+            "candidates": 143,
+            "text": 75,
+            "machine": 68
+        },
+        {
+            "file": "includes/free/class-product-selector.php",
+            "candidates": 90,
+            "text": 40,
+            "machine": 50
+        },
+        {
+            "file": "includes/free/class-product-snapshot.php",
+            "candidates": 270,
+            "text": 97,
+            "machine": 173
+        },
+        {
+            "file": "includes/free/class-runner-authority.php",
+            "candidates": 22,
+            "text": 12,
+            "machine": 10
+        },
+        {
+            "file": "includes/free/class-safety-policy.php",
+            "candidates": 44,
+            "text": 9,
+            "machine": 35
+        },
+        {
+            "file": "includes/free/class-undo-fingerprint.php",
+            "candidates": 149,
+            "text": 30,
+            "machine": 119
+        },
+        {
+            "file": "includes/free/class-undo-repository.php",
+            "candidates": 614,
+            "text": 254,
+            "machine": 360
+        },
+        {
+            "file": "includes/free/class-undo-rest.php",
+            "candidates": 65,
+            "text": 33,
+            "machine": 32
+        },
+        {
+            "file": "includes/free/class-undo-scheduler.php",
+            "candidates": 7,
+            "text": 1,
+            "machine": 6
+        },
+        {
+            "file": "includes/free/class-undo-schema.php",
+            "candidates": 92,
+            "text": 20,
+            "machine": 72
+        },
+        {
+            "file": "includes/free/class-undo-state.php",
+            "candidates": 119,
+            "text": 52,
+            "machine": 67
+        },
+        {
+            "file": "includes/free/class-undo-transaction-fence.php",
+            "candidates": 10,
+            "text": 3,
+            "machine": 7
+        },
+        {
+            "file": "includes/free/class-undo-worker.php",
+            "candidates": 204,
+            "text": 96,
+            "machine": 108
+        },
+        {
+            "file": "includes/free/class-woo-price-mutator.php",
+            "candidates": 188,
+            "text": 44,
+            "machine": 144
+        },
+        {
+            "file": "includes/free/class-woo-undo-mutator.php",
+            "candidates": 353,
+            "text": 105,
+            "machine": 248
+        },
+        {
+            "file": "includes/free/free-selection.js",
+            "candidates": 131,
+            "text": 91,
+            "machine": 40
+        },
+        {
+            "file": "uninstall.php",
+            "candidates": 26,
+            "text": 5,
+            "machine": 21
+        },
+        {
+            "file": "writeleash.php",
+            "candidates": 42,
+            "text": 1,
+            "machine": 41
+        }
+    ]
+}
