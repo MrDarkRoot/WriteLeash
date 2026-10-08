@@ -74,18 +74,36 @@ final class Product_Price_Selector {
 		// WP_Query does not add SQL DISTINCT for tax_query joins, so a post in
 		// several overlapping descendant terms is returned once per matching
 		// join. Key rows by post ID before the raw-bound check and before any
-		// Woo read: duplicate rows must not inflate the count, refuse a valid
-		// selection or be resolved twice. Sufficiency: every distinct raw post
-		// is either a final target or the core parent of at least one expanded
-		// variation; distinct core parents own disjoint child sets, so the
-		// parent count never exceeds the final-target count and the distinct
-		// raw population is at most 2 x final targets <= 2,000 for <=1,000
-		// final targets. Any distinct raw population above 2,000 therefore
-		// implies more than 1,000 final targets, so refusal is never a refusal
-		// of an otherwise-valid selection, and a population at or below the
-		// bound is complete (the sentinel is the 2,001st distinct row).
+		// Woo read: duplicate rows must not inflate the count or be resolved
+		// twice. Sufficiency: every distinct raw post is either a final target
+		// or the core parent of at least one expanded variation; distinct core
+		// parents own disjoint child sets, so the parent count never exceeds
+		// the final-target count and the distinct raw population is at most
+		// 2 x final targets <= 2,000 for <=1,000 final targets. Any distinct
+		// raw population above 2,000 therefore implies more than 1,000 final
+		// targets, so the sentinel refusal is never a refusal of an otherwise
+		// valid selection.
 		$raw_posts = array();
 		foreach ( $query->posts as $post ) { $raw_posts[ (int) $post->ID ] = $post; }
+		if ( 'CATEGORY' === $s['type'] ) {
+			// Fail-closed completeness. The sentinel above can bound the
+			// population only when the raw page provably holds every matching
+			// row. Two observable rewrites break that: a filter rewrote the
+			// bounded window (posts_per_page no longer equals the requested
+			// sentinel), or the page is full and carries duplicate join rows,
+			// so the SQL LIMIT may have truncated distinct posts before the
+			// PHP keying could see them. Duplicates on a short (not-full) page
+			// are safe: LIMIT was not reached, every matching row was returned
+			// and keying is exact. In an environment where DISTINCT cannot be
+			// guaranteed (a cache, plugin or filter stripped it) this refuses
+			// some otherwise-valid selections by design instead of resolving a
+			// possibly incomplete population.
+			$observed_rows = count( $query->posts );
+			$window = (int) $query->get( 'posts_per_page' );
+			if ( $window !== $raw_limit + 1 || ( $observed_rows > count( $raw_posts ) && $observed_rows >= $window ) ) {
+				throw new Price_Validation_Error( 'selection_limit_exceeded' );
+			}
+		}
 		if ( count( $raw_posts ) > $raw_limit ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
 		$products = array();
 		$unreadable = array();
@@ -150,20 +168,29 @@ final class Product_Price_Selector {
 	/**
 	 * Run the bounded discovery query. The tax_query join returns one row per
 	 * matching descendant term, so a CATEGORY query asks the database for
-	 * DISTINCT to make the posts_per_page sentinel count distinct posts; the
-	 * rows are still keyed by ID in resolve() so the bound stays exact even if
-	 * an environment, cache or filter ignores the DISTINCT request. A minimal
-	 * harness without the WP filter API falls back to the plain query and the
-	 * PHP-side keying.
+	 * DISTINCT to make the posts_per_page sentinel count distinct posts. The
+	 * posts_distinct guard is scoped to this exact query through a private
+	 * token query var: an unrelated or nested query built while the guard is
+	 * registered (for example from pre_get_posts) keeps its own clause. The
+	 * guard is removed in finally so both normal and exceptional exits leave
+	 * no global query change behind. A minimal harness without the WP filter
+	 * API falls back to the plain query; resolve() then fails closed when the
+	 * page shows duplicate rows it may have truncated. Rows are keyed by ID
+	 * in resolve() so the bound is exact whenever completeness holds.
 	 */
 	private static function bounded_discovery_query( array $args, bool $distinct ): \WP_Query {
 		if ( ! $distinct || ! function_exists( 'add_filter' ) || ! function_exists( 'remove_filter' ) ) {
 			return new \WP_Query( $args );
 		}
-		$guard = static function () { return 'DISTINCT'; };
-		add_filter( 'posts_distinct', $guard );
+		$token = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : uniqid( 'writeleash_discovery_', true );
+		$args['writeleash_discovery_token'] = $token;
+		$guard = static function ( $requested, $query ) use ( $token ) {
+			if ( $query instanceof \WP_Query && $token === $query->get( 'writeleash_discovery_token' ) ) { return 'DISTINCT'; }
+			return $requested;
+		};
+		add_filter( 'posts_distinct', $guard, 10, 2 );
 		try { return new \WP_Query( $args ); }
-		finally { remove_filter( 'posts_distinct', $guard ); }
+		finally { remove_filter( 'posts_distinct', $guard, 10 ); }
 	}
 	/** Informational read only. Preview independently resolves and freezes its own population. */
 	public static function discover_count( Price_Selection_Spec $spec ): array {
