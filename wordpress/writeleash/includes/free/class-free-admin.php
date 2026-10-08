@@ -247,13 +247,15 @@ final class Free_Admin {
 				$frozen = $identities[$item['product_id']] ?? null;
 				if ( null === $frozen ) { throw new \RuntimeException( 'Saved identity unavailable' ); }
 				$apply_reason = 'UNSUPPORTED' === $item['apply_state'] ? ( $frozen['eligibility']['reason'] ?? $item['apply_reason'] ) : $item['apply_reason'];
+				$apply_conflict = self::outcome_conflict_copy( $item['apply_state'] );
+				$undo_conflict = self::outcome_conflict_copy( $item['undo_state'] );
 				$rows[] = array(
 					'id' => (int) $item['product_id'],
 					'name' => self::identity_name( $frozen['snapshot'] ) . ' · #' . (int) $item['product_id'] . ' · as reviewed',
 					'expected' => self::money_display( self::expected_display( $frozen, $item, $plan->price_field() ), $plan->data()['store'] ),
 					'planned' => self::money_display( $item['planned_price'], $plan->data()['store'] ),
-					'apply' => self::item_label( $item['apply_state'], $job['status'] ) . ( $apply_reason ? ' · ' . self::reason_message( $apply_reason ) : '' ),
-					'undo' => null === $item['undo_state'] ? self::undo_item_label( $item, $job['status'] ) : self::item_label( $item['undo_state'], $job['status'] ) . ( $item['undo_reason'] ? ' · ' . self::reason_message( $item['undo_reason'] ) : '' ),
+					'apply' => self::item_label( $item['apply_state'], $job['status'] ) . ( '' !== $apply_conflict ? ' · ' . $apply_conflict : ( $apply_reason ? ' · ' . self::reason_message( $apply_reason ) : '' ) ),
+					'undo' => null === $item['undo_state'] ? self::undo_item_label( $item, $job['status'] ) : self::item_label( $item['undo_state'], $job['status'] ) . ( '' !== $undo_conflict ? ' · ' . $undo_conflict : ( $item['undo_reason'] ? ' · ' . self::reason_message( $item['undo_reason'] ) : '' ) ),
 					'apply_attention' => in_array( $item['apply_state'], array( 'CONFLICT', 'FAILED', 'NEEDS_REVIEW' ), true ),
 					'undo_attention' => in_array( $item['undo_state'], array( 'UNDO_CONFLICT', 'UNDO_FAILED', 'UNDO_NEEDS_REVIEW' ), true ),
 				);
@@ -1094,12 +1096,17 @@ final class Free_Admin {
 		return null === $item['undo_state'] && 'APPLIED' !== $item['apply_state'] ? 'Unavailable: no confirmed WriteLeash change to restore' : self::item_label( $item['undo_state'], $job_state );
 	}
 
+	/** Single source for conflict guidance: the server table and polled rows must not diverge. */
+	private static function outcome_conflict_copy( ?string $state ): string {
+		if ( 'CONFLICT' === $state ) { return 'This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.'; }
+		if ( 'UNDO_CONFLICT' === $state ) { return 'This product changed after WriteLeash applied its price. WriteLeash preserved the newer value instead of restoring over it.'; }
+		return '';
+	}
+
 	private static function render_item_outcome( ?string $state, ?string $reason, string $job_state, array $observation ): void {
 		echo '<strong>' . esc_html( self::item_label( $state, $job_state ) ) . '</strong>';
 		if ( 'CONFLICT' === $state || 'UNDO_CONFLICT' === $state ) {
-			$copy = 'CONFLICT' === $state
-				? 'This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.'
-				: 'This product changed after WriteLeash applied its price. WriteLeash preserved the newer value instead of restoring over it.';
+			$copy = self::outcome_conflict_copy( $state );
 			echo '<p>' . esc_html( $copy ) . '</p>';
 			if ( '' !== $observation['context'] ) { echo '<p>' . esc_html( $observation['context'] ) . '</p>'; }
 			if ( 'UNDO_CONFLICT' === $state && in_array( $reason, array( 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED' ), true ) ) {

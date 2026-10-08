@@ -185,3 +185,26 @@ Round-3 deterministic handler tests: POST-required, capability, job-regex, job-b
 ### Round-3 NOT_TESTED (unchanged runtime blockers)
 
 No WordPress/WooCommerce runtime or browser execution environment is available: `/var/run/docker.sock` is absent and `docker info` fails; the user is uid 1000 with `newuidmap`/`newgidmap` absent and `nf_tables` not loaded, so rootless preflight cannot be satisfied without root; `wordpress/tests/admin/browser-tools/package.json` declares `playwright`/`axe-core` but no `node_modules` is installed (`pr-fix3/221/runtime-blocker.log`). Therefore real-browser live Apply/Undo advancement, keyboard navigation, accessibility tree/axe, real session-expiry journeys and the Docker-bound `progress-integration.php` (including its manual/no-JS and poll-only SQL/product-read wrapper) remain **NOT_TESTED**. Unit DOM/repository doubles do not establish browser or Woo runtime behavior, and no claim is made otherwise.
+
+## 2026-10-08 round-4 runtime defect fix
+
+A real-browser runtime acceptance run against the integrated candidate (WordPress 7.1.2, WooCommerce 11.1.2, MySQL 8.0.44, host Chrome via Playwright 1.61) reproduced a live-progress defect on the deployed branch: after a successful poll, the merchant-visible Apply/Undo conflict guidance silently changed wording.
+
+### Defect
+
+`Free_Admin::progress_snapshot()` (`wordpress/writeleash/includes/free/class-free-admin.php:255-256` at `19e2c68`) built each polled row as `item_label(...) . ' · ' . reason_message($reason)`. For a `CONFLICT` row recorded with `ITEM_CONFLICT` and an `UNDO_CONFLICT` row recorded with `UNDO_CONFLICT`, `reason_message()` returns the short reason copy (`The product changed after review; the newer stored price was not overwritten.` / `The product changed after WriteLeash applied its price; the stored price was not overwritten.`), while the server-rendered table cell (`render_item_outcome()`, `:1097-1130`) shows longer guidance. Because `free-progress.js` replaces the cell text on every successful poll, the DOM flipped from the long server-rendered sentences to the short variants, and the repository's real-browser journey failed at `readable Undo preservation` (`wordpress/tests/admin/regression-browser.cjs:275`; the Apply check at ~`:259` passed only by pre-poll timing). Host evidence: `/tmp/wlruntime/evidence/round4-defect/live-undo-page-dump.txt`; DB outcomes were correct (`UNDO_CONFLICT` recorded, externally edited prices preserved).
+
+### Root cause
+
+Two spellings of the same guidance: the server table embedded the long sentences locally inside `render_item_outcome()`, while the polling endpoint composed the short `reason_message()` strings. Nothing forced the two render paths to agree.
+
+### Fix (smallest, single source of truth)
+
+New private helper `Free_Admin::outcome_conflict_copy( ?string $state ): string` returns exactly the two long sentences for `CONFLICT` / `UNDO_CONFLICT` (same typographic characters as before, including U+2019 in `product’s`) and `''` otherwise. `render_item_outcome()` now prints `$copy = self::outcome_conflict_copy( $state )` (no behavior change). `progress_snapshot()` computes `$apply_conflict` / `$undo_conflict` per row; when non-empty it appends `' · ' . <copy>` to the label, otherwise it keeps the existing `item_label(...) . ( $reason ? ' · ' . reason_message( $reason ) : '' )` behavior — including the `null === $item['undo_state']` branch that uses `undo_item_label()`. No other state text, labels, attention flags, or read-only behavior changed.
+
+### Round-4 regression evidence
+
+- `progress-unit.php` fixture now parameterizes `apply_reason` / `undo_state` / `undo_reason` and asserts the polled row carries the exact long sentences (`left the newer value unchanged`; `preserved the newer value instead of restoring over it`) both with a null reason and with `ITEM_CONFLICT`, that neither `rows[0]['apply']` nor `rows[0]['undo']` contains the short variants, that `UNDO_CONFLICT` stays attention-flagged, and that each long sentence occurs exactly once in `class-free-admin.php` (the helper both renderers share). All prior assertions remain; the suite now reports its check count (148 checks).
+- `progress-client.cjs` extracts the two sentences from the PHP source and asserts the shipped client writes endpoint-provided conflict copy into Apply and Undo cells verbatim (no truncation/mutation), and that a focused outcome keeps its previous saved copy with the documented stale-detail message.
+- Negative discriminator: running the updated `progress-unit.php` against the pre-fix bytes `git show 19e2c68:wordpress/writeleash/includes/free/class-free-admin.php` in a temp harness fails immediately at `CONFLICT row keeps the long guidance with a null reason` (exit 255, `pr-fix4/221/prefix-harness.log`); a scratch arm that skips that check fails at `CONFLICT row prefers the long guidance over a reason code` (`prefix-harness-reasonarm.log`). Post-fix both arms pass.
+- Real-browser re-verification (Apply/Undo conflict rows after polling, `regression-browser.cjs` journey) is performed by the lead on the integrated candidate after this push; this clone has no Docker/browser runtime.

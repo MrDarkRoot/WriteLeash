@@ -13,6 +13,14 @@ function phpConstant(name) {
     assert(match, `PHP constant ${name} present`);
     return match[1];
 }
+function phpConflictCopy(state) {
+    const pattern = state === 'CONFLICT'
+        ? /'(This product\u2019s price or other conditions changed after you reviewed the preview\. WriteLeash left the newer value unchanged\.)'/
+        : /'(This product changed after WriteLeash applied its price\. WriteLeash preserved the newer value instead of restoring over it\.)'/;
+    const match = admin.match(pattern);
+    assert(match, `PHP conflict copy for ${state} present`);
+    return match[1];
+}
 class Element {
     constructor(tag = 'P') { this.tagName = tag.toUpperCase(); this.children = []; this.textContent = ''; this.attrs = {}; this.events = {}; this.hidden = false; }
     appendChild(child) { this.children.push(child); child.parent = this; return child; }
@@ -115,6 +123,20 @@ async function respond(h, index, data) { h.requests[index].resolve({ok: true, st
     h.timer(5000); await respond(h, 1, snapshot({rows: [row(4, {apply: 'New saved outcome'})]}));
     assert.equal(h.document.activeElement, focusedSummary); assert.equal(cell.textContent, 'Changed');
     assert.match(h.nodes['[data-progress-connection]'].textContent, /focused outcome still shows its previous saved details/);
+    // Round 4: the endpoint-provided conflict guidance must reach the cells
+    // verbatim (the polled DOM must not shorten the server-rendered sentences),
+    // and a focused outcome still defers to its previous saved copy.
+    const applyCopy = phpConflictCopy('CONFLICT'), undoCopy = phpConflictCopy('UNDO_CONFLICT');
+    h = harness(); await respond(h, 0, snapshot({rows: [row(4, {apply: 'Not changed', undo: 'Not restored'})]}));
+    h.timer(5000); await respond(h, 1, snapshot({rows: [row(4, {apply: 'Not changed · ' + applyCopy, undo: 'Not restored · ' + undoCopy, undo_attention: true})]}));
+    assert.equal(h.body.children[0].children[4].textContent, 'Not changed · ' + applyCopy, 'endpoint Apply conflict copy written verbatim');
+    assert.equal(h.body.children[0].children[5].textContent, 'Not restored · ' + undoCopy, 'endpoint Undo conflict copy written verbatim');
+    assert.equal(h.body.children[0].children[5].className, 'writeleash-attention');
+    const conflictFocus = new Element('SUMMARY'); h.body.children[0].children[4].appendChild(conflictFocus); h.document.activeElement = conflictFocus;
+    h.timer(5000); await respond(h, 2, snapshot({rows: [row(4, {apply: 'Not changed · ' + applyCopy, undo: 'Not restored · ' + undoCopy, undo_attention: true})]}));
+    assert.equal(h.body.children[0].children[4].textContent, 'Not changed · ' + applyCopy, 'focused outcome keeps the previous saved conflict copy');
+    assert.match(h.nodes['[data-progress-connection]'].textContent, /focused outcome still shows its previous saved details/);
+    h.document.activeElement = new Element('A');
     // A focused review link on a row that left the current filter is retained with an explicit stale-list message.
     h = harness(); await respond(h, 0, snapshot({rows: [row(4)]}));
     const reviewLink = new Element('A'); h.body.children[0].children[0].appendChild(reviewLink); h.document.activeElement = reviewLink;

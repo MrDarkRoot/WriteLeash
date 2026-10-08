@@ -59,6 +59,7 @@ namespace WriteLeash {
 	class Undo_Repository {
 		public const MAX_EVIDENCE_ROWS = 1000;
 		public static $state = null, $stalled = false, $history = 0, $items = 0, $history_throws = false, $items_throws = false, $mutations = array();
+		public static $apply_state = 'CONFLICT', $apply_reason = null, $undo_state = null, $undo_reason = null;
 		public static function __callStatic( $name, $args ) { self::$mutations[] = $name; throw new \RuntimeException( 'Mutation attempted: ' . $name ); }
 		public static function authorized( $job, $id ) { return in_array( $id, array( (int) $job['creator_id'], (int) $job['approver_id'] ), true ); }
 		public static function history_job( $id ) { ++self::$history; if ( self::$history_throws ) { throw new \RuntimeException( 'offline' ); } return array( 'undo' => array( 'operation_id' => self::$state ? 3 : null, 'operation_status' => self::$state, 'operation_reason' => null, 'undone' => 0, 'pending' => 0, 'conflict' => 0, 'failed' => 0, 'applying' => 0, 'needs_review' => 0 ), 'undo_eligible' => 'COMPLETED' === Job_Repository::$state, 'undo_expires_at' => null ); }
@@ -66,7 +67,7 @@ namespace WriteLeash {
 		public static function history_items( $id, $apply, $undo, $offset, $limit ) {
 			++self::$items; if ( self::$items_throws ) { throw new \RuntimeException( 'offline' ); }
 			if ( 50 !== $limit ) { throw new \RuntimeException( 'Unbounded page' ); }
-			return array( 'items' => array( array( 'product_id' => 11, 'expected_price' => '10.00', 'planned_price' => '15.00', 'apply_state' => 'CONFLICT', 'apply_reason' => null, 'undo_state' => null, 'undo_reason' => null ) ), 'next_offset' => null );
+			return array( 'items' => array( array( 'product_id' => 11, 'expected_price' => '10.00', 'planned_price' => '15.00', 'apply_state' => self::$apply_state, 'apply_reason' => self::$apply_reason, 'undo_state' => self::$undo_state, 'undo_reason' => self::$undo_reason ) ), 'next_offset' => null );
 		}
 	}
 }
@@ -75,7 +76,8 @@ namespace {
 	use WriteLeash\Free_Admin as Admin;
 	use WriteLeash\Job_Repository as Jobs;
 	use WriteLeash\Undo_Repository as Undo;
-	function check204( $actual, $expected, $label ) { if ( $actual !== $expected ) { throw new RuntimeException( $label . ': ' . json_encode( $actual ) ); } }
+	$GLOBALS['wl204_checks'] = 0;
+	function check204( $actual, $expected, $label ) { ++$GLOBALS['wl204_checks']; if ( $actual !== $expected ) { throw new RuntimeException( $label . ': ' . json_encode( $actual ) ); } }
 	function refused204() { return array( 'status' => 'FORBIDDEN', 'reason' => 'progress_unavailable' ); }
 	$undo_source = file_get_contents( __DIR__ . '/../../writeleash/includes/free/class-undo-repository.php' );
 	preg_match( '/const MAX_EVIDENCE_ROWS = ([0-9]+)/', $undo_source, $bound );
@@ -102,6 +104,30 @@ namespace {
 	$result = Admin::progress_snapshot( $post, 'POST' );
 	check204( $result['status'], 'OK', 'saved running fixture' ); check204( $result['poll'], true, 'running Apply polls' ); check204( $result['rows'][0]['apply_attention'], true, 'conflict not success' );
 	check204( $result['counts'], Jobs::$counts, 'durable counters authority' );
+	// Round-4 defect: the polled row text must carry the exact conflict guidance
+	// the server-rendered table shows, never the short reason-message variant.
+	$long_apply = 'This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.';
+	$long_undo = 'This product changed after WriteLeash applied its price. WriteLeash preserved the newer value instead of restoring over it.';
+	$short_apply = 'The product changed after review; the newer stored price was not overwritten.';
+	$short_undo = 'The product changed after WriteLeash applied its price; the stored price was not overwritten.';
+	check204( str_contains( $result['rows'][0]['apply'], 'left the newer value unchanged' ), true, 'CONFLICT row keeps the long guidance with a null reason' );
+	check204( str_contains( $result['rows'][0]['apply'], $long_apply ), true, 'CONFLICT row copy is exact' );
+	check204( str_contains( $result['rows'][0]['apply'], $short_apply ), false, 'CONFLICT row never fabricates the short variant' );
+	Undo::$apply_reason = 'ITEM_CONFLICT';
+	$reasoned = Admin::progress_snapshot( $post, 'POST' )['rows'][0]['apply'];
+	check204( str_contains( $reasoned, $long_apply ), true, 'CONFLICT row prefers the long guidance over a reason code' );
+	check204( str_contains( $reasoned, $short_apply ), false, 'CONFLICT row with ITEM_CONFLICT never shows the short variant' );
+	Undo::$apply_reason = null; Undo::$state = 'UNDO_CONFLICT'; Undo::$undo_state = 'UNDO_CONFLICT'; Undo::$undo_reason = 'UNDO_CONFLICT';
+	$conflicted = Admin::progress_snapshot( $post, 'POST' )['rows'][0];
+	check204( $conflicted['undo_attention'], true, 'UNDO_CONFLICT stays flagged' );
+	check204( str_contains( $conflicted['undo'], 'preserved the newer value instead of restoring over it' ), true, 'UNDO_CONFLICT row keeps the long guidance' );
+	check204( str_contains( $conflicted['undo'], $long_undo ), true, 'UNDO_CONFLICT row copy is exact' );
+	check204( str_contains( $conflicted['undo'], $short_undo ), false, 'UNDO_CONFLICT row never fabricates the short variant' );
+	Undo::$state = null; Undo::$undo_state = null; Undo::$undo_reason = null;
+	// Single source of truth: both long sentences live once, in the helper both
+	// renderers share; the polled path references it instead of re-spelling copy.
+	check204( substr_count( (string) file_get_contents( __DIR__ . '/../../writeleash/includes/free/class-free-admin.php' ), $long_apply ), 1, 'CONFLICT guidance stored exactly once' );
+	check204( substr_count( (string) file_get_contents( __DIR__ . '/../../writeleash/includes/free/class-free-admin.php' ), $long_undo ), 1, 'UNDO_CONFLICT guidance stored exactly once' );
 	check204( Admin::progress_snapshot( array_merge( $post, array( 'offset' => '1000' ) ), 'POST' )['status'], 'OK', 'offset at the evidence bound accepted' );
 	Jobs::$stalled = true; $stalled = Admin::progress_snapshot( $post, 'POST' ); check204( $stalled['poll'], false, 'stalled stops' ); check204( str_contains( $stalled['notice'], 'stopped' ), true, 'stalled honest' );
 	Jobs::$stalled = false; Jobs::$state = 'COMPLETED'; Jobs::$counts['pending'] = 0; Jobs::$counts['applied'] = 2;
@@ -197,5 +223,5 @@ namespace {
 	check204( Jobs::$mutations, array(), 'progress never calls a mutating Job_Repository method' );
 	check204( Undo::$mutations, array(), 'progress never calls a mutating Undo_Repository method' );
 	check204( $GLOBALS['wl204_workers'], array(), 'progress never starts a worker' );
-	echo "#204 PHP boundary unit: capabilities/actor/nonce/types, job-bound nonce, guessed ID, persisted counters, stalled/terminal Apply/Undo, incomplete/error fail closed, Resume/Undo handler authority, reads-only repository doubles + mutation/worker sentinel self-controls PASS (repository doubles; no Woo runtime claim)\n";
+	echo "#204 PHP boundary unit: capabilities/actor/nonce/types, job-bound nonce, guessed ID, persisted counters, stalled/terminal Apply/Undo, incomplete/error fail closed, conflict copy single-source (long guidance for CONFLICT and UNDO_CONFLICT, short reason variants absent, guidance stored once), Resume/Undo handler authority, reads-only repository doubles + mutation/worker sentinel self-controls PASS (" . $GLOBALS['wl204_checks'] . " checks; repository doubles; no Woo runtime claim)\n";
 }
