@@ -115,9 +115,9 @@ Relevant exact-version source:
 - [WordPress wpdb](https://github.com/WordPress/WordPress/blob/7.1.2/wp-includes/class-wpdb.php):
   `query()` can reconnect and call `_do_query()` a second time without repeating
   the query filter. A query filter alone cannot fence that replay.
-- [Product factory](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/class-wc-product-factory.php)
-  and [ProductCache](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/src/Internal/Caches/ProductCache.php):
-  optional object caching is evicted through `ProductCache::remove()`, not
+- [Product factory](https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/includes/class-wc-product-factory.php):
+  the public type/classname lookup drives fresh reads, and optional object
+  caching is evicted through WordPress's public cache-clean action, not
   invented internal cache keys.
 
 `Price_Apply_Connection` is a temporary stock-wpdb subclass using the **same
@@ -225,11 +225,13 @@ All additional invalidation lives in `Price_Cache_Verifier::invalidate()`:
 - `wc_delete_product_transients(id)` and Woo product-group invalidation retain
   Woo's own invalidation semantics. Woo's helper also deletes some shared product
   transients; this is the public helper's cost, not a global object-cache flush.
-- `ProductCache::remove(id)` also covers optional instance caching where the
-  class exists (Woo 10.5+); older supported releases skip this step. Woo 11.1.2
-  deliberately marks its `product_objects` group nonpersistent; the lab primes
-  and evicts an actual entry via the cache API. Post/meta/lookup cache entries
-  still use Redis when enabled.
+- Woo's optional product-instance caching (Woo 10.5+) is evicted by the public
+  WordPress cache-clean action Woo attaches, and fresh reads construct the
+  exact core product class directly instead of reusing a factory instance, so
+  older and newer supported releases behave identically. Woo 11.1.2
+  deliberately marks its product-objects cache group nonpersistent; the lab
+  primes and evicts an actual entry through public APIs. Post/meta/lookup
+  cache entries still use Redis when enabled.
 - Store option and user capability caches are refreshed at their precondition
   boundaries. Cache invalidation suspension is refused.
 

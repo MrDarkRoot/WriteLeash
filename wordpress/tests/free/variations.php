@@ -29,7 +29,10 @@ namespace {
 	class WC_Product {
 		protected int $wl_id;
 		protected array $wl_values;
-		public function __construct( int $id = 0, array $values = array() ) { $this->wl_id = $id; $this->wl_values = $values; }
+		public function __construct( int $id = 0, array $values = array() ) {
+			$this->wl_id = $id;
+			$this->wl_values = $values ?: ( $GLOBALS['wl179_products'][ $id ]->wl_values ?? array() );
+		}
 		public function get_id() { return $this->wl_id; }
 		public function get_type() { return $this->wl_values['type'] ?? 'simple'; }
 		public function get_status( $context = 'view' ) { return $this->wl_values['status'] ?? 'publish'; }
@@ -53,6 +56,13 @@ namespace {
 	class WC_Product_Variation extends WC_Product {
 		public function get_type() { return 'variation'; }
 	}
+	class WC_Product_Factory {
+		public static function get_product_type( $id ) { return isset( $GLOBALS['wl179_products'][ $id ] ) ? $GLOBALS['wl179_products'][ $id ]->get_type() : false; }
+		public static function get_product_classname( $id, $type ) { return get_class( $GLOBALS['wl179_products'][ $id ] ); }
+	}
+	class WC_Cache_Helper { public static function invalidate_cache_group( $group ): void {} }
+	function clean_post_cache( $id ): void {}
+	function wp_cache_delete( $id, $group ): bool { return true; }
 	class WP_Term {
 		public $term_id;
 		public $name;
@@ -280,10 +290,15 @@ namespace {
 	wl179_equal( $cat_plan->data()['resolved_product_ids'], array( 11, 12, 13, 60 ), 'category population is frozen by resolved IDs' );
 	wl179_equal( Selector::resolved_selection( $cat_spec, $cat_snapshots )->data(), $cat_spec->data(), 'non-IDS selections are not rewritten' );
 	$skus = Selector::resolve( S::sku( 'HOOD-BLUE-M' ) );
-	wl179_equal( array_map( static fn( $s ) => $s->data()['product_id'], $skus ), array( 11 ), 'an exact variation SKU resolves that variation (advanced SKU stays one exact product)' );
+	wl179_equal( array_map( static fn( $s ) => $s->data()['product_id'], $skus ), array( 11, 40, 50, 51, 52 ), 'an exact variation SKU resolves that variation; non-core classes stay explicit unreadable candidates instead of being silently dropped' );
+	$sku_readable = array();
+	foreach ( $skus as $sku_snapshot ) { if ( $sku_snapshot->data()['exists'] ) { $sku_readable[] = $sku_snapshot->data()['product_id']; } }
+	wl179_equal( $sku_readable, array( 11 ), 'an exact variation SKU byte-match admits exactly that one variation (advanced SKU stays one exact product)' );
 	$ext_expansion = Selector::resolve( S::ids( array( 50 ) ) );
 	wl179_equal( array_map( static fn( $s ) => $s->data()['product_id'], $ext_expansion ), array( 50 ), 'an extension variable parent is never expanded' );
-	wl179_equal( Eligibility::evaluate( $ext_expansion[0], wl179_context() )->data()['reason'], 'unsupported_product_type', 'an extension variable parent stays one explained refusal' );
+	$ext_expansion_data = $ext_expansion[0]->data();
+	wl179_equal( $ext_expansion_data['exists'] . '/' . $ext_expansion_data['unreadable'], '/1', 'an extension class is explicitly unreadable, never mislabeled present or absent' );
+	wl179_equal( Eligibility::evaluate( $ext_expansion[0], wl179_context() )->data()['reason'], 'unreadable_product_data', 'an extension class refusal stays a conservative typed refusal without a dynamic class dependency' );
 	wl179_marker( 'parent expansion, dedupe, category expansion and the exact preview freeze' );
 
 	// ------------------------------------------------------------------

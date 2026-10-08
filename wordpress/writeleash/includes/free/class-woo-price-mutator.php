@@ -101,7 +101,7 @@ final class Woo_Price_Mutator {
 			wp_cache_delete( 'alloptions', 'options' );
 			foreach ( array( 'woocommerce_currency', 'woocommerce_price_num_decimals', $role_key ) as $key ) { wp_cache_delete( $key, 'options' ); }
 			Price_Cache_Verifier::invalidate( $id );
-			$product = wc_get_product( $id );
+			$product = Product_Price_Snapshot::fresh_product( $id );
 			if ( ! $product || ! Price_Cache_Verifier::core_data_store( $product ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
 			$is_variation = ! empty( $item['snapshot']['core_variation'] );
 			$parent_id = $is_variation ? (int) ( $item['snapshot']['parent_id'] ?? 0 ) : 0;

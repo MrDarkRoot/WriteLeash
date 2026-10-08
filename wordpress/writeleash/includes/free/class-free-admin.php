@@ -1470,11 +1470,7 @@ final class Free_Admin {
 		$unavailable = array( 'price' => 'Unavailable', 'context' => 'Current product details are unavailable.' );
 		try {
 			if ( ! current_user_can( 'edit_post', $product_id ) || ! empty( $GLOBALS['_wp_suspend_cache_invalidation'] ) ) { return $unavailable; }
-			wp_cache_delete( $product_id, 'posts' );
-			wp_cache_delete( $product_id, 'post_meta' );
-			\WC_Cache_Helper::invalidate_cache_group( 'product_' . $product_id );
-			wc_get_container()->get( \Automattic\WooCommerce\Internal\Caches\ProductCache::class )->remove( $product_id );
-			$product = wc_get_product( $product_id );
+			$product = Product_Price_Snapshot::fresh_product( $product_id );
 			if ( ! $product instanceof \WC_Product || $product->get_id() !== $product_id ) { return $unavailable; }
 			$snapshot = Product_Price_Snapshot::read( $product_id, $product )->data();
 			$context = '';
