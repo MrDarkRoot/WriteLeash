@@ -185,6 +185,42 @@ try {
 	$assert209( ( $saves209[ $id209 ] ?? 0 ) - $saves_before_retry209, 0, 'R3 conflicting retry performs zero Woo saves' );
 	$assert209( Decimal209::parse( $read209( $id209 )['price'] ), '85', 'R3 conflicting retry preserves the newer edit' );
 	$assert209( Journal209::read( $GLOBALS['wpdb'], $conflict_plan209->data()['plan_id'], $id209 )['state'], 'CONFLICT', 'R3 conflicting retry is durable CONFLICT' );
+	// R4: a committed APPLIED journal with matching independent storage must not
+	// be reported as uncertain because a per-request meta cache still serves the
+	// pre-write value. Emulate the observed race deterministically: every blob
+	// read for the product serves the pre-write array until the second public
+	// product read completes, then behaves normally. The observation may evict
+	// and reconstruct exactly once; a persistent mismatch must still fail.
+	$stale209 = $make209( WC_Product_Simple::class, '100' );
+	$stale_id209 = $stale209->get_id();
+	$stale_plan209 = $plan209( $stale_id209, '80' );
+	Journal209::seed( $stale_plan209 );
+	$assert209( Mutator209::apply( $stale_plan209, $stale_id209 )['code'], 'APPLIED', 'R4 fixture applies before the stale-cache observation' );
+	$saves_before_stale209 = $saves209[ $stale_id209 ] ?? 0;
+	$stale_served209 = 0;
+	$stale_reads209 = 0;
+	$stale_filter209 = static function ( $value, $object_id, $meta_key, $single ) use ( $stale_id209, &$stale_served209 ) {
+		if ( (int) $object_id !== $stale_id209 ) { return $value; }
+		if ( '' === $meta_key && false === $single ) { ++$stale_served209; return array( '_regular_price' => array( '100.00' ), '_price' => array( '100.00' ), '_sale_price' => array( '' ) ); }
+		return $value;
+	};
+	$stale_disarm209 = static function ( $product_id ) use ( $stale_id209, &$stale_reads209 ) {
+		if ( (int) $product_id === $stale_id209 && ++$stale_reads209 >= 2 ) { remove_filter( 'get_post_metadata', $GLOBALS['wl209_stale_filter'] ?? null, 10 ); }
+	};
+	$GLOBALS['wl209_stale_filter'] = $stale_filter209;
+	add_filter( 'get_post_metadata', $stale_filter209, 10, 4 );
+	add_action( 'woocommerce_product_read', $stale_disarm209, 10, 1 );
+	try {
+		$stale_observed209 = Cache209::observe( $stale_plan209, $stale_id209 );
+		$assert209( $stale_observed209['journal']['state'], 'APPLIED', 'R4 stale per-request cache does not degrade a committed observation' );
+	} finally {
+		remove_filter( 'get_post_metadata', $stale_filter209, 10 );
+		remove_action( 'woocommerce_product_read', $stale_disarm209, 10 );
+		unset( $GLOBALS['wl209_stale_filter'] );
+	}
+	$assert209( $stale_served209 >= 1, true, 'R4 stale blob emulation was served' );
+	$assert209( ( $saves209[ $stale_id209 ] ?? 0 ) - $saves_before_stale209, 0, 'R4 stale observation performs zero Woo saves' );
+	$assert209( Decimal209::parse( $read209( $stale_id209 )['price'] ), '80', 'R4 stale observation never changes the committed price' );
 	$suspended209 = $GLOBALS['_wp_suspend_cache_invalidation'] ?? false;
 	$GLOBALS['_wp_suspend_cache_invalidation'] = true;
 	try {
