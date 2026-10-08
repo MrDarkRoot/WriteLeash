@@ -7,7 +7,7 @@ Scope: translation-readiness preparation only — literal inventory tooling, too
 | Issue | #210 — Make merchant-facing UI translation-ready |
 | Base SHA | `c48e307efe7750d0fb36015c39d50a34675f9579` |
 | Branch | `work/210-i18n-preparation` in `/tmp/writeleash-approved-20261008/agent-D` |
-| Head SHA | Preparation commit `b09fd5f226ea45e711352b8654e3ab3f09d0d1f3`, then review-fix commit `chore(i18n): scope inventory to the public manifest and drop generated dump (#210)` created after all gates passed; exact SHA recorded in `/tmp/writeleash-approved-20261008/evidence/pr-fix/222/` (a commit cannot embed its own SHA). |
+| Head SHA | Preparation commit `b09fd5f226ea45e711352b8654e3ab3f09d0d1f3`, then review-fix commit `chore(i18n): scope inventory to the public manifest and drop generated dump (#210)` (`4c7f6b2fd919b0c2a84922f15dd1b9bfdaca26fd`), then round-3 docs-note commit `docs(i18n): record round-3 preparation verification (#210)` created after the round-3 gates passed; exact SHA recorded in `/tmp/writeleash-approved-20261008/evidence/pr-fix3/222/` (a commit cannot embed its own SHA). |
 | PR status | PR #222 (Draft, OPEN) on `MrDarkRoot/WriteLeash`; the review fix is pushed to the same branch; no merge/deploy/publication |
 | Scope deviation | None. Inventory/tooling/tests/docs only; no active Admin PHP/JS touched; no string conversion. |
 | Support claims | Unchanged. Public allowlist, package closure and existing local asset model untouched. |
@@ -26,6 +26,23 @@ Finding: `docs/i18n/baseline-literals.json` (~56,000 lines / 1.8 MB) included hi
 | Avoid committing large generated data | `git rm docs/i18n/baseline-literals.json`; only `docs/i18n/inventory-summary.json` (7,020 bytes) committed; full inventory reproducible via the tool, raw run via `--all` |
 | Focused tooling tests extended | `i18n-inventory-cases.php` now covers fixture-manifest scoping (unlisted file excluded), text/machine classification, determinism, `--all`, summary counts, missing root/manifest/listed-entry, unsafe entry, empty manifest, unknown option |
 | No production source edits | Only `wordpress/release/i18n-inventory.php`, `wordpress/tests/release/i18n-inventory-cases.php`, `docs/i18n/*` changed; no Admin PHP/JS touched |
+
+## Round-3 verification (2026-10-08)
+
+Minimal regression check on the existing branch (previous HEAD `4c7f6b2fd919b0c2a84922f15dd1b9bfdaca26fd`, `origin/main` `c48e307efe7750d0fb36015c39d50a34675f9579` unchanged; no maintainer comments, no third-party fixes). No tooling defect (failing test, nondeterminism, manifest mis-scoping) was demonstrated, so the tool, tests, manifest and committed summary were left untouched; only this documentation was updated.
+
+| Check | Result |
+|---|---|
+| `php wordpress/tests/release/i18n-inventory-cases.php` | **PASS** — full case list, exit 0 |
+| Determinism, 2 runs per mode (`cmp` byte-identical) | `--summary` `9cf090ec…0256a5` (equals committed `docs/i18n/inventory-summary.json`); full `0e62bb58…b5a46c`; `--all` `06223803…f5168ed` |
+| `--all` reproduces the pre-rework raw population | **PASS** — byte-identical to round-2 evidence `inventory-source-tree-raw.json`; 9,436 candidates / 60 files |
+| Manifest scoping | **PASS** — default run scanned exactly the 38 allowlisted PHP/JS files (42 manifest entries, 4 non-PHP/JS skipped) and zero non-allowlisted files; root/manifest defaults resolve from the tool location (cwd-independent) |
+| No gettext conversion / machine translation / runtime modification | **PASS** — branch diff vs `origin/main` is tooling/tests/docs only; zero files under `wordpress/writeleash/`; no gettext call added to any production path |
+| Changed-file accounting for the final conversion inventory | Documented in `docs/i18n/PREPARATION.md` §8.1: `class-product-selector.php`, `class-free-admin.php` and `free-selection.js` are existing manifest entries scanned automatically; `free-progress.js` is added to the manifest by PR #221 and is auto-included once #221 merges (fixture-verified), so #222 needs no further change |
+| `python3 .github/ci/ownership.py --audit` | **PASS** |
+| `bash .github/ci/pr-fast.sh` | **PASS** — `#133 PR_FAST PASS` |
+
+The inventory remains a candidate aid, not a catalog; #210 is still **PARTIAL — PREPARATION COMPLETE**. Evidence: `/tmp/writeleash-approved-20261008/evidence/pr-fix3/222/`.
 
 ## What was prepared
 
