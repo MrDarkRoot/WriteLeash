@@ -253,7 +253,10 @@ final class Free_Admin {
 			// the same renderer produces both, so live updates keep the outcome
 			// emphasis and the conflict next-action links instead of flattening
 			// them to plain text. All bytes are server-escaped static copy/links.
-			$observation = self::product_observation( (int) $item['product_id'], $plan->price_field() );
+			// The poll performs no live Woo product reads: the page-load
+			// observation context stays page-load-only, so a neutral context is
+			// passed and the outcome copy/links/labels still match the server.
+			$observation = array( 'context' => '' );
 			$rows[] = array(
 				'id' => (int) $item['product_id'],
 				'name' => self::identity_name( $frozen['snapshot'] ) . ' · #' . (int) $item['product_id'] . ' · as reviewed',
