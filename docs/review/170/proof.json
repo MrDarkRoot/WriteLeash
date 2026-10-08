@@ -2,8 +2,8 @@
   "schema": 1,
   "base_main": "bd66a79",
   "source_hashes": {
-    "class-free-admin.php": "62f6285064bcf3c72c4ce13656bec609d1a87d2c5773042c0860194c87b00954",
-    "free-selection.js": "23690cae10f097b026baf40a1fcc4422d240ad539c7ef3d0265308e3e8d9da46",
+    "class-free-admin.php": "2023b0e6b1f6f9ef81297c8c2af24b996665d0428347505985d450e550b6ce62",
+    "free-selection.js": "5752b2445acb3a1589e809376d3cbceddce1348fdf26330070ba297dbff9b59c",
     "free-selection.css": "1b57bf6b002995be559615af213ec51098c2d46081308c72145ddd42d5eb0668"
   },
   "screenshots": [
@@ -11,15 +11,15 @@
       "filename": "170-chromium-apply-conflict.png",
       "caption": "Chromium: newer Woo price preserved; expected/current/planned values remain in the same product row.",
       "width": 1440,
-      "height": 3856,
-      "sha256": "593d0ef79e121185b8c5b32a1e1988abfb61ea333c7f79a8d870f805a42d15d8"
+      "height": 3905,
+      "sha256": "0727c780ce40702c57d7e7777f8e2cdd2c6d46eacf272e67fc471e6bdaf5798c"
     },
     {
       "filename": "170-firefox-apply-conflict.png",
       "caption": "Firefox: newer Woo price preserved; expected/current/planned values remain in the same product row.",
       "width": 1440,
-      "height": 3856,
-      "sha256": "ae4bfd29539bc424fecfb3a3d9927fa8c7b16ffa62d82929b2de626c2160b39d"
+      "height": 3906,
+      "sha256": "f10f7f20c0a2ba261d4463044b5cc0252e247ef599a104859c1af70fb4b59830"
     }
   ]
 }

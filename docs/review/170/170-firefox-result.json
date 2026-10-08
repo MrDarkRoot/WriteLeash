@@ -58,8 +58,8 @@
       "current": "120.00",
       "planned": "80.00",
       "state": "CONFLICT",
-      "html": "<tr data-product-id=\"106\"><td><strong>Gate a0a31ab8 product 0 Café 日本 long name long name long name long name long name long name long name long name</strong><br><span class=\"description\">SKU: G170-a0a31ab8-00 · Product #106 · as reviewed</span><br><a href=\"http://127.0.0.1:32772/wp-admin/post.php?post=106&amp;action=edit\">Review product</a></td><td>$100.00 USD</td><td>$120.00 USD</td><td>$80.00 USD</td><td class=\"writeleash-attention\"><strong>Not changed</strong><p>This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.</p><p>Review the product, then <a href=\"http://127.0.0.1:32772/wp-admin/admin.php?page=writeleash-bulk-prices\">Create a new preview</a> if you still want to change it.</p><details><summary>Support details</summary><p>CONFLICT · ITEM_CONFLICT</p></details></td><td class=\"\">Unavailable: no confirmed WriteLeash change to restore</td></tr>",
-      "product_id": 106
+      "html": "<tr data-product-id=\"59\"><td><strong>Gate 313fb920 product 0 Café 日本 long name long name long name long name long name long name long name long name</strong><br><span class=\"description\">SKU: G170-313fb920-00 · Product #59 · as reviewed</span><br><a href=\"http://127.0.0.1:8080/wp-admin/post.php?post=59&amp;action=edit\">Review product</a></td><td>$100.00 USD</td><td>$120.00 USD</td><td>$80.00 USD</td><td class=\"writeleash-attention\">Not changed · This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.</td><td class=\"\">Unavailable: no confirmed WriteLeash change to restore</td></tr>",
+      "product_id": 59
     },
     "undo": {
       "preserved": "93.00",
