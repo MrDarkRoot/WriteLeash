@@ -39,6 +39,13 @@ wl204_assert( 'FORBIDDEN' === Free_Admin::progress_snapshot( $post, 'GET' )['sta
 foreach ( array( array( '_wpnonce' => 'bad' ), array( 'offset' => '100001' ), array( 'offset' => '-1' ), array( 'filter' => 'anything' ) ) as $bad ) { wl204_assert( 'FORBIDDEN' === wl204_read( array_merge( $post, $bad ) )['status'], 'bad nonce or unbounded query refused' ); }
 wp_set_current_user( $other );
 wl204_assert( 'FORBIDDEN' === wl204_read( wl204_post( $job ) )['status'], 'cross-actor refused with valid own nonce' );
+$other_preview = Free_Admin::process_preview( array( '_wpnonce' => wp_create_nonce( Free_Admin::ACTION_PREVIEW ), 'selector' => 'ids', 'ids' => implode( ',', $ids ), 'operation' => 'SET', 'price_field' => 'regular_price', 'amount' => '16.00', 'max_products' => '100', 'max_increase' => '100', 'max_decrease' => '100', 'warning_threshold' => '100' ), 'POST' );
+wl204_assert( 'OK' === $other_preview['status'], 'second actor preview accepted' );
+$other_job = Job_Repository::read_by_public_id( $other_preview['public_id'] );
+wp_set_current_user( $actor );
+// A guessed public ID presented with its genuinely valid job-bound nonce still
+// reads through the audited poll path only: no DML/DDL/DCL and no product reads.
+wl204_assert( 'FORBIDDEN' === wl204_read( wl204_post( $other_job ) )['status'], 'guessed public ID with a valid job-bound nonce refused' );
 wp_set_current_user( 0 ); wl204_assert( 'FORBIDDEN' === wl204_read( $post )['status'], 'anonymous refused' );
 wp_set_current_user( $actor );
 $user = wp_get_current_user(); $user->add_cap( 'manage_woocommerce', false );
