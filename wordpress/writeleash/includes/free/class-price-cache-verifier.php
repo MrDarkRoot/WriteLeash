@@ -11,14 +11,17 @@ final class Price_Cache_Verifier {
 		// without pinning a version.
 		if ( ! function_exists( 'wc_get_product' ) || ! function_exists( 'wc_delete_product_transients' ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		if ( ! empty( $GLOBALS['_wp_suspend_cache_invalidation'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+		// Transient deletion can re-prime Woo's optional product-instance
+		// cache through the factory, so it runs BEFORE the evicting reads.
+		// clean_post_cache() stays near-last: it dispatches the public
+		// WordPress cache-clean hook that WooCommerce uses for its optional
+		// product-instance eviction. Extensions must not reach into Woo's
+		// private cache container and must not flush caches globally.
+		wc_delete_product_transients( $id );
 		clean_post_cache( $id ); // posts, post_meta, term cache and posts last_changed.
 		wp_cache_delete( $id, 'post_meta' );
 		wp_cache_delete( 'lookup_table', 'object_' . $id );
-		wc_delete_product_transients( $id );
 		\WC_Cache_Helper::invalidate_cache_group( 'product_' . $id );
-		// clean_post_cache() also dispatches the public WordPress cache-clean
-		// hook. WooCommerce attaches its optional product-instance eviction
-		// there; extensions must not reach into Woo's private cache container.
 		// Independent storage/Woo verification below still refuses stale reads.
 	}
 	/** A new independent autocommit connection through the normal WP identity. */
