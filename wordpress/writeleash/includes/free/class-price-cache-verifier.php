@@ -11,18 +11,18 @@ final class Price_Cache_Verifier {
 		// without pinning a version.
 		if ( ! function_exists( 'wc_get_product' ) || ! function_exists( 'wc_delete_product_transients' ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		if ( ! empty( $GLOBALS['_wp_suspend_cache_invalidation'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
+		// Transient deletion can re-prime Woo's optional product-instance
+		// cache through the factory, so it runs BEFORE the evicting reads.
+		// clean_post_cache() stays near-last: it dispatches the public
+		// WordPress cache-clean hook that WooCommerce uses for its optional
+		// product-instance eviction. Extensions must not reach into Woo's
+		// private cache container and must not flush caches globally.
+		wc_delete_product_transients( $id );
 		clean_post_cache( $id ); // posts, post_meta, term cache and posts last_changed.
 		wp_cache_delete( $id, 'post_meta' );
 		wp_cache_delete( 'lookup_table', 'object_' . $id );
-		wc_delete_product_transients( $id );
 		\WC_Cache_Helper::invalidate_cache_group( 'product_' . $id );
-		// ProductCache exists since Woo 10.5; older supported releases and
-		// future renames simply skip this optional instance-cache eviction.
-		$cache_class = 'Automattic\\WooCommerce\\Internal\\Caches\\ProductCache';
-		if ( class_exists( $cache_class ) && function_exists( 'wc_get_container' ) ) {
-			try { wc_get_container()->get( $cache_class )->remove( $id ); }
-			catch ( \Throwable $error ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
-		}
+		// Independent storage/Woo verification below still refuses stale reads.
 	}
 	/** A new independent autocommit connection through the normal WP identity. */
 	public static function observer(): \wpdb {
@@ -99,7 +99,14 @@ final class Price_Cache_Verifier {
 		$post = $db->get_row( $db->prepare( "SELECT ID FROM {$db->posts} WHERE ID=%d FOR UPDATE", $parent_id ) );
 		if ( ! $post ) { throw new Price_Apply_Error( 'CONFLICT' ); }
 		self::invalidate( $parent_id );
-		$parent = wc_get_product( $parent_id );
+		try { $parent = Product_Price_Snapshot::fresh_product( $parent_id ); }
+		catch ( Price_Validation_Error $error ) {
+			// A stable unsupported parent class restores the pre-change exact-class
+			// outcome: a concurrent product-state CONFLICT. A transient read
+			// failure is rethrown and stays retryable FAILED at the execution edge.
+			if ( 'unsupported_product_type' !== $error->getMessage() ) { throw $error; }
+			throw new Price_Apply_Error( 'CONFLICT' );
+		}
 		// A parent that is no longer a core variable product is a concurrent
 		// product-state conflict, never an environment/state corruption.
 		if ( ! $parent || 'WC_Product_Variable' !== get_class( $parent ) ) { throw new Price_Apply_Error( 'CONFLICT' ); }
@@ -248,20 +255,34 @@ final class Price_Cache_Verifier {
 			}
 			$GLOBALS['wpdb'] = $db;
 			self::invalidate( $id );
-			$product = wc_get_product( $id );
-			if ( ! $product || ( $core_variation ? 'WC_Product_Variation' : 'WC_Product_Simple' ) !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
-			if ( null === $field ) {
-				if ( '' !== $product->get_sale_price( 'edit' ) || $product->get_date_on_sale_from( 'edit' ) || $product->get_date_on_sale_to( 'edit' ) || Price_Decimal::parse( $product->get_regular_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) || Price_Decimal::parse( $product->get_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
-			} else {
+			$matches = static function ( $product, $core_variation, $field, $row, $evidence ): bool {
+				if ( ! $product || ( $core_variation ? 'WC_Product_Variation' : 'WC_Product_Simple' ) !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { return false; }
+				if ( null === $field ) {
+					return ! ( '' !== $product->get_sale_price( 'edit' ) || $product->get_date_on_sale_from( 'edit' ) || $product->get_date_on_sale_to( 'edit' ) || Price_Decimal::parse( $product->get_regular_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) || Price_Decimal::parse( $product->get_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) );
+				}
 				$fresh_regular = (string) $product->get_regular_price( 'edit' );
 				$fresh_sale = (string) $product->get_sale_price( 'edit' );
 				$fresh_field = Price_Operation::FIELD_SALE === $field ? $fresh_sale : $fresh_regular;
-				if ( ! Price_Decimal::equal( $fresh_regular, $evidence['regular'] )
-					|| ! Price_Decimal::equal( $fresh_sale, $evidence['sale'] )
-					|| ! Price_Decimal::equal( $fresh_field, $row['target_price'] )
-					|| ! Price_Decimal::equal( (string) $product->get_price( 'edit' ), $evidence['active'] ) ) {
-					throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' );
+				return Price_Decimal::equal( $fresh_regular, $evidence['regular'] )
+					&& Price_Decimal::equal( $fresh_sale, $evidence['sale'] )
+					&& Price_Decimal::equal( $fresh_field, $row['target_price'] )
+					&& Price_Decimal::equal( (string) $product->get_price( 'edit' ), $evidence['active'] );
+			};
+			$product = Product_Price_Snapshot::fresh_product( $id );
+			if ( ! $matches( $product, $core_variation, $field, $row, $evidence ) ) {
+				// The independent storage read above already matched the committed
+				// journal evidence. A mismatch here is a per-request object/meta cache
+				// still serving a pre-write value: evict it and reconstruct exactly
+				// once. A persistent mismatch still fails closed.
+				wp_cache_delete( $id, 'post_meta' );
+				wp_cache_delete( $id, 'posts' );
+				if ( function_exists( 'wp_cache_delete_multiple' ) ) {
+					wp_cache_delete_multiple( array( $id ), 'post_meta' );
+					wp_cache_delete_multiple( array( $id ), 'posts' );
 				}
+				\WC_Cache_Helper::invalidate_cache_group( 'product_' . $id );
+				$product = Product_Price_Snapshot::fresh_product( $id );
+				if ( ! $matches( $product, $core_variation, $field, $row, $evidence ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 			}
 			// The variation's own storefront row is certified; the parent range
 			// must also reflect Woo's post-sync visible-child computation.
@@ -276,7 +297,7 @@ final class Price_Cache_Verifier {
 	public static function observe_variable_parent( \wpdb $db, int $parent_id ): void {
 		if ( $parent_id < 1 ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 		self::invalidate( $parent_id );
-		$parent = wc_get_product( $parent_id );
+		$parent = Product_Price_Snapshot::fresh_product( $parent_id );
 		if ( ! $parent || 'WC_Product_Variable' !== get_class( $parent ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 		self::assert_parent_range( $db, $parent_id, (array) $parent->get_visible_children() );
 	}

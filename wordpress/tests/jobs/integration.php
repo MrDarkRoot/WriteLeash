@@ -483,6 +483,81 @@ assert_counts( $job_id, 'killed-after-commit' );
 marker( 'killed worker after COMMIT: journal reconciliation without Woo replay' );
 
 // ---------------------------------------------------------------------------
+// Killed worker BETWEEN checkpoints (Woo save attempted, journal not committed):
+// DB rollback leaves durable PENDING; the next generation reconciles the claim
+// and re-runs the full item transaction with one net price change.
+// ---------------------------------------------------------------------------
+foreach ( array( 'AFTER_WOO_SAVE_BEFORE_JOURNAL', 'AFTER_JOURNAL_BEFORE_COMMIT' ) as $point ) {
+	$f = job_fixture( array( 'changing' => 1 ) );
+	$job_id = (int) $f['job']['id'];
+	$id = $f['ids'][0];
+	approves( $f );
+	Worker::queue_job( $job_id );
+	$a = start_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 1 ), 'mutator_checkpoint' => $point, 'mutator_fault' => 'wait' ) );
+	await_file( $a['spec']['barrier'] );
+	eq( saves( $id ), 1, 'uncommitted item reached the Woo save path ' . $point );
+	proc_terminate( $a['proc'], 9 );
+	finish_worker( $a, true );
+	eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'PENDING', 'rollback leaves durable PENDING ' . $point );
+	eq( fresh_price( $id ), '100.00', 'rollback keeps the original price ' . $point );
+	eq( item_map( $job_id )[ $id ]['state'], IState::APPLYING, 'killed worker left only its claim row ' . $point );
+	$wpdb->query( $wpdb->prepare( "UPDATE $jobs_table SET lease_expires_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 SECOND) WHERE id=%d", $job_id ) );
+	$recovery = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ) ) );
+	eq( $recovery['status'], JState::COMPLETED, 'recovery completes after intermediate kill ' . $point );
+	eq( saves( $id ), 2, 'uncommitted save replay is allowed exactly once ' . $point );
+	eq( fresh_price( $id ), '80.00', 'recovery applies the target exactly once ' . $point );
+	eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'APPLIED', 'recovery durable APPLIED ' . $point );
+	eq( item_map( $job_id )[ $id ]['state'], IState::APPLIED, 'recovery item APPLIED ' . $point );
+	assert_counts( $job_id, 'interrupted-before-commit-' . $point );
+	marker( 'kill between checkpoints ' . $point . ': durable PENDING, resume once, one net price change' );
+}
+
+// ---------------------------------------------------------------------------
+// Transient read refusal at the job boundary: durable PENDING, bounded retry.
+// The retry re-runs the frozen precondition, so a newer edit wins as CONFLICT.
+// ---------------------------------------------------------------------------
+$f = job_fixture( array( 'changing' => 1 ) );
+$job_id = (int) $f['job']['id'];
+$id = $f['ids'][0];
+approves( $f );
+Worker::queue_job( $job_id );
+$first = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ), 'class_fault' => $id ) );
+eq( $first['stop'], 'RETRY_BACKOFF', 'transient refusal arms the bounded retry backoff' );
+eq( saves( $id ), 0, 'transient refusal performs zero Woo saves' );
+eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'PENDING', 'transient refusal is durable PENDING' );
+$failed_item = item_map( $job_id )[ $id ];
+eq( $failed_item['state'], IState::PENDING, 'transient refusal returns the item to PENDING' );
+eq( $failed_item['reason'], 'FAILED', 'transient refusal keeps its typed reason' );
+eq( (int) $failed_item['attempt_count'], 1, 'failed attempt consumed one retry slot' );
+$p = wc_get_product( $id );
+$p->set_regular_price( '90.00' );
+$p->save();
+$external_saves = saves( $id );
+$wpdb->query( $wpdb->prepare( "UPDATE $items_table SET next_attempt_after=NULL WHERE job_id=%d AND product_id=%d", $job_id, $id ) );
+$retry = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ), 'manual' => true ) );
+eq( Repo::read( $job_id )['status'], JState::COMPLETED_WITH_ISSUES, 'retry after a newer edit reports its conflict' );
+eq( item_map( $job_id )[ $id ]['state'], IState::CONFLICT, 'retry preserves the newer edit as CONFLICT' );
+eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'CONFLICT', 'retry durable CONFLICT' );
+eq( fresh_price( $id ), '90.00', 'retry never overwrites the newer edit' );
+eq( saves( $id ) - $external_saves, 0, 'conflicting retry performs zero Woo saves' );
+marker( 'transient refusal retry: durable PENDING, precondition re-run, newer edit wins as CONFLICT' );
+
+$f = job_fixture( array( 'changing' => 1 ) );
+$job_id = (int) $f['job']['id'];
+$id = $f['ids'][0];
+approves( $f );
+Worker::queue_job( $job_id );
+$first = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ), 'class_fault' => $id ) );
+eq( $first['stop'], 'RETRY_BACKOFF', 'successful-retry fixture arms the backoff' );
+$wpdb->query( $wpdb->prepare( "UPDATE $items_table SET next_attempt_after=NULL WHERE job_id=%d AND product_id=%d", $job_id, $id ) );
+$retry = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ), 'manual' => true ) );
+eq( $retry['status'], JState::COMPLETED, 'retry after transient refusal completes' );
+eq( saves( $id ), 1, 'retry applies exactly once' );
+eq( fresh_price( $id ), '80.00', 'retry writes the planned target once' );
+eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'APPLIED', 'retry durable APPLIED' );
+marker( 'transient refusal retry: one save, durable APPLIED' );
+
+// ---------------------------------------------------------------------------
 // Controlled PHP exception between items: resumable, no mutation ambiguity.
 // ---------------------------------------------------------------------------
 $f = job_fixture( array( 'changing' => 6 ) );

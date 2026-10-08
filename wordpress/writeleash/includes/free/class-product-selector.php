@@ -69,15 +69,22 @@ final class Product_Price_Selector {
 		if ( count( $query->posts ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
 		$products = array();
 		$unreadable = array();
+		$unsupported_type = array();
 		foreach ( $query->posts as $post ) {
 			try {
-				$product = wc_get_product( $post->ID );
+				$product = Product_Price_Snapshot::fresh_product( (int) $post->ID );
 				if ( 'SKU' === $s['type'] && ( ! $product instanceof \WC_Product || $product->get_sku( 'edit' ) !== $s['sku'] ) ) { continue; }
 				$products[ $post->ID ] = $product instanceof \WC_Product ? $product : false;
 			} catch ( \Throwable $error ) {
-				// One malformed product stays in the frozen population as explicitly
-				// unreadable instead of aborting the plan or silently disappearing.
-				$unreadable[ $post->ID ] = true;
+				// One malformed product stays in the frozen population instead of
+				// aborting the plan or silently disappearing: a stable unsupported
+				// product class keeps its terminal refusal, everything else stays
+				// explicitly unreadable.
+				if ( self::unsupported_type_error( $error ) ) {
+					$unsupported_type[ $post->ID ] = (string) ( $post->post_title ?? '' );
+				} else {
+					$unreadable[ $post->ID ] = true;
+				}
 			}
 		}
 		if ( 'SKU' === $s['type'] && count( $products ) > 1 ) { throw new Price_Validation_Error( 'ambiguous_sku' ); }
@@ -86,9 +93,9 @@ final class Product_Price_Selector {
 		// exact product semantics.
 		$expanded = array();
 		if ( 'SKU' !== $s['type'] ) {
-			list( $products, $unreadable, $expanded ) = self::expand_variable_parents( $products, $unreadable );
+			list( $products, $unreadable, $unsupported_type, $expanded ) = self::expand_variable_parents( $products, $unreadable, $unsupported_type );
 		}
-		if ( count( $products ) + count( $unreadable ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
+		if ( count( $products ) + count( $unreadable ) + count( $unsupported_type ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
 		if ( 'IDS' === $s['type'] ) {
 			$ids = array();
 			foreach ( $s['ids'] as $requested ) {
@@ -101,11 +108,12 @@ final class Product_Price_Selector {
 			$ids = array_values( array_unique( $ids ) );
 			sort( $ids, SORT_NUMERIC );
 		} else {
-			$ids = array_merge( array_keys( $products ), array_keys( $unreadable ) );
+			$ids = array_merge( array_keys( $products ), array_keys( $unreadable ), array_keys( $unsupported_type ) );
 			sort( $ids, SORT_NUMERIC );
 		}
 		$snapshots = array();
 		foreach ( $ids as $id ) {
+			if ( isset( $unsupported_type[ $id ] ) ) { $snapshots[] = Product_Price_Snapshot::unsupported_type( (int) $id, $unsupported_type[ $id ] ); continue; }
 			if ( isset( $unreadable[ $id ] ) ) { $snapshots[] = Product_Price_Snapshot::unreadable( $id ); continue; }
 			try {
 				$snapshots[] = Product_Price_Snapshot::read( $id, $products[ $id ] ?? false, self::parent_of( $products[ $id ] ?? false ) );
@@ -114,6 +122,10 @@ final class Product_Price_Selector {
 			}
 		}
 		return $snapshots;
+	}
+	/** The one stable refusal that must never be treated as a retryable read failure. */
+	private static function unsupported_type_error( \Throwable $error ): bool {
+		return $error instanceof Price_Validation_Error && 'unsupported_product_type' === $error->getMessage();
 	}
 	/** The exact resolved IDS selection a preview must freeze; other kinds keep their spec. */
 	public static function resolved_selection( Price_Selection_Spec $spec, array $snapshots ): Price_Selection_Spec {
@@ -131,17 +143,20 @@ final class Product_Price_Selector {
 		if ( ! $product instanceof \WC_Product_Variation || ! function_exists( 'wc_get_product' ) ) { return null; }
 		try {
 			$parent_id = (int) $product->get_parent_id( 'edit' );
-			return $parent_id > 0 ? wc_get_product( $parent_id ) : null;
+			return $parent_id > 0 ? Product_Price_Snapshot::fresh_product( $parent_id ) : null;
 		} catch ( \Throwable $error ) { return null; }
 	}
 	/**
 	 * Replace each readable core variable parent with its child variations
 	 * (all children Keyed by child ID). A parent with no readable children
 	 * stays itself so the merchant still sees one explained unsupported item.
+	 * Non-core children keep the same stable-unsupported vs unreadable split
+	 * as top-level reads.
 	 */
-	private static function expand_variable_parents( array $products, array $unreadable ): array {
+	private static function expand_variable_parents( array $products, array $unreadable, array $unsupported_type ): array {
 		$expanded_products = array();
 		$expanded_unreadable = array();
+		$expanded_unsupported = array();
 		$expanded_children = array();
 		foreach ( $products as $product_id => $product ) {
 			if ( ! self::expandable_parent( $product ) ) {
@@ -159,16 +174,21 @@ final class Product_Price_Selector {
 			}
 			$expanded_children[ $product_id ] = $children;
 			foreach ( $children as $child_id ) {
-				if ( isset( $products[ $child_id ] ) || isset( $unreadable[ $child_id ] ) ) { continue; }
+				if ( isset( $products[ $child_id ] ) || isset( $unreadable[ $child_id ] ) || isset( $unsupported_type[ $child_id ] ) ) { continue; }
 				try {
-					$child = wc_get_product( $child_id );
+					$child = Product_Price_Snapshot::fresh_product( $child_id );
 					$expanded_products[ $child_id ] = $child instanceof \WC_Product ? $child : false;
 				} catch ( \Throwable $error ) {
-					$expanded_unreadable[ $child_id ] = true;
+					if ( self::unsupported_type_error( $error ) ) {
+						$expanded_unsupported[ $child_id ] = function_exists( 'get_the_title' ) ? (string) get_the_title( $child_id ) : '';
+					} else {
+						$expanded_unreadable[ $child_id ] = true;
+					}
 				}
 			}
 		}
 		foreach ( $unreadable as $product_id => $flag ) { $expanded_unreadable[ $product_id ] = true; }
-		return array( $expanded_products, $expanded_unreadable, $expanded_children );
+		foreach ( $unsupported_type as $product_id => $name ) { $expanded_unsupported[ $product_id ] = $name; }
+		return array( $expanded_products, $expanded_unreadable, $expanded_unsupported, $expanded_children );
 	}
 }
