@@ -14,6 +14,13 @@
     function connectionText(text) {
         connection.textContent = text + (lastSuccess ? ' Last successful refresh: ' + lastSuccess + '.' : ' No successful automatic refresh yet.');
     }
+    function outcome(cell, html, text) {
+        // Server-escaped outcome markup keeps the polled cells identical to the
+        // server-rendered cells (outcome emphasis and conflict next-action links).
+        // Plain text is only a fallback for payloads predating the markup fields.
+        if (typeof html === 'string' && html !== '' && 'innerHTML' in cell) { cell.innerHTML = html; return; }
+        cell.textContent = text;
+    }
     function action(selector, available, label, nonce, actionName) {
         var wrapper = root.querySelector(selector);
         if (!wrapper) { return; }
@@ -59,10 +66,10 @@
                 });
                 body.appendChild(tr);
             }
-            if (!tr.children[4].contains(document.activeElement)) { tr.children[4].textContent = row.apply; }
+            if (!tr.children[4].contains(document.activeElement)) { outcome(tr.children[4], row.apply_html, row.apply); }
             else { connectionText('Saved counters updated; the focused outcome still shows its previous saved details. Leave the focused outcome to refresh it.'); }
             tr.children[4].className = row.apply_attention ? 'writeleash-attention' : '';
-            if (!tr.children[5].contains(document.activeElement)) { tr.children[5].textContent = row.undo; }
+            if (!tr.children[5].contains(document.activeElement)) { outcome(tr.children[5], row.undo_html, row.undo); }
             else { connectionText('Saved counters updated; the focused outcome still shows its previous saved details. Leave the focused outcome to refresh it.'); }
             tr.children[5].className = row.undo_attention ? 'writeleash-attention' : '';
             return tr;

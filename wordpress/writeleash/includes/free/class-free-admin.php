@@ -247,19 +247,26 @@ final class Free_Admin {
 			foreach ( $page['items'] as $item ) {
 				$frozen = $identities[$item['product_id']] ?? null;
 				if ( null === $frozen ) { throw new \RuntimeException( 'Saved identity unavailable' ); }
-				$apply_reason = 'UNSUPPORTED' === $item['apply_state'] ? ( $frozen['eligibility']['reason'] ?? $item['apply_reason'] ) : $item['apply_reason'];
-				$apply_conflict = self::outcome_conflict_copy( $item['apply_state'] );
-				$undo_conflict = self::outcome_conflict_copy( $item['undo_state'] );
-				$rows[] = array(
-					'id' => (int) $item['product_id'],
-					'name' => self::identity_name( $frozen['snapshot'] ) . ' · #' . (int) $item['product_id'] . ' · as reviewed',
-					'expected' => self::money_display( self::expected_display( $frozen, $item, $plan->price_field() ), $plan->data()['store'] ),
-					'planned' => self::money_display( $item['planned_price'], $plan->data()['store'] ),
-					'apply' => self::item_label( $item['apply_state'], $job['status'] ) . ( '' !== $apply_conflict ? ' · ' . $apply_conflict : ( $apply_reason ? ' · ' . self::reason_message( $apply_reason ) : '' ) ),
-					'undo' => null === $item['undo_state'] ? self::undo_item_label( $item, $job['status'] ) : self::item_label( $item['undo_state'], $job['status'] ) . ( '' !== $undo_conflict ? ' · ' . $undo_conflict : ( $item['undo_reason'] ? ' · ' . self::reason_message( $item['undo_reason'] ) : '' ) ),
-					'apply_attention' => in_array( $item['apply_state'], array( 'CONFLICT', 'FAILED', 'NEEDS_REVIEW' ), true ),
-					'undo_attention' => in_array( $item['undo_state'], array( 'UNDO_CONFLICT', 'UNDO_FAILED', 'UNDO_NEEDS_REVIEW' ), true ),
-				);
+			$apply_reason = 'UNSUPPORTED' === $item['apply_state'] ? ( $frozen['eligibility']['reason'] ?? $item['apply_reason'] ) : $item['apply_reason'];
+			$apply_conflict = self::outcome_conflict_copy( $item['apply_state'] );
+			$undo_conflict = self::outcome_conflict_copy( $item['undo_state'] );
+			// Polled cells must stay byte-identical to the server-rendered row cells:
+			// the same renderer produces both, so live updates keep the outcome
+			// emphasis and the conflict next-action links instead of flattening
+			// them to plain text. All bytes are server-escaped static copy/links.
+			$observation = self::product_observation( (int) $item['product_id'], $plan->price_field() );
+			$rows[] = array(
+				'id' => (int) $item['product_id'],
+				'name' => self::identity_name( $frozen['snapshot'] ) . ' · #' . (int) $item['product_id'] . ' · as reviewed',
+				'expected' => self::money_display( self::expected_display( $frozen, $item, $plan->price_field() ), $plan->data()['store'] ),
+				'planned' => self::money_display( $item['planned_price'], $plan->data()['store'] ),
+				'apply' => self::item_label( $item['apply_state'], $job['status'] ) . ( '' !== $apply_conflict ? ' · ' . $apply_conflict : ( $apply_reason ? ' · ' . self::reason_message( $apply_reason ) : '' ) ),
+				'undo' => null === $item['undo_state'] ? self::undo_item_label( $item, $job['status'] ) : self::item_label( $item['undo_state'], $job['status'] ) . ( '' !== $undo_conflict ? ' · ' . $undo_conflict : ( $item['undo_reason'] ? ' · ' . self::reason_message( $item['undo_reason'] ) : '' ) ),
+				'apply_html' => self::outcome_cell_html( $item, $frozen, $apply_reason, $job['status'], $observation, true ),
+				'undo_html' => self::outcome_cell_html( $item, $frozen, $item['undo_reason'], $job['status'], $observation, false ),
+				'apply_attention' => in_array( $item['apply_state'], array( 'CONFLICT', 'FAILED', 'NEEDS_REVIEW' ), true ),
+				'undo_attention' => in_array( $item['undo_state'], array( 'UNDO_CONFLICT', 'UNDO_FAILED', 'UNDO_NEEDS_REVIEW' ), true ),
+			);
 			}
 			$effective = $observed['effective_status'];
 			$undo = $history['undo'];
@@ -1111,6 +1118,21 @@ final class Free_Admin {
 		if ( 'CONFLICT' === $state ) { return 'This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.'; }
 		if ( 'UNDO_CONFLICT' === $state ) { return 'This product changed after WriteLeash applied its price. WriteLeash preserved the newer value instead of restoring over it.'; }
 		return '';
+	}
+
+	/** Polled outcome cells reuse the server cell renderer byte-for-byte. */
+	private static function outcome_cell_html( array $item, array $frozen, $reason, string $job_state, array $observation, bool $apply_side ): string {
+		if ( $apply_side ) {
+			ob_start();
+			self::render_item_outcome( $item['apply_state'], $reason, $job_state, $observation );
+			return (string) ob_get_clean();
+		}
+		if ( null === $item['undo_state'] ) {
+			return esc_html( self::undo_item_label( $item, $job_state ) );
+		}
+		ob_start();
+		self::render_item_outcome( $item['undo_state'], $reason, $job_state, $observation );
+		return (string) ob_get_clean();
 	}
 
 	private static function render_item_outcome( ?string $state, ?string $reason, string $job_state, array $observation ): void {

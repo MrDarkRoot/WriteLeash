@@ -22,7 +22,9 @@ function phpConflictCopy(state) {
     return match[1];
 }
 class Element {
-    constructor(tag = 'P') { this.tagName = tag.toUpperCase(); this.children = []; this.textContent = ''; this.attrs = {}; this.events = {}; this.hidden = false; }
+    constructor(tag = 'P') { this.tagName = tag.toUpperCase(); this.children = []; this.textContent = ''; this._html = ''; this.attrs = {}; this.events = {}; this.hidden = false; }
+    set innerHTML(value) { this._html = String(value); this.textContent = String(value).replace(/<[^>]*>/g, ''); }
+    get innerHTML() { return this._html; }
     appendChild(child) { this.children.push(child); child.parent = this; return child; }
     insertBefore(child, reference) {
         this.children = this.children.filter(x => x !== child);
@@ -127,14 +129,23 @@ async function respond(h, index, data) { h.requests[index].resolve({ok: true, st
     // verbatim (the polled DOM must not shorten the server-rendered sentences),
     // and a focused outcome still defers to its previous saved copy.
     const applyCopy = phpConflictCopy('CONFLICT'), undoCopy = phpConflictCopy('UNDO_CONFLICT');
+    const applyHtml = `<strong>Not changed</strong><p>${applyCopy}</p><p>Review the product, then <a href="/wp-admin/admin.php?page=writeleash">Create a new preview</a> if you still want to change it.</p>`;
+    const undoHtml = `<strong>Not restored</strong><p>${undoCopy}</p><p>Review the product, then <a href="/wp-admin/admin.php?page=writeleash">Create a new preview</a> if you still want to change it.</p>`;
     h = harness(); await respond(h, 0, snapshot({rows: [row(4, {apply: 'Not changed', undo: 'Not restored'})]}));
-    h.timer(5000); await respond(h, 1, snapshot({rows: [row(4, {apply: 'Not changed · ' + applyCopy, undo: 'Not restored · ' + undoCopy, undo_attention: true})]}));
-    assert.equal(h.body.children[0].children[4].textContent, 'Not changed · ' + applyCopy, 'endpoint Apply conflict copy written verbatim');
-    assert.equal(h.body.children[0].children[5].textContent, 'Not restored · ' + undoCopy, 'endpoint Undo conflict copy written verbatim');
+    h.timer(5000); await respond(h, 1, snapshot({rows: [row(4, {apply: 'Not changed · ' + applyCopy, apply_html: applyHtml, undo: 'Not restored · ' + undoCopy, undo_html: undoHtml, undo_attention: true})]}));
+    assert.match(h.body.children[0].children[4].innerHTML, /<strong>Not changed<\/strong>/, 'polled Apply cell keeps the outcome emphasis');
+    assert.match(h.body.children[0].children[4].innerHTML, /Create a new preview/, 'polled Apply cell keeps the conflict next action');
+    assert.match(h.body.children[0].children[4].textContent, /Not changed/, 'endpoint Apply conflict copy still readable as text');
+    assert.match(h.body.children[0].children[5].innerHTML, /<strong>Not restored<\/strong>/, 'polled Undo cell keeps the outcome emphasis');
     assert.equal(h.body.children[0].children[5].className, 'writeleash-attention');
+    // Hosted #223 regression: a second poll must not flatten the outcome cells
+    // back to plain text; emphasis and next-action links persist across refreshes.
+    h.timer(5000); await respond(h, 2, snapshot({rows: [row(4, {apply: 'Not changed · ' + applyCopy, apply_html: applyHtml, undo: 'Not restored · ' + undoCopy, undo_html: undoHtml, undo_attention: true})]}));
+    assert.match(h.body.children[0].children[4].innerHTML, /<strong>Not changed<\/strong>/, 'repeated polls keep the Apply emphasis');
+    assert.match(h.body.children[0].children[4].innerHTML, /<a [^>]*>Create a new preview<\/a>/, 'repeated polls keep the Apply next-action link');
     const conflictFocus = new Element('SUMMARY'); h.body.children[0].children[4].appendChild(conflictFocus); h.document.activeElement = conflictFocus;
-    h.timer(5000); await respond(h, 2, snapshot({rows: [row(4, {apply: 'Not changed · ' + applyCopy, undo: 'Not restored · ' + undoCopy, undo_attention: true})]}));
-    assert.equal(h.body.children[0].children[4].textContent, 'Not changed · ' + applyCopy, 'focused outcome keeps the previous saved conflict copy');
+    h.timer(5000); await respond(h, 3, snapshot({rows: [row(4, {apply: 'Newer saved outcome', apply_html: '<strong>Newer saved outcome</strong>', undo: 'Not restored · ' + undoCopy, undo_attention: true})]}));
+    assert.match(h.body.children[0].children[4].innerHTML, /<strong>Not changed<\/strong>/, 'focused outcome keeps the previous saved conflict markup');
     assert.match(h.nodes['[data-progress-connection]'].textContent, /focused outcome still shows its previous saved details/);
     h.document.activeElement = new Element('A');
     // A focused review link on a row that left the current filter is retained with an explicit stale-list message.
