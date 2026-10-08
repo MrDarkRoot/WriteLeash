@@ -252,20 +252,34 @@ final class Price_Cache_Verifier {
 			}
 			$GLOBALS['wpdb'] = $db;
 			self::invalidate( $id );
-			$product = Product_Price_Snapshot::fresh_product( $id );
-			if ( ! $product || ( $core_variation ? 'WC_Product_Variation' : 'WC_Product_Simple' ) !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
-			if ( null === $field ) {
-				if ( '' !== $product->get_sale_price( 'edit' ) || $product->get_date_on_sale_from( 'edit' ) || $product->get_date_on_sale_to( 'edit' ) || Price_Decimal::parse( $product->get_regular_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) || Price_Decimal::parse( $product->get_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
-			} else {
+			$matches = static function ( $product, $core_variation, $field, $row, $evidence ): bool {
+				if ( ! $product || ( $core_variation ? 'WC_Product_Variation' : 'WC_Product_Simple' ) !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { return false; }
+				if ( null === $field ) {
+					return ! ( '' !== $product->get_sale_price( 'edit' ) || $product->get_date_on_sale_from( 'edit' ) || $product->get_date_on_sale_to( 'edit' ) || Price_Decimal::parse( $product->get_regular_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) || Price_Decimal::parse( $product->get_price( 'edit' ) ) !== Price_Decimal::parse( $row['target_price'] ) );
+				}
 				$fresh_regular = (string) $product->get_regular_price( 'edit' );
 				$fresh_sale = (string) $product->get_sale_price( 'edit' );
 				$fresh_field = Price_Operation::FIELD_SALE === $field ? $fresh_sale : $fresh_regular;
-				if ( ! Price_Decimal::equal( $fresh_regular, $evidence['regular'] )
-					|| ! Price_Decimal::equal( $fresh_sale, $evidence['sale'] )
-					|| ! Price_Decimal::equal( $fresh_field, $row['target_price'] )
-					|| ! Price_Decimal::equal( (string) $product->get_price( 'edit' ), $evidence['active'] ) ) {
-					throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' );
+				return Price_Decimal::equal( $fresh_regular, $evidence['regular'] )
+					&& Price_Decimal::equal( $fresh_sale, $evidence['sale'] )
+					&& Price_Decimal::equal( $fresh_field, $row['target_price'] )
+					&& Price_Decimal::equal( (string) $product->get_price( 'edit' ), $evidence['active'] );
+			};
+			$product = Product_Price_Snapshot::fresh_product( $id );
+			if ( ! $matches( $product, $core_variation, $field, $row, $evidence ) ) {
+				// The independent storage read above already matched the committed
+				// journal evidence. A mismatch here is a per-request object/meta cache
+				// still serving a pre-write value: evict it and reconstruct exactly
+				// once. A persistent mismatch still fails closed.
+				wp_cache_delete( $id, 'post_meta' );
+				wp_cache_delete( $id, 'posts' );
+				if ( function_exists( 'wp_cache_delete_multiple' ) ) {
+					wp_cache_delete_multiple( array( $id ), 'post_meta' );
+					wp_cache_delete_multiple( array( $id ), 'posts' );
 				}
+				\WC_Cache_Helper::invalidate_cache_group( 'product_' . $id );
+				$product = Product_Price_Snapshot::fresh_product( $id );
+				if ( ! $matches( $product, $core_variation, $field, $row, $evidence ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 			}
 			// The variation's own storefront row is certified; the parent range
 			// must also reflect Woo's post-sync visible-child computation.
