@@ -122,7 +122,7 @@ No sandbox bypass or checker patch was attempted. The prior `C-detect-all.json`/
 
 ## 2026-10-08 round-3 verification
 
-Round 3 starts from unchanged branch head `1e218cb8cab63d796dd4440aa17e6eeff59b5abd` and `origin/main` `c48e307efe7750d0fb36015c39d50a34675f9579`. No production defect was demonstrated, so no production code changed. The round-3 commit is test/document-only; its exact SHA is recorded in PR #221. Defaults verification was not repeated as a primary control: the round-3 evidence relies on the deterministic enumeration below plus the shipped test suite, not on a rerun comparison.
+Round 3 starts from unchanged branch head `1e218cb8cab63d796dd4440aa17e6eeff59b5abd` and `origin/main` `c48e307efe7750d0fb36015c39d50a34675f9579`. No production defect was demonstrated, so no production code changed. The round-3 commit is test/document-only; its exact SHA is recorded in PR #221. The evidence rests on the deterministic enumeration and shipped test suite described below.
 
 ### Exhaustive server-order / focus enumeration (no defect)
 
