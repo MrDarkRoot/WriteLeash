@@ -253,10 +253,10 @@ final class Free_Admin {
 			// the same renderer produces both, so live updates keep the outcome
 			// emphasis and the conflict next-action links instead of flattening
 			// them to plain text. All bytes are server-escaped static copy/links.
-			// The poll performs no live Woo product reads: the page-load
-			// observation context stays page-load-only, so a neutral context is
-			// passed and the outcome copy/links/labels still match the server.
-			$observation = array( 'context' => '' );
+			// The poll performs no live Woo product reads: eligibility context
+			// comes from raw post/postmeta facts through the same shared
+			// sentences, never from a WooCommerce product object.
+			$observation = array( 'context' => self::poll_observation_context( (int) $item['product_id'], $plan->price_field() ) );
 			$rows[] = array(
 				'id' => (int) $item['product_id'],
 				'name' => self::identity_name( $frozen['snapshot'] ) . ' · #' . (int) $item['product_id'] . ' · as reviewed',
@@ -1578,6 +1578,65 @@ final class Free_Admin {
 	}
 
 	/**
+	 * Shared eligibility-context sentences for server rows and polled rows.
+	 * Facts use snapshot semantics; the literals live exactly once, here.
+	 */
+	private static function observation_context( array $facts, string $field ): string {
+		if ( ! $facts['simple'] && ! $facts['variation'] ) { return 'At page load, this product is no longer a supported core simple product or variation.'; }
+		if ( $facts['variation'] && ( 'publish' !== $facts['parent_status'] || ! $facts['parent_variable'] ) ) { return 'At page load, this variation’s parent is no longer a published core variable product.'; }
+		if ( 'publish' !== $facts['status'] ) { return 'At page load, this product is no longer published.'; }
+		if ( Price_Operation::FIELD_REGULAR === $field && ( '' !== $facts['sale_price'] || null !== $facts['sale_from'] || null !== $facts['sale_to'] ) ) { return 'At page load, this product has a sale price or schedule; a matching regular price alone does not authorize overwriting it.'; }
+		return '';
+	}
+
+	/**
+	 * Poll-safe observation context: raw post/postmeta reads only, never a
+	 * WooCommerce product object, so background polls cannot trigger live
+	 * product reads. Sale/status/type facts are exact; exotic Woo extension
+	 * subclasses that keep core type terms are the documented boundary (the
+	 * server page-load read still reports those; labels, reasons, counts and
+	 * next-action links always come from durable state in both paths).
+	 */
+	private static function poll_observation_context( int $product_id, string $field ): string {
+		try {
+			$post = get_post( $product_id );
+			if ( ! is_object( $post ) || ! isset( $post->post_type, $post->post_status ) ) { return 'Current product details are unavailable.'; }
+			$slugs = static function ( $id ) {
+				$terms = get_the_terms( $id, 'product_type' );
+				if ( ! is_array( $terms ) ) { return array(); }
+				$slugs = array();
+				foreach ( $terms as $term ) { if ( is_object( $term ) && isset( $term->slug ) ) { $slugs[] = (string) $term->slug; } }
+				return $slugs;
+			};
+			$is_variation_post = 'product_variation' === $post->post_type;
+			$parent_status = null; $parent_variable = false;
+			if ( $is_variation_post ) {
+				$parent = (int) ( $post->post_parent ?? 0 ) > 0 ? get_post( (int) $post->post_parent ) : null;
+				$parent_status = is_object( $parent ) && isset( $parent->post_status ) ? (string) $parent->post_status : '';
+				$parent_slugs = $parent ? $slugs( (int) $parent->ID ) : array();
+				$parent_variable = $parent && 'product' === ( $parent->post_type ?? '' ) && in_array( 'variable', $parent_slugs, true );
+			}
+			$own_slugs = $slugs( $product_id );
+			$sale_price = (string) get_post_meta( $product_id, '_sale_price', true );
+			$sale_from_raw = get_post_meta( $product_id, '_sale_price_dates_from', true );
+			$sale_to_raw = get_post_meta( $product_id, '_sale_price_dates_to', true );
+			return self::observation_context(
+				array(
+					'simple' => 'product' === $post->post_type && in_array( 'simple', $own_slugs, true ),
+					'variation' => $is_variation_post && in_array( 'variation', $own_slugs, true ),
+					'status' => (string) $post->post_status,
+					'parent_status' => $parent_status,
+					'parent_variable' => $parent_variable,
+					'sale_price' => $sale_price,
+					'sale_from' => '' === $sale_from_raw ? null : $sale_from_raw,
+					'sale_to' => '' === $sale_to_raw ? null : $sale_to_raw,
+				),
+				$field
+			);
+		} catch ( \Throwable $error ) { return 'Current product details are unavailable.'; }
+	}
+
+	/**
 	 * Page-row display only: a new Woo edit-context read after targeted cache
 	 * eviction, using the same decimal interpretation as price verification.
 	 * Unlike execution/recovery invalidation, this does not delete transients
@@ -1593,12 +1652,20 @@ final class Free_Admin {
 			wc_get_container()->get( \Automattic\WooCommerce\Internal\Caches\ProductCache::class )->remove( $product_id );
 			$product = wc_get_product( $product_id );
 			if ( ! $product instanceof \WC_Product || $product->get_id() !== $product_id ) { return $unavailable; }
-			$snapshot = Product_Price_Snapshot::read( $product_id, $product )->data();
-			$context = '';
-			if ( ! $snapshot['core_simple'] && empty( $snapshot['core_variation'] ) ) { $context = 'At page load, this product is no longer a supported core simple product or variation.'; }
-			elseif ( ! empty( $snapshot['core_variation'] ) && ( 'publish' !== ( $snapshot['parent_status'] ?? '' ) || empty( $snapshot['parent_core_variable'] ) ) ) { $context = 'At page load, this variation’s parent is no longer a published core variable product.'; }
-			elseif ( 'publish' !== $snapshot['status'] ) { $context = 'At page load, this product is no longer published.'; }
-			elseif ( Price_Operation::FIELD_REGULAR === $field && ( '' !== $snapshot['sale_price'] || null !== $snapshot['sale_from'] || null !== $snapshot['sale_to'] ) ) { $context = 'At page load, this product has a sale price or schedule; a matching regular price alone does not authorize overwriting it.'; }
+		$snapshot = Product_Price_Snapshot::read( $product_id, $product )->data();
+			$context = self::observation_context(
+				array(
+					'simple' => ! empty( $snapshot['core_simple'] ),
+					'variation' => ! empty( $snapshot['core_variation'] ),
+					'status' => (string) $snapshot['status'],
+					'parent_status' => $snapshot['parent_status'] ?? null,
+					'parent_variable' => ! empty( $snapshot['parent_core_variable'] ),
+					'sale_price' => (string) $snapshot['sale_price'],
+					'sale_from' => $snapshot['sale_from'],
+					'sale_to' => $snapshot['sale_to'],
+				),
+				$field
+			);
 			$price = $snapshot[ Price_Operation::meta_key( $field ) ];
 			try { Price_Decimal::parse( $price ); } catch ( \Throwable $error ) { $price = 'Unavailable'; }
 			return array( 'price' => $price, 'context' => $context );
