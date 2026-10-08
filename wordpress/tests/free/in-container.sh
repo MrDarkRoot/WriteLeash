@@ -4,6 +4,7 @@ php /opt/tests/free/unit.php
 php /opt/tests/free/sale-price.php
 php /opt/tests/free/variations.php
 php /opt/tests/free/cache-public.php
+php /opt/tests/free/selection-count.php
 for host in mysql mariadb; do
   site="/tmp/wl107-$host"
   cp -R /opt/wp-core "$site"

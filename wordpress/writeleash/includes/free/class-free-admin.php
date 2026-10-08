@@ -131,6 +131,7 @@ final class Free_Admin {
 			'ids' => self::post_field( 'ids' ),
 			'sku' => self::post_field( 'sku' ),
 			'category' => self::post_field( 'category' ),
+			'include_subcategories' => self::post_field( 'include_subcategories' ),
 			'operation' => self::post_field( 'operation' ),
 			'price_field' => self::post_field( 'price_field' ),
 			'amount' => self::post_field( 'amount' ),
@@ -283,7 +284,9 @@ final class Free_Admin {
 			if ( ! is_string( $raw ) || ! preg_match( '/\A[0-9]{1,10}\z/', $raw ) || (int) $raw < 1 ) {
 				throw new Price_Validation_Error( 'invalid_category' );
 			}
-			return Price_Selection_Spec::category( (int) $raw );
+			$include_children = $post['include_subcategories'] ?? null;
+			if ( null !== $include_children && '1' !== $include_children ) { throw new Price_Validation_Error( 'invalid_category' ); }
+			return Price_Selection_Spec::category( (int) $raw, '1' === $include_children );
 		}
 		throw new Price_Validation_Error( 'invalid_selector' );
 	}
@@ -310,7 +313,7 @@ final class Free_Admin {
 	/** Bounded, escaped-on-output, session-scoped input recovery; never plan or execution truth. */
 	private static function retained_inputs( array $post ): array {
 		$values = array();
-		foreach ( array( 'selector', 'ids', 'sku', 'category', 'operation', 'price_field', 'amount', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
+		foreach ( array( 'selector', 'ids', 'sku', 'category', 'include_subcategories', 'operation', 'price_field', 'amount', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
 			$value = $post[$key] ?? null;
 			if ( is_string( $value ) && strlen( $value ) <= ( 'ids' === $key ? 20000 : 100 ) ) { $values[$key] = $value; }
 		}
@@ -330,12 +333,19 @@ final class Free_Admin {
 			$action = $post['selection_action'] ?? '';
 			if ( 'clear-products' === $action ) { $ids = array(); }
 			elseif ( is_string( $action ) && preg_match( '/\Aremove:([0-9]{1,10})\z/', $action, $match ) ) { $ids = array_values( array_diff( $ids, array( (int) $match[1] ) ) ); }
-			elseif ( ! in_array( $action, array( 'search-products', 'next-products', 'search-categories', 'next-categories', 'update-products' ), true ) ) { throw new Price_Validation_Error( 'invalid_discovery' ); }
+			elseif ( ! in_array( $action, array( 'search-products', 'next-products', 'search-categories', 'next-categories', 'update-products', 'count-targets' ), true ) ) { throw new Price_Validation_Error( 'invalid_discovery' ); }
 			Product_Discovery::selected( $ids );
 			$values['product_ids'] = array_map( 'strval', $ids );
 			foreach ( array( 'products' => 'product', 'categories' => 'category' ) as $kind => $prefix ) {
 				if ( 'search-' . $kind === $action ) { $values[$prefix . '_page'] = '1'; }
 				if ( 'next-' . $kind === $action ) { $values[$prefix . '_page'] = (string) min( Product_Discovery::MAX_PAGE, max( 1, (int) ( $values[$prefix . '_page'] ?? 1 ) ) + 1 ); }
+			}
+			if ( 'count-targets' === $action ) {
+				try { $values['selection_count'] = Product_Discovery::selection_count( self::build_selection( $post ) ); }
+				catch ( Price_Validation_Error $error ) {
+					if ( 'selection_limit_exceeded' === $error->reason() ) { $values['selection_count'] = array( 'over_limit' => true ); }
+					else { throw $error; }
+				}
 			}
 			return array( 'status' => 'OK', 'form' => $values );
 		} catch ( \Throwable $error ) {
@@ -1202,7 +1212,7 @@ final class Free_Admin {
 
 	private static function render_selector_form( array $values = array() ): void {
 		if ( ! self::can_mutate() ) { return; }
-		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'operation' => Price_Operation::SET, 'price_field' => Price_Operation::FIELD_REGULAR, 'amount' => '', 'max_products' => (string) Free_Support_Contract::MAX_JOB_PRODUCTS, 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
+		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'include_subcategories' => '', 'operation' => Price_Operation::SET, 'price_field' => Price_Operation::FIELD_REGULAR, 'amount' => '', 'max_products' => (string) Free_Support_Contract::MAX_JOB_PRODUCTS, 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
 		$values = array_merge( $defaults, $values );
 		$selected = array(); $matches = array( 'results' => array(), 'more' => false ); $categories = $matches;
 		try {
@@ -1217,7 +1227,7 @@ final class Free_Admin {
 		wp_nonce_field( self::ACTION_PREVIEW );
 		echo '<input type="hidden" name="discovery_nonce" value="' . esc_attr( wp_create_nonce( Product_Discovery::ACTION ) ) . '">';
 		echo '<fieldset><legend>' . esc_html( '1. Select products' ) . '</legend>';
-		echo '<p id="writeleash-free-selector-help">' . esc_html( 'Choose specific products or one category. Categories include direct members only; subcategories are not included. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' selected products.' ) . '</p>';
+		echo '<p id="writeleash-free-selector-help">' . esc_html( 'Choose specific products or one category. Categories include direct members only by default; subcategories are not included unless you enable Include subcategories. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' selected products.' ) . '</p>';
 		echo '<p><label for="writeleash-free-selector">Selection method</label><br><select id="writeleash-free-selector" name="selector" aria-describedby="writeleash-free-selector-help">';
 		foreach ( array( 'ids' => 'Choose products by name or SKU', 'category' => 'Product category', 'sku' => 'One exact SKU', 'manual_ids' => 'Advanced: manual product IDs' ) as $value => $label ) {
 			echo '<option value="' . esc_attr( $value ) . '"' . selected( $values['selector'], $value, false ) . '>' . esc_html( $label ) . '</option>';
@@ -1251,14 +1261,23 @@ final class Free_Admin {
 		if ( ! empty( $categories['capped'] ) ) { echo '<p>Search limit reached. Use a more specific category name.</p>'; }
 		if ( ! $categories['results'] ) { echo '<p>No categories match this page. Try another category name.</p>'; }
 		echo '</details>';
-		echo '<p><label for="writeleash-free-category">Product category (direct members only)</label><br><select id="writeleash-free-category" name="category" style="width:100%;max-width:600px" aria-describedby="writeleash-free-selector-help"><option value="">Choose a category</option>';
+		echo '<p><label for="writeleash-free-category">Product category</label><br><select id="writeleash-free-category" name="category" style="width:100%;max-width:600px" aria-describedby="writeleash-free-selector-help"><option value="">Choose a category</option>';
 		$category_options = array();
 		foreach ( $categories['results'] as $item ) { $category_options[$item['id']] = $item; }
 		if ( preg_match( '/\A[0-9]{1,10}\z/', $values['category'] ) ) {
 			try { $item = Product_Discovery::category( (int) $values['category'] ); if ( $item ) { $category_options[$item['id']] = $item; } } catch ( \Throwable $error ) { /* Dependency/permission notice above; no guessed label. */ }
 		}
 		foreach ( $category_options as $id => $item ) { echo '<option value="' . esc_attr( (string) $id ) . '"' . selected( $values['category'], (string) $id, false ) . '>' . esc_html( $item['text'] ) . '</option>'; }
-		echo '</select></p></div><details id="writeleash-free-advanced-selection"' . ( in_array( $values['selector'], array( 'sku', 'manual_ids' ), true ) ? ' open' : '' ) . '><summary>Exact SKU or manual product IDs</summary><p>Enter one complete SKU or comma-separated product IDs for the selection method chosen above.</p>';
+		echo '</select></p><p><input id="writeleash-free-include-subcategories" name="include_subcategories" type="checkbox" value="1"' . checked( $values['include_subcategories'], '1', false ) . '> <label for="writeleash-free-include-subcategories">Include subcategories</label></p><p>When enabled, products in all nested subcategories are included once. Variable parents expand to their variations.</p></div>';
+		echo '<p>'; self::selection_button( 'count-targets', 'Check selection count' ); echo '</p><p id="writeleash-free-selection-count" role="status" aria-live="polite">';
+		$count = $values['selection_count'] ?? null;
+		if ( is_array( $count ) && ! empty( $count['over_limit'] ) ) {
+			echo esc_html( 'This selection exceeds the supported limit of ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' price targets. Choose a smaller selection before Preview.' );
+		} elseif ( is_array( $count ) && isset( $count['selected'], $count['unreadable'], $count['missing'] ) ) {
+			echo esc_html( 'At last check: ' . $count['selected'] . ' deduplicated price targets after variation expansion. ' . ( 0 === $count['selected'] ? 'No products match this selection. Choose products or another category. ' : '' ) . $count['unreadable'] . ' unreadable; ' . $count['missing'] . ' missing. Preview explains skipped or unsupported products.' );
+		} else { echo esc_html( 'Check the number of price targets before Preview, including variations.' ); }
+		echo '</p><p>Counts are informational and can change. Preview resolves the selection again and freezes the exact products for your review; no count authorizes a price change.</p>';
+		echo '<details id="writeleash-free-advanced-selection"' . ( in_array( $values['selector'], array( 'sku', 'manual_ids' ), true ) ? ' open' : '' ) . '><summary>Exact SKU or manual product IDs</summary><p>Enter one complete SKU or comma-separated product IDs for the selection method chosen above.</p>';
 		self::selector_field( 'ids', 'Explicit product IDs (advanced), e.g. 12,34,56', 'text', $values['ids'], 'writeleash-free-selector-help' );
 		self::selector_field( 'sku', 'One exact SKU', 'text', $values['sku'], 'writeleash-free-selector-help' );
 		echo '</details></fieldset><fieldset><legend>2. Choose the price change</legend><p><label for="writeleash-free-price-field">Price to change</label><br><select id="writeleash-free-price-field" name="price_field" aria-describedby="writeleash-free-price-field-help">';
@@ -1363,6 +1382,9 @@ final class Free_Admin {
 		echo '<h2>' . esc_html( 'Review price change' ) . '</h2><div class="writeleash-summary">';
 		echo '<p><strong>' . esc_html( self::task_description( $data ) ) . '</strong></p>';
 		self::support_details( $data['plan_id'] . ' · ' . $plan->hash() );
+		if ( 'CATEGORY' === ( $data['selection']['type'] ?? '' ) ) {
+			echo '<p>' . esc_html( 'Category scope: ' . ( ! empty( $data['selection']['include_children'] ) ? 'direct members and all nested subcategories' : 'direct members only; subcategories are not included' ) . '. This preview freezes the reviewed product IDs, including expanded variations.' ) . '</p>';
+		}
 		echo '<p>' . esc_html( 'Selected ' . $summary['selected'] . ' products: ' . ( $summary['changing'] ) . ' planned changes · ' . $summary['unchanged'] . ' already at the target price · ' . $summary['unsupported'] . ' skipped at preview.' ) . '</p>';
 		$extra_counts = self::preview_extra_counts( $data['items'] );
 		echo '<p>' . esc_html( 'Large increases ' . $extra_counts['large_increase'] . ' · large decreases ' . $extra_counts['large_decrease'] . ' · zero-price targets ' . $extra_counts['zero_target'] . ' · ' . $summary['warning_items'] . ' products with warnings.' ) . '</p></div>';

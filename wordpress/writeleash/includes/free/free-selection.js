@@ -12,13 +12,17 @@
             $('#writeleash-free-advanced-selection').prop('hidden', kind !== 'sku' && kind !== 'manual_ids').prop('open', kind === 'sku' || kind === 'manual_ids');
             $('#writeleash-free-sku').closest('p').prop('hidden', kind !== 'sku');
             $('#writeleash-free-ids').closest('p').prop('hidden', kind !== 'manual_ids');
-            $('#writeleash-free-discovery-status').text(kind === 'ids' ? 'Search and choose products to add them.' : (kind === 'category' ? 'All direct members of this category will be checked in Preview, including variations. Subcategories are not included.' : ''));
+            $('#writeleash-free-discovery-status').text(kind === 'ids' ? 'Search and choose products to add them.' : (kind === 'category' ? ($('#writeleash-free-include-subcategories').prop('checked') ? 'Direct members and all nested subcategories will be checked in Preview, including variations. Each target is included once.' : 'All direct members of this category will be checked in Preview, including variations. Subcategories are not included.') : ''));
         }
         function amountLabel() {
             var operation = $('#writeleash-free-operation').val();
             $('label[for="writeleash-free-amount"]').text(operation === 'SET' ? 'New price' : (operation.indexOf('PERCENT') !== -1 ? 'Percentage (e.g. 8 for 8%)' : 'Amount to ' + (operation.indexOf('INCREASE') === 0 ? 'increase' : 'decrease') + ' by'));
         }
         method.on('change', selectionMethod);
+        $('#writeleash-free-include-subcategories').on('change', selectionMethod);
+        form.find('[name=selector], [name=category], [name=include_subcategories], [name="product_ids[]"], [name=ids], [name=sku]').on('change input', function () {
+            $('#writeleash-free-selection-count').text('Selection changed. Check selection count again; Preview resolves and freezes the products independently.');
+        });
         $('#writeleash-free-operation').on('change', amountLabel);
         selectionMethod();
         amountLabel();
