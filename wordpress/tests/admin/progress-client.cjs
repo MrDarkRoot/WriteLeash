@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../../writeleash/includes/free/free-progress.js'), 'utf8');
+const compiled = new vm.Script(source);
 const admin = fs.readFileSync(path.join(__dirname, '../../writeleash/includes/free/class-free-admin.php'), 'utf8');
 function phpConstant(name) {
     const match = admin.match(new RegExp(`const ${name}\\s*=\\s*'([^']+)'`));
@@ -38,6 +39,10 @@ class Element {
 function harness({withMount = true, nextTag = 'A'} = {}) {
     const root = new Element('DIV'), body = new Element('TBODY');
     const nodes = {};
+    const moves = [];
+    const insert = body.insertBefore.bind(body), append = body.appendChild.bind(body);
+    body.insertBefore = (child, reference) => { moves.push({op: 'insertBefore', node: child}); return insert(child, reference); };
+    body.appendChild = child => { moves.push({op: 'appendChild', node: child}); return append(child); };
     ['connection', 'announcement', 'label', 'summary', 'notice', 'undo-label', 'undo-summary', 'undo-notice', 'resume', 'undo'].forEach(name => nodes[`[data-progress-${name}]`] = new Element());
     root.attrs = {'data-job': 'job-204', 'data-nonce': 'nonce-204', 'data-offset': '0', 'data-filter': '', 'data-endpoint': '/ajax', 'data-action-url': '/post'};
     root.querySelector = selector => selector === '[data-writeleash-results] tbody' ? body : nodes[selector] || null;
@@ -52,8 +57,8 @@ function harness({withMount = true, nextTag = 'A'} = {}) {
     const window = new Element(); window.URLSearchParams = URLSearchParams; window.AbortController = AbortController;
     window.setTimeout = (fn, delay) => { timers.set(++next, {fn, delay}); return next; }; window.clearTimeout = id => timers.delete(id);
     window.fetch = (url, opts) => new Promise((resolve, reject) => requests.push({url, opts, resolve, reject}));
-    vm.runInNewContext(source, {window, document, Date, Error, Array, String, Math});
-    return {nodes, root, body, document, window, requests, timers, nextLink,
+    compiled.runInNewContext({window, document, Date, Error, Array, String, Math});
+    return {nodes, root, body, document, window, requests, timers, nextLink, moves,
         timer(delay) { const entry = [...timers.entries()].find(([, x]) => x.delay === delay); assert(entry, `timer ${delay}`); timers.delete(entry[0]); entry[1].fn(); }};
 }
 const flush = async () => { for (let n = 0; n < 8; n++) { await Promise.resolve(); } };
@@ -180,5 +185,73 @@ async function respond(h, index, data) { h.requests[index].resolve({ok: true, st
     // Manual/no-JS fallback: without the mount the shipped client never requests.
     assert.equal(harness({withMount: false}).requests.length, 0);
     h = harness(); h.document.activeElement = new Element('A'); h.window.dispatch('pagehide'); await respond(h, 0, snapshot()); assert.equal(h.nodes['[data-progress-label]'].textContent, '');
-    console.log('#204 shipped client: PHP selector/action parity, transport, saved counters/rows/order, filter/page change, Apply/Undo, focus/stale wording, pager, text safety, hidden/terminal stop, timeout/out-of-order, session/error backoff PASS');
+    // Exhaustive property check of updateRows(): every server page order up to
+    // n=4 crossed with every focus position the reconciliation policy defines.
+    // Initial rows cover the same id set in every order, every position of an
+    // extra row that must be removed, and every position of a missing row that
+    // must be added (a row created during reconciliation cannot hold focus, so
+    // the reachable equivalent is focus on a retained row while another row is
+    // added in the same response). Invariants: no duplicate rows; rows absent
+    // from the server page are removed unless focus sits in a removed row, in
+    // which case the whole previous view is deferred with an explicit message;
+    // focused rows are never moved or removed; non-focused rows keep server
+    // relative order; without focus the DOM order equals server order exactly.
+    const permutations = list => list.length < 2 ? [list.slice()] : list.flatMap((value, index) => permutations(list.slice(0, index).concat(list.slice(index + 1))).map(rest => [value, ...rest]));
+    let enumeratedCases = 0, enumeratedAssertions = 0, deferredCases = 0;
+    const checkEnum = (condition, label) => { enumeratedAssertions += 1; assert(condition, label); };
+    for (let n = 1; n <= 4; n++) {
+        const base = Array.from({length: n}, (_, index) => index + 1);
+        const extra = 90 + n;
+        const initialVariants = [];
+        permutations(base).forEach(rows => initialVariants.push(rows));
+        [base, base.slice().reverse()].forEach(order => {
+            for (let position = 0; position <= n; position++) { const rows = order.slice(); rows.splice(position, 0, extra); initialVariants.push(rows); }
+            base.forEach(missing => initialVariants.push(order.filter(id => id !== missing)));
+            base.forEach(missing => { const kept = order.filter(id => id !== missing); for (let position = 0; position < n; position++) { const rows = kept.slice(); rows.splice(position, 0, extra); initialVariants.push(rows); } });
+        });
+        for (const serverRows of permutations(base)) {
+            for (const initialRows of initialVariants) {
+                for (let focus = 0; focus <= initialRows.length; focus++) {
+                    enumeratedCases += 1;
+                    const h = harness();
+                    const seeded = initialRows.map(id => ({id, tr: seedRow(h, id)}));
+                    let focused = null;
+                    if (focus < seeded.length) {
+                        const tr = seeded[focus].tr;
+                        const control = new Element('A'); tr.children[0].appendChild(control); h.document.activeElement = control;
+                        const rawRemove = tr.remove.bind(tr);
+                        tr.remove = () => { h.moves.push({op: 'remove', node: tr}); rawRemove(); };
+                        focused = tr;
+                    }
+                    const before = ids(h.body), operations = h.moves.length;
+                    await respond(h, 0, snapshot({rows: serverRows.map(id => row(id))}));
+                    const after = ids(h.body);
+                    const focusedId = focused ? Number(focused.attrs['data-product-id']) : null;
+                    const label = `n=${n} server=[${serverRows}] initial=[${before}] focus=${focusedId === null ? 'none' : focusedId}`;
+                    checkEnum(new Set(after).size === after.length, `${label}: no duplicate rows`);
+                    if (focused && !serverRows.includes(focusedId)) {
+                        deferredCases += 1;
+                        checkEnum(String(after) === String(before), `${label}: focused removed row defers the previous view`);
+                        checkEnum(/previous view/.test(h.nodes['[data-progress-connection]'].textContent), `${label}: deferral states the previous view`);
+                        checkEnum(h.moves.length === operations, `${label}: deferral performs no DOM edit`);
+                        checkEnum(focused.contains(h.document.activeElement), `${label}: focus retained through deferral`);
+                    } else {
+                        checkEnum(String([...after].sort((a, b) => a - b)) === String([...serverRows].sort((a, b) => a - b)), `${label}: rows match the server page exactly`);
+                        const others = serverRows.filter(id => id !== focusedId).map(String);
+                        for (let first = 0; first < others.length; first++) for (let second = first + 1; second < others.length; second++) {
+                            checkEnum(after.indexOf(others[first]) < after.indexOf(others[second]), `${label}: non-focused ${others[first]} stays before ${others[second]} as on the server`);
+                        }
+                        if (focused) {
+                            checkEnum(focused.parent === h.body && focused.contains(h.document.activeElement), `${label}: focused row retained`);
+                            checkEnum(!h.moves.slice(operations).some(move => move.node === focused), `${label}: focused row never moved or removed`);
+                        } else {
+                            checkEnum(String(after) === String(serverRows), `${label}: server order is exact without focus`);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert(enumeratedCases >= 9000, `exhaustive enumeration ran (${enumeratedCases} cases)`);
+    console.log('#204 shipped client: PHP selector/action parity, transport, saved counters/rows/order, filter/page change, Apply/Undo, focus/stale wording, pager, text safety, hidden/terminal stop, timeout/out-of-order, session/error backoff, exhaustive order/focus reconciliation PASS (' + enumeratedCases + ' enumerated cases, ' + enumeratedAssertions + ' assertion checks, ' + deferredCases + ' focused-removed deferrals, 0 violations)');
 })().catch(error => { console.error(error); process.exitCode = 1; });
