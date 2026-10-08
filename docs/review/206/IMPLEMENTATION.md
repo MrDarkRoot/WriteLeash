@@ -7,11 +7,11 @@ Scope: explicit Include subcategories and bounded informational expanded target-
 | Issue | #206 — Include subcategories and show the expanded product selection |
 | Base SHA | `c48e307efe7750d0fb36015c39d50a34675f9579` |
 | Branch | `work/206-selection` in `/tmp/writeleash-approved-20261008/agent-A` |
-| Head SHA | `c8cbf6c283545658add407745b3c2d605fcd8b14` (implementation commit, 10 files). Baseline `c48e307efe7750d0fb36015c39d50a34675f9579`. `git diff c48e307..HEAD` sha256 `31589065032ce35df2df7ed72b2263c9f6b331434986a0cbb117ab2e7ff4891d` — byte-identical to the frozen A snapshot patch. |
-| PR status | Not created; local commit review-ready, no push/PR/merge |
-| Scope deviation | None. Category raw candidate window is bounded separately from final selection; no selection/approval ceiling increased. |
+| Head SHA | `899a115e5a3b8432dd92d77eddde89062ab31b7c` (review-fix commit `fix(selection): deduplicate raw category rows before the discovery bound (#206)`, 4 files) on top of `fb2ecd4dd852cc4b394c25f3af316ced38092462`. Feature commit `c8cbf6c283545658add407745b3c2d605fcd8b14` (10 files) and its frozen A snapshot patch hash `31589065032ce35df2df7ed72b2263c9f6b331434986a0cbb117ab2e7ff4891d` remain historical. Baseline `c48e307efe7750d0fb36015c39d50a34675f9579`. |
+| PR status | Draft PR #219 on `work/206-selection`; review-fix commit pushed without force |
+| Scope deviation | None beyond the reviewed P1 fix. The deduplication and CATEGORY-only SQL DISTINCT guard narrow a false refusal inside the existing 2,001-row candidate sentinel; no selection/approval ceiling increased and no generic query engine added. |
 | Support claims | Unchanged. Existing public package manifest and capture/proof evidence preserved. |
-| Acceptance verdict | **PARTIAL**: commit and GitNexus graph gates now PASS; actual WooCommerce/Admin/browser runtime and fresh UI evidence remain NOT_TESTED (Docker unavailable), and PR_FAST still fails the unchanged #170 reviewed-capture fingerprint |
+| Acceptance verdict | **PARTIAL**: review-fix commit passes the selection/unit/sale/variation/audit/package battery and the GitNexus commit gate; actual WooCommerce/Admin/browser runtime and fresh UI evidence remain NOT_TESTED (Docker unavailable), and PR_FAST still fails the unchanged #170 reviewed-capture fingerprint |
 
 ## Files changed
 
@@ -94,4 +94,4 @@ Pre-edit graph impacts were LOW for category, resolve, expansion, selection form
 
 Actual collisions: Agent B's cache freshness substitutions touch selector Woo read calls within resolve/parent/expansion and Product_Discovery readable-product observations; Agent A preserves those call sites. Integrate B before A with semantic hunk review. Agent C edits other methods in Free_Admin, while A owns only post_input's toggle entry, build_selection, retained_inputs, process_selection, selection form and narrow Preview scope disclosure. D avoids these production lines. Do not overwrite overlapping hunks. Re-run focused contracts and all selected owners on any combined candidate.
 
-Founder attention: review bounded raw-category discovery distinction; approve any future repository-changing integration step (push/PR/merge); arrange authorized Docker runtime execution and fresh browser capture evidence before acceptance. Code and local contract preparation are complete and committed at `c8cbf6c283545658add407745b3c2d605fcd8b14`. Remaining blockers: PR_FAST reviewed-capture fingerprint and all runtime/UI criteria; issue #206 is not claimed closed or release-ready. No tool monkeypatch, ignored error, or sandbox workaround was used.
+Founder attention: review bounded raw-category discovery distinction; approve any future repository-changing integration step (push/PR/merge); arrange authorized Docker runtime execution and fresh browser capture evidence before acceptance. Code and local contract preparation are committed at `c8cbf6c283545658add407745b3c2d605fcd8b14`; the P1 review fix is committed at `899a115e5a3b8432dd92d77eddde89062ab31b7c` and pushed to draft PR #219. Remaining blockers: PR_FAST reviewed-capture fingerprint and all runtime/UI criteria; issue #206 is not claimed closed or release-ready. No tool monkeypatch, ignored error, or sandbox workaround was used.
