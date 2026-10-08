@@ -55,20 +55,44 @@ class WC_Product_Factory {
  public static function get_product_classname( $id, $type, $post_type = '' ) { return get_class( $GLOBALS['products206'][$id] ); }
 }
 $GLOBALS['filters206'] = array();
-function add_filter( $tag, $callback, $priority = 10, $accepted_args = 1 ) { $GLOBALS['filters206'][ $tag ][ (int) $priority ][] = $callback; return true; }
+function add_filter( $tag, $callback, $priority = 10, $accepted_args = 1 ) { $GLOBALS['filters206'][ $tag ][ (int) $priority ][] = array( 'callback' => $callback, 'accepted_args' => (int) $accepted_args ); return true; }
 function remove_filter( $tag, $callback, $priority = 10 ) {
  if ( empty( $GLOBALS['filters206'][ $tag ][ (int) $priority ] ) ) { return false; }
  foreach ( $GLOBALS['filters206'][ $tag ][ (int) $priority ] as $key => $registered ) {
-  if ( $registered === $callback ) { unset( $GLOBALS['filters206'][ $tag ][ (int) $priority ][ $key ] ); }
+  if ( $registered['callback'] === $callback ) { unset( $GLOBALS['filters206'][ $tag ][ (int) $priority ][ $key ] ); }
  }
  if ( ! $GLOBALS['filters206'][ $tag ][ (int) $priority ] ) { unset( $GLOBALS['filters206'][ $tag ][ (int) $priority ] ); }
  if ( ! $GLOBALS['filters206'][ $tag ] ) { unset( $GLOBALS['filters206'][ $tag ] ); }
  return true;
 }
+/** WP apply_filters semantics: value first, then accepted extra args. */
+function apply_filters206( $tag, $value, ...$extra ) {
+ if ( empty( $GLOBALS['filters206'][ $tag ] ) ) { return $value; }
+ $priorities = $GLOBALS['filters206'][ $tag ];
+ ksort( $priorities );
+ foreach ( $priorities as $callbacks ) {
+  foreach ( $callbacks as $registered ) {
+   $args = array_merge( array( $value ), array_slice( $extra, 0, max( 0, (int) $registered['accepted_args'] - 1 ) ) );
+   $value = call_user_func_array( $registered['callback'], $args );
+  }
+ }
+ return $value;
+}
 class WP_Query {
  public array $posts = array();
+ public array $query_vars = array();
+ public function get( $key ) { return $this->query_vars[ $key ] ?? ''; }
  public function __construct( array $args ) {
+  $this->query_vars = $args;
   $GLOBALS['query206'] = $args;
+  if ( ! empty( $GLOBALS['throw_query206'] ) ) { throw new RuntimeException( 'fixture query construction failure' ); }
+  if ( ! empty( $GLOBALS['nested_probe206'] ) ) {
+   // An unrelated query built while the discovery guard is registered (the
+   // pre_get_posts shape). It must not inherit the discovery DISTINCT.
+   $GLOBALS['nested_probe206'] = false;
+   new self( array( 'post__in' => array(), 'posts_per_page' => 10, 'writeleash_probe' => true ) );
+   $GLOBALS['query206'] = $args;
+  }
   $ids = $args['post__in'] ?? array_keys( $GLOBALS['products206'] );
   $rows = array();
   foreach ( $ids as $id ) {
@@ -88,17 +112,21 @@ class WP_Query {
     if ( ! $matches ) { continue; }
    }
    // A real tax_query join is one row per matching membership; SQL keeps the
-   // duplicate rows unless DISTINCT is requested (posts_distinct, production's
-   // CATEGORY query). force_raw_rows206 models an environment that ignores it.
+   // duplicate rows unless DISTINCT applies. force_raw_rows206 models an
+   // environment that ignores the requested DISTINCT.
    for ( $row = 0; $row < $matches; ++$row ) { $rows[] = (object) array( 'ID' => (int) $id ); }
   }
   usort( $rows, static fn( $a, $b ) => $a->ID <=> $b->ID );
-  if ( empty( $GLOBALS['force_raw_rows206'] ) && ! empty( $GLOBALS['filters206']['posts_distinct'] ) ) {
+  if ( ! empty( $GLOBALS['window_override206'] ) ) { $this->query_vars['posts_per_page'] = (int) $GLOBALS['window_override206']; }
+  $distinct = apply_filters206( 'posts_distinct', '', $this );
+  $GLOBALS['distinct206'][] = array( 'token' => $this->query_vars['writeleash_discovery_token'] ?? '', 'distinct' => $distinct );
+  if ( empty( $GLOBALS['force_raw_rows206'] ) && 'DISTINCT' === $distinct ) {
    $collapsed = array();
    foreach ( $rows as $row ) { $collapsed[ $row->ID ] = $row; }
    $rows = array_values( $collapsed );
   }
-  $this->posts = array_slice( $rows, 0, $args['posts_per_page'] );
+  $this->posts = array_slice( $rows, 0, (int) $this->query_vars['posts_per_page'] );
+  if ( ! empty( $GLOBALS['inject_results206'] ) ) { $this->posts = call_user_func( $GLOBALS['inject_results206'], $this->posts ); }
  }
 }
 $checks206 = 0;
@@ -169,17 +197,20 @@ for ( $id206 = 1; $id206 <= 1001; ++$id206 ) { $GLOBALS['products206'][$id206] =
 error206( static fn() => Selector::discover_count( S::category( 1 ) ), 'selection_limit_exceeded' );
 
 // #206 P1 defensive regression: a tax_query join returns one row per matching
-// descendant term. Duplicate rows must not refuse a valid selection, and the
-// distinct population must still be bounded. force_raw_rows206 makes the stub
-// behave like a backend that did not collapse the DISTINCT join.
+// descendant term. PHP keying by ID is only exact when the raw page provably
+// holds every matching row, so duplicates on a short page are accepted while
+// a full duplicate page fails closed (negative discriminator: the old
+// row-count path accepted this page; SQL may have truncated distinct posts
+// before dedupe could see them). force_raw_rows206 makes the stub behave like
+// a backend that did not collapse the requested DISTINCT join.
 $GLOBALS['terms206'] = array( 1 => 0 );
 for ( $t206 = 2; $t206 <= 2501; ++$t206 ) { $GLOBALS['terms206'][$t206] = 1; }
 $GLOBALS['products206'] = array( 9000 => new WC_Product_Simple( 9000, array( 'categories' => range( 1, 2501 ) ) ) );
 $GLOBALS['force_raw_rows206'] = true;
 $GLOBALS['reads206'] = 0;
-eq206( Selector::discover_count( S::category( 1, true ) ), array( 'selected' => 1, 'unreadable' => 0, 'missing' => 0 ), '2,501 duplicate raw rows no longer falsely refuse a valid selection' );
-eq206( $GLOBALS['reads206'], 1, 'duplicate raw rows resolve the distinct product once' );
-eq206( $GLOBALS['filters206'], array(), 'posts_distinct guard removed after the query' );
+error206( static fn() => Selector::discover_count( S::category( 1, true ) ), 'selection_limit_exceeded' );
+eq206( $GLOBALS['reads206'], 0, '2,501 duplicate raw rows fill the 2,001-row window without DISTINCT: fail closed before any Woo read' );
+eq206( $GLOBALS['filters206'], array(), 'posts_distinct guard removed after the refused query' );
 $GLOBALS['force_raw_rows206'] = false;
 eq206( Selector::discover_count( S::category( 1, true ) )['selected'], 1, 'DISTINCT query accepts the same duplicate-member population' );
 eq206( $GLOBALS['query206']['posts_per_page'], 2001, 'category sentinel remains 2,001' );
@@ -187,15 +218,65 @@ eq206( $GLOBALS['query206']['posts_per_page'], 2001, 'category sentinel remains 
 // DISTINCT collapses joins before LIMIT, so an otherwise-valid population is
 // never truncated by its own overlapping memberships. 1,003 rows for one
 // product plus 999 simple targets is a valid 1,000-target selection; without
-// collapsing, the 2,001-row page exposes only 999 distinct products.
+// collapsing, the 2,001-row page is full and duplicate-crowded, so the old
+// row-count path resolved a truncated 999-product page. The fail-closed check
+// refuses that page instead.
 $GLOBALS['terms206'] = array( 1 => 0 );
 for ( $t206 = 2; $t206 <= 1003; ++$t206 ) { $GLOBALS['terms206'][$t206] = 1; }
 $GLOBALS['products206'] = array( 8000 => new WC_Product_Simple( 8000, array( 'categories' => range( 1, 1003 ) ) ) );
 for ( $id206 = 8001; $id206 <= 8999; ++$id206 ) { $GLOBALS['products206'][$id206] = new WC_Product_Simple( $id206, array( 'categories' => array( 1 ) ) ); }
 eq206( Selector::discover_count( S::category( 1, true ) )['selected'], 1000, 'DISTINCT exposes a crowded valid population completely' );
 $GLOBALS['force_raw_rows206'] = true;
-eq206( Selector::discover_count( S::category( 1, true ) )['selected'], 999, 'raw duplicate page truncates without DISTINCT (regression discriminator)' );
+$GLOBALS['reads206'] = 0;
+error206( static fn() => Selector::discover_count( S::category( 1, true ) ), 'selection_limit_exceeded' );
+eq206( $GLOBALS['reads206'], 0, 'stripped DISTINCT full duplicate window refuses instead of resolving the old truncated 999-product page' );
 $GLOBALS['force_raw_rows206'] = false;
+
+// Round-3 completeness matrix: a short duplicate page stays exact (every
+// matching row was returned), while a rewritten window or a full/injected
+// duplicate page refuses before any Woo read.
+$GLOBALS['terms206'] = array( 1 => 0, 2 => 1 );
+$GLOBALS['products206'] = array(
+ 9100 => new WC_Product_Simple( 9100, array( 'categories' => array( 1, 2 ) ) ),
+ 9101 => new WC_Product_Simple( 9101, array( 'categories' => array( 1 ) ) ),
+);
+$GLOBALS['force_raw_rows206'] = true;
+$GLOBALS['reads206'] = 0;
+eq206( Selector::discover_count( S::category( 1, true ) ), array( 'selected' => 2, 'unreadable' => 0, 'missing' => 0 ), 'short duplicate raw page is complete: dedupe exact' );
+eq206( $GLOBALS['reads206'], 2, 'short duplicate raw page reads each distinct product once' );
+eq206( $GLOBALS['filters206'], array(), 'guard removed after the short duplicate page' );
+$GLOBALS['force_raw_rows206'] = false;
+
+$GLOBALS['nested_probe206'] = true;
+$GLOBALS['distinct206'] = array();
+eq206( Selector::discover_count( S::category( 1, true ) )['selected'], 2, 'token-scoped guard still collapses the discovery query itself' );
+eq206( $GLOBALS['distinct206'][0], array( 'token' => '', 'distinct' => '' ), 'nested/unrelated query while the guard is registered keeps its own distinct clause' );
+eq206( $GLOBALS['distinct206'][1]['distinct'], 'DISTINCT', 'discovery query receives DISTINCT through its private token' );
+eq206( $GLOBALS['filters206'], array(), 'guard removed after the token-scoping probe' );
+
+$GLOBALS['throw_query206'] = true;
+$thrown206 = null;
+try { Selector::discover_count( S::category( 1, true ) ); }
+catch ( RuntimeException $error206 ) { $thrown206 = $error206; }
+eq206( $thrown206 instanceof RuntimeException, true, 'query construction failure propagates' );
+eq206( $GLOBALS['filters206'], array(), 'guard removed after an exceptional query construction' );
+$GLOBALS['throw_query206'] = false;
+
+$GLOBALS['window_override206'] = 500;
+$GLOBALS['reads206'] = 0;
+error206( static fn() => Selector::discover_count( S::category( 1, true ) ), 'selection_limit_exceeded' );
+eq206( $GLOBALS['reads206'], 0, 'rewritten bounded window refuses before any Woo read' );
+eq206( $GLOBALS['query206']['posts_per_page'], 2001, 'selector still requests the fixed 2,001-row window' );
+$GLOBALS['window_override206'] = null;
+
+$GLOBALS['inject_results206'] = static fn( $posts ) => array_merge( $posts, array_fill( 0, 2001, $posts[0] ) );
+$GLOBALS['reads206'] = 0;
+error206( static fn() => Selector::discover_count( S::category( 1, true ) ), 'selection_limit_exceeded' );
+eq206( $GLOBALS['reads206'], 0, 'injected full-window duplicate rows refuse before any Woo read' );
+$GLOBALS['inject_results206'] = static fn( $posts ) => array_merge( $posts, array_fill( 0, 3, $posts[0] ) );
+eq206( Selector::discover_count( S::category( 1, true ) )['selected'], 2, 'injected duplicate rows on a short page are deduplicated exactly' );
+eq206( $GLOBALS['reads206'], 2, 'injected short-page duplicates read each distinct product once' );
+$GLOBALS['inject_results206'] = null;
 
 // A distinct raw population above the bound is still refused before any read:
 // 2,001 distinct rows imply more than 1,000 final targets.

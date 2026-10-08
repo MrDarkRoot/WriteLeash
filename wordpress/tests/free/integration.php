@@ -347,9 +347,9 @@ wl107_equal( $category_plan->data()['resolved_product_ids'], array( $a->get_id()
 update_post_meta( $similar->get_id(), '_sku', 'WL107-A' );
 wl107_error( static fn() => Planner::preview( S::sku( 'WL107-A' ), $op, $policy ), 'ambiguous_sku' );
 wl107_error( static fn() => Planner::preview( S::category( 2147483647 ), $op, $policy ), 'invalid_category' );
-// Overlapping membership returns one join row per matching term. Duplicate
-// rows must neither inflate the bound nor refuse a valid selection: 1,003
-// rows collapse to the same two frozen IDs.
+// Overlapping membership returns one join row per matching term. On an IDS
+// selection (no tax_query join) duplicate rows must neither inflate the bound
+// nor refuse a valid selection: 1,003 rows collapse to the same two frozen IDs.
 $duplicate_query = static fn( $posts ) => array_merge( $posts, array_fill( 0, 1001, $posts[1] ) );
 add_filter( 'posts_results', $duplicate_query );
 try {
@@ -361,6 +361,13 @@ $overflow_query = static fn( $posts ) => array_map( static fn( $i ) => (object) 
 add_filter( 'posts_results', $overflow_query );
 try { wl107_error( static fn() => Planner::preview( $sel, $op, $policy ), 'selection_limit_exceeded' ); }
 finally { remove_filter( 'posts_results', $overflow_query ); }
+// A CATEGORY page that is full (>= the 2,001-row window) and duplicate-crowded
+// cannot prove the DISTINCT SQL page was complete, so discovery fails closed
+// before any Woo read instead of resolving a possibly truncated population.
+$category_duplicate_query = static fn( $posts ) => array_merge( $posts, array_fill( 0, 2001, $posts[0] ) );
+add_filter( 'posts_results', $category_duplicate_query );
+try { wl107_error( static fn() => Planner::preview( S::category( $child ), $op, $policy ), 'selection_limit_exceeded' ); }
+finally { remove_filter( 'posts_results', $category_duplicate_query ); }
 foreach ( array( array( '1' ), array( 0 ), array( -1 ), array() ) as $bad ) { wl107_error( static fn() => S::ids( $bad ), ! $bad ? 'invalid_selection_size' : 'invalid_product_id' ); }
 wp_set_current_user( 0 );
 wl107_error( static fn() => Planner::preview( $sel, $op, $policy ), 'permission_denied' );

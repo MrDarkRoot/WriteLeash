@@ -60,7 +60,10 @@ namespace {
 	}
 	class WP_Query {
 		public $posts = array();
+		public $query_vars = array();
+		public function get( $key ) { return $this->query_vars[ $key ] ?? ''; }
 		public function __construct( $args = array() ) {
+			$this->query_vars = $args;
 			$registry = $GLOBALS['wl179_products'];
 			if ( ! empty( $args['post__in'] ) ) {
 				$candidates = array_map( 'intval', (array) $args['post__in'] );
