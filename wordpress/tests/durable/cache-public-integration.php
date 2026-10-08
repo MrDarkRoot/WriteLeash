@@ -146,6 +146,45 @@ try {
 	$assert209( Decimal209::parse( $read209( $id209 )['price'] ), '95', 'retryable read failure never writes' );
 	$retry_row209 = Journal209::read( $GLOBALS['wpdb'], $retry_plan209->data()['plan_id'], $id209 );
 	$assert209( $retry_row209['state'], 'PENDING', 'retryable read failure returns to durable PENDING' );
+	// R3: a transient public read refusal is never a verified safe-to-retry write.
+	// It leaves durable PENDING with zero Woo save; the retry re-runs the frozen
+	// precondition before any write, so a later edit between attempts wins as
+	// CONFLICT with zero overwrite.
+	$saves209 = array();
+	$count_save209 = static function ( $subject ) use ( &$saves209 ): void {
+		$save_id209 = $subject instanceof WC_Product ? $subject->get_id() : (int) $subject;
+		$saves209[ $save_id209 ] = ( $saves209[ $save_id209 ] ?? 0 ) + 1;
+	};
+	add_action( 'woocommerce_before_product_object_save', $count_save209, 10, 1 );
+	$broken_once209 = static function ( $class, $type, $context, $id ) use ( $id209 ) { return $id === $id209 ? 'stdClass' : $class; };
+	$retry_again_plan209 = $plan209( $id209, '80' );
+	Journal209::seed( $retry_again_plan209 );
+	add_filter( 'woocommerce_product_class', $broken_once209, 10, 4 );
+	try { $retry_failed209 = Mutator209::apply( $retry_again_plan209, $id209 ); }
+	finally { remove_filter( 'woocommerce_product_class', $broken_once209, 10 ); }
+	$assert209( $retry_failed209['code'], 'FAILED', 'R3 transient refusal is retryable FAILED' );
+	$assert209( $saves209[ $id209 ] ?? 0, 0, 'R3 transient refusal performs zero Woo saves' );
+	$assert209( Journal209::read( $GLOBALS['wpdb'], $retry_again_plan209->data()['plan_id'], $id209 )['state'], 'PENDING', 'R3 transient refusal leaves durable PENDING' );
+	$assert209( Decimal209::parse( $read209( $id209 )['price'] ), '95', 'R3 transient refusal never writes' );
+	$retry_applied209 = Mutator209::apply( $retry_again_plan209, $id209 );
+	$assert209( $retry_applied209['code'], 'APPLIED', 'R3 retry after transient refusal applies the frozen plan' );
+	$assert209( $saves209[ $id209 ] ?? 0, 1, 'R3 retry performs exactly one Woo save' );
+	$assert209( Decimal209::parse( $read209( $id209 )['price'] ), '80', 'R3 retry writes the planned target' );
+	$assert209( Journal209::read( $GLOBALS['wpdb'], $retry_again_plan209->data()['plan_id'], $id209 )['state'], 'APPLIED', 'R3 retry reaches durable APPLIED' );
+	$conflict_plan209 = $plan209( $id209, '70' );
+	Journal209::seed( $conflict_plan209 );
+	add_filter( 'woocommerce_product_class', $broken_once209, 10, 4 );
+	try { $conflict_failed209 = Mutator209::apply( $conflict_plan209, $id209 ); }
+	finally { remove_filter( 'woocommerce_product_class', $broken_once209, 10 ); }
+	$assert209( $conflict_failed209['code'], 'FAILED', 'R3 precondition fixture starts from a transient refusal' );
+	$assert209( Journal209::read( $GLOBALS['wpdb'], $conflict_plan209->data()['plan_id'], $id209 )['state'], 'PENDING', 'R3 precondition fixture is durable PENDING' );
+	$edit209( $id209, '85' );
+	$saves_before_retry209 = $saves209[ $id209 ] ?? 0;
+	$conflict_retry209 = Mutator209::apply( $conflict_plan209, $id209 );
+	$assert209( $conflict_retry209['code'], 'CONFLICT', 'R3 retry re-runs the precondition and refuses the newer edit' );
+	$assert209( ( $saves209[ $id209 ] ?? 0 ) - $saves_before_retry209, 0, 'R3 conflicting retry performs zero Woo saves' );
+	$assert209( Decimal209::parse( $read209( $id209 )['price'] ), '85', 'R3 conflicting retry preserves the newer edit' );
+	$assert209( Journal209::read( $GLOBALS['wpdb'], $conflict_plan209->data()['plan_id'], $id209 )['state'], 'CONFLICT', 'R3 conflicting retry is durable CONFLICT' );
 	$suspended209 = $GLOBALS['_wp_suspend_cache_invalidation'] ?? false;
 	$GLOBALS['_wp_suspend_cache_invalidation'] = true;
 	try {

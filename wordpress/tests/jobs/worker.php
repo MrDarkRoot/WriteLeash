@@ -42,6 +42,12 @@ if ( ! empty( $spec['mutator_checkpoint'] ) ) {
 		}
 	}, 10, 3 );
 }
+// Public Woo factory filter staging a transient read refusal for one product,
+// exactly as the #209 durable probe does; never a mutator/production mock.
+if ( ! empty( $spec['class_fault'] ) ) {
+	$class_fault_id = (int) $spec['class_fault'];
+	add_filter( 'woocommerce_product_class', static function ( $class, $type, $context, $id ) use ( $class_fault_id ) { return $id === $class_fault_id ? 'stdClass' : $class; }, 10, 4 );
+}
 
 $limits = isset( $spec['limits'] ) && is_array( $spec['limits'] ) ? $spec['limits'] : array( 'max_items' => 10, 'budget_seconds' => 15 );
 if ( 'callback' === ( $spec['mode'] ?? 'run' ) ) {
