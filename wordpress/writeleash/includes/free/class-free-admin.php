@@ -36,6 +36,7 @@ final class Free_Admin {
 	public const ACTION_RESUME = 'writeleash_free_resume';
 	public const ACTION_UNDO = 'writeleash_free_undo';
 	public const ACTION_EXPORT = 'writeleash_free_export';
+	public const ACTION_PROGRESS = 'writeleash_free_progress';
 	public const PREVIEW_PAGE_SIZE = 20;
 	public const HISTORY_PAGE_SIZE = 20;
 	public const ITEM_PAGE_SIZE = 50;
@@ -45,6 +46,9 @@ final class Free_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ), 20 );
 		Product_Discovery::boot();
+		add_action( 'wp_ajax_' . self::ACTION_PROGRESS, array( __CLASS__, 'handle_progress' ) );
+		// Expired sessions receive an explicit refusal; the handler gates before every saved read.
+		add_action( 'wp_ajax_nopriv_' . self::ACTION_PROGRESS, array( __CLASS__, 'handle_progress' ) );
 		add_action( 'admin_post_' . self::ACTION_PREVIEW, array( __CLASS__, 'handle_preview' ) );
 		add_action( 'admin_post_' . self::ACTION_APPROVE, array( __CLASS__, 'handle_approve' ) );
 		add_action( 'admin_post_' . self::ACTION_RESUME, array( __CLASS__, 'handle_resume' ) );
@@ -74,6 +78,7 @@ final class Free_Admin {
 		if ( ! in_array( $hook, array( 'product_page_' . self::SLUG, 'woocommerce_page_' . self::SLUG, 'tools_page_' . self::SLUG ), true ) ) { return; }
 		wp_enqueue_style( 'writeleash-free-selection', plugins_url( 'includes/free/free-selection.css', WRITELEASH_PLUGIN_FILE ), array(), WRITELEASH_VERSION );
 		if ( ! self::can_mutate() || ! self::dependency_ok() ) { return; }
+		wp_enqueue_script( 'writeleash-free-progress', plugins_url( 'includes/free/free-progress.js', WRITELEASH_PLUGIN_FILE ), array(), WRITELEASH_VERSION, true );
 		if ( ! wp_script_is( 'selectWoo', 'registered' ) ) { return; }
 		wp_enqueue_style( 'woocommerce_admin_styles' );
 		wp_enqueue_script( 'writeleash-free-selection', plugins_url( 'includes/free/free-selection.js', WRITELEASH_PLUGIN_FILE ), array( 'jquery', 'selectWoo' ), WRITELEASH_VERSION, true );
@@ -194,6 +199,86 @@ final class Free_Admin {
 		$result = self::process_undo( self::post_input(), self::request_method() );
 		$public_id = isset( $result['public_id'] ) && is_string( $result['public_id'] ) ? $result['public_id'] : null;
 		return self::finish( $result, null !== $public_id ? 'job' : '', $public_id );
+	}
+
+	/** Authenticated AJAX is read-only: no schema installer, worker, product read or cache eviction. */
+	public static function handle_progress(): void {
+		$result = self::progress_snapshot( array(
+			'_wpnonce' => self::post_field( '_wpnonce' ), 'job' => self::post_field( 'job' ),
+			'offset' => self::post_field( 'offset' ), 'filter' => self::post_field( 'filter' ),
+		), self::request_method() );
+		nocache_headers();
+		if ( 'OK' === $result['status'] ) { wp_send_json_success( $result ); }
+		else { wp_send_json_error( array( 'reason' => $result['reason'] ), 'FORBIDDEN' === $result['status'] ? 403 : 503 ); }
+	}
+
+	/** A bounded observation of saved Apply/Undo records. IDs and nonces grant no actor override. */
+	public static function progress_snapshot( array $post, string $method ): array {
+		$refused = array( 'status' => 'FORBIDDEN', 'reason' => 'progress_unavailable' );
+		if ( get_current_user_id() < 1 || ! self::can_mutate() || 'POST' !== $method ) { return $refused; }
+		$public_id = $post['job'] ?? null;
+		$nonce = self::normalize_nonce( $post['_wpnonce'] ?? null );
+		if ( ! is_string( $public_id ) || ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $public_id ) ||
+			! is_string( $nonce ) || ! wp_verify_nonce( $nonce, self::ACTION_PROGRESS . '_' . $public_id ) ) { return $refused; }
+		$offset = $post['offset'] ?? '0';
+		$filters = array( '' => array( null, null ), 'conflict' => array( 'CONFLICT', null ), 'attention' => array( 'FAILED', null ),
+			'review' => array( 'NEEDS_REVIEW', null ), 'undo_conflict' => array( null, 'UNDO_CONFLICT' ), 'undo_review' => array( null, 'UNDO_NEEDS_REVIEW' ) );
+		$filter = $post['filter'] ?? '';
+		if ( ! is_string( $offset ) || ! preg_match( '/\A(?:0|[1-9][0-9]{0,5})\z/D', $offset ) || (int) $offset > Undo_Repository::MAX_EVIDENCE_ROWS ||
+			! is_string( $filter ) || ! isset( $filters[$filter] ) ) { return $refused; }
+		try {
+			if ( ! self::jobs_installed() ) { return $refused; }
+			$job = self::load_job_for_view( $public_id );
+			if ( null === $job ) { return $refused; }
+			$observed = Job_Repository::observe( (int) $job['id'] );
+			$job = $observed['job'];
+			$counts = $observed['counts'];
+			$plan = Job_Repository::hydrate_plan( $job );
+			$history = Undo_Repository::history_job( (int) $job['id'] );
+			$complete = $counts['planned'] === $plan->summary()['selected'];
+			$undo_observed = null;
+			if ( ! empty( $history['undo']['operation_id'] ) ) {
+				$undo_observed = Undo_Repository::observe( (int) $history['undo']['operation_id'] );
+				$history['undo'] = array_merge( $history['undo'], $undo_observed['counts'], array( 'operation_status' => $undo_observed['effective_status'] ) );
+			}
+			$identities = array_column( $plan->data()['items'], null, 'product_id' );
+			$page = Undo_Repository::history_items( (int) $job['id'], $filters[$filter][0], $filters[$filter][1], (int) $offset, self::ITEM_PAGE_SIZE );
+			$rows = array();
+			foreach ( $page['items'] as $item ) {
+				$frozen = $identities[$item['product_id']] ?? null;
+				if ( null === $frozen ) { throw new \RuntimeException( 'Saved identity unavailable' ); }
+				$apply_reason = 'UNSUPPORTED' === $item['apply_state'] ? ( $frozen['eligibility']['reason'] ?? $item['apply_reason'] ) : $item['apply_reason'];
+				$rows[] = array(
+					'id' => (int) $item['product_id'],
+					'name' => self::identity_name( $frozen['snapshot'] ) . ' · #' . (int) $item['product_id'] . ' · as reviewed',
+					'expected' => self::money_display( self::expected_display( $frozen, $item, $plan->price_field() ), $plan->data()['store'] ),
+					'planned' => self::money_display( $item['planned_price'], $plan->data()['store'] ),
+					'apply' => self::item_label( $item['apply_state'], $job['status'] ) . ( $apply_reason ? ' · ' . self::reason_message( $apply_reason ) : '' ),
+					'undo' => null === $item['undo_state'] ? self::undo_item_label( $item, $job['status'] ) : self::item_label( $item['undo_state'], $job['status'] ) . ( $item['undo_reason'] ? ' · ' . self::reason_message( $item['undo_reason'] ) : '' ),
+					'apply_attention' => in_array( $item['apply_state'], array( 'CONFLICT', 'FAILED', 'NEEDS_REVIEW' ), true ),
+					'undo_attention' => in_array( $item['undo_state'], array( 'UNDO_CONFLICT', 'UNDO_FAILED', 'UNDO_NEEDS_REVIEW' ), true ),
+				);
+			}
+			$effective = $observed['effective_status'];
+			$undo = $history['undo'];
+			$active = $complete && ! $observed['stalled'] && in_array( $effective, array( Job_State::READY, Job_State::QUEUED, Job_State::RUNNING ), true );
+			$undo_active = $complete && null !== $undo_observed && ! $undo_observed['stalled'] && Undo_State::can_auto_run( $undo['operation_status'] );
+			$undo_summary = (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflicts · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' needing attention · ' . (int) $undo['applying'] . ' in progress · ' . (int) $undo['needs_review'] . ' uncertain';
+			return array(
+				'status' => 'OK', 'counts' => $counts, 'undo_counts' => $undo,
+				'label' => $complete ? self::job_label( $effective ) : 'Saved product outcomes unavailable; needs checking',
+				'summary' => $complete ? self::result_summary( $counts, $effective ) : 'Some saved product evidence is unavailable. Check this job before taking further action.',
+				'notice' => $observed['stalled'] ? 'Background processing stopped making progress. Resume only remaining products.' : ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ? self::reason_message( $observed['effective_reason'] ) : '' ),
+				'undo_label' => $complete ? self::undo_availability( $job, $history ) : 'Undo availability cannot be verified while product outcomes are missing.', 'undo_summary' => $undo_summary,
+				'undo_notice' => null !== $undo_observed && $undo_observed['stalled'] ? 'Undo stopped making progress. Continue Undo only for remaining products.' : '',
+				'resume_available' => $complete && Job_State::can_manual_run( $job['status'] ),
+				'undo_available' => $complete && $history['undo_eligible'] && ( empty( $undo['operation_status'] ) || Undo_State::can_manual_run( $undo['operation_status'] ) ),
+				'resume_nonce' => $complete && Job_State::can_manual_run( $job['status'] ) ? wp_create_nonce( self::ACTION_RESUME . '_' . $public_id ) : null,
+				'undo_nonce' => $complete && $history['undo_eligible'] && ( empty( $undo['operation_status'] ) || Undo_State::can_manual_run( $undo['operation_status'] ) ) ? wp_create_nonce( self::ACTION_UNDO . '_' . $public_id ) : null,
+				'undo_button' => empty( $undo['operation_status'] ) ? 'Restore eligible prices (Undo)' : 'Continue Undo',
+				'poll' => $active || $undo_active, 'rows' => $rows, 'next_url' => null === $page['next_offset'] ? null : self::page_url( 'job', $public_id, (int) $page['next_offset'], $filter ),
+			);
+		} catch ( \Throwable $error ) { return array( 'status' => 'UNAVAILABLE', 'reason' => 'saved_progress_unavailable' ); }
 	}
 
 	private static function notice_key( int $user_id ): string {
@@ -1534,26 +1619,30 @@ final class Free_Admin {
 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html( 'Back to bulk prices' ) . '</a> ';
 		echo '<a class="button" href="' . esc_url( self::page_url( 'history' ) ) . '">' . esc_html( 'Open history' ) . '</a></p>';
 		if ( self::reviewable( $job ) ) { self::job_action_link( $job, true ); echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">Create a new preview</a></p>'; }
+		echo '<div data-writeleash-progress="1" data-endpoint="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '" data-job="' . esc_attr( $public_id ) . '" data-nonce="' . esc_attr( wp_create_nonce( self::ACTION_PROGRESS . '_' . $public_id ) ) . '" data-action-url="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-offset="' . esc_attr( (string) $offset ) . '" data-filter="' . esc_attr( $filter ) . '">';
+		echo '<p><a class="button" href="' . esc_url( self::page_url( 'job', $public_id, $offset, $filter ) ) . '">Refresh saved progress</a> <span data-progress-connection>Automatic updates require JavaScript. Refresh to read saved progress.</span></p><p class="screen-reader-text" role="status" aria-live="polite" aria-atomic="true" data-progress-announcement></p>';
 		echo '<h2>Progress and results</h2><div class="writeleash-summary"><p><strong>' . esc_html( self::task_description( $plan->data() ) ) . '</strong></p>';
-		echo '<p><strong>' . esc_html( $complete_evidence ? self::job_label( $effective ) : 'Saved product outcomes unavailable; needs checking' ) . '</strong></p>';
-		if ( $complete_evidence ) { echo '<p>' . esc_html( self::result_summary( $counts, $effective, true ) ) . '</p>'; }
-		else { echo '<p>' . esc_html( 'Planned ' . $selected . ( 1 === $selected ? ' product.' : ' products.' ) . ' Some saved product evidence is unavailable. Check this job before taking further action.' ) . '</p>'; }
-		if ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { echo '<p>' . esc_html( self::reason_message( $observed['effective_reason'] ) ) . '</p>'; }
-		self::support_details( $effective . ' · ' . $observed['effective_reason'] . ' · ' . $job['public_id'] . ' · pending ' . $counts['pending'] . ' · applied ' . $counts['applied'] );
+		echo '<p><strong data-progress-label>' . esc_html( $complete_evidence ? self::job_label( $effective ) : 'Saved product outcomes unavailable; needs checking' ) . '</strong></p>';
+		if ( $complete_evidence ) { echo '<p data-progress-summary>' . esc_html( self::result_summary( $counts, $effective, true ) ) . '</p>'; }
+		else { echo '<p data-progress-summary>' . esc_html( 'Planned ' . $selected . ( 1 === $selected ? ' product.' : ' products.' ) . ' Some saved product evidence is unavailable. Check this job before taking further action.' ) . '</p>'; }
+		if ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { echo '<p data-progress-initial-notice>' . esc_html( self::reason_message( $observed['effective_reason'] ) ) . '</p>'; }
+		echo '<div data-progress-initial-notice>'; self::support_details( $effective . ' · ' . $observed['effective_reason'] . ' · ' . $job['public_id'] . ' · pending ' . $counts['pending'] . ' · applied ' . $counts['applied'] ); echo '</div>';
 		echo '</div>';
+		echo '<p data-progress-notice></p>';
 		if ( $observed['stalled'] ) {
-			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( 'Background processing stopped making progress. Use Resume remaining products to continue; completed changes are kept.' ) . '</p></div>';
+			echo '<div data-progress-initial-notice class="notice notice-warning" role="alert"><p>' . esc_html( 'Background processing stopped making progress. Use Resume remaining products to continue; completed changes are kept.' ) . '</p></div>';
 		}
 		if ( in_array( $effective, array( Job_State::COMPLETED_WITH_ISSUES, Job_State::NEEDS_REVIEW ), true ) ) {
-			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( Job_State::NEEDS_REVIEW === $effective ? 'An outcome needs checking. Review uncertain products before continuing remaining work; uncertain products will not be retried.' : 'The price change finished with products needing attention. Review conflicts and failed products below, then create a new preview if needed.' ) . '</p></div>';
+			echo '<div data-progress-initial-notice class="notice notice-warning" role="alert"><p>' . esc_html( Job_State::NEEDS_REVIEW === $effective ? 'An outcome needs checking. Review uncertain products before continuing remaining work; uncertain products will not be retried.' : 'The price change finished with products needing attention. Review conflicts and failed products below, then create a new preview if needed.' ) . '</p></div>';
 		}
 		if ( self::is_legacy_oversized_job( $job, $selected ) ) {
 			self::render_legacy_oversize_warning();
 		} elseif ( $selected > Free_Support_Contract::MAX_JOB_PRODUCTS ) {
 			echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $selected ) ) . '</p></div>';
 		}
+		echo '<div data-progress-resume>';
 		if ( $complete_evidence && Job_State::can_manual_run( $job['status'] ) && self::can_mutate() ) {
-			if ( in_array( $effective, array( Job_State::READY, Job_State::QUEUED ), true ) && ! $observed['stalled'] ) { echo '<p>' . esc_html( 'Waiting for background processing. Use Resume remaining products to run the next step now.' ) . '</p>'; }
+			if ( in_array( $effective, array( Job_State::READY, Job_State::QUEUED ), true ) && ! $observed['stalled'] ) { echo '<p data-progress-initial-notice>' . esc_html( 'Waiting for background processing. Use Resume remaining products to run the next step now.' ) . '</p>'; }
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_RESUME ) . '">';
 			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
@@ -1561,6 +1650,7 @@ final class Free_Admin {
 			echo '<p><button type="submit" class="button button-primary">' . esc_html( 'Resume remaining products' ) . '</button> ';
 			echo esc_html( 'Runs only the remaining products; completed changes are kept. Products changed since Preview are left alone.' ) . '</p></form>';
 		}
+		echo '</div>';
 		self::render_export_form( $job );
 		echo '<section class="writeleash-undo"><h2>' . esc_html( 'Undo' ) . '</h2>';
 		if ( $complete_evidence ) { self::render_undo_section( $job, $history, $plan->price_field() ); }
@@ -1604,8 +1694,11 @@ final class Free_Admin {
 			}
 
 			echo '</tbody></table></div>';
+			echo '<div data-progress-pager>';
 			self::render_pager( 'job', $job['public_id'], $offset, self::ITEM_PAGE_SIZE, $items['next_offset'], $filter );
+			echo '</div>';
 		}
+		echo '</div>';
 	}
 
 	/** Post-approval states are durable authority, not a new size certification. */
@@ -1629,17 +1722,19 @@ final class Free_Admin {
 	private static function render_undo_section( array $job, array $history, string $field ): void {
 		$field_label = strtolower( Price_Operation::label( $field ) );
 		echo '<p>' . esc_html( 'Undo restores eligible ' . $field_label . ' values changed by this job to their values before this job. Later price or sale-setting changes are left alone. Undo does not reverse: orders, completed sales or effects in other plugins and services.' ) . '</p>';
-		echo '<p><strong>' . esc_html( self::undo_availability( $job, $history ) ) . '</strong></p>';
+		echo '<p><strong data-progress-undo-label>' . esc_html( self::undo_availability( $job, $history ) ) . '</strong></p>';
 		if ( ! empty( $history['undo_expires_at'] ) ) {
 			echo '<p>' . esc_html( 'Undo window ends: ' . self::site_time( $history['undo_expires_at'] ) ) . '</p>';
 		}
+		echo '<p data-progress-undo-summary></p><p data-progress-undo-notice></p>';
 		if ( ! empty( $history['undo']['operation_status'] ) ) {
 			$undo = $history['undo'];
 			$undo_review = (int) $undo['needs_review'];
-			echo '<p>' . esc_html( (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflict' . ( 1 === (int) $undo['conflict'] ? '' : 's' ) . ' · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' needing attention · ' . (int) $undo['applying'] . ' in progress · ' . $undo_review . ( 1 === $undo_review ? ' needs checking.' : ' need checking.' ) ) . '</p>';
-			self::support_details( $undo['operation_status'] . ' · ' . $undo['operation_reason'] );
+			echo '<p data-progress-initial-undo>' . esc_html( (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflict' . ( 1 === (int) $undo['conflict'] ? '' : 's' ) . ' · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' needing attention · ' . (int) $undo['applying'] . ' in progress · ' . $undo_review . ( 1 === $undo_review ? ' needs checking.' : ' need checking.' ) ) . '</p>';
+			echo '<div data-progress-initial-undo>'; self::support_details( $undo['operation_status'] . ' · ' . $undo['operation_reason'] ); echo '</div>';
 		}
 
+		echo '<div data-progress-undo>';
 		if ( $history['undo_eligible'] && self::can_mutate() && ( empty( $history['undo']['operation_status'] ) || Undo_State::can_manual_run( $history['undo']['operation_status'] ) ) ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_UNDO ) . '">';
@@ -1650,6 +1745,7 @@ final class Free_Admin {
 		} elseif ( $history['undo_eligible'] && ! self::can_mutate() ) {
 			echo '<p>You do not have permission to restore prices.</p>';
 		}
+		echo '</div>';
 	}
 
 	private static function render_history_view( int $offset ): void {
