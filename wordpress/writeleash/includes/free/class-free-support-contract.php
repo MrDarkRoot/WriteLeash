@@ -10,11 +10,12 @@ final class Free_Support_Contract {
 	 * Supported WooCommerce range. Every storage/API assumption WriteLeash
 	 * relies on is stable across this span: CPT data-store CRUD price
 	 * setters, the wc_product_meta_lookup min/max/onsale shape, the
-	 * currency/decimals helpers and the transient/cache-group invalidation
-	 * calls. ProductCache::remove() (used for the optional instance cache)
-	 * exists since Woo 10.5 and is additionally guarded at the call site, so
-	 * the earlier 10.x releases in this span stay safe. The ceiling excludes
-	 * the next major until its storage contract is re-certified.
+	 * currency/decimals helpers, the public product-factory type/classname
+	 * lookup and the transient/cache-group invalidation calls. Fresh reads
+	 * construct the exact core product class directly and clean caches
+	 * through public WordPress/Woo helpers only, so no version-conditional
+	 * cache class is required anywhere in this span. The ceiling excludes the
+	 * next major until its storage contract is re-certified.
 	 */
 	public const WOOCOMMERCE_MIN = '10.0.0';
 	public const WOOCOMMERCE_MAX_EXCLUSIVE = '12.0.0';

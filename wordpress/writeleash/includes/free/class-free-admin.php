@@ -36,6 +36,7 @@ final class Free_Admin {
 	public const ACTION_RESUME = 'writeleash_free_resume';
 	public const ACTION_UNDO = 'writeleash_free_undo';
 	public const ACTION_EXPORT = 'writeleash_free_export';
+	public const ACTION_PROGRESS = 'writeleash_free_progress';
 	public const PREVIEW_PAGE_SIZE = 20;
 	public const HISTORY_PAGE_SIZE = 20;
 	public const ITEM_PAGE_SIZE = 50;
@@ -45,6 +46,9 @@ final class Free_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ), 20 );
 		Product_Discovery::boot();
+		add_action( 'wp_ajax_' . self::ACTION_PROGRESS, array( __CLASS__, 'handle_progress' ) );
+		// Expired sessions receive an explicit refusal; the handler gates before every saved read.
+		add_action( 'wp_ajax_nopriv_' . self::ACTION_PROGRESS, array( __CLASS__, 'handle_progress' ) );
 		add_action( 'admin_post_' . self::ACTION_PREVIEW, array( __CLASS__, 'handle_preview' ) );
 		add_action( 'admin_post_' . self::ACTION_APPROVE, array( __CLASS__, 'handle_approve' ) );
 		add_action( 'admin_post_' . self::ACTION_RESUME, array( __CLASS__, 'handle_resume' ) );
@@ -74,6 +78,7 @@ final class Free_Admin {
 		if ( ! in_array( $hook, array( 'product_page_' . self::SLUG, 'woocommerce_page_' . self::SLUG, 'tools_page_' . self::SLUG ), true ) ) { return; }
 		wp_enqueue_style( 'writeleash-free-selection', plugins_url( 'includes/free/free-selection.css', WRITELEASH_PLUGIN_FILE ), array(), WRITELEASH_VERSION );
 		if ( ! self::can_mutate() || ! self::dependency_ok() ) { return; }
+		wp_enqueue_script( 'writeleash-free-progress', plugins_url( 'includes/free/free-progress.js', WRITELEASH_PLUGIN_FILE ), array(), WRITELEASH_VERSION, true );
 		if ( ! wp_script_is( 'selectWoo', 'registered' ) ) { return; }
 		wp_enqueue_style( 'woocommerce_admin_styles' );
 		wp_enqueue_script( 'writeleash-free-selection', plugins_url( 'includes/free/free-selection.js', WRITELEASH_PLUGIN_FILE ), array( 'jquery', 'selectWoo' ), WRITELEASH_VERSION, true );
@@ -131,6 +136,7 @@ final class Free_Admin {
 			'ids' => self::post_field( 'ids' ),
 			'sku' => self::post_field( 'sku' ),
 			'category' => self::post_field( 'category' ),
+			'include_subcategories' => self::post_field( 'include_subcategories' ),
 			'operation' => self::post_field( 'operation' ),
 			'price_field' => self::post_field( 'price_field' ),
 			'amount' => self::post_field( 'amount' ),
@@ -193,6 +199,98 @@ final class Free_Admin {
 		$result = self::process_undo( self::post_input(), self::request_method() );
 		$public_id = isset( $result['public_id'] ) && is_string( $result['public_id'] ) ? $result['public_id'] : null;
 		return self::finish( $result, null !== $public_id ? 'job' : '', $public_id );
+	}
+
+	/** Authenticated AJAX is read-only: no schema installer, worker, product read or cache eviction. */
+	public static function handle_progress(): void {
+		$result = self::progress_snapshot( array(
+			'_wpnonce' => self::post_field( '_wpnonce' ), 'job' => self::post_field( 'job' ),
+			'offset' => self::post_field( 'offset' ), 'filter' => self::post_field( 'filter' ),
+		), self::request_method() );
+		nocache_headers();
+		if ( 'OK' === $result['status'] ) { wp_send_json_success( $result ); }
+		else { wp_send_json_error( array( 'reason' => $result['reason'] ), 'FORBIDDEN' === $result['status'] ? 403 : 503 ); }
+	}
+
+	/** A bounded observation of saved Apply/Undo records. IDs and nonces grant no actor override. */
+	public static function progress_snapshot( array $post, string $method ): array {
+		$refused = array( 'status' => 'FORBIDDEN', 'reason' => 'progress_unavailable' );
+		if ( get_current_user_id() < 1 || ! self::can_mutate() || 'POST' !== $method ) { return $refused; }
+		$public_id = $post['job'] ?? null;
+		$nonce = self::normalize_nonce( $post['_wpnonce'] ?? null );
+		if ( ! is_string( $public_id ) || ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $public_id ) ||
+			! is_string( $nonce ) || ! wp_verify_nonce( $nonce, self::ACTION_PROGRESS . '_' . $public_id ) ) { return $refused; }
+		$offset = $post['offset'] ?? '0';
+		$filters = array( '' => array( null, null ), 'conflict' => array( 'CONFLICT', null ), 'attention' => array( 'FAILED', null ),
+			'review' => array( 'NEEDS_REVIEW', null ), 'undo_conflict' => array( null, 'UNDO_CONFLICT' ), 'undo_review' => array( null, 'UNDO_NEEDS_REVIEW' ) );
+		$filter = $post['filter'] ?? '';
+		if ( ! is_string( $offset ) || ! preg_match( '/\A(?:0|[1-9][0-9]{0,5})\z/D', $offset ) || (int) $offset > Undo_Repository::MAX_EVIDENCE_ROWS ||
+			! is_string( $filter ) || ! isset( $filters[$filter] ) ) { return $refused; }
+		try {
+			if ( ! self::jobs_installed() ) { return $refused; }
+			$job = self::load_job_for_view( $public_id );
+			if ( null === $job ) { return $refused; }
+			$observed = Job_Repository::observe( (int) $job['id'] );
+			$job = $observed['job'];
+			$counts = $observed['counts'];
+			$plan = Job_Repository::hydrate_plan( $job );
+			$history = Undo_Repository::history_job( (int) $job['id'] );
+			$complete = $counts['planned'] === $plan->summary()['selected'];
+			$undo_observed = null;
+			if ( ! empty( $history['undo']['operation_id'] ) ) {
+				$undo_observed = Undo_Repository::observe( (int) $history['undo']['operation_id'] );
+				$history['undo'] = array_merge( $history['undo'], $undo_observed['counts'], array( 'operation_status' => $undo_observed['effective_status'] ) );
+			}
+			$identities = array_column( $plan->data()['items'], null, 'product_id' );
+			$page = Undo_Repository::history_items( (int) $job['id'], $filters[$filter][0], $filters[$filter][1], (int) $offset, self::ITEM_PAGE_SIZE );
+			$rows = array();
+			foreach ( $page['items'] as $item ) {
+				$frozen = $identities[$item['product_id']] ?? null;
+				if ( null === $frozen ) { throw new \RuntimeException( 'Saved identity unavailable' ); }
+			$apply_reason = 'UNSUPPORTED' === $item['apply_state'] ? ( $frozen['eligibility']['reason'] ?? $item['apply_reason'] ) : $item['apply_reason'];
+			$apply_conflict = self::outcome_conflict_copy( $item['apply_state'] );
+			$undo_conflict = self::outcome_conflict_copy( $item['undo_state'] );
+			// Polled cells must stay byte-identical to the server-rendered row cells:
+			// the same renderer produces both, so live updates keep the outcome
+			// emphasis and the conflict next-action links instead of flattening
+			// them to plain text. All bytes are server-escaped static copy/links.
+			// The poll performs no live Woo product reads: eligibility context
+			// comes from raw post/postmeta facts through the same shared
+			// sentences, never from a WooCommerce product object.
+			$observation = array( 'context' => self::poll_observation_context( (int) $item['product_id'], $plan->price_field() ) );
+			$rows[] = array(
+				'id' => (int) $item['product_id'],
+				'name' => self::identity_name( $frozen['snapshot'] ) . ' · #' . (int) $item['product_id'] . ' · as reviewed',
+				'expected' => self::money_display( self::expected_display( $frozen, $item, $plan->price_field() ), $plan->data()['store'] ),
+				'planned' => self::money_display( $item['planned_price'], $plan->data()['store'] ),
+				'apply' => self::item_label( $item['apply_state'], $job['status'] ) . ( '' !== $apply_conflict ? ' · ' . $apply_conflict : ( $apply_reason ? ' · ' . self::reason_message( $apply_reason ) : '' ) ),
+				'undo' => null === $item['undo_state'] ? self::undo_item_label( $item, $job['status'] ) : self::item_label( $item['undo_state'], $job['status'] ) . ( '' !== $undo_conflict ? ' · ' . $undo_conflict : ( $item['undo_reason'] ? ' · ' . self::reason_message( $item['undo_reason'] ) : '' ) ),
+				'apply_html' => self::outcome_cell_html( $item, $frozen, $apply_reason, $job['status'], $observation, true ),
+				'undo_html' => self::outcome_cell_html( $item, $frozen, $item['undo_reason'], $job['status'], $observation, false ),
+				'apply_attention' => in_array( $item['apply_state'], array( 'CONFLICT', 'FAILED', 'NEEDS_REVIEW' ), true ),
+				'undo_attention' => in_array( $item['undo_state'], array( 'UNDO_CONFLICT', 'UNDO_FAILED', 'UNDO_NEEDS_REVIEW' ), true ),
+			);
+			}
+			$effective = $observed['effective_status'];
+			$undo = $history['undo'];
+			$active = $complete && ! $observed['stalled'] && in_array( $effective, array( Job_State::READY, Job_State::QUEUED, Job_State::RUNNING ), true );
+			$undo_active = $complete && null !== $undo_observed && ! $undo_observed['stalled'] && Undo_State::can_auto_run( $undo['operation_status'] );
+			$undo_summary = (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflicts · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' needing attention · ' . (int) $undo['applying'] . ' in progress · ' . (int) $undo['needs_review'] . ' uncertain';
+			return array(
+				'status' => 'OK', 'counts' => $counts, 'undo_counts' => $undo,
+				'label' => $complete ? self::job_label( $effective ) : 'Saved product outcomes unavailable; needs checking',
+				'summary' => $complete ? self::result_summary( $counts, $effective ) : 'Some saved product evidence is unavailable. Check this job before taking further action.',
+				'notice' => $observed['stalled'] ? 'Background processing stopped making progress. Resume only remaining products.' : ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ? self::reason_message( $observed['effective_reason'] ) : '' ),
+				'undo_label' => $complete ? self::undo_availability( $job, $history ) : 'Undo availability cannot be verified while product outcomes are missing.', 'undo_summary' => $undo_summary,
+				'undo_notice' => null !== $undo_observed && $undo_observed['stalled'] ? 'Undo stopped making progress. Continue Undo only for remaining products.' : '',
+				'resume_available' => $complete && Job_State::can_manual_run( $job['status'] ),
+				'undo_available' => $complete && $history['undo_eligible'] && ( empty( $undo['operation_status'] ) || Undo_State::can_manual_run( $undo['operation_status'] ) ),
+				'resume_nonce' => $complete && Job_State::can_manual_run( $job['status'] ) ? wp_create_nonce( self::ACTION_RESUME . '_' . $public_id ) : null,
+				'undo_nonce' => $complete && $history['undo_eligible'] && ( empty( $undo['operation_status'] ) || Undo_State::can_manual_run( $undo['operation_status'] ) ) ? wp_create_nonce( self::ACTION_UNDO . '_' . $public_id ) : null,
+				'undo_button' => empty( $undo['operation_status'] ) ? 'Restore eligible prices (Undo)' : 'Continue Undo',
+				'poll' => $active || $undo_active, 'rows' => $rows, 'next_url' => null === $page['next_offset'] ? null : self::page_url( 'job', $public_id, (int) $page['next_offset'], $filter ),
+			);
+		} catch ( \Throwable $error ) { return array( 'status' => 'UNAVAILABLE', 'reason' => 'saved_progress_unavailable' ); }
 	}
 
 	private static function notice_key( int $user_id ): string {
@@ -283,7 +381,9 @@ final class Free_Admin {
 			if ( ! is_string( $raw ) || ! preg_match( '/\A[0-9]{1,10}\z/', $raw ) || (int) $raw < 1 ) {
 				throw new Price_Validation_Error( 'invalid_category' );
 			}
-			return Price_Selection_Spec::category( (int) $raw );
+			$include_children = $post['include_subcategories'] ?? null;
+			if ( null !== $include_children && '1' !== $include_children ) { throw new Price_Validation_Error( 'invalid_category' ); }
+			return Price_Selection_Spec::category( (int) $raw, '1' === $include_children );
 		}
 		throw new Price_Validation_Error( 'invalid_selector' );
 	}
@@ -310,7 +410,7 @@ final class Free_Admin {
 	/** Bounded, escaped-on-output, session-scoped input recovery; never plan or execution truth. */
 	private static function retained_inputs( array $post ): array {
 		$values = array();
-		foreach ( array( 'selector', 'ids', 'sku', 'category', 'operation', 'price_field', 'amount', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
+		foreach ( array( 'selector', 'ids', 'sku', 'category', 'include_subcategories', 'operation', 'price_field', 'amount', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
 			$value = $post[$key] ?? null;
 			if ( is_string( $value ) && strlen( $value ) <= ( 'ids' === $key ? 20000 : 100 ) ) { $values[$key] = $value; }
 		}
@@ -330,12 +430,19 @@ final class Free_Admin {
 			$action = $post['selection_action'] ?? '';
 			if ( 'clear-products' === $action ) { $ids = array(); }
 			elseif ( is_string( $action ) && preg_match( '/\Aremove:([0-9]{1,10})\z/', $action, $match ) ) { $ids = array_values( array_diff( $ids, array( (int) $match[1] ) ) ); }
-			elseif ( ! in_array( $action, array( 'search-products', 'next-products', 'search-categories', 'next-categories', 'update-products' ), true ) ) { throw new Price_Validation_Error( 'invalid_discovery' ); }
+			elseif ( ! in_array( $action, array( 'search-products', 'next-products', 'search-categories', 'next-categories', 'update-products', 'count-targets' ), true ) ) { throw new Price_Validation_Error( 'invalid_discovery' ); }
 			Product_Discovery::selected( $ids );
 			$values['product_ids'] = array_map( 'strval', $ids );
 			foreach ( array( 'products' => 'product', 'categories' => 'category' ) as $kind => $prefix ) {
 				if ( 'search-' . $kind === $action ) { $values[$prefix . '_page'] = '1'; }
 				if ( 'next-' . $kind === $action ) { $values[$prefix . '_page'] = (string) min( Product_Discovery::MAX_PAGE, max( 1, (int) ( $values[$prefix . '_page'] ?? 1 ) ) + 1 ); }
+			}
+			if ( 'count-targets' === $action ) {
+				try { $values['selection_count'] = Product_Discovery::selection_count( self::build_selection( $post ) ); }
+				catch ( Price_Validation_Error $error ) {
+					if ( 'selection_limit_exceeded' === $error->reason() ) { $values['selection_count'] = array( 'over_limit' => true ); }
+					else { throw $error; }
+				}
 			}
 			return array( 'status' => 'OK', 'form' => $values );
 		} catch ( \Throwable $error ) {
@@ -1009,12 +1116,32 @@ final class Free_Admin {
 		return null === $item['undo_state'] && 'APPLIED' !== $item['apply_state'] ? 'Unavailable: no confirmed WriteLeash change to restore' : self::item_label( $item['undo_state'], $job_state );
 	}
 
+	/** Single source for conflict guidance: the server table and polled rows must not diverge. */
+	private static function outcome_conflict_copy( ?string $state ): string {
+		if ( 'CONFLICT' === $state ) { return 'This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.'; }
+		if ( 'UNDO_CONFLICT' === $state ) { return 'This product changed after WriteLeash applied its price. WriteLeash preserved the newer value instead of restoring over it.'; }
+		return '';
+	}
+
+	/** Polled outcome cells reuse the server cell renderer byte-for-byte. */
+	private static function outcome_cell_html( array $item, array $frozen, $reason, string $job_state, array $observation, bool $apply_side ): string {
+		if ( $apply_side ) {
+			ob_start();
+			self::render_item_outcome( $item['apply_state'], $reason, $job_state, $observation );
+			return (string) ob_get_clean();
+		}
+		if ( null === $item['undo_state'] ) {
+			return esc_html( self::undo_item_label( $item, $job_state ) );
+		}
+		ob_start();
+		self::render_item_outcome( $item['undo_state'], $reason, $job_state, $observation );
+		return (string) ob_get_clean();
+	}
+
 	private static function render_item_outcome( ?string $state, ?string $reason, string $job_state, array $observation ): void {
 		echo '<strong>' . esc_html( self::item_label( $state, $job_state ) ) . '</strong>';
 		if ( 'CONFLICT' === $state || 'UNDO_CONFLICT' === $state ) {
-			$copy = 'CONFLICT' === $state
-				? 'This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.'
-				: 'This product changed after WriteLeash applied its price. WriteLeash preserved the newer value instead of restoring over it.';
+			$copy = self::outcome_conflict_copy( $state );
 			echo '<p>' . esc_html( $copy ) . '</p>';
 			if ( '' !== $observation['context'] ) { echo '<p>' . esc_html( $observation['context'] ) . '</p>'; }
 			if ( 'UNDO_CONFLICT' === $state && in_array( $reason, array( 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED' ), true ) ) {
@@ -1202,7 +1329,7 @@ final class Free_Admin {
 
 	private static function render_selector_form( array $values = array() ): void {
 		if ( ! self::can_mutate() ) { return; }
-		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'operation' => Price_Operation::SET, 'price_field' => Price_Operation::FIELD_REGULAR, 'amount' => '', 'max_products' => (string) Free_Support_Contract::MAX_JOB_PRODUCTS, 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
+		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'include_subcategories' => '', 'operation' => Price_Operation::SET, 'price_field' => Price_Operation::FIELD_REGULAR, 'amount' => '', 'max_products' => (string) Free_Support_Contract::MAX_JOB_PRODUCTS, 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
 		$values = array_merge( $defaults, $values );
 		$selected = array(); $matches = array( 'results' => array(), 'more' => false ); $categories = $matches;
 		try {
@@ -1217,7 +1344,7 @@ final class Free_Admin {
 		wp_nonce_field( self::ACTION_PREVIEW );
 		echo '<input type="hidden" name="discovery_nonce" value="' . esc_attr( wp_create_nonce( Product_Discovery::ACTION ) ) . '">';
 		echo '<fieldset><legend>' . esc_html( '1. Select products' ) . '</legend>';
-		echo '<p id="writeleash-free-selector-help">' . esc_html( 'Choose specific products or one category. Categories include direct members only; subcategories are not included. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' selected products.' ) . '</p>';
+		echo '<p id="writeleash-free-selector-help">' . esc_html( 'Choose specific products or one category. Categories include direct members only by default; subcategories are not included unless you enable Include subcategories. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' selected products.' ) . '</p>';
 		echo '<p><label for="writeleash-free-selector">Selection method</label><br><select id="writeleash-free-selector" name="selector" aria-describedby="writeleash-free-selector-help">';
 		foreach ( array( 'ids' => 'Choose products by name or SKU', 'category' => 'Product category', 'sku' => 'One exact SKU', 'manual_ids' => 'Advanced: manual product IDs' ) as $value => $label ) {
 			echo '<option value="' . esc_attr( $value ) . '"' . selected( $values['selector'], $value, false ) . '>' . esc_html( $label ) . '</option>';
@@ -1251,14 +1378,23 @@ final class Free_Admin {
 		if ( ! empty( $categories['capped'] ) ) { echo '<p>Search limit reached. Use a more specific category name.</p>'; }
 		if ( ! $categories['results'] ) { echo '<p>No categories match this page. Try another category name.</p>'; }
 		echo '</details>';
-		echo '<p><label for="writeleash-free-category">Product category (direct members only)</label><br><select id="writeleash-free-category" name="category" style="width:100%;max-width:600px" aria-describedby="writeleash-free-selector-help"><option value="">Choose a category</option>';
+		echo '<p><label for="writeleash-free-category">Product category</label><br><select id="writeleash-free-category" name="category" style="width:100%;max-width:600px" aria-describedby="writeleash-free-selector-help"><option value="">Choose a category</option>';
 		$category_options = array();
 		foreach ( $categories['results'] as $item ) { $category_options[$item['id']] = $item; }
 		if ( preg_match( '/\A[0-9]{1,10}\z/', $values['category'] ) ) {
 			try { $item = Product_Discovery::category( (int) $values['category'] ); if ( $item ) { $category_options[$item['id']] = $item; } } catch ( \Throwable $error ) { /* Dependency/permission notice above; no guessed label. */ }
 		}
 		foreach ( $category_options as $id => $item ) { echo '<option value="' . esc_attr( (string) $id ) . '"' . selected( $values['category'], (string) $id, false ) . '>' . esc_html( $item['text'] ) . '</option>'; }
-		echo '</select></p></div><details id="writeleash-free-advanced-selection"' . ( in_array( $values['selector'], array( 'sku', 'manual_ids' ), true ) ? ' open' : '' ) . '><summary>Exact SKU or manual product IDs</summary><p>Enter one complete SKU or comma-separated product IDs for the selection method chosen above.</p>';
+		echo '</select></p><p><input id="writeleash-free-include-subcategories" name="include_subcategories" type="checkbox" value="1"' . checked( $values['include_subcategories'], '1', false ) . '> <label for="writeleash-free-include-subcategories">Include subcategories</label></p><p>When enabled, products in all nested subcategories are included once. Variable parents expand to their variations.</p></div>';
+		echo '<p>'; self::selection_button( 'count-targets', 'Check selection count' ); echo '</p><p id="writeleash-free-selection-count" role="status" aria-live="polite">';
+		$count = $values['selection_count'] ?? null;
+		if ( is_array( $count ) && ! empty( $count['over_limit'] ) ) {
+			echo esc_html( 'This selection exceeds the supported limit of ' . Free_Support_Contract::MAX_JOB_PRODUCTS . ' price targets. Choose a smaller selection before Preview.' );
+		} elseif ( is_array( $count ) && isset( $count['selected'], $count['unreadable'], $count['missing'] ) ) {
+			echo esc_html( 'At last check: ' . $count['selected'] . ' deduplicated price targets after variation expansion. ' . ( 0 === $count['selected'] ? 'No products match this selection. Choose products or another category. ' : '' ) . $count['unreadable'] . ' unreadable; ' . $count['missing'] . ' missing. Preview explains skipped or unsupported products.' );
+		} else { echo esc_html( 'Check the number of price targets before Preview, including variations.' ); }
+		echo '</p><p>Counts are informational and can change. Preview resolves the selection again and freezes the exact products for your review; no count authorizes a price change.</p>';
+		echo '<details id="writeleash-free-advanced-selection"' . ( in_array( $values['selector'], array( 'sku', 'manual_ids' ), true ) ? ' open' : '' ) . '><summary>Exact SKU or manual product IDs</summary><p>Enter one complete SKU or comma-separated product IDs for the selection method chosen above.</p>';
 		self::selector_field( 'ids', 'Explicit product IDs (advanced), e.g. 12,34,56', 'text', $values['ids'], 'writeleash-free-selector-help' );
 		self::selector_field( 'sku', 'One exact SKU', 'text', $values['sku'], 'writeleash-free-selector-help' );
 		echo '</details></fieldset><fieldset><legend>2. Choose the price change</legend><p><label for="writeleash-free-price-field">Price to change</label><br><select id="writeleash-free-price-field" name="price_field" aria-describedby="writeleash-free-price-field-help">';
@@ -1363,6 +1499,9 @@ final class Free_Admin {
 		echo '<h2>' . esc_html( 'Review price change' ) . '</h2><div class="writeleash-summary">';
 		echo '<p><strong>' . esc_html( self::task_description( $data ) ) . '</strong></p>';
 		self::support_details( $data['plan_id'] . ' · ' . $plan->hash() );
+		if ( 'CATEGORY' === ( $data['selection']['type'] ?? '' ) ) {
+			echo '<p>' . esc_html( 'Category scope: ' . ( ! empty( $data['selection']['include_children'] ) ? 'direct members and all nested subcategories' : 'direct members only; subcategories are not included' ) . '. This preview freezes the reviewed product IDs, including expanded variations.' ) . '</p>';
+		}
 		echo '<p>' . esc_html( 'Selected ' . $summary['selected'] . ' products: ' . ( $summary['changing'] ) . ' planned changes · ' . $summary['unchanged'] . ' already at the target price · ' . $summary['unsupported'] . ' skipped at preview.' ) . '</p>';
 		$extra_counts = self::preview_extra_counts( $data['items'] );
 		echo '<p>' . esc_html( 'Large increases ' . $extra_counts['large_increase'] . ' · large decreases ' . $extra_counts['large_decrease'] . ' · zero-price targets ' . $extra_counts['zero_target'] . ' · ' . $summary['warning_items'] . ' products with warnings.' ) . '</p></div>';
@@ -1461,6 +1600,65 @@ final class Free_Admin {
 	}
 
 	/**
+	 * Shared eligibility-context sentences for server rows and polled rows.
+	 * Facts use snapshot semantics; the literals live exactly once, here.
+	 */
+	private static function observation_context( array $facts, string $field ): string {
+		if ( ! $facts['simple'] && ! $facts['variation'] ) { return 'At page load, this product is no longer a supported core simple product or variation.'; }
+		if ( $facts['variation'] && ( 'publish' !== $facts['parent_status'] || ! $facts['parent_variable'] ) ) { return 'At page load, this variation’s parent is no longer a published core variable product.'; }
+		if ( 'publish' !== $facts['status'] ) { return 'At page load, this product is no longer published.'; }
+		if ( Price_Operation::FIELD_REGULAR === $field && ( '' !== $facts['sale_price'] || null !== $facts['sale_from'] || null !== $facts['sale_to'] ) ) { return 'At page load, this product has a sale price or schedule; a matching regular price alone does not authorize overwriting it.'; }
+		return '';
+	}
+
+	/**
+	 * Poll-safe observation context: raw post/postmeta reads only, never a
+	 * WooCommerce product object, so background polls cannot trigger live
+	 * product reads. Sale/status/type facts are exact; exotic Woo extension
+	 * subclasses that keep core type terms are the documented boundary (the
+	 * server page-load read still reports those; labels, reasons, counts and
+	 * next-action links always come from durable state in both paths).
+	 */
+	private static function poll_observation_context( int $product_id, string $field ): string {
+		try {
+			$post = get_post( $product_id );
+			if ( ! is_object( $post ) || ! isset( $post->post_type, $post->post_status ) ) { return 'Current product details are unavailable.'; }
+			$slugs = static function ( $id ) {
+				$terms = get_the_terms( $id, 'product_type' );
+				if ( ! is_array( $terms ) ) { return array(); }
+				$slugs = array();
+				foreach ( $terms as $term ) { if ( is_object( $term ) && isset( $term->slug ) ) { $slugs[] = (string) $term->slug; } }
+				return $slugs;
+			};
+			$is_variation_post = 'product_variation' === $post->post_type;
+			$parent_status = null; $parent_variable = false;
+			if ( $is_variation_post ) {
+				$parent = (int) ( $post->post_parent ?? 0 ) > 0 ? get_post( (int) $post->post_parent ) : null;
+				$parent_status = is_object( $parent ) && isset( $parent->post_status ) ? (string) $parent->post_status : '';
+				$parent_slugs = $parent ? $slugs( (int) $parent->ID ) : array();
+				$parent_variable = $parent && 'product' === ( $parent->post_type ?? '' ) && in_array( 'variable', $parent_slugs, true );
+			}
+			$own_slugs = $slugs( $product_id );
+			$sale_price = (string) get_post_meta( $product_id, '_sale_price', true );
+			$sale_from_raw = get_post_meta( $product_id, '_sale_price_dates_from', true );
+			$sale_to_raw = get_post_meta( $product_id, '_sale_price_dates_to', true );
+			return self::observation_context(
+				array(
+					'simple' => 'product' === $post->post_type && in_array( 'simple', $own_slugs, true ),
+					'variation' => $is_variation_post && in_array( 'variation', $own_slugs, true ),
+					'status' => (string) $post->post_status,
+					'parent_status' => $parent_status,
+					'parent_variable' => $parent_variable,
+					'sale_price' => $sale_price,
+					'sale_from' => '' === $sale_from_raw ? null : $sale_from_raw,
+					'sale_to' => '' === $sale_to_raw ? null : $sale_to_raw,
+				),
+				$field
+			);
+		} catch ( \Throwable $error ) { return 'Current product details are unavailable.'; }
+	}
+
+	/**
 	 * Page-row display only: a new Woo edit-context read after targeted cache
 	 * eviction, using the same decimal interpretation as price verification.
 	 * Unlike execution/recovery invalidation, this does not delete transients
@@ -1470,18 +1668,22 @@ final class Free_Admin {
 		$unavailable = array( 'price' => 'Unavailable', 'context' => 'Current product details are unavailable.' );
 		try {
 			if ( ! current_user_can( 'edit_post', $product_id ) || ! empty( $GLOBALS['_wp_suspend_cache_invalidation'] ) ) { return $unavailable; }
-			wp_cache_delete( $product_id, 'posts' );
-			wp_cache_delete( $product_id, 'post_meta' );
-			\WC_Cache_Helper::invalidate_cache_group( 'product_' . $product_id );
-			wc_get_container()->get( \Automattic\WooCommerce\Internal\Caches\ProductCache::class )->remove( $product_id );
-			$product = wc_get_product( $product_id );
+			$product = Product_Price_Snapshot::fresh_product( $product_id );
 			if ( ! $product instanceof \WC_Product || $product->get_id() !== $product_id ) { return $unavailable; }
-			$snapshot = Product_Price_Snapshot::read( $product_id, $product )->data();
-			$context = '';
-			if ( ! $snapshot['core_simple'] && empty( $snapshot['core_variation'] ) ) { $context = 'At page load, this product is no longer a supported core simple product or variation.'; }
-			elseif ( ! empty( $snapshot['core_variation'] ) && ( 'publish' !== ( $snapshot['parent_status'] ?? '' ) || empty( $snapshot['parent_core_variable'] ) ) ) { $context = 'At page load, this variation’s parent is no longer a published core variable product.'; }
-			elseif ( 'publish' !== $snapshot['status'] ) { $context = 'At page load, this product is no longer published.'; }
-			elseif ( Price_Operation::FIELD_REGULAR === $field && ( '' !== $snapshot['sale_price'] || null !== $snapshot['sale_from'] || null !== $snapshot['sale_to'] ) ) { $context = 'At page load, this product has a sale price or schedule; a matching regular price alone does not authorize overwriting it.'; }
+		$snapshot = Product_Price_Snapshot::read( $product_id, $product )->data();
+			$context = self::observation_context(
+				array(
+					'simple' => ! empty( $snapshot['core_simple'] ),
+					'variation' => ! empty( $snapshot['core_variation'] ),
+					'status' => (string) $snapshot['status'],
+					'parent_status' => $snapshot['parent_status'] ?? null,
+					'parent_variable' => ! empty( $snapshot['parent_core_variable'] ),
+					'sale_price' => (string) $snapshot['sale_price'],
+					'sale_from' => $snapshot['sale_from'],
+					'sale_to' => $snapshot['sale_to'],
+				),
+				$field
+			);
 			$price = $snapshot[ Price_Operation::meta_key( $field ) ];
 			try { Price_Decimal::parse( $price ); } catch ( \Throwable $error ) { $price = 'Unavailable'; }
 			return array( 'price' => $price, 'context' => $context );
@@ -1516,26 +1718,30 @@ final class Free_Admin {
 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html( 'Back to bulk prices' ) . '</a> ';
 		echo '<a class="button" href="' . esc_url( self::page_url( 'history' ) ) . '">' . esc_html( 'Open history' ) . '</a></p>';
 		if ( self::reviewable( $job ) ) { self::job_action_link( $job, true ); echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">Create a new preview</a></p>'; }
+		echo '<div data-writeleash-progress="1" data-endpoint="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '" data-job="' . esc_attr( $public_id ) . '" data-nonce="' . esc_attr( wp_create_nonce( self::ACTION_PROGRESS . '_' . $public_id ) ) . '" data-action-url="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-offset="' . esc_attr( (string) $offset ) . '" data-filter="' . esc_attr( $filter ) . '">';
+		echo '<p><a class="button" href="' . esc_url( self::page_url( 'job', $public_id, $offset, $filter ) ) . '">Refresh saved progress</a> <span data-progress-connection>Automatic updates require JavaScript. Refresh to read saved progress.</span></p><p class="screen-reader-text" role="status" aria-live="polite" aria-atomic="true" data-progress-announcement></p>';
 		echo '<h2>Progress and results</h2><div class="writeleash-summary"><p><strong>' . esc_html( self::task_description( $plan->data() ) ) . '</strong></p>';
-		echo '<p><strong>' . esc_html( $complete_evidence ? self::job_label( $effective ) : 'Saved product outcomes unavailable; needs checking' ) . '</strong></p>';
-		if ( $complete_evidence ) { echo '<p>' . esc_html( self::result_summary( $counts, $effective, true ) ) . '</p>'; }
-		else { echo '<p>' . esc_html( 'Planned ' . $selected . ( 1 === $selected ? ' product.' : ' products.' ) . ' Some saved product evidence is unavailable. Check this job before taking further action.' ) . '</p>'; }
-		if ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { echo '<p>' . esc_html( self::reason_message( $observed['effective_reason'] ) ) . '</p>'; }
-		self::support_details( $effective . ' · ' . $observed['effective_reason'] . ' · ' . $job['public_id'] . ' · pending ' . $counts['pending'] . ' · applied ' . $counts['applied'] );
+		echo '<p><strong data-progress-label>' . esc_html( $complete_evidence ? self::job_label( $effective ) : 'Saved product outcomes unavailable; needs checking' ) . '</strong></p>';
+		if ( $complete_evidence ) { echo '<p data-progress-summary>' . esc_html( self::result_summary( $counts, $effective, true ) ) . '</p>'; }
+		else { echo '<p data-progress-summary>' . esc_html( 'Planned ' . $selected . ( 1 === $selected ? ' product.' : ' products.' ) . ' Some saved product evidence is unavailable. Check this job before taking further action.' ) . '</p>'; }
+		if ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { echo '<p data-progress-initial-notice>' . esc_html( self::reason_message( $observed['effective_reason'] ) ) . '</p>'; }
+		echo '<div data-progress-initial-notice>'; self::support_details( $effective . ' · ' . $observed['effective_reason'] . ' · ' . $job['public_id'] . ' · pending ' . $counts['pending'] . ' · applied ' . $counts['applied'] ); echo '</div>';
 		echo '</div>';
+		echo '<p data-progress-notice></p>';
 		if ( $observed['stalled'] ) {
-			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( 'Background processing stopped making progress. Use Resume remaining products to continue; completed changes are kept.' ) . '</p></div>';
+			echo '<div data-progress-initial-notice class="notice notice-warning" role="alert"><p>' . esc_html( 'Background processing stopped making progress. Use Resume remaining products to continue; completed changes are kept.' ) . '</p></div>';
 		}
 		if ( in_array( $effective, array( Job_State::COMPLETED_WITH_ISSUES, Job_State::NEEDS_REVIEW ), true ) ) {
-			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( Job_State::NEEDS_REVIEW === $effective ? 'An outcome needs checking. Review uncertain products before continuing remaining work; uncertain products will not be retried.' : 'The price change finished with products needing attention. Review conflicts and failed products below, then create a new preview if needed.' ) . '</p></div>';
+			echo '<div data-progress-initial-notice class="notice notice-warning" role="alert"><p>' . esc_html( Job_State::NEEDS_REVIEW === $effective ? 'An outcome needs checking. Review uncertain products before continuing remaining work; uncertain products will not be retried.' : 'The price change finished with products needing attention. Review conflicts and failed products below, then create a new preview if needed.' ) . '</p></div>';
 		}
 		if ( self::is_legacy_oversized_job( $job, $selected ) ) {
 			self::render_legacy_oversize_warning();
 		} elseif ( $selected > Free_Support_Contract::MAX_JOB_PRODUCTS ) {
 			echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $selected ) ) . '</p></div>';
 		}
+		echo '<div data-progress-resume>';
 		if ( $complete_evidence && Job_State::can_manual_run( $job['status'] ) && self::can_mutate() ) {
-			if ( in_array( $effective, array( Job_State::READY, Job_State::QUEUED ), true ) && ! $observed['stalled'] ) { echo '<p>' . esc_html( 'Waiting for background processing. Use Resume remaining products to run the next step now.' ) . '</p>'; }
+			if ( in_array( $effective, array( Job_State::READY, Job_State::QUEUED ), true ) && ! $observed['stalled'] ) { echo '<p data-progress-initial-notice>' . esc_html( 'Waiting for background processing. Use Resume remaining products to run the next step now.' ) . '</p>'; }
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_RESUME ) . '">';
 			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
@@ -1543,6 +1749,7 @@ final class Free_Admin {
 			echo '<p><button type="submit" class="button button-primary">' . esc_html( 'Resume remaining products' ) . '</button> ';
 			echo esc_html( 'Runs only the remaining products; completed changes are kept. Products changed since Preview are left alone.' ) . '</p></form>';
 		}
+		echo '</div>';
 		self::render_export_form( $job );
 		echo '<section class="writeleash-undo"><h2>' . esc_html( 'Undo' ) . '</h2>';
 		if ( $complete_evidence ) { self::render_undo_section( $job, $history, $plan->price_field() ); }
@@ -1586,8 +1793,11 @@ final class Free_Admin {
 			}
 
 			echo '</tbody></table></div>';
+			echo '<div data-progress-pager>';
 			self::render_pager( 'job', $job['public_id'], $offset, self::ITEM_PAGE_SIZE, $items['next_offset'], $filter );
+			echo '</div>';
 		}
+		echo '</div>';
 	}
 
 	/** Post-approval states are durable authority, not a new size certification. */
@@ -1611,17 +1821,19 @@ final class Free_Admin {
 	private static function render_undo_section( array $job, array $history, string $field ): void {
 		$field_label = strtolower( Price_Operation::label( $field ) );
 		echo '<p>' . esc_html( 'Undo restores eligible ' . $field_label . ' values changed by this job to their values before this job. Later price or sale-setting changes are left alone. Undo does not reverse: orders, completed sales or effects in other plugins and services.' ) . '</p>';
-		echo '<p><strong>' . esc_html( self::undo_availability( $job, $history ) ) . '</strong></p>';
+		echo '<p><strong data-progress-undo-label>' . esc_html( self::undo_availability( $job, $history ) ) . '</strong></p>';
 		if ( ! empty( $history['undo_expires_at'] ) ) {
 			echo '<p>' . esc_html( 'Undo window ends: ' . self::site_time( $history['undo_expires_at'] ) ) . '</p>';
 		}
+		echo '<p data-progress-undo-summary></p><p data-progress-undo-notice></p>';
 		if ( ! empty( $history['undo']['operation_status'] ) ) {
 			$undo = $history['undo'];
 			$undo_review = (int) $undo['needs_review'];
-			echo '<p>' . esc_html( (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflict' . ( 1 === (int) $undo['conflict'] ? '' : 's' ) . ' · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' needing attention · ' . (int) $undo['applying'] . ' in progress · ' . $undo_review . ( 1 === $undo_review ? ' needs checking.' : ' need checking.' ) ) . '</p>';
-			self::support_details( $undo['operation_status'] . ' · ' . $undo['operation_reason'] );
+			echo '<p data-progress-initial-undo>' . esc_html( (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflict' . ( 1 === (int) $undo['conflict'] ? '' : 's' ) . ' · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' needing attention · ' . (int) $undo['applying'] . ' in progress · ' . $undo_review . ( 1 === $undo_review ? ' needs checking.' : ' need checking.' ) ) . '</p>';
+			echo '<div data-progress-initial-undo>'; self::support_details( $undo['operation_status'] . ' · ' . $undo['operation_reason'] ); echo '</div>';
 		}
 
+		echo '<div data-progress-undo>';
 		if ( $history['undo_eligible'] && self::can_mutate() && ( empty( $history['undo']['operation_status'] ) || Undo_State::can_manual_run( $history['undo']['operation_status'] ) ) ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_UNDO ) . '">';
@@ -1632,6 +1844,7 @@ final class Free_Admin {
 		} elseif ( $history['undo_eligible'] && ! self::can_mutate() ) {
 			echo '<p>You do not have permission to restore prices.</p>';
 		}
+		echo '</div>';
 	}
 
 	private static function render_history_view( int $offset ): void {

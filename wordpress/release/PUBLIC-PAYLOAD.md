@@ -171,3 +171,5 @@ Metadata mismatch/full public copy belong to #121. No ZIP/SVN or publication.
 must be retained and rerun at the same unchanged SHA.
 
 The public selection assets are `includes/free/free-selection.js`, a scoped Woo selectWoo progressive enhancement, and `includes/free/free-selection.css`, confined to the WriteLeash wrapper for form grouping, spacing, table scrolling, long-name wrapping and keyboard focus. `includes/free/admin-logo.png` is the supplied WriteLeash logo displayed beside the Admin heading. Native selection works without JavaScript; no bundled libraries/build output are shipped.
+
+| includes/free/free-progress.js | Read-only saved Apply and Undo polling client (#204) | PUBLIC_FREE_REQUIRED |

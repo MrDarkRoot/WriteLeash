@@ -25,6 +25,52 @@ final class Product_Price_Snapshot {
 	private array $values;
 	private function __construct( array $values ) { $this->values = $values; }
 	/**
+	 * Read a new public Woo CRUD object without reusing a factory instance.
+	 * Type/class resolution retains Woo's public extension filters; callers
+	 * still apply the existing exact-core eligibility rules. No save, transient
+	 * deletion, SQL write or guessed object-cache key belongs to this read.
+	 *
+	 * Only Woo's three exact core classes are constructed, each through its
+	 * own literal `new` expression; a construction failure is rethrown as a
+	 * typed, conservatively retryable `unreadable_product_data` failure.
+	 *
+	 * A classname that resolves to a WC_Product subclass outside the three
+	 * exact core classes (Woo external/grouped product types, extension
+	 * subclasses, filtered classnames) is a stable unsupported product class
+	 * and is refused terminally as `unsupported_product_type` without ever
+	 * being instantiated. A resolved string that is not a WC_Product at all
+	 * (for example `stdClass`) is a broken mapping, not a product type, and is
+	 * kept conservatively unreadable. Neither path may substitute a core class:
+	 * that would be an unproven fallback that could make an unsupported
+	 * product eligible for a write.
+	 */
+	public static function fresh_product( int $id ) {
+		if ( $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
+		if ( ! function_exists( 'wc_get_product' ) || ! class_exists( '\WC_Product_Factory' ) || ! class_exists( '\WC_Cache_Helper' ) || ! empty( $GLOBALS['_wp_suspend_cache_invalidation'] ) ) { throw new Price_Validation_Error( 'unreadable_product_data' ); }
+		clean_post_cache( $id );
+		wp_cache_delete( $id, 'post_meta' );
+		// Woo's public type lookup uses this product group too. Evict it before
+		// resolving the class, so a concurrent type edit cannot reuse old type.
+		\WC_Cache_Helper::invalidate_cache_group( 'product_' . $id );
+		$type = \WC_Product_Factory::get_product_type( $id );
+		if ( ! $type ) { return false; }
+		$class = \WC_Product_Factory::get_product_classname( $id, $type );
+		if ( ! is_string( $class ) ) { throw new Price_Validation_Error( 'unreadable_product_data' ); }
+		if ( 'WC_Product_Simple' !== $class && 'WC_Product_Variation' !== $class && 'WC_Product_Variable' !== $class ) {
+			// Stable unsupported product class, never an automatically
+			// retryable read failure; a non-product classname stays unreadable.
+			if ( is_a( $class, '\WC_Product', true ) ) { throw new Price_Validation_Error( 'unsupported_product_type' ); }
+			throw new Price_Validation_Error( 'unreadable_product_data' );
+		}
+		try {
+			if ( 'WC_Product_Simple' === $class ) { $product = new \WC_Product_Simple( $id ); }
+			elseif ( 'WC_Product_Variation' === $class ) { $product = new \WC_Product_Variation( $id ); }
+			else { $product = new \WC_Product_Variable( $id ); }
+		} catch ( \Throwable $error ) { throw new Price_Validation_Error( 'unreadable_product_data' ); }
+		if ( ! $product instanceof \WC_Product || $product->get_id() !== $id ) { throw new Price_Validation_Error( 'unreadable_product_data' ); }
+		return $product;
+	}
+	/**
 	 * A snapshot always carries the core simple/variation identity fields so
 	 * plans can freeze and explain either kind. `$parent` is an optional,
 	 * already-read variable parent for a variation; when omitted the parent
@@ -56,6 +102,18 @@ final class Product_Price_Snapshot {
 		if ( $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
 		return new self( self::missing_values( $id, true ) );
 	}
+	/**
+	 * A present, stable unsupported product class: exists, not unreadable, no
+	 * core identity and no prices, so eligibility yields the terminal
+	 * `unsupported_product_type` refusal instead of a retryable read failure.
+	 */
+	public static function unsupported_type( int $id, string $name = '' ): self {
+		if ( $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
+		$values = self::missing_values( $id, false );
+		$values['exists'] = true;
+		$values['name'] = $name;
+		return new self( $values );
+	}
 	/** The pre-#179 shape plus the always-present variation identity fields. */
 	private static function missing_values( int $id, bool $unreadable ): array {
 		return array(
@@ -75,7 +133,7 @@ final class Product_Price_Snapshot {
 		$parent_id = (int) $product->get_parent_id( 'edit' );
 		$facts['parent_id'] = $parent_id;
 		if ( ! $parent instanceof \WC_Product && $parent_id > 0 && function_exists( 'wc_get_product' ) ) {
-			try { $parent = wc_get_product( $parent_id ); }
+			try { $parent = self::fresh_product( $parent_id ); }
 			catch ( \Throwable $error ) { $parent = null; }
 		}
 		if ( $parent instanceof \WC_Product ) {
