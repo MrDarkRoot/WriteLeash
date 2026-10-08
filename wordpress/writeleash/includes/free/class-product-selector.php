@@ -36,9 +36,9 @@ final class Price_Selection_Spec {
 		if ( '' === $sku || strlen( $sku ) > 100 || preg_match( '/[\x00-\x20\x7f<>]/', $sku ) || '*' === $sku || ! preg_match( '//u', $sku ) ) { throw new Price_Validation_Error( 'invalid_sku' ); }
 		return new self( array( 'type' => 'SKU', 'sku' => $sku, 'warnings' => array() ) );
 	}
-	public static function category( int $term_id ): self {
+	public static function category( int $term_id, bool $include_children = false ): self {
 		if ( $term_id < 1 ) { throw new Price_Validation_Error( 'invalid_category' ); }
-		return new self( array( 'type' => 'CATEGORY', 'term_id' => $term_id, 'include_children' => false, 'warnings' => array() ) );
+		return new self( array( 'type' => 'CATEGORY', 'term_id' => $term_id, 'include_children' => $include_children, 'warnings' => array() ) );
 	}
 	public function data(): array { return $this->values; }
 }
@@ -63,10 +63,15 @@ final class Product_Price_Selector {
 		} else {
 			$term = get_term( $s['term_id'], 'product_cat' );
 			if ( ! $term || is_wp_error( $term ) ) { throw new Price_Validation_Error( 'invalid_category' ); }
-			$args['tax_query'] = array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => array( $s['term_id'] ), 'include_children' => false ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+			$args['tax_query'] = array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => array( $s['term_id'] ), 'include_children' => $s['include_children'] ?? false ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 		}
+		// A supported variation has one core parent. At most 1000 final targets
+		// can therefore include 1000 extra parent rows before expansion. Keep
+		// discovery bounded without rejecting parent + directly categorized child overlap.
+		$raw_limit = 'CATEGORY' === $s['type'] ? 2 * self::MAX_SELECTED : self::MAX_SELECTED;
+		$args['posts_per_page'] = $raw_limit + 1;
 		$query = new \WP_Query( $args );
-		if ( count( $query->posts ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
+		if ( count( $query->posts ) > $raw_limit ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
 		$products = array();
 		$unreadable = array();
 		foreach ( $query->posts as $post ) {
@@ -101,7 +106,7 @@ final class Product_Price_Selector {
 			$ids = array_values( array_unique( $ids ) );
 			sort( $ids, SORT_NUMERIC );
 		} else {
-			$ids = array_merge( array_keys( $products ), array_keys( $unreadable ) );
+			$ids = array_values( array_unique( array_merge( array_keys( $products ), array_keys( $unreadable ) ) ) );
 			sort( $ids, SORT_NUMERIC );
 		}
 		$snapshots = array();
@@ -114,6 +119,21 @@ final class Product_Price_Selector {
 			}
 		}
 		return $snapshots;
+	}
+	/** Informational read only. Preview independently resolves and freezes its own population. */
+	public static function discover_count( Price_Selection_Spec $spec ): array {
+		if ( ! get_current_user_id() || ! current_user_can( 'manage_woocommerce' ) || ! current_user_can( 'edit_products' ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
+		$snapshots = self::resolve( $spec );
+		$unreadable = 0;
+		$missing = 0;
+		foreach ( $snapshots as $snapshot ) {
+			$row = $snapshot->data();
+			// Do not disclose even a count for a population this actor cannot inspect.
+			if ( ! current_user_can( 'edit_post', $row['product_id'] ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
+			if ( ! empty( $row['unreadable'] ) ) { ++$unreadable; }
+			elseif ( ! $row['exists'] ) { ++$missing; }
+		}
+		return array( 'selected' => count( $snapshots ), 'unreadable' => $unreadable, 'missing' => $missing );
 	}
 	/** The exact resolved IDS selection a preview must freeze; other kinds keep their spec. */
 	public static function resolved_selection( Price_Selection_Spec $spec, array $snapshots ): Price_Selection_Spec {
@@ -159,13 +179,15 @@ final class Product_Price_Selector {
 			}
 			$expanded_children[ $product_id ] = $children;
 			foreach ( $children as $child_id ) {
-				if ( isset( $products[ $child_id ] ) || isset( $unreadable[ $child_id ] ) ) { continue; }
+				if ( isset( $products[ $child_id ] ) || isset( $unreadable[ $child_id ] ) || array_key_exists( $child_id, $expanded_products ) || isset( $expanded_unreadable[ $child_id ] ) ) { continue; }
 				try {
 					$child = wc_get_product( $child_id );
 					$expanded_products[ $child_id ] = $child instanceof \WC_Product ? $child : false;
 				} catch ( \Throwable $error ) {
 					$expanded_unreadable[ $child_id ] = true;
 				}
+				// Stop at the sentinel instead of reading every variation in an oversized parent.
+				if ( count( $expanded_products ) + count( $expanded_unreadable ) > self::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
 			}
 		}
 		foreach ( $unreadable as $product_id => $flag ) { $expanded_unreadable[ $product_id ] = true; }

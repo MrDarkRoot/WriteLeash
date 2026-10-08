@@ -55,3 +55,30 @@ $http_anon167 = http_request( 'GET', admin_url_abs( '/wp-admin/admin-ajax.php' )
 bok( 200 !== $http_anon167['code'] && ! str_contains( $http_anon167['body'], '"results"' ), 'anonymous request cannot reuse nonce/discover products' );
 $wl111_jar = $http_jar167;
 echo "#167 real HTTP discovery/native selection/session recovery/saved-review continuity: PASS\n";
+
+// #206 actual filter_input transport, including no-JavaScript native count.
+$http_root206 = wp_insert_term( $tag . '-206-root', 'product_cat' )['term_id'];
+$http_child206 = wp_insert_term( $tag . '-206-child', 'product_cat', array( 'parent' => $http_root206 ) )['term_id'];
+wp_set_object_terms( $ids[0], array( $http_root206 ), 'product_cat' );
+wp_set_object_terms( $ids[1], array( $http_child206 ), 'product_cat' );
+$http_home206 = admin_get( $bulk_url );
+$http_form206 = forms_for_action( $http_home206['body'], 'writeleash_free_preview' )[0];
+$http_post206 = array_merge( $http_form206, array( 'selector' => 'category', 'category' => (string) $http_root206, 'include_subcategories' => '1', 'selection_action' => 'count-targets', 'amount' => 'invalid-amount' ) );
+unset( $http_post206['product_ids[]'] );
+$http_jobs206 = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) );
+$http_count206 = http_post( $bulk_url, $http_post206 );
+beq( $http_count206['code'], 200, '#206 native count real POST' );
+bok( str_contains( $http_count206['body'], 'At last check: 2 deduplicated price targets' ), '#206 HTTP whitelist carries descendant toggle into count' );
+bok( str_contains( $http_count206['body'], 'name="include_subcategories" type="checkbox" value="1" checked' ), '#206 toggle retained on no-JS count render' );
+beq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $http_jobs206, '#206 HTTP count creates no job' );
+a11y_check( $http_count206['body'], '#206 native count' );
+unset( $http_post206['selection_action'] );
+$http_post206['amount'] = '80.00';
+$http_preview206 = http_post( admin_url_abs( '/wp-admin/admin-post.php' ), $http_post206 );
+bok( preg_match( '/wl_view=preview&wl_job=([0-9a-f-]{36})/', (string) $http_preview206['location'], $http_match206 ) === 1, '#206 HTTP Preview imports descendant scope' );
+$http_job206 = WriteLeash\Job_Repository::read_by_public_id( $http_match206[1] );
+$http_plan206 = WriteLeash\Job_Repository::hydrate_plan( $http_job206 );
+beq( $http_plan206->data()['resolved_product_ids'], array( $ids[0], $ids[1] ), '#206 HTTP Preview independently freezes both member IDs' );
+beq( $http_plan206->data()['selection']['include_children'], true, '#206 HTTP retained hashed category scope' );
+bok( str_contains( admin_get( (string) $http_preview206['location'] )['body'], 'direct members and all nested subcategories' ), '#206 HTTP saved review scope visible' );
+echo "#206 real HTTP category toggle/count/Preview/no-JS/accessibility: PASS\n";

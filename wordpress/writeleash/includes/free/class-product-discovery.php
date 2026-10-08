@@ -24,6 +24,12 @@ final class Product_Discovery {
 		}
 	}
 
+	/** Count discovery shares Preview target semantics but never creates or approves a plan. */
+	public static function selection_count( Price_Selection_Spec $selection ): array {
+		self::authorize();
+		return Product_Price_Selector::discover_count( $selection );
+	}
+
 	private static function bounds( string $term, int $page ): string {
 		self::authorize();
 		if ( strlen( $term ) > self::MAX_TERM_BYTES || ! preg_match( '//u', $term ) || preg_match( '/[\x00-\x1f\x7f]/', $term ) || $page < 1 || $page > self::MAX_PAGE ) {
