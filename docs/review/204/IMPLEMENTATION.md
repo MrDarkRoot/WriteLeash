@@ -1,13 +1,13 @@
 # Issue #204: live progress preparation
 
-Status: PARTIAL implementation prepared; graph/commit BLOCKED by GitNexus child-process sandbox failure; runtime/browser acceptance NOT_TESTED; PR_FAST FAIL at preserved #170 UI evidence gate. Do not merge this branch on unit evidence.
+Status: Implementation committed as `6a6a9ac91550c928101bebd2085874580a1c416a` on `work/204-live-progress`; GitNexus all/staged graph gates complete; runtime/browser acceptance NOT_TESTED; PR_FAST FAIL at preserved #170 UI evidence gate. Do not merge this branch on unit evidence.
 
 | Field | Result |
 |---|---|
 | Issue | #204 Refresh running job progress without reloading the page |
 | Base SHA | `c48e307efe7750d0fb36015c39d50a34675f9579` |
 | Branch | `work/204-live-progress` |
-| Head SHA | `c48e307efe7750d0fb36015c39d50a34675f9579` (base remains HEAD; no implementation commit because mandatory graph gate is BLOCKED). Implementation is preserved as staged diff/patch |
+| Head SHA | `6a6a9ac91550c928101bebd2085874580a1c416a` (implementation commit; base `c48e307efe7750d0fb36015c39d50a34675f9579`). Previous `spawnSync git EPERM` child-process blocker resolved in the 2026-10-08 runtime; complete graph gates below |
 | PR status | Not created; no push, merge, release dispatch, publication or deployment |
 | Support claims | Unchanged; no listing or supported ceilings changed |
 | Scope deviation | None in product scope. The approved new JS asset requires an explicit runtime allowlist/reference audit and manifest/ownership entries |
@@ -61,16 +61,21 @@ Commands are run from this branch checkout. PASS below is restricted to the comm
 | `python3 .github/ci/dependency-audit.py` | PASS |
 | `php wordpress/tests/release/readme-validate.php wordpress/writeleash` | PASS unchanged claims/listing |
 | `php wordpress/tests/release/historical-shim-cases.php wordpress/writeleash` | PASS immutable historical shim controls |
-| `php -l` changed PHP; `node --check` changed JS; `bash -n`/`sh -n` changed scripts; `git diff --check` | PASS |
-| `bash .github/ci/pr-fast.sh` | FAIL: `#122 assets: #170 UI source differs from reviewed capture` after Admin source changes. Original capture/proof hashes and rejection are preserved |
-| `docker info --format '{{.ServerVersion}}'` | BLOCKED: permission denied connecting to `/var/run/docker.sock`; no bypass attempted |
-| `bash wordpress/tests/admin/run.sh` / real-Woo `progress-integration.php` | NOT_TESTED runtime (Docker boundary); added fixture runs in existing two-engine/default/Redis Admin suite; no new matrix |
+| `php -l` changed PHP; `node --check` changed JS; `bash -n` changed scripts; `git diff --check` | PASS (`C2-lint.log`). `sh -n` applies to `in-container.sh` (PASS) but not to `run.sh`, which is `#!/usr/bin/env bash`; baseline `run.sh` fails `sh -n` identically, only invocation lines were added |
+| public-runtime allowlist negative control (exact guards, no weakening) | PASS (`C2-guard-control.log`): real 43-file manifest accepted; unknown `free-progress.js.map`/`other.js` rejected `non-public artifact`; `new $class($id)` still rejected `dynamic class dependency`; unreferenced `free-progress.js` rejected. Additions are only the finite manifest entry plus the explicit referenced-asset loop; the dynamic static/`new $variable` rejects are unchanged |
+| `bash .github/ci/pr-fast.sh` | FAIL at exactly `#122 assets: #170 UI source differs from reviewed capture` (`asset-audit.php:100`); `C2-pr-fast.log` is byte-identical to the prior `C-pr-fast-first.log` apart from the Python test timing; every gate before it PASSes and no new/earlier failure exists. Original capture/proof hashes and rejection are preserved; gate not edited/rehashed |
+| `docker info --format '{{.ServerVersion}}'` | BLOCKED: `/var/run/docker.sock` absent, docker service inactive (2026-10-08 runtime); no bypass and no sudo attempted (`C2-docker-blocker.log`) |
+| `bash wordpress/tests/admin/run.sh` / real-Woo `progress-integration.php` | NOT_TESTED runtime (Docker boundary); host invocation fails at `wp_set_current_user()` because no WordPress bootstrap exists outside the container harness. Added fixture runs in existing two-engine/default/Redis Admin suite; no new matrix |
 | Real-browser keyboard, live progress, expired AJAX session and accessibility | NOT_TESTED; unit DOM does not establish browser behavior |
-| GitNexus final `detect-changes --scope all --limit 10000 --repo WriteLeash` | BLOCKED: `Error: Git diff failed: spawnSync git EPERM`; CLI exit 0 does not change the reported failure |
-| GitNexus staged graph gate | BLOCKED by the same child-process boundary; no commit permitted |
+| GitNexus `detect-changes --scope all --repo WriteLeash` | PASS complete (exit 0): 12 files, 136 symbols, 21 affected processes, risk `critical`; no partial/truncated marker; receipt `C2-detect-all.json` |
+| GitNexus `detect-changes --scope staged --repo WriteLeash` | PASS complete (exit 0): same 12/136/21 counts, risk `critical`; no partial/truncated marker; receipt `C2-detect-staged.json` |
 | Exact-SHA RELEASE_FULL | NOT_TESTED; not separately authorized, not dispatched |
 
-Failing PR_FAST evidence is retained at `/tmp/writeleash-approved-20261008/evidence/C-pr-fast-first.log`; Docker evidence at `C-docker.log` in the same task-owned evidence directory. Prior passing baseline PR_FAST does not cover this changed head.
+Failing PR_FAST evidence is retained at `/tmp/writeleash-approved-20261008/evidence/C2-pr-fast.log` (prior run `C-pr-fast-first.log`); Docker evidence at `C2-docker-blocker.log` in the same task-owned evidence directory. Prior passing baseline PR_FAST does not cover this changed head.
+
+## 2026-10-08 resumption receipts
+
+The staged 12-file state was re-verified against `STATE.json` byte-for-byte before the commit. Full battery receipts (all PASS unless stated) are in `/tmp/writeleash-approved-20261008/evidence/`: `C2-progress-client.log`, `C2-progress-unit.log`, `C2-admin-audit.log`, `C2-package-preflight.log` (43-file closure), `C2-inventory-audit.log`, `C2-public-audit-cases.log`, `C2-test-artifact.log`, `C2-ownership-audit.log`, `C2-ownership-selection.log` (`CODE_INTEGRATION: admin`), `C2-dependency-audit.log`, `C2-readme-validate.log`, `C2-historical-shim.log`, `C2-lint.log`, `C2-guard-control.log`, `C2-gitnexus-status.log`, `C2-gitnexus-analyze.log`, `C2-detect-all.json`, `C2-detect-staged.json`, `C2-pr-fast.log` (the expected FAIL), `C2-progress-integration-attempt.log`, `C2-docker-blocker.log`. The GitNexus index was refreshed with `analyze --index-only` (357 unchanged rows preserved) and `status` verified up-to-date before the gates. The `detect-changes` CLI text form reports complete counts and no partial/truncated marker; its listing is display-capped, and the summary counts shown are consistent with the full symbol population (15 shown + 121, 10 shown + 11). Implementation commit: `6a6a9ac91550c928101bebd2085874580a1c416a`.
 
 ## Safety and coordination
 
@@ -80,6 +85,6 @@ The only shared production file is `class-free-admin.php`: this branch owns boot
 
 GitNexus was rebuilt for this clone after copied storage was identified as foreign. Fresh schema-4 runner status and empty incomplete reasons were verified before graph-dependent work. Initial `render_undo_section` impact was HIGH (direct `render_job_view`, then render/preview flows) and reported before edits; boot/job-view/client changes were LOW. `assets` and public-runtime audit function returned UNKNOWN, so hook/callsite text confirmation was required and recorded. Graph collection has documented process-budget omissions; absence of a process is not treated as evidence of no effect. Final graph change receipts are retained separately in the task evidence directory.
 
-Remaining blockers: restore a permitted GitNexus child-process environment and pass complete all/staged graph change analysis before committing; recapture and review legitimate #170 UI evidence through the repository's approved process without weakening its hash gate; run the owning Admin DB/cache suite including the new real-Woo poll audit; run real browser Apply/Undo/keyboard/accessibility/session journeys; obtain founder approval before the next repository-changing integration step. No issue closure or merge recommendation on present evidence.
+Remaining blockers: recapture and review legitimate #170 UI evidence through the repository's approved process without weakening its hash gate; run the owning Admin DB/cache suite including the new real-Woo poll audit; run real browser Apply/Undo/keyboard/accessibility/session journeys; obtain founder approval before the next repository-changing integration step. No issue closure or merge recommendation on present evidence.
 
-No sandbox bypass or checker patch was attempted. Final graph detector error is retained at `/tmp/writeleash-approved-20261008/evidence/C-detect-all.json` and staged receipt at `C-detect-staged.json`. The task-owned `C-204-live-progress.patch` preserves all staged implementation/test/document bytes for review. No code commit was created. Focused outcome cells intentionally retain their node and may need manual refresh after terminal polling stops; real-browser validation remains required.
+No sandbox bypass or checker patch was attempted. The prior `C-detect-all.json`/`C-detect-staged.json` EPERM bodies were superseded by the complete `C2` receipts; the task-owned `C-204-live-progress.patch` preserves the prepared implementation/test/document bytes for review. Code commit `6a6a9ac91550c928101bebd2085874580a1c416a` was created after all gates passed except the preserved PR_FAST #170 evidence FAIL. Focused outcome cells intentionally retain their node and may need manual refresh after terminal polling stops; real-browser validation remains required.
