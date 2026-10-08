@@ -1,6 +1,6 @@
 # Issue #204: live progress preparation
 
-Status: Implementation committed as `6a6a9ac91550c928101bebd2085874580a1c416a` on `work/204-live-progress`; GitNexus all/staged graph gates complete; runtime/browser acceptance NOT_TESTED; PR_FAST FAIL at preserved #170 UI evidence gate. Do not merge this branch on unit evidence.
+Status: Implementation committed as `6a6a9ac91550c928101bebd2085874580a1c416a` on `work/204-live-progress`; a review fix pass is committed as the branch head (`fix(admin): tighten live progress page/filter sync and boundary tests (#204)`; exact SHA recorded in PR #221 and the pr-fix receipts). GitNexus all/staged graph gates complete; runtime/browser acceptance NOT_TESTED; PR_FAST FAIL at preserved #170 UI evidence gate. Do not merge this branch on unit evidence.
 
 | Field | Result |
 |---|---|
@@ -76,6 +76,37 @@ Failing PR_FAST evidence is retained at `/tmp/writeleash-approved-20261008/evide
 ## 2026-10-08 resumption receipts
 
 The staged 12-file state was re-verified against `STATE.json` byte-for-byte before the commit. Full battery receipts (all PASS unless stated) are in `/tmp/writeleash-approved-20261008/evidence/`: `C2-progress-client.log`, `C2-progress-unit.log`, `C2-admin-audit.log`, `C2-package-preflight.log` (43-file closure), `C2-inventory-audit.log`, `C2-public-audit-cases.log`, `C2-test-artifact.log`, `C2-ownership-audit.log`, `C2-ownership-selection.log` (`CODE_INTEGRATION: admin`), `C2-dependency-audit.log`, `C2-readme-validate.log`, `C2-historical-shim.log`, `C2-lint.log`, `C2-guard-control.log`, `C2-gitnexus-status.log`, `C2-gitnexus-analyze.log`, `C2-detect-all.json`, `C2-detect-staged.json`, `C2-pr-fast.log` (the expected FAIL), `C2-progress-integration-attempt.log`, `C2-docker-blocker.log`. The GitNexus index was refreshed with `analyze --index-only` (357 unchanged rows preserved) and `status` verified up-to-date before the gates. The `detect-changes` CLI text form reports complete counts and no partial/truncated marker; its listing is display-capped, and the summary counts shown are consistent with the full symbol population (15 shown + 121, 10 shown + 11). Implementation commit: `6a6a9ac91550c928101bebd2085874580a1c416a`.
+
+## 2026-10-08 review fix pass (findings A/B)
+
+The fix commit is the branch head after `a1b7f3a317abefe92cd1fce88775579e585df312`. Receipts: `/tmp/writeleash-approved-20261008/evidence/pr-fix/221/`.
+
+Finding resolution:
+
+| Finding | Resolution | Evidence |
+|---|---|---|
+| A. Apply/Undo counters advance without reload | VERIFIED UNCHANGED | Shipped-client boundary test (saved label/summary/undo writes) |
+| A. Conflict/failure/stalled/uncertain stay distinguishable | VERIFIED UNCHANGED | `apply_attention`/`undo_attention` classes + separate durable counters in PHP unit and client tests |
+| A. Visible rows match current filter/page; server row order reflected | **FIXED** (production) | `updateRows()` now reconciles DOM order to the server page list via `insertBefore`; client tests pin reorder, filter/page change, and empty-state removal. Old client fails the new reorder regression (verified) |
+| A. Focused/outdated row never presented as current without explicit stale indicator | **FIXED (wording)** | Focused outcome, focused removed-review-link, and focused initial support details now state they still show the previous saved details/view; regression tests pin the phrases |
+| A. Out-of-order responses cannot regress state | VERIFIED UNCHANGED | Generation fence; late response after timeout already covered and retained |
+| A. Session expiry / network failures surface clearly | VERIFIED UNCHANGED | 403 message + backoff; test now also covers 401 |
+| A. Terminal jobs and hidden pages stop/back off polling | VERIFIED UNCHANGED | Terminal `poll:false` schedules nothing; hidden page aborts, pauses and resumes |
+| A. Manual/no-JS refresh stays functional; no framework | VERIFIED UNCHANGED | No-JS mount test (zero requests) plus source assertion that no framework is referenced |
+| B. Reads require actor/capability + job-bound nonce | VERIFIED UNCHANGED | PHP unit: anonymous, cross-actor, revoked capability, wrong/missing non-string nonce, nonce bound to a different job |
+| B. Cross-actor/guessed job IDs disclose no protected information | VERIFIED + TESTED | Exact two-key refusal shape; guessed public ID with its genuinely valid job-bound nonce refused after only the visibility lookup (no observe/plan/history/item reads) |
+| B. Endpoint read-only, never starts a worker | VERIFIED + TESTED | `__callStatic` mutation sentinels on both repository doubles + `Job_Worker`/`Undo_Worker` sentinels assert empty after every case; negative controls confirmed the sentinels fail the suite when a mutation/worker call is injected |
+| B. Resume/Undo POST handlers independently enforce authorization and durable state; UI availability/nonce never authorization | VERIFIED UNCHANGED (read) | `process_resume`/`process_undo` re-check capability, POST method, dependency, job lookup, action-bound nonce, actor authorization, terminal/resumable state, plan binding and product rights before `Job_Worker`/`Undo_Worker` run |
+| B. Missing durable evidence fails closed | VERIFIED UNCHANGED | Incomplete evidence disables poll, Resume/Undo and both nonces; handler paths return INVALID/UNAVAILABLE on binding/read failure |
+
+Behavior changes requiring justification:
+
+1. `free-progress.js` `updateRows()` reconciles rendered row order to the server page order. Previously new rows were appended in response order and existing rows never moved, so the visible list could disagree with the durable page/filter list. A focused row is deliberately never moved (moving a focused node drops focus in browsers): it keeps its place and the remaining rows are ordered around it; with no focus (the normal case) the server order is exact. This is the only synchronization behavior change.
+2. Focused stale text is now explicit ("still shows its previous saved details/view"). Mechanism unchanged (connection line as the indicator; focused nodes retained until blur).
+
+New/strengthened local tests: server-order reconciliation (with and without focus), focused removed row/link and focused cell stale wording, filter/page change (no stale rows; empty-state removal), pager `next_url` create/update/hide/show path and terminal-shape pager (disabled Next button replaced by a link), 401 and 403 stop, first-failure backoff message, timeout abort plus retry request, announcement de-duplication retained, PHP-constant/action/field-name parity and every JS `data-*` selector checked against the PHP renderer, PHP unit job-bound nonce mismatch, guessed public ID, offset at/over the real `MAX_EVIDENCE_ROWS` (unit double now mirrors the production constant, asserted against `class-undo-repository.php`), missing/non-string nonce, method case, extra repository failure paths, and read-only mutation/worker sentinels. The integration fixture additionally audits the guessed-public-ID case through the poll-only SQL/product-read wrapper; it remains Docker-bound and NOT_TESTED.
+
+Pager shape verification (unchanged): `render_pager()` emits one `<p>` with the Previous control first and the Next control last, so the shipped `querySelector('p').lastElementChild` targets the Next control for both the link and disabled-button shapes. The client and the test harness now both pin the terminal disabled-button shape; no selector change was needed.
 
 ## Safety and coordination
 

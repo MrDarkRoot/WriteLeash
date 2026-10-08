@@ -44,12 +44,12 @@
         var existing = Array.prototype.slice.call(body.querySelectorAll('tr[data-product-id]'));
         // Retain a focused review link if its filtered row has moved out of this page.
         if (existing.some(function (tr) { return wanted.indexOf(tr.getAttribute('data-product-id')) < 0 && tr.contains(document.activeElement); })) {
-            connectionText('Saved counters updated. Refresh the product list after leaving the focused link.');
+            connectionText('Saved counters updated; the focused review link still shows the previous view. Refresh the product list after leaving the focused link.');
             return;
         }
         existing.forEach(function (tr) { if (wanted.indexOf(tr.getAttribute('data-product-id')) < 0) { tr.remove(); } });
         Array.prototype.slice.call(body.querySelectorAll('tr:not([data-product-id])')).forEach(function (tr) { tr.remove(); });
-        rows.forEach(function (row) {
+        var rendered = rows.map(function (row) {
             var tr = existing.find(function (candidate) { return candidate.getAttribute('data-product-id') === String(row.id); });
             if (!tr) {
                 tr = document.createElement('tr');
@@ -60,16 +60,28 @@
                 body.appendChild(tr);
             }
             if (!tr.children[4].contains(document.activeElement)) { tr.children[4].textContent = row.apply; }
-            else { connectionText('Saved counters updated. Leave the focused outcome to refresh its details.'); }
+            else { connectionText('Saved counters updated; the focused outcome still shows its previous saved details. Leave the focused outcome to refresh it.'); }
             tr.children[4].className = row.apply_attention ? 'writeleash-attention' : '';
             if (!tr.children[5].contains(document.activeElement)) { tr.children[5].textContent = row.undo; }
-            else { connectionText('Saved counters updated. Leave the focused outcome to refresh its details.'); }
+            else { connectionText('Saved counters updated; the focused outcome still shows its previous saved details. Leave the focused outcome to refresh it.'); }
             tr.children[5].className = row.undo_attention ? 'writeleash-attention' : '';
+            return tr;
         });
         if (!rows.length) {
             var empty = document.createElement('tr'), cell = document.createElement('td');
             cell.colSpan = 6; cell.textContent = 'No retained products on this page match this view.'; empty.appendChild(cell); body.appendChild(empty);
+            return;
         }
+        // Reflect the durable server page order. Moving a focused row would drop
+        // focus, so a focused row keeps its place and the remaining rows are
+        // reconciled to the server order around it; without focus this is exact.
+        var index = 0;
+        rendered.forEach(function (tr) {
+            if (body.children[index] === tr) { index += 1; return; }
+            if (tr.contains(document.activeElement)) { return; }
+            body.insertBefore(tr, body.children[index] || null);
+            index += 1;
+        });
     }
     function apply(data) {
         write('[data-progress-label]', data.label);
@@ -83,7 +95,7 @@
         Array.prototype.slice.call(root.querySelectorAll('[data-progress-initial-notice], [data-progress-initial-undo]')).forEach(function (node) {
             if (node.contains(document.activeElement)) {
                 node.addEventListener('focusout', function hide() { node.removeEventListener('focusout', hide); node.hidden = true; });
-                connectionText('Saved counters updated. Leave the focused support details to refresh them.');
+                connectionText('Saved counters updated; the focused support details still show the previous saved values. Leave the focused support details to refresh them.');
             } else { node.hidden = true; }
         });
         updateRows(data.rows);
