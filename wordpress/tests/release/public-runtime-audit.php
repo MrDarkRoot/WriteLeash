@@ -19,7 +19,7 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 	foreach ( $entries as $entry ) {
 		// Finite release files + reviewed common classes + Woo class directory.
 		// The closure below further rejects even an unused PHP file here.
-		if ( ! in_array( $entry, array( 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-selection.css', 'includes/free/admin-logo.png',
+		if ( ! in_array( $entry, array( 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-progress.js', 'includes/free/free-selection.css', 'includes/free/admin-logo.png',
 			'includes/class-environment.php', 'includes/class-lifecycle.php', 'includes/class-plugin.php' ), true ) &&
 			! preg_match( '#\Aincludes/free/class-[a-z-]+\.php\z#D', $entry ) ) {
 			$fail( 'non-public artifact in manifest: ' . $entry );
@@ -34,8 +34,7 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 		if ( ! $image || IMAGETYPE_PNG !== $image[2] || $image[0] !== $image[1] || filesize( $logo ) > 2 * 1024 * 1024 ) { $fail( 'invalid Admin logo' ); }
 		if ( false === strpos( (string) file_get_contents( $root . '/includes/free/class-free-admin.php' ), "plugins_url( 'includes/free/admin-logo.png', WRITELEASH_PLUGIN_FILE )" ) ) { $fail( 'unreferenced Admin logo' ); }
 	}
-	foreach ( array( 'js', 'css' ) as $extension ) {
-		$asset = 'includes/free/free-selection.' . $extension;
+	foreach ( array( 'includes/free/free-selection.js', 'includes/free/free-selection.css', 'includes/free/free-progress.js' ) as $asset ) {
 		if ( in_array( $asset, $entries, true ) && false === strpos( (string) file_get_contents( $root . '/includes/free/class-free-admin.php' ), "plugins_url( '" . $asset . "', WRITELEASH_PLUGIN_FILE )" ) ) { $fail( 'unreferenced public selection asset' ); }
 	}
 	$pending = array( 'writeleash.php', 'uninstall.php' );
