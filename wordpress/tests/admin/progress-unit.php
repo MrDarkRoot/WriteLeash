@@ -2,6 +2,7 @@
 // #204 boundary unit checks. Repository doubles do not establish Woo runtime correctness.
 namespace {
 	define( 'ABSPATH', __DIR__ );
+	define( 'WC_VERSION', '11.1.2' );
 	$GLOBALS['wl204_actor'] = 7; $GLOBALS['wl204_capable'] = true; $GLOBALS['wl204_http_error'] = null; $GLOBALS['wl204_workers'] = array();
 	function add_action( $hook, $callback, $priority = 10 ) { $GLOBALS['wl204_hooks'][$hook] = $callback; }
 	function nocache_headers() {}
@@ -19,6 +20,10 @@ namespace {
 	function get_woocommerce_currency_symbol( $currency ) { return '$'; }
 	function get_woocommerce_price_format() { return '%1$s%2$s'; }
 	function user_can( $id, $cap ) { return false; }
+	// The mutation-handler battery declares the supported Woo boundary so the
+	// shared dependency gate is exercised; repository doubles stay read-only.
+	function wc_get_product( $product = null ) { return null; }
+	function did_action( $hook ) { return 'woocommerce_init' === $hook; }
 }
 namespace WriteLeash {
 	class Job_Schema { public static function ready( $db ) { return true; } }
@@ -30,9 +35,12 @@ namespace WriteLeash {
 	class Job_Worker {
 		public static function run() { $GLOBALS['wl204_workers'][] = 'Job_Worker::run'; return array(); }
 		public static function queue_job() { $GLOBALS['wl204_workers'][] = 'Job_Worker::queue_job'; return false; }
+		public static function callback( $job_id ): void { $GLOBALS['wl204_workers'][] = 'Job_Worker::callback'; }
 	}
 	class Undo_Worker {
 		public static function run() { $GLOBALS['wl204_workers'][] = 'Undo_Worker::run'; return array(); }
+		public static function queue_undo( $undo_id ): string { $GLOBALS['wl204_workers'][] = 'Undo_Worker::queue_undo'; return 'skipped'; }
+		public static function callback( $undo_id ): void { $GLOBALS['wl204_workers'][] = 'Undo_Worker::callback'; }
 	}
 	class Job_Repository {
 		public const PUBLIC_ID_REGEX = '/\Ajob20[45]\z/D';
@@ -106,8 +114,88 @@ namespace {
 	Jobs::$read_throws = true; check204( Admin::progress_snapshot( $post, 'POST' )['status'], 'UNAVAILABLE', 'read error honest' ); Jobs::$read_throws = false;
 	Undo::$history_throws = true; check204( Admin::progress_snapshot( $post, 'POST' )['status'], 'UNAVAILABLE', 'history error honest' ); Undo::$history_throws = false;
 	Undo::$items_throws = true; check204( Admin::progress_snapshot( $post, 'POST' )['status'], 'UNAVAILABLE', 'item page error honest' ); Undo::$items_throws = false;
+	// Resume/Undo POST handlers are independent authority: each re-derives
+	// capability, POST, job regex, job-bound nonce, actor, terminal/resumable
+	// state and plan binding before any worker runs. The availability flags
+	// and nonces handed to the browser are never inputs to these handlers.
+	$resume_nonce = wp_create_nonce( Admin::ACTION_RESUME . '_job204' );
+	$undo_nonce = wp_create_nonce( Admin::ACTION_UNDO . '_job204' );
+	$workers_before = $GLOBALS['wl204_workers']; $jobs_mutations_before = Jobs::$mutations; $undo_mutations_before = Undo::$mutations;
+	check204( Admin::process_resume( array( 'job' => 'job204', '_wpnonce' => $resume_nonce ), 'GET' ), array( 'status' => 'INVALID', 'reason' => 'post_required' ), 'Resume requires POST' );
+	check204( Admin::process_undo( array( 'job' => 'job204', '_wpnonce' => $undo_nonce ), 'GET' ), array( 'status' => 'INVALID', 'reason' => 'post_required' ), 'Undo requires POST' );
+	$GLOBALS['wl204_capable'] = false;
+	check204( Admin::process_resume( array( 'job' => 'job204', '_wpnonce' => $resume_nonce ), 'POST' ), array( 'status' => 'FORBIDDEN', 'reason' => 'capability_required' ), 'Resume capability re-checked' );
+	check204( Admin::process_undo( array( 'job' => 'job204', '_wpnonce' => $undo_nonce ), 'POST' ), array( 'status' => 'FORBIDDEN', 'reason' => 'capability_required' ), 'Undo capability re-checked' );
+	$GLOBALS['wl204_capable'] = true;
+	check204( Admin::process_resume( array( 'job' => 'bad', '_wpnonce' => $resume_nonce ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_job' ), 'Resume job id is regex-checked' );
+	check204( Admin::process_undo( array( 'job' => 'bad', '_wpnonce' => $undo_nonce ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_job' ), 'Undo job id is regex-checked' );
+	check204( Admin::process_resume( array( 'job' => 'job204', '_wpnonce' => wp_create_nonce( Admin::ACTION_RESUME . '_job205' ) ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' ), 'Resume nonce is job-bound' );
+	check204( Admin::process_undo( array( 'job' => 'job204', '_wpnonce' => wp_create_nonce( Admin::ACTION_UNDO . '_job205' ) ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' ), 'Undo nonce is job-bound' );
+	check204( Admin::process_resume( array( 'job' => 'job204', '_wpnonce' => $undo_nonce ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' ), 'Resume rejects an Undo action nonce' );
+	check204( Admin::process_undo( array( 'job' => 'job204', '_wpnonce' => $resume_nonce ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' ), 'Undo rejects a Resume action nonce' );
+	$GLOBALS['wl204_actor'] = 8;
+	check204( Admin::process_resume( array( 'job' => 'job204', '_wpnonce' => $resume_nonce ), 'POST' ), array( 'status' => 'FORBIDDEN', 'reason' => 'not_authorized' ), 'Resume actor authorization re-checked' );
+	check204( Admin::process_undo( array( 'job' => 'job204', '_wpnonce' => $undo_nonce ), 'POST' ), array( 'status' => 'FORBIDDEN', 'reason' => 'not_authorized' ), 'Undo actor authorization re-checked' );
+	$GLOBALS['wl204_actor'] = 7;
+	Jobs::$state = 'COMPLETED';
+	check204( Admin::process_resume( array( 'job' => 'job204', '_wpnonce' => $resume_nonce, 'resume_available' => 'true' ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'job_terminal', 'public_id' => 'job204', 'job_status' => 'COMPLETED' ), 'terminal job refuses Resume despite a valid nonce and client availability' );
+	Jobs::$state = 'PLANNED';
+	check204( Admin::process_resume( array( 'job' => 'job204', '_wpnonce' => $resume_nonce ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'job_not_resumable', 'public_id' => 'job204', 'job_status' => 'PLANNED' ), 'non-resumable state refuses Resume' );
+	Jobs::$state = 'RUNNING';
+	check204( Admin::process_undo( array( 'job' => 'job204', '_wpnonce' => $undo_nonce, 'undo_available' => 'true' ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'undo_unavailable', 'public_id' => 'job204' ), 'Undo passes every pre-writer gate, then the mutation sentinel intercepts initiate' );
+	check204( Undo::$mutations, array_merge( $undo_mutations_before, array( 'initiate' ) ), 'Undo initiate is the only repository writer reached' );
+	Undo::$mutations = $undo_mutations_before;
+	check204( Jobs::$mutations, $jobs_mutations_before, 'Resume/Undo refusals never call a Job_Repository writer' );
+	check204( $GLOBALS['wl204_workers'], $workers_before, 'Resume/Undo refusals start no worker' );
+	// Source structure: the handlers re-check authority and never read the
+	// availability/nonce fields the progress snapshot hands to the browser.
+	$admin_source = (string) file_get_contents( __DIR__ . '/../../writeleash/includes/free/class-free-admin.php' );
+	$resume_start = strpos( $admin_source, 'function process_resume' );
+	$undo_start = strpos( $admin_source, 'function process_undo' );
+	$views_start = strpos( $admin_source, 'Read-only views', $undo_start );
+	check204( false !== $resume_start && false !== $undo_start && false !== $views_start && $resume_start < $undo_start && $undo_start < $views_start, true, 'handler section markers present' );
+	$resume_body = substr( $admin_source, $resume_start, $undo_start - $resume_start );
+	$undo_body = substr( $admin_source, $undo_start, $views_start - $undo_start );
+	foreach ( array( 'resume_available', 'undo_available', 'undo_button', 'resume_nonce', 'undo_nonce' ) as $hint ) {
+		check204( str_contains( $resume_body . $undo_body, $hint ), false, 'handlers never trust client hint ' . $hint );
+	}
+	foreach ( array( 'can_mutate', "'POST' !== \$method", 'wp_verify_nonce', 'authorized_for_job', 'Job_State::is_terminal', 'Job_State::can_manual_run', 'hydrate_plan', 'precheck_product_rights', 'Job_Worker::run' ) as $check ) {
+		check204( str_contains( $resume_body, $check ), true, 'Resume handler contains ' . $check );
+	}
+	foreach ( array( 'can_mutate', "'POST' !== \$method", 'wp_verify_nonce', 'authorized_for_job', 'hydrate_plan', 'Undo_Repository::initiate', 'Undo_State::is_terminal', 'Undo_Worker::run' ) as $check ) {
+		check204( str_contains( $undo_body, $check ), true, 'Undo handler contains ' . $check );
+	}
+	// Manual/no-JS fallback stays server-rendered: a GET refresh link plus the
+	// no-JavaScript notice, both independent of the shipped client.
+	check204( str_contains( $admin_source, 'Refresh saved progress' ) && str_contains( $admin_source, 'Automatic updates require JavaScript.' ), true, 'manual/no-JS refresh is server-rendered' );
+	// The read-only argument depends on the doubles defining reads only: any
+	// other explicit method would bypass the __callStatic mutation sentinel.
+	$jobs_reads = array_values( array_diff( get_class_methods( Jobs::class ), array( '__callStatic' ) ) ); sort( $jobs_reads );
+	check204( $jobs_reads, array( 'hydrate_plan', 'observe', 'read_by_public_id' ), 'Job_Repository double defines only the observed reads' );
+	$undo_reads = array_values( array_diff( get_class_methods( Undo::class ), array( '__callStatic' ) ) ); sort( $undo_reads );
+	check204( $undo_reads, array( 'authorized', 'history_items', 'history_job', 'observe' ), 'Undo_Repository double defines only the observed reads' );
+	// Self-control: the mutation sentinel intercepts every production writer
+	// name used by Resume/Undo, and the worker sentinels record every worker
+	// entrypoint (run/queue/callback). State is restored before the checks.
+	foreach ( array( 'create_from_plan', 'approve', 'refresh_counters', 'acquire_lease', 'fence', 'renew_lease', 'finish_chunk', 'transition_unlocked', 'mark_paused', 'reap_stalled_leases', 'pause_stalled', 'claim_next_item', 'release_lifecycle_claim', 'record_item', 'reconcile_item', 'cancel' ) as $writer ) {
+		$before_mutations = Jobs::$mutations;
+		try { Jobs::$writer(); } catch ( \Throwable $error ) {}
+		check204( count( Jobs::$mutations ) > count( $before_mutations ), true, 'Job_Repository mutation sentinel intercepts ' . $writer );
+		Jobs::$mutations = $before_mutations;
+	}
+	foreach ( array( 'initiate', 'refresh_counters', 'transition_item', 'claim_next_item', 'release_lifecycle_claim', 'record_item', 'reconcile_item', 'clear_claim', 'defer_item', 'acquire_lease', 'fence', 'renew_lease', 'finish_chunk', 'transition_unlocked', 'mark_paused', 'reap_stalled_leases', 'pause_stalled', 'cancel' ) as $writer ) {
+		$before_mutations = Undo::$mutations;
+		try { Undo::$writer(); } catch ( \Throwable $error ) {}
+		check204( count( Undo::$mutations ) > count( $before_mutations ), true, 'Undo_Repository mutation sentinel intercepts ' . $writer );
+		Undo::$mutations = $before_mutations;
+	}
+	$before_workers = $GLOBALS['wl204_workers'];
+	\WriteLeash\Job_Worker::queue_job( 4 ); \WriteLeash\Job_Worker::callback( 4 ); \WriteLeash\Job_Worker::run( 4 );
+	\WriteLeash\Undo_Worker::queue_undo( 3 ); \WriteLeash\Undo_Worker::callback( 3 ); \WriteLeash\Undo_Worker::run( 3 );
+	check204( count( $GLOBALS['wl204_workers'] ), count( $before_workers ) + 6, 'worker sentinels record run/queue/callback for both workers' );
+	$GLOBALS['wl204_workers'] = $before_workers;
 	check204( Jobs::$mutations, array(), 'progress never calls a mutating Job_Repository method' );
 	check204( Undo::$mutations, array(), 'progress never calls a mutating Undo_Repository method' );
 	check204( $GLOBALS['wl204_workers'], array(), 'progress never starts a worker' );
-	echo "#204 PHP boundary unit: capabilities/actor/nonce/types, job-bound nonce, guessed ID, persisted counters, stalled/terminal Apply/Undo, incomplete/error fail closed, read-only mutation/worker sentinels PASS (repository doubles; no Woo runtime claim)\n";
+	echo "#204 PHP boundary unit: capabilities/actor/nonce/types, job-bound nonce, guessed ID, persisted counters, stalled/terminal Apply/Undo, incomplete/error fail closed, Resume/Undo handler authority, reads-only repository doubles + mutation/worker sentinel self-controls PASS (repository doubles; no Woo runtime claim)\n";
 }

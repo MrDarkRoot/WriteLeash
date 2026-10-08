@@ -119,3 +119,69 @@ GitNexus was rebuilt for this clone after copied storage was identified as forei
 Remaining blockers: recapture and review legitimate #170 UI evidence through the repository's approved process without weakening its hash gate; run the owning Admin DB/cache suite including the new real-Woo poll audit; run real browser Apply/Undo/keyboard/accessibility/session journeys; obtain founder approval before the next repository-changing integration step. No issue closure or merge recommendation on present evidence.
 
 No sandbox bypass or checker patch was attempted. The prior `C-detect-all.json`/`C-detect-staged.json` EPERM bodies were superseded by the complete `C2` receipts; the task-owned `C-204-live-progress.patch` preserves the prepared implementation/test/document bytes for review. Code commit `6a6a9ac91550c928101bebd2085874580a1c416a` was created after all gates passed except the preserved PR_FAST #170 evidence FAIL. Focused outcome cells intentionally retain their node and may need manual refresh after terminal polling stops; real-browser validation remains required.
+
+## 2026-10-08 round-3 verification
+
+Round 3 starts from unchanged branch head `1e218cb8cab63d796dd4440aa17e6eeff59b5abd` and `origin/main` `c48e307efe7750d0fb36015c39d50a34675f9579`. No production defect was demonstrated, so no production code changed. The round-3 commit is test/document-only; its exact SHA is recorded in PR #221. Defaults verification was not repeated as a primary control: the round-3 evidence relies on the deterministic enumeration below plus the shipped test suite, not on a rerun comparison.
+
+### Exhaustive server-order / focus enumeration (no defect)
+
+`updateRows()` (`wordpress/writeleash/includes/free/free-progress.js:40-85`) was executed by the shipped client under the deterministic DOM harness with a property enumeration added to `wordpress/tests/admin/progress-client.cjs`:
+
+- Server page orders: **every permutation of 1..n for n = 1,2,3,4** (1 + 2 + 6 + 24 = 33 orders).
+- Initial row sets: every permutation of the same id set; every position of an extra row that must be removed; every position of a missing row that must be added, for both the server order and its reverse; and missing-row-plus-extra-row combinations. A row created during reconciliation cannot contain focus (it does not exist when focus is read), so the reachable "newly added row" equivalent is covered: focus on a retained row while another row is added in the same response.
+- Focus positions: no focus (detached sentinel); focus inside a seeded row at every position, including rows present in the server list at every position, rows being removed, and (per the previous bullet) rows co-occurring with newly added rows.
+
+Result: **9,996 enumerated cases, 69,481 assertion checks, 1,198 focused-removed deferrals, 0 violations**. Invariants asserted per case:
+
+1. No duplicate `data-product-id` rows ever.
+2. With no focused removed row: final rows equal the server page set exactly.
+3. Non-focused rows keep server relative order (for every ordered pair).
+4. A focused row is never the moved/removed node (`insertBefore`/`appendChild`/`remove` move log) and stays attached with its focus descendant.
+5. With no row focus: final DOM order equals server order exactly.
+6. A focused removed row defers the whole previous view: rows unchanged, no DOM edit, explicit "previous view" message, focus retained. This is the documented policy ("Retain a focused review link if its filtered row has moved out of this page"; IMPLEMENTATION.md "removed filtered review links retain their node and display an explicit stale-detail message"). The deferral is whole-view by design ("the focused review link still shows the previous view"), so other stale rows in that same response persist until focus leaves and a later update or manual refresh reconciles them; the literal per-row reading of the exception is superseded by this documented behavior and is recorded here rather than treated as a defect.
+
+Sensitivity (proves the enumeration is not vacuous): the updated suite run against the pre-fix client `6a6a9ac` exits 1 (first at the focused-stale wording assertion); an expanded task-owned scratch enumeration of **35,491 cases** reports **30,949 order/deferral violations against the pre-fix client** and **0 violations against the shipped client**. The enumeration adds ~4.9 s to `progress-client.cjs`.
+
+### Read-only AJAX endpoint audit
+
+`handle_progress()` (`class-free-admin.php:204-212`) reads four POST fields, calls `progress_snapshot()`, sends `nocache_headers()` and the JSON response only. `progress_snapshot()` (`:215-281`) performs exactly: actor/capability/POST gate (`:217`); `REGEX` + job-bound nonce check (`:219-221`); bounded offset/filter check (`:222-227`); `jobs_installed()` (`Job_Schema::ready`, `:135-142`: option read + `information_schema` SELECTs only, never installs); `load_job_for_view()` (`:1405-1414`, `Job_Repository::read_by_public_id`); `Job_Repository::observe()` (`class-job-repository.php:497-512`, SELECTs only); `Job_Repository::hydrate_plan()` (`:234-241`, JSON decode + binding assertions, no write); `Undo_Repository::history_job()` (`class-undo-repository.php:749-793`), `Undo_Repository::observe()` (`:662-676`) and `Undo_Repository::history_items()` (`:810-858`) — SELECT/join reads only, with the no-Undo-schema path at `:866-905`; then pure value formatting and `wp_create_nonce()` values in the response. No schema install, worker start, Resume, product/catalog read, cache eviction, option/transient write or repository mutation occurs; repository failures fail closed `UNAVAILABLE` (`:280`).
+
+Unit sentinels (`progress-unit.php`): the doubles define **reads only** and now assert it (`get_class_methods` exact sets: `Job_Repository` = `hydrate_plan, observe, read_by_public_id`; `Undo_Repository` = `authorized, history_items, history_job, observe`). Any other static call hits `__callStatic`, which records and throws. Round-3 additions: `Job_Worker::callback`, `Undo_Worker::queue_undo`, `Undo_Worker::callback` sentinels (both workers now cover run/queue/callback); self-controls proving the mutation sentinel intercepts every writer used by Resume/Undo (16 `Job_Repository` writers, 18 `Undo_Repository` writers) and that the worker sentinels record all six worker entrypoint calls; after the controls, `$mutations`/`$wl204_workers` are reset and the end-of-suite assertions again prove the progress endpoint performed none of them.
+
+### Resume/Undo handler authority citations (client hints are never authorization)
+
+`process_resume()` (`class-free-admin.php:603-656`): `can_mutate()` `:604`; exact POST `:607`; Woo dependency `:610`; `job_from_post()` regex + read `:612`/`:526-532`; nonce bound to `ACTION_RESUME . '_' . public_id` `:616-619`; actor authorization `:621` (`authorized_for_job` `:103-105`); terminal refusal `:624`; `can_manual_run()` refusal `:627`; plan re-hydration/binding `:631`; per-product `edit_post` precheck `:637`/`:514-524`; then `Job_Worker::run()` `:643`.
+
+`process_undo()` (`:663-713`): `can_mutate()` `:664`; exact POST `:667`; Woo dependency `:670`; `job_from_post()` `:672`; nonce bound to `ACTION_UNDO . '_' . public_id` `:676-679`; actor authorization `:681`; plan binding then `Undo_Repository::initiate()` `:688-689`, which independently re-checks non-zero initiator, job terminal state, actor rights, both capabilities, plan provenance/retention under `FOR UPDATE` locks (`class-undo-repository.php:123-209`); terminal undo refusal `:695`; then `Undo_Worker::run()` `:699`. Renderers emit the forms only inside `can_mutate()` plus state gates (`:1626`, `:1720`), so a forged client-side availability flag cannot enable a form; and the process bodies never read `resume_available`, `undo_available`, `undo_button`, `resume_nonce` or `undo_nonce` (source-structure assertions).
+
+Round-3 deterministic handler tests: POST-required, capability, job-regex, job-bound nonce, action-mixed nonce (Resume↔Undo), cross-actor refusal, terminal-Resume refusal with a valid nonce plus client `resume_available=true`, non-resumable-state refusal, and Undo reaching every pre-writer gate with the mutation sentinel intercepting `initiate` (only intercepted call recorded). The same battery asserts no worker starts on any refusal and `Job_Repository` sees no writer.
+
+### Test deltas (round 3)
+
+- `progress-client.cjs`: `updateRows()` property enumeration (dimensions/result above; 9,996 cases / 69,481 checks), per-case move log, `vm.Script` compile reuse. Existing assertions unchanged.
+- `progress-unit.php`: reads-only exact-set guards; writer-name/worker self-controls; Resume/Undo handler battery; process-body source assertions (no client hints; all checks present); manual/no-JS server-render assertion; Woo-availability boundary stubs for the handler battery.
+- `IMPLEMENTATION.md`: this section.
+
+### Round-3 local verification
+
+| Command | Actual outcome |
+|---|---|
+| `node wordpress/tests/admin/progress-client.cjs` | PASS, `pr-fix3/221/progress-client.log`: 9,996 cases, 69,481 checks, 1,198 deferrals, 0 violations |
+| `php wordpress/tests/admin/progress-unit.php` | PASS, `pr-fix3/221/progress-unit.log`: handler authority + reads-only doubles + sentinel self-controls |
+| `php wordpress/tests/admin/admin-audit.php wordpress/writeleash` | PASS |
+| `php wordpress/tests/release/package-preflight.php …` | PASS (explicit 43-file public closure) |
+| `php wordpress/tests/release/inventory-audit.php …` | PASS |
+| `php wordpress/tests/release/public-audit-cases.php …` | PASS |
+| `php wordpress/tests/release/readme-validate.php wordpress/writeleash` | PASS |
+| `php wordpress/tests/release/historical-shim-cases.php wordpress/writeleash` | PASS |
+| `python3 wordpress/release/test-artifact.py` | PASS (10 tests) |
+| `python3 .github/ci/ownership.py --audit` / selected paths | PASS; `CODE_INTEGRATION: admin` |
+| `python3 .github/ci/dependency-audit.py` | PASS |
+| lint: `php -l`, `node --check`, `bash -n`, `git diff --check` | PASS (`pr-fix3/221/lint.log`) |
+| `bash .github/ci/pr-fast.sh` | FAIL only at preserved `#170 UI source differs from reviewed capture` (`asset-audit.php:100`); log byte-identical to `C2-pr-fast.log` after timing normalization; no earlier/new failure |
+| Old-client sensitivity run (updated suite vs `6a6a9ac` client) | exit 1 (`pr-fix3/221/enumeration-old-client.log`); scratch enumeration 30,949/35,491 violations vs 0/35,491 on the shipped client |
+
+### Round-3 NOT_TESTED (unchanged runtime blockers)
+
+No WordPress/WooCommerce runtime or browser execution environment is available: `/var/run/docker.sock` is absent and `docker info` fails; the user is uid 1000 with `newuidmap`/`newgidmap` absent and `nf_tables` not loaded, so rootless preflight cannot be satisfied without root; `wordpress/tests/admin/browser-tools/package.json` declares `playwright`/`axe-core` but no `node_modules` is installed (`pr-fix3/221/runtime-blocker.log`). Therefore real-browser live Apply/Undo advancement, keyboard navigation, accessibility tree/axe, real session-expiry journeys and the Docker-bound `progress-integration.php` (including its manual/no-JS and poll-only SQL/product-read wrapper) remain **NOT_TESTED**. Unit DOM/repository doubles do not establish browser or Woo runtime behavior, and no claim is made otherwise.
