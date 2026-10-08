@@ -128,7 +128,7 @@ final class Woo_Undo_Mutator {
 			wp_cache_delete( 'alloptions', 'options' );
 			foreach ( array( 'woocommerce_currency', 'woocommerce_price_num_decimals', $role_key ) as $key ) { wp_cache_delete( $key, 'options' ); }
 			Price_Cache_Verifier::invalidate( $product_id );
-			$product = wc_get_product( $product_id );
+			$product = Product_Price_Snapshot::fresh_product( $product_id );
 			if ( ! $product || ! Price_Cache_Verifier::core_data_store( $product ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
 			$snapshot = Product_Price_Snapshot::read( $product_id, $product );
 			$snapshot_data = $snapshot->data();
@@ -343,7 +343,7 @@ final class Woo_Undo_Mutator {
 			}
 			$GLOBALS['wpdb'] = $db;
 			Price_Cache_Verifier::invalidate( $product_id );
-			$product = wc_get_product( $product_id );
+			$product = Product_Price_Snapshot::fresh_product( $product_id );
 			$is_variation = $product instanceof \WC_Product && 'WC_Product_Variation' === get_class( $product );
 			if ( ! $product || ( $is_variation ? 'WC_Product_Variation' : 'WC_Product_Simple' ) !== get_class( $product ) || 'publish' !== $product->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CACHE_VERIFICATION_FAILED' ); }
 			if ( $is_variation && (int) ( $evidence['parent_id'] ?? 0 ) !== (int) $product->get_parent_id( 'edit' ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }

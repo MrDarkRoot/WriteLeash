@@ -13,7 +13,11 @@ if ( ! defined( 'WC_VERSION' ) ) { define( 'WC_VERSION', '11.1.2' ); }
 if ( ! class_exists( 'WC_Product' ) ) {
 	class WC_Product {
 		private $data;
-		public function __construct( array $data = array() ) {
+		public function __construct( $data = array() ) {
+			if ( is_int( $data ) ) {
+				if ( isset( $GLOBALS['wl181_throwing'][ $data ] ) ) { throw new \RuntimeException( 'unreadable product fixture' ); }
+				$data = $GLOBALS['wl181_products'][ $data ]->data ?? array();
+			}
 			$this->data = array_merge( array( 'id' => 0, 'name' => '', 'sku' => '', 'type' => 'simple', 'status' => 'publish', 'regular_price' => '', 'sale_price' => '', 'sale_from' => null, 'sale_to' => null, 'category_ids' => array() ), $data );
 		}
 		public function get_id() { return (int) $this->data['id']; }
@@ -31,6 +35,15 @@ if ( ! class_exists( 'WC_Product' ) ) {
 if ( ! class_exists( 'WC_Product_Simple' ) ) {
 	class WC_Product_Simple extends WC_Product {}
 }
+if ( ! class_exists( 'WC_Product_Factory' ) ) {
+	class WC_Product_Factory {
+		public static function get_product_type( $id ) { return isset( $GLOBALS['wl181_throwing'][ $id ] ) ? 'simple' : ( isset( $GLOBALS['wl181_products'][ $id ] ) ? $GLOBALS['wl181_products'][ $id ]->get_type() : false ); }
+		public static function get_product_classname( $id, $type ) { return isset( $GLOBALS['wl181_products'][ $id ] ) ? get_class( $GLOBALS['wl181_products'][ $id ] ) : 'WC_Product_Simple'; }
+	}
+}
+if ( ! class_exists( 'WC_Cache_Helper' ) ) { class WC_Cache_Helper { public static function invalidate_cache_group( $group ): void {} } }
+if ( ! function_exists( 'clean_post_cache' ) ) { function clean_post_cache( $id ): void {} }
+if ( ! function_exists( 'wp_cache_delete' ) ) { function wp_cache_delete( $id, $group ): bool { return true; } }
 if ( ! class_exists( 'WP_Query' ) ) {
 	class WP_Query {
 		public $posts = array();

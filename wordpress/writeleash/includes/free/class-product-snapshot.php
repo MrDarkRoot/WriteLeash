@@ -25,6 +25,40 @@ final class Product_Price_Snapshot {
 	private array $values;
 	private function __construct( array $values ) { $this->values = $values; }
 	/**
+	 * Read a new public Woo CRUD object without reusing a factory instance.
+	 * Type/class resolution retains Woo's public extension filters; callers
+	 * still apply the existing exact-core eligibility rules. No save, transient
+	 * deletion, SQL write or guessed object-cache key belongs to this read.
+	 *
+	 * Only Woo's three exact core classes are constructed, each through its
+	 * own literal `new` expression. A product whose public factory maps it to
+	 * any other class (extension product types, filtered classnames, absent
+	 * classes downgraded to Simple, or a broken mapping) is refused as
+	 * unreadable instead of being instantiated: the runtime cannot construct
+	 * an arbitrary resolved classname without a dynamic class dependency, and
+	 * substituting a core class would be an unproven fallback that could make
+	 * an extension product eligible for a write.
+	 */
+	public static function fresh_product( int $id ) {
+		if ( $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
+		if ( ! function_exists( 'wc_get_product' ) || ! class_exists( '\WC_Product_Factory' ) || ! class_exists( '\WC_Cache_Helper' ) || ! empty( $GLOBALS['_wp_suspend_cache_invalidation'] ) ) { throw new Price_Validation_Error( 'unreadable_product_data' ); }
+		clean_post_cache( $id );
+		wp_cache_delete( $id, 'post_meta' );
+		// Woo's public type lookup uses this product group too. Evict it before
+		// resolving the class, so a concurrent type edit cannot reuse old type.
+		\WC_Cache_Helper::invalidate_cache_group( 'product_' . $id );
+		$type = \WC_Product_Factory::get_product_type( $id );
+		if ( ! $type ) { return false; }
+		$class = \WC_Product_Factory::get_product_classname( $id, $type );
+		if ( ! is_string( $class ) ) { throw new Price_Validation_Error( 'unreadable_product_data' ); }
+		if ( 'WC_Product_Simple' === $class ) { $product = new \WC_Product_Simple( $id ); }
+		elseif ( 'WC_Product_Variation' === $class ) { $product = new \WC_Product_Variation( $id ); }
+		elseif ( 'WC_Product_Variable' === $class ) { $product = new \WC_Product_Variable( $id ); }
+		else { throw new Price_Validation_Error( 'unreadable_product_data' ); }
+		if ( ! $product instanceof \WC_Product || $product->get_id() !== $id ) { throw new Price_Validation_Error( 'unreadable_product_data' ); }
+		return $product;
+	}
+	/**
 	 * A snapshot always carries the core simple/variation identity fields so
 	 * plans can freeze and explain either kind. `$parent` is an optional,
 	 * already-read variable parent for a variation; when omitted the parent
@@ -75,7 +109,7 @@ final class Product_Price_Snapshot {
 		$parent_id = (int) $product->get_parent_id( 'edit' );
 		$facts['parent_id'] = $parent_id;
 		if ( ! $parent instanceof \WC_Product && $parent_id > 0 && function_exists( 'wc_get_product' ) ) {
-			try { $parent = wc_get_product( $parent_id ); }
+			try { $parent = self::fresh_product( $parent_id ); }
 			catch ( \Throwable $error ) { $parent = null; }
 		}
 		if ( $parent instanceof \WC_Product ) {

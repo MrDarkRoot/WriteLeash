@@ -71,7 +71,7 @@ final class Product_Price_Selector {
 		$unreadable = array();
 		foreach ( $query->posts as $post ) {
 			try {
-				$product = wc_get_product( $post->ID );
+				$product = Product_Price_Snapshot::fresh_product( (int) $post->ID );
 				if ( 'SKU' === $s['type'] && ( ! $product instanceof \WC_Product || $product->get_sku( 'edit' ) !== $s['sku'] ) ) { continue; }
 				$products[ $post->ID ] = $product instanceof \WC_Product ? $product : false;
 			} catch ( \Throwable $error ) {
@@ -131,7 +131,7 @@ final class Product_Price_Selector {
 		if ( ! $product instanceof \WC_Product_Variation || ! function_exists( 'wc_get_product' ) ) { return null; }
 		try {
 			$parent_id = (int) $product->get_parent_id( 'edit' );
-			return $parent_id > 0 ? wc_get_product( $parent_id ) : null;
+			return $parent_id > 0 ? Product_Price_Snapshot::fresh_product( $parent_id ) : null;
 		} catch ( \Throwable $error ) { return null; }
 	}
 	/**
@@ -161,7 +161,7 @@ final class Product_Price_Selector {
 			foreach ( $children as $child_id ) {
 				if ( isset( $products[ $child_id ] ) || isset( $unreadable[ $child_id ] ) ) { continue; }
 				try {
-					$child = wc_get_product( $child_id );
+					$child = Product_Price_Snapshot::fresh_product( $child_id );
 					$expanded_products[ $child_id ] = $child instanceof \WC_Product ? $child : false;
 				} catch ( \Throwable $error ) {
 					$expanded_unreadable[ $child_id ] = true;
