@@ -119,6 +119,33 @@ try {
 		$assert209( $unreadable_plan209->item( $id209 )->data()['snapshot']['unreadable'], true, 'Preview retains explicitly unreadable product' );
 	} finally { remove_filter( 'woocommerce_product_class', $unreadable209, 10 ); }
 	$assert209( Decimal209::parse( $read209( $id209 )['price'] ), '95', 'failed freshness observations never change product price' );
+	// A live product whose public class mapping changes to a stable extension
+	// product class keeps the established terminal refusal with zero write; a
+	// resolved non-product classname stays a retryable read failure. Both are
+	// staged only for the Apply read, after a genuinely fresh Preview/seed.
+	$assert209( class_exists( 'WC_Product_External' ), true, 'extension fixture class available' );
+	$terminal_plan209 = $plan209( $id209, '80' );
+	Journal209::seed( $terminal_plan209 );
+	$extension_class209 = static function ( $class, $type, $context, $id ) use ( $id209 ) { return $id === $id209 ? 'WC_Product_External' : $class; };
+	add_filter( 'woocommerce_product_class', $extension_class209, 10, 4 );
+	try { $terminal209 = Mutator209::apply( $terminal_plan209, $id209 ); }
+	finally { remove_filter( 'woocommerce_product_class', $extension_class209, 10 ); }
+	$assert209( $terminal209['code'], 'UNSUPPORTED_PRODUCT_STATE', 'extension class mapping is a terminal unsupported refusal' );
+	$assert209( $terminal209['reason'], 'UNSUPPORTED_PRODUCT_STATE', 'terminal unsupported refusal keeps its stable reason' );
+	$assert209( Decimal209::parse( $read209( $id209 )['price'] ), '95', 'terminal unsupported refusal never writes' );
+	$terminal_row209 = Journal209::read( $GLOBALS['wpdb'], $terminal_plan209->data()['plan_id'], $id209 );
+	$assert209( $terminal_row209['state'], 'FAILED', 'terminal unsupported refusal is durable FAILED, never PENDING' );
+	$retry_plan209 = $plan209( $id209, '80' );
+	Journal209::seed( $retry_plan209 );
+	$broken_class209 = static function ( $class, $type, $context, $id ) use ( $id209 ) { return $id === $id209 ? 'stdClass' : $class; };
+	add_filter( 'woocommerce_product_class', $broken_class209, 10, 4 );
+	try { $retry209 = Mutator209::apply( $retry_plan209, $id209 ); }
+	finally { remove_filter( 'woocommerce_product_class', $broken_class209, 10 ); }
+	$assert209( $retry209['code'], 'FAILED', 'broken classname stays a retryable read failure' );
+	$assert209( $retry209['reason'], 'FAILED', 'retryable read failure keeps its generic reason' );
+	$assert209( Decimal209::parse( $read209( $id209 )['price'] ), '95', 'retryable read failure never writes' );
+	$retry_row209 = Journal209::read( $GLOBALS['wpdb'], $retry_plan209->data()['plan_id'], $id209 );
+	$assert209( $retry_row209['state'], 'PENDING', 'retryable read failure returns to durable PENDING' );
 	$suspended209 = $GLOBALS['_wp_suspend_cache_invalidation'] ?? false;
 	$GLOBALS['_wp_suspend_cache_invalidation'] = true;
 	try {

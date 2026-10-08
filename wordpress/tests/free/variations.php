@@ -290,15 +290,15 @@ namespace {
 	wl179_equal( $cat_plan->data()['resolved_product_ids'], array( 11, 12, 13, 60 ), 'category population is frozen by resolved IDs' );
 	wl179_equal( Selector::resolved_selection( $cat_spec, $cat_snapshots )->data(), $cat_spec->data(), 'non-IDS selections are not rewritten' );
 	$skus = Selector::resolve( S::sku( 'HOOD-BLUE-M' ) );
-	wl179_equal( array_map( static fn( $s ) => $s->data()['product_id'], $skus ), array( 11, 40, 50, 51, 52 ), 'an exact variation SKU resolves that variation; non-core classes stay explicit unreadable candidates instead of being silently dropped' );
+	wl179_equal( array_map( static fn( $s ) => $s->data()['product_id'], $skus ), array( 11, 40, 50, 51, 52 ), 'an exact variation SKU resolves that variation; non-core classes stay explicit unsupported candidates instead of being silently dropped' );
 	$sku_readable = array();
-	foreach ( $skus as $sku_snapshot ) { if ( $sku_snapshot->data()['exists'] ) { $sku_readable[] = $sku_snapshot->data()['product_id']; } }
+	foreach ( $skus as $sku_snapshot ) { if ( 'ELIGIBLE' === Eligibility::evaluate( $sku_snapshot, wl179_context() )->data()['state'] ) { $sku_readable[] = $sku_snapshot->data()['product_id']; } }
 	wl179_equal( $sku_readable, array( 11 ), 'an exact variation SKU byte-match admits exactly that one variation (advanced SKU stays one exact product)' );
 	$ext_expansion = Selector::resolve( S::ids( array( 50 ) ) );
 	wl179_equal( array_map( static fn( $s ) => $s->data()['product_id'], $ext_expansion ), array( 50 ), 'an extension variable parent is never expanded' );
 	$ext_expansion_data = $ext_expansion[0]->data();
-	wl179_equal( $ext_expansion_data['exists'] . '/' . $ext_expansion_data['unreadable'], '/1', 'an extension class is explicitly unreadable, never mislabeled present or absent' );
-	wl179_equal( Eligibility::evaluate( $ext_expansion[0], wl179_context() )->data()['reason'], 'unreadable_product_data', 'an extension class refusal stays a conservative typed refusal without a dynamic class dependency' );
+	wl179_equal( $ext_expansion_data['exists'] . '/' . $ext_expansion_data['unreadable'], '1/', 'an extension class is explicitly present and never mislabeled unreadable or absent' );
+	wl179_equal( Eligibility::evaluate( $ext_expansion[0], wl179_context() )->data()['reason'], 'unsupported_product_type', 'an extension class keeps the established terminal refusal without a dynamic class dependency' );
 	wl179_marker( 'parent expansion, dedupe, category expansion and the exact preview freeze' );
 
 	// ------------------------------------------------------------------

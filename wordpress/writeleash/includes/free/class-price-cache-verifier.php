@@ -96,7 +96,14 @@ final class Price_Cache_Verifier {
 		$post = $db->get_row( $db->prepare( "SELECT ID FROM {$db->posts} WHERE ID=%d FOR UPDATE", $parent_id ) );
 		if ( ! $post ) { throw new Price_Apply_Error( 'CONFLICT' ); }
 		self::invalidate( $parent_id );
-		$parent = Product_Price_Snapshot::fresh_product( $parent_id );
+		try { $parent = Product_Price_Snapshot::fresh_product( $parent_id ); }
+		catch ( Price_Validation_Error $error ) {
+			// A stable unsupported parent class restores the pre-change exact-class
+			// outcome: a concurrent product-state CONFLICT. A transient read
+			// failure is rethrown and stays retryable FAILED at the execution edge.
+			if ( 'unsupported_product_type' !== $error->getMessage() ) { throw $error; }
+			throw new Price_Apply_Error( 'CONFLICT' );
+		}
 		// A parent that is no longer a core variable product is a concurrent
 		// product-state conflict, never an environment/state corruption.
 		if ( ! $parent || 'WC_Product_Variable' !== get_class( $parent ) ) { throw new Price_Apply_Error( 'CONFLICT' ); }

@@ -15,7 +15,7 @@ class WC_Product {
 		$this->data = $GLOBALS['metadata209'][ $id ] ?? $GLOBALS['catalog209'][ $id ];
 		$GLOBALS['metadata209'][ $id ] = $this->data;
 	}
-	public function get_id() { return $this->id; }
+	public function get_id() { return isset( $GLOBALS['wrong_id209'] ) ? (int) $GLOBALS['wrong_id209'] : $this->id; }
 	public function get_regular_price( $context = 'view' ) { return $this->data['regular_price']; }
 }
 class WC_Product_Simple extends WC_Product {}
@@ -24,7 +24,9 @@ class WC_Product_Variable extends WC_Product {}
 class WC_Product_External209 extends WC_Product_Simple {
 	public function __construct( int $id ) { $GLOBALS['external209_constructed'] = true; parent::__construct( $id ); }
 }
-class WC_Product_WrongId209 extends WC_Product_Simple { public function get_id() { return 2; } }
+// A resolved classname that is not a WC_Product at all is a broken mapping,
+// never a product class, and is refused without ever being constructed.
+class WC_Product_WrongId209 { public function get_id() { return 2; } }
 class WC_Product_Factory {
 	public static function get_product_type( $id ) { return $GLOBALS['types209'][ $id ] ?? ( $GLOBALS['catalog209'][ $id ]['type'] ?? false ); }
 	public static function get_product_classname( $id, $type ) {
@@ -71,17 +73,23 @@ $types209[1] = 'simple'; $catalog209[1]['type'] = 'variation';
 $assert209( get_class( Snapshot209::fresh_product( 1 ) ), 'WC_Product_Variation', 'stale cached type is not reused' );
 $catalog209[1]['type'] = 'variable';
 $assert209( get_class( Snapshot209::fresh_product( 1 ) ), 'WC_Product_Variable', 'public variable class constructed literally' );
-// An extension classname resolved by the public factory is refused, never
-// instantiated (the runtime has no dynamic class dependency) and never
-// substituted with a core class that could become eligible for a write.
+// An extension classname resolved by the public factory is a stable
+// unsupported product class: terminal refusal, never instantiated (the
+// runtime has no dynamic class dependency) and never substituted with a core
+// class that could become eligible for a write.
 $GLOBALS['external209_constructed'] = false;
 $override209 = 'WC_Product_External209';
-$refuse209( static fn() => Snapshot209::fresh_product( 1 ), 'unreadable_product_data' );
+$refuse209( static fn() => Snapshot209::fresh_product( 1 ), 'unsupported_product_type' );
 $assert209( $GLOBALS['external209_constructed'], false, 'extension class is never constructed' );
 $override209 = 'stdClass'; $refuse209( static fn() => Snapshot209::fresh_product( 1 ), 'unreadable_product_data' );
 $override209 = 'WC_Product_WrongId209'; $refuse209( static fn() => Snapshot209::fresh_product( 1 ), 'unreadable_product_data' );
 $override209 = false; $refuse209( static fn() => Snapshot209::fresh_product( 1 ), 'unreadable_product_data' );
 unset( $override209 );
+// A core classname whose constructed object reports a different ID is a
+// constructor-result mismatch: typed unreadable, never silently accepted.
+$GLOBALS['wrong_id209'] = 2;
+$refuse209( static fn() => Snapshot209::fresh_product( 1 ), 'unreadable_product_data' );
+unset( $GLOBALS['wrong_id209'] );
 $assert209( Snapshot209::fresh_product( 999 ), false, 'absent public product type remains absent' );
 $refuse209( static fn() => Snapshot209::fresh_product( 0 ), 'invalid_product_id' );
 $GLOBALS['_wp_suspend_cache_invalidation'] = true;
