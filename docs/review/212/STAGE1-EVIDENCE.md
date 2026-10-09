@@ -114,3 +114,5 @@ The #212 branch changes are documentation only: this evidence report and the exe
 ## Parallel preparation update
 
 `docs/review/212/EXECUTION-CHECKLIST.md` was prepared while #211 package work remains in progress. It contains a checksum-bound artifact gate, environment/QIT ledgers, repeatable scenario worksheets for each of the six extensions, metadata and unsupported-type checks, and a failure capture template. This is preparation only; no candidate installation or acceptance scenario has run.
+
+Read-only syntax checks were run against the current, uncommitted #211 working-tree files: `php -l wordpress/tests/release/woo-candidate.php`, `php -l wordpress/tests/release/package-preflight.php`, `php -l wordpress/tests/release/public-runtime-audit.php`, and an in-memory Python `compile()` of `wordpress/release/build-woo-candidate.py`. All four checks passed. These are local source/tooling syntax checks only; they are not candidate build, artifact, installation, QIT, or compatibility results and do not change the artifact-gate status.
