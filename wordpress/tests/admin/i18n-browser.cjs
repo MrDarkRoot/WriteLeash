@@ -27,6 +27,18 @@ async function capture(page, name) {
  fs.mkdirSync(out, {recursive: true});
  await page.screenshot({path: out + '/210-' + name + '.png', fullPage: true});
 }
+async function typeSearch(page, field, term) {
+ // #170 uses real keyboard events; SelectWoo does not consistently query on fill().
+ await field.click(); await field.press('ControlOrMeta+A'); await field.press('Backspace');
+ const response = page.waitForResponse(r => {
+  const url = new URL(r.url());
+  return url.searchParams.get('action') === 'writeleash_free_discovery' && url.searchParams.get('term') === term;
+ });
+ await field.pressSequentially(term, {delay: 20});
+ const data = await (await response).json();
+ eq(data.success, true, 'real localized discovery response');
+ eq(data.data.results.length > 0, true, 'localized discovery has requested matches');
+}
 (async () => {
  // The existing owning job installs Firefox. Keep all assertions, including
  // pageerror, while avoiding Chromium's unrelated cross-document reveal abort.
@@ -60,7 +72,7 @@ async function capture(page, name) {
    }
    if (js) {
     const search = page.locator('#writeleash-free-products + .select2-container .select2-search__field');
-    await search.fill('Locale simple ' + f.actor);
+    await typeSearch(page, search, 'Locale simple ' + f.actor);
     await page.locator('.select2-results__option[data-selected]').filter({hasText: 'Locale simple ' + f.actor}).first().click();
     const remove = page.getByRole('button', {name: /\[Ü\] Remove .*Locale simple/});
     eq(await remove.count(), 1, 'JS selected-product remove accessible name translated');
@@ -77,7 +89,7 @@ async function capture(page, name) {
     if (js) {
      await page.locator('#writeleash-free-category + .select2-container .select2-selection').click();
      const search = page.locator('.select2-container--open .select2-search__field').last();
-     await search.fill(name);
+     await typeSearch(page, search, name);
      await page.locator('.select2-results__option[data-selected]').filter({hasText: name}).last().click();
     } else {
      await page.locator('#writeleash-free-category_search').fill(name);

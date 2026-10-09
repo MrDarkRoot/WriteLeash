@@ -72,3 +72,9 @@ Chromium and Firefox separately. No JavaScript exception assertion is filtered.
 The existing #170 English Chromium/Firefox keyboard checks remain mandatory and
 separate; their historical captures stay unchanged, while candidate fingerprints
 require the current-head owning CI browser execution. No certification claim follows.
+
+The two small `i18n-baseline-*.json` fixtures were captured from pre-implementation
+main `fd7a0dcd588bdfe0537a64f90f5417471950a8c0` by running its existing #178/#179
+model harnesses and exporting `$sale_plan->json()` and `$variation_plan->json()`.
+They retain genuine old schema/hash/selection/canonical values and are hydrated
+byte-for-byte under the translated presentation unit. They are test-only, not shipped.

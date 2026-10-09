@@ -65,11 +65,11 @@ final class Free_Admin {
 	public static function menu(): void {
 		$title = __( 'WriteLeash Bulk Prices', 'writeleash' );
 		if ( post_type_exists( 'product' ) ) {
-			add_submenu_page( 'edit.php?post_type=product', $title, __( 'Bulk Prices', 'writeleash' ), 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
+			add_submenu_page( 'edit.php?post_type=product', $title, esc_html__( 'Bulk Prices', 'writeleash' ), 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
 		} elseif ( function_exists( 'wc_get_product' ) ) {
-			add_submenu_page( 'woocommerce', $title, __( 'Bulk Prices', 'writeleash' ), 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
+			add_submenu_page( 'woocommerce', $title, esc_html__( 'Bulk Prices', 'writeleash' ), 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
 		} else {
-			add_management_page( $title, __( 'WriteLeash Bulk Prices', 'writeleash' ), 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
+			add_management_page( $title, esc_html__( 'WriteLeash Bulk Prices', 'writeleash' ), 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
 		}
 	}
 

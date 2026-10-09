@@ -85,3 +85,8 @@ requires the browser assertions and owning hosted checks.
 
 Delivery: Draft PR and exact HEAD/hosted links recorded in the PR after push.
 Merge readiness: HOLD until required hosted checks and effective-locale evidence pass.
+Firefox initially exposed a fixture search that used `fill()` without SelectWoo's
+keyboard events. The harness now uses real key presses and its own AJAX response,
+following #170's pattern. A targeted output-boundary check also verifies escaped
+translated submenu titles; WordPress renders menu labels as HTML. Small genuine
+pre-#210 simple/variation serialized fixtures now pin old plan bytes/hashes/IDs.
