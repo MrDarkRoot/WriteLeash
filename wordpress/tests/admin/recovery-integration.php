@@ -62,7 +62,7 @@ $deny = static function ( $caps, $cap, $uid, $args ) use ( $conflict ) { return 
 add_filter( 'map_meta_cap', $deny, 10, 4 );
 $eq( A::process_preview( $post( array( $conflict ), $source['public_id'] ), 'POST' )['status'], 'INVALID', 'current product rights' );
 remove_filter( 'map_meta_cap', $deny, 10 );
-$user = new WP_User( $actor ); $user->add_cap( 'manage_woocommerce', false );
+$user = wp_get_current_user(); $user->add_cap( 'manage_woocommerce', false );
 $eq( A::process_preview( $post( array( $conflict ), $source['public_id'] ), 'POST' )['reason'], 'capability_required', 'capability revoked' ); $user->remove_cap( 'manage_woocommerce' );
 // Source changed after opening: revalidate durable membership on submission.
 $row = R::items( (int) $source['id'], 'CONFLICT' )[0];

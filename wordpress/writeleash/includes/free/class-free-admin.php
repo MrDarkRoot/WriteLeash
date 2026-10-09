@@ -524,7 +524,7 @@ final class Free_Admin {
 		echo '<p><a class="button" href="' . esc_url( self::page_url( 'job', $public_id ) ) . '">Cancel and return to results</a></p>';
 		if ( ! $source['rows'] ) { echo '<p>No eligible Apply conflicts remain.</p>'; return; }
 		$d = $source['plan']->data(); $p = $d['policy_snapshot'];
-		$values = array( 'operation' => $d['operation']['type'], 'price_field' => $source['plan']->price_field(), 'amount' => $d['operation']['amount'],
+		$values = array( 'operation' => $d['operation']['type'], 'price_field' => $source['plan']->price_field(), 'amount' => $d['operation']['input'],
 			'max_products' => (string) $p['max_products_changed'], 'max_increase' => $p['max_increase_percent'], 'max_decrease' => $p['max_decrease_percent'], 'warning_threshold' => $p['warning_threshold_percent'], 'block_zero' => $p['block_zero'] ? '1' : '', 'product_ids' => array() );
 		if ( ( $form['source_job'] ?? null ) === $public_id ) { $values = array_merge( $values, $form ); }
 		self::render_selector_form( $values, $source );

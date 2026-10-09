@@ -22,3 +22,8 @@ Focused tests:
 The #170 source fingerprint is refreshed using its existing documented historical-capture/current-CI contract. Historical screenshots and observer results are preserved; candidate #170 browser execution and uploaded captures must pass before acceptance. Local Docker is stopped and sudo requires a password; rootless Docker lacks `newuidmap`. Local runtime checks are therefore blocked pending infrastructure. Hosted plan/journal/jobs/Undo/Admin and CI_COVERAGE remain mandatory.
 
 Acceptance is provisional pending runtime evidence. No merge, deployment, publication, issue closure or Ready-for-Review transition is authorized or performed.
+
+First hosted run `37876605197`: PR_FAST, plan and journal PASS. The new
+recovery browser detected HTTP 500 from an incorrect original-operation key
+(`amount` instead of persisted `input`); the mapping is corrected without
+changing the browser assertion. Remaining runtime acceptance is pending.
