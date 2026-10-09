@@ -309,6 +309,10 @@ namespace {
 	// ------------------------------------------------------------------
 	$blue_plan = Plan::create( 'wl179-blue', '2026-10-05T00:00:00Z', 1, wl179_context(), S::ids( array( 11, 12 ) ), new O( O::SET, '90' ), wl179_policy(), Selector::resolve( S::ids( array( 11, 12 ) ) ) );
 	wl179_equal( $blue_plan->precondition( 12, Snapshot::read( 12, $red_l, $parent ), wl179_context() )['state'], 'MATCH', 'variation regular field matches its frozen price' );
+	$unpublished_parent = new WC_Product_Variable( 10, array( 'type' => 'variable', 'status' => 'draft' ) );
+	wl179_equal( $blue_plan->precondition( 12, Snapshot::read( 12, $red_l, $unpublished_parent ), wl179_context() )['state'], 'CONFLICT', '#212 parent publication drift after Preview refuses Apply' );
+	$custom_parent = new WL179_Ext_Variable( 10, array( 'type' => 'variable', 'status' => 'publish' ) );
+	wl179_equal( $blue_plan->precondition( 12, Snapshot::read( 12, $red_l, $custom_parent ), wl179_context() )['state'], 'CONFLICT', '#212 parent becoming an extension subclass refuses Apply' );
 	wl179_equal( $blue_plan->precondition( 12, Snapshot::read( 12, wl179_variation( 12, 10, '100.00', '70.00', array( 'pa_color' => 'Red', 'pa_size' => 'L' ) ), $parent ), wl179_context() )['state'], 'MATCH', 'external sale change is not a regular-field conflict on a variation' );
 	wl179_equal( $blue_plan->precondition( 12, Snapshot::read( 12, wl179_variation( 12, 10, '110.00', '80.00', array( 'pa_color' => 'Red', 'pa_size' => 'L' ) ), $parent ), wl179_context() )['reasons'], array( 'regular_price_changed' ), 'variation regular drift conflicts' );
 	$sale_plan = Plan::create( 'wl179-sale', '2026-10-05T00:00:00Z', 1, wl179_context(), S::ids( array( 12 ) ), new O( O::SET, '70', O::FIELD_SALE ), wl179_policy(), Selector::resolve( S::ids( array( 12 ) ) ) );

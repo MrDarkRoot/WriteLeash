@@ -109,7 +109,7 @@ final class Price_Cache_Verifier {
 		}
 		// A parent that is no longer a core variable product is a concurrent
 		// product-state conflict, never an environment/state corruption.
-		if ( ! $parent || 'WC_Product_Variable' !== get_class( $parent ) ) { throw new Price_Apply_Error( 'CONFLICT' ); }
+		if ( ! $parent || 'WC_Product_Variable' !== get_class( $parent ) || 'publish' !== $parent->get_status( 'edit' ) ) { throw new Price_Apply_Error( 'CONFLICT' ); }
 		\WC_Product_Variable::sync( $parent );
 		self::assert_parent_range( $db, $parent_id, (array) $parent->get_visible_children() );
 	}
