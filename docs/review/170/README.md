@@ -80,3 +80,15 @@ baseline remain historical and unchanged; this refresh does not claim new
 screenshots. The existing Admin browser journey must pass against the exact
 PR head, as with the earlier source refresh above. No asset or CI assertion is
 relaxed to accommodate the wording correction.
+
+## Issue #205 candidate source refresh
+
+The Admin source fingerprint includes the Apply-conflict selection and fresh
+Preview handoff. Historical PNGs, independent observer results and their hashes
+remain unchanged. This follows the existing source-refresh contract above; it
+does not claim that those historical screenshots show the new recovery flow.
+The exact candidate must pass the hosted Admin gate, which reruns #170 in
+Chromium and Firefox and uploads candidate captures and results. The same runner
+now also executes #205 recovery with JavaScript enabled and disabled, saving
+`205-recovery-result.json` and recovery/Preview screenshots separately. Until
+that runtime check passes, the fingerprint refresh is not acceptance evidence.
