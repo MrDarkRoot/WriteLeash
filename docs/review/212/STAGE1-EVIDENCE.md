@@ -15,10 +15,10 @@ Evidence collected 2026-10-09 from the local checkout and public GitHub/official
 | Candidate ZIP filename/path | **Not provided / not found** |
 | Candidate ZIP SHA-256 | **Not available; not computed** |
 | Candidate public inventory | **Not provided / unverified** |
-| Candidate builder revision | **Not provided / unverified** |
+| Candidate builder revision | An untracked local `wordpress/release/build-woo-candidate.py` exists; **revision and output unverified** |
 | Candidate installation/activation | **Not performed** |
 
-The current checkout is on branch `work/211-woo-exact-review-package` and contains uncommitted #211-looking package-preparation changes: the plugin header/readme declare version `0.2.0`, and untracked `wordpress/writeleash/changelog.txt` plus `wordpress/release/writeleash-woo-distribution-files.txt` are present. This is not a frozen source revision: the source SHA cannot represent those changes, and no #211 implementation PR or commit was identified. No Woo candidate ZIP was found. The only ZIP found in the workspace search is `docs/review/188/artifacts/writeleash-main-2e059ca.zip`, which is unrelated and was not used.
+The current checkout is on branch `work/211-woo-exact-review-package` and contains uncommitted #211-looking package-preparation changes: the plugin header/readme declare version `0.2.0`; untracked `wordpress/writeleash/changelog.txt`, `wordpress/release/writeleash-woo-distribution-files.txt`, and `wordpress/release/build-woo-candidate.py` are present. This is not a frozen source revision: the source SHA cannot represent those changes, and no #211 implementation PR or commit was identified. The local builder's output and revision were not verified. No Woo candidate ZIP was found. The only ZIP found in the workspace search is `docs/review/188/artifacts/writeleash-main-2e059ca.zip`, which is unrelated and was not used.
 
 The repository also contains `wordpress/release/artifact-194-evidence.json` for the historical WordPress.org v0.1 artifact. That receipt records source SHA `6f8ae7de58afd7f33cd5889738f7b79cdc35b0e6`, version `0.1.0`, and ZIP SHA-256 `b8bd5f406667f6f686348ea67453ec25b90e09607cd9a13b542e6054c9f8a3e8`. This is **not** established as the #211 candidate and was not used for acceptance testing. The existing builder is pinned to that historical SHA and explicitly rejects other source revisions.
 
@@ -83,7 +83,7 @@ No product test executed; consequently there are no observed product defects, pr
 
 **Expected:** An exact #211 candidate identity and retrievable artifact are available before acceptance execution.
 
-**Observed:** #211 remains open with no implementation PR/comments identifying the frozen candidate. The current branch has dirty local #211 package-preparation edits declaring version 0.2.0 but has no frozen commit or Woo ZIP; the historical #194 v0.1 receipt is a distinct artifact. `qit` is not installed; Docker daemon is unavailable.
+**Observed:** #211 remains open with no implementation PR/comments identifying the frozen candidate. The current branch has dirty local #211 package-preparation edits and an untracked builder declaring a 0.2.0 payload, but no frozen commit or Woo ZIP; the historical #194 v0.1 receipt is a distinct artifact. `qit` is not installed; Docker daemon is unavailable.
 
 **Candidate checksum:** None; not fabricated.
 **Logs:** Findings and command observations are captured in this report; no QIT run log exists.
@@ -103,7 +103,7 @@ Minimal action to unblock Stage 1: first complete #211's frozen-candidate handof
 - **Observed product failures requiring diagnosis:** None observed; no product tests ran.
 - **Unverified scenarios:** All seven QIT suites; all six extension scenarios and all described simple/variation/conflict/metadata/custom-type checks; install/activation; Woo CRUD/lookup behavior; HPOS and legacy storage; support-window platform combinations.
 - **Artifact checksum:** None — the #211 candidate is not yet identified. Do not associate historical #194 checksum with this work.
-- **Commands/environment checks:** `qit` not found; `wp --info` reports WP-CLI 2.12.0 and PHP 8.2.32; `docker compose version` reports 5.1.4; `docker info` fails because Docker daemon socket is absent. GitHub inspection showed #211 OPEN and no related PR among the repository PRs inspected. Local #211 working-tree package preparations declare 0.2.0 but are uncommitted and not a frozen candidate.
+- **Commands/environment checks:** `qit` not found; `wp --info` reports WP-CLI 2.12.0 and PHP 8.2.32; `docker compose version` reports 5.1.4; `docker info` fails because Docker daemon socket is absent. GitHub inspection showed #211 OPEN and no related PR among the repository PRs inspected. Local #211 working-tree package preparations and candidate builder declare/target 0.2.0 but are uncommitted; builder output was not verified and they are not a frozen candidate.
 - **Evidence location:** `docs/review/212/STAGE1-EVIDENCE.md`.
 - **Senior Review Agent instruction:** Treat the artifact gate and all suite/scenario records as BLOCKED. Do not infer PASS, compatibility, defect absence, or READY. After #211 supplies the frozen artifact and prerequisites above are met, execute and attach fresh per-suite/per-extension evidence tied to the independently recomputed ZIP SHA-256; escalate any reproducible product failure to Stage 2 without changing production runtime in this stage.
 
