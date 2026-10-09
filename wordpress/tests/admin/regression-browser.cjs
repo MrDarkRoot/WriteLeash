@@ -208,7 +208,11 @@ async function responsive(page) {
         ok(await picker.evaluate(el => document.activeElement === el), 'removal returns focus to search');
         await search(page, f.skus.at(-1)); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
         await tabTo(page, page.locator('#writeleash-free-operation'));
-        await page.keyboard.press('End'); // Last native option = decrease percent.
+        const decreaseIndex = await page.locator('#writeleash-free-operation').evaluate(el => Array.from(el.options).findIndex(option => option.value === 'DECREASE_PERCENT'));
+        ok(decreaseIndex >= 0, 'existing decrease-percent operation remains available');
+        await page.keyboard.press('Home');
+        for (let step = 0; step < decreaseIndex; step++) await page.keyboard.press('ArrowDown');
+        ok(await page.locator('#writeleash-free-operation').inputValue() === 'DECREASE_PERCENT', 'keyboard selects decrease percent independently of later sale options');
         await tabTo(page, page.locator('#writeleash-free-amount')); await page.keyboard.type('bad-price');
         await enter(page, button(page, 'Preview price changes'));
         ok((await page.locator('#writeleash-free-amount').inputValue()) === 'bad-price' && await page.locator('#writeleash-free-selected button').count() === 22, 'validation retains selection and input');

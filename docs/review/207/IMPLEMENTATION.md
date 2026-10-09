@@ -76,17 +76,17 @@ Status below distinguishes domain/model checks from real DB-backed runtime check
 
 | Acceptance criterion | Status | Evidence |
 |---|---|---|
-| Explicit clear, blank/no-op/zero distinction | PASS domain; runtime pending | `free/sale-operations.php`; `undo/sale-operations.php` |
-| Exact discount across different regular bases and first sales | PASS domain; runtime pending | scale/precision/boundary cases, simple/variation fixtures |
-| Stale reviewed Regular Price conflicts, no recomputation | PASS domain; runtime pending | snapshot preconditions; locked DB comparison; crash/resume fixture |
-| Preserve Regular Price, schedules, metadata and parent state | PARTIAL | unchanged public CRUD path; DB/Redis fixtures await hosted execution |
-| Frozen plan and journal/Undo/History/CSV evidence | PASS domain; runtime pending | blank round-trip, old-plan hashes, journal binding; DB fixtures |
+| Explicit clear, blank/no-op/zero distinction | PASS | `free/sale-operations.php`; real `undo/sale-operations.php` on both engines/default/Redis |
+| Exact discount across different regular bases and first sales | PASS | scale/precision/boundary cases, real simple/variation fixtures |
+| Stale reviewed Regular Price conflicts, no recomputation | PASS | snapshot preconditions; locked DB comparison; real crash/resume fixture |
+| Preserve Regular Price, schedules, metadata and parent state | PASS | real Woo CRUD, independent observers and DB/Redis fixtures |
+| Frozen plan and journal/Undo/History/CSV evidence | PASS | blank round-trip, old-plan hashes, journal binding; real DB fixtures |
 | Percentage malformed/bounds/precision and final-target policy | PASS domain | strict grammar, >100, >6 digits, 0%, 100%, rounded-equal target, zero/caps |
-| Parent status/type/reparenting conflicts at Apply/Undo | PASS domain; runtime pending | carried #229 correction, both-operation real DB regressions |
-| Crash/retry, durable adoption, Resume keeps approval | PARTIAL | real SIGKILL cases wired into existing two-engine/default/Redis Undo suite |
-| Existing five operations, #178/#179, old plans/provenance | PASS local domain; runtime pending | unchanged-operation matrix; genuine pre-#210 serialized plans; legacy journal/fingerprint cases |
-| Free UI and localization | PASS local model; runtime pending | authenticated Admin fixture, translatable strings, official WP-CLI POT |
-| Targeted CI contracts | PARTIAL | PR_FAST local PASS; hosted six-suite DB matrix pending |
+| Parent status/type/reparenting conflicts at Apply/Undo | PASS | carried #229 correction, both-operation real DB regressions |
+| Crash/retry, durable adoption, Resume keeps approval | PASS | real SIGKILL cases on two engines/default/Redis |
+| Existing five operations, #178/#179, old plans/provenance | PASS domain/DB; browser rerun pending | unchanged-operation matrix; genuine pre-#210 serialized plans; legacy journal/fingerprint cases |
+| Free UI and localization | PASS HTTP/model; browser rerun pending | authenticated HTTP simple/variation sale journey, translatable strings, official WP-CLI POT |
+| Targeted CI contracts | PARTIAL | runtime matrix PASS except Admin keyboard fixture; post-correction Admin/CI_COVERAGE required |
 
 ### Actual local checks
 
@@ -158,8 +158,32 @@ summary (`3 skipped`, not `3 skipped at preview`). Real variation observation al
 exposed an undefined Woo tax-class table alias on the independent wpdb reader;
 the reader now retains Woo's registered alias, with a DB regression assertion.
 This does not add a price write, tax editing or migration. Post-correction hosted
-verification remains mandatory. The #170 browser failure is retained as a blocker;
-no timeout, value assertion or safety guard has been relaxed to make it pass.
+verification remains mandatory.
+
+The #170 browser failure was traced to its keyboard fixture, not assumed unrelated:
+it used End with the assertion “last option = decrease percent”. The two new sale
+options intentionally change that ordering, so End selected SALE_DISCOUNT_PERCENT,
+and the fixture subsequently asserted regular-price edits. The fixture now finds
+DECREASE_PERCENT's position, navigates there with Home/ArrowDown, and independently
+asserts the selected operation. All independent price/save/conflict assertions
+remain intact; no timeout or safety guard was relaxed.
+
+Latest full runtime matrix on production source
+`384e4342adc6029bfc10346864c042e08a92a144`:
+https://github.com/MrDarkRoot/WriteLeash/actions/runs/37965043755.
+PR_FAST, Plan, Journal, Jobs and dedicated Undo PASS. Current default and constrained
+Redis acceptance, PHP 8.0/8.1, previous WordPress/Woo and unsupported-Woo refusal PASS.
+PHP 7.4 was still running at the status capture. Admin stopped at the keyboard
+fixture above; post-correction browser verification is required. The following
+commit changes only that test and this evidence, not production pricing code.
+
+Final observed result for that runtime matrix: all eight acceptance profiles PASS,
+including PHP 7.4. The dedicated Undo suite logged the #207 sale/crash/parent/CSV
+marker on MySQL/default, MySQL/Redis, MariaDB/default and MariaDB/Redis, then its
+overall gate PASS. Admin failed at `regression-browser.cjs:253` for the now-traced
+End-key operation-selection assumption. CI_COVERAGE correctly failed as a result.
+No failed suite is represented as green. The corrected browser fixture must pass
+on the new PR HEAD before the draft is considered merge-ready.
 
 ## Technical limits and #208 handoff
 
