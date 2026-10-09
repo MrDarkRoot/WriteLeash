@@ -108,7 +108,7 @@ echo "#63 current-core $host: uninstall removed only local state; trusted infras
 // Reinstall semantics: activation recreates metadata only, never old state.
 deactivate_plugins( $plugin );
 cc87_assert( null === activate_plugin( $plugin ) && is_plugin_active( $plugin ), '#63 reinstall activation failed' );
-cc87_assert( '0.1.0' === get_option( 'writeleash_version' ), '#63 reinstall did not recreate metadata' );
+cc87_assert( '0.2.0' === get_option( 'writeleash_version' ), '#63 reinstall did not recreate metadata' );
 $state = Config::read( $operation );
 cc87_assert( 'absent' === $state['state'] && false === $state['enabled'] && null === $state['logical_budget'], '#63 reinstall recovered old config' );
 cc87_assert( null === Last_Outcome::read(), '#63 reinstall recovered old evidence' );

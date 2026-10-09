@@ -1,11 +1,20 @@
 <?php
 // #63/#120 public package gate: explicit allowlist + literal runtime closure.
 // Historical repository PHP is not distribution PHP. Creates no artifact.
-if ( 3 !== $argc ) {
-	throw new RuntimeException( 'Usage: package-preflight.php <plugin-source-root> <distribution-manifest>' );
+// The release version defaults to the historical 0.1.0; a newer candidate
+// passes its own explicit --version=X.Y.Z (used by #211 and release/run.sh).
+if ( 3 !== $argc && 4 !== $argc ) {
+	throw new RuntimeException( 'Usage: package-preflight.php <plugin-source-root> <distribution-manifest> [--version=X.Y.Z]' );
 }
 $source        = rtrim( $argv[1], '/' );
 $manifest_path = $argv[2];
+$release       = '0.1.0';
+if ( 4 === $argc ) {
+	if ( ! preg_match( '/\A--version=(\d+\.\d+\.\d+)\z/', $argv[3], $version_match ) ) {
+		throw new RuntimeException( 'Usage: package-preflight.php <plugin-source-root> <distribution-manifest> [--version=X.Y.Z]' );
+	}
+	$release = $version_match[1];
+}
 $fail          = static function ( string $message ): void {
 	throw new RuntimeException( '#63 package preflight: ' . $message );
 };
@@ -82,8 +91,9 @@ if ( false === strpos( $license, 'GNU GENERAL PUBLIC LICENSE' ) || false === str
 
 // Main file must carry the founder-selected license and the release version.
 $main = (string) file_get_contents( $source . '/writeleash.php' );
+$version_pattern = str_replace( '.', '\.', $release );
 foreach ( array(
-	'/^\s*\*\s*Version:\s*0\.1\.0\s*$/m',
+	'/^\s*\*\s*Version:\s*' . $version_pattern . '\s*$/m',
 	'/^\s*\*\s*Requires at least:\s*7\.0\s*$/m',
 	'/^\s*\*\s*Requires PHP:\s*7\.4\s*$/m',
 	'/^\s*\*\s*License:\s*GPL v2 or later\s*$/m',
@@ -95,7 +105,7 @@ foreach ( array(
 		$fail( 'main plugin file is missing expected license/version header: ' . $pattern );
 	}
 }
-if ( false === strpos( $main, "define( 'WRITELEASH_VERSION', '0.1.0' )" ) ) {
+if ( false === strpos( $main, "define( 'WRITELEASH_VERSION', '" . $release . "' )" ) ) {
 	$fail( 'runtime version constant does not match the release version' );
 }
 if ( ! preg_match( '/^\s*\*\s*Requires Plugins:\s*woocommerce\s*$/m', $main ) ) {
@@ -110,4 +120,4 @@ foreach ( $entries as $entry ) {
 	}
 }
 
-echo '#63 distribution allowlist: ' . count( $entries ) . " files, verbatim GPLv2, version 0.1.0, exact operation wording, no internal docs PASS\n";
+echo '#63 distribution allowlist: ' . count( $entries ) . ' files, verbatim GPLv2, version ' . $release . ", exact operation wording, no internal docs PASS\n";

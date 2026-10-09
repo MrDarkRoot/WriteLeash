@@ -1,13 +1,19 @@
 <?php
 /**
  * Plugin Name: WriteLeash
+ * Plugin URI: https://github.com/MrDarkRoot/WriteLeash
  * Description: Preview WooCommerce bulk price changes, preserve newer edits, resume interrupted jobs, and undo eligible changes.
+ * Version: 0.2.0
  * Author: Duy Tran
  * Author URI: https://profiles.wordpress.org/duyytrann
- * Version: 0.1.0
+ * Developer: Duy Tran
+ * Developer URI: https://profiles.wordpress.org/duyytrann
  * Requires at least: 7.0
+ * Tested up to: 7.1
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
+ * WC requires at least: 10.0
+ * WC tested up to: 11.1
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: writeleash
@@ -41,7 +47,7 @@ add_action( 'before_woocommerce_init', static function () {
 	}
 } );
 
-define( 'WRITELEASH_VERSION', '0.1.0' );
+define( 'WRITELEASH_VERSION', '0.2.0' );
 define( 'WRITELEASH_PLUGIN_FILE', __FILE__ );
 
 // Register only a local lookup path. Core loads catalogs just in time, after
