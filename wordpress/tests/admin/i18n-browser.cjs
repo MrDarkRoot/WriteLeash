@@ -9,7 +9,7 @@ const home = base + '/wp-admin/admin.php?page=writeleash-bulk-prices';
 const out = process.env.WL167_EVIDENCE;
 const longPreview = '[Ü] Preisänderungen mit ausführlicher Sicherheitsprüfung vor der ausdrücklichen Freigabe ansehen';
 let checks = 0;
-const results = [];
+const results = [], allErrors = [];
 function eq(actual, expected, label) { assert.deepEqual(actual, expected, label); checks++; }
 function fixture(mode) {
  const value = execFileSync('docker', ['exec', '-e', 'WL210_MODE=' + mode, '-e', 'WL210_FIXTURE=/tmp/wl210-fixture.json', process.env.WL167_CONTAINER, 'wp', '--path=' + site, 'eval-file', '/opt/tests/admin/i18n-browser-fixture.php'], {encoding: 'utf8'});
@@ -51,8 +51,18 @@ async function typeSearch(page, field, term) {
    eq(original.locale_loaded, true, 'real PHP MO effective');
    eq(original.csv_machine_invariant, true, 'localized CSV machine columns and values stable');
    const context = await browser.newContext({javaScriptEnabled: js, acceptDownloads: true, viewport: {width: 1440, height: 900}});
+   await context.addInitScript(() => {
+    window.addEventListener('unhandledrejection', event => {
+     const reason = event.reason || {};
+     console.log('WL210_REJECTION ' + JSON.stringify({name: reason.name, code: reason.code, message: reason.message, stack: reason.stack}));
+    });
+   });
    const page = await context.newPage();
-   const errors = []; page.on('pageerror', e => errors.push(e.message));
+   const errors = []; page.on('pageerror', e => {
+    const error = {message: e.message, stack: e.stack, name: e.name, js};
+    errors.push(error); allErrors.push(error); console.log('WL210_PAGEERROR ' + JSON.stringify(error));
+   });
+   page.on('console', message => { if (message.text().startsWith('WL210_REJECTION ')) console.log(message.text()); });
    await page.goto(base + '/wp-login.php');
    await page.getByLabel('Username or Email Address').fill(f.username);
    await page.getByLabel('Password', {exact: true}).fill(f.password);
@@ -178,11 +188,11 @@ async function typeSearch(page, field, term) {
    eq(recovered.source, original.source, 'recovery preserves source job, items and journal bytes');
    eq(recovered.prices, original.prices, 'fresh Preview changes no prices');
    await capture(page, 'recovery-' + js);
-   eq(errors, [], 'no JS runtime errors');
-   results.push({js, engine: 'firefox', locale: 'de_DE pseudo', checks, source_job: f.source_job, plan_hash: plan.hash, recovered_hash: recovery.hash, source_immutable: true, prices_canonical: true, csv_machine_invariant: true});
+   results.push({js, engine: 'firefox', locale: 'de_DE pseudo', checks, source_job: f.source_job, plan_hash: plan.hash, recovered_hash: recovery.hash, source_immutable: true, prices_canonical: true, csv_machine_invariant: true, errors});
    await context.close();
   }
  } finally { await browser.close(); }
  if (out) fs.writeFileSync(out + '/210-i18n-result.json', JSON.stringify({checks, results}, null, 2));
+ eq(allErrors, [], 'no JS runtime errors across both translated journeys');
  console.log('#210 real translated Admin: effective MO/Jed, zero/one/many, simple/variation, descendants, Preview/approval/Apply/poll/error/focus, History/Undo, existing plans/CSV and fresh conflict recovery JS/no-JS PASS (' + checks + ' checks)');
 })().catch(error => { console.error(error); process.exitCode = 1; });
