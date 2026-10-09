@@ -127,13 +127,16 @@ final class Woo_Price_Mutator {
 			if ( ! Price_Decimal::equal( $truth['meta'][ $field_meta ][0] ?? '', $item['expected_regular_price'] ) ) {
 				throw new Price_Apply_Error( 'CONFLICT' );
 			}
+			// The locked database basis must match approval too: a fresh Woo
+			// object alone cannot certify a dependency under concurrent edits.
+			if ( in_array( $plan->data()['operation']['type'], array( Price_Operation::CLEAR_SALE, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) && ! Price_Decimal::equal( $truth['meta']['_regular_price'][0], $item['snapshot']['regular_price'] ) ) { throw new Price_Apply_Error( 'CONFLICT' ); }
 			// A concurrent edit that would make WooCommerce's own save clear
 			// the other price field (regular <= sale, or sale >= regular) is
 			// an optimistic conflict: never lose stored sale configuration.
 			if ( Price_Operation::FIELD_REGULAR === $field ) {
 				$current_sale = $truth['meta']['_sale_price'][0] ?? '';
 				if ( '' !== $current_sale && Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $item['planned_regular_price'] ) ), Price_Decimal::units( Price_Decimal::parse( $current_sale ) ) ) <= 0 ) { throw new Price_Apply_Error( 'CONFLICT' ); }
-			} elseif ( Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $item['planned_regular_price'] ) ), Price_Decimal::units( Price_Decimal::parse( $truth['meta']['_regular_price'][0] ) ) ) >= 0 ) {
+			} elseif ( '' !== $item['planned_regular_price'] && Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $item['planned_regular_price'] ) ), Price_Decimal::units( Price_Decimal::parse( $truth['meta']['_regular_price'][0] ) ) ) >= 0 ) {
 				throw new Price_Apply_Error( 'CONFLICT' );
 			}
 			$preserved = array(

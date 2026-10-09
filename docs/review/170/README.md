@@ -74,6 +74,15 @@ result JSONs are uploaded as CI artifacts alongside the refreshed hashes.
 
 ## Final journal release fix: copy identity refresh
 
+### #207 sale-operation source refresh
+
+The source identities now include Clear Sale Price, relative sale discounts,
+and explicit blank-value presentation. The original #170 PNGs and result JSON
+remain historical; this does not claim new screenshots. The existing hosted
+Admin browser journeys must run against the #207 PR head, and focused #207
+Admin and Undo fixtures verify the new execution and presentation contracts.
+No screenshot, assertion or audit requirement was removed or relaxed.
+
 The source hash now includes the one-heading correction from “Shoppers pay
 now” to “Shoppers would pay after Apply”. The reference PNGs and their capture
 baseline remain historical and unchanged; this refresh does not claim new

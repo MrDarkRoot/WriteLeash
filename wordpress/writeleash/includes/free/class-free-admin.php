@@ -267,8 +267,8 @@ final class Free_Admin {
 				'id' => (int) $item['product_id'],
 
 				'name' => sprintf( /* translators: 1: frozen product name, 2: product ID. */ __( '%1$s · #%2$d · as reviewed', 'writeleash' ), self::identity_name( $frozen['snapshot'] ), (int) $item['product_id'] ),
-				'expected' => self::money_display( self::expected_display( $frozen, $item, $plan->price_field() ), $plan->data()['store'] ),
-				'planned' => self::money_display( $item['planned_price'], $plan->data()['store'] ),
+				'expected' => self::money_display( self::expected_display( $frozen, $item, $plan->price_field() ), $plan->data()['store'], false, $plan->price_field() ),
+				'planned' => self::money_display( $item['planned_price'], $plan->data()['store'], false, $plan->price_field() ),
 				'apply' => self::item_label( $item['apply_state'], $job['status'] ) . ( '' !== $apply_conflict ? ' · ' . $apply_conflict : ( $apply_reason ? ' · ' . self::reason_message( $apply_reason ) : '' ) ),
 				'undo' => null === $item['undo_state'] ? self::undo_item_label( $item, $job['status'] ) : self::item_label( $item['undo_state'], $job['status'] ) . ( '' !== $undo_conflict ? ' · ' . $undo_conflict : ( $item['undo_reason'] ? ' · ' . self::reason_message( $item['undo_reason'] ) : '' ) ),
 				'apply_html' => self::outcome_cell_html( $item, $frozen, $apply_reason, $job['status'], $observation, true ),
@@ -460,12 +460,12 @@ final class Free_Admin {
 
 	public static function build_operation( array $post ): Price_Operation {
 		$type = $post['operation'] ?? null;
-		$amount = $post['amount'] ?? null;
+		$amount = $post['amount'] ?? ( Price_Operation::CLEAR_SALE === $type ? '' : null );
 		$field = $post['price_field'] ?? Price_Operation::FIELD_REGULAR;
 		if ( ! is_string( $field ) || ! in_array( $field, Price_Operation::FIELDS, true ) ) {
 			throw new Price_Validation_Error( 'unsupported_price_field' );
 		}
-		if ( ! is_string( $type ) || ! in_array( $type, array( Price_Operation::SET, Price_Operation::INCREASE_FIXED, Price_Operation::DECREASE_FIXED, Price_Operation::INCREASE_PERCENT, Price_Operation::DECREASE_PERCENT ), true ) ) {
+		if ( ! is_string( $type ) || ! in_array( $type, array( Price_Operation::SET, Price_Operation::INCREASE_FIXED, Price_Operation::DECREASE_FIXED, Price_Operation::INCREASE_PERCENT, Price_Operation::DECREASE_PERCENT, Price_Operation::CLEAR_SALE, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ) {
 			throw new Price_Validation_Error( 'unsupported_operation' );
 		}
 		if ( ! is_string( $amount ) ) {
@@ -1147,7 +1147,7 @@ final class Free_Admin {
 	public static function task_description( array $plan ): string {
 		$op = $plan['operation'];
 		$sale = Price_Operation::FIELD_SALE === ( $op['field'] ?? Price_Operation::FIELD_REGULAR );
-		$amount = in_array( $op['type'], array( 'INCREASE_PERCENT', 'DECREASE_PERCENT' ), true ) ? self::percentage_display( $op['input'] ) : self::money_display( $op['input'], $plan['store'] );
+		$amount = in_array( $op['type'], array( 'INCREASE_PERCENT', 'DECREASE_PERCENT', Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ? self::percentage_display( $op['input'] ) : self::money_display( $op['input'], $plan['store'] );
 		$templates = array(
 
 			'SET' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Set sale prices to %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Set regular prices to %s', 'writeleash' ),
@@ -1160,6 +1160,11 @@ final class Free_Admin {
 		);
 
 		$operation = sprintf( $templates[$op['type']] ?? /* translators: %s: formatted price or percentage. */ __( 'Price operation: %s', 'writeleash' ), $amount );
+		if ( Price_Operation::CLEAR_SALE === $op['type'] ) { $operation = __( 'Clear sale prices to blank; preserve sale schedules', 'writeleash' ); }
+		if ( Price_Operation::SALE_DISCOUNT_PERCENT === $op['type'] ) {
+			/* translators: %s: exact reviewed percentage, with dot decimal separator. */
+			$operation = sprintf( __( 'Set sale prices to %s%% below each product’s reviewed Regular Price', 'writeleash' ), $op['input'] );
+		}
 		$total = count( $plan['items'] );
 		$variations = 0;
 		foreach ( $plan['items'] as $item ) { if ( ! empty( $item['snapshot']['core_variation'] ) ) { ++$variations; } }
@@ -1175,7 +1180,8 @@ final class Free_Admin {
 	}
 
 	/** Display only: string arithmetic keeps exact decimals out of floating point. */
-	public static function money_display( $value, array $store, bool $signed = false ): string {
+	public static function money_display( $value, array $store, bool $signed = false, string $field = Price_Operation::FIELD_REGULAR ): string {
+		if ( '' === $value && Price_Operation::FIELD_SALE === $field ) { return __( 'Blank (no sale price)', 'writeleash' ); }
 		$currency = $store['currency'] ?? null;
 		$precision = $store['price_decimals'] ?? null;
 		if ( ! is_string( $value ) || ! preg_match( '/\A(-?)([0-9]+)(?:\.([0-9]{1,6}))?\z/D', $value, $parts )
@@ -1584,13 +1590,16 @@ final class Free_Admin {
 			echo '<option value="' . esc_attr( $value ) . '"' . selected( $values['price_field'], $value, false ) . '>' . esc_html( $label ) . '</option>';
 		}
 		echo '</select></p><p id="writeleash-free-price-field-help">' . esc_html( __( 'Regular price is the everyday price. Sale price is the discounted price during a sale. WriteLeash changes only the price you choose and keeps the other one.', 'writeleash' ) ) . '</p><p><label for="writeleash-free-operation">' . esc_html__( 'Operation', 'writeleash' ) . '</label><br><select id="writeleash-free-operation" name="operation">';
-		foreach ( array( Price_Operation::SET => __( 'Set an exact price', 'writeleash' ), Price_Operation::INCREASE_FIXED => __( 'Increase by fixed amount', 'writeleash' ), Price_Operation::DECREASE_FIXED => __( 'Decrease by fixed amount', 'writeleash' ), Price_Operation::INCREASE_PERCENT => __( 'Increase by percent', 'writeleash' ), Price_Operation::DECREASE_PERCENT => __( 'Decrease by percent', 'writeleash' ) ) as $value => $label ) {
+		foreach ( array( Price_Operation::SET => __( 'Set an exact price', 'writeleash' ), Price_Operation::INCREASE_FIXED => __( 'Increase by fixed amount', 'writeleash' ), Price_Operation::DECREASE_FIXED => __( 'Decrease by fixed amount', 'writeleash' ), Price_Operation::INCREASE_PERCENT => __( 'Increase by percent', 'writeleash' ), Price_Operation::DECREASE_PERCENT => __( 'Decrease by percent', 'writeleash' ), Price_Operation::CLEAR_SALE => __( 'Clear Sale Price', 'writeleash' ), Price_Operation::SALE_DISCOUNT_PERCENT => __( 'Sale discount from Regular Price (%)', 'writeleash' ) ) as $value => $label ) {
 			echo '<option value="' . esc_attr( $value ) . '"' . selected( $values['operation'], $value, false ) . '>' . esc_html( $label ) . '</option>';
 		}
 		echo '</select></p>';
-		$amount_label = Price_Operation::SET === $values['operation'] ? __( 'New price', 'writeleash' ) : ( in_array( $values['operation'], array( Price_Operation::INCREASE_PERCENT, Price_Operation::DECREASE_PERCENT ), true ) ? __( 'Percentage (e.g. 8 for 8%)', 'writeleash' ) : ( Price_Operation::INCREASE_FIXED === $values['operation'] ? __( 'Amount to increase by', 'writeleash' ) : __( 'Amount to decrease by', 'writeleash' ) ) );
-		self::selector_field( 'amount', $amount_label, 'text', $values['amount'], 'writeleash-free-amount-help', true );
+		$amount_label = Price_Operation::CLEAR_SALE === $values['operation'] ? __( 'No amount — leave blank', 'writeleash' ) : ( Price_Operation::SET === $values['operation'] ? __( 'New price', 'writeleash' ) : ( in_array( $values['operation'], array( Price_Operation::INCREASE_PERCENT, Price_Operation::DECREASE_PERCENT, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ? __( 'Percentage (e.g. 8 for 8%)', 'writeleash' ) : ( Price_Operation::INCREASE_FIXED === $values['operation'] ? __( 'Amount to increase by', 'writeleash' ) : __( 'Amount to decrease by', 'writeleash' ) ) ) );
+		// The server requires numeric input for every operation except Clear.
+		// Optional HTML input also supports choosing Clear without JavaScript.
+		self::selector_field( 'amount', $amount_label, 'text', $values['amount'], 'writeleash-free-amount-help' );
 		echo '<p id="writeleash-free-amount-help" class="description">' . esc_html__( 'Enter a positive number or zero. Use a dot for decimals; leave out currency symbols and the % sign.', 'writeleash' ) . '</p>';
+		echo '<p id="writeleash-free-sale-operation-help" class="description">' . esc_html__( 'Choose Sale price for Clear or Sale discount. Clear makes Sale Price blank and preserves sale schedules; safety caps check the return to Regular Price. Sale discount requires an explicit 0–100 percentage (up to six decimal places), calculated from each product’s own reviewed Regular Price. A changed Regular Price conflicts at Apply; the approved target is never recalculated. Zero or a sale at Regular Price still must pass eligibility and safety checks.', 'writeleash' ) . '</p>';
 		$custom_limits = array_diff_assoc( array_intersect_key( $values, array_flip( array( 'max_products', 'max_increase', 'max_decrease', 'warning_threshold' ) ) ), $defaults ) || ! empty( $values['block_zero'] );
 		echo '</fieldset><details id="writeleash-free-safety-limits"' . ( $custom_limits ? ' open' : '' ) . '><summary>' . esc_html__( 'Safety limits (optional)', 'writeleash' ) . '</summary><fieldset class="writeleash-safety"><legend>' . esc_html__( 'Safety limits', 'writeleash' ) . '</legend><p class="writeleash-full-width">' . esc_html__( 'A change beyond these limits blocks the whole preview.', 'writeleash' ) . '</p>';
 		$maximum = Free_Support_Contract::MAX_JOB_PRODUCTS;
@@ -1748,8 +1757,8 @@ final class Free_Admin {
 			$ratio = $item['percentage_delta'] ?? null;
 			$ratio_text = ( is_array( $ratio ) && isset( $ratio['display'] ) && is_string( $ratio['display'] ) ) ? self::percentage_display( $ratio['display'], $ratio['numerator'] ?? null ) : __( 'Unavailable', 'writeleash' );
 			echo '<tr><td>'; self::render_identity( $item ); echo '</td>';
-			echo '<td>' . esc_html( self::money_display( $item['stored_price'], $data['store'] ) ) . '</td>';
-			echo '<td>' . esc_html( self::money_display( $item['planned_regular_price'], $data['store'] ) ) . '</td>';
+			echo '<td>' . esc_html( self::money_display( $item['stored_price'], $data['store'], false, $field ) ) . '</td>';
+			echo '<td>' . esc_html( self::money_display( $item['planned_regular_price'], $data['store'], false, $field ) ) . '</td>';
 			echo '<td>' . esc_html( self::money_display( $item['absolute_delta'], $data['store'], true ) ) . '</td>';
 			echo '<td>' . esc_html( $ratio_text ) . '</td>';
 			echo '<td>' . esc_html( self::money_display( self::effective_shopper_price( $item, $field ), $data['store'] ) ) . '</td>';
@@ -1979,9 +1988,9 @@ final class Free_Admin {
 				$frozen = $identities[ $id ] ?? array( 'product_id' => $id );
 				$observation = self::product_observation( $id, $field );
 				echo '<tr data-product-id="' . esc_attr( (string) $id ) . '"><td>'; self::render_identity( $frozen ); echo '</td>';
-				echo '<td>' . esc_html( self::money_display( self::expected_display( $frozen, $item, $field ), $plan->data()['store'] ) ) . '</td>';
-				echo '<td>' . esc_html( self::money_display( $observation['price'], $plan->data()['store'] ) ) . '</td>';
-				echo '<td>' . esc_html( self::money_display( $item['planned_price'], $plan->data()['store'] ) ) . '</td>';
+				echo '<td>' . esc_html( self::money_display( self::expected_display( $frozen, $item, $field ), $plan->data()['store'], false, $field ) ) . '</td>';
+				echo '<td>' . esc_html( self::money_display( $observation['price'], $plan->data()['store'], false, $field ) ) . '</td>';
+				echo '<td>' . esc_html( self::money_display( $item['planned_price'], $plan->data()['store'], false, $field ) ) . '</td>';
 				echo '<td class="' . esc_attr( in_array( $item['apply_state'], array( 'CONFLICT', 'NEEDS_REVIEW', 'FAILED' ), true ) ? 'writeleash-attention' : '' ) . '">'; self::render_item_outcome( $item['apply_state'], 'UNSUPPORTED' === $item['apply_state'] ? ( $frozen['eligibility']['reason'] ?? $item['apply_reason'] ) : $item['apply_reason'], $job['status'], $observation ); echo '</td>';
 				echo '<td class="' . esc_attr( in_array( $item['undo_state'], array( 'UNDO_CONFLICT', 'UNDO_NEEDS_REVIEW', 'UNDO_FAILED' ), true ) ? 'writeleash-attention' : '' ) . '">';
 				if ( null === $item['undo_state'] ) { echo esc_html( self::undo_item_label( $item, $job['status'] ) ); }

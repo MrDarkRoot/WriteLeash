@@ -926,6 +926,12 @@ echo "#110 missing lifecycle authority fails closed PASS\n";
 marker( 'lifecycle fail-closed: absent/empty/deactivated/unknown stop Apply and Undo before mutation' );
 
 // ---------------------------------------------------------------------------
+// #212 parent-state regressions through real Woo CRUD and durable workers.
+// ---------------------------------------------------------------------------
+require __DIR__ . '/parent-state.php';
+require __DIR__ . '/sale-operations.php';
+
+// ---------------------------------------------------------------------------
 // Undo REST: POST-only, authenticated, capability and ownership negatives.
 // ---------------------------------------------------------------------------
 function rest_undo_start( string $public_id, int $user_id ): \WP_REST_Response {
