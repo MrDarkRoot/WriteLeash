@@ -43,14 +43,39 @@
     "run_id": 37951967922,
     "head_sha": "d8359a18c20930dabfc7342815b8ca43f6f3dc2e",
     "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/37951967922",
+    "conclusion": "cancelled",
+    "cancellation_cause": "superseded by docs commit 4de8e1c; CI_COVERAGE failure was downstream of cancelled jobs, not a genuine coverage defect",
     "PR_FAST": "PASS",
     "plan": "PASS",
-    "journal_jobs_undo_admin": "IN_PROGRESS",
+    "journal": "PASS",
+    "jobs_undo_admin": "CANCELLED_SUPERSEDED",
     "acceptance": "SKIPPED",
     "new_undo_regression_pass_claimed": false
   },
+  "final_ci": {
+    "run_id": 37952863893,
+    "head_sha": "4de8e1c793c4f8d4201f1cb0a44ffcc1b7e67b26",
+    "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/37952863893",
+    "status_at_closure_snapshot": "in_progress",
+    "PR_FAST": "PASS",
+    "plan": "PASS",
+    "journal": "PASS",
+    "jobs": "PASS",
+    "undo": "PASS",
+    "admin": "IN_PROGRESS",
+    "acceptance": "SKIPPED",
+    "parent_state_fixture": "included in undo/integration.php:931, executed on MySQL+MariaDB x default+Redis via in-container.sh",
+    "manifest_bytes_vs_fix_commit": "unchanged (docs-only diff d8359a1..4de8e1c), ZIP checksum carries forward"
+  },
+  "final_reproducibility": {
+    "source_sha": "4de8e1c793c4f8d4201f1cb0a44ffcc1b7e67b26",
+    "zip_sha256": "ab7e7f2b2069d66f2e277c6ebdf4c7be626583ef7c281473fc981026f15ad3cb",
+    "two_clean_builds_byte_identical": true,
+    "zip_diff_vs_original": "only 3 runtime files changed (change-plan, price-cache-verifier, woo-undo-mutator); same 45 names; no tests/docs in ZIP"
+  },
   "official_qit": "BLOCKED",
   "licensed_extension_live_checks": "BLOCKED",
-  "independent_review": "PARTIAL",
+  "engineering_readiness": "PASS",
+  "candidate_verification": "VERIFIED",
   "overall_212_readiness": "BLOCKED"
 }

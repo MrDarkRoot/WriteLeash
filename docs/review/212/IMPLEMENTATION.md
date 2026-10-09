@@ -169,16 +169,54 @@ One post-fix snapshot was inspected while completing the report: [run 3795196792
 - **Supported false positives:** none newly adjudicated; no actual QIT scan exists. Historical Plugin Check/journal SQL handling is not QIT clearance.
 - **Package impact:** original `08f2128e…` findings remain attached to that artifact. Patched `ab7e7f2b…` must receive fresh relevant runtime/official/live-coexistence evidence. No version, pricing arithmetic, authorization, schema, transaction or feature expansion was introduced.
 
-## I. Final handoff
+## I. Closure sprint (2026-10-09 PM UTC)
 
-**Independent: PARTIAL. Overall #212: BLOCKED.** The original candidate has the two confirmed parent-boundary defects above; a narrow patch and reproducible replacement payload are available, but its complete runtime validation is still open. Static review/local tests cannot establish Marketplace certification.
+### P0 — Both parent-state fixes validated with database-backed CI
 
-Minimal remaining actions:
+**Run [37952863893](https://github.com/MrDarkRoot/WriteLeash/actions/runs/37952863893), exact final HEAD `4de8e1c…`:**
 
-1. Execute the stacked Stage 2 plan/journal/jobs/Undo/Admin CI on its own exact HEAD, especially `parent-state.php`; retain failures rather than treating baseline green runs as replacement acceptance.
-2. Run genuine exact-ZIP installation/activation and applicable current/previous WordPress/Woo/PHP configurations, with explicit HPOS-enabled and legacy storage observations.
-3. Provide supported QIT CLI and a **private authorized vendor execution context**, then run all seven required suites against the final chosen full checksum. No credential request was posted publicly.
-4. Provide legitimate permitted packages/licenses for the six extensions, record their actual versions, and run the existing [Stage 1 checklist on #227](https://github.com/MrDarkRoot/WriteLeash/blob/a39b1aac135ee5f1eeee34b21837675c96a7a01d/docs/review/212/EXECUTION-CHECKLIST.md) against that checksum. Static boundary checks are not live coexistence evidence.
-5. Founder/release owner must authorize proposed version `0.2.0` and decide inclusion of the parent-state fixes. Any further payload change requires a new checksum and affected reruns. No merge, submission, Marketplace publication or release was performed.
+| Job | Result | Notes |
+|---|---|---|
+| PR_FAST | PASS | 189 files lint, metadata/closure gates |
+| plan / woo-plan-107 | PASS | Domain arithmetic, frozen plans |
+| journal / woo-durable-journal | PASS | Crash/recovery, concurrency, cache profiles |
+| jobs / woo-durable-jobs | **PASS** | Worker/lease/scheduler matrix, both engines × both caches |
+| undo / woo-conflict-aware-undo | **PASS** | Includes `parent-state.php` (line 931): 2 fields × 3 cases × 4 profiles = 24 scenario executions |
+| admin / woo-free-admin | IN_PROGRESS | Browser matrix (~45 min); not required for parent-state verdict |
+| acceptance/feasibility/native/engine/foundation/research/adapter/historical | SKIPPED | Per change-detection contract / ownership |
 
-Evidence identity summary: [STAGE2-ARTIFACTS.json](STAGE2-ARTIFACTS.json). Final PR HEAD may include report-only commits after implementation source `d8359a1…`; retrieve it from #229 and verify the manifest bytes are unchanged before reusing the replacement checksum.
+`parent-state.php` is `require`d by `integration.php:931`, executed via `in-container.sh` on MySQL 8.0.44 + MariaDB 10.11.15 × default + Redis persistent cache. Its PASS on the undo job constitutes real WooCommerce CRUD + durable worker validation of both S212-01 (draft-parent Apply refusal) and S212-02 (reparent Undo refusal) for Regular and Sale fields, plus unchanged-parent restore controls. **Defect status: both FIXED and DB-VALIDATED.** Sections H above marked "pending" are superseded by this result.
+
+### P0 — Post-fix CI diagnosis (no code failure)
+
+- Run 37951967922 (source `d8359a1…`): PR_FAST/plan/journal PASS; jobs/undo/admin **cancelled** by superseding docs commit `4de8e1c`; CI_COVERAGE **failed solely downstream of those cancellations** (missing required inputs), not a genuine coverage defect.
+- Run 37952863893 (final `4de8e1c…`): all required jobs PASS except admin still running; no failure to diagnose. **Cancelled ≠ failed ≠ PASS; the failure was procedural, now resolved by the fresh run.**
+
+### P1 — Patched candidate frozen and verified at final HEAD
+
+- `git diff d8359a1..4de8e1c -- wordpress/writeleash wordpress/release/`: empty — docs-only delta, checksum carries forward.
+- Two clean builds from final HEAD `4de8e1c…`: byte-identical via `cmp`, SHA-256 `ab7e7f2b2069d66f2e277c6ebdf4c7be626583ef7c281473fc981026f15ad3cb` (2,029,682 bytes, 45 files, tree `78bf3a12…`).
+- ZIP-vs-ZIP forensics (original vs patched): same 45 names; only `class-change-plan.php`, `class-price-cache-verifier.php`, `class-woo-undo-mutator.php` differ; no tests/docs/credentials in payload.
+- `candidate-install-verify.php` PASS on final build: 45 files byte-equal, headers v0.2.0, lint clean, HPOS/uninstall guards intact. **Method: extraction simulation, not WP Admin upload or DB activation** — recorded honestly; hosted CI activated the staged source tree (44 runtime files + changelog tested separately in ZIP).
+
+### P1 — Platform / HPOS
+
+- Hosted CI pins: WordPress 7.1.2, WooCommerce 11.1.2, PHP 8.2.34, MySQL 8.0.44, MariaDB 10.11.15, Redis 7.4.2 / Redis Object Cache 2.7.0, default + persistent profiles. Fresh CI sites run Woo defaults (HPOS enabled for new stores); explicit HPOS-disabled/legacy-storage matrix: NOT_TESTED.
+- `custom_order_tables` declaration verified intact at `writeleash.php:46`. Current release window identified: WP 7.1/7.0, Woo 11/10 — newer patch/minor and previous-major configs not executed.
+- Local: PHP 8.2.32, PR_FAST PASS; Docker daemon unavailable, no local DB run.
+
+### P1 — QIT / extensions (unchanged BLOCKED, actionable)
+
+- `qit` absent from PATH; no vendor env/credentials in environment; no commercial extension ZIPs on disk. All 7 QIT suites and 6 live coexistence tests remain BLOCKED with exact prerequisite (private authorized vendor context; legitimate licensed packages). Static interoperability boundaries from Stage 2 stand; no mock reported as PASS.
+
+## J. Final handoff
+
+**1. Engineering readiness: PASS.** Both confirmed defects fixed with DB-backed regressions green on final HEAD; PR_FAST/plan/journal/jobs/undo PASS; no open engineering defect. Admin browser matrix pending but not a parent-state gate.
+
+**2. Candidate verification: VERIFIED.** Final ZIP reproduced twice from final HEAD, byte-identical, extraction-verified, forensics clean. Previous checksum `08f2128e…` invalidated by the 3-file runtime fix (reason documented); do not mix evidence across checksums.
+
+**3. Marketplace / #212 acceptance: BLOCKED** (external only). Missing: official QIT runs, 6 licensed extension live tests, exact-ZIP WP Admin upload/activation, HPOS-legacy + current/previous platform matrix. No engineering blocker remains.
+
+Founder decisions required: authorize `0.2.0` and the parent-state fix composition; authorize merge order (#228 then #229 rebased, or #228 with #229 squashed — **do not merge without explicit approval**); provision QIT vendor access + extension licenses privately; no release/submission/closure performed.
+
+Evidence identity: [STAGE2-ARTIFACTS.json](STAGE2-ARTIFACTS.json). PR: #229 (stacked on #228), HEAD `4de8e1c…`; final ZIP `ab7e7f2b2069d66f2e277c6ebdf4c7be626583ef7c281473fc981026f15ad3cb`.
