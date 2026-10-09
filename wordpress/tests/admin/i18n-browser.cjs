@@ -20,7 +20,8 @@ function fixture(mode) {
  return JSON.parse(value);
 }
 async function clickSubmit(page, locator) {
- await Promise.all([page.waitForNavigation({waitUntil: 'load'}), locator.click()]);
+ await page.waitForLoadState('networkidle');
+ await Promise.all([page.waitForNavigation({waitUntil: 'networkidle'}), locator.click()]);
 }
 async function capture(page, name) {
  if (!out) return;
@@ -62,12 +63,13 @@ async function typeSearch(page, field, term) {
     const error = {message: e.message, stack: e.stack, name: e.name, js};
     errors.push(error); allErrors.push(error); console.log('WL210_PAGEERROR ' + JSON.stringify(error));
    });
+   page.on('requestfailed', request => console.log('WL210_REQUESTFAILED ' + JSON.stringify({path: new URL(request.url()).pathname, type: request.resourceType(), failure: request.failure()})));
    page.on('console', message => { if (message.text().startsWith('WL210_REJECTION ')) console.log(message.text()); });
-   await page.goto(base + '/wp-login.php');
+   await page.goto(base + '/wp-login.php', {waitUntil: 'networkidle'});
    await page.getByLabel('Username or Email Address').fill(f.username);
    await page.getByLabel('Password', {exact: true}).fill(f.password);
    await clickSubmit(page, page.getByRole('button', {name: 'Log In', exact: true}));
-   await page.goto(home);
+   await page.goto(home, {waitUntil: 'networkidle'});
    eq(await page.locator('.writeleash-heading').innerText(), '[Ü] WriteLeash Bulk Prices', 'effective server heading translation');
    eq(await page.getByRole('button', {name: longPreview, exact: true}).count(), 1, 'long translated Preview accessible name');
    eq(await page.locator('#writeleash-free-selected').innerText(), '[Ü] No products selected. Search and choose products to add them.', 'empty selection translated');
@@ -151,7 +153,7 @@ async function typeSearch(page, field, term) {
     eq(await focused.evaluate(el => el === document.activeElement), true, 'error announcement preserves focus');
     await page.unroute('**/admin-ajax.php');
    }
-   fixture('run'); await page.reload();
+   fixture('run'); await page.reload({waitUntil: 'networkidle'});
    const finished = fixture('observe');
    eq(finished.prices[String(f.id)], '80.00', 'simple canonical applied price');
    eq(finished.prices[String(f.variation)], '80.00', 'variation canonical applied price');
@@ -163,17 +165,17 @@ async function typeSearch(page, field, term) {
    eq(undone.prices, original.prices, 'translated no-JS-capable Undo restores canonical original prices');
    eq(undone.source, original.source, 'Undo preserves historic source journal');
    await capture(page, 'undo-' + js);
-   await page.goto(home + '&wl_view=history');
+   await page.goto(home + '&wl_view=history', {waitUntil: 'networkidle'});
    eq(await page.getByRole('heading', {name: '[Ü] History', exact: true}).count(), 1, 'History translated');
    eq(await page.getByRole('region', {name: '[Ü] Job history', exact: true}).count(), 1, 'History accessible region translated');
    await capture(page, 'history-' + js);
-   await page.goto(home + '&wl_view=preview&wl_job=' + f.old_job);
+   await page.goto(home + '&wl_view=preview&wl_job=' + f.old_job, {waitUntil: 'networkidle'});
    eq((await page.locator('.writeleash-summary').innerText()).includes('[Ü]'), true, 'pre-locale existing plan renders translated');
-   await page.goto(home + '&wl_view=job&wl_job=' + f.source_job);
+   await page.goto(home + '&wl_view=job&wl_job=' + f.source_job, {waitUntil: 'networkidle'});
    eq((await page.locator('[data-product-id="' + f.id + '"] td').nth(4).innerText()).includes('[Ü] This product’s price'), true, 'real conflict guidance translated');
    eq(await page.locator('[data-product-id="' + f.id + '"] td').nth(4).getByRole('link', {name: 'Create a new preview', exact: true}).count(), 1, 'translated complete linked message preserves safe recovery link');
    // Template text receives one prefix for the whole sentence, not separate fragments.
-   await page.getByRole('link', {name: '[Ü] Re-preview conflicted products', exact: true}).click();
+   await clickSubmit(page, page.getByRole('link', {name: '[Ü] Re-preview conflicted products', exact: true}));
    const chosen = page.locator('#writeleash-conflict-recovery-form [name="product_ids[]"]');
    eq(await chosen.isChecked(), false, 'recovery no default selection');
    await chosen.focus(); await page.keyboard.press('Space');
