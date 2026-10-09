@@ -91,6 +91,23 @@ Full DB-backed activation (present/active/missing Woo, Admin entry,
 representative workflow) runs in hosted CI on this PR; no local MySQL/Docker
 exists here, so local activation is PARTIAL by environment, not by code.
 
+Hosted CI (PR #228, run 37939405074,
+`https://github.com/MrDarkRoot/WriteLeash/actions/runs/37939405074`):
+PR_FAST PASS; engine, foundation (MySQL + MariaDB), adapter, historical
+release-matrix (incl. the live-tree woo-candidate subset check), plan,
+journal, jobs, undo PASS; admin browser matrix PASS (45m42s, Chromium +
+Firefox journeys incl. #205 recovery and #210 i18n); CI_COVERAGE PASS.
+acceptance/feasibility/native correctly skipping (ownership: acceptance
+requires budget approval, not selected for this change set). During the run
+one reproducible defect surfaced and was fixed on the PR:
+`stage-plugin.sh` called preflight without the candidate `--version` pin and
+rejected the 0.2.0 tree in every container suite; fixed with the same
+explicit pin as PR_FAST/release-gate, all suites re-ran green. The matrix
+exercises real activation, Woo dependency present/missing/inactive paths
+(`dependency-63.php`, current-core gates), Admin entry, Apply/Resume/Undo
+workflows and exact uninstall on WP 7.1.2 / Woo 11.1.2 / PHP 8.2 with MySQL
+8.0.44 and MariaDB 10.11.15.
+
 ## Acceptance accounting (original #211 criteria)
 
 1. Headers/readme/changelog accurate, gaps recorded — **PASS**.
