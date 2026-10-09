@@ -1,4 +1,7 @@
 <?php
+use WriteLeash\Job_Repository as Repo;
+use WriteLeash\Price_Cache_Verifier as V;
+use WriteLeash\Price_Decimal as D;
 // Included after variations.php's real HTTP journey; reuse its authenticated
 // Preview/Approve/Resume/Undo helpers and independent database assertions.
 // Runtime evidence, not a syntax or simulated HTTP check.

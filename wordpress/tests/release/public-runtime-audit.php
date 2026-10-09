@@ -30,7 +30,7 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 	}
 	if ( in_array( 'languages/writeleash.pot', $entries, true ) ) {
 		$pot = file_get_contents( $root . '/languages/writeleash.pot' );
-		if ( ! str_contains( $pot, 'X-Domain: writeleash' ) || ! str_contains( $pot, 'msgid_plural' ) || ! str_contains( $pot, 'includes/free/free-progress.js' ) ) { $fail( 'invalid public translation source catalog' ); }
+		if ( false === strpos( $pot, 'X-Domain: writeleash' ) || false === strpos( $pot, 'msgid_plural' ) || false === strpos( $pot, 'includes/free/free-progress.js' ) ) { $fail( 'invalid public translation source catalog' ); }
 	}
 	if ( in_array( 'includes/free/admin-logo.png', $entries, true ) ) {
 		$logo = $root . '/includes/free/admin-logo.png';
