@@ -55,7 +55,7 @@ node wordpress/tests/admin/progress-client.cjs
 ```
 
 `wordpress/tests/admin/run.sh` owns these checks and the existing browser lab. In its
-MySQL/default profile, `i18n-browser.cjs` adds one JS/no-JS journey with a separate
+MySQL/default profile, `i18n-browser.cjs` adds one Firefox JS/no-JS journey with a separate
 actor. `i18n-fixture-catalog.php` uses WordPress POMO to compile the real POT into an
 effective test-only `de_DE` pseudo MO and per-script Jed JSON. It marks messages with
 `[Ü]`, preserves placeholders and supplies a long German Preview label. It also
@@ -67,6 +67,8 @@ The browser exercises selection, zero/one/many, descendants, a variation, valida
 failure, Preview, approval, Apply, read-only polling and a controlled HTTP 403,
 History, Undo, pre-locale saved plans, CSV contracts and fresh conflict recovery.
 It compares saved source job/item/journal rows before/after browsing and recovery.
+The locale journey uses the already installed Firefox engine; #170 continues to run
+Chromium and Firefox separately. No JavaScript exception assertion is filtered.
 The existing #170 English Chromium/Firefox keyboard checks remain mandatory and
 separate; their historical captures stay unchanged, while candidate fingerprints
 require the current-head owning CI browser execution. No certification claim follows.

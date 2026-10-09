@@ -61,7 +61,12 @@ failed because its product description correctly contained a nested pseudo marke
 That expectation is corrected. Historical Plugin Check rejected a discouraged
 `load_plugin_textdomain()` call. Local lookup now uses WordPress's public text-domain
 registry with just-in-time loading, including a focused real late-activation test;
-the classifier and Plugin Check assertions were not weakened. The final exact-head
+the classifier and Plugin Check assertions were not weakened.
+The next source candidate `5b0916c` passed every owner except Admin; its translated
+JS assertions reached the end of recovery, then Chromium reported a native
+cross-document "Page already revealed" abort. The focused locale harness uses the
+existing Firefox engine with the identical assertions (including zero page errors),
+while the unchanged #170 gate continues to cover both engines. The final exact-head
 verdict and artifacts are recorded in the Draft PR checks and description.
 
 Local Docker is blocked: daemon socket missing, `sudo` requires a password and

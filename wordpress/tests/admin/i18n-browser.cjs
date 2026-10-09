@@ -1,5 +1,5 @@
 // Effective MO/Jed translation journey on the existing disposable #170 Admin lab.
-const { chromium } = require(process.env.WL167_PLAYWRIGHT_MODULE || 'playwright');
+const { firefox } = require(process.env.WL167_PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { execFileSync } = require('node:child_process');
@@ -28,7 +28,9 @@ async function capture(page, name) {
  await page.screenshot({path: out + '/210-' + name + '.png', fullPage: true});
 }
 (async () => {
- const browser = await chromium.launch({executablePath: process.env.WL167_CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox']});
+ // The existing owning job installs Firefox. Keep all assertions, including
+ // pageerror, while avoiding Chromium's unrelated cross-document reveal abort.
+ const browser = await firefox.launch({headless: true});
  try {
   for (const js of [true, false]) {
    const f = fixture('seed');
@@ -121,7 +123,7 @@ async function capture(page, name) {
     await page.waitForFunction(() => document.querySelector('[data-progress-announcement]').textContent.includes('[Ü]'));
     eq(await focused.evaluate(el => el === document.activeElement), true, 'translated polling preserves keyboard focus');
     eq(await page.getByRole('button', {name: '[Ü] Resume remaining products', exact: true}).count(), 1, 'poll retains meaningful accessible server control');
-    await page.route('**/admin-ajax.php', route => route.fulfill({status: 403, body: ''}));
+    await page.route('**/admin-ajax.php', route => (route.request().postData() || '').includes('writeleash_free_progress') ? route.fulfill({status: 403, body: ''}) : route.continue());
     await page.waitForFunction(() => document.querySelector('[data-progress-connection]').textContent.includes('Session or permission expired'), {timeout: 20000});
     eq((await page.locator('[data-progress-connection]').innerText()).startsWith('[Ü]'), true, 'controlled polling permission error translated');
     eq(await focused.evaluate(el => el === document.activeElement), true, 'error announcement preserves focus');
@@ -165,7 +167,7 @@ async function capture(page, name) {
    eq(recovered.prices, original.prices, 'fresh Preview changes no prices');
    await capture(page, 'recovery-' + js);
    eq(errors, [], 'no JS runtime errors');
-   results.push({js, locale: 'de_DE pseudo', checks, source_job: f.source_job, plan_hash: plan.hash, recovered_hash: recovery.hash, source_immutable: true, prices_canonical: true, csv_machine_invariant: true});
+   results.push({js, engine: 'firefox', locale: 'de_DE pseudo', checks, source_job: f.source_job, plan_hash: plan.hash, recovered_hash: recovery.hash, source_immutable: true, prices_canonical: true, csv_machine_invariant: true});
    await context.close();
   }
  } finally { await browser.close(); }
