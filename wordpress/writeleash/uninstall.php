@@ -3,6 +3,11 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) || ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// An inactive plugin's uninstall request may not have registered its init hook.
+global $wp_textdomain_registry, $l10n;
+$wp_textdomain_registry->set_custom_path( 'writeleash', __DIR__ . '/languages' );
+if ( isset( $l10n['writeleash'] ) && $l10n['writeleash'] instanceof \NOOP_Translations ) { unset( $l10n['writeleash'] ); }
+
 // WordPress uninstall removes only WriteLeash-owned local WordPress state.
 // Durable journal/job/Undo evidence is retained; no product prices are changed.
 //

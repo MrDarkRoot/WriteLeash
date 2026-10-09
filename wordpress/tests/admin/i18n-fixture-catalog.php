@@ -15,6 +15,8 @@ foreach ( $assets as $asset ) { $jed[$asset] = array( '' => array( 'domain' => '
 foreach ( $po->entries as $entry ) {
 	$entry = clone $entry;
 	$translate = static function ( $text ) {
+		if ( 'Planned %1$d product: %2$s.' === $text ) { return '[Ü] %2$s — geplantes Produkt: %1$d.'; }
+		if ( 'Planned %1$d products: %2$s.' === $text ) { return '[Ü] %2$s — geplante Produkte: %1$d.'; }
 		if ( 'Preview price changes' === $text ) { return '[Ü] Preisänderungen mit ausführlicher Sicherheitsprüfung vor der ausdrücklichen Freigabe ansehen'; }
 		return '[Ü] ' . $text;
 	};

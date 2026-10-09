@@ -49,11 +49,20 @@ summaries filter numeric counts rather than matching English `0 ` prefixes.
 
 ## Tests and evidence
 
-Local commands: PHP lint, JS syntax, inventory cases, catalog consistency and duplicate
+Local commands (PASS): PHP lint, JS syntax, inventory cases, catalog consistency and duplicate
 regeneration, `i18n-unit.php`, `i18n-plan-unit.php`, `progress-unit.php`,
 `progress-client.cjs`, `recovery-unit.php`, regular/sale/variation/selection-count/cache
-model tests, Admin source audit, PR_FAST and workflow lint. Exact results and hosted
-links will be updated after the required checks finish.
+model tests, Admin source audit, PR_FAST and workflow lint. First hosted candidate `316a9ab74fbfd631c6cb2d31a04cd5fe9cca7184`:
+[run 37905468636](https://github.com/MrDarkRoot/WriteLeash/actions/runs/37905468636).
+PR_FAST, plan, journal, jobs, Undo, both foundation engines, engine, research and
+adapter passed. #170 passed 255 Chromium and 253 Firefox assertions. Admin reached
+effective translated PHP/JS/long-label checks, then the localized Remove assertion
+failed because its product description correctly contained a nested pseudo marker.
+That expectation is corrected. Historical Plugin Check rejected a discouraged
+`load_plugin_textdomain()` call. Local lookup now uses WordPress's public text-domain
+registry with just-in-time loading, including a focused real late-activation test;
+the classifier and Plugin Check assertions were not weakened. The final exact-head
+verdict and artifacts are recorded in the Draft PR checks and description.
 
 Local Docker is blocked: daemon socket missing, `sudo` requires a password and
 rootless Docker lacks `newuidmap`. Runtime coverage is assigned to the existing

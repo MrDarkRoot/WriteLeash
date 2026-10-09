@@ -32,6 +32,7 @@ async function capture(page, name) {
  try {
   for (const js of [true, false]) {
    const f = fixture('seed');
+   execFileSync('docker', ['exec', process.env.WL167_CONTAINER, 'wp', '--skip-plugins=writeleash', '--path=' + site, 'eval-file', '/opt/tests/admin/i18n-activation.php'], {stdio: 'inherit'});
    const original = fixture('observe');
    eq(original.locale_loaded, true, 'real PHP MO effective');
    eq(original.csv_machine_invariant, true, 'localized CSV machine columns and values stable');
@@ -59,7 +60,7 @@ async function capture(page, name) {
     const search = page.locator('#writeleash-free-products + .select2-container .select2-search__field');
     await search.fill('Locale simple ' + f.actor);
     await page.locator('.select2-results__option[data-selected]').filter({hasText: 'Locale simple ' + f.actor}).first().click();
-    const remove = page.getByRole('button', {name: /\[Ü\] Remove Locale simple/});
+    const remove = page.getByRole('button', {name: /\[Ü\] Remove .*Locale simple/});
     eq(await remove.count(), 1, 'JS selected-product remove accessible name translated');
     eq(await page.locator('#writeleash-free-products').inputValue(), String(f.id), 'JS selected product ID unchanged');
     await remove.click();

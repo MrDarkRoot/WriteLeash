@@ -14,8 +14,11 @@ store content. Version ranges are presentation; version comparisons stay unchang
 
 Both local scripts depend on `wp-i18n` and register `wp_set_script_translations()` for
 `writeleash-free-selection` and `writeleash-free-progress`, using the plugin's
-`languages` directory. `init` registers the local PHP domain path; installed WordPress
-language packs remain supported. SelectWoo's workflow messages use the same domain.
+`languages` directory. The public WordPress text-domain registry registers the local PHP lookup path without
+loading a catalog early; core loads it just in time. This also supports first
+activation after `init` and inactive-plugin uninstall. Installed WordPress language
+packs remain supported. SelectWoo's workflow messages use the same domain.
+See [the supported registry method](https://developer.wordpress.org/reference/classes/wp_textdomain_registry/set_custom_path/).
 No runtime build system, translation service or CDN was added.
 
 ## Rebuild the source catalog

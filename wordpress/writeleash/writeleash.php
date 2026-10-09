@@ -44,10 +44,14 @@ add_action( 'before_woocommerce_init', static function () {
 define( 'WRITELEASH_VERSION', '0.1.0' );
 define( 'WRITELEASH_PLUGIN_FILE', __FILE__ );
 
-// Register local catalogs after init; WordPress also loads installed language packs.
-add_action( 'init', static function () {
-	load_plugin_textdomain( 'writeleash', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-} );
+// Register only a local lookup path. Core loads catalogs just in time, after
+// init, including a first activation that includes this file after init.
+// WordPress language packs keep priority over this custom local directory.
+global $wp_textdomain_registry, $l10n;
+$wp_textdomain_registry->set_custom_path( 'writeleash', __DIR__ . '/languages' );
+if ( isset( $l10n['writeleash'] ) && $l10n['writeleash'] instanceof \NOOP_Translations ) {
+	unset( $l10n['writeleash'] );
+}
 
 // Avoid parsing PHP 7.4 class files on older runtimes; activation must fail.
 if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {

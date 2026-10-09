@@ -42,7 +42,7 @@ msgid "WriteLeash requires WordPress to be loaded."
 msgstr ""
 
 #: includes/class-lifecycle.php:18
-#: writeleash.php:57
+#: writeleash.php:61
 msgid "WriteLeash requires PHP 7.4 or newer."
 msgstr ""
 
@@ -2243,7 +2243,7 @@ msgstr ""
 msgid "WriteLeash Undo state: %s."
 msgstr ""
 
-#: uninstall.php:33
+#: uninstall.php:38
 msgid "WriteLeash uninstall could not establish the runner shutdown boundary."
 msgstr ""
 

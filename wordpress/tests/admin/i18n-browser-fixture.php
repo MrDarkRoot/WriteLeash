@@ -50,16 +50,20 @@ foreach ( WriteLeash\Undo_Repository::history_jobs( 0, 20, $f['actor'] )['jobs']
 	$jobs[] = array( 'public_id' => $j['public_id'], 'status' => $j['status'], 'json' => $plan->json(), 'hash' => $plan->hash(), 'data' => $plan->data(), 'items' => R::items( (int) $j['id'] ) );
 }
 $csv = static function () use ( $source ) { $stream = fopen( 'php://temp', 'w+' ); A::write_job_csv( $stream, $source, R::hydrate_plan( $source ) ); rewind( $stream ); $rows = array(); while ( false !== ( $row = fgetcsv( $stream, 0, ',', '"', '' ) ) ) { $rows[] = $row; } fclose( $stream ); return $rows; };
+$english_switched = switch_to_locale( 'en_US' );
 $english = $csv();
+if ( str_starts_with( A::reason_message( 'invalid_nonce' ), '[Ü] ' ) ) { throw new RuntimeException( 'English reference must use English gettext' ); }
 switch_to_locale( 'de_DE' );
 if ( ! str_starts_with( A::reason_message( 'invalid_nonce' ), '[Ü] ' ) ) { throw new RuntimeException( 'Effective PHP MO was not loaded' ); }
 $localized = $csv();
+if ( $english[1][1] === $localized[1][1] ) { throw new RuntimeException( 'Human CSV task was not translated' ); }
 if ( $english[0] !== $localized[0] ) { throw new RuntimeException( 'CSV header translated' ); }
 foreach ( array( 0, 5, 6, 7, 8, 9, 11, 12, 13, 15, 16, 17, 19, 21, 22, 23, 25, 26 ) as $index ) {
 	if ( $english[1][$index] !== $localized[1][$index] ) { throw new RuntimeException( 'CSV machine value translated: ' . $index ); }
 }
 foreach ( $jobs as $j ) { if ( R::hydrate_plan( R::read_by_public_id( $j['public_id'] ) )->json() !== $j['json'] ) { throw new RuntimeException( 'Localized saved plan mutated' ); } }
 restore_previous_locale();
+if ( $english_switched ) { restore_previous_locale(); }
 $prices = array();
 foreach ( array( $f['id'], $f['variation'] ) as $id ) { $prices[$id] = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM %i WHERE post_id=%d AND meta_key='_regular_price'", $wpdb->postmeta, $id ) ); }
 echo wp_json_encode( array( 'source' => $source_material, 'jobs' => $jobs, 'prices' => $prices, 'csv_header' => $localized[0], 'csv_machine_invariant' => true, 'locale_loaded' => true ) );
