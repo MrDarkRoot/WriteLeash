@@ -315,7 +315,7 @@ try {
         $material = U::history_items( (int) $job['id'], null, null, $offset, 50 );
         wl112_assert( $material['total'] === $size && $material['next_offset'] === ( $offset + 50 < $size ? $offset + 50 : null ), 'history next/total' );
     }
-    wl112_assert( false !== strpos( $page['body'], 'Expected and planned are regular price values.' ), 'history states the changed price field' );
+    wl112_assert( false !== strpos( $page['body'], 'Expected and planned are Regular price values.' ), 'history states the changed price field' );
     wl112_save( $facts );
     $t = microtime( true );
     $undo_batches = array();

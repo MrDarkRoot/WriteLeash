@@ -137,4 +137,22 @@ foreach ( array( O207::CLEAR_SALE, O207::SALE_DISCOUNT_PERCENT ) as $type207 ) {
   if ( 'UNDO_AFTER_COMMIT_BEFORE_RESPONSE' === $point207 ) { eq( saves( $id207 ) - $before207, 1, '#207 durable Undo adopted with no second save' ); }
  }
 }
+// Unscheduled active sales: clear returns the shopper price to Regular Price,
+// whereas a permitted 100% relative discount really writes numeric zero.
+foreach ( array( O207::CLEAR_SALE, O207::SALE_DISCOUNT_PERCENT ) as $type207 ) {
+ $f207 = wl207_fixture( $type207, false, '90' ); $id207 = $f207['id'];
+ $p207 = wl207_fresh( $id207 ); $p207->set_date_on_sale_from( null ); $p207->set_date_on_sale_to( null ); $p207->save();
+ $plan207 = WriteLeash\Woo_Price_Planner::preview( WriteLeash\Price_Selection_Spec::ids( array( $id207 ) ), new O207( $type207, O207::CLEAR_SALE === $type207 ? '' : '100', O207::FIELD_SALE ), new WriteLeash\Safety_Policy( 1000, '100', '100', false, '100' ) );
+ $job207 = R207::create_from_plan( $plan207, 1 ); $job207 = R207::approve( (int) $job207['id'], 1 );
+ run_worker( array( 'job_id' => (int) $job207['id'], 'mode' => 'apply', 'limits' => limits( 5 ), 'manual' => true ) );
+ eq( journal_row( $plan207->data()['plan_id'], $id207 )['state'], 'APPLIED', '#207 active clear/100% discount applied' );
+ $target207 = O207::CLEAR_SALE === $type207 ? '' : '0.00';
+ eq( journal_row( $plan207->data()['plan_id'], $id207 )['target_price'], $target207, '#207 journal clear blank vs 100% numeric zero' );
+ ok( D207::equal( wl207_fresh( $id207 )->get_price( 'edit' ), O207::CLEAR_SALE === $type207 ? '100' : '0' ), '#207 observable active shopper value correct' );
+ V207::observe( $plan207, $id207 );
+ $op207 = start_undo( (int) $job207['id'] );
+ run_worker( array( 'undo_id' => (int) $op207['id'], 'mode' => 'undo', 'limits' => limits( 5 ), 'manual' => true ) );
+ eq( undo_row( (int) $job207['id'], $id207 )['state'], U207::UNDONE, '#207 active clear/zero Undo eligible' );
+ ok( D207::equal( wl207_fresh( $id207 )->get_price( 'edit' ), '90' ), '#207 Undo restores active sale' );
+}
 marker( '#207 sale operations: Preview/Plan/Apply/journal/History/CSV/Undo, frozen basis, parent conflicts and SIGKILL recovery' );
