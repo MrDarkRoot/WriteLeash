@@ -1,6 +1,7 @@
 <?php
 // #204 boundary unit checks. Repository doubles do not establish Woo runtime correctness.
 namespace {
+	require __DIR__ . "/i18n-stubs.php";
 	define( 'ABSPATH', __DIR__ );
 	define( 'WC_VERSION', '11.1.2' );
 	$GLOBALS['wl204_actor'] = 7; $GLOBALS['wl204_capable'] = true; $GLOBALS['wl204_http_error'] = null; $GLOBALS['wl204_workers'] = array();

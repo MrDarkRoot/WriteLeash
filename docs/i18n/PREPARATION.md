@@ -181,3 +181,11 @@ Round-3 re-verification (2026-10-08, branch `work/210-i18n-preparation` at `4c7f
 - `docs/i18n/inventory-summary.json` holds candidate counts, not translations and not review status; the committed artifact is not a catalog and is not shipped.
 - Unmerged #206/#204 UI strings are absent and uncertified.
 - No pseudo-locale, browser, keyboard or runtime evidence exists in this lane; no catalog/asset was shipped.
+
+## Implementation supersedes this historical preparation snapshot
+
+The #210 final implementation starts from live #224 main, not this document's old
+planning SHA. See [LOCALIZATION.md](LOCALIZATION.md) for the actual gettext/JS/catalog
+workflow and [implementation acceptance](../review/210/IMPLEMENTATION.md) for current
+results. Earlier zero-gettext counts and unmerged-feature notes above describe only
+the preparation snapshot and do not describe current source.

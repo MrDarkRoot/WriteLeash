@@ -37,7 +37,7 @@ final class Price_Operation {
 		return $field;
 	}
 	/** Merchant-facing field label; display only. */
-	public static function label( string $field ): string { return self::FIELD_SALE === $field ? 'Sale price' : 'Regular price'; }
+	public static function label( string $field ): string { return self::FIELD_SALE === $field ? __( 'Sale price', 'writeleash' ) : __( 'Regular price', 'writeleash' ); }
 }
 
 final class Price_Calculator {

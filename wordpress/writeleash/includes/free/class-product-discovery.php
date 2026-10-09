@@ -64,12 +64,18 @@ final class Product_Discovery {
 				$reason = 'unreadable_product_data';
 			}
 		}
-		$text = ( '' === $name ? ( 'unreadable_product_data' === $reason ? 'Name unavailable' : 'Unnamed product' ) : $name ) . ( '' === $sku ? ' · No SKU' : ' · SKU: ' . $sku ) . ' · ID: ' . $id;
+		$name = '' === $name ? ( 'unreadable_product_data' === $reason ? __( 'Name unavailable', 'writeleash' ) : __( 'Unnamed product', 'writeleash' ) ) : $name;
+		/* translators: %s: product SKU. */
+		$sku_label = '' === $sku ? __( 'No SKU', 'writeleash' ) : sprintf( /* translators: %s: product SKU. */ __( 'SKU: %s', 'writeleash' ), $sku );
+		/* translators: 1: product name, 2: SKU label, 3: product ID. */
+		$text = sprintf( __( '%1$s · %2$s · ID: %3$d', 'writeleash' ), $name, $sku_label, $id );
 		if ( $targets_variations > 0 ) {
-			$text .= ' · Targets all ' . $targets_variations . ( 1 === $targets_variations ? ' variation' : ' variations' );
+			/* translators: 1: product description, 2: variations targeted by this parent. */
+			$text = sprintf( _n( '%1$s · Targets all %2$d variation', '%1$s · Targets all %2$d variations', $targets_variations, 'writeleash' ), $text, $targets_variations );
 		} elseif ( null !== $reason ) {
-			$message = Price_Reason_Messages::all()[$reason] ?? 'Not supported for price changes.';
-			$text .= ( 'unreadable_product_data' === $reason ? ' · Needs attention: ' : ' · Excluded: ' ) . $message;
+			$message = Price_Reason_Messages::all()[$reason] ?? __( 'Not supported for price changes.', 'writeleash' );
+			/* translators: 1: product description, 2: explanation of eligibility. */
+			$text = sprintf( 'unreadable_product_data' === $reason ? __( '%1$s · Needs attention: %2$s', 'writeleash' ) : __( '%1$s · Excluded: %2$s', 'writeleash' ), $text, $message );
 		}
 		return array( 'id' => (string) $id, 'text' => $text );
 	}
@@ -143,7 +149,7 @@ final class Product_Discovery {
 			$parent = (int) $ancestor->parent;
 		}
 		if ( $parent ) { array_unshift( $names, '…' ); }
-		return array( 'id' => (string) $term->term_id, 'text' => implode( ' › ', $names ) . ' · Category ID: ' . $term->term_id );
+		return array( 'id' => (string) $term->term_id, 'text' => sprintf( /* translators: 1: category breadcrumb, 2: category ID. */ __( '%1$s · Category ID: %2$d', 'writeleash' ), implode( ' › ', $names ), $term->term_id ) );
 	}
 
 	public static function category( int $id ): ?array {

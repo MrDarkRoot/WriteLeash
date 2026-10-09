@@ -3,6 +3,11 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) || ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// An inactive plugin's uninstall request may not have registered its init hook.
+global $wp_textdomain_registry, $l10n;
+$wp_textdomain_registry->set_custom_path( 'writeleash', __DIR__ . '/languages' );
+if ( isset( $l10n['writeleash'] ) && $l10n['writeleash'] instanceof \NOOP_Translations ) { unset( $l10n['writeleash'] ); }
+
 // WordPress uninstall removes only WriteLeash-owned local WordPress state.
 // Durable journal/job/Undo evidence is retained; no product prices are changed.
 //
@@ -30,7 +35,7 @@ delete_option( 'writeleash_runner_state' );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Independent uncached DB verification of the safety-critical shutdown; the option cache can be stale across processes.
 $writeleash_state = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name=%s LIMIT 1', $wpdb->options, 'writeleash_runner_state' ) );
 if ( '' !== (string) $wpdb->last_error || 'active' === $writeleash_state ) {
-	wp_die( 'WriteLeash uninstall could not establish the runner shutdown boundary.' );
+	wp_die( esc_html__( 'WriteLeash uninstall could not establish the runner shutdown boundary.', 'writeleash' ) );
 }
 
 // Exact-name deletion only: no wildcard or LIKE-based option cleanup runs here.

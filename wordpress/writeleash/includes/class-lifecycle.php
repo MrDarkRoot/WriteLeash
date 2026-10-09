@@ -9,25 +9,25 @@ final class Lifecycle {
 	public static function activate( bool $network_wide = false ): void {
 		// Network-wide behavior is not validated; do not create partial per-site state.
 		if ( $network_wide ) {
-			wp_die( 'WriteLeash network activation has not been validated.' );
+			wp_die( esc_html__( 'WriteLeash network activation has not been validated.', 'writeleash' ) );
 		}
 		if ( '' === Environment::wordpress_version() || ! function_exists( 'get_option' ) ) {
-			wp_die( 'WriteLeash requires WordPress to be loaded.' );
+			wp_die( esc_html__( 'WriteLeash requires WordPress to be loaded.', 'writeleash' ) );
 		}
 		if ( version_compare( Environment::php_version(), '7.4', '<' ) ) {
-			wp_die( 'WriteLeash requires PHP 7.4 or newer.' );
+			wp_die( esc_html__( 'WriteLeash requires PHP 7.4 or newer.', 'writeleash' ) );
 		}
 		if ( ! Environment::has_wpdb() ) {
-			wp_die( 'WriteLeash requires a WordPress database connection.' );
+			wp_die( esc_html__( 'WriteLeash requires a WordPress database connection.', 'writeleash' ) );
 		}
 		if ( '' === Environment::database_version() ) {
-			wp_die( 'WriteLeash could not read the database server version.' );
+			wp_die( esc_html__( 'WriteLeash could not read the database server version.', 'writeleash' ) );
 		}
 
 		// This is the only persistent state created by the plugin foundation.
 		if ( WRITELEASH_VERSION !== get_option( 'writeleash_version' ) ) {
 			if ( ! update_option( 'writeleash_version', WRITELEASH_VERSION, false ) ) {
-				wp_die( 'WriteLeash could not save its version metadata.' );
+				wp_die( esc_html__( 'WriteLeash could not save its version metadata.', 'writeleash' ) );
 			}
 		}
 		// Activation never creates job tables: plugin-owned durable schema is
@@ -43,7 +43,7 @@ final class Lifecycle {
 		// start; any in-flight item completes only at its transactional
 		// fence boundary.
 		try { Runner_Authority::deactivate(); }
-		catch ( \Throwable $error ) { wp_die( 'WriteLeash could not establish the deactivation boundary.' ); }
+		catch ( \Throwable $error ) { wp_die( esc_html__( 'WriteLeash could not establish the deactivation boundary.', 'writeleash' ) ); }
 		try {
 			Job_Scheduler::unschedule_all();
 		} catch ( \Throwable $error ) {

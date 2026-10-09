@@ -85,6 +85,10 @@ SETUP
     chmod 600 "$WL205_FIXTURE"
     node "$here/recovery-browser.cjs"
     if [ "$host:$cache" = mysql:default ]; then
+      export WL210_FIXTURE="$scratch/i18n-fixture.json" WL167_EVIDENCE="$evidence/210"
+      node "$here/i18n-browser.cjs"
+    fi
+    if [ "$host:$cache" = mysql:default ]; then
       # Both browser engines use fresh actors/products in this existing disposable site.
       export WL170_FIXTURE="$scratch/regression-fixture.json"
       for browser in chromium firefox; do

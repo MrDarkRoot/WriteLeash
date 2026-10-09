@@ -11,6 +11,7 @@
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: writeleash
+ * Domain Path: /languages
  */
 
 /**
@@ -43,12 +44,21 @@ add_action( 'before_woocommerce_init', static function () {
 define( 'WRITELEASH_VERSION', '0.1.0' );
 define( 'WRITELEASH_PLUGIN_FILE', __FILE__ );
 
+// Register only a local lookup path. Core loads catalogs just in time, after
+// init, including a first activation that includes this file after init.
+// WordPress language packs keep priority over this custom local directory.
+global $wp_textdomain_registry, $l10n;
+$wp_textdomain_registry->set_custom_path( 'writeleash', __DIR__ . '/languages' );
+if ( isset( $l10n['writeleash'] ) && $l10n['writeleash'] instanceof \NOOP_Translations ) {
+	unset( $l10n['writeleash'] );
+}
+
 // Avoid parsing PHP 7.4 class files on older runtimes; activation must fail.
 if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
 	register_activation_hook(
 		__FILE__,
 		static function () {
-			wp_die( 'WriteLeash requires PHP 7.4 or newer.' );
+			wp_die( esc_html__( 'WriteLeash requires PHP 7.4 or newer.', 'writeleash' ) );
 		}
 	);
 	return;

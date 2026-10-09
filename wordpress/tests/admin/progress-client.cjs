@@ -46,7 +46,7 @@ class Element {
     querySelectorAll(selector) { return this.children.filter(tr => selector.includes(':not') ? !tr.attrs['data-product-id'] : tr.attrs['data-product-id']); }
     remove() { this.parent.children = this.parent.children.filter(x => x !== this); }
 }
-function harness({withMount = true, nextTag = 'A'} = {}) {
+function harness({withMount = true, nextTag = 'A', pseudo = false} = {}) {
     const root = new Element('DIV'), body = new Element('TBODY');
     const nodes = {};
     const moves = [];
@@ -67,7 +67,14 @@ function harness({withMount = true, nextTag = 'A'} = {}) {
     const window = new Element(); window.URLSearchParams = URLSearchParams; window.AbortController = AbortController;
     window.setTimeout = (fn, delay) => { timers.set(++next, {fn, delay}); return next; }; window.clearTimeout = id => timers.delete(id);
     window.fetch = (url, opts) => new Promise((resolve, reject) => requests.push({url, opts, resolve, reject}));
-    compiled.runInNewContext({window, document, Date, Error, Array, String, Math});
+    const prefix = pseudo ? '[Ü] ' : '';
+    const wp = {i18n: {
+        __: (text, domain) => { assert.equal(domain, 'writeleash'); return prefix + text; },
+        _x: (text, context, domain) => { assert.equal(domain, 'writeleash'); return prefix + text; },
+        _n: (one, many, count, domain) => { assert.equal(domain, 'writeleash'); return prefix + (count === 1 ? one : many); },
+        sprintf: (format, ...args) => format.replace(/%(?:(\d+)\$)?([sd])/g, (_, pos) => String(args[pos ? Number(pos) - 1 : 0]))
+    }};
+    compiled.runInNewContext({window, document, Date, Error, Array, String, Math, wp});
     return {nodes, root, body, document, window, requests, timers, nextLink, moves,
         timer(delay) { const entry = [...timers.entries()].find(([, x]) => x.delay === delay); assert(entry, `timer ${delay}`); timers.delete(entry[0]); entry[1].fn(); }};
 }
@@ -284,6 +291,23 @@ async function respond(h, index, data) { h.requests[index].resolve({ok: true, st
                 }
             }
         }
+    }
+    // Effective translated client strings, preserving the existing focus/transport boundary.
+    {
+        const h = harness({pseudo: true});
+        const focus = h.document.activeElement;
+        const data = snapshot({label: '[Ü] In progress', summary: '[Ü] 1 remaining', undo_summary: '[Ü] 0 restored', rows: []});
+        await respond(h, 0, data);
+        assert.match(h.nodes['[data-progress-connection]'].textContent, /^\[Ü\]/);
+        assert.match(h.nodes['[data-progress-announcement]'].textContent, /^\[Ü\].*Undo:/);
+        assert.match(h.body.children[0].children[0].textContent, /^\[Ü\]/);
+        assert.equal(h.document.activeElement, focus);
+        assert.equal(h.requests[0].opts.body.get('action'), phpConstant('ACTION_PROGRESS'));
+        assert.equal(h.requests[0].opts.body.get('job'), 'job-204');
+        h.timer(5000); h.requests[1].resolve({ok: false, status: 403}); await flush();
+        assert.match(h.nodes['[data-progress-connection]'].textContent, /^\[Ü\].*Session or permission expired/);
+        assert.equal(h.document.activeElement, focus);
+        console.log('#210 localized shipped progress client: effective translations, announcement, session error, focus and POST machine fields PASS');
     }
     assert(enumeratedCases >= 9000, `exhaustive enumeration ran (${enumeratedCases} cases)`);
     console.log('#204 shipped client: PHP selector/action parity, transport, saved counters/rows/order, filter/page change, Apply/Undo, focus/stale wording, pager, text safety, hidden/terminal stop, timeout/out-of-order, session/error backoff, exhaustive order/focus reconciliation PASS (' + enumeratedCases + ' enumerated cases, ' + enumeratedAssertions + ' assertion checks, ' + deferredCases + ' focused-removed deferrals, 0 violations)');

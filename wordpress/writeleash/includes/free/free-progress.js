@@ -1,6 +1,7 @@
 /* Saved Apply/Undo observations only. This client never requests execution. */
 (function () {
     'use strict';
+    var __ = wp.i18n.__, _n = wp.i18n._n, _x = wp.i18n._x, sprintf = wp.i18n.sprintf;
     var root = document.querySelector('[data-writeleash-progress]');
     if (!root || !window.fetch || !window.AbortController) { return; }
     var timer = null, timeout = null, controller = null, generation = 0;
@@ -12,7 +13,8 @@
         if (node && node.textContent !== value) { node.textContent = value; }
     }
     function connectionText(text) {
-        connection.textContent = text + (lastSuccess ? ' Last successful refresh: ' + lastSuccess + '.' : ' No successful automatic refresh yet.');
+        // translators: 1: refresh status, 2: time of last successful refresh.
+        connection.textContent = lastSuccess ? sprintf( __( '%1$s Last successful refresh: %2$s.', 'writeleash' ), text, lastSuccess ) : sprintf( /* translators: %s: refresh status. */ __( '%s No successful automatic refresh yet.', 'writeleash' ), text );
     }
     function outcome(cell, html, text) {
         // Server-escaped outcome markup keeps the polled cells identical to the
@@ -51,7 +53,7 @@
         var existing = Array.prototype.slice.call(body.querySelectorAll('tr[data-product-id]'));
         // Retain a focused review link if its filtered row has moved out of this page.
         if (existing.some(function (tr) { return wanted.indexOf(tr.getAttribute('data-product-id')) < 0 && tr.contains(document.activeElement); })) {
-            connectionText('Saved counters updated; the focused review link still shows the previous view. Refresh the product list after leaving the focused link.');
+            connectionText(__( 'Saved counters updated; the focused review link still shows the previous view. Refresh the product list after leaving the focused link.', 'writeleash' ));
             return;
         }
         existing.forEach(function (tr) { if (wanted.indexOf(tr.getAttribute('data-product-id')) < 0) { tr.remove(); } });
@@ -61,22 +63,22 @@
             if (!tr) {
                 tr = document.createElement('tr');
                 tr.setAttribute('data-product-id', String(row.id));
-                [row.name, row.expected, 'Reload to read the current price', row.planned, '', ''].forEach(function (text) {
+                [row.name, row.expected, __( 'Reload to read the current price', 'writeleash' ), row.planned, '', ''].forEach(function (text) {
                     var td = document.createElement('td'); td.textContent = text; tr.appendChild(td);
                 });
                 body.appendChild(tr);
             }
             if (!tr.children[4].contains(document.activeElement)) { outcome(tr.children[4], row.apply_html, row.apply); }
-            else { connectionText('Saved counters updated; the focused outcome still shows its previous saved details. Leave the focused outcome to refresh it.'); }
+            else { connectionText(__( 'Saved counters updated; the focused outcome still shows its previous saved details. Leave the focused outcome to refresh it.', 'writeleash' )); }
             tr.children[4].className = row.apply_attention ? 'writeleash-attention' : '';
             if (!tr.children[5].contains(document.activeElement)) { outcome(tr.children[5], row.undo_html, row.undo); }
-            else { connectionText('Saved counters updated; the focused outcome still shows its previous saved details. Leave the focused outcome to refresh it.'); }
+            else { connectionText(__( 'Saved counters updated; the focused outcome still shows its previous saved details. Leave the focused outcome to refresh it.', 'writeleash' )); }
             tr.children[5].className = row.undo_attention ? 'writeleash-attention' : '';
             return tr;
         });
         if (!rows.length) {
             var empty = document.createElement('tr'), cell = document.createElement('td');
-            cell.colSpan = 6; cell.textContent = 'No retained products on this page match this view.'; empty.appendChild(cell); body.appendChild(empty);
+            cell.colSpan = 6; cell.textContent = __( 'No retained products on this page match this view.', 'writeleash' ); empty.appendChild(cell); body.appendChild(empty);
             return;
         }
         // Reflect the durable server page order. Moving a focused row would drop
@@ -97,12 +99,12 @@
         write('[data-progress-undo-label]', data.undo_label);
         write('[data-progress-undo-summary]', data.undo_summary);
         write('[data-progress-undo-notice]', data.undo_notice);
-        action('[data-progress-resume]', data.resume_available, 'Resume remaining products', data.resume_nonce, 'writeleash_free_resume');
+        action('[data-progress-resume]', data.resume_available, __( 'Resume remaining products', 'writeleash' ), data.resume_nonce, 'writeleash_free_resume');
         action('[data-progress-undo]', data.undo_available, data.undo_button, data.undo_nonce, 'writeleash_free_undo');
         Array.prototype.slice.call(root.querySelectorAll('[data-progress-initial-notice], [data-progress-initial-undo]')).forEach(function (node) {
             if (node.contains(document.activeElement)) {
                 node.addEventListener('focusout', function hide() { node.removeEventListener('focusout', hide); node.hidden = true; });
-                connectionText('Saved counters updated; the focused support details still show the previous saved values. Leave the focused support details to refresh them.');
+                connectionText(__( 'Saved counters updated; the focused support details still show the previous saved values. Leave the focused support details to refresh them.', 'writeleash' ));
             } else { node.hidden = true; }
         });
         updateRows(data.rows);
@@ -122,10 +124,10 @@
                 if (data.next_url) { next.href = data.next_url; }
             }
             else if (next && data.next_url && next !== document.activeElement) {
-                var link = document.createElement('a'); link.className = 'button'; link.href = data.next_url; link.textContent = 'Next page'; next.replaceWith(link);
+                var link = document.createElement('a'); link.className = 'button'; link.href = data.next_url; link.textContent = __( 'Next page', 'writeleash' ); next.replaceWith(link);
             }
         }
-        var concise = data.label + '. ' + data.summary + ' Undo: ' + data.undo_summary + '.';
+        var concise = sprintf( /* translators: 1: job status, 2: Apply summary, 3: Undo summary. */ __( '%1$s. %2$s Undo: %3$s.', 'writeleash' ), data.label, data.summary, data.undo_summary );
         if (concise !== lastAnnouncement) { announcement.textContent = concise; lastAnnouncement = concise; }
         polling = data.poll === true;
     }
@@ -137,8 +139,8 @@
         failures += 1;
         if (status === 401 || status === 403 || failures >= 4) {
             stopped = true;
-            connectionText(status === 401 || status === 403 ? 'Session or permission expired. Reload and sign in to refresh saved progress.' : 'Automatic updates stopped after repeated errors. Use Refresh saved progress to retry.');
-        } else { connectionText('Saved progress may be stale. Refresh failed; retrying shortly.'); schedule(Math.min(60000, 5000 * Math.pow(2, failures))); }
+            connectionText(status === 401 || status === 403 ? __( 'Session or permission expired. Reload and sign in to refresh saved progress.', 'writeleash' ) : __( 'Automatic updates stopped after repeated errors. Use Refresh saved progress to retry.', 'writeleash' ));
+        } else { connectionText(__( 'Saved progress may be stale. Refresh failed; retrying shortly.', 'writeleash' )); schedule(Math.min(60000, 5000 * Math.pow(2, failures))); }
     }
     function refresh() {
         if (document.hidden || stopped || controller) { return; }
@@ -162,7 +164,7 @@
                 if (!response.success || !response.data || response.data.status !== 'OK' || !Array.isArray(response.data.rows)) { throw new Error('Saved progress unavailable'); }
                 window.clearTimeout(timeout); controller = null; failures = 0;
                 lastSuccess = new Date().toLocaleTimeString();
-                connectionText(response.data.poll ? 'Saved progress refreshed. Automatic updates active.' : 'Saved progress refreshed. Automatic updates stopped; refresh manually for later activity.');
+                connectionText(response.data.poll ? __( 'Saved progress refreshed. Automatic updates active.', 'writeleash' ) : __( 'Saved progress refreshed. Automatic updates stopped; refresh manually for later activity.', 'writeleash' ));
                 apply(response.data); schedule(5000);
             })
             .catch(function (error) {
@@ -175,13 +177,13 @@
         if (document.hidden) {
             generation += 1; window.clearTimeout(timeout);
             if (controller) { controller.abort(); controller = null; }
-            if (!stopped && polling) { connectionText('Automatic updates paused while this page is hidden. Saved progress may be stale.'); }
+            if (!stopped && polling) { connectionText(__( 'Automatic updates paused while this page is hidden. Saved progress may be stale.', 'writeleash' )); }
         } else if (!stopped && polling) { refresh(); }
     });
     window.addEventListener('pagehide', function () {
         stopped = true; generation += 1; window.clearTimeout(timer); window.clearTimeout(timeout);
         if (controller) { controller.abort(); controller = null; }
     });
-    connectionText('Checking saved progress.');
+    connectionText(__( 'Checking saved progress.', 'writeleash' ));
     refresh();
 }());
