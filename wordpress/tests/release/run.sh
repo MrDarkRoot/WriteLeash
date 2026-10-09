@@ -19,11 +19,17 @@ trap cleanup EXIT
 curl -fsSL -o "$check_zip.tmp" https://downloads.wordpress.org/plugin/plugin-check.2.1.0.zip
 printf '%s  %s\n' '6ff4bd2145f3befcf907df158cc466b1649dafed5686de8369907403c3013fc4' "$check_zip.tmp" | sha256sum -c -
 mv "$check_zip.tmp" "$check_zip"
-php "$here/package-preflight.php" "$repo/wordpress/writeleash" "$repo/wordpress/release/writeleash-distribution-files.txt"
+php "$here/package-preflight.php" "$repo/wordpress/writeleash" "$repo/wordpress/release/writeleash-distribution-files.txt" --version=0.2.0
 php "$here/inventory-audit.php" "$repo/wordpress/writeleash" "$repo/wordpress/release/PUBLIC-PAYLOAD.md" "$repo/wordpress/release/writeleash-distribution-files.txt"
 mkdir -p /tmp/opencode
 php "$here/public-audit-cases.php" "$repo/wordpress/writeleash" "$repo/wordpress/release/writeleash-distribution-files.txt"
 php "$here/readme-validate.php" "$repo/wordpress/writeleash"
+# #211 Woo review-candidate coherence on the live tree (subset mode: the
+# monorepo legitimately surrounds the allowlisted closure). The candidate
+# builder re-runs the same test in --exact mode against the extracted ZIP
+# tree. The explicit version pins the proposed candidate; a version-bump PR
+# must move this pin together with the header, readme and changelog.
+php "$here/woo-candidate.php" "$repo/wordpress/writeleash" "$repo/wordpress/release/writeleash-woo-distribution-files.txt" "$(git -C "$repo" rev-parse HEAD)" 0.2.0
 php "$here/historical-shim-cases.php" "$repo/wordpress/writeleash"
 php "$here/claim-matrix-audit.php" "$repo"
 php "$here/source-audit.php" "$repo/wordpress/writeleash"

@@ -71,14 +71,14 @@ $result = activate_plugin( $plugin );
 cc_assert( null === $result, 'WordPress activation returned error' );
 cc_assert( is_plugin_active( $plugin ), 'Plugin did not activate' );
 cc_assert( class_exists( 'WriteLeash\\Plugin' ), 'Plugin bootstrap not loaded' );
-cc_assert( '0.1.0' === \WriteLeash\Plugin::version(), 'Wrong plugin version' );
+cc_assert( '0.2.0' === \WriteLeash\Plugin::version(), 'Wrong plugin version' );
 cc_assert( false === \WriteLeash\Plugin::can_manage(), 'Non-admin may manage plugin' );
 wp_set_current_user( 1 );
 cc_assert( \WriteLeash\Plugin::can_manage(), 'Admin capability check failed' );
 cc_assert( '' !== \WriteLeash\Environment::wordpress_version(), 'No WordPress version' );
 cc_assert( \WriteLeash\Environment::has_wpdb(), 'No wpdb' );
 cc_assert( '' !== \WriteLeash\Environment::database_version(), 'No database identity' );
-cc_assert( '0.1.0' === get_option( 'writeleash_version' ), 'Missing owned metadata' );
+cc_assert( '0.2.0' === get_option( 'writeleash_version' ), 'Missing owned metadata' );
 cc_assert( $before === cc_snapshot(), 'Activation changed user tables or database objects' );
 echo "Bootstrap and activation: PASS\n";
 
@@ -103,13 +103,13 @@ echo "Old CommitCap state ignored: PASS\n";
 // hook too, to prove its one-option metadata path remains idempotent.
 cc_assert( null === activate_plugin( $plugin ), 'Double activation failed' );
 \WriteLeash\Lifecycle::activate();
-cc_assert( '0.1.0' === get_option( 'writeleash_version' ), 'Double activation changed metadata' );
+cc_assert( '0.2.0' === get_option( 'writeleash_version' ), 'Double activation changed metadata' );
 cc_assert( $before === cc_snapshot(), 'Double activation changed DB objects' );
 echo "Double activation: PASS\n";
 
 deactivate_plugins( $plugin );
 cc_assert( ! is_plugin_active( $plugin ), 'Plugin still active after deactivation' );
-cc_assert( '0.1.0' === get_option( 'writeleash_version' ), 'Deactivation deleted persistent metadata' );
+cc_assert( '0.2.0' === get_option( 'writeleash_version' ), 'Deactivation deleted persistent metadata' );
 cc_assert( $before === cc_snapshot(), 'Deactivation changed DB objects' );
 echo "Deactivation: PASS\n";
 
