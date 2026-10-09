@@ -48,7 +48,14 @@ function observe(mode = 'observe') {
    eq(await row.isChecked(), true, 'chosen population retained after validation error');
    eq(await page.locator('[name=amount]').inputValue(), 'invalid', 'edited amount retained');
    const limits = page.locator('#writeleash-free-safety-limits');
-   if (!(await limits.evaluate(el => el.open))) await limits.locator('summary').click();
+   if (process.env.WL167_EVIDENCE) {
+    fs.mkdirSync(process.env.WL167_EVIDENCE, { recursive: true });
+    await page.screenshot({ path: process.env.WL167_EVIDENCE + '/205-invalid-' + js + '.png', fullPage: true });
+   }
+   if (!(await limits.evaluate(el => el.open))) {
+    await limits.locator('summary').focus(); await page.keyboard.press('Enter');
+   }
+   eq(await limits.evaluate(el => el.open), true, 'keyboard opens optional safety controls');
    eq(await page.getByRole('checkbox', { name: 'Block a preview that sets any changing price to zero', exact: true }).isChecked(), false, 'unchecked policy stays unchecked');
    eq(observe(), original, 'invalid submission has no durable side effects');
    await page.locator('[name=amount]').fill('10');
