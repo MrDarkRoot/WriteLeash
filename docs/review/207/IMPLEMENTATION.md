@@ -125,6 +125,42 @@ The #207 real Woo tests are wired into existing MySQL 8.0.44 / MariaDB 10.11.15,
 default/Redis fixtures. Hosted run URLs and final statuses will be recorded after
 the draft PR runs. Syntax/model tests are not substitutes for those results.
 
+### Hosted execution and discovered blockers
+
+Draft PR: https://github.com/MrDarkRoot/WriteLeash/pull/235.
+
+Runtime tested source: `44b9ca98ca88d3da1471dfb604d0e608b81d8aa5`.
+Run: https://github.com/MrDarkRoot/WriteLeash/actions/runs/37963345729.
+
+| Executed check | Actual result at this evidence update |
+|---|---|
+| PR_FAST | PASS |
+| Plan, including #207 domain/provenance and both DB engines | PASS |
+| Journal crash/concurrency/default/Redis suite | PASS |
+| Durable jobs crash/lease/scheduler suite | PASS |
+| #207 real authenticated HTTP simple/variation Preview/Apply/Undo/blank History | PASS on current Woo/MySQL (including PHP 8.0/8.1 and previous WordPress profiles) |
+| Previous Woo compatibility profile, both DB engines | PASS |
+| Unsupported Woo fail-closed profile | PASS |
+| Current acceptance profiles | FAIL after the #207 HTTP leg, at old dirty-catalog summary wording |
+| Admin browser suite | FAIL at existing #170 independent-price assertion, before its later PHP integration leg |
+| Dedicated Undo crash/parent/sale/CSV suite | Still running; not claimed PASS |
+| CI_COVERAGE | Not green while selected jobs fail or remain incomplete |
+
+The first-sale cap regression was proven to fail before the fix and pass after it.
+Earlier hosted attempts exposed an Undo provenance numeric-only parser, missing
+imports in the new HTTP fixture, and two pre-existing acceptance copy assertions.
+These were corrected without weakening assertions. The PHP 7.4 package-audit
+failure was a PHP-8-only helper in the test tooling; equivalent `strpos()` checks
+retain the identical three catalog assertions and permit that profile to execute.
+
+The current dirty-catalog assertion is likewise aligned with the existing #210
+summary (`3 skipped`, not `3 skipped at preview`). Real variation observation also
+exposed an undefined Woo tax-class table alias on the independent wpdb reader;
+the reader now retains Woo's registered alias, with a DB regression assertion.
+This does not add a price write, tax editing or migration. Post-correction hosted
+verification remains mandatory. The #170 browser failure is retained as a blocker;
+no timeout, value assertion or safety guard has been relaxed to make it pass.
+
 ## Technical limits and #208 handoff
 
 - Existing value-based ABA limitation remains: an external price edit away and

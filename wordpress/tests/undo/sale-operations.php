@@ -28,6 +28,10 @@ function wl207_fixture( string $type, bool $variation = false, string $sale = '8
 }
 function wl207_fresh( int $id ) { V207::invalidate( $id ); return S207::fresh_product( $id ); }
 
+$observer207 = V207::observer();
+try { eq( $observer207->wc_tax_rate_classes, $wpdb->wc_tax_rate_classes, '#207 observer preserves Woo tax-class table mapping for variation reads' ); }
+finally { $observer207->close(); }
+
 foreach ( array( O207::CLEAR_SALE, O207::SALE_DISCOUNT_PERCENT ) as $type207 ) {
  foreach ( array( false, true ) as $variation207 ) {
   // Two regular bases, first-time sale, and a blank clear no-op.

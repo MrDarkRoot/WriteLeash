@@ -29,6 +29,10 @@ final class Price_Cache_Verifier {
 		$db = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
 		$db->set_prefix( $GLOBALS['wpdb']->prefix );
 		$db->wc_product_meta_lookup = $db->prefix . 'wc_product_meta_lookup';
+		// Fresh Woo variation/parent reads may validate tax-class context.
+		// Woo registers this public table alias on the original wpdb only;
+		// retain it on the independent reader instead of querying a blank table.
+		if ( isset( $GLOBALS['wpdb']->wc_tax_rate_classes ) ) { $db->wc_tax_rate_classes = $GLOBALS['wpdb']->wc_tax_rate_classes; }
 		if ( ! $db->dbh instanceof \mysqli || $db->dbh === $GLOBALS['wpdb']->dbh ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		return $db;
 	}
