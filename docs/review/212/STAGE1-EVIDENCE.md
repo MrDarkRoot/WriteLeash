@@ -104,9 +104,13 @@ Minimal action to unblock Stage 1: first complete #211's frozen-candidate handof
 - **Unverified scenarios:** All seven QIT suites; all six extension scenarios and all described simple/variation/conflict/metadata/custom-type checks; install/activation; Woo CRUD/lookup behavior; HPOS and legacy storage; support-window platform combinations.
 - **Artifact checksum:** None — the #211 candidate is not yet identified. Do not associate historical #194 checksum with this work.
 - **Commands/environment checks:** `qit` not found; `wp --info` reports WP-CLI 2.12.0 and PHP 8.2.32; `docker compose version` reports 5.1.4; `docker info` fails because Docker daemon socket is absent. GitHub inspection showed #211 OPEN and no related PR among the repository PRs inspected. Local #211 working-tree package preparations and candidate builder declare/target 0.2.0 but are uncommitted; builder output was not verified and they are not a frozen candidate.
-- **Evidence location:** `docs/review/212/STAGE1-EVIDENCE.md`.
+- **Evidence location:** `docs/review/212/STAGE1-EVIDENCE.md`; the parallel-prepared execution ledger and scenario checklist is `docs/review/212/EXECUTION-CHECKLIST.md`.
 - **Senior Review Agent instruction:** Treat the artifact gate and all suite/scenario records as BLOCKED. Do not infer PASS, compatibility, defect absence, or READY. After #211 supplies the frozen artifact and prerequisites above are met, execute and attach fresh per-suite/per-extension evidence tied to the independently recomputed ZIP SHA-256; escalate any reproducible product failure to Stage 2 without changing production runtime in this stage.
 
 ## Change-scope note
 
-This Stage 1 work adds only this evidence report. No production runtime code or candidate artifact was modified. The checkout had pre-existing user modifications before this report was created, including uncommitted #211 package preparations; those are outside this evidence record and were left untouched.
+The #212 branch changes are documentation only: this evidence report and the execution checklist. No production runtime code or candidate artifact was modified by this Stage 1 work. The checkout had pre-existing user modifications before these documents were created, including uncommitted #211 package preparations; those are outside this evidence record and were left untouched.
+
+## Parallel preparation update
+
+`docs/review/212/EXECUTION-CHECKLIST.md` was prepared while #211 package work remains in progress. It contains a checksum-bound artifact gate, environment/QIT ledgers, repeatable scenario worksheets for each of the six extensions, metadata and unsupported-type checks, and a failure capture template. This is preparation only; no candidate installation or acceptance scenario has run.
