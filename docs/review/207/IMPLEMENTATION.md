@@ -32,8 +32,9 @@ precision (0–6). No binary floating-point money calculation. A 0% parameter is
 arithmetically valid but its equal-to-regular result is ineligible. A 100%
 parameter yields numeric zero, subject to existing zero/cap policy. Tiny discounts
 that round back to Regular Price are also ineligible. Missing/invalid Regular
-Price is never replaced by zero. First sales have no old-sale ratio baseline;
-the existing zero-target and count checks still apply. Existing sales retain
+Price is never replaced by zero. A first relative sale evaluates percentage
+caps against its reviewed Regular Price basis; historical first-sale SET keeps
+its absent-ratio contract. The existing zero-target and count checks apply. Existing sales retain
 their sale-field delta/cap behavior against the actual rounded target.
 
 Each variation uses its own Regular Price. Published exact-core simple products
@@ -95,6 +96,12 @@ Status below distinguishes domain/model checks from real DB-backed runtime check
   sale-field behavior, legacy hashes/provenance and compact journal binding.
 - `php wordpress/tests/free/variations.php`: PASS, 77 assertions, parent invariants.
 - `php wordpress/tests/free/sale-operations.php`: PASS, new #207 domain battery.
+- The first-sale relative cap regression was demonstrated FAIL before its fix
+  (20% discount bypassed a 10% cap), then PASS; historical first-sale SET is
+  independently asserted unchanged.
+- `php wordpress/tests/free/sale-provenance.php`: PASS, actual Undo provenance
+  assembler with read-only journal double; blank target and malformed/tampered
+  evidence distinguished. This is a model check, not a DB runtime claim.
 - `php wordpress/tests/free/cache-public.php`: PASS, 73 model assertions.
 - `php wordpress/tests/free/selection-count.php`: PASS, 63 model assertions.
 - `php wordpress/tests/admin/recovery-unit.php`: PASS, old-plan/provenance recovery.

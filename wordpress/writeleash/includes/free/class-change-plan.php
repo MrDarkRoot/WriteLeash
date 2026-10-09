@@ -90,7 +90,10 @@ final class Change_Plan_Item {
 					// Clearing is not a zero-price discount. Conservatively check the
 					// return from the configured sale to the reviewed regular price.
 					// Already blank is a no-op, with no numeric delta or policy warning.
-					$p = '' === $target ? ( '' === $expected ? new Policy_Result( array(), array() ) : Policy_Evaluator::item( $expected, $s['regular_price'], $policy ) ) : Policy_Evaluator::item( $expected, $target, $policy );
+					// A first relative sale has a reviewed regular basis for safety
+					// caps; legacy first-sale SET keeps its absent-ratio contract.
+					$policy_expected = '' === $expected && Price_Operation::SALE_DISCOUNT_PERCENT === $operation->data()['type'] ? $s['regular_price'] : $expected;
+					$p = '' === $target ? ( '' === $expected ? new Policy_Result( array(), array() ) : Policy_Evaluator::item( $expected, $s['regular_price'], $policy ) ) : Policy_Evaluator::item( $policy_expected, $target, $policy );
 				} else {
 					$target = null;
 				}

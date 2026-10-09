@@ -60,6 +60,10 @@ foreach ( array( '' => 'empty_regular_price', 'bad' => 'invalid_price' ) as $reg
 }
 $zero = wl178_plan( array( wl178_product( 604, '100' ) ), new O( O::SALE_DISCOUNT_PERCENT, '100', O::FIELD_SALE ), wl178_policy( true ) );
 wl178_equal( $zero->item( 604 )->data()['blockers'], array( 'zero_target_blocked' ), 'actual rounded zero policy applies' );
+$first_cap = wl178_plan( array( wl178_product( 604, '100' ) ), $discount, new P( 1000, '100', '10', false, '10' ) );
+wl178_equal( $first_cap->item( 604 )->data()['blockers'], array( 'max_decrease_exceeded' ), 'first relative sale checks actual discount against reviewed regular basis' );
+$old_first_set = wl178_plan( array( wl178_product( 604, '100' ) ), new O( O::SET, '80', O::FIELD_SALE ), new P( 1000, '0', '0', false, '0' ) );
+wl178_equal( $old_first_set->data()['status'], 'PREVIEW', 'historical first-sale SET still has no ratio baseline' );
 wl178_equal( wl178_plan( array( wl178_product( 604, '100' ) ), new O( O::SALE_DISCOUNT_PERCENT, '0', O::FIELD_SALE ) )->item( 604 )->data()['eligibility']['reason'], 'sale_price_not_below_regular', '0% cannot authorize an invalid sale' );
 wl178_equal( wl178_plan( array( wl178_product( 604, '0.01' ) ), new O( O::SALE_DISCOUNT_PERCENT, '0.000001', O::FIELD_SALE ) )->item( 604 )->data()['eligibility']['reason'], 'sale_price_not_below_regular', 'rounded final target evaluated, not unrounded discount' );
 foreach ( array( $clear, $discount ) as $operation ) {
