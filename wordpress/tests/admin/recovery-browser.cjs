@@ -41,6 +41,15 @@ function observe(mode = 'observe') {
    eq(observe(), original, 'cancel no side effects');
    await page.getByRole('link', { name: 'Re-preview conflicted products', exact: true }).click();
    await row.focus(); await page.keyboard.press('Space'); eq(await row.isChecked(), true, 'keyboard choice');
+   // Invalid inputs must retain the merchant's edited suggestions without creating work.
+   await page.getByRole('checkbox', { name: 'Block a preview that sets any changing price to zero', exact: true }).uncheck();
+   await page.locator('[name=amount]').fill('invalid');
+   await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.getByRole('button', { name: 'Preview price changes', exact: true }).click()]);
+   eq(await row.isChecked(), true, 'chosen population retained after validation error');
+   eq(await page.locator('[name=amount]').inputValue(), 'invalid', 'edited amount retained');
+   eq(await page.getByRole('checkbox', { name: 'Block a preview that sets any changing price to zero', exact: true }).isChecked(), false, 'unchecked policy stays unchecked');
+   eq(observe(), original, 'invalid submission has no durable side effects');
+   await page.locator('[name=amount]').fill('10');
    if (process.env.WL167_EVIDENCE) {
     fs.mkdirSync(process.env.WL167_EVIDENCE, { recursive: true });
     await page.screenshot({ path: process.env.WL167_EVIDENCE + '/205-recovery-' + js + '.png', fullPage: true });
@@ -52,7 +61,7 @@ function observe(mode = 'observe') {
    eq(observed.jobs.length, 2, 'only one new job');
    const plan = JSON.parse(observed.jobs[1].plan_json);
    eq(plan.items[0].planned_regular_price, '132.00', 'current price arithmetic'); eq(plan.source_job, f.job, 'provenance');
-   eq(plan.resolved_product_ids, [f.id], 'exact chosen population');
+   eq(plan.resolved_product_ids, [f.id], 'exact chosen population'); eq(plan.policy_snapshot.block_zero, false, 'edited safety setting frozen');
    eq(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count(), 1, 'normal explicit approval');
    if (process.env.WL167_EVIDENCE) await page.screenshot({ path: process.env.WL167_EVIDENCE + '/205-preview-' + js + '.png', fullPage: true });
    await Promise.all([page.waitForURL('**wl_view=job**'), page.getByRole('button', { name: 'Approve and apply', exact: true }).click()]);

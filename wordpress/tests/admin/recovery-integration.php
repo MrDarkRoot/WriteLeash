@@ -85,6 +85,7 @@ $eq( A::process_preview( $post( array( $conflict ), $new['public_id'] ), 'POST' 
 // Deleted and unsupported rows stay explained and cannot write.
 $deleted = $create(); $unsupported = $create(); $missing_source = $preview( $post( array( $deleted, $unsupported ) ) );
 $edit( $deleted, '120' ); $edit( $unsupported, '120' ); $apply( $missing_source ); wp_delete_post( $deleted, true ); wp_update_post( array( 'ID' => $unsupported, 'post_status' => 'draft' ) );
+$eq( str_contains( $render( 'recovery', $missing_source ), 'This product no longer exists.' ), true, 'missing product explained during selection' );
 $missing = $preview( $post( array( $deleted, $unsupported ), $missing_source['public_id'] ) ); $eq( R::hydrate_plan( $missing )->summary()['unsupported'], 2, 'missing/unsupported frozen explanations' );
 // Core variation identity, parent lookup and Sale arithmetic.
 $parent = $create( 'WC_Product_Variable' ); $child = $create( 'WC_Product_Variation', $parent ); $sibling = $create( 'WC_Product_Variation', $parent );

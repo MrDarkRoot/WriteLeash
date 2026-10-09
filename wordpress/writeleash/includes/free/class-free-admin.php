@@ -417,6 +417,8 @@ final class Free_Admin {
 			$value = $post[$key] ?? null;
 			if ( is_string( $value ) && strlen( $value ) <= ( 'ids' === $key ? 20000 : 100 ) ) { $values[$key] = $value; }
 		}
+		// An unchecked recovery suggestion must not be restored from the source default.
+		if ( isset( $values['source_job'] ) && ! array_key_exists( 'block_zero', $values ) ) { $values['block_zero'] = ''; }
 		try { $values['product_ids'] = array_map( 'strval', self::picker_ids( $post ) ); }
 		catch ( \Throwable $error ) { $values['product_ids'] = array(); }
 		return $values;
@@ -538,6 +540,7 @@ final class Free_Admin {
 			echo '<li><label><input type="checkbox" name="product_ids[]" value="' . esc_attr( (string) $id ) . '"' . ( in_array( (string) $id, $values['product_ids'] ?? array(), true ) ? ' checked' : '' ) . '> ' . esc_html( $label ) . '</label>';
 			echo '<p>' . esc_html( self::outcome_conflict_copy( 'CONFLICT' ) . ' ' . self::reason_message( (string) $row['reason'] ) ) . '</p>';
 			$observation = self::product_observation( $id, $source['plan']->price_field() );
+			if ( ! get_post( $id ) ) { $observation['context'] = 'This product no longer exists. Preview will mark it as missing and will not apply it.'; }
 			echo '<p>' . esc_html( 'At page load: ' . $observation['price'] . '. ' . $observation['context'] ) . '</p>';
 			echo '<p>Current values may have changed again. Preview will explain missing or unsupported products and will never apply them.</p></li>';
 		}
