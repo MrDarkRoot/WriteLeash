@@ -3,7 +3,7 @@ Contributors: duyytrann
 Tags: woocommerce, bulk edit, prices, undo, safety
 Requires at least: 7.0
 Tested up to: 7.1
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -33,7 +33,8 @@ Set a price, add or subtract a fixed amount, or increase or decrease by a
 percentage. Choose Regular Price or Sale Price for published simple products
 and variations of published variable products, in your base store currency.
 Select a variable product to include its variations, or choose individual
-variations. Category selection includes direct members, not subcategories.
+variations. Category selection includes direct members by default; an explicit
+option also includes nested subcategories.
 
 A Regular Price change preserves the existing Sale Price and sale schedule.
 Use Set to add a first Sale Price; all operations work on an existing Sale
@@ -181,6 +182,15 @@ exercised), PHP 7.4.33, 8.0.30, 8.1.34 and 8.2.34, MySQL 8.0.44 and MariaDB
 and multisite is unsupported.
 
 == Changelog ==
+
+= 0.2.0 =
+
+* Added live read-only Apply and Undo progress without reloading the page.
+* Added an explicit option to include nested subcategories in category selection; Preview freezes the reviewed product IDs.
+* Added Conflict to fresh Preview: re-preview conflicted products at their current prices.
+* Update public-cache compatibility for default and persistent object-cache modes.
+* Update merchant-facing PHP and JavaScript translation readiness.
+* Requires WooCommerce 10.0 through 11.x.
 
 = 0.1.0 =
 

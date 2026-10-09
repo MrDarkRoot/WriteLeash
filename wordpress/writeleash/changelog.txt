@@ -1,0 +1,13 @@
+*** WriteLeash Changelog ***
+
+2026-10-09 - version 0.2.0
+* Added - Live read-only Apply and Undo progress without reloading the page.
+* Added - Explicit option to include nested subcategories in category selection; Preview freezes the reviewed product IDs.
+* Added - Conflict to fresh Preview: re-preview conflicted products at their current prices.
+* Update - Public-cache compatibility for default and persistent object-cache modes.
+* Update - Merchant-facing PHP and JavaScript translation readiness.
+
+2026-10-07 - version 0.1.0
+* Added - Bulk Regular Price and Sale Price changes for simple products and variations, with exact Preview before Apply and protection for relevant newer edits.
+* Added - Selection by product name, SKU or category, with up to 1,000 selected products per new job in the tested configuration.
+* Added - Background processing, saved progress, Resume, History and eligible Undo.
