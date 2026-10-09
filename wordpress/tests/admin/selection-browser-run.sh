@@ -79,6 +79,11 @@ SETUP
     docker cp "$container:/tmp/wl168-fixture.json" "$WL168_FIXTURE"
     chmod 600 "$WL168_FIXTURE"
     node "$here/presentation-browser.cjs"
+    export WL205_FIXTURE="$scratch/recovery-fixture.json"
+    docker exec -e WL205_MODE=seed -e WL205_FIXTURE=/tmp/wl205-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/recovery-browser-fixture.php
+    docker cp "$container:/tmp/wl205-fixture.json" "$WL205_FIXTURE"
+    chmod 600 "$WL205_FIXTURE"
+    node "$here/recovery-browser.cjs"
     if [ "$host:$cache" = mysql:default ]; then
       # Both browser engines use fresh actors/products in this existing disposable site.
       export WL170_FIXTURE="$scratch/regression-fixture.json"

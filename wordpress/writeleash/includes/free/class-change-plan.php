@@ -177,6 +177,7 @@ final class Change_Plan {
 			! is_string( $data['plan_hash'] ) || ! preg_match( '/\A[0-9a-f]{64}\z/D', $data['plan_hash'] ) ) {
 			throw new Price_Validation_Error( 'invalid_plan_material' );
 		}
+		if ( array_key_exists( 'source_job', $data ) && ( ! is_string( $data['source_job'] ) || ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $data['source_job'] ) ) ) { throw new Price_Validation_Error( 'invalid_source_job' ); }
 		$material = $data;
 		unset( $material['plan_id'], $material['created_at'], $material['plan_hash'], $material['summary'] );
 		if ( ! hash_equals( $data['plan_hash'], Plan_Hasher::hash( $material ) ) ) { throw new Price_Validation_Error( 'plan_hash_mismatch' ); }
@@ -224,6 +225,14 @@ final class Change_Plan {
 		// A plan-level blocker authorizes none of the changing items, including clean ones.
 		$summary['blocked'] = Policy_Result::BLOCKED === $decision['state'] ? $summary['changing'] : 0;
 		return $summary;
+	}
+	/** Attach validated provenance to a fresh immutable preview, never to an approved job. */
+	public function with_source_job( string $public_id ): self {
+		if ( ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $public_id ) || isset( $this->material['source_job'] ) ) { throw new Price_Validation_Error( 'invalid_source_job' ); }
+		$copy = clone $this;
+		$copy->material['source_job'] = $public_id;
+		$copy->hash = Plan_Hasher::hash( $copy->material );
+		return $copy;
 	}
 	public function hash(): string { return $this->hash; }
 	/** Target price field of the frozen plan; legacy plans default to the regular price. */
