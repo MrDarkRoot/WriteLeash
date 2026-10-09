@@ -143,7 +143,8 @@ final class Woo_Undo_Mutator {
 			if ( $is_variation && ( 'WC_Product_Variation' !== get_class( $product ) || $parent_id < 1 ) ) { throw new Price_Apply_Error( 'UNSUPPORTED_PRODUCT_STATE' ); }
 			// A variation whose parent is no longer the same published core
 			// variable product is a product-state conflict, not a restore.
-			if ( $is_variation && ( empty( $snapshot_data['parent_core_variable'] ) || 'publish' !== ( $snapshot_data['parent_status'] ?? '' ) || $parent_id !== (int) $product->get_parent_id( 'edit' ) ) ) {
+			$frozen_snapshot = $plan->item( $product_id )->data()['snapshot'];
+			if ( $is_variation && ( empty( $snapshot_data['parent_core_variable'] ) || 'publish' !== ( $snapshot_data['parent_status'] ?? '' ) || $parent_id !== (int) ( $frozen_snapshot['parent_id'] ?? 0 ) ) ) {
 				throw new Price_Apply_Error( 'PRODUCT_TYPE_CHANGED' );
 			}
 			// The applied provenance decides what the product was: a recorded

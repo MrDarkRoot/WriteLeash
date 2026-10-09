@@ -275,7 +275,8 @@ final class Change_Plan {
 		if ( (string) ( $old['type'] ?? '' ) !== (string) ( $now['type'] ?? '' )
 			|| ! empty( $old['core_simple'] ) !== ! empty( $now['core_simple'] )
 			|| ! empty( $old['core_variation'] ) !== ! empty( $now['core_variation'] )
-			|| (int) ( $old['parent_id'] ?? 0 ) !== (int) ( $now['parent_id'] ?? 0 ) ) { $reasons[] = 'product_type_changed'; }
+			|| (int) ( $old['parent_id'] ?? 0 ) !== (int) ( $now['parent_id'] ?? 0 )
+			|| ( ! empty( $old['core_variation'] ) && ( empty( $now['parent_core_variable'] ) || 'publish' !== ( $now['parent_status'] ?? '' ) ) ) ) { $reasons[] = 'product_type_changed'; }
 		if ( $old['status'] !== $now['status'] ) { $reasons[] = 'product_status_changed'; }
 		if ( Price_Operation::FIELD_SALE === $field ) {
 			// Guard the sale price itself. Sale dates are not a conflict:
