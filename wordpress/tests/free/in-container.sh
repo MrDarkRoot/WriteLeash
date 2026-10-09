@@ -3,6 +3,7 @@ set -eu
 php /opt/tests/free/unit.php
 php /opt/tests/free/sale-price.php
 php /opt/tests/free/sale-operations.php
+php /opt/tests/free/sale-provenance.php
 php /opt/tests/free/variations.php
 php /opt/tests/free/cache-public.php
 php /opt/tests/free/selection-count.php

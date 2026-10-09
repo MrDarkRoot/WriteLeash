@@ -273,8 +273,11 @@ final class Undo_Repository {
 		$field = $evidence['price_field'] ?? null;
 		try {
 			$frozen = $plan->item( $product_id )->data();
-			$applied = Price_Decimal::parse( $job_item['planned_price'] );
-			if ( Price_Decimal::parse( $evidence['target'] ) !== $applied || $journal['target_price'] !== $job_item['planned_price'] ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
+			// Only the explicitly approved clear operation can have a blank
+			// applied target. Historical numeric evidence retains strict parsing.
+			$clear = Price_Operation::FIELD_SALE === $field && Price_Operation::CLEAR_SALE === ( $plan->data()['operation']['type'] ?? null ) && '' === $job_item['planned_price'];
+			$applied = $clear ? '' : Price_Decimal::parse( $job_item['planned_price'] );
+			if ( ! is_string( $evidence['target'] ?? null ) || ! Price_Decimal::equal( $evidence['target'], $applied ) || $journal['target_price'] !== $job_item['planned_price'] ) { throw new Undo_Error( 'UNDO_PROVENANCE_MISMATCH' ); }
 			if ( null === $field ) {
 				// Legacy evidence (no price field): strict sale-free proof exactly as before.
 				foreach ( array( 'regular', 'active', 'lookup_min', 'lookup_max' ) as $key ) {
