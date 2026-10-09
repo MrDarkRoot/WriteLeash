@@ -11,6 +11,7 @@
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: writeleash
+ * Domain Path: /languages
  */
 
 /**
@@ -43,12 +44,17 @@ add_action( 'before_woocommerce_init', static function () {
 define( 'WRITELEASH_VERSION', '0.1.0' );
 define( 'WRITELEASH_PLUGIN_FILE', __FILE__ );
 
+// Register local catalogs after init; WordPress also loads installed language packs.
+add_action( 'init', static function () {
+	load_plugin_textdomain( 'writeleash', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+} );
+
 // Avoid parsing PHP 7.4 class files on older runtimes; activation must fail.
 if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
 	register_activation_hook(
 		__FILE__,
 		static function () {
-			wp_die( 'WriteLeash requires PHP 7.4 or newer.' );
+			wp_die( esc_html__( 'WriteLeash requires PHP 7.4 or newer.', 'writeleash' ) );
 		}
 	);
 	return;

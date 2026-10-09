@@ -19,7 +19,7 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 	foreach ( $entries as $entry ) {
 		// Finite release files + reviewed common classes + Woo class directory.
 		// The closure below further rejects even an unused PHP file here.
-		if ( ! in_array( $entry, array( 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-progress.js', 'includes/free/free-selection.css', 'includes/free/admin-logo.png',
+		if ( ! in_array( $entry, array( 'languages/writeleash.pot', 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-progress.js', 'includes/free/free-selection.css', 'includes/free/admin-logo.png',
 			'includes/class-environment.php', 'includes/class-lifecycle.php', 'includes/class-plugin.php' ), true ) &&
 			! preg_match( '#\Aincludes/free/class-[a-z-]+\.php\z#D', $entry ) ) {
 			$fail( 'non-public artifact in manifest: ' . $entry );
@@ -27,6 +27,10 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 		if ( ! is_file( $root . '/' . $entry ) || is_link( $root . '/' . $entry ) ) {
 			$fail( 'missing or symlinked public file: ' . $entry );
 		}
+	}
+	if ( in_array( 'languages/writeleash.pot', $entries, true ) ) {
+		$pot = file_get_contents( $root . '/languages/writeleash.pot' );
+		if ( ! str_contains( $pot, 'X-Domain: writeleash' ) || ! str_contains( $pot, 'msgid_plural' ) || ! str_contains( $pot, 'includes/free/free-progress.js' ) ) { $fail( 'invalid public translation source catalog' ); }
 	}
 	if ( in_array( 'includes/free/admin-logo.png', $entries, true ) ) {
 		$logo = $root . '/includes/free/admin-logo.png';

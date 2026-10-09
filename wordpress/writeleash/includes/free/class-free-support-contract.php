@@ -62,7 +62,8 @@ final class Free_Support_Contract {
 
 	/** Merchant-facing short form of the supported WooCommerce range. */
 	public static function range_text(): string {
-		return 'WooCommerce ' . self::WOOCOMMERCE_MIN . ' through 11.x';
+		/* translators: %s: minimum supported WooCommerce version. */
+		return sprintf( __( 'WooCommerce %s through 11.x', 'writeleash' ), self::WOOCOMMERCE_MIN );
 	}
 
 	/**

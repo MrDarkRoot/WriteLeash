@@ -39,7 +39,7 @@ final class Undo_Rest {
 		}
 		$job = Job_Repository::read_by_public_id( (string) $request['public_id'] );
 		if ( ! $job ) {
-			return new \WP_Error( 'writeleash_job_not_found', 'No WriteLeash job matches that identifier.', array( 'status' => 404 ) );
+			return new \WP_Error( 'writeleash_job_not_found', __( 'No WriteLeash job matches that identifier.', 'writeleash' ), array( 'status' => 404 ) );
 		}
 		$user_id = get_current_user_id();
 		if ( ! Undo_Repository::authorized( $job, $user_id ) ) {

@@ -30,7 +30,7 @@ delete_option( 'writeleash_runner_state' );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Independent uncached DB verification of the safety-critical shutdown; the option cache can be stale across processes.
 $writeleash_state = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name=%s LIMIT 1', $wpdb->options, 'writeleash_runner_state' ) );
 if ( '' !== (string) $wpdb->last_error || 'active' === $writeleash_state ) {
-	wp_die( 'WriteLeash uninstall could not establish the runner shutdown boundary.' );
+	wp_die( esc_html__( 'WriteLeash uninstall could not establish the runner shutdown boundary.', 'writeleash' ) );
 }
 
 // Exact-name deletion only: no wildcard or LIKE-based option cleanup runs here.

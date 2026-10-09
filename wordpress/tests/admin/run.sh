@@ -5,6 +5,9 @@ ls "$here" >/dev/null
 node "$here/progress-client.cjs"
 php "$here/progress-unit.php"
 php "$here/recovery-unit.php"
+php "$here/i18n-catalog.php"
+php "$here/i18n-unit.php"
+php "$here/i18n-plan-unit.php"
 mkdir -p "$here/cache"
 fetch() {
   local file="$1" sha="$2"

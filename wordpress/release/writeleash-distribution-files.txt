@@ -42,6 +42,7 @@ includes/free/class-woo-undo-mutator.php
 includes/free/free-progress.js
 includes/free/free-selection.css
 includes/free/free-selection.js
+languages/writeleash.pot
 readme.txt
 uninstall.php
 writeleash.php

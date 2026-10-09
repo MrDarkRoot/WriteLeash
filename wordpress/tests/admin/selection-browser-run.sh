@@ -95,6 +95,10 @@ SETUP
         node "$here/regression-browser.cjs"
       done
     fi
+    if [ "$host:$cache" = mysql:default ]; then
+      export WL210_FIXTURE="$scratch/i18n-fixture.json" WL167_EVIDENCE="$evidence/210"
+      node "$here/i18n-browser.cjs"
+    fi
     docker exec "$container" sh -c 'kill "$(cat /tmp/wl167-web.pid)"'
   done
 done
