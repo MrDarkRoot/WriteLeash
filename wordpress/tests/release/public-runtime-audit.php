@@ -19,7 +19,7 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 	foreach ( $entries as $entry ) {
 		// Finite release files + reviewed common classes + Woo class directory.
 		// The closure below further rejects even an unused PHP file here.
-		if ( ! in_array( $entry, array( 'languages/writeleash.pot', 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-progress.js', 'includes/free/free-selection.css', 'includes/free/admin-logo.png',
+		if ( ! in_array( $entry, array( 'languages/writeleash.pot', 'LICENSE', 'readme.txt', 'changelog.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-progress.js', 'includes/free/free-selection.css', 'includes/free/admin-logo.png',
 			'includes/class-environment.php', 'includes/class-lifecycle.php', 'includes/class-plugin.php' ), true ) &&
 			! preg_match( '#\Aincludes/free/class-[a-z-]+\.php\z#D', $entry ) ) {
 			$fail( 'non-public artifact in manifest: ' . $entry );
@@ -31,6 +31,13 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 	if ( in_array( 'languages/writeleash.pot', $entries, true ) ) {
 		$pot = file_get_contents( $root . '/languages/writeleash.pot' );
 		if ( false === strpos( $pot, 'X-Domain: writeleash' ) || false === strpos( $pot, 'msgid_plural' ) || false === strpos( $pot, 'includes/free/free-progress.js' ) ) { $fail( 'invalid public translation source catalog' ); }
+	}
+	// #211: the Woo changelog is the only newly allowed non-PHP asset. It is
+	// a plain-text Woo-format changelog, never executable content.
+	if ( in_array( 'changelog.txt', $entries, true ) ) {
+		$changelog = file_get_contents( $root . '/changelog.txt' );
+		if ( 0 !== strpos( $changelog, '*** WriteLeash Changelog ***' ) || "\n" !== substr( $changelog, -1 ) ) { $fail( 'invalid public Woo changelog' ); }
+		if ( preg_match( '/<\?php|<script/i', $changelog ) ) { $fail( 'executable content in public Woo changelog' ); }
 	}
 	if ( in_array( 'includes/free/admin-logo.png', $entries, true ) ) {
 		$logo = $root . '/includes/free/admin-logo.png';

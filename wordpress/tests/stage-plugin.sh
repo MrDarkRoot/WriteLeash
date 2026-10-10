@@ -9,7 +9,10 @@ tests=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 destination="$site/wp-content/plugins/writeleash"
 test -f "$manifest"
 test ! -e "$destination"
-php "$tests/release/package-preflight.php" "$source" "$manifest"
+# #211: the staged live tree declares the proposed candidate version. The
+# explicit pin must move together with the header, readme and changelog on a
+# version-bump PR; the historical v0.1 builder keeps its own 0.1.0 default.
+php "$tests/release/package-preflight.php" "$source" "$manifest" --version=0.2.0
 
 entries=$(grep -v '^#' "$manifest" | grep -v '^[[:space:]]*$')
 test -n "$entries"
@@ -49,7 +52,7 @@ test ! -e "$destination/LICENSE-AUDIT.md"
 test ! -e "$destination/RELEASE-MATRIX.md"
 test ! -e "$destination/THREAT-MODEL.md"
 test ! -e "$destination/operator-setup.txt"
-php "$tests/release/package-preflight.php" "$destination" "$manifest"
+php "$tests/release/package-preflight.php" "$destination" "$manifest" --version=0.2.0
 for entry in $entries; do
   case "$entry" in *.php) php -l "$destination/$entry" ;; esac
 done

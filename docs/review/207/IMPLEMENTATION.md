@@ -199,3 +199,77 @@ on the new PR HEAD before the draft is considered merge-ready.
   evaluate discount rounding/endings against the frozen final target. Do not
   retroactively add endings to existing plans. Resolve the three-file overlap
   with #229 by retaining equivalent parent checks, not by dropping them.
+
+## Final integration repair — 2026-10-10
+
+### Baseline, diagnosis and correction
+
+- Previous PR HEAD: `3159e4420814cbea3f28a1eb9d4206147dca595c`.
+- Current main integration base: `5d8d8cd129e198eaceb08f6363b812ef0f32429f`
+  (merged #228 and #229). Integration uses a merge into the existing isolated
+  `work/207-clear-relative-sale` branch; no rewritten history or force push.
+- The actual failed run `37965043755` checked out production HEAD
+  `384e4342adc6029bfc10346864c042e08a92a144`, not `3159e44`'s keyboard correction.
+  Admin job `113937415053` failed in #170 Chromium at the independent regular-price
+  assertion (`regression-browser.cjs:253` in that checkout). Its preceding End-key
+  selection chose `SALE_DISCOUNT_PERCENT`/`sale_price`, while the fixture expected
+  `DECREASE_PERCENT`/`regular_price`, both with input `20`. The fixture's SQL observer
+  reads `_regular_price`, explaining the mismatch; this is not a calculation or
+  AJAX authorization bypass. The frozen dependency still refused the externally
+  changed product correctly.
+- The failed job's preserved artifact `woo-admin-111` (ID `11634301629`) independently
+  confirms the actual selection in `woo-selection-167/170-chromium/170-chromium-preview.png`:
+  “Set sale prices to 20% below each product’s reviewed Regular Price”, with Sale price
+  before blank and Sale price after $80.00. This screenshot was inspected from the
+  original artifact, not recreated or added to historical review proof.
+- Keep the semantic lookup plus actual Home/ArrowDown keyboard navigation from
+  `3159e44`. Add an independent assertion on the frozen `{type, field, input}` tuple
+  and emit that tuple into hosted logs. All original price, save-count, conflict,
+  CSV, Undo, focus, accessibility and authorization assertions remain intact.
+- Chromium stopped at the first error, so its later CSV/Undo/negative cases,
+  Firefox #170 journey, later DB/cache browser profiles and Admin PHP integration
+  were not covered by that failed job. A full Admin run is required to expose
+  later independent failures; syntax PASS is not browser PASS.
+- CI_COVERAGE job `113946539934` failed exactly at
+  `Owning integration did not succeed: admin`. `NEEDS_JSON` showed all other selected
+  owners succeeded and `acceptance_budget=approved`. The coverage contract is unchanged.
+
+### Semantic merge and release isolation
+
+The only Git conflict was in `wordpress/tests/undo/integration.php`: keep
+`require parent-state.php` and `require sale-operations.php`, each once. Review of
+the auto-merged hunks confirmed both operation semantics and frozen regular basis
+checks survived. The following files are byte-identical to current main and thus
+drop out of the PR diff: `wordpress/tests/free/variations.php`,
+`wordpress/tests/undo/parent-state.php`, and `class-woo-undo-mutator.php`.
+`Change_Plan::precondition()` retains #229's live published/core parent check;
+`sync_variable_parent()` retains the locked published/core guard; Undo compares
+the current parent ID with the immutable plan snapshot, never with itself.
+
+Main's 0.2.0 header/constant, readme, changelog, release tooling, and #211/#212
+documents/receipts are unchanged against the integration base. No #194 receipt,
+historical v0.1 artifact, candidate ZIP or #208 branch is changed. The release audit
+retains #211's changelog checks, using equivalent `strpos`/`substr` comparisons so
+bare PHP 7.4 tooling needs no WordPress polyfill. No check is removed or loosened.
+The two pre-existing #170 documentation/proof changes in this PR remain the
+explicitly documented current-source identity refresh; historical PNGs and result
+JSONs stay unchanged. No new historical proof is fabricated.
+
+The reduced diff inventory has 26 files: 3 review-document/proof files; 4 acceptance
+fixtures; 3 Admin fixtures; 3 Free fixtures; 1 release-audit helper; 2 Undo fixtures;
+9 runtime PHP/JS files; and the POT catalog. All are sale semantics, verification,
+localization or related audit evidence. There is no price-ending implementation.
+
+### Post-integration checks before hosted execution
+
+PASS locally: PR_FAST including main's 0.2.0 coherence checks, Free unit (2,607
+assertions), sale domain/provenance, variation controls (77 assertions), genuine
+pre-#210 frozen-plan compatibility, i18n unit checks and Apply/Undo no-replan audit.
+The browser fixture parses successfully; actual browser and DB results remain
+pending until the post-integration workflow completes. Docker remains unavailable
+locally, so hosted MySQL/MariaDB default/Redis results are the runtime authority.
+
+At this pre-push evidence snapshot the verdict is **HOLD**. Final run URLs, exact
+tested integration HEAD, selected-profile results and mergeability will be appended
+after completion. Cancelled historical runs are not counted as PASS. No documentation
+push will supersede a long-running verification run.

@@ -222,6 +222,9 @@ async function responsive(page) {
         const previewURL = page.url(); const publicId = new URL(previewURL).searchParams.get('wl_job');
         let observed = fixture(); const job = observed.jobs.find(j => j.public_id === publicId);
         const frozen = { json: job.plan_json, hash: job.plan_hash };
+        const reviewedOperation = JSON.parse(frozen.json).operation;
+        assert.deepEqual({ type: reviewedOperation.type, field: reviewedOperation.field, input: reviewedOperation.input }, { type: 'DECREASE_PERCENT', field: 'regular_price', input: '20' }, 'frozen approval matches the keyboard-selected regular-price operation');
+        console.log('#207/#170 reviewed browser operation: ' + JSON.stringify(reviewedOperation));
         ok(JSON.parse(job.plan_json).resolved_product_ids.join() === [...f.ids].sort((a,b)=>a-b).join(), 'independent frozen population');
         ok(observed.saves.length === 0 || Object.values(observed.saves).every(n => n === 0), 'preview has no Woo saves');
         await scan(page, 'preview'); await capture(page, 'preview'); await responsive(page);

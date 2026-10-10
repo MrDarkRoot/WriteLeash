@@ -11,11 +11,12 @@ php wordpress/tests/release/asset-audit-cases.php
 source=wordpress/writeleash
 manifest=wordpress/release/writeleash-distribution-files.txt
 tests=wordpress/tests/release
-php "$tests/package-preflight.php" "$source" "$manifest"
+php "$tests/package-preflight.php" "$source" "$manifest" --version=0.2.0
 php "$tests/inventory-audit.php" "$source" wordpress/release/PUBLIC-PAYLOAD.md "$manifest"
 mkdir -p /tmp/opencode
 php "$tests/public-audit-cases.php" "$source" "$manifest"
 php "$tests/readme-validate.php" "$source"
+php "$tests/woo-candidate.php" "$source" wordpress/release/writeleash-woo-distribution-files.txt "$(git rev-parse HEAD)" 0.2.0
 php "$tests/historical-shim-cases.php" "$source"
 if [[ -f "$tests/claim-matrix-audit.php" ]]; then
   php "$tests/claim-matrix-audit.php" "$repo"
