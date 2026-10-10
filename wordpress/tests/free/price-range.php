@@ -162,6 +162,7 @@ function ok234( bool $condition, string $label ) { eq234( $condition, true, $lab
 function error234( callable $call, string $reason ) { try { $call(); } catch ( WriteLeash\Price_Validation_Error $e ) { eq234( $e->reason(), $reason, 'refusal ' . $reason ); return; } throw new RuntimeException( 'Expected refusal: ' . $reason ); }
 function ids234( $spec ) { return array_map( static fn( $snapshot ) => $snapshot->data()['product_id'], Selector234::resolve( $spec ) ); }
 function outcome234( $spec ) { return Selector234::resolve_with_outcome( $spec ); }
+function preview234( $spec ) { return WriteLeash\Woo_Price_Planner::preview( $spec, new WriteLeash\Price_Operation( 'SET', '80' ), new WriteLeash\Safety_Policy( 1000, '100', '100', false, '100' ) ); }
 function simple234( int $id, string $regular, array $extra = array() ) { return new WC_Product_Simple( array_merge( array( 'id' => $id, 'regular_price' => $regular ), $extra ) ); }
 
 // ---- Range mathematics ----
@@ -376,6 +377,51 @@ $planned234 = WriteLeash\Woo_Price_Planner::preview( $planner_spec234, new Write
 eq234( $planned234->data()['resolved_product_ids'], ids234( $planner_spec234 ), 'planner freezes the matched population' );
 $GLOBALS['denied234'] = array( 104 );
 error234( static fn() => WriteLeash\Woo_Price_Planner::preview( $planner_spec234, new WriteLeash\Price_Operation( 'SET', '80' ), new WriteLeash\Safety_Policy( 1000, '100', '100', false, '100' ) ), 'permission_denied' );
+$GLOBALS['denied234'] = array();
+// Adversarial full-population Preview authorization (Cases A–F). The
+// vulnerable exists-gated check skipped unreadable rows, letting a denied
+// unreadable ID through; the fix gates every resolvable source ID.
+// Case A: denied unreadable ID with an enabled range refuses Preview. No
+// plan object is returned, so nothing can persist; counts never surface
+// because the throw precedes all output.
+$GLOBALS['denied234'] = array( 109 );
+error234( static fn() => preview234( $planner_spec234 ), 'permission_denied' );
+error234( static fn() => preview234( Spec234::ids( array( 105, 109 ), Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) ), 'permission_denied' );
+error234( static fn() => Selector234::discover_count( Spec234::ids( array( 105, 109 ), Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) ), 'permission_denied' );
+$GLOBALS['denied234'] = array();
+// Case B: denied readable IDs refuse whether matched or excluded by range.
+$GLOBALS['denied234'] = array( 106 );
+error234( static fn() => preview234( Spec234::ids( array( 102, 106 ), Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) ), 'permission_denied' );
+$GLOBALS['denied234'] = array( 101, 104 );
+error234( static fn() => preview234( Spec234::ids( array( 101, 104 ), Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) ), 'permission_denied' );
+$GLOBALS['denied234'] = array();
+// Case C: an authorized unreadable ID keeps the existing read-failure
+// contract. Under an enabled range it is counted unsupported, never
+// fabricated as a match; filter-free it stays a frozen explained row.
+$auth_unreadable234 = preview234( Spec234::ids( array( 105, 109 ), Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) );
+eq234( $auth_unreadable234->data()['resolved_product_ids'], array( 105 ), 'authorized unreadable ID is not fabricated as a range match' );
+eq234( $auth_unreadable234->data()['price_range']['unsupported'], 1, 'authorized unreadable ID counted unsupported' );
+$classic_unreadable234 = preview234( Spec234::ids( array( 105, 109 ) ) );
+eq234( $classic_unreadable234->data()['resolved_product_ids'], array( 105, 109 ), 'filter-free unreadable ID stays frozen' );
+eq234( $classic_unreadable234->item( 109 )->data()['result'], 'UNSUPPORTED', 'filter-free unreadable ID stays an explained row' );
+// Case D: a denied missing ID does not gate Preview. WordPress maps
+// edit_post on missing posts to do_not_allow for every actor, so gating
+// on missing would refuse all stale-ID selections; missing rows carry no
+// prices and freeze only when the actor named them.
+$GLOBALS['denied234'] = array( 999 );
+$missing_ok234 = preview234( Spec234::ids( array( 105, 999 ), Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) );
+eq234( $missing_ok234->data()['resolved_product_ids'], array( 105 ), 'denied missing ID neither refuses nor fabricates' );
+eq234( $missing_ok234->data()['price_range']['unsupported'], 1, 'denied missing ID counted unsupported' );
+$GLOBALS['denied234'] = array();
+// Case E: any denied target in a mixed population refuses the whole
+// Preview; no partial unauthorized plan is produced.
+$GLOBALS['denied234'] = array( 106 );
+error234( static fn() => preview234( Spec234::ids( array( 102, 104, 106, 109, 999 ), Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) ), 'permission_denied' );
+$GLOBALS['denied234'] = array();
+// Case F: the correction is not range-gated; a denied unreadable ID
+// refuses filter-free Previews exactly like ranged ones.
+$GLOBALS['denied234'] = array( 109 );
+error234( static fn() => preview234( Spec234::ids( array( 105, 109 ) ) ), 'permission_denied' );
 $GLOBALS['denied234'] = array();
 // Protocol check: a mismatched outcome refuses loudly instead of persisting inventive counts.
 error234( static fn() => Plan234::create( 'wl234-bad', '2026-10-08T00:00:00Z', 1, new WriteLeash\Price_Store_Context( 'USD', 2, '7.1.2', '11.1.2' ), Spec234::ids( array( 105 ) ), new WriteLeash\Price_Operation( 'SET', '80' ), new WriteLeash\Safety_Policy( 1000, '100', '100', false, '100' ), Selector234::resolve( Spec234::ids( array( 105 ) ) ), array( 'matched' => 99, 'excluded_by_range' => 0, 'unsupported' => 0 ) ), 'invalid_snapshot' );

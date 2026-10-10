@@ -396,11 +396,20 @@ final class Woo_Price_Planner {
 		// before the plan exists, so the frozen population and the IDS
 		// invariant both operate on children only.
 		$resolved_selection = Product_Price_Selector::resolved_selection( $selection, $snapshots );
-		// Authorize the complete source population before the range narrows
-		// it: the matched subset alone must never decide visibility, or an
-		// excluded product would become a price/count oracle.
+		// Authorize every resolvable source ID before the range narrows
+		// the population: the matched subset alone must never decide
+		// visibility, or an excluded product would become a price/count
+		// oracle. Unreadable rows resolve to a real product, so a denied
+		// unreadable ID refuses here instead of leaking through the
+		// unsupported count. Missing products have no post row and no
+		// prices to disclose (WordPress maps edit_post on them to
+		// do_not_allow for every actor, so gating on them would refuse
+		// all stale-ID selections); they freeze as explained missing rows
+		// when the actor named them.
 		foreach ( $resolved['population'] as $snapshot ) {
-			if ( $snapshot->data()['exists'] && ! current_user_can( 'edit_post', $snapshot->data()['product_id'] ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
+			$row = $snapshot->data();
+			if ( empty( $row['exists'] ) && empty( $row['unreadable'] ) ) { continue; }
+			if ( ! current_user_can( 'edit_post', (int) $row['product_id'] ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
 		}
 		if ( $context->data() !== Price_Store_Context::current()->data() ) { throw new Price_Validation_Error( 'store_context_changed_during_planning' ); }
 		return Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor, $context, $resolved_selection, $operation, $policy, $snapshots, $resolved['outcome'] );

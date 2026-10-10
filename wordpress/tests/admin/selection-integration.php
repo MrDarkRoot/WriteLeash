@@ -163,6 +163,48 @@ eq( $bad_range234['status'], 'INVALID', 'min above max refused' );
 eq( $bad_range234['reason'], 'invalid_price_range', 'min above max typed refusal' );
 marker( '#234 price-range filter, frozen preview, review copy and typed refusal' );
 
+// #234 adversarial Preview authorization on real WooCommerce. A denied
+// unreadable source ID refuses with no saved plan/job and no count leak,
+// while a denied missing ID keeps the supported explained-row behavior:
+// WordPress maps edit_post on missing posts to do_not_allow for every
+// actor, so gating on missing would refuse all stale-ID selections, and
+// missing rows carry no prices to disclose.
+$auth_target234 = make_product( '50.00', 'publish', array( 'name' => $tag167 . ' Auth readable' ) );
+$auth_denied234 = make_product( '60.00', 'publish', array( 'name' => $tag167 . ' Auth unreadable' ) );
+$auth_deny234 = static function ( $caps, $cap, $actor, $args ) use ( $auth_denied234 ) {
+	if ( 'edit_post' === $cap && (int) ( $args[0] ?? 0 ) === $auth_denied234 ) { return array( 'do_not_allow' ); }
+	return $caps;
+};
+$auth_unreadable234 = static function ( $class, $type, $post_type, $id ) use ( $auth_denied234 ) {
+	if ( (int) $id === $auth_denied234 ) { throw new RuntimeException( 'test-only unreadable product' ); }
+	return $class;
+};
+\WriteLeash\Price_Cache_Verifier::invalidate( $auth_denied234 );
+add_filter( 'woocommerce_product_class', $auth_unreadable234, 10, 4 );
+add_filter( 'map_meta_cap', $auth_deny234, 10, 4 );
+$auth_saves234 = 0;
+$auth_observer234 = static function () use ( &$auth_saves234 ) { ++$auth_saves234; };
+add_action( 'woocommerce_before_product_object_save', $auth_observer234 );
+try {
+	$auth_post234 = preview_post( array( 'selector' => 'ids', 'ids' => $auth_target234 . ',' . $auth_denied234, 'range_enabled' => '1', 'range_min' => '20', 'range_max' => '150', 'range_basis' => 'regular_price' ) );
+	$auth_jobs234 = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) );
+	$auth_refused234 = Admin::process_preview( $auth_post234, 'POST' );
+	eq( $auth_refused234['status'], 'FORBIDDEN', 'denied unreadable source refuses Preview' );
+	eq( $auth_refused234['reason'], 'permission_denied', 'denied unreadable refusal is typed' );
+	eq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $auth_jobs234, 'denied Preview persists no job' );
+} finally {
+	remove_filter( 'woocommerce_product_class', $auth_unreadable234, 10 );
+	remove_filter( 'map_meta_cap', $auth_deny234, 10 );
+}
+$missing_post234 = preview_post( array( 'selector' => 'ids', 'ids' => $auth_target234 . ',999999999', 'range_enabled' => '1', 'range_min' => '20', 'range_max' => '150', 'range_basis' => 'regular_price' ) );
+$missing_preview234 = Admin::process_preview( $missing_post234, 'POST' );
+eq( $missing_preview234['status'], 'OK', 'denied missing ID keeps supported Preview' );
+$missing_plan234 = Repo::hydrate_plan( Repo::read_by_public_id( $missing_preview234['public_id'] ) );
+eq( $missing_plan234->data()['resolved_product_ids'], array( $auth_target234 ), 'missing ID excluded from the frozen range, never fabricated' );
+remove_action( 'woocommerce_before_product_object_save', $auth_observer234 );
+eq( $auth_saves234, 0, 'denied and missing previews perform zero Woo saves' );
+marker( '#234 adversarial Preview authorization: denied unreadable refused, denied missing explained' );
+
 // External Woo edit, then reopen: exact material stays frozen and execution conflicts.
 $edited167 = wc_get_product( $duplicate167[0] ); $edited167->set_regular_price( '120.00' ); $edited167->save();
 $html167 = render_view( 'preview', $job167['public_id'], 0 );
