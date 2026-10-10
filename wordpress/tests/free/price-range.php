@@ -248,6 +248,15 @@ $ids_spec234 = Spec234::ids( array( 101, 102, 103, 104, 105, 106, 107, 112 ), Ra
 eq234( ids234( $ids_spec234 ), array( 102, 103, 105, 106, 107 ), 'explicit IDs filtered by regular range; malformed/outside excluded' );
 $outcome_ids234 = outcome234( $ids_spec234 );
 eq234( $outcome_ids234['outcome'], array( 'matched' => 5, 'excluded_by_range' => 2, 'unsupported' => 1 ), 'explicit ID outcome: outside band excluded, malformed unsupported' );
+// Adversarial: an unreadable product stays unsupported under both a narrow
+// and an all-covering range, by ID selection and by category. A missing
+// price is never treated as zero, never matched, and never leaks.
+$unreadable_narrow234 = outcome234( Spec234::ids( array( 109 ), Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) );
+eq234( $unreadable_narrow234['snapshots'], array(), 'unreadable ID never matches a narrow range' );
+eq234( $unreadable_narrow234['outcome'], array( 'matched' => 0, 'excluded_by_range' => 0, 'unsupported' => 1 ), 'unreadable ID counted unsupported under a narrow range' );
+$unreadable_wide234 = outcome234( Spec234::ids( array( 109 ), Range234::from_inputs( '1', '0', '999999999999', 'regular_price' ) ) );
+eq234( $unreadable_wide234['snapshots'], array(), 'unreadable ID never matches an all-covering range' );
+eq234( $unreadable_wide234['outcome'], array( 'matched' => 0, 'excluded_by_range' => 0, 'unsupported' => 1 ), 'unreadable ID counted unsupported under a wide range' );
 // Sale basis: 105 matches on its sale price, 106 (blank sale) and 107 (sale 60) do not.
 $sale_spec234 = Spec234::ids( array( 105, 106, 107 ), Range234::from_inputs( '1', '40', '50', 'sale_price' ) );
 eq234( ids234( $sale_spec234 ), array( 105 ), 'sale basis uses the variation/product sale price, blank never matches' );
