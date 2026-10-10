@@ -14,7 +14,7 @@ final class Change_Plan_Item {
 	 * values of the plan's price field (`regular_price` or `sale_price`); the names are
 	 * frozen for hash compatibility.
 	 */
-	public static function hydrate( array $values, string $field = Price_Operation::FIELD_REGULAR ): self {
+	public static function hydrate( array $values, string $field = Price_Operation::FIELD_REGULAR, ?string $operation_type = null ): self {
 		Price_Operation::assert_field( $field );
 		foreach ( array( 'product_id', 'snapshot', 'expected_regular_price', 'planned_regular_price', 'result', 'eligibility', 'blockers', 'warnings', 'absolute_delta', 'percentage_delta' ) as $key ) {
 			if ( ! array_key_exists( $key, $values ) ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
@@ -39,7 +39,9 @@ final class Change_Plan_Item {
 			}
 		}
 		$planned = $values['planned_regular_price'];
-		if ( null !== $planned ) {
+		if ( '' === $planned ) {
+			if ( Price_Operation::FIELD_SALE !== $field || Price_Operation::CLEAR_SALE !== $operation_type ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+		} elseif ( null !== $planned ) {
 			try { Price_Decimal::parse( $planned ); }
 			catch ( \Throwable $error ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
 		}
@@ -80,12 +82,18 @@ final class Change_Plan_Item {
 			try {
 				// Expected (and target) are values of the plan's price field.
 				$expected = '' === $s[ $meta ] ? '' : Price_Decimal::parse( $s[ $meta ] ); // Preserve raw stored value in snapshot as well.
-				$target = Price_Calculator::calculate( $expected, $operation, $context->data()['price_decimals'] );
+				$target = Price_Calculator::calculate( $expected, $operation, $context->data()['price_decimals'], $s['regular_price'] );
 				$eligibility = Product_Price_Eligibility::evaluate( $snapshot, $context, $field, $operation->data()['type'], $target )->data();
 				if ( Eligibility_Result::ELIGIBLE === $eligibility['state'] ) {
-					$delta = '' === $expected ? array( 'absolute_delta' => null, 'percentage_delta' => null ) : Price_Calculator::delta( $expected, $target );
+					$delta = '' === $expected || '' === $target ? array( 'absolute_delta' => null, 'percentage_delta' => null ) : Price_Calculator::delta( $expected, $target );
 					$result = Price_Decimal::equal( $expected, $target ) ? 'UNCHANGED' : 'CHANGING';
-					$p = Policy_Evaluator::item( $expected, $target, $policy );
+					// Clearing is not a zero-price discount. Conservatively check the
+					// return from the configured sale to the reviewed regular price.
+					// Already blank is a no-op, with no numeric delta or policy warning.
+					// A first relative sale has a reviewed regular basis for safety
+					// caps; legacy first-sale SET keeps its absent-ratio contract.
+					$policy_expected = '' === $expected && Price_Operation::SALE_DISCOUNT_PERCENT === $operation->data()['type'] ? $s['regular_price'] : $expected;
+					$p = '' === $target ? ( '' === $expected ? new Policy_Result( array(), array() ) : Policy_Evaluator::item( $expected, $s['regular_price'], $policy ) ) : Policy_Evaluator::item( $policy_expected, $target, $policy );
 				} else {
 					$target = null;
 				}
@@ -202,7 +210,12 @@ final class Change_Plan {
 		$plan->items = array();
 		foreach ( $material['items'] as $stored ) {
 			if ( ! is_array( $stored ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
-			$item = Change_Plan_Item::hydrate( $stored, $field );
+			$item = Change_Plan_Item::hydrate( $stored, $field, $material['operation']['type'] ?? null );
+			if ( in_array( $material['operation']['type'] ?? null, array( Price_Operation::CLEAR_SALE, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ) {
+				try { $operation = new Price_Operation( $material['operation']['type'], $material['operation']['input'] ?? null, $field ); }
+				catch ( Price_Validation_Error $error ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+				if ( Plan_Hasher::canonical_json( $operation->data() ) !== Plan_Hasher::canonical_json( $material['operation'] ) || ( 'UNSUPPORTED' !== $stored['result'] && ( '' === $stored['snapshot']['regular_price'] || ( Price_Operation::CLEAR_SALE === $material['operation']['type'] && '' !== $stored['planned_regular_price'] ) ) ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+			}
 			$product_id = $stored['product_id'];
 			if ( isset( $plan->items[$product_id] ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
 			$plan->items[$product_id] = $item;
@@ -282,9 +295,12 @@ final class Change_Plan {
 			// Guard the sale price itself. Sale dates are not a conflict:
 			// WriteLeash only writes the sale price and preserves the schedule.
 			if ( ! Price_Decimal::equal( $now['sale_price'], $item['expected_regular_price'] ) ) { $reasons[] = 'sale_price_changed'; }
+			if ( in_array( $this->material['operation']['type'], array( Price_Operation::CLEAR_SALE, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) && ! Price_Decimal::equal( $now['regular_price'], $old['regular_price'] ) ) { $reasons[] = 'regular_price_changed'; }
 			// The planned sale must stay strictly below the current regular price.
 			try {
-				if ( Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $item['planned_regular_price'] ) ), Price_Decimal::units( Price_Decimal::parse( $now['regular_price'] ) ) ) >= 0 ) { $reasons[] = 'sale_price_not_below_regular'; }
+				if ( '' !== $item['planned_regular_price'] ) {
+					if ( Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $item['planned_regular_price'] ) ), Price_Decimal::units( Price_Decimal::parse( $now['regular_price'] ) ) ) >= 0 ) { $reasons[] = 'sale_price_not_below_regular'; }
+				}
 			} catch ( Price_Validation_Error $e ) { $reasons[] = 'sale_price_not_below_regular'; }
 		} else {
 			try { $price = Price_Decimal::parse( $now['regular_price'] ); }

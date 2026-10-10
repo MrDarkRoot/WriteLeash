@@ -80,7 +80,7 @@ msgid "%1$s · #%2$d · as reviewed"
 msgstr ""
 
 #: includes/free/class-free-admin.php:287
-#: includes/free/class-free-admin.php:1916
+#: includes/free/class-free-admin.php:1925
 msgid "Saved product outcomes unavailable; needs checking"
 msgstr ""
 
@@ -101,12 +101,12 @@ msgid "Undo stopped making progress. Continue Undo only for remaining products."
 msgstr ""
 
 #: includes/free/class-free-admin.php:296
-#: includes/free/class-free-admin.php:2040
+#: includes/free/class-free-admin.php:2049
 msgid "Restore eligible prices (Undo)"
 msgstr ""
 
 #: includes/free/class-free-admin.php:296
-#: includes/free/class-free-admin.php:2040
+#: includes/free/class-free-admin.php:2049
 msgid "Continue Undo"
 msgstr ""
 
@@ -115,7 +115,7 @@ msgid "No recoverable Apply conflicts are visible to your account for this job."
 msgstr ""
 
 #: includes/free/class-free-admin.php:528
-#: includes/free/class-free-admin.php:1947
+#: includes/free/class-free-admin.php:1956
 msgid "Re-preview conflicted products"
 msgstr ""
 
@@ -228,7 +228,7 @@ msgid "WooCommerce must be active and initialized before bulk-price planning. In
 msgstr ""
 
 #: includes/free/class-free-admin.php:973
-#: includes/free/class-product-snapshot.php:293
+#: includes/free/class-product-snapshot.php:296
 msgid "You do not have permission to plan these product edits."
 msgstr ""
 
@@ -274,7 +274,6 @@ msgid "Select an existing product category."
 msgstr ""
 
 #: includes/free/class-free-admin.php:984
-#: includes/free/class-product-snapshot.php:289
 msgid "Select one of the five supported price operations."
 msgstr ""
 
@@ -384,7 +383,7 @@ msgid "Awaiting review"
 msgstr ""
 
 #: includes/free/class-free-admin.php:1032
-#: includes/free/class-free-admin.php:1698
+#: includes/free/class-free-admin.php:1707
 msgid "This plan cannot be executed."
 msgstr ""
 
@@ -708,8 +707,19 @@ msgstr ""
 msgid "Price operation: %s"
 msgstr ""
 
+#. translators: %s: formatted price or percentage.
+#: includes/free/class-free-admin.php:1163
+msgid "Clear sale prices to blank; preserve sale schedules"
+msgstr ""
+
+#. translators: %s: exact reviewed percentage, with dot decimal separator.
+#: includes/free/class-free-admin.php:1166
+#, php-format
+msgid "Set sale prices to %s%% below each product’s reviewed Regular Price"
+msgstr ""
+
 #. translators: 1: complete operation description, 2: number of targets.
-#: includes/free/class-free-admin.php:1167
+#: includes/free/class-free-admin.php:1172
 #, php-format
 msgid "%1$s · %2$d variation"
 msgid_plural "%1$s · %2$d variations"
@@ -717,7 +727,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: complete operation description, 2: number of targets.
-#: includes/free/class-free-admin.php:1169
+#: includes/free/class-free-admin.php:1174
 #, php-format
 msgid "%1$s · %2$d product"
 msgid_plural "%1$s · %2$d products"
@@ -725,901 +735,921 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: operation and product count, 2: included variations.
-#: includes/free/class-free-admin.php:1172
+#: includes/free/class-free-admin.php:1177
 #, php-format
 msgid "%1$s (%2$d variation)"
 msgid_plural "%1$s (%2$d variations)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/free/class-free-admin.php:1182
-#: includes/free/class-free-admin.php:1203
-#: includes/free/class-free-admin.php:1221
-#: includes/free/class-free-admin.php:1223
-#: includes/free/class-free-admin.php:1252
-#: includes/free/class-free-admin.php:1266
-#: includes/free/class-free-admin.php:1277
-#: includes/free/class-free-admin.php:1749
-#: includes/free/class-free-admin.php:1860
-#: includes/free/class-free-admin.php:1880
+#: includes/free/class-free-admin.php:1184
+msgid "Blank (no sale price)"
+msgstr ""
+
+#: includes/free/class-free-admin.php:1188
+#: includes/free/class-free-admin.php:1209
+#: includes/free/class-free-admin.php:1227
+#: includes/free/class-free-admin.php:1229
+#: includes/free/class-free-admin.php:1258
+#: includes/free/class-free-admin.php:1272
+#: includes/free/class-free-admin.php:1283
+#: includes/free/class-free-admin.php:1758
+#: includes/free/class-free-admin.php:1869
+#: includes/free/class-free-admin.php:1889
 msgid "Unavailable"
 msgstr ""
 
 #. translators: 1: formatted price, 2: exact decimal value, 3: ISO currency code.
-#: includes/free/class-free-admin.php:1196
+#: includes/free/class-free-admin.php:1202
 #, php-format
 msgid "%1$s (exact: %2$s %3$s)"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1207
+#: includes/free/class-free-admin.php:1213
 msgid "Decrease <0.01%"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1207
+#: includes/free/class-free-admin.php:1213
 msgid "Increase <0.01%"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1214
+#: includes/free/class-free-admin.php:1220
 msgid "Not yet approved"
 msgstr ""
 
 #. translators: %d: deleted WordPress user ID.
-#: includes/free/class-free-admin.php:1217
+#: includes/free/class-free-admin.php:1223
 #, php-format
 msgid "Deleted user (User #%d)"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1238
+#: includes/free/class-free-admin.php:1244
 msgid "Name unavailable at preview"
 msgstr ""
 
 #. translators: %s: product SKU.
-#: includes/free/class-free-admin.php:1241
+#: includes/free/class-free-admin.php:1247
 #: includes/free/class-product-discovery.php:69
 #, php-format
 msgid "SKU: %s"
 msgstr ""
 
 #. translators: %d: variation ID.
-#: includes/free/class-free-admin.php:1241
+#: includes/free/class-free-admin.php:1247
 #, php-format
 msgid "Variation #%d · as reviewed"
 msgstr ""
 
 #. translators: %d: product ID.
-#: includes/free/class-free-admin.php:1241
+#: includes/free/class-free-admin.php:1247
 #, php-format
 msgid "Product #%d · as reviewed"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1246
+#: includes/free/class-free-admin.php:1252
 msgid "Review product"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1283
+#: includes/free/class-free-admin.php:1289
 msgid "Unavailable: no confirmed WriteLeash change to restore"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1288
+#: includes/free/class-free-admin.php:1294
 msgid "This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1289
+#: includes/free/class-free-admin.php:1295
 msgid "This product changed after WriteLeash applied its price. WriteLeash preserved the newer value instead of restoring over it."
 msgstr ""
 
 #. translators: 1: opening link to a new preview, 2: closing link.
-#: includes/free/class-free-admin.php:1318
+#: includes/free/class-free-admin.php:1324
 #, php-format
 msgid "Review the product, then %1$sCreate a new preview%2$s if you still want to change it."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1320
+#: includes/free/class-free-admin.php:1326
 msgid "Check the product and saved results before taking further action. This outcome is not confirmed as unchanged."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1335
+#: includes/free/class-free-admin.php:1341
 msgid "Undo finished: eligible prices restored."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1336
+#: includes/free/class-free-admin.php:1342
 msgid "Undo finished with conflicts or failed restorations. Review the affected products."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1337
+#: includes/free/class-free-admin.php:1343
 msgid "Undo stopped by an operator. Already restored prices remain restored."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1338
+#: includes/free/class-free-admin.php:1344
 msgid "Undo expired: the restoration window has ended."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1339
+#: includes/free/class-free-admin.php:1345
 msgid "Undo unavailable: this plan cannot be executed."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1340
+#: includes/free/class-free-admin.php:1346
 msgid "Undo unavailable: this plan is awaiting review and has not run."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1341
+#: includes/free/class-free-admin.php:1347
 msgid "Undo unavailable: Apply has not safely finished. Check or finish the remaining work first."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1342
+#: includes/free/class-free-admin.php:1348
 msgid "Undo unavailable: no products were changed by this job."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1343
+#: includes/free/class-free-admin.php:1349
 msgid "Undo needs checking: a restoration outcome is uncertain. Continuing will not retry uncertain or conflicted products."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1344
+#: includes/free/class-free-admin.php:1350
 msgid "Undo paused. Continue Undo for remaining products."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1345
+#: includes/free/class-free-admin.php:1351
 msgid "Undo in progress. Reload to check results or continue remaining products."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1346
+#: includes/free/class-free-admin.php:1352
 msgid "Undo outcome unavailable; needs checking."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1347
+#: includes/free/class-free-admin.php:1353
 msgid "Undo available for prices changed by this job."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1347
+#: includes/free/class-free-admin.php:1353
 msgid "Undo unavailable: saved restoration evidence is unavailable."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1351
+#: includes/free/class-free-admin.php:1357
 msgid "Job history"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1351
+#: includes/free/class-free-admin.php:1357
 msgid "Task / operator / time"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1351
+#: includes/free/class-free-admin.php:1357
 msgid "Outcome"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1351
+#: includes/free/class-free-admin.php:1357
 msgid "Undo"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1351
+#: includes/free/class-free-admin.php:1357
 msgid "Action"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1352
+#: includes/free/class-free-admin.php:1358
 msgid "No jobs visible to your account yet. Create a new preview to start."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1357
+#: includes/free/class-free-admin.php:1363
 msgid "Saved task details unavailable; needs checking"
 msgstr ""
 
 #. translators: %s: creator display name.
-#: includes/free/class-free-admin.php:1360
+#: includes/free/class-free-admin.php:1366
 #, php-format
 msgid "Created by %s"
 msgstr ""
 
 #. translators: %s: approver display name.
-#: includes/free/class-free-admin.php:1361
+#: includes/free/class-free-admin.php:1367
 #, php-format
 msgid "Approved by %s"
 msgstr ""
 
 #. translators: %s: localized expiry date and time.
-#: includes/free/class-free-admin.php:1367
+#: includes/free/class-free-admin.php:1373
 #, php-format
 msgid "Until %s"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1378
+#: includes/free/class-free-admin.php:1384
 msgid "Download job CSV"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1445
+#: includes/free/class-free-admin.php:1451
 msgid "Saved export evidence is unavailable. No products were changed."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1460
+#: includes/free/class-free-admin.php:1466
 msgid "Preview bulk regular or sale prices before they happen. Run them safely. If the price or a checked setting changed after review, WriteLeash leaves the newer value alone. Undo changes that are still safe to restore."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1463
+#: includes/free/class-free-admin.php:1469
 msgid "Change the stored price of published simple products and variations of published variable products in the base store currency. Variations can be selected as a whole product or individually. Sale dates, stock, orders and subscriptions are not changed."
 msgstr ""
 
 #. translators: %d: maximum selected products per new job.
-#: includes/free/class-free-admin.php:1467
+#: includes/free/class-free-admin.php:1473
 #, php-format
 msgid "Up to %d selected products per new job in the tested configuration. Planned prices are not guaranteed shopper prices: taxes, currency settings, dynamic pricing and later edits still apply. You can close this page at any time; saved progress appears again when you return."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1470
+#: includes/free/class-free-admin.php:1476
 msgid "Your role can view this page but cannot preview or apply bulk price changes."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1472
+#: includes/free/class-free-admin.php:1478
 msgid "New price change"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1474
+#: includes/free/class-free-admin.php:1480
 msgid "Recent jobs"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1476
+#: includes/free/class-free-admin.php:1482
 msgid "Open full history"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1518
+#: includes/free/class-free-admin.php:1524
 msgid "1. Select products"
 msgstr ""
 
 #. translators: %d: maximum selected products per new job.
-#: includes/free/class-free-admin.php:1520
+#: includes/free/class-free-admin.php:1526
 #, php-format
 msgid "Choose specific products or one category. Categories include direct members only by default; subcategories are not included unless you enable Include subcategories. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum %d selected products."
 msgstr ""
 
 #. translators: %d: maximum selected products per new job.
-#: includes/free/class-free-admin.php:1521
+#: includes/free/class-free-admin.php:1527
 msgid "Selection method"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1522
+#: includes/free/class-free-admin.php:1528
 msgid "Choose products by name or SKU"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1522
-#: includes/free/class-free-admin.php:1555
+#: includes/free/class-free-admin.php:1528
+#: includes/free/class-free-admin.php:1561
 msgid "Product category"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1522
-#: includes/free/class-free-admin.php:1574
+#: includes/free/class-free-admin.php:1528
+#: includes/free/class-free-admin.php:1580
 msgid "One exact SKU"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1522
+#: includes/free/class-free-admin.php:1528
 msgid "Advanced: manual product IDs"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1525
+#: includes/free/class-free-admin.php:1531
 msgid "Search and choose products. If live suggestions are unavailable, use the search without live suggestions."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1527
+#: includes/free/class-free-admin.php:1533
 msgid "Search products without live suggestions"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1528
+#: includes/free/class-free-admin.php:1534
 msgid "Product name or partial SKU"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1530
+#: includes/free/class-free-admin.php:1536
 msgid "Search products"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1531
+#: includes/free/class-free-admin.php:1537
 msgid "More product matches"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1532
+#: includes/free/class-free-admin.php:1538
 msgid "No matches on this page. Try another product name or SKU."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1533
-#: includes/free/free-selection.js:76
+#: includes/free/class-free-admin.php:1539
+#: includes/free/free-selection.js:85
 msgid "Search limit reached. Use a more specific name or SKU."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1534
+#: includes/free/class-free-admin.php:1540
 msgid "Use Ctrl/Command to select several matches below, then Update selected products. Selected products stay on subsequent search pages."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1535
+#: includes/free/class-free-admin.php:1541
 msgid "Update selected products"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1537
+#: includes/free/class-free-admin.php:1543
 msgid "Choose products"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1541
+#: includes/free/class-free-admin.php:1547
 msgid "Check the selected products below. Preview checks their eligibility before any prices change."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1542
+#: includes/free/class-free-admin.php:1548
 msgid "Selected products"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1544
-#: includes/free/free-selection.js:39
+#: includes/free/class-free-admin.php:1550
+#: includes/free/free-selection.js:48
 msgid "Remove"
 msgstr ""
 
 #. translators: %s: product description.
-#: includes/free/class-free-admin.php:1544
-#: includes/free/free-selection.js:39
+#: includes/free/class-free-admin.php:1550
+#: includes/free/free-selection.js:48
 #, php-format,js-format
 msgid "Remove %s"
 msgstr ""
 
 #. translators: %s: product description.
-#: includes/free/class-free-admin.php:1545
-#: includes/free/free-selection.js:47
+#: includes/free/class-free-admin.php:1551
+#: includes/free/free-selection.js:56
 msgid "No products selected. Search and choose products to add them."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1546
+#: includes/free/class-free-admin.php:1552
 msgid "Clear selected products"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1547
+#: includes/free/class-free-admin.php:1553
 msgid "Search categories without live suggestions"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1548
+#: includes/free/class-free-admin.php:1554
 msgid "Category name"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1550
+#: includes/free/class-free-admin.php:1556
 msgid "Search categories"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1551
+#: includes/free/class-free-admin.php:1557
 msgid "More category matches"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1552
+#: includes/free/class-free-admin.php:1558
 msgid "Search limit reached. Use a more specific category name."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1553
+#: includes/free/class-free-admin.php:1559
 msgid "No categories match this page. Try another category name."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1555
+#: includes/free/class-free-admin.php:1561
 msgid "Choose a category"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1562
+#: includes/free/class-free-admin.php:1568
 msgid "Include subcategories"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1562
+#: includes/free/class-free-admin.php:1568
 msgid "When enabled, products in all nested subcategories are included once. Variable parents expand to their variations."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1563
+#: includes/free/class-free-admin.php:1569
 msgid "Check selection count"
 msgstr ""
 
 #. translators: %d: maximum selected products per new job.
-#: includes/free/class-free-admin.php:1567
+#: includes/free/class-free-admin.php:1573
 #, php-format
 msgid "This selection exceeds the supported limit of %d price targets. Choose a smaller selection before Preview."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1570
+#: includes/free/class-free-admin.php:1576
 msgid "Check the number of price targets before Preview, including variations."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1571
+#: includes/free/class-free-admin.php:1577
 msgid "Counts are informational and can change. Preview resolves the selection again and freezes the exact products for your review; no count authorizes a price change."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1572
+#: includes/free/class-free-admin.php:1578
 msgid "Exact SKU or manual product IDs"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1572
+#: includes/free/class-free-admin.php:1578
 msgid "Enter one complete SKU or comma-separated product IDs for the selection method chosen above."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1573
+#: includes/free/class-free-admin.php:1579
 msgid "Explicit product IDs (advanced), e.g. 12,34,56"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1582
+#: includes/free/class-free-admin.php:1588
 msgid "2. Choose the price change"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1582
+#: includes/free/class-free-admin.php:1588
 msgid "Price to change"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1583
-#: includes/free/class-price-operation.php:40
+#: includes/free/class-free-admin.php:1589
+#: includes/free/class-price-operation.php:49
 msgid "Regular price"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1583
-#: includes/free/class-price-operation.php:40
+#: includes/free/class-free-admin.php:1589
+#: includes/free/class-price-operation.php:49
 msgid "Sale price"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1586
+#: includes/free/class-free-admin.php:1592
 msgid "Regular price is the everyday price. Sale price is the discounted price during a sale. WriteLeash changes only the price you choose and keeps the other one."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1586
+#: includes/free/class-free-admin.php:1592
 msgid "Operation"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1587
+#: includes/free/class-free-admin.php:1593
 msgid "Set an exact price"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1587
+#: includes/free/class-free-admin.php:1593
 msgid "Increase by fixed amount"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1587
+#: includes/free/class-free-admin.php:1593
 msgid "Decrease by fixed amount"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1587
+#: includes/free/class-free-admin.php:1593
 msgid "Increase by percent"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1587
+#: includes/free/class-free-admin.php:1593
 msgid "Decrease by percent"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1591
-#: includes/free/free-selection.js:20
-msgid "New price"
-msgstr ""
-
-#: includes/free/class-free-admin.php:1591
-#: includes/free/free-selection.js:20
-msgid "Percentage (e.g. 8 for 8%)"
-msgstr ""
-
-#: includes/free/class-free-admin.php:1591
-#: includes/free/free-selection.js:20
-msgid "Amount to increase by"
-msgstr ""
-
-#: includes/free/class-free-admin.php:1591
-#: includes/free/free-selection.js:20
-msgid "Amount to decrease by"
+#: includes/free/class-free-admin.php:1593
+msgid "Clear Sale Price"
 msgstr ""
 
 #: includes/free/class-free-admin.php:1593
+msgid "Sale discount from Regular Price (%)"
+msgstr ""
+
+#: includes/free/class-free-admin.php:1597
+msgid "No amount — leave blank"
+msgstr ""
+
+#: includes/free/class-free-admin.php:1597
+#: includes/free/free-selection.js:29
+msgid "New price"
+msgstr ""
+
+#: includes/free/class-free-admin.php:1597
+#: includes/free/free-selection.js:29
+msgid "Percentage (e.g. 8 for 8%)"
+msgstr ""
+
+#: includes/free/class-free-admin.php:1597
+#: includes/free/free-selection.js:29
+msgid "Amount to increase by"
+msgstr ""
+
+#: includes/free/class-free-admin.php:1597
+#: includes/free/free-selection.js:29
+msgid "Amount to decrease by"
+msgstr ""
+
+#: includes/free/class-free-admin.php:1601
 msgid "Enter a positive number or zero. Use a dot for decimals; leave out currency symbols and the % sign."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1595
+#: includes/free/class-free-admin.php:1602
+msgid "Choose Sale price for Clear or Sale discount. Clear makes Sale Price blank and preserves sale schedules; safety caps check the return to Regular Price. Sale discount requires an explicit 0–100 percentage (up to six decimal places), calculated from each product’s own reviewed Regular Price. A changed Regular Price conflicts at Apply; the approved target is never recalculated. Zero or a sale at Regular Price still must pass eligibility and safety checks."
+msgstr ""
+
+#: includes/free/class-free-admin.php:1604
 msgid "Safety limits (optional)"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1595
+#: includes/free/class-free-admin.php:1604
 msgid "Safety limits"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1595
+#: includes/free/class-free-admin.php:1604
 msgid "A change beyond these limits blocks the whole preview."
 msgstr ""
 
 #. translators: %d: maximum products allowed.
-#: includes/free/class-free-admin.php:1598
+#: includes/free/class-free-admin.php:1607
 #, php-format
 msgid "Maximum changing products (0-%d)"
 msgstr ""
 
 #. translators: %d: maximum products allowed.
-#: includes/free/class-free-admin.php:1599
+#: includes/free/class-free-admin.php:1608
 msgid "Maximum increase percent"
 msgstr ""
 
 #. translators: %d: maximum products allowed.
-#: includes/free/class-free-admin.php:1599
+#: includes/free/class-free-admin.php:1608
 msgid "Maximum decrease percent"
 msgstr ""
 
 #. translators: %d: maximum products allowed.
-#: includes/free/class-free-admin.php:1599
+#: includes/free/class-free-admin.php:1608
 msgid "Warning threshold percent"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1600
+#: includes/free/class-free-admin.php:1609
 msgid "Block a preview that sets any changing price to zero"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1601
+#: includes/free/class-free-admin.php:1610
 msgid "Preview price changes"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1601
+#: includes/free/class-free-admin.php:1610
 msgid "Preview does not change any prices."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1616
+#: includes/free/class-free-admin.php:1625
 msgid "No price changes yet. Preview your first change above to start."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1624
-#: includes/free/class-free-admin.php:2058
+#: includes/free/class-free-admin.php:1633
+#: includes/free/class-free-admin.php:2067
 msgid "History is unavailable right now. Reload the page to try again."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1635
+#: includes/free/class-free-admin.php:1644
 msgid "Continue review"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1635
+#: includes/free/class-free-admin.php:1644
 msgid "Review blocked plan"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1635
+#: includes/free/class-free-admin.php:1644
 msgid "Open progress/results"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1652
-#: includes/free/class-free-admin.php:1658
+#: includes/free/class-free-admin.php:1661
+#: includes/free/class-free-admin.php:1667
 msgid "No preview is visible to your account for that identifier."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1653
-#: includes/free/class-free-admin.php:1659
-#: includes/free/class-free-admin.php:1686
-#: includes/free/class-free-admin.php:1888
-#: includes/free/class-free-admin.php:1894
-#: includes/free/class-free-admin.php:1910
-#: includes/free/class-free-admin.php:2049
+#: includes/free/class-free-admin.php:1662
+#: includes/free/class-free-admin.php:1668
+#: includes/free/class-free-admin.php:1695
+#: includes/free/class-free-admin.php:1897
+#: includes/free/class-free-admin.php:1903
+#: includes/free/class-free-admin.php:1919
+#: includes/free/class-free-admin.php:2058
 msgid "Back to bulk prices"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1671
+#: includes/free/class-free-admin.php:1680
 msgid "Fresh Preview from chosen Apply conflicts. Original results stay unchanged."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1672
+#: includes/free/class-free-admin.php:1681
 msgid "View original results"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1679
+#: includes/free/class-free-admin.php:1688
 msgid "Open progress and available Undo"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1687
+#: includes/free/class-free-admin.php:1696
 msgid "Review price change"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1691
+#: includes/free/class-free-admin.php:1700
 msgid "Category scope: direct members and all nested subcategories. This preview freezes the reviewed product IDs, including expanded variations."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1691
+#: includes/free/class-free-admin.php:1700
 msgid "Category scope: direct members only; subcategories are not included. This preview freezes the reviewed product IDs, including expanded variations."
 msgstr ""
 
 #. translators: 1: selected products, 2: translated outcome counts.
-#: includes/free/class-free-admin.php:1694
+#: includes/free/class-free-admin.php:1703
 #, php-format
 msgid "Selected %1$d product: %2$s."
 msgid_plural "Selected %1$d products: %2$s."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/free/class-free-admin.php:1698
+#: includes/free/class-free-admin.php:1707
 msgid "Your safety limits block every changing product. You cannot approve this preview; build a new one with different settings."
 msgstr ""
 
 #. translators: 1: displayed products, 2: additional blocked products.
-#: includes/free/class-free-admin.php:1719
+#: includes/free/class-free-admin.php:1728
 #, php-format
 msgid "Showing the first %1$d blocked products in this summary. Each product page below shows its own reason; %2$d more blocked product is not listed here."
 msgid_plural "Showing the first %1$d blocked products in this summary. Each product page below shows its own reason; %2$d more blocked products are not listed here."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/free/class-free-admin.php:1727
+#: includes/free/class-free-admin.php:1736
 msgid "Invalid preview page; use a nonnegative offset."
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1733
+#: includes/free/class-free-admin.php:1742
 #, php-format
 msgid "Price to change: %s. The regular price is the sale baseline and is preserved."
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1733
+#: includes/free/class-free-admin.php:1742
 #, php-format
 msgid "Price to change: %s. The sale price and schedule are preserved."
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1734
-#: includes/free/class-free-admin.php:1975
+#: includes/free/class-free-admin.php:1743
+#: includes/free/class-free-admin.php:1984
 msgid "Product prices and outcomes"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1734
-#: includes/free/class-free-admin.php:1975
+#: includes/free/class-free-admin.php:1743
+#: includes/free/class-free-admin.php:1984
 msgid "Product"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1734
+#: includes/free/class-free-admin.php:1743
 #, php-format
 msgid "%s before"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1734
+#: includes/free/class-free-admin.php:1743
 #, php-format
 msgid "%s after"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1734
+#: includes/free/class-free-admin.php:1743
 msgid "Delta"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1734
+#: includes/free/class-free-admin.php:1743
 msgid "Change %"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1734
+#: includes/free/class-free-admin.php:1743
 msgid "Shoppers would pay after Apply"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1734
+#: includes/free/class-free-admin.php:1743
 msgid "What will happen"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1763
-#: includes/free/class-free-admin.php:1912
+#: includes/free/class-free-admin.php:1772
+#: includes/free/class-free-admin.php:1921
 msgid "Create a new preview"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1763
+#: includes/free/class-free-admin.php:1772
 msgid "Changing the selection or price settings creates a new preview; this saved preview stays unchanged."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1765
+#: includes/free/class-free-admin.php:1774
 msgid "Approve this preview"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1766
+#: includes/free/class-free-admin.php:1775
 msgid "Approving applies exactly the products and prices shown above. Planned prices are not guaranteed shopper prices. If you change any setting, build a new preview."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1771
+#: includes/free/class-free-admin.php:1780
 msgid "Approve and apply"
 msgstr ""
 
 #. translators: %s: translated job status.
-#: includes/free/class-free-admin.php:1774
+#: includes/free/class-free-admin.php:1783
 #, php-format
 msgid "Current status: %s."
 msgstr ""
 
 #. translators: %s: translated job status.
-#: includes/free/class-free-admin.php:1774
+#: includes/free/class-free-admin.php:1783
 msgid "View progress and results"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1782
-#: includes/free/class-free-admin.php:1784
+#: includes/free/class-free-admin.php:1791
+#: includes/free/class-free-admin.php:1793
 msgid "Previous page"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1787
-#: includes/free/class-free-admin.php:1789
+#: includes/free/class-free-admin.php:1796
+#: includes/free/class-free-admin.php:1798
 #: includes/free/free-progress.js:127
 msgid "Next page"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1799
+#: includes/free/class-free-admin.php:1808
 msgid "At page load, this product is no longer a supported core simple product or variation."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1800
+#: includes/free/class-free-admin.php:1809
 msgid "At page load, this variation’s parent is no longer a published core variable product."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1801
+#: includes/free/class-free-admin.php:1810
 msgid "At page load, this product is no longer published."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1802
+#: includes/free/class-free-admin.php:1811
 msgid "At page load, this product has a sale price or schedule; a matching regular price alone does not authorize overwriting it."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1817
-#: includes/free/class-free-admin.php:1850
-#: includes/free/class-free-admin.php:1860
+#: includes/free/class-free-admin.php:1826
+#: includes/free/class-free-admin.php:1859
+#: includes/free/class-free-admin.php:1869
 msgid "Current product details are unavailable."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1887
-#: includes/free/class-free-admin.php:1893
+#: includes/free/class-free-admin.php:1896
+#: includes/free/class-free-admin.php:1902
 msgid "No job is visible to your account for that identifier."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1904
+#: includes/free/class-free-admin.php:1913
 msgid "Saved progress and results are unavailable right now. Reload this page to try again; if it persists, ask an administrator to check the saved records."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1911
+#: includes/free/class-free-admin.php:1920
 msgid "Open history"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1914
+#: includes/free/class-free-admin.php:1923
 msgid "Refresh saved progress"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1914
+#: includes/free/class-free-admin.php:1923
 msgid "Automatic updates require JavaScript. Refresh to read saved progress."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1915
+#: includes/free/class-free-admin.php:1924
 msgid "Progress and results"
 msgstr ""
 
 #. translators: %d: planned products.
-#: includes/free/class-free-admin.php:1918
+#: includes/free/class-free-admin.php:1927
 #, php-format
 msgid "Planned %d product. Some saved product evidence is unavailable. Check this job before taking further action."
 msgid_plural "Planned %d products. Some saved product evidence is unavailable. Check this job before taking further action."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/free/class-free-admin.php:1924
+#: includes/free/class-free-admin.php:1933
 msgid "Background processing stopped making progress. Use Resume remaining products to continue; completed changes are kept."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1927
+#: includes/free/class-free-admin.php:1936
 msgid "An outcome needs checking. Review uncertain products before continuing remaining work; uncertain products will not be retried."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1927
+#: includes/free/class-free-admin.php:1936
 msgid "The price change finished with products needing attention. Review conflicts and failed products below, then create a new preview if needed."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1936
+#: includes/free/class-free-admin.php:1945
 msgid "Waiting for background processing. Use Resume remaining products to run the next step now."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1941
+#: includes/free/class-free-admin.php:1950
 #: includes/free/free-progress.js:102
 msgid "Resume remaining products"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1942
+#: includes/free/class-free-admin.php:1951
 msgid "Runs only the remaining products; completed changes are kept. Products changed since Preview are left alone."
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1950
-#: includes/free/class-free-admin.php:1975
+#: includes/free/class-free-admin.php:1959
+#: includes/free/class-free-admin.php:1984
 msgctxt "merchant price workflow label"
 msgid "Undo"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1952
+#: includes/free/class-free-admin.php:1961
 msgid "Undo availability cannot be verified while product outcomes are missing. Reload this job or ask an administrator to check its saved records."
 msgstr ""
 
-#: includes/free/class-free-admin.php:1954
+#: includes/free/class-free-admin.php:1963
 msgid "Products"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1955
+#: includes/free/class-free-admin.php:1964
 msgid "All products"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1955
+#: includes/free/class-free-admin.php:1964
 msgid "Conflicts"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1955
+#: includes/free/class-free-admin.php:1964
 msgid "Changes needing attention"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1955
+#: includes/free/class-free-admin.php:1964
 msgid "Uncertain changes"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1955
+#: includes/free/class-free-admin.php:1964
 msgid "Undo conflicts"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1955
+#: includes/free/class-free-admin.php:1964
 msgid "Uncertain restorations"
 msgstr ""
 
-#: includes/free/class-free-admin.php:1966
+#: includes/free/class-free-admin.php:1975
 msgid "Item details are unavailable for this page."
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1974
+#: includes/free/class-free-admin.php:1983
 #, php-format
 msgid "Expected and planned are %1$s values. Now shows the stored %1$s at page load, not the shopper price. Unavailable means the product or price could not be read."
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1975
+#: includes/free/class-free-admin.php:1984
 #, php-format
 msgid "%s expected"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1975
+#: includes/free/class-free-admin.php:1984
 #, php-format
 msgid "%s now"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1975
+#: includes/free/class-free-admin.php:1984
 #, php-format
 msgid "%s planned"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1975
+#: includes/free/class-free-admin.php:1984
 msgctxt "merchant price workflow label"
 msgid "Apply"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:1976
+#: includes/free/class-free-admin.php:1985
 #: includes/free/free-progress.js:81
 msgid "No retained products on this page match this view."
 msgstr ""
 
 #. translators: %d: maximum selected products per new job.
-#: includes/free/class-free-admin.php:2010
+#: includes/free/class-free-admin.php:2019
 #, php-format
 msgid "This older job was already approved. The current WriteLeash limit of %1$d products applies to new work: new jobs above %1$d cannot be created or approved. You can still continue this existing job and restore prices that are safe to restore."
 msgstr ""
 
-#: includes/free/class-free-admin.php:2014
+#: includes/free/class-free-admin.php:2023
 msgid "Older large job"
 msgstr ""
 
 #. translators: %s: translated price-field name.
-#: includes/free/class-free-admin.php:2020
+#: includes/free/class-free-admin.php:2029
 #, php-format
 msgid "Undo restores eligible %s values changed by this job to their values before this job. Later price or sale-setting changes are left alone. Undo does not reverse: orders, completed sales or effects in other plugins and services."
 msgstr ""
 
 #. translators: %s: localized expiry date and time.
-#: includes/free/class-free-admin.php:2024
+#: includes/free/class-free-admin.php:2033
 #, php-format
 msgid "Undo window ends: %s"
 msgstr ""
 
-#: includes/free/class-free-admin.php:2041
+#: includes/free/class-free-admin.php:2050
 msgid "Newer prices and sale settings are left alone."
 msgstr ""
 
-#: includes/free/class-free-admin.php:2043
+#: includes/free/class-free-admin.php:2052
 msgid "You do not have permission to restore prices."
 msgstr ""
 
-#: includes/free/class-free-admin.php:2050
+#: includes/free/class-free-admin.php:2059
 msgid "History"
 msgstr ""
 
-#: includes/free/class-free-admin.php:2052
+#: includes/free/class-free-admin.php:2061
 msgid "No price changes yet. Preview a change to start."
 msgstr ""
 
@@ -2021,63 +2051,79 @@ msgstr ""
 msgid "Narrow the selection to at most one thousand products."
 msgstr ""
 
+#: includes/free/class-product-snapshot.php:289
+msgid "Select a supported price operation."
+msgstr ""
+
 #: includes/free/class-product-snapshot.php:290
-msgid "The changed-product limit must be between zero and one thousand."
+msgid "Choose Sale price for this operation."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:291
-msgid "The store context is incomplete or invalid."
+msgid "Clear Sale Price takes no amount. Leave the amount blank."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:292
-msgid "WooCommerce must be active before previewing price changes."
+msgid "Use a discount between 0 and 100 percent. The resulting sale must be below Regular Price and pass your safety settings."
+msgstr ""
+
+#: includes/free/class-product-snapshot.php:293
+msgid "The changed-product limit must be between zero and one thousand."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:294
-msgid "The safety settings block this preview."
+msgid "The store context is incomplete or invalid."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:295
-msgid "The stored price already equals the planned price."
-msgstr ""
-
-#: includes/free/class-product-snapshot.php:296
-msgid "Build a new preview to change these settings."
+msgid "WooCommerce must be active before previewing price changes."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:297
-msgid "Use a nonnegative offset and a page size between one and one hundred."
+msgid "The safety settings block this preview."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:298
-msgid "This product was not part of the preview."
+msgid "The stored price already equals the planned price."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:299
-msgid "A product changed while the preview was being built; create a new preview."
+msgid "Build a new preview to change these settings."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:300
-msgid "Store settings changed while the preview was being built; create a new preview."
+msgid "Use a nonnegative offset and a page size between one and one hundred."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:301
-msgid "The saved product list does not match the selection."
+msgid "This product was not part of the preview."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:302
-msgid "The saved preview identity is invalid."
+msgid "A product changed while the preview was being built; create a new preview."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:303
-msgid "A product snapshot is required."
+msgid "Store settings changed while the preview was being built; create a new preview."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:304
-msgid "The saved preview contains an unsupported value type."
+msgid "The saved product list does not match the selection."
 msgstr ""
 
 #: includes/free/class-product-snapshot.php:305
+msgid "The saved preview identity is invalid."
+msgstr ""
+
+#: includes/free/class-product-snapshot.php:306
+msgid "A product snapshot is required."
+msgstr ""
+
+#: includes/free/class-product-snapshot.php:307
+msgid "The saved preview contains an unsupported value type."
+msgstr ""
+
+#: includes/free/class-product-snapshot.php:308
 msgid "The saved preview text is not valid UTF-8."
 msgstr ""
 
@@ -2322,16 +2368,16 @@ msgstr ""
 msgid "All direct members of this category will be checked in Preview, including variations. Subcategories are not included."
 msgstr ""
 
-#: includes/free/free-selection.js:25
+#: includes/free/free-selection.js:34
 msgid "Selection changed. Check selection count again; Preview resolves and freezes the products independently."
 msgstr ""
 
-#: includes/free/free-selection.js:57
+#: includes/free/free-selection.js:66
 msgid "Search is unavailable. Try again."
 msgstr ""
 
 #. translators: %d: additional characters needed.
-#: includes/free/free-selection.js:58
+#: includes/free/free-selection.js:67
 #, js-format
 msgid "Enter %d more character."
 msgid_plural "Enter %d more characters."
@@ -2339,7 +2385,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: characters to remove.
-#: includes/free/free-selection.js:59
+#: includes/free/free-selection.js:68
 #, js-format
 msgid "Remove %d character."
 msgid_plural "Remove %d characters."
@@ -2347,46 +2393,46 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: maximum selected products.
-#: includes/free/free-selection.js:60
+#: includes/free/free-selection.js:69
 #, js-format
 msgid "Choose at most %d product."
 msgid_plural "Choose at most %d products."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/free/free-selection.js:61
+#: includes/free/free-selection.js:70
 msgid "No matches found."
 msgstr ""
 
-#: includes/free/free-selection.js:62
 #: includes/free/free-selection.js:71
+#: includes/free/free-selection.js:80
 msgid "Searching…"
 msgstr ""
 
-#: includes/free/free-selection.js:63
+#: includes/free/free-selection.js:72
 msgid "Loading more matches…"
 msgstr ""
 
-#: includes/free/free-selection.js:65
+#: includes/free/free-selection.js:74
 msgid "Search product name or SKU"
 msgstr ""
 
-#: includes/free/free-selection.js:65
+#: includes/free/free-selection.js:74
 msgid "Choose a named category"
 msgstr ""
 
-#: includes/free/free-selection.js:75
+#: includes/free/free-selection.js:84
 msgid "Search is unavailable. Reload if your session expired, or use the native search below."
 msgstr ""
 
-#: includes/free/free-selection.js:76
+#: includes/free/free-selection.js:85
 msgid "Choose matches to add them. Search matches are not automatically selected; eligibility is checked in preview."
 msgstr ""
 
-#: includes/free/free-selection.js:76
+#: includes/free/free-selection.js:85
 msgid "No matches on this page. Try another name or SKU, or the native search below."
 msgstr ""
 
-#: includes/free/free-selection.js:84
+#: includes/free/free-selection.js:93
 msgid "Search is unavailable. Try again, reload if your session expired, or use the native search below."
 msgstr ""

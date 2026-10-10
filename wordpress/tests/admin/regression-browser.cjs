@@ -208,7 +208,11 @@ async function responsive(page) {
         ok(await picker.evaluate(el => document.activeElement === el), 'removal returns focus to search');
         await search(page, f.skus.at(-1)); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
         await tabTo(page, page.locator('#writeleash-free-operation'));
-        await page.keyboard.press('End'); // Last native option = decrease percent.
+        const decreaseIndex = await page.locator('#writeleash-free-operation').evaluate(el => Array.from(el.options).findIndex(option => option.value === 'DECREASE_PERCENT'));
+        ok(decreaseIndex >= 0, 'existing decrease-percent operation remains available');
+        await page.keyboard.press('Home');
+        for (let step = 0; step < decreaseIndex; step++) await page.keyboard.press('ArrowDown');
+        ok(await page.locator('#writeleash-free-operation').inputValue() === 'DECREASE_PERCENT', 'keyboard selects decrease percent independently of later sale options');
         await tabTo(page, page.locator('#writeleash-free-amount')); await page.keyboard.type('bad-price');
         await enter(page, button(page, 'Preview price changes'));
         ok((await page.locator('#writeleash-free-amount').inputValue()) === 'bad-price' && await page.locator('#writeleash-free-selected button').count() === 22, 'validation retains selection and input');
@@ -218,6 +222,9 @@ async function responsive(page) {
         const previewURL = page.url(); const publicId = new URL(previewURL).searchParams.get('wl_job');
         let observed = fixture(); const job = observed.jobs.find(j => j.public_id === publicId);
         const frozen = { json: job.plan_json, hash: job.plan_hash };
+        const reviewedOperation = JSON.parse(frozen.json).operation;
+        assert.deepEqual({ type: reviewedOperation.type, field: reviewedOperation.field, input: reviewedOperation.input }, { type: 'DECREASE_PERCENT', field: 'regular_price', input: '20' }, 'frozen approval matches the keyboard-selected regular-price operation');
+        console.log('#207/#170 reviewed browser operation: ' + JSON.stringify(reviewedOperation));
         ok(JSON.parse(job.plan_json).resolved_product_ids.join() === [...f.ids].sort((a,b)=>a-b).join(), 'independent frozen population');
         ok(observed.saves.length === 0 || Object.values(observed.saves).every(n => n === 0), 'preview has no Woo saves');
         await scan(page, 'preview'); await capture(page, 'preview'); await responsive(page);

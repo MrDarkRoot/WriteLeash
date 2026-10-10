@@ -186,6 +186,7 @@ final class Undo_Fingerprint {
 	private static function decimal_equal( $stored, $fresh ): bool {
 		try {
 			if ( ! is_string( $stored ) || ! is_string( $fresh ) ) { return false; }
+			if ( '' === $stored || '' === $fresh ) { return $stored === $fresh; }
 			return Price_Decimal::parse( $stored ) === Price_Decimal::parse( $fresh );
 		} catch ( \Throwable $error ) { return false; }
 	}

@@ -10,6 +10,8 @@ final class Price_Operation {
 	public const DECREASE_FIXED = 'DECREASE_FIXED';
 	public const INCREASE_PERCENT = 'INCREASE_PERCENT';
 	public const DECREASE_PERCENT = 'DECREASE_PERCENT';
+	public const CLEAR_SALE = 'CLEAR_SALE';
+	public const SALE_DISCOUNT_PERCENT = 'SALE_DISCOUNT_PERCENT';
 	public const FIELD_REGULAR = 'regular_price';
 	public const FIELD_SALE = 'sale_price';
 	/** The two first-class price fields a plan may target. */
@@ -18,14 +20,21 @@ final class Price_Operation {
 	private string $input;
 	private string $field;
 	public function __construct( string $type, $input, string $field = self::FIELD_REGULAR ) {
-		if ( ! in_array( $type, array( self::SET, self::INCREASE_FIXED, self::DECREASE_FIXED, self::INCREASE_PERCENT, self::DECREASE_PERCENT ), true ) ) {
+		if ( ! in_array( $type, array( self::SET, self::INCREASE_FIXED, self::DECREASE_FIXED, self::INCREASE_PERCENT, self::DECREASE_PERCENT, self::CLEAR_SALE, self::SALE_DISCOUNT_PERCENT ), true ) ) {
 			throw new Price_Validation_Error( 'unsupported_operation' );
 		}
 		if ( ! in_array( $field, self::FIELDS, true ) ) {
 			throw new Price_Validation_Error( 'unsupported_price_field' );
 		}
 		$this->type = $type;
-		$this->input = Price_Decimal::parse( $input );
+		if ( in_array( $type, array( self::CLEAR_SALE, self::SALE_DISCOUNT_PERCENT ), true ) && self::FIELD_SALE !== $field ) { throw new Price_Validation_Error( 'sale_operation_requires_sale_field' ); }
+		if ( self::CLEAR_SALE === $type ) {
+			if ( '' !== $input ) { throw new Price_Validation_Error( 'clear_sale_requires_empty_input' ); }
+			$this->input = '';
+		} else {
+			$this->input = Price_Decimal::parse( $input );
+			if ( self::SALE_DISCOUNT_PERCENT === $type && Price_Decimal::compare( Price_Decimal::units( $this->input ), '100000000' ) > 0 ) { throw new Price_Validation_Error( 'sale_discount_out_of_range' ); }
+		}
 		$this->field = $field;
 	}
 	public function data(): array { return array( 'type' => $this->type, 'input' => $this->input, 'field' => $this->field ); }
@@ -41,9 +50,16 @@ final class Price_Operation {
 }
 
 final class Price_Calculator {
-	public static function calculate( $old, Price_Operation $operation, int $decimals ): string {
+	public static function calculate( $old, Price_Operation $operation, int $decimals, ?string $regular_basis = null ): string {
 		Price_Decimal::decimals( $decimals );
 		$op = $operation->data();
+		if ( Price_Operation::CLEAR_SALE === $op['type'] ) { return ''; }
+		if ( Price_Operation::SALE_DISCOUNT_PERCENT === $op['type'] ) {
+			if ( null === $regular_basis || '' === $regular_basis ) { throw new Price_Validation_Error( 'empty_regular_price' ); }
+			$basis = Price_Decimal::units( Price_Decimal::parse( $regular_basis ) );
+			$factor = Price_Decimal::subtract( '100000000', Price_Decimal::units( $op['input'] ) );
+			return Price_Decimal::target( Price_Decimal::multiply( $basis, $factor ), 14, $decimals );
+		}
 		if ( '' === $old ) {
 			// No stored baseline: only an absolute SET has a defined target.
 			if ( Price_Operation::SET !== $op['type'] ) { throw new Price_Validation_Error( 'empty_sale_price' ); }

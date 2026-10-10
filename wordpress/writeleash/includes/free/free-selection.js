@@ -17,6 +17,15 @@
         }
         function amountLabel() {
             var operation = $('#writeleash-free-operation').val();
+            var clear = operation === 'CLEAR_SALE';
+            var amount = $('#writeleash-free-amount');
+            amount.prop('required', !clear).prop('disabled', clear);
+            if (clear) { amount.val(''); }
+            amount.closest('p').prop('hidden', clear);
+            $('#writeleash-free-amount-help').prop('hidden', clear);
+            if (clear || operation === 'SALE_DISCOUNT_PERCENT') {
+                $('#writeleash-free-price-field').val('sale_price');
+            }
             $('label[for="writeleash-free-amount"]').text(operation === 'SET' ? __( 'New price', 'writeleash' ) : (operation.indexOf('PERCENT') !== -1 ? __( 'Percentage (e.g. 8 for 8%)', 'writeleash' ) : (operation.indexOf('INCREASE') === 0 ? __( 'Amount to increase by', 'writeleash' ) : __( 'Amount to decrease by', 'writeleash' ))));
         }
         method.on('change', selectionMethod);

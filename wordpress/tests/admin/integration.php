@@ -928,6 +928,7 @@ marker( 'variable products: expansion, variation Apply/Undo and parent range ref
 require __DIR__ . '/selection-integration.php';
 require __DIR__ . '/presentation-integration.php';
 require __DIR__ . '/polish-integration.php';
+require __DIR__ . '/sale-operations.php';
 
 // WooCommerce dependency loss fails closed at the Admin boundary. Plugin
 // code cannot be unloaded in-process, so the loss itself is asserted in a

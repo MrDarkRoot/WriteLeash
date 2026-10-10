@@ -222,9 +222,9 @@ final class Product_Price_Eligibility {
 		}
 		if ( null === $reason && Price_Operation::FIELD_SALE === $field ) {
 			// A first sale price has no percentage/fixed baseline to adjust.
-			if ( '' === $s['sale_price'] && null !== $operation_type && Price_Operation::SET !== $operation_type ) { $reason = 'empty_sale_price'; }
+			if ( '' === $s['sale_price'] && null !== $operation_type && ! in_array( $operation_type, array( Price_Operation::SET, Price_Operation::CLEAR_SALE, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ) { $reason = 'empty_sale_price'; }
 			// WooCommerce silently clears a sale that is not below the regular price.
-			if ( null === $reason && null !== $planned_target && '' !== $s['regular_price'] ) {
+			if ( null === $reason && null !== $planned_target && '' !== $planned_target && '' !== $s['regular_price'] ) {
 				try {
 					if ( Price_Decimal::compare( Price_Decimal::units( Price_Decimal::parse( $planned_target ) ), Price_Decimal::units( Price_Decimal::parse( $s['regular_price'] ) ) ) >= 0 ) { $reason = 'sale_price_not_below_regular'; }
 				} catch ( Price_Validation_Error $e ) { $reason = 'invalid_price'; }
@@ -286,7 +286,10 @@ final class Price_Reason_Messages {
 			'selection_limit_exceeded' => __( 'Narrow the selection to at most one thousand products.', 'writeleash' ),
 			'invalid_sku' => __( 'Use a non-empty exact SKU without whitespace or markup.', 'writeleash' ),
 			'invalid_category' => __( 'Select an existing product category.', 'writeleash' ),
-			'unsupported_operation' => __( 'Select one of the five supported price operations.', 'writeleash' ),
+			'unsupported_operation' => __( 'Select a supported price operation.', 'writeleash' ),
+			'sale_operation_requires_sale_field' => __( 'Choose Sale price for this operation.', 'writeleash' ),
+			'clear_sale_requires_empty_input' => __( 'Clear Sale Price takes no amount. Leave the amount blank.', 'writeleash' ),
+			'sale_discount_out_of_range' => __( 'Use a discount between 0 and 100 percent. The resulting sale must be below Regular Price and pass your safety settings.', 'writeleash' ),
 			'invalid_product_limit' => __( 'The changed-product limit must be between zero and one thousand.', 'writeleash' ),
 			'invalid_store_context' => __( 'The store context is incomplete or invalid.', 'writeleash' ),
 			'woocommerce_unavailable' => __( 'WooCommerce must be active before previewing price changes.', 'writeleash' ),

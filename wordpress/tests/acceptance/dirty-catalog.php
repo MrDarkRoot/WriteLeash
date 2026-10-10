@@ -63,7 +63,7 @@ try {
     $plan = Repo::hydrate_plan( $job );
     $preview = wl112_get( $post['location'] );
     wl112_assert( 6 === $plan->summary()['selected'] && 3 === $plan->summary()['changing'] && 3 === $plan->summary()['unsupported'], 'dirty catalog selection must stay complete' );
-    wl112_assert( false !== strpos( $preview['body'], 'Selected 6 products: 3 planned changes · 0 already at the target price · 3 skipped at preview.' ), 'dirty preview summary' );
+    wl112_assert( false !== strpos( $preview['body'], 'Selected 6 products: 3 planned changes · 0 already at the target price · 3 skipped.' ), 'dirty preview summary' );
     wl112_assert( 'CHANGING' === $plan->item( $clean )->data()['result'], 'the clean sibling still plans' );
     wl112_assert( 'invalid_price' === $plan->item( $bad_regular )->data()['eligibility']['reason'], 'malformed regular price typed at preview' );
     wl112_assert( 'invalid_price' === $plan->item( $bad_sale )->data()['eligibility']['reason'], 'malformed sale price typed at preview' );

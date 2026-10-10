@@ -929,6 +929,7 @@ marker( 'lifecycle fail-closed: absent/empty/deactivated/unknown stop Apply and 
 // #212 parent-state regressions through real Woo CRUD and durable workers.
 // ---------------------------------------------------------------------------
 require __DIR__ . '/parent-state.php';
+require __DIR__ . '/sale-operations.php';
 
 // ---------------------------------------------------------------------------
 // Undo REST: POST-only, authenticated, capability and ownership negatives.

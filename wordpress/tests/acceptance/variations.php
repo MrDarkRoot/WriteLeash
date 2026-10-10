@@ -177,3 +177,4 @@ try {
 } catch ( Throwable $error ) {
     $report['outcome'] = 'FAIL'; $report['error'] = $error->getMessage(); vr_report( $report ); throw $error;
 }
+require __DIR__ . '/sale-operations.php';
