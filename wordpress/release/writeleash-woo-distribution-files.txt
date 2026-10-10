@@ -30,6 +30,7 @@ includes/free/class-price-apply-transaction-guard.php
 includes/free/class-price-cache-verifier.php
 includes/free/class-price-decimal.php
 includes/free/class-price-operation.php
+includes/free/class-price-presets.php
 includes/free/class-product-discovery.php
 includes/free/class-product-selector.php
 includes/free/class-product-snapshot.php

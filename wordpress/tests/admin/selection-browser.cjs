@@ -47,6 +47,38 @@ async function action(page, name) {
     }
     await page.waitForLoadState('networkidle');
 }
+async function presets230(page, suffix) {
+    const before = observe();
+    await page.locator('#writeleash-free-selector').selectOption('manual_ids');
+    if (!await page.locator('#writeleash-free-advanced-selection').getAttribute('open').then(value => value !== null)) { await page.locator('#writeleash-free-advanced-selection > summary').click(); }
+    await page.locator('#writeleash-free-ids').fill(fixture.products.slice(0, 2).join(','));
+    await page.locator('#writeleash-free-amount').fill('80');
+    await page.locator('#writeleash-free-ending').selectOption('99');
+    await page.locator('#writeleash-preset-name').fill('Preset & ' + suffix);
+    await action(page, 'Save as preset');
+    ok((await page.locator('#wpbody-content').innerText()).includes('Preset saved.'), '#230 native save notice ' + suffix);
+    await page.goto(home);
+    await action(page, 'Load preset');
+    ok(await page.locator('#writeleash-free-ids').inputValue() === fixture.products.slice(0, 2).join(','), '#230 exact chosen IDs reopen ' + suffix);
+    ok(await page.locator('#writeleash-free-ending').inputValue() === '99', '#230 ending reopens ' + suffix);
+    const unchanged = observe();
+    assert.deepEqual(unchanged.jobs, before.jobs, '#230 CRUD creates no job');
+    assert.deepEqual(unchanged.prices, before.prices, '#230 CRUD preserves live prices');
+    ok(unchanged.saves === before.saves, '#230 zero Woo saves ' + suffix);
+    await page.getByLabel('New preset name', { exact: true }).fill('Renamed & ' + suffix);
+    await action(page, 'Rename preset');
+    ok(await page.getByRole('heading', { name: 'Renamed & ' + suffix, exact: true }).count() === 1, '#230 durable escaped rename ' + suffix);
+    await action(page, 'Load preset');
+    await page.locator('#writeleash-free-amount').fill('70');
+    await action(page, 'Preview price changes');
+    ok(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count() === 1, '#230 fresh Preview needs independent approval ' + suffix);
+    ok(observe().saves === before.saves, '#230 Preview still performs no Woo saves ' + suffix);
+    await page.goto(home);
+    await action(page, 'Delete preset');
+    ok(await page.getByRole('button', { name: 'Load preset', exact: true }).count() === 0, '#230 delete ' + suffix);
+    ok(observe().jobs.length === before.jobs.length + 1, '#230 delete preserves created immutable job ' + suffix);
+    await page.goto(home);
+}
 function input(page) { return page.locator('#writeleash-free-products + .select2-container .select2-search__field'); }
 async function typeSearch(page, term) {
     await input(page).click();
@@ -200,10 +232,13 @@ async function search(page, term) {
         await page.goto(previewURL);
         ok(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count() === 0, 'approved preview routes to actual results, cannot reapprove');
         ok(errors.length === 0, 'escaped names do not run JavaScript or cause script errors');
+        await page.goto(home);
+        await presets230(page, 'enhanced');
         await context.close();
         // Native fallback uses the same routes/controls with JavaScript disabled.
         const native = await browser.newContext({ javaScriptEnabled: false });
         page = await native.newPage(); await login(page);
+        await presets230(page, 'no-JS');
         await page.locator('#writeleash-free-product_search').fill('WL167 Browser Café');
         await page.locator('#writeleash-free-amount').fill('bad-price');
         await action(page, 'Search products');

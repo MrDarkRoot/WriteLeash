@@ -143,3 +143,10 @@ historical screenshots show the new range controls. Genuine range captures
 Firefox 151.0 on MariaDB 10.11.15; the exact candidate must still pass the
 hosted Admin gate, which reruns #170 in Chromium and Firefox. Until that
 runtime check passes, the fingerprint refresh is not acceptance evidence.
+
+### #230 preset source refresh
+
+The Admin source identity includes native configuration-only preset controls.
+Existing screenshots and result JSONs remain historical. All original browser
+assertions remain enabled; hosted Admin journeys additionally test enhanced and
+no-JavaScript preset CRUD, no Woo writes and fresh independent Preview.
