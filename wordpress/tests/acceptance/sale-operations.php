@@ -15,15 +15,17 @@ $s207_child = new WC_Product_Variation(); $s207_child->set_parent_id( $s207_pare
 WC_Product_Variable::sync( $s207_parent );
 $s207_ids = array( $s207_simple->get_id(), $s207_child->get_id() );
 $s207_report = array( 'git_sha' => getenv( 'WL112_SHA' ), 'wp' => get_bloginfo( 'version' ), 'woo' => WC_VERSION, 'php' => PHP_VERSION, 'db' => $wpdb->get_var( 'SELECT VERSION()' ), 'cache' => wp_using_ext_object_cache() ? 'persistent' : 'default' );
-foreach ( array( 'SALE_DISCOUNT_PERCENT', 'CLEAR_SALE' ) as $s207_type ) {
+foreach ( array( array( 'SALE_DISCOUNT_PERCENT', 'default' ), array( 'CLEAR_SALE', 'default' ), array( 'SALE_DISCOUNT_PERCENT', '99' ), array( 'CLEAR_SALE', '99' ) ) as $s208_case ) {
+ $s207_type = $s208_case[0]; $s208_ending = $s208_case[1];
  if ( 'CLEAR_SALE' === $s207_type ) {
   $s207_child = WriteLeash\Product_Price_Snapshot::fresh_product( $s207_child->get_id() ); $s207_child->set_sale_price( '200' ); $s207_child->save(); WC_Product_Variable::sync( $s207_parent );
  }
  $s207_home = wl112_get( $base );
  $s207_fields = vr_fields( $s207_home['body'], array( 'selector' => 'ids', 'picker_present' => '0', 'ids' => implode( ',', $s207_ids ), 'price_field' => 'sale_price', 'operation' => $s207_type, 'amount' => 'CLEAR_SALE' === $s207_type ? '' : '20', 'max_products' => '1000', 'max_increase' => '100', 'max_decrease' => '100', 'warning_threshold' => '100' ) );
+ $s207_fields['ending'] = $s208_ending;
  if ( 'CLEAR_SALE' === $s207_type ) { unset( $s207_fields['amount'] ); }
  $s207_run = vr_preview( $s207_fields ); $s207_plan = Repo::hydrate_plan( $s207_run['job'] );
- $s207_targets = array( 'CLEAR_SALE' === $s207_type ? '' : '80.00', 'CLEAR_SALE' === $s207_type ? '' : '200.00' );
+ $s207_targets = array( 'CLEAR_SALE' === $s207_type ? '' : ( '99' === $s208_ending ? '79.99' : '80.00' ), 'CLEAR_SALE' === $s207_type ? '' : ( '99' === $s208_ending ? '199.99' : '200.00' ) );
  $s207_before = array();
  foreach ( $s207_ids as $s207_i => $s207_id ) {
   $s207_before[$s207_id] = WriteLeash\Product_Price_Snapshot::read( $s207_id, WriteLeash\Product_Price_Snapshot::fresh_product( $s207_id ) )->data();
@@ -46,7 +48,8 @@ foreach ( array( 'SALE_DISCOUNT_PERCENT', 'CLEAR_SALE' ) as $s207_type ) {
   $s207_restored = WriteLeash\Product_Price_Snapshot::read( $s207_id, WriteLeash\Product_Price_Snapshot::fresh_product( $s207_id ) )->data();
   wl112_assert( D::equal( $s207_restored['sale_price'], $s207_before[$s207_id]['sale_price'] ), '#207 HTTP original sale restored' );
  }
- $s207_report[$s207_type] = array( 'applied' => 2, 'undone' => 2, 'outcome' => 'PASS' );
+ $s207_report[$s207_type . '-' . $s208_ending] = array( 'applied' => 2, 'undone' => 2, 'outcome' => 'PASS' );
 }
 file_put_contents( '/evidence/' . DB_HOST . '-sale-operations.json', json_encode( $s207_report, JSON_PRETTY_PRINT ) . "\n" );
 echo '#207 real authenticated HTTP simple/variation sale Preview/Apply/Undo and blank History PASS' . "\n";
+echo '#208 real authenticated HTTP rounded relative sale and ignored Clear ending PASS' . "\n";

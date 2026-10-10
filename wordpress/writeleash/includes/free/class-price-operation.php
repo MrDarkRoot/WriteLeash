@@ -19,7 +19,8 @@ final class Price_Operation {
 	private string $type;
 	private string $input;
 	private string $field;
-	public function __construct( string $type, $input, string $field = self::FIELD_REGULAR ) {
+	private string $ending;
+	public function __construct( string $type, $input, string $field = self::FIELD_REGULAR, $ending = 'default' ) {
 		if ( ! in_array( $type, array( self::SET, self::INCREASE_FIXED, self::DECREASE_FIXED, self::INCREASE_PERCENT, self::DECREASE_PERCENT, self::CLEAR_SALE, self::SALE_DISCOUNT_PERCENT ), true ) ) {
 			throw new Price_Validation_Error( 'unsupported_operation' );
 		}
@@ -36,8 +37,18 @@ final class Price_Operation {
 			if ( self::SALE_DISCOUNT_PERCENT === $type && Price_Decimal::compare( Price_Decimal::units( $this->input ), '100000000' ) > 0 ) { throw new Price_Validation_Error( 'sale_discount_out_of_range' ); }
 		}
 		$this->field = $field;
+		if ( ! in_array( $ending, array( 'default', '99', '95', '90', 'whole' ), true ) ) { throw new Price_Validation_Error( 'unsupported_price_ending' ); }
+		// Clear is always canonical blank, including native forms with an ending selected.
+		$this->ending = self::CLEAR_SALE === $type ? 'default' : $ending;
 	}
-	public function data(): array { return array( 'type' => $this->type, 'input' => $this->input, 'field' => $this->field ); }
+	public function data(): array {
+		$data = array( 'type' => $this->type, 'input' => $this->input, 'field' => $this->field );
+		if ( 'default' !== $this->ending ) { $data['ending'] = $this->ending; }
+		return $data;
+	}
+	public static function ending_supported( string $ending, int $decimals ): bool {
+		return in_array( $ending, array( 'default', 'whole' ), true ) || ( '90' === $ending ? $decimals >= 1 : in_array( $ending, array( '99', '95' ), true ) && $decimals >= 2 );
+	}
 	/** Snapshot/item meta key for a price field. */
 	public static function meta_key( string $field ): string { return self::FIELD_SALE === $field ? 'sale_price' : 'regular_price'; }
 	/** Fail-closed field validation for trusted persistence boundaries. */
@@ -54,16 +65,17 @@ final class Price_Calculator {
 		Price_Decimal::decimals( $decimals );
 		$op = $operation->data();
 		if ( Price_Operation::CLEAR_SALE === $op['type'] ) { return ''; }
+		if ( ! Price_Operation::ending_supported( $op['ending'] ?? 'default', $decimals ) ) { throw new Price_Validation_Error( 'price_ending_precision' ); }
 		if ( Price_Operation::SALE_DISCOUNT_PERCENT === $op['type'] ) {
 			if ( null === $regular_basis || '' === $regular_basis ) { throw new Price_Validation_Error( 'empty_regular_price' ); }
 			$basis = Price_Decimal::units( Price_Decimal::parse( $regular_basis ) );
 			$factor = Price_Decimal::subtract( '100000000', Price_Decimal::units( $op['input'] ) );
-			return Price_Decimal::target( Price_Decimal::multiply( $basis, $factor ), 14, $decimals );
+			return self::final_target( Price_Decimal::multiply( $basis, $factor ), 14, $decimals, $op );
 		}
 		if ( '' === $old ) {
 			// No stored baseline: only an absolute SET has a defined target.
 			if ( Price_Operation::SET !== $op['type'] ) { throw new Price_Validation_Error( 'empty_sale_price' ); }
-			return Price_Decimal::target( Price_Decimal::units( $op['input'] ), Price_Decimal::SCALE, $decimals );
+			return self::final_target( Price_Decimal::units( $op['input'] ), Price_Decimal::SCALE, $decimals, $op );
 		}
 		$old = Price_Decimal::units( Price_Decimal::parse( $old ) );
 		$input = Price_Decimal::units( $op['input'] );
@@ -80,7 +92,33 @@ final class Price_Calculator {
 				$target = Price_Decimal::multiply( $old, $factor );
 				$scale = 14;
 		}
-		return Price_Decimal::target( $target, $scale, $decimals );
+		return self::final_target( $target, $scale, $decimals, $op );
+	}
+
+	/** Nearest nonnegative matching price on exact intermediate units; ties upward. */
+	private static function final_target( string $units, int $scale, int $decimals, array $op ): string {
+		$ending = $op['ending'] ?? 'default';
+		if ( 'default' === $ending ) { return Price_Decimal::target( $units, $scale, $decimals ); }
+		$step = '1' . str_repeat( '0', $scale );
+		if ( 'whole' === $ending ) {
+			$units = Price_Decimal::multiply( Price_Decimal::divide_round( $units, $step ), $step );
+		} else {
+			$offset = $ending . str_repeat( '0', $scale - 2 );
+			$padded = str_pad( $units, $scale + 1, '0', STR_PAD_LEFT );
+			$candidate = Price_Decimal::add( substr( $padded, 0, -$scale ) . str_repeat( '0', $scale ), $offset );
+			if ( Price_Decimal::compare( $units, $candidate ) >= 0 ) {
+				$lower = $candidate;
+				$upper = Price_Decimal::add( $candidate, $step );
+			} elseif ( Price_Decimal::compare( $candidate, $step ) >= 0 ) {
+				$lower = Price_Decimal::subtract( $candidate, $step );
+				$upper = $candidate;
+			} else {
+				// There is no negative matching price: the first ending is the floor.
+				return Price_Decimal::target( $offset, $scale, $decimals );
+			}
+			$units = Price_Decimal::compare( Price_Decimal::subtract( $units, $lower ), Price_Decimal::subtract( $upper, $units ) ) < 0 ? $lower : $upper;
+		}
+		return Price_Decimal::target( $units, $scale, $decimals );
 	}
 
 	/** Exact signed delta and exact percentage ratio, with separately rounded display. */

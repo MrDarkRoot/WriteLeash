@@ -18,6 +18,7 @@
         function amountLabel() {
             var operation = $('#writeleash-free-operation').val();
             var clear = operation === 'CLEAR_SALE';
+			$('#writeleash-free-ending').prop('disabled', clear);
             var amount = $('#writeleash-free-amount');
             amount.prop('required', !clear).prop('disabled', clear);
             if (clear) { amount.val(''); }

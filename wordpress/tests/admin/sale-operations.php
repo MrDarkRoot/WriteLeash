@@ -40,3 +40,26 @@ foreach ( array( '', '20%', '101', '1.0000001' ) as $invalid207 ) {
  eq( $bad207['status'], 'INVALID', '#207 invalid discount refused by Admin' );
 }
 marker( '#207 Admin operations: selector, no-amount clear, percentage validation, frozen Preview/Apply, History and basis conflict' );
+
+ok( str_contains( $home207, 'id="writeleash-free-ending"' ) && str_contains( $home207, 'exact ties go upward' ), '#208 compact labelled control and actual rule' );
+foreach ( array( '99' => '79.99', '95' => '79.95', '90' => '79.90', 'whole' => '80.00' ) as $ending208 => $target208 ) {
+ $id208 = make_product( '100', 'publish', array( 'sale' => '90' ) );
+ $post208 = preview_post( array( 'ids' => (string) $id208, 'price_field' => O207::FIELD_SALE, 'operation' => O207::SALE_DISCOUNT_PERCENT, 'amount' => '20', 'ending' => (string) $ending208 ) );
+ $r208 = A207::process_preview( $post208, 'POST' ); eq( $r208['status'], 'OK', '#208 Admin ending accepted' );
+ $j208 = R207::read_by_public_id( $r208['public_id'] ); $p208 = R207::hydrate_plan( $j208 );
+ eq( $p208->item( $id208 )->data()['planned_regular_price'], $target208, '#208 Admin final frozen target' );
+ ok( str_contains( render_view( 'preview', $j208['public_id'], 0 ), '$' . $target208 . ' USD' ), '#208 Preview displays final rounded price' );
+ eq( A207::process_approve( approve_post( $j208 ), 'POST' )['status'], 'OK', '#208 approved existing path' ); run_job_terminal( (int) $j208['id'] );
+ ok( D207::equal( S207::fresh_product( $id208 )->get_sale_price( 'edit' ), $target208 ), '#208 Apply same final target' );
+}
+$id208 = make_product( '10.5' );
+$r208 = A207::process_preview( preview_post( array( 'ids' => (string) $id208, 'operation' => O207::DECREASE_FIXED, 'amount' => '0.01', 'ending' => '99', 'max_increase' => '0' ) ), 'POST' );
+$j208 = R207::read_by_public_id( $r208['public_id'] );
+eq( R207::hydrate_plan( $j208 )->data()['status'], 'BLOCKED', '#208 final increase blocks Preview' );
+$html208 = render_view( 'preview', $j208['public_id'], 0 );
+ok( str_contains( $html208, 'reverses the selected increase or decrease' ) && ! str_contains( $html208, '>Approve and apply<' ), '#208 final-target refusal explained before approval' );
+update_option( 'woocommerce_price_num_decimals', 0 );
+$html208 = render_view( '', '', 0 );
+ok( preg_match( '/<option value="99"[^>]*disabled/', $html208 ) === 1 && str_contains( $html208, '.99/.95 need two decimal places' ), '#208 precision incompatibility visibly disabled and explained' );
+update_option( 'woocommerce_price_num_decimals', 2 );
+marker( '#208 Admin final targets, blocked-direction explanation and precision controls' );

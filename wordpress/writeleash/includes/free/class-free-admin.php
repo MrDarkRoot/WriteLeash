@@ -142,6 +142,7 @@ final class Free_Admin {
 			'operation' => self::post_field( 'operation' ),
 			'price_field' => self::post_field( 'price_field' ),
 			'amount' => self::post_field( 'amount' ),
+			'ending' => self::post_field( 'ending' ),
 			'max_products' => self::post_field( 'max_products' ),
 			'max_increase' => self::post_field( 'max_increase' ),
 			'max_decrease' => self::post_field( 'max_decrease' ),
@@ -471,7 +472,7 @@ final class Free_Admin {
 		if ( ! is_string( $amount ) ) {
 			throw new Price_Validation_Error( 'malformed_decimal' );
 		}
-		return new Price_Operation( $type, $amount, $field );
+		return new Price_Operation( $type, $amount, $field, $post['ending'] ?? 'default' );
 	}
 
 	public static function build_policy( array $post ): Safety_Policy {
@@ -531,6 +532,7 @@ final class Free_Admin {
 		if ( ! $source['rows'] ) { echo '<p>' . esc_html__( 'No eligible Apply conflicts remain.', 'writeleash' ) . '</p>'; return; }
 		$d = $source['plan']->data(); $p = $d['policy_snapshot'];
 		$values = array( 'operation' => $d['operation']['type'], 'price_field' => $source['plan']->price_field(), 'amount' => $d['operation']['input'],
+			'ending' => $d['operation']['ending'] ?? 'default',
 			'max_products' => (string) $p['max_products_changed'], 'max_increase' => $p['max_increase_percent'], 'max_decrease' => $p['max_decrease_percent'], 'warning_threshold' => $p['warning_threshold_percent'], 'block_zero' => $p['block_zero'] ? '1' : '', 'product_ids' => array() );
 		if ( ( $form['source_job'] ?? null ) === $public_id ) { $values = array_merge( $values, $form ); }
 		self::render_selector_form( $values, $source );
@@ -1165,6 +1167,10 @@ final class Free_Admin {
 			/* translators: %s: exact reviewed percentage, with dot decimal separator. */
 			$operation = sprintf( __( 'Set sale prices to %s%% below each product’s reviewed Regular Price', 'writeleash' ), $op['input'] );
 		}
+		if ( isset( $op['ending'] ) ) {
+			/* translators: 1: operation description, 2: selected ending or whole-number label. */
+			$operation = sprintf( __( '%1$s; nearest Price Ending %2$s (ties upward)', 'writeleash' ), $operation, 'whole' === $op['ending'] ? __( 'Whole-number price', 'writeleash' ) : '.' . $op['ending'] );
+		}
 		$total = count( $plan['items'] );
 		$variations = 0;
 		foreach ( $plan['items'] as $item ) { if ( ! empty( $item['snapshot']['core_variation'] ) ) { ++$variations; } }
@@ -1508,6 +1514,7 @@ final class Free_Admin {
 		if ( ! self::can_mutate() ) { return; }
 		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'include_subcategories' => '', 'operation' => Price_Operation::SET, 'price_field' => Price_Operation::FIELD_REGULAR, 'amount' => '', 'max_products' => (string) Free_Support_Contract::MAX_JOB_PRODUCTS, 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
 		$values = array_merge( $defaults, $values );
+		$values['ending'] = $values['ending'] ?? 'default';
 		if ( null === $recovery ) {
 			$selected = array(); $matches = array( 'results' => array(), 'more' => false ); $categories = $matches;
 			try {
@@ -1595,6 +1602,11 @@ final class Free_Admin {
 		}
 		echo '</select></p>';
 		$amount_label = Price_Operation::CLEAR_SALE === $values['operation'] ? __( 'No amount — leave blank', 'writeleash' ) : ( Price_Operation::SET === $values['operation'] ? __( 'New price', 'writeleash' ) : ( in_array( $values['operation'], array( Price_Operation::INCREASE_PERCENT, Price_Operation::DECREASE_PERCENT, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ? __( 'Percentage (e.g. 8 for 8%)', 'writeleash' ) : ( Price_Operation::INCREASE_FIXED === $values['operation'] ? __( 'Amount to increase by', 'writeleash' ) : __( 'Amount to decrease by', 'writeleash' ) ) ) );
+		echo '<p><label for="writeleash-free-ending">' . esc_html__( 'Price Ending (optional)', 'writeleash' ) . '</label><br><select id="writeleash-free-ending" name="ending" aria-describedby="writeleash-free-ending-help">';
+		foreach ( array( 'default' => __( 'Unchanged / Default', 'writeleash' ), '99' => __( 'End in .99', 'writeleash' ), '95' => __( 'End in .95', 'writeleash' ), '90' => __( 'End in .90', 'writeleash' ), 'whole' => __( 'Whole-number price', 'writeleash' ) ) as $ending => $label ) {
+			echo '<option value="' . esc_attr( $ending ) . '"' . selected( $values['ending'], $ending, false ) . ( Price_Operation::ending_supported( $ending, wc_get_price_decimals() ) ? '' : ' disabled' ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select></p><p id="writeleash-free-ending-help" class="description">' . esc_html__( 'Nearest nonnegative matching price; exact ties go upward. Below the first ending, use 0.99, 0.95 or 0.90; whole prices may become zero. Default keeps existing calculations. .99/.95 need two decimal places; .90 needs one. Clear Sale ignores endings and stays blank. Preview checks the final rounded price against all safety limits.', 'writeleash' ) . '</p>';
 		// The server requires numeric input for every operation except Clear.
 		// Optional HTML input also supports choosing Clear without JavaScript.
 		self::selector_field( 'amount', $amount_label, 'text', $values['amount'], 'writeleash-free-amount-help' );
