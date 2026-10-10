@@ -61,5 +61,7 @@ ok( str_contains( $html208, 'reverses the selected increase or decrease' ) && ! 
 update_option( 'woocommerce_price_num_decimals', 0 );
 $html208 = render_view( '', '', 0 );
 ok( preg_match( '/<option value="99"[^>]*disabled/', $html208 ) === 1 && str_contains( $html208, '.99/.95 need two decimal places' ), '#208 precision incompatibility visibly disabled and explained' );
+$precision208 = A207::process_preview( preview_post( array( 'ids' => (string) $id208, 'operation' => O207::SET, 'amount' => '10', 'ending' => '99' ) ), 'POST' );
+eq( $precision208['reason'], 'price_ending_precision', '#208 tampered precision choice refused with actionable reason before job creation' );
 update_option( 'woocommerce_price_num_decimals', 2 );
 marker( '#208 Admin final targets, blocked-direction explanation and precision controls' );

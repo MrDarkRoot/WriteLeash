@@ -92,6 +92,59 @@ Local Docker is unavailable (`/var/run/docker.sock` absent). Real MySQL/MariaDB 
 default/Redis, Chromium/Firefox, and all selected acceptance profiles must pass
 on the exact final HEAD in hosted CI. **HOLD until those results complete.**
 
+### Completed first hosted matrix and final correction
+
+Implementation HEAD `0b8618a4dd7268a20c12aa2215bc194e73f3ec9a` completed green:
+https://github.com/MrDarkRoot/WriteLeash/actions/runs/38019977485.
+Draft PR: https://github.com/MrDarkRoot/WriteLeash/pull/237.
+
+| Gate | Result | Job ID |
+|---|---|---|
+| PR_FAST | PASS | 114118661941 |
+| Plan | PASS | 114118745319 |
+| Journal | PASS | 114118745314 |
+| Jobs | PASS | 114118745373 |
+| Undo | PASS | 114118745359 |
+| Admin | PASS | 114118745299 |
+| CI_COVERAGE | PASS | 114127172208 |
+| current-normal-default | PASS | 114118745463 |
+| current-constrained-redis | PASS | 114118745478 |
+| previous-woo | PASS | 114118745416 |
+| previous-wordpress | PASS | 114118745484 |
+| php74 | PASS | 114118745432 |
+| php80 | PASS | 114118745502 |
+| php81 | PASS | 114118745492 |
+| unsupported-woo refusal | PASS | 114118745823 |
+
+Admin logs prove Chromium 154.0.8037.97 and Firefox 151.0 each passed 264 keyboard/
+accessibility/safety assertions including #208 final rounded Preview. The real
+Admin PHP suite passed 900 assertions on each MySQL/MariaDB default/Redis profile,
+including 24 new #208 assertions. Undo logs prove 58 new #208 assertions on all
+four profiles: frozen 79.99 sale, journal/History/CSV parity, exact 90.123456
+restoration, preserved schedules/metadata and all rounded basis/parent/precision
+conflicts. Existing #207 SIGKILL recovery and #229/#212 parent controls also pass.
+All selected HTTP acceptance profiles exercised default and .99 relative sales,
+simple/variation Apply/Undo and ignored Clear endings; unsupported Woo refused.
+
+Legitimate ownership skips: foundation, research, native, engine, adapter,
+feasibility and historical. CI_COVERAGE reports six selected integrations
+succeeded and no skipped owner counted PASS. Initial same-SHA preparation run
+`38019960463` was cancelled by attaching the required SHA-bound budget label;
+it is not counted as a pass. The full run above finished before any subsequent push.
+
+Final review found that forging a precision-disabled ending could reach hydration
+of an all-unsupported plan and return a generic material error. The final small
+correction checks compatibility in the existing `Woo_Price_Planner::preview()`
+immediately after capturing store context, before resolving/persisting products.
+It returns `price_ending_precision` with the existing actionable explanation;
+Clear's canonical Default remains permitted. One additional real Admin assertion
+pins this refusal. This correction does not modify the calculator or mutators.
+
+The commit containing this correction/evidence must finish its own exact-HEAD
+matrix before READY. The final SHA, run ID, conclusions and mergeability are
+published in PR #237's handoff after completion; no evidence-only push supersedes
+that final verification. No official QIT result is claimed.
+
 Graph: refreshed schema-4 runner identity, exact base HEAD, no incomplete reasons.
 Calculator impact LOW: compute → create → Preview. Hydration LOW: job repository
 and legacy journal consumers. UNKNOWN class/file edges were confirmed by source

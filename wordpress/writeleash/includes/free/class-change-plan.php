@@ -337,6 +337,9 @@ final class Woo_Price_Planner {
 		$actor = get_current_user_id();
 		if ( ! $actor || ! current_user_can( 'manage_woocommerce' ) || ! current_user_can( 'edit_products' ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
 		$context = Price_Store_Context::current();
+		// Refuse a forged/unavailable control choice with its actionable reason,
+		// before resolving products or persisting an unsupported frozen plan.
+		if ( ! Price_Operation::ending_supported( $operation->data()['ending'] ?? 'default', $context->data()['price_decimals'] ) ) { throw new Price_Validation_Error( 'price_ending_precision' ); }
 		$snapshots = Product_Price_Selector::resolve( $selection );
 		// A selected variable parent is replaced by its exact variation IDs
 		// before the plan exists, so the frozen population and the IDS
