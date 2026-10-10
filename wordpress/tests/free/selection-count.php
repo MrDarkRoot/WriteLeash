@@ -2,7 +2,7 @@
 /** #206 contract harness. Query/Woo stubs are NOT Woo runtime evidence. */
 define( 'ABSPATH', __DIR__ );
 $source = getenv( 'WL206_SOURCE' ) ?: __DIR__ . '/../../writeleash/includes/free';
-foreach ( array( 'price-decimal', 'price-operation', 'safety-policy', 'product-snapshot', 'product-selector', 'change-plan', 'free-support-contract', 'free-admin' ) as $file ) { require $source . '/class-' . $file . '.php'; }
+foreach ( array( 'price-decimal', 'price-operation', 'price-range', 'safety-policy', 'product-snapshot', 'product-selector', 'change-plan', 'free-support-contract', 'free-admin' ) as $file ) { require $source . '/class-' . $file . '.php'; }
 use WriteLeash\Price_Selection_Spec as S;
 use WriteLeash\Product_Price_Selector as Selector;
 use WriteLeash\Change_Plan as Plan;

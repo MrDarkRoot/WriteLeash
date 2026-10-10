@@ -77,6 +77,7 @@ inventory (multi-class files included):
 | free-support-contract | Free_Support_Contract, Free_Job_Limit_Error | PUBLIC_FREE_REQUIRED |
 | price-decimal | Price_Validation_Error, Immutable_Price_Value, Price_Decimal | PUBLIC_FREE_REQUIRED |
 | price-operation | Price_Operation, Price_Calculator | PUBLIC_FREE_REQUIRED |
+| price-range | Price_Range_Filter; optional inclusive selection filter, never a mutation path | PUBLIC_FREE_REQUIRED |
 | safety-policy | Safety_Policy, Policy_Result, Policy_Evaluator | PUBLIC_FREE_REQUIRED |
 | product-snapshot | Price_Store_Context, Product_Price_Snapshot, Eligibility_Result, Product_Price_Eligibility, Price_Reason_Messages | PUBLIC_FREE_REQUIRED |
 | product-selector | Price_Selection_Spec, Product_Price_Selector | PUBLIC_FREE_REQUIRED |
