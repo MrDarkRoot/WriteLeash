@@ -2,8 +2,8 @@
   "schema": 1,
   "base_main": "bd66a79",
   "source_hashes": {
-    "class-free-admin.php": "623bedf38c12c293326bc7487ce4be1b98f796f6cb2f904ea5211ffe2dafe579",
-    "free-selection.js": "0f4b4706f79c7d7e7aa512c81369daa8389966d172fbef815e924c7488439902",
+    "class-free-admin.php": "53d6fe878d6c39fe667250ae9affae742cf05e55e2cb76d3f9ff95bd5c4ca530",
+    "free-selection.js": "0fc2de7cb70163b7a165a4efc2ee277299410a102ac101f126927b8436be8135",
     "free-selection.css": "1b57bf6b002995be559615af213ec51098c2d46081308c72145ddd42d5eb0668"
   },
   "screenshots": [

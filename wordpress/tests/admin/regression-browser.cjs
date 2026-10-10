@@ -338,6 +338,32 @@ async function responsive(page) {
         if (reads.unbounded || reads.oversized || !(reads.search <= 11) || !(reads.selected <= 1001)) { console.error('Catalog window diagnostics: ' + JSON.stringify(reads)); }
         ok(!reads.unbounded && !reads.oversized && reads.search <= 11 && reads.selected <= 1001, 'bounded catalog windows throughout browser journey');
         safety.negatives = { no_mutation: durable(fixture()) === unchanged, reads };
+        // #208 native keyboard control selected by value semantics, never option order.
+        await page.goto(home);
+        const ending208 = page.locator('#writeleash-free-ending');
+        assert.deepEqual(await ending208.locator('option').evaluateAll(options => options.map(o => o.value)), ['default', '99', '95', '90', 'whole']);
+        ok(await ending208.inputValue() === 'default', '#208 Default is initial selection');
+        await page.locator('#writeleash-free-operation').selectOption('CLEAR_SALE');
+        ok(await ending208.isDisabled(), '#208 Clear explicitly disables ending');
+        await page.locator('#writeleash-free-operation').selectOption('SET');
+        ok(await ending208.isEnabled(), '#208 numeric operation enables ending');
+        await page.locator('#writeleash-free-price-field').selectOption('regular_price');
+        await page.locator('#writeleash-free-selector').selectOption('manual_ids');
+        await page.locator('#writeleash-free-ids').fill(String(f.ids[2]));
+        await page.locator('#writeleash-free-amount').fill('70');
+        await tabTo(page, ending208);
+        const index208 = await ending208.evaluate(el => Array.from(el.options).findIndex(o => o.value === '99'));
+        await page.keyboard.press('Home');
+        for (let step = 0; step < index208; step++) await page.keyboard.press('ArrowDown');
+        ok(await ending208.inputValue() === '99', '#208 keyboard selects explicit .99 value');
+        await enter(page, button(page, 'Preview price changes'));
+        const public208 = new URL(page.url()).searchParams.get('wl_job');
+        const job208 = fixture().jobs.find(j => j.public_id === public208);
+        const plan208 = JSON.parse(job208.plan_json);
+        ok(plan208.operation.ending === '99' && plan208.items[0].planned_regular_price === '69.99', '#208 browser frozen rounded final target');
+        ok((await text(page)).includes('$69.99 USD') && (await text(page)).includes('ties upward'), '#208 Preview displays final value and rule');
+        await scan(page, '#208 rounded preview');
+        console.log('#208 ' + engine + ' keyboard ending and final Preview PASS');
         if (out) fs.writeFileSync(out + '/170-' + engine + '-result.json', JSON.stringify({ engine, version: await browser.version(), checks, scans, safety, evidence, viewport: '1440/1024/782/375', keyboard: 'PASS', screen_reader: 'NOT_TESTED', safari: 'NOT_TESTED' }, null, 2));
         console.log('#170 ' + engine + ' integrated keyboard/accessibility/safety: PASS (' + checks + ' assertions); version=' + await browser.version());
     } finally {

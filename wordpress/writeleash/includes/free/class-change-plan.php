@@ -94,6 +94,13 @@ final class Change_Plan_Item {
 					// caps; legacy first-sale SET keeps its absent-ratio contract.
 					$policy_expected = '' === $expected && Price_Operation::SALE_DISCOUNT_PERCENT === $operation->data()['type'] ? $s['regular_price'] : $expected;
 					$p = '' === $target ? ( '' === $expected ? new Policy_Result( array(), array() ) : Policy_Evaluator::item( $expected, $s['regular_price'], $policy ) ) : Policy_Evaluator::item( $policy_expected, $target, $policy );
+					$op = $operation->data();
+					if ( isset( $op['ending'] ) && '' !== $expected && '' !== $target ) {
+						$direction = Price_Decimal::compare( Price_Decimal::units( $target ), Price_Decimal::units( $expected ) );
+						if ( ( $direction > 0 && in_array( $op['type'], array( Price_Operation::DECREASE_FIXED, Price_Operation::DECREASE_PERCENT ), true ) ) || ( $direction < 0 && in_array( $op['type'], array( Price_Operation::INCREASE_FIXED, Price_Operation::INCREASE_PERCENT ), true ) ) ) {
+							$p = new Policy_Result( array_merge( $p->data()['blockers'], array( 'price_ending_direction' ) ), $p->data()['warnings'] );
+						}
+					}
 				} else {
 					$target = null;
 				}
@@ -203,6 +210,13 @@ final class Change_Plan {
 			try { Price_Operation::assert_field( $material['operation']['field'] ); }
 			catch ( Price_Validation_Error $error ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
 		}
+		if ( array_key_exists( 'ending', $material['operation'] ) ) {
+			try {
+				$operation = new Price_Operation( $material['operation']['type'] ?? '', $material['operation']['input'] ?? null, $material['operation']['field'] ?? Price_Operation::FIELD_REGULAR, $material['operation']['ending'] );
+				if ( $operation->data() !== $material['operation'] && Plan_Hasher::canonical_json( $operation->data() ) !== Plan_Hasher::canonical_json( $material['operation'] ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+				if ( ! Price_Operation::ending_supported( $material['operation']['ending'], $material['store']['price_decimals'] ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+			} catch ( \Throwable $error ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		}
 		$plan = new self();
 		$plan->identity = array( 'plan_id' => $data['plan_id'], 'created_at' => $data['created_at'] );
 		$plan->material = $material;
@@ -212,7 +226,7 @@ final class Change_Plan {
 			if ( ! is_array( $stored ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
 			$item = Change_Plan_Item::hydrate( $stored, $field, $material['operation']['type'] ?? null );
 			if ( in_array( $material['operation']['type'] ?? null, array( Price_Operation::CLEAR_SALE, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ) {
-				try { $operation = new Price_Operation( $material['operation']['type'], $material['operation']['input'] ?? null, $field ); }
+				try { $operation = new Price_Operation( $material['operation']['type'], $material['operation']['input'] ?? null, $field, $material['operation']['ending'] ?? 'default' ); }
 				catch ( Price_Validation_Error $error ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
 				if ( Plan_Hasher::canonical_json( $operation->data() ) !== Plan_Hasher::canonical_json( $material['operation'] ) || ( 'UNSUPPORTED' !== $stored['result'] && ( '' === $stored['snapshot']['regular_price'] || ( Price_Operation::CLEAR_SALE === $material['operation']['type'] && '' !== $stored['planned_regular_price'] ) ) ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
 			}
@@ -323,6 +337,9 @@ final class Woo_Price_Planner {
 		$actor = get_current_user_id();
 		if ( ! $actor || ! current_user_can( 'manage_woocommerce' ) || ! current_user_can( 'edit_products' ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
 		$context = Price_Store_Context::current();
+		// Refuse a forged/unavailable control choice with its actionable reason,
+		// before resolving products or persisting an unsupported frozen plan.
+		if ( ! Price_Operation::ending_supported( $operation->data()['ending'] ?? 'default', $context->data()['price_decimals'] ) ) { throw new Price_Validation_Error( 'price_ending_precision' ); }
 		$snapshots = Product_Price_Selector::resolve( $selection );
 		// A selected variable parent is replaced by its exact variation IDs
 		// before the plan exists, so the frozen population and the IDS

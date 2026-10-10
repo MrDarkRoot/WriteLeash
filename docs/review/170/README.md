@@ -101,3 +101,11 @@ Chromium and Firefox and uploads candidate captures and results. The same runner
 now also executes #205 recovery with JavaScript enabled and disabled, saving
 `205-recovery-result.json` and recovery/Preview screenshots separately. Until
 that runtime check passes, the fingerprint refresh is not acceptance evidence.
+
+## #208 Price Ending source refresh
+
+The current-source identities include the optional ending control and frozen
+ending provenance in task descriptions. Historical PNGs/result JSONs and their
+hashes remain unchanged. The existing exact-HEAD Chromium/Firefox journey now
+also selects .99 by keyboard and independently checks the frozen final target.
+The refreshed fingerprints alone are not browser acceptance evidence.

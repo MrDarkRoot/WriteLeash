@@ -8,7 +8,7 @@ use WriteLeash\Price_Decimal as D207;
 use WriteLeash\Free_Admin as A207;
 use WriteLeash\Undo_Item_State as U207;
 
-function wl207_fixture( string $type, bool $variation = false, string $sale = '80', string $regular = '100' ): array {
+function wl207_fixture( string $type, bool $variation = false, string $sale = '80', string $regular = '100', string $ending = 'default' ): array {
  wp_set_current_user( 1 );
  $parent = null;
  if ( $variation ) {
@@ -21,7 +21,7 @@ function wl207_fixture( string $type, bool $variation = false, string $sale = '8
  $product->update_meta_data( 'wl207_unrelated', 'preserve-me' ); $product->save();
  if ( $parent ) { WC_Product_Variable::sync( $parent ); }
  $id = $product->get_id(); $before = S207::read( $id, S207::fresh_product( $id ) )->data();
- $op = new O207( $type, O207::CLEAR_SALE === $type ? '' : '20', O207::FIELD_SALE );
+ $op = new O207( $type, O207::CLEAR_SALE === $type ? '' : '20', O207::FIELD_SALE, $ending );
  $plan = WriteLeash\Woo_Price_Planner::preview( WriteLeash\Price_Selection_Spec::ids( array( $id ) ), $op, new WriteLeash\Safety_Policy( 1000, '100', '100', true, '100' ) );
  $job = R207::create_from_plan( $plan, 1 ); $job = R207::approve( (int) $job['id'], 1 );
  return array( 'id' => $id, 'parent' => $parent, 'plan' => $plan, 'job' => $job, 'before' => $before );
@@ -160,3 +160,51 @@ foreach ( array( O207::CLEAR_SALE, O207::SALE_DISCOUNT_PERCENT ) as $type207 ) {
  ok( D207::equal( wl207_fresh( $id207 )->get_price( 'edit' ), '90' ), '#207 Undo restores active sale' );
 }
 marker( '#207 sale operations: Preview/Plan/Apply/journal/History/CSV/Undo, frozen basis, parent conflicts and SIGKILL recovery' );
+
+// #208: same immutable plan, durable journal and guarded Undo, on every DB/cache profile.
+foreach ( array( false, true ) as $variation208 ) {
+ $f208 = wl207_fixture( O207::SALE_DISCOUNT_PERCENT, $variation208, '90.123456', '100', '99' );
+ $id208 = $f208['id']; $job208 = (int) $f208['job']['id']; $plan208 = $f208['plan'];
+ eq( $plan208->item( $id208 )->data()['planned_regular_price'], '79.99', '#208 Preview freezes rounded sale' );
+ run_worker( array( 'job_id' => $job208, 'mode' => 'apply', 'limits' => limits( 5 ), 'manual' => true ) );
+ eq( journal_row( $plan208->data()['plan_id'], $id208 )['target_price'], '79.99', '#208 journal exact rounded final target' );
+ ok( D207::equal( wl207_fresh( $id208 )->get_sale_price( 'edit' ), '79.99' ), '#208 Apply consumes frozen target' );
+ eq( R207::hydrate_plan( R207::read( $job208 ) )->json(), $plan208->json(), '#208 durable plan unchanged at Apply' );
+ eq( WriteLeash\Undo_Repository::history_items( $job208 )['items'][0]['planned_price'], '79.99', '#208 History final target' );
+ $stream208 = fopen( 'php://temp', 'w+' ); A207::write_job_csv( $stream208, R207::read( $job208 ), $plan208 ); rewind( $stream208 );
+ $csv208 = array_combine( fgetcsv( $stream208 ), fgetcsv( $stream208 ) ); fclose( $stream208 );
+ eq( $csv208['planned_price'], '79.99', '#208 CSV final target' ); ok( str_contains( $csv208['task'], 'Price Ending .99' ), '#208 CSV ending provenance' );
+ $u208 = start_undo( $job208 ); run_worker( array( 'undo_id' => (int) $u208['id'], 'mode' => 'undo', 'limits' => limits( 5 ), 'manual' => true ) );
+ eq( undo_row( $job208, $id208 )['state'], U207::UNDONE, '#208 eligible rounded Undo' );
+ eq( wl207_fresh( $id208 )->get_sale_price( 'edit' ), $f208['before']['sale_price'], '#208 Undo restores exact original fractional value' );
+ $restored208 = S207::read( $id208, wl207_fresh( $id208 ) )->data();
+ eq( array( $restored208['regular_price'], $restored208['sale_from'], $restored208['sale_to'] ), array( $f208['before']['regular_price'], $f208['before']['sale_from'], $f208['before']['sale_to'] ), '#208 regular/schedules preserved' );
+ eq( wl207_fresh( $id208 )->get_meta( 'wl207_unrelated' ), 'preserve-me', '#208 unrelated metadata preserved' );
+ if ( $f208['parent'] ) { V207::assert_parent_range( $wpdb, $f208['parent']->get_id(), array( $id208 ) ); }
+}
+foreach ( array( 'apply', 'undo' ) as $phase208 ) {
+ foreach ( array( 'regular', 'sale', 'draft_parent', 'type_parent', 'reparent', 'precision' ) as $drift208 ) {
+  $f208 = wl207_fixture( O207::SALE_DISCOUNT_PERCENT, str_contains( $drift208, 'parent' ), '90', '100', '95' );
+  $id208 = $f208['id']; $job208 = (int) $f208['job']['id'];
+  if ( 'undo' === $phase208 ) { run_worker( array( 'job_id' => $job208, 'mode' => 'apply', 'limits' => limits( 5 ), 'manual' => true ) ); }
+  $p208 = wl207_fresh( $id208 );
+  if ( 'regular' === $drift208 ) { $p208->set_regular_price( '120' ); $p208->save(); }
+  elseif ( 'sale' === $drift208 ) { $p208->set_sale_price( '85' ); $p208->save(); }
+  elseif ( 'draft_parent' === $drift208 ) { $f208['parent']->set_status( 'draft' ); $f208['parent']->save(); }
+  elseif ( 'type_parent' === $drift208 ) { wp_set_object_terms( $f208['parent']->get_id(), 'simple', 'product_type' ); }
+  elseif ( 'precision' === $drift208 ) { update_option( 'woocommerce_price_num_decimals', 3 ); }
+  else { $parent208 = new WC_Product_Variable(); $parent208->set_status( 'publish' ); $parent208->save(); $p208->set_parent_id( $parent208->get_id() ); $p208->save(); }
+  $saves208 = saves( $id208 );
+  if ( 'apply' === $phase208 ) {
+   run_worker( array( 'job_id' => $job208, 'mode' => 'apply', 'limits' => limits( 5 ), 'manual' => true ) );
+   eq( journal_row( $f208['plan']->data()['plan_id'], $id208 )['state'], 'CONFLICT', '#208 rounded Apply drift refused: ' . $drift208 );
+  } else {
+   $u208 = start_undo( $job208 ); run_worker( array( 'undo_id' => (int) $u208['id'], 'mode' => 'undo', 'limits' => limits( 5 ), 'manual' => true ) );
+   eq( undo_row( $job208, $id208 )['state'], U207::CONFLICT, '#208 rounded Undo drift refused: ' . $drift208 );
+  }
+  eq( saves( $id208 ), $saves208, '#208 drift never causes another save' );
+  eq( R207::hydrate_plan( R207::read( $job208 ) )->json(), $f208['plan']->json(), '#208 drift never rewrites ending/final target' );
+  if ( 'precision' === $drift208 ) { update_option( 'woocommerce_price_num_decimals', 2 ); }
+ }
+}
+marker( '#208 rounded Preview/Apply/journal/History/CSV/exact Undo and basis/parent/precision conflicts' );

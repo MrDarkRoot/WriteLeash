@@ -101,3 +101,54 @@ $GLOBALS['wl210_prefix'] = '[Ü] ';
 wl178_equal( A::money_display( '', $store, false, O::FIELD_SALE ), '[Ü] Blank (no sale price)', 'blank translated' );
 unset( $GLOBALS['wl210_prefix'] );
 echo "#207 sale operations domain: PASS\n";
+
+// #208 extends the same domain/legacy/variation fixture, without another calculator.
+$start208 = $wl178_assertions;
+foreach ( array( '99' => array( '10.20' => '9.99', '10.70' => '10.99', '10.49' => '10.99', '10.489999' => '9.99', '10.99' => '10.99', '0' => '0.99', '0.01' => '0.99' ), '95' => array( '10.20' => '9.95', '10.70' => '10.95', '10.45' => '10.95', '10.95' => '10.95', '0' => '0.95' ), '90' => array( '10.20' => '9.90', '10.70' => '10.90', '10.40' => '10.90', '10.90' => '10.90', '0' => '0.90' ), 'whole' => array( '10.49' => '10.00', '10.50' => '11.00', '10' => '10.00', '0.49' => '0.00', '0.50' => '1.00', '0' => '0.00' ) ) as $ending208 => $cases208 ) {
+ foreach ( $cases208 as $input208 => $target208 ) {
+  wl178_equal( C::calculate( '20', new O( O::SET, (string) $input208, O::FIELD_REGULAR, (string) $ending208 ), 2 ), $target208, '#208 nearest/tie/floor/already matching ' . $ending208 );
+ }
+}
+foreach ( array( 0, 1, 2, 3, 6 ) as $dp208 ) {
+ foreach ( array( O::SET, O::INCREASE_FIXED, O::DECREASE_FIXED, O::INCREASE_PERCENT, O::DECREASE_PERCENT, O::SALE_DISCOUNT_PERCENT ) as $type208 ) {
+  $field208 = O::SALE_DISCOUNT_PERCENT === $type208 ? O::FIELD_SALE : O::FIELD_REGULAR;
+  wl178_equal( C::calculate( '100', new O( $type208, '20', $field208, 'default' ), $dp208, '200' ), C::calculate( '100', new O( $type208, '20', $field208 ), $dp208, '200' ), '#208 default exact old operation parity' );
+ }
+ wl178_equal( C::calculate( '90', new O( O::CLEAR_SALE, '', O::FIELD_SALE, '99' ), $dp208 ), '', '#208 Clear ignores ending even at incompatible precision' );
+ foreach ( array( '99', '95', '90' ) as $ending208 ) {
+  if ( O::ending_supported( $ending208, $dp208 ) ) {
+   wl178_equal( D::parse( C::calculate( '100', new O( O::SET, '10.7', O::FIELD_REGULAR, $ending208 ), $dp208 ) ), '10.' . rtrim( $ending208, '0' ), '#208 stable store formatting' );
+  } else { wl178_error( static fn() => C::calculate( '100', new O( O::SET, '10.7', O::FIELD_REGULAR, $ending208 ), $dp208 ), 'price_ending_precision' ); }
+ }
+}
+wl178_equal( C::calculate( '1', new O( O::DECREASE_PERCENT, '55.000001', O::FIELD_REGULAR, '90' ), 2 ), '0.90', '#208 exact intermediate below lowest nonnegative ending' );
+wl178_equal( C::calculate( '10', new O( O::INCREASE_PERCENT, '4.899999', O::FIELD_REGULAR, '99' ), 2 ), '9.99', '#208 no double rounding of exact percentage intermediate at tie' );
+foreach ( array( 'bad', '', 99, 0.99, array(), null ) as $invalid208 ) { wl178_error( static fn() => new O( O::SET, '10', O::FIELD_REGULAR, $invalid208 ), 'unsupported_price_ending' ); }
+wl178_error( static fn() => C::calculate( '10', new O( O::SET, '999999999999.9', O::FIELD_REGULAR, 'whole' ), 2 ), 'price_overflow' );
+$pol208 = new P( 1000, '0', '100', true, '100' );
+$old208 = wl178_product( 708, '10.5' );
+$default208 = wl178_plan( array( $old208 ), new O( O::DECREASE_FIXED, '0.01' ), $pol208 );
+$rounded208 = wl178_plan( array( $old208 ), new O( O::DECREASE_FIXED, '0.01', O::FIELD_REGULAR, '99' ), $pol208 );
+wl178_equal( $default208->data()['status'], 'PREVIEW', '#208 intermediate safe' );
+wl178_equal( $rounded208->item( 708 )->data()['planned_regular_price'], '10.99', '#208 final is increase after decrease' );
+wl178_equal( $rounded208->item( 708 )->data()['blockers'], array( 'max_increase_exceeded', 'price_ending_direction' ), '#208 caps and direction evaluate final' );
+wl178_equal( $rounded208->data()['status'], 'BLOCKED', '#208 explained before approval' );
+$zero208 = wl178_plan( array( wl178_product( 708, '1' ) ), new O( O::SET, '0.49', O::FIELD_REGULAR, 'whole' ), $pol208 );
+wl178_equal( $zero208->item( 708 )->data()['blockers'], array( 'zero_target_blocked' ), '#208 safe positive intermediate becomes blocked zero' );
+$up208 = wl178_plan( array( wl178_product( 708, '10.1' ) ), new O( O::INCREASE_FIXED, '0.01', O::FIELD_REGULAR, '99' ) );
+wl178_equal( $up208->item( 708 )->data()['blockers'], array( 'price_ending_direction' ), '#208 unexpected downward increase blocked even under generous caps' );
+$noop208 = wl178_plan( array( wl178_product( 708, '9.99' ) ), new O( O::SET, '10.2', O::FIELD_REGULAR, '99' ), new P( 0, '0', '0', true, '0' ) );
+wl178_equal( $noop208->item( 708 )->data()['result'], 'UNCHANGED', '#208 final equals original is no-op; count/caps unchanged' );
+foreach ( array( new O( O::SET, '10.5', O::FIELD_SALE, '99' ), new O( O::SALE_DISCOUNT_PERCENT, '1', O::FIELD_SALE, '99' ) ) as $op208 ) {
+ wl178_equal( wl178_plan( array( wl178_product( 708, '10.8' ) ), $op208 )->item( 708 )->data()['eligibility']['reason'], 'sale_price_not_below_regular', '#208 safe sale intermediate becomes ineligible final' );
+}
+wl178_equal( wl178_plan( array( wl178_product( 708, '12', '10' ) ), new O( O::SET, '10.2', O::FIELD_REGULAR, '99' ) )->item( 708 )->data()['eligibility']['reason'], 'regular_price_not_above_sale', '#208 rounded regular crosses sale lower bound' );
+$plan208 = wl178_plan( array( wl178_product( 708, '100', '90' ) ), new O( O::SALE_DISCOUNT_PERCENT, '20', O::FIELD_SALE, '99' ) );
+wl178_equal( $plan208->item( 708 )->data()['planned_regular_price'], '79.99', '#208 relative frozen regular basis' );
+wl178_equal( Plan::hydrate( json_decode( $plan208->json(), true ) )->json(), $plan208->json(), '#208 ending and final target hash-bound round trip' );
+wl178_equal( $plan208->precondition( 708, Snapshot::read( 708, wl178_product( 708, '120', '90' ) ), wl178_context() )['reasons'], array( 'regular_price_changed' ), '#208 basis drift conflict, not recompute' );
+wl178_equal( Plan::hydrate( $default208->data() )->json(), $default208->json(), '#208 missing ending old material never rewritten' );
+wl178_equal( isset( $default208->data()['operation']['ending'] ), false, '#208 default does not alter operation hash material' );
+wl178_equal( A::build_operation( array( 'operation' => O::CLEAR_SALE, 'price_field' => O::FIELD_SALE, 'ending' => '99' ) )->data(), $clear->data(), '#208 native Clear canonical ignored ending' );
+wl178_equal( strpos( A::task_description( $plan208->data() ), 'nearest Price Ending .99 (ties upward)' ) !== false, true, '#208 History/CSV description retains ending provenance' );
+echo '#208 Price Endings domain: PASS (' . ( $wl178_assertions - $start208 ) . " new assertions)\n";
