@@ -7,22 +7,29 @@ final class Price_Selection_Spec {
 	use Immutable_Price_Value;
 	private array $values;
 	private function __construct( array $values ) { $this->values = $values; }
-	public static function ids( array $ids ): self {
-		return self::identity( $ids, array() );
+	public static function ids( array $ids, ?Price_Range_Filter $range = null ): self {
+		return self::identity( $ids, array(), $range );
 	}
 	/**
 	 * Trusted preview-time factory for an IDS selection resolved from a
 	 * requested selection (for example a selected variable parent expanded to
-	 * its variations). The requested selection's warnings are preserved and
-	 * the resolved IDs stay the exact frozen population.
+	 * its variations). The requested selection's warnings and price-range
+	 * filter are preserved and the resolved IDs stay the exact frozen
+	 * population. An enabled range filter may exclude every requested ID;
+	 * the empty population still freezes so Preview explains the match
+	 * instead of refusing it. Direct merchant IDS input still requires at
+	 * least one ID (see identity()).
 	 */
-	public static function resolved( array $ids, array $warnings ): self {
+	public static function resolved( array $ids, array $warnings, ?Price_Range_Filter $range = null ): self {
 		foreach ( $warnings as $warning ) {
 			if ( ! is_string( $warning ) || '' === $warning ) { throw new Price_Validation_Error( 'invalid_selection_size' ); }
 		}
-		return self::identity( $ids, array_values( $warnings ) );
+		if ( ! $ids ) {
+			return new self( array( 'type' => 'IDS', 'ids' => array(), 'warnings' => array_values( array_unique( $warnings ) ), 'price_range' => ( $range ?? Price_Range_Filter::disabled() )->data() ) );
+		}
+		return self::identity( $ids, array_values( $warnings ), $range );
 	}
-	private static function identity( array $ids, array $warnings ): self {
+	private static function identity( array $ids, array $warnings, ?Price_Range_Filter $range = null ): self {
 		if ( ! $ids || count( $ids ) > Product_Price_Selector::MAX_SELECTED ) { throw new Price_Validation_Error( 'invalid_selection_size' ); }
 		foreach ( $ids as $id ) {
 			if ( ! is_int( $id ) || $id < 1 ) { throw new Price_Validation_Error( 'invalid_product_id' ); }
@@ -30,23 +37,61 @@ final class Price_Selection_Spec {
 		$unique = array_values( array_unique( $ids ) );
 		sort( $unique, SORT_NUMERIC );
 		if ( count( $unique ) !== count( $ids ) ) { $warnings[] = 'duplicate_selection'; }
-		return new self( array( 'type' => 'IDS', 'ids' => $unique, 'warnings' => array_values( array_unique( $warnings ) ) ) );
+		return new self( array( 'type' => 'IDS', 'ids' => $unique, 'warnings' => array_values( array_unique( $warnings ) ), 'price_range' => ( $range ?? Price_Range_Filter::disabled() )->data() ) );
 	}
-	public static function sku( string $sku ): self {
+	public static function sku( string $sku, ?Price_Range_Filter $range = null ): self {
 		if ( '' === $sku || strlen( $sku ) > 100 || preg_match( '/[\x00-\x20\x7f<>]/', $sku ) || '*' === $sku || ! preg_match( '//u', $sku ) ) { throw new Price_Validation_Error( 'invalid_sku' ); }
-		return new self( array( 'type' => 'SKU', 'sku' => $sku, 'warnings' => array() ) );
+		return new self( array( 'type' => 'SKU', 'sku' => $sku, 'warnings' => array(), 'price_range' => ( $range ?? Price_Range_Filter::disabled() )->data() ) );
 	}
-	public static function category( int $term_id, bool $include_children = false ): self {
+	public static function category( int $term_id, bool $include_children = false, ?Price_Range_Filter $range = null ): self {
 		if ( $term_id < 1 ) { throw new Price_Validation_Error( 'invalid_category' ); }
-		return new self( array( 'type' => 'CATEGORY', 'term_id' => $term_id, 'include_children' => $include_children, 'warnings' => array() ) );
+		return new self( array( 'type' => 'CATEGORY', 'term_id' => $term_id, 'include_children' => $include_children, 'warnings' => array(), 'price_range' => ( $range ?? Price_Range_Filter::disabled() )->data() ) );
 	}
 	public function data(): array { return $this->values; }
+	/**
+	 * The attached #234 range filter. A missing key (a spec shape from
+	 * before the filter existed) reads as disabled; a present but malformed
+	 * filter is refused rather than silently broadened.
+	 */
+	public function price_range(): array {
+		$stored = $this->values['price_range'] ?? null;
+		if ( null === $stored ) { return Price_Range_Filter::disabled()->data(); }
+		if ( ! is_array( $stored ) ) { throw new Price_Validation_Error( 'invalid_price_range' ); }
+		return Price_Range_Filter::from_data( $stored )->data();
+	}
 }
 
 final class Product_Price_Selector {
 	public const MAX_SELECTED = 1000;
-	/** Public WP queries prime post/meta caches before Woo object reads. No price SQL. */
+	/**
+	 * Public WP queries prime post/meta caches before Woo object reads. No price SQL.
+	 *
+	 * Returns the frozen matched snapshots: with an enabled #234 range
+	 * filter, only final targets satisfying the inclusive range. Use
+	 * resolve_with_outcome() when the range counts or the complete
+	 * pre-filter population (for authorization) is needed.
+	 */
 	public static function resolve( Price_Selection_Spec $spec ): array {
+		return self::apply_price_range( $spec, self::resolve_snapshots( $spec ) )['snapshots'];
+	}
+	/**
+	 * #234 full resolution: the frozen matched snapshots, the range outcome
+	 * counts and the complete pre-filter population.
+	 *
+	 * The population is complete-or-refused by the bounded discovery below,
+	 * so filtering it is exact: no silent truncation, no wider query, no
+	 * hidden targets. Authorization callers must inspect `population` (the
+	 * whole source), never just the matched subset, so an excluded product
+	 * can never become a price/count oracle.
+	 *
+	 * @return array{snapshots: Product_Price_Snapshot[], outcome: array{matched: int, excluded_by_range: int, unsupported: int}, population: Product_Price_Snapshot[]}
+	 */
+	public static function resolve_with_outcome( Price_Selection_Spec $spec ): array {
+		$population = self::resolve_snapshots( $spec );
+		return self::apply_price_range( $spec, $population ) + array( 'population' => $population );
+	}
+	/** The bounded discovery-to-snapshot pipeline; range-agnostic. */
+	private static function resolve_snapshots( Price_Selection_Spec $spec ): array {
 		Price_Store_Context::current();
 		$s = $spec->data();
 		$args = array(
@@ -162,6 +207,35 @@ final class Product_Price_Selector {
 		return $snapshots;
 	}
 	/**
+	 * Partition fresh snapshots through the spec's range filter.
+	 * Unreadable/missing rows (no snapshot to compare) are `unsupported`.
+	 * Among readable rows the filter verdict decides: `matched` rows freeze,
+	 * `excluded` rows count as excluded_by_range, and `unevaluable` rows
+	 * (blank regular price or malformed stored price, both
+	 * domain-unsupported) count as unsupported. Membership is predicate-only;
+	 * eligibility typing of matched items happens later in the plan.
+	 *
+	 * @return array{snapshots: Product_Price_Snapshot[], outcome: array{matched: int, excluded_by_range: int, unsupported: int}}
+	 */
+	private static function apply_price_range( Price_Selection_Spec $spec, array $snapshots ): array {
+		$filter = Price_Range_Filter::from_data( $spec->price_range() );
+		$outcome = array( 'matched' => 0, 'excluded_by_range' => 0, 'unsupported' => 0 );
+		if ( ! $filter->data()['enabled'] ) {
+			$outcome['matched'] = count( $snapshots );
+			return array( 'snapshots' => $snapshots, 'outcome' => $outcome );
+		}
+		$matched = array();
+		foreach ( $snapshots as $snapshot ) {
+			$row = $snapshot->data();
+			if ( empty( $row['exists'] ) || ! empty( $row['unreadable'] ) ) { ++$outcome['unsupported']; continue; }
+			$verdict = $filter->verdict( $row );
+			if ( 'matched' === $verdict ) { $matched[] = $snapshot; ++$outcome['matched']; continue; }
+			if ( 'unevaluable' === $verdict ) { ++$outcome['unsupported']; continue; }
+			++$outcome['excluded_by_range'];
+		}
+		return array( 'snapshots' => $matched, 'outcome' => $outcome );
+	}
+	/**
 	 * Run the bounded discovery query. The tax_query join returns one row per
 	 * matching descendant term, so a CATEGORY query asks the database for
 	 * DISTINCT to make the posts_per_page sentinel count distinct posts. The
@@ -188,20 +262,39 @@ final class Product_Price_Selector {
 		try { return new \WP_Query( $args ); }
 		finally { remove_filter( 'posts_distinct', $guard, 10 ); }
 	}
-	/** Informational read only. Preview independently resolves and freezes its own population. */
+	/**
+	 * Informational read only. Preview independently resolves and freezes its
+	 * own population.
+	 *
+	 * With an enabled #234 range filter, `selected` counts only the matched
+	 * targets while `unreadable`/`missing` still describe the whole source
+	 * population; `excluded_by_range` counts healthy readable targets outside
+	 * the range (including blank sale prices under a sale basis) and `range`
+	 * echoes the frozen filter. Readable targets that cannot supply a
+	 * comparable basis price stay inside the review provenance's unsupported
+	 * count. Authorization is checked over the complete pre-filter population
+	 * first, so the counts can never leak prices of products the actor cannot
+	 * inspect.
+	 */
 	public static function discover_count( Price_Selection_Spec $spec ): array {
 		if ( ! get_current_user_id() || ! current_user_can( 'manage_woocommerce' ) || ! current_user_can( 'edit_products' ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
-		$snapshots = self::resolve( $spec );
+		$resolved = self::resolve_with_outcome( $spec );
+		$snapshots = $resolved['snapshots'];
 		$unreadable = 0;
 		$missing = 0;
-		foreach ( $snapshots as $snapshot ) {
+		foreach ( $resolved['population'] as $snapshot ) {
 			$row = $snapshot->data();
 			// Do not disclose even a count for a population this actor cannot inspect.
 			if ( ! current_user_can( 'edit_post', $row['product_id'] ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
 			if ( ! empty( $row['unreadable'] ) ) { ++$unreadable; }
 			elseif ( ! $row['exists'] ) { ++$missing; }
 		}
-		return array( 'selected' => count( $snapshots ), 'unreadable' => $unreadable, 'missing' => $missing );
+		$count = array( 'selected' => count( $snapshots ), 'unreadable' => $unreadable, 'missing' => $missing );
+		if ( $spec->price_range()['enabled'] ) {
+			$count['excluded_by_range'] = $resolved['outcome']['excluded_by_range'];
+			$count['range'] = $spec->price_range();
+		}
+		return $count;
 	}
 	/** The one stable refusal that must never be treated as a retryable read failure. */
 	private static function unsupported_type_error( \Throwable $error ): bool {
@@ -213,7 +306,7 @@ final class Product_Price_Selector {
 		$ids = array();
 		foreach ( $snapshots as $snapshot ) { $ids[] = (int) $snapshot->data()['product_id']; }
 		sort( $ids, SORT_NUMERIC );
-		return Price_Selection_Spec::resolved( $ids, $spec->data()['warnings'] );
+		return Price_Selection_Spec::resolved( $ids, $spec->data()['warnings'], Price_Range_Filter::from_data( $spec->price_range() ) );
 	}
 	/** Only exact core variable parents expand; extension subclasses stay refused as-is. */
 	private static function expandable_parent( $product ): bool {

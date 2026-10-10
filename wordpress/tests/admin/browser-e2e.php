@@ -59,18 +59,27 @@ function forms_for_action( string $html, string $action ): array {
 		$fields = array();
 		foreach ( $form->getElementsByTagName( 'input' ) as $input ) {
 			$name = $input->getAttribute( 'name' );
-			if ( '' !== $name ) { $fields[ $name ] = $input->getAttribute( 'value' ); }
+			if ( '' !== $name ) {
+				// Browsers submit checkbox/radio controls only when checked;
+				// an unchecked value attribute must not leak into the POST.
+				$type = strtolower( $input->getAttribute( 'type' ) );
+				if ( ( 'checkbox' === $type || 'radio' === $type ) && ! $input->hasAttribute( 'checked' ) ) { continue; }
+				$fields[ $name ] = $input->getAttribute( 'value' );
+			}
 		}
 		foreach ( $form->getElementsByTagName( 'select' ) as $select ) {
 			$name = $select->getAttribute( 'name' );
 			if ( '' === $name || isset( $fields[ $name ] ) ) { continue; }
 			// A <select> has no value attribute: use the selected option, else
 			// the browser default first option, so a real form POST is faithful.
+			// A multi-select with nothing selected submits nothing at all.
 			$value = '';
+			$chosen = false;
 			$options = $select->getElementsByTagName( 'option' );
 			foreach ( $options as $option ) {
-				if ( $option->hasAttribute( 'selected' ) ) { $value = $option->getAttribute( 'value' ); break; }
+				if ( $option->hasAttribute( 'selected' ) ) { $value = $option->getAttribute( 'value' ); $chosen = true; break; }
 			}
+			if ( ! $chosen && $select->hasAttribute( 'multiple' ) ) { continue; }
 			if ( '' === $value && $options->length > 0 ) { $value = $options->item( 0 )->getAttribute( 'value' ); }
 			$fields[ $name ] = $value;
 		}

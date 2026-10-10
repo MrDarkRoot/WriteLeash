@@ -15,6 +15,10 @@ $parent167 = wp_insert_term( $tag167 . ' Collection', 'product_cat' );
 $child167 = wp_insert_term( $tag167 . ' Collection', 'product_cat', array( 'parent' => (int) $parent167['term_id'] ) );
 $parent_product167 = make_product( '100.00', 'publish', array( 'category' => $parent167['term_id'], 'name' => $tag167 . ' Parent product' ) );
 $child_product167 = make_product( '100.00', 'publish', array( 'category' => $child167['term_id'], 'name' => $tag167 . ' Child product' ) );
+// #234 fixtures are created before the read-only save observer below.
+$range_term234 = wp_insert_term( $tag167 . ' Range', 'product_cat' );
+$range_in234 = make_product( '50.00', 'publish', array( 'category' => (int) $range_term234['term_id'], 'name' => $tag167 . ' Range in' ) );
+$range_out234 = make_product( '500.00', 'publish', array( 'category' => (int) $range_term234['term_id'], 'name' => $tag167 . ' Range out' ) );
 // #181 fixtures are created before the read-only save observer below.
 $readable181 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Readable 181' ) );
 $unreadable181 = make_product( '100.00', 'publish', array( 'name' => $tag167 . ' Unreadable 181' ) );
@@ -139,6 +143,67 @@ eq( Repo::read_by_public_id( $preview167['public_id'] )['plan_json'], $material1
 eq( $saves167, 0, 'discovery, fallback and all planning performed zero Woo product saves before approval' );
 echo '#167 bounded discovery and taxonomy elapsed ' . round( microtime( true ) - $started167, 3 ) . "s (includes preview/import assertions; not a scale claim)\n";
 remove_action( 'woocommerce_before_product_object_save', $observer167 );
+
+// #234 inclusive price-range filter through the real Admin preview path. The
+// fixtures above were created before the save observer; only reads happen here.
+$range_post234 = preview_post( array( 'selector' => 'category', 'category' => (string) $range_term234['term_id'], 'range_enabled' => '1', 'range_min' => '20', 'range_max' => '150', 'range_basis' => 'regular_price', 'operation' => 'INCREASE_PERCENT', 'amount' => '8' ) );
+$range_count234 = Admin::process_selection( array_merge( $range_post234, array( 'discovery_nonce' => wp_create_nonce( Discovery::ACTION ), 'selection_action' => 'count-targets' ) ), 'POST' );
+eq( $range_count234['status'], 'OK', 'range count is an authenticated read' );
+eq( $range_count234['form']['selection_count']['selected'], 1, 'range count reports the matched target' );
+eq( $range_count234['form']['selection_count']['excluded_by_range'], 1, 'range count reports the excluded target' );
+$range_preview234 = Admin::process_preview( $range_post234, 'POST' );
+eq( $range_preview234['status'], 'OK', 'range preview created' );
+$range_plan234 = Repo::hydrate_plan( Repo::read_by_public_id( $range_preview234['public_id'] ) );
+eq( $range_plan234->data()['resolved_product_ids'], array( $range_in234 ), 'range freezes only the in-range product' );
+eq( $range_plan234->data()['price_range']['filter'], array( 'basis' => 'regular_price', 'enabled' => true, 'max' => '150', 'min' => '20' ), 'range filter retained in hashed selection' );
+$html234 = render_view( 'preview', $range_preview234['public_id'], 0 );
+ok( str_contains( $html234, 'excluded by the range' ) && str_contains( $html234, 'never adds more' ), 'review explains the frozen range selection' );
+$bad_range234 = Admin::process_preview( array_merge( $range_post234, array( 'range_min' => '150', 'range_max' => '20' ) ), 'POST' );
+eq( $bad_range234['status'], 'INVALID', 'min above max refused' );
+eq( $bad_range234['reason'], 'invalid_price_range', 'min above max typed refusal' );
+marker( '#234 price-range filter, frozen preview, review copy and typed refusal' );
+
+// #234 adversarial Preview authorization on real WooCommerce. A denied
+// unreadable source ID refuses with no saved plan/job and no count leak,
+// while a denied missing ID keeps the supported explained-row behavior:
+// WordPress maps edit_post on missing posts to do_not_allow for every
+// actor, so gating on missing would refuse all stale-ID selections, and
+// missing rows carry no prices to disclose.
+$auth_target234 = make_product( '50.00', 'publish', array( 'name' => $tag167 . ' Auth readable' ) );
+$auth_denied234 = make_product( '60.00', 'publish', array( 'name' => $tag167 . ' Auth unreadable' ) );
+$auth_deny234 = static function ( $caps, $cap, $actor, $args ) use ( $auth_denied234 ) {
+	if ( 'edit_post' === $cap && (int) ( $args[0] ?? 0 ) === $auth_denied234 ) { return array( 'do_not_allow' ); }
+	return $caps;
+};
+$auth_unreadable234 = static function ( $class, $type, $post_type, $id ) use ( $auth_denied234 ) {
+	if ( (int) $id === $auth_denied234 ) { throw new RuntimeException( 'test-only unreadable product' ); }
+	return $class;
+};
+\WriteLeash\Price_Cache_Verifier::invalidate( $auth_denied234 );
+add_filter( 'woocommerce_product_class', $auth_unreadable234, 10, 4 );
+add_filter( 'map_meta_cap', $auth_deny234, 10, 4 );
+$auth_saves234 = 0;
+$auth_observer234 = static function () use ( &$auth_saves234 ) { ++$auth_saves234; };
+add_action( 'woocommerce_before_product_object_save', $auth_observer234 );
+try {
+	$auth_post234 = preview_post( array( 'selector' => 'ids', 'ids' => $auth_target234 . ',' . $auth_denied234, 'range_enabled' => '1', 'range_min' => '20', 'range_max' => '150', 'range_basis' => 'regular_price' ) );
+	$auth_jobs234 = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) );
+	$auth_refused234 = Admin::process_preview( $auth_post234, 'POST' );
+	eq( $auth_refused234['status'], 'FORBIDDEN', 'denied unreadable source refuses Preview' );
+	eq( $auth_refused234['reason'], 'permission_denied', 'denied unreadable refusal is typed' );
+	eq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $auth_jobs234, 'denied Preview persists no job' );
+} finally {
+	remove_filter( 'woocommerce_product_class', $auth_unreadable234, 10 );
+	remove_filter( 'map_meta_cap', $auth_deny234, 10 );
+}
+$missing_post234 = preview_post( array( 'selector' => 'ids', 'ids' => $auth_target234 . ',999999999', 'range_enabled' => '1', 'range_min' => '20', 'range_max' => '150', 'range_basis' => 'regular_price' ) );
+$missing_preview234 = Admin::process_preview( $missing_post234, 'POST' );
+eq( $missing_preview234['status'], 'OK', 'denied missing ID keeps supported Preview' );
+$missing_plan234 = Repo::hydrate_plan( Repo::read_by_public_id( $missing_preview234['public_id'] ) );
+eq( $missing_plan234->data()['resolved_product_ids'], array( $auth_target234 ), 'missing ID excluded from the frozen range, never fabricated' );
+remove_action( 'woocommerce_before_product_object_save', $auth_observer234 );
+eq( $auth_saves234, 0, 'denied and missing previews perform zero Woo saves' );
+marker( '#234 adversarial Preview authorization: denied unreadable refused, denied missing explained' );
 
 // External Woo edit, then reopen: exact material stays frozen and execution conflicts.
 $edited167 = wc_get_product( $duplicate167[0] ); $edited167->set_regular_price( '120.00' ); $edited167->save();

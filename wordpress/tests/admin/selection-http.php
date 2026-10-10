@@ -84,3 +84,37 @@ beq( $http_plan206->data()['resolved_product_ids'], array( $ids[0], $ids[1] ), '
 beq( $http_plan206->data()['selection']['include_children'], true, '#206 HTTP retained hashed category scope' );
 bok( str_contains( admin_get( (string) $http_preview206['location'] )['body'], 'direct members and all nested subcategories' ), '#206 HTTP saved review scope visible' );
 echo "#206 real HTTP category toggle/count/Preview/no-JS/accessibility: PASS\n";
+
+// #234 real filter_input transport for the price-range allowlist: the HTTP
+// input layer must carry an enabled filter into count and Preview, retain
+// entered bounds on refusal, and freeze only matching IDs.
+$http_form234 = forms_for_action( admin_get( $bulk_url )['body'], 'writeleash_free_preview' )[0];
+$http_post234 = array_merge( $http_form234, array( 'selector' => 'manual_ids', 'ids' => (string) $ids[0] . ',' . (string) $ids[1], 'range_enabled' => '1', 'range_min' => '20', 'range_max' => '50', 'range_basis' => 'regular_price', 'selection_action' => 'count-targets', 'amount' => 'invalid-amount' ) );
+$http_jobs234 = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) );
+$http_count234 = http_post( $bulk_url, $http_post234 );
+beq( $http_count234['code'], 200, '#234 native range count real POST' );
+bok( str_contains( $http_count234['body'], 'No products match this price range' ), '#234 HTTP whitelist carries an excluding range into count' );
+bok( str_contains( $http_count234['body'], 'name="range_min" type="text" value="20"' ), '#234 entered minimum retained on no-JS count render' );
+beq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $http_jobs234, '#234 HTTP count creates no job' );
+a11y_check( $http_count234['body'], '#234 native range count' );
+$http_post234['range_max'] = '150';
+// An enabled filter with neither bound is an invalid range, not a silent
+// unfiltered Preview: explicit integers carry the checked control.
+$http_empty234 = http_post( admin_url_abs( '/wp-admin/admin-post.php' ), array_merge( $http_post234, array( 'range_enabled' => '1', 'range_min' => '', 'range_max' => '', 'amount' => '80.00' ) ) );
+$http_empty_body234 = admin_get( (string) $http_empty234['location'] )['body'];
+bok( str_contains( $http_empty_body234, 'Check the optional price range' ), '#234 HTTP enabled-but-empty range refused explicitly' );
+beq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $http_jobs234, '#234 HTTP empty range creates no job' );
+// A min-above-max Preview refuses through PRG with the entered bounds retained.
+$http_bad234 = http_post( admin_url_abs( '/wp-admin/admin-post.php' ), array_merge( $http_post234, array( 'range_min' => '150', 'range_max' => '20', 'amount' => '80.00' ) ) );
+$http_bad_body234 = admin_get( (string) $http_bad234['location'] )['body'];
+bok( str_contains( $http_bad_body234, 'Check the optional price range' ), '#234 HTTP min-above-max refusal explains the control' );
+bok( str_contains( $http_bad_body234, 'name="range_min" type="text" value="150"' ) && str_contains( $http_bad_body234, 'name="range_max" type="text" value="20"' ), '#234 HTTP refusal retains both entered bounds' );
+beq( (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . WriteLeash\Job_Schema::jobs_table( $wpdb ) ), $http_jobs234, '#234 HTTP refusal creates no job' );
+$http_ok234 = http_post( admin_url_abs( '/wp-admin/admin-post.php' ), array_merge( $http_post234, array( 'amount' => '80.00' ) ) );
+bok( preg_match( '/wl_view=preview&wl_job=([0-9a-f-]{36})/', (string) $http_ok234['location'], $http_match234 ) === 1, '#234 HTTP Preview imports the ranged selection' );
+$http_job234 = WriteLeash\Job_Repository::read_by_public_id( $http_match234[1] );
+$http_plan234 = WriteLeash\Job_Repository::hydrate_plan( $http_job234 );
+beq( $http_plan234->data()['resolved_product_ids'], array( $ids[0], $ids[1] ), '#234 HTTP Preview freezes the in-range IDs' );
+beq( $http_plan234->data()['price_range']['filter']['basis'], 'regular_price', '#234 HTTP frozen provenance keeps the basis' );
+bok( str_contains( admin_get( (string) $http_ok234['location'] )['body'], 'never adds more' ), '#234 HTTP saved review states the no-adds promise' );
+echo "#234 real HTTP range count/Preview/refusal/retention: PASS\n";
