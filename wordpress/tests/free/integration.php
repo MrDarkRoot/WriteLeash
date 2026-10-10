@@ -391,7 +391,9 @@ wl107_equal( $sale_ids234, array( $active->get_id() ), '#234 blank sale never ma
 $var_ids234 = array_map( static fn( $snapshot ) => $snapshot->data()['product_id'], \WriteLeash\Product_Price_Selector::resolve( S::ids( array( $variable->get_id() ), $range234 ) ) );
 wl107_equal( $var_ids234, array( $variation_two->get_id() ), '#234 variation judged by its own price, not the parent price' );
 $nested_ids234 = array_map( static fn( $snapshot ) => $snapshot->data()['product_id'], \WriteLeash\Product_Price_Selector::resolve( S::category( $category, true, \WriteLeash\Price_Range_Filter::from_inputs( '1', '20', '150', 'regular_price' ) ) ) );
-wl107_equal( $nested_ids234, array( $child_product->get_id() ), '#234 nested category filtered by each final target price' );
+// $a stayed a persisted member of $category (its later category edit was
+// in-memory only) at regular 110: in range alongside the nested child.
+wl107_equal( $nested_ids234, array( $a->get_id(), $child_product->get_id() ), '#234 nested category filtered by each final target price' );
 wl107_error( static fn() => Planner::preview( S::ids( array( $b->get_id() ), \WriteLeash\Price_Range_Filter::from_inputs( '1', '80', '20', 'regular_price' ) ), $op, $policy ), 'invalid_price_range' );
 wl107_equal( $saves234, 0, '#234 range resolution performs zero Woo saves' );
 remove_action( 'woocommerce_before_product_object_save', $guard234 );
