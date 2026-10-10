@@ -84,9 +84,9 @@ Status below distinguishes domain/model checks from real DB-backed runtime check
 | Percentage malformed/bounds/precision and final-target policy | PASS domain | strict grammar, >100, >6 digits, 0%, 100%, rounded-equal target, zero/caps |
 | Parent status/type/reparenting conflicts at Apply/Undo | PASS | carried #229 correction, both-operation real DB regressions |
 | Crash/retry, durable adoption, Resume keeps approval | PASS | real SIGKILL cases on two engines/default/Redis |
-| Existing five operations, #178/#179, old plans/provenance | PASS domain/DB; browser rerun pending | unchanged-operation matrix; genuine pre-#210 serialized plans; legacy journal/fingerprint cases |
-| Free UI and localization | PASS HTTP/model; browser rerun pending | authenticated HTTP simple/variation sale journey, translatable strings, official WP-CLI POT |
-| Targeted CI contracts | PARTIAL | runtime matrix PASS except Admin keyboard fixture; post-correction Admin/CI_COVERAGE required |
+| Existing five operations, #178/#179, old plans/provenance | PASS post-integration | unchanged-operation matrix; genuine pre-#210 serialized plans; legacy journal/fingerprint and browser controls |
+| Free UI and localization | PASS post-integration | authenticated HTTP and browser journeys, translatable strings, official WP-CLI POT |
+| Targeted CI contracts | PASS at tested HEAD below | all six selected integrations, eight acceptance profiles, PR_FAST and CI_COVERAGE completed successfully |
 
 ### Actual local checks
 
@@ -296,3 +296,124 @@ behind the former first browser failure and is not a pricing/AJAX failure.
 CI_COVERAGE again correctly failed only because Admin failed. Its contract stays
 unchanged. The completed run is retained as partial evidence; the arity correction
 requires a fresh full hosted run before READY can be claimed.
+
+## Completed post-integration verification
+
+**Old HEAD:** `3159e4420814cbea3f28a1eb9d4206147dca595c`.
+**New tested implementation HEAD:** `3ab88ac4c1eed1d920cfd7a7e95532ca101d88e4`.
+**Main integration base:** `5d8d8cd129e198eaceb08f6363b812ef0f32429f`.
+**Completed green run:** https://github.com/MrDarkRoot/WriteLeash/actions/runs/38010836695.
+GitHub reported `mergeable=true`, `mergeable_state=clean`, Draft OPEN at that HEAD.
+The final evidence-only commit preserves all implementation and test bytes; its
+exact HEAD and completed final-HEAD checks are reported in PR #235 and the handoff.
+It is not considered ready until that exact final HEAD also finishes green.
+
+### Completed job results
+
+| Required job | Result | Hosted job ID in run 38010836695 |
+|---|---|---|
+| PR_FAST | PASS | 114090258798 |
+| Plan | PASS | 114090353289 |
+| Journal | PASS | 114090353185 |
+| Jobs | PASS | 114090353234 |
+| Undo | PASS | 114090353228 |
+| Admin browser and real Admin integration | PASS | 114090353190 |
+| CI_COVERAGE | PASS | 114100153863 |
+| Acceptance: current-normal-default | PASS | 114090353268 |
+| Acceptance: current-constrained-redis | PASS | 114090353319 |
+| Acceptance: previous-woo | PASS | 114090353285 |
+| Acceptance: previous-wordpress | PASS | 114090353359 |
+| Acceptance: php74 | PASS | 114090353313 |
+| Acceptance: php80 | PASS | 114090353281 |
+| Acceptance: php81 | PASS | 114090353348 |
+| Acceptance: unsupported-woo refusal | PASS | 114090353338 |
+
+Job links are `https://github.com/MrDarkRoot/WriteLeash/actions/runs/38010836695/job/<ID>`.
+Foundation, research, native, engine, adapter, feasibility and historical jobs were
+expected skips: their owner outputs were false for the reduced diff against current
+main. CI_COVERAGE explicitly logged `6 selected integrations succeeded; no skipped
+owner PASS`. No missing selected check or coverage-contract defect remains.
+
+### Browser and database proof
+
+- Chromium 154.0.8037.97 and Firefox 151.0 each passed #170 with 255 assertions.
+  Both logged the exact frozen `DECREASE_PERCENT` / `regular_price` / `20` tuple.
+  Independent prices, exactly-once saves, conflict preservation, real CSV, Undo,
+  accessibility, keyboard, GET/actor/nonce/session negatives all remained enabled.
+- The real-browser selector/presentation/recovery journeys completed on MySQL and
+  MariaDB, each with default and Redis cache. Real MO/Jed translation tests passed.
+- The real Admin PHP suite completed on all four database/cache combinations with
+  876 assertions per profile, including the #207 selector/no-amount-clear/discount/
+  frozen-basis/history/conflict marker at 873 assertions. The formerly hidden
+  missing-offset call no longer interrupts the suite.
+- The dedicated Undo suite passed #229/#212 regular-and-sale controls (draft parent
+  before Apply, reparenting before Undo, eligible unchanged parent and lookup range)
+  and #207 parent status/type/reparenting conflicts on all four database/cache profiles.
+- Both operations passed simple/variation target parity, canonical blank versus
+  numeric zero, blank no-op, different regular bases, first sale, changed basis
+  conflict, preserved regular/date/unrelated fields, journal/History/CSV evidence,
+  eligible/conflict-aware Undo and actual SIGKILL/retry/durable-adoption checks.
+- Existing five operations, historical sale behavior, real legacy recovery and
+  genuine old serialized plans remain valid. No success is inferred from syntax.
+
+### Final PR diff inventory and protected-path audit
+
+The final reduced diff against the integration base contains these 26 files:
+
+```text
+docs/review/170/README.md
+docs/review/170/proof.json
+docs/review/207/IMPLEMENTATION.md
+wordpress/tests/acceptance/dirty-catalog.php
+wordpress/tests/acceptance/journey.php
+wordpress/tests/acceptance/sale-operations.php
+wordpress/tests/acceptance/variations.php
+wordpress/tests/admin/integration.php
+wordpress/tests/admin/regression-browser.cjs
+wordpress/tests/admin/sale-operations.php
+wordpress/tests/free/in-container.sh
+wordpress/tests/free/sale-operations.php
+wordpress/tests/free/sale-provenance.php
+wordpress/tests/release/public-runtime-audit.php
+wordpress/tests/undo/integration.php
+wordpress/tests/undo/sale-operations.php
+wordpress/writeleash/includes/free/class-change-plan.php
+wordpress/writeleash/includes/free/class-free-admin.php
+wordpress/writeleash/includes/free/class-price-cache-verifier.php
+wordpress/writeleash/includes/free/class-price-operation.php
+wordpress/writeleash/includes/free/class-product-snapshot.php
+wordpress/writeleash/includes/free/class-undo-fingerprint.php
+wordpress/writeleash/includes/free/class-undo-repository.php
+wordpress/writeleash/includes/free/class-woo-price-mutator.php
+wordpress/writeleash/includes/free/free-selection.js
+wordpress/writeleash/languages/writeleash.pot
+```
+
+`git diff --exit-code <main-base> HEAD -- wordpress/release
+wordpress/writeleash/writeleash.php wordpress/writeleash/readme.txt
+wordpress/writeleash/changelog.txt docs/review/211 docs/review/212
+wordpress/tests/free/variations.php wordpress/tests/undo/parent-state.php
+wordpress/writeleash/includes/free/class-woo-undo-mutator.php` passed. These protected
+files are identical to main. No historical v0.1 artifact/#194 receipt, candidate ZIP,
+new candidate checksum or Price Endings implementation is in this diff.
+
+The earlier cancelled runs are not passes. The post-integration failed run completed
+before the offset fix was pushed; the successful implementation run completed before
+this evidence update was committed. No long-running run was superseded by a small
+documentation push. The brief initial same-SHA preparation runs cancelled when the
+required SHA-bound budget label was applied are distinct from the completed runs
+used as evidence.
+
+### Remaining gaps and #208 integration recommendation
+
+No feature or integration blocker remains at the tested implementation HEAD. The
+final evidence-only HEAD still requires its own completed green CI and mergeability
+check before READY. Local Docker execution is unavailable, but hosted real DB and
+browser checks above provide runtime evidence. Existing documented value-based ABA,
+third-party external-side-effect and zero-sale undefined-ratio policy limits remain.
+
+Keep Draft PR #235 open. After founder acceptance, #208 should use the final exact
+HEAD of `origin/work/207-clear-relative-sale` reported in the handoff (containing
+the current main base). Preserve blank clear targets, frozen regular dependencies,
+final-target policy and the immutable-parent guards when integrating its own changes.
+Nothing here authorizes a merge, release, Marketplace submission or issue closure.
