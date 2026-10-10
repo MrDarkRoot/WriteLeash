@@ -3,6 +3,8 @@
 use WriteLeash\Free_Admin as PresetAdmin;
 use WriteLeash\Price_Preset_Repository as Presets;
 use WriteLeash\Price_Preset_Configuration as PresetConfig;
+use WriteLeash\Job_Repository as Repo;
+use WriteLeash\Price_Operation as Operation;
 function preset_post230( string $action, string $id = '', array $extra = array() ): array {
  return array_merge( array( 'preset_action' => $action, 'preset_id' => $id,
   'preset_nonce' => wp_create_nonce( PresetAdmin::ACTION_PRESET . '_' . $action . ( 'save' === $action ? '' : '_' . $id ) ) ), $extra );
