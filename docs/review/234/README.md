@@ -77,3 +77,19 @@ refresh precedent; `free-selection.css` is untouched.
 
 Merge-order note: open PR #235 rewrites the same two hashes to its own
 tree. Whichever PR merges second must re-capture against the merged tree.
+
+## Defects found by this capture program (fixed on this branch)
+
+Real browser/HTTP testing caught two gaps that stub-level tests could not,
+because stubs bypass the HTTP input layer:
+
+- `Free_Admin::post_input()` allowlists POST fields and lacked the four
+  range keys, so real count/Preview POSTs silently dropped an enabled
+  filter. Fixed by whitelisting the keys; covered by a new real-HTTP
+  block in `wordpress/tests/admin/selection-http.php` (excluding-range
+  count, bound retention, enabled-but-empty and min-above-max refusals
+  with no job created, Preview freeze with provenance, no-adds review).
+- The `forms_for_action` HTTP helper recorded unchecked checkbox values
+  and empty multi-selects, shapes no real browser POST can produce; this
+  masked the allowlist gap and tripped picker validation. Fixed for
+  faithful transport; all pre-existing HTTP assertions still pass.

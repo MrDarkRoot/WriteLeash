@@ -110,7 +110,6 @@ now also executes #205 recovery with JavaScript enabled and disabled, saving
 `205-recovery-result.json` and recovery/Preview screenshots separately. Until
 that runtime check passes, the fingerprint refresh is not acceptance evidence.
 
-<<<<<<< HEAD
 ## #208 Price Ending source refresh
 
 The current-source identities include the optional ending control and frozen
@@ -133,4 +132,3 @@ historical screenshots show the new range controls. Genuine range captures
 Firefox 151.0 on MariaDB 10.11.15; the exact candidate must still pass the
 hosted Admin gate, which reruns #170 in Chromium and Firefox. Until that
 runtime check passes, the fingerprint refresh is not acceptance evidence.
->>>>>>> cf12940 (docs(review): genuine #234 range capture evidence; refresh #170 source hashes (#236))
