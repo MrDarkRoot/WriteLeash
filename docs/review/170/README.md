@@ -117,3 +117,10 @@ ending provenance in task descriptions. Historical PNGs/result JSONs and their
 hashes remain unchanged. The existing exact-HEAD Chromium/Firefox journey now
 also selects .99 by keyboard and independently checks the frozen final target.
 The refreshed fingerprints alone are not browser acceptance evidence.
+
+### #230 preset source refresh
+
+The Admin source identity includes native configuration-only preset controls.
+Existing screenshots and result JSONs remain historical. All original browser
+assertions remain enabled; hosted Admin journeys additionally test enhanced and
+no-JavaScript preset CRUD, no Woo writes and fresh independent Preview.
