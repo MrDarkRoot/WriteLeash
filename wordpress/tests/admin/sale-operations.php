@@ -6,7 +6,7 @@ use WriteLeash\Job_Repository as R207;
 use WriteLeash\Price_Decimal as D207;
 use WriteLeash\Product_Price_Snapshot as S207;
 wp_set_current_user( 1 );
-$home207 = render_view( '', '' );
+$home207 = render_view( '', '', 0 );
 ok( str_contains( $home207, 'value="CLEAR_SALE"' ) && str_contains( $home207, 'value="SALE_DISCOUNT_PERCENT"' ), '#207 both Free selector options rendered' );
 ok( str_contains( $home207, 'preserves sale schedules' ) && str_contains( $home207, 'own reviewed Regular Price' ), '#207 explanations describe exact semantics' );
 foreach ( array( O207::CLEAR_SALE, O207::SALE_DISCOUNT_PERCENT ) as $type207 ) {

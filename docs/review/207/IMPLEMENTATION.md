@@ -273,3 +273,26 @@ At this pre-push evidence snapshot the verdict is **HOLD**. Final run URLs, exac
 tested integration HEAD, selected-profile results and mergeability will be appended
 after completion. Cancelled historical runs are not counted as PASS. No documentation
 push will supersede a long-running verification run.
+
+### First completed post-integration run and hidden fixture failure
+
+Integration HEAD `f36d9283789cb9e4ae136f3e42f07a90d824f18d` was tested by
+https://github.com/MrDarkRoot/WriteLeash/actions/runs/38008199985 (completed, not cancelled).
+PR_FAST, Plan, Journal, Jobs, Undo and all eight acceptance profiles PASS.
+The Undo job `114081933361` emitted both #212 and #207 PASS markers on each of
+MySQL/default, MySQL/Redis, MariaDB/default and MariaDB/Redis, confirming that the
+merged parent guards and new operations execute together safely.
+
+Admin job `114081933339` proves the original correction: Chromium (154.0.8037.97)
+and Firefox (151.0) each PASS the #170 integrated keyboard/accessibility/safety
+journey with 255 assertions. Both emit the exact reviewed tuple
+`{"field":"regular_price","input":"20","type":"DECREASE_PERCENT"}`.
+The later real Admin PHP integration reaches 851 assertions before uncovering a
+separate #207 fixture error: `render_view('', '')` omits the required page offset.
+`integration.php:103` requires three arguments; `sale-operations.php:9` supplied two.
+The call site now supplies `0`, matching all other fixture calls. The shared helper,
+merchant implementation and every assertion are unchanged. This error was hidden
+behind the former first browser failure and is not a pricing/AJAX failure.
+CI_COVERAGE again correctly failed only because Admin failed. Its contract stays
+unchanged. The completed run is retained as partial evidence; the arity correction
+requires a fresh full hosted run before READY can be claimed.
