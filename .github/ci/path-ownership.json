@@ -28,7 +28,7 @@
     },
     {
       "prefix": "wordpress/writeleash/includes/free/class-",
-      "files": ["change-plan.php", "free-support-contract.php", "price-decimal.php", "price-operation.php", "product-selector.php", "product-snapshot.php", "runner-authority.php", "safety-policy.php"],
+      "files": ["change-plan.php", "free-support-contract.php", "price-decimal.php", "price-operation.php", "price-presets.php", "product-selector.php", "product-snapshot.php", "runner-authority.php", "safety-policy.php"],
       "gates": ["plan", "journal", "jobs", "undo", "admin", "acceptance"]
     },
     {

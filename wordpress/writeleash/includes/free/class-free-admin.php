@@ -4,6 +4,7 @@ namespace WriteLeash;
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/class-product-discovery.php';
+require_once __DIR__ . '/class-price-presets.php';
 
 /**
  * #111 Free WooCommerce bulk-price Admin workflow.
@@ -31,6 +32,7 @@ require_once __DIR__ . '/class-product-discovery.php';
  */
 final class Free_Admin {
 	public const SLUG = 'writeleash-bulk-prices';
+	public const ACTION_PRESET = 'writeleash_free_preset';
 	public const ACTION_PREVIEW = 'writeleash_free_preview';
 	public const ACTION_APPROVE = 'writeleash_free_approve';
 	public const ACTION_RESUME = 'writeleash_free_resume';
@@ -47,6 +49,7 @@ final class Free_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ), 20 );
 		Product_Discovery::boot();
+		add_action( 'admin_init', array( __CLASS__, 'handle_preset' ) );
 		add_action( 'wp_ajax_' . self::ACTION_PROGRESS, array( __CLASS__, 'handle_progress' ) );
 		// Expired sessions receive an explicit refusal; the handler gates before every saved read.
 		add_action( 'wp_ajax_nopriv_' . self::ACTION_PROGRESS, array( __CLASS__, 'handle_progress' ) );
@@ -136,6 +139,10 @@ final class Free_Admin {
 	private static function post_input(): array {
 		return array(
 			'_wpnonce' => self::post_field( '_wpnonce' ),
+			'preset_nonce' => self::post_field( 'preset_nonce' ),
+			'preset_action' => self::post_field( 'preset_action' ),
+			'preset_id' => self::post_field( 'preset_id' ),
+			'preset_name' => self::post_field( 'preset_name' ),
 			'selector' => self::post_field( 'selector' ),
 			'ids' => self::post_field( 'ids' ),
 			'sku' => self::post_field( 'sku' ),
@@ -419,7 +426,7 @@ final class Free_Admin {
 	/** Bounded, escaped-on-output, session-scoped input recovery; never plan or execution truth. */
 	private static function retained_inputs( array $post ): array {
 		$values = array();
-		foreach ( array( 'source_job', 'selector', 'ids', 'sku', 'category', 'include_subcategories', 'operation', 'price_field', 'amount', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
+		foreach ( array( 'source_job', 'selector', 'ids', 'sku', 'category', 'include_subcategories', 'operation', 'price_field', 'amount', 'ending', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
 			$value = $post[$key] ?? null;
 			if ( is_string( $value ) && strlen( $value ) <= ( 'ids' === $key ? 20000 : 100 ) ) { $values[$key] = $value; }
 		}
@@ -428,6 +435,71 @@ final class Free_Admin {
 		try { $values['product_ids'] = array_map( 'strval', self::picker_ids( $post ) ); }
 		catch ( \Throwable $error ) { $values['product_ids'] = array(); }
 		return $values;
+	}
+
+	/** Native same-page POST/redirect/get, before WordPress emits Admin headers. */
+	public static function handle_preset(): void {
+		if ( self::SLUG !== filter_input( INPUT_GET, 'page' ) ) { return; }
+		if ( 'POST' === self::request_method() && null !== self::post_field( 'preset_action' ) ) {
+			$post = self::post_input();
+			$result = self::process_preset( $post, 'POST' );
+			if ( isset( $result['form'] ) ) { set_transient( self::form_key(), $result['form'], self::NOTICE_SECONDS ); }
+			elseif ( 'save' === $post['preset_action'] && null === self::gate( self::ACTION_PRESET . '_save', array( '_wpnonce' => $post['preset_nonce'] ), 'POST' ) ) {
+				set_transient( self::form_key(), self::retained_inputs( $post ), self::NOTICE_SECONDS );
+			}
+			self::finish( $result, '', null );
+			exit;
+		}
+	}
+
+	/** Preset CRUD only maps configuration; never calls planner, jobs or workers. */
+	public static function process_preset( array $post, string $method ): array {
+		$action = $post['preset_action'] ?? null;
+		$id = $post['preset_id'] ?? '';
+		if ( ! is_string( $action ) || ! in_array( $action, array( 'save', 'load', 'rename', 'delete' ), true ) || ! is_string( $id ) ) { return array( 'status' => 'INVALID', 'reason' => 'invalid_preset' ); }
+		$nonce_action = self::ACTION_PRESET . '_' . $action . ( 'save' === $action ? '' : '_' . $id );
+		$refused = self::gate( $nonce_action, array( '_wpnonce' => $post['preset_nonce'] ?? null ), $method );
+		if ( null !== $refused ) { return $refused; }
+		try {
+			if ( 'save' === $action ) {
+				$record = Price_Preset_Repository::save( $post['preset_name'] ?? null, Price_Preset_Configuration::capture( $post ) );
+				return array( 'status' => 'OK', 'reason' => 'preset_saved', 'form' => Price_Preset_Configuration::form( $record['configuration'] ) );
+			}
+			if ( 'rename' === $action ) { Price_Preset_Repository::rename( $id, $post['preset_name'] ?? null ); }
+			elseif ( 'delete' === $action ) { Price_Preset_Repository::delete( $id ); }
+			else {
+				$record = Price_Preset_Repository::load( $id );
+				$form = Price_Preset_Configuration::form( $record['configuration'] );
+				$missing = false;
+				$selection = $record['configuration']['selection'];
+				if ( 'IDS' === $selection['type'] ) {
+					foreach ( $selection['ids'] as $product_id ) {
+						if ( ! wc_get_product( $product_id ) || ! current_user_can( 'edit_post', $product_id ) ) { $missing = true; }
+					}
+				} elseif ( 'CATEGORY' === $selection['type'] ) {
+					$term = get_term( $selection['term_id'], 'product_cat' ); $missing = ! $term || is_wp_error( $term );
+				} else { $missing = ! wc_get_product_id_by_sku( $selection['sku'] ); }
+				return array( 'status' => 'OK', 'reason' => $missing ? 'preset_references_changed' : 'preset_loaded', 'form' => $form );
+			}
+			return array( 'status' => 'OK', 'reason' => 'preset_updated' );
+		} catch ( \Throwable $error ) { return self::invalid( $error ); }
+	}
+
+	private static function render_presets(): void {
+		if ( ! self::can_mutate() ) { return; }
+		echo '<h2>' . esc_html__( 'Saved price presets', 'writeleash' ) . '</h2><p>' . esc_html__( 'Presets save configuration only. Load, edit, then prepare and approve a fresh Preview. Current products, permissions and limits are checked again. Up to 20 presets per store; creators and administrators can manage them.', 'writeleash' ) . '</p>';
+		try { $records = Price_Preset_Repository::listing(); }
+		catch ( \Throwable $error ) { echo '<p>' . esc_html__( 'Presets are unavailable right now.', 'writeleash' ) . '</p>'; return; }
+		foreach ( $records as $record ) {
+			echo '<div class="writeleash-preset"><h3>' . esc_html( $record['name'] ) . '</h3>';
+			foreach ( array( 'load' => __( 'Load preset', 'writeleash' ), 'rename' => __( 'Rename preset', 'writeleash' ), 'delete' => __( 'Delete preset', 'writeleash' ) ) as $action => $label ) {
+				echo '<form method="post" action="' . esc_url( self::page_url() ) . '"><input type="hidden" name="preset_id" value="' . esc_attr( $record['id'] ) . '">';
+				wp_nonce_field( self::ACTION_PRESET . '_' . $action . '_' . $record['id'], 'preset_nonce' );
+				if ( 'rename' === $action ) { echo '<label for="writeleash-rename-' . esc_attr( $record['id'] ) . '">' . esc_html__( 'New preset name', 'writeleash' ) . '</label> <input id="writeleash-rename-' . esc_attr( $record['id'] ) . '" name="preset_name" maxlength="100" required value="' . esc_attr( $record['name'] ) . '"> '; }
+				echo '<button type="submit" class="button" name="preset_action" value="' . esc_attr( $action ) . '">' . esc_html( $label ) . '</button></form>';
+			}
+			echo '</div>';
+		}
 	}
 
 	/** Native fallback form actions are authenticated reads, never preview imports or saves. */
@@ -971,6 +1043,15 @@ final class Free_Admin {
 		$messages = array(
 			'invalid_price' => __( 'This product has an invalid stored price. Open it in WooCommerce, correct the price and save it before creating a new preview.', 'writeleash' ),
 			'capability_required' => __( 'You need WooCommerce product management capabilities for this action.', 'writeleash' ),
+			'invalid_preset' => __( 'This saved preset is invalid or has changed. Save a new configuration; no prices were changed.', 'writeleash' ),
+			'invalid_preset_name' => __( 'Use a nonempty preset name of at most 100 bytes without markup or control characters.', 'writeleash' ),
+			'preset_limit' => __( 'This store has reached its limit of 20 presets. Delete a preset before saving another.', 'writeleash' ),
+			'preset_unavailable' => __( 'This preset is unavailable to your account.', 'writeleash' ),
+			'preset_changed' => __( 'This preset changed during your request. Reload and try again.', 'writeleash' ),
+			'preset_saved' => __( 'Preset saved. No prices changed; prepare a fresh Preview before applying.', 'writeleash' ),
+			'preset_loaded' => __( 'Preset loaded into the editable form. Check the selection, prepare a fresh Preview and approve independently. No prices changed.', 'writeleash' ),
+			'preset_references_changed' => __( 'Some saved product, SKU or category references are missing or unavailable. Exact saved inputs are retained. Review them before a fresh Preview, which checks current eligibility, permissions and limits. No prices changed.', 'writeleash' ),
+			'preset_updated' => __( 'Preset updated. Existing previews, jobs, History and Undo are unchanged.', 'writeleash' ),
 			'post_required' => __( 'This action requires an authenticated POST request.', 'writeleash' ),
 			'invalid_nonce' => __( 'The security token is missing or invalid. Reload the page and try again.', 'writeleash' ),
 			'woocommerce_unavailable' => __( 'WooCommerce must be active and initialized before bulk-price planning. Install and activate WooCommerce, then reopen this page. No job was created and no product was changed.', 'writeleash' ),
@@ -1571,6 +1652,7 @@ final class Free_Admin {
 			echo '<div class="notice notice-warning"><p>' . esc_html( __( 'Your role can view this page but cannot preview or apply bulk price changes.', 'writeleash' ) ) . '</p></div>';
 		}
 		echo '<h2>' . esc_html__( 'New price change', 'writeleash' ) . '</h2>';
+		self::render_presets();
 		self::render_selector_form( $form );
 		echo '<h2>' . esc_html__( 'Recent jobs', 'writeleash' ) . '</h2>';
 		self::render_recent_jobs();
@@ -1660,6 +1742,7 @@ final class Free_Admin {
 			if ( preg_match( '/\A[0-9]{1,10}\z/', $values['category'] ) ) {
 				try { $item = Product_Discovery::category( (int) $values['category'] ); if ( $item ) { $category_options[$item['id']] = $item; } } catch ( \Throwable $error ) { /* Dependency/permission notice above; no guessed label. */ }
 			}
+			if ( '' !== $values['category'] && ! isset( $category_options[(int) $values['category']] ) ) { echo '<option selected value="' . esc_attr( $values['category'] ) . '">' . esc_html__( 'Saved category unavailable — choose another category', 'writeleash' ) . '</option>'; }
 			foreach ( $category_options as $id => $item ) { echo '<option value="' . esc_attr( (string) $id ) . '"' . selected( $values['category'], (string) $id, false ) . '>' . esc_html( $item['text'] ) . '</option>'; }
 			echo '</select></p><p><input id="writeleash-free-include-subcategories" name="include_subcategories" type="checkbox" value="1"' . checked( $values['include_subcategories'], '1', false ) . '> <label for="writeleash-free-include-subcategories">' . esc_html__( 'Include subcategories', 'writeleash' ) . '</label></p><p>' . esc_html__( 'When enabled, products in all nested subcategories are included once. Variable parents expand to their variations.', 'writeleash' ) . '</p></div>';
 			echo '<p>'; self::selection_button( 'count-targets', __( 'Check selection count', 'writeleash' ) ); echo '</p><p id="writeleash-free-selection-count" role="status" aria-live="polite">';
@@ -1708,6 +1791,10 @@ final class Free_Admin {
 		self::selector_field( 'max_products', sprintf( /* translators: %d: maximum products allowed. */ __( 'Maximum changing products (0-%d)', 'writeleash' ), $maximum ), 'number', $values['max_products'], 'writeleash-free-operation', true, 0, $maximum );
 		foreach ( array( 'max_increase' => __( 'Maximum increase percent', 'writeleash' ), 'max_decrease' => __( 'Maximum decrease percent', 'writeleash' ), 'warning_threshold' => __( 'Warning threshold percent', 'writeleash' ) ) as $name => $label ) { self::selector_field( $name, $label, 'text', $values[$name], 'writeleash-free-operation', true ); }
 		echo '<p class="writeleash-full-width"><input id="writeleash-free-block-zero" name="block_zero" type="checkbox" value="1"' . checked( $values['block_zero'] ?? '', '1', false ) . '> <label for="writeleash-free-block-zero">' . esc_html__( 'Block a preview that sets any changing price to zero', 'writeleash' ) . '</label></p></fieldset></details>';
+		if ( null === $recovery ) {
+			wp_nonce_field( self::ACTION_PRESET . '_save', 'preset_nonce' );
+			echo '<p><label for="writeleash-preset-name">' . esc_html__( 'Preset name', 'writeleash' ) . '</label> <input id="writeleash-preset-name" name="preset_name" maxlength="100"> <button type="submit" class="button" name="preset_action" value="save" formaction="' . esc_url( self::page_url() ) . '">' . esc_html__( 'Save as preset', 'writeleash' ) . '</button></p>';
+		}
 		echo '<p class="writeleash-actions"><button type="submit" class="button button-primary">' . esc_html__( 'Preview price changes', 'writeleash' ) . '</button> <span class="description">' . esc_html( __( 'Preview does not change any prices.', 'writeleash' ) ) . '</span></p></form>';
 	}
 
