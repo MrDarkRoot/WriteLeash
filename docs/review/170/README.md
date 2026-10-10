@@ -110,6 +110,7 @@ now also executes #205 recovery with JavaScript enabled and disabled, saving
 `205-recovery-result.json` and recovery/Preview screenshots separately. Until
 that runtime check passes, the fingerprint refresh is not acceptance evidence.
 
+<<<<<<< HEAD
 ## #208 Price Ending source refresh
 
 The current-source identities include the optional ending control and frozen
@@ -117,3 +118,19 @@ ending provenance in task descriptions. Historical PNGs/result JSONs and their
 hashes remain unchanged. The existing exact-HEAD Chromium/Firefox journey now
 also selects .99 by keyboard and independently checks the frozen final target.
 The refreshed fingerprints alone are not browser acceptance evidence.
+
+## Issue #234 candidate source refresh
+
+The Admin source fingerprint includes the optional inclusive price-range
+selection filter (#236): the enable checkbox, Regular/Sale basis select and
+minimum/maximum inputs in `class-free-admin.php`, plus the enable/disable
+toggle and stale-count triggers in `free-selection.js`. Historical PNGs,
+independent observer results and their hashes remain unchanged. This follows
+the existing source-refresh contract above; it does not claim that those
+historical screenshots show the new range controls. Genuine range captures
+(new screenshots plus a keyboard/axe result JSON, reviewed in
+`../234/README.md`) were captured against the exact candidate tree with
+Firefox 151.0 on MariaDB 10.11.15; the exact candidate must still pass the
+hosted Admin gate, which reruns #170 in Chromium and Firefox. Until that
+runtime check passes, the fingerprint refresh is not acceptance evidence.
+>>>>>>> cf12940 (docs(review): genuine #234 range capture evidence; refresh #170 source hashes (#236))

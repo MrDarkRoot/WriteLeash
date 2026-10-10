@@ -1,0 +1,17 @@
+{
+  "engine": "firefox",
+  "version": "151.0",
+  "checks": 40,
+  "scans": [
+    {
+      "name": "range form",
+      "violations": []
+    },
+    {
+      "name": "range review",
+      "violations": []
+    }
+  ],
+  "viewport": "1440",
+  "keyboard": "PASS"
+}
