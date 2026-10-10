@@ -37,6 +37,7 @@ final class Free_Admin {
 	public const ACTION_UNDO = 'writeleash_free_undo';
 	public const ACTION_EXPORT = 'writeleash_free_export';
 	public const ACTION_EXPORT_PREVIEW = 'writeleash_free_export_preview';
+	public const ACTION_REFINE = 'writeleash_free_refine';
 	public const ACTION_PROGRESS = 'writeleash_free_progress';
 	public const PREVIEW_PAGE_SIZE = 20;
 	public const HISTORY_PAGE_SIZE = 20;
@@ -56,6 +57,7 @@ final class Free_Admin {
 		add_action( 'admin_post_' . self::ACTION_UNDO, array( __CLASS__, 'handle_undo' ) );
 		add_action( 'admin_post_' . self::ACTION_EXPORT, array( __CLASS__, 'handle_export' ) );
 		add_action( 'admin_post_' . self::ACTION_EXPORT_PREVIEW, array( __CLASS__, 'handle_export_preview' ) );
+		add_action( 'admin_post_' . self::ACTION_REFINE, array( __CLASS__, 'handle_refine' ) );
 	}
 
 	/**
@@ -882,7 +884,9 @@ final class Free_Admin {
 			echo '</p></div>';
 			return;
 		}
-		if ( 'recovery' === $view ) {
+		if ( 'refine' === $view ) {
+			self::render_refinement_view( $job_param, $offset );
+		} elseif ( 'recovery' === $view ) {
 			self::render_recovery_view( $job_param, $form );
 		} elseif ( 'preview' === $view ) {
 			self::render_preview_view( $job_param, $offset );
@@ -969,6 +973,9 @@ final class Free_Admin {
 			return __( 'WriteLeash needs a standard transactional database connection (mysqli with InnoDB tables). No job was created and no product was changed.', 'writeleash' );
 		}
 		$messages = array(
+			'invalid_selection_refinement' => __( 'Selection changes were refused. Use only rows from an unapproved Preview visible to your account. No prices changed.', 'writeleash' ),
+			'selection_changed' => __( 'The resolved selection or a product identity changed. Create a new Preview and review its candidates again. No prices changed.', 'writeleash' ),
+			'no_included_targets' => __( 'No supported included targets remain. The last reviewed Preview and its exclusions stay unchanged. Restore a row or cancel; no prices changed.', 'writeleash' ),
 			'invalid_price' => __( 'This product has an invalid stored price. Open it in WooCommerce, correct the price and save it before creating a new preview.', 'writeleash' ),
 			'capability_required' => __( 'You need WooCommerce product management capabilities for this action.', 'writeleash' ),
 			'post_required' => __( 'This action requires an authenticated POST request.', 'writeleash' ),
@@ -1777,6 +1784,7 @@ final class Free_Admin {
 		}
 		if ( ! self::reviewable( $job ) ) { self::render_job_view( $public_id, $offset ); return; }
 		$data = $plan->data();
+		if ( isset( $data['selection_refinement'] ) ) { self::render_refinement_counts( $plan ); }
 		if ( isset( $data['source_job'] ) ) {
 			echo '<p>' . esc_html__( 'Fresh Preview from chosen Apply conflicts. Original results stay unchanged.', 'writeleash' ) . '';
 			if ( null !== self::load_job_for_view( $data['source_job'] ) ) { echo ' <a href="' . esc_url( self::page_url( 'job', $data['source_job'] ) ) . '">' . esc_html__( 'View original results', 'writeleash' ) . '</a>'; }
@@ -1871,6 +1879,9 @@ final class Free_Admin {
 		echo '</tbody></table></div>';
 		self::render_pager( 'preview', $job['public_id'], $offset, $limit, $page['next_offset'] );
 		self::render_preview_export_form( $job );
+		if ( ! isset( $data['source_job'] ) && self::can_mutate() ) {
+			echo '<p><a class="button" href="' . esc_url( self::page_url( 'refine', $job['public_id'] ) ) . '">' . esc_html__( 'Exclude individual products', 'writeleash' ) . '</a></p>';
+		}
 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html__( 'Create a new preview', 'writeleash' ) . '</a> ' . esc_html( __( 'Changing the selection or price settings creates a new preview; this saved preview stays unchanged.', 'writeleash' ) ) . '</p>';
 		if ( ! $blocked && Job_State::PLANNED === $job['status'] && self::can_mutate() ) {
 			echo '<h2>' . esc_html( __( 'Approve this preview', 'writeleash' ) ) . '</h2>';
@@ -1884,6 +1895,93 @@ final class Free_Admin {
 
 			echo '<p>' . esc_html( sprintf( /* translators: %s: translated job status. */ __( 'Current status: %s.', 'writeleash' ), self::job_label( $job['status'] ) ) . ' ' ) . '<a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( __( 'View progress and results', 'writeleash' ) ) . '</a></p>';
 		}
+	}
+
+	/** Native PRG action. No checkbox values enter approval, Apply or Undo. */
+	public static function handle_refine(): array {
+		$post = array( '_wpnonce' => self::post_field( '_wpnonce' ), 'job' => self::post_field( 'job' ), 'refinement_action' => self::post_field( 'refinement_action' ),
+			'rows' => filter_input( INPUT_POST, 'rows', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ) );
+		$result = self::process_refine( $post, self::request_method() );
+		$id = 'OK' === $result['status'] ? $result['public_id'] : ( is_string( $post['job'] ) ? $post['job'] : null );
+		return self::finish( $result, 'refine', $id );
+	}
+
+	/** Both the current review and its candidate source must be unapproved and authorized. */
+	public static function refinement_source( string $public_id ): array {
+		if ( get_current_user_id() < 1 || ! self::can_mutate() || ! self::jobs_installed() ) { throw new Price_Validation_Error( 'permission_denied' ); }
+		$job = self::load_job_for_view( $public_id );
+		if ( ! $job || ! self::reviewable( $job ) || (int) $job['approver_id'] > 0 ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+		$plan = Job_Repository::hydrate_plan( $job );
+		$d = $plan->data();
+		if ( isset( $d['source_job'] ) ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+		$root = $job;
+		if ( isset( $d['selection_refinement'] ) ) {
+			$root = self::load_job_for_view( $d['selection_refinement']['candidate_job'] );
+			if ( ! $root || ! self::reviewable( $root ) || (int) $root['approver_id'] > 0 ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+		}
+		$candidate = Job_Repository::hydrate_plan( $root );
+		Free_Support_Contract::assert_job_size( $candidate->summary()['selected'] );
+		if ( isset( $candidate->data()['selection_refinement'] ) || isset( $candidate->data()['source_job'] ) ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+		return array( 'job' => $job, 'plan' => $plan, 'root' => $root, 'candidate' => $candidate );
+	}
+
+	public static function process_refine( array $post, string $method ): array {
+		$public_id = $post['job'] ?? null;
+		if ( ! is_string( $public_id ) || ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $public_id ) ) { return array( 'status' => 'INVALID', 'reason' => 'invalid_job' ); }
+		$refused = self::gate( self::ACTION_REFINE . '_' . $public_id, $post, $method );
+		if ( null !== $refused ) { return $refused; }
+		try {
+			$source = self::refinement_source( $public_id );
+			$action = $post['refinement_action'] ?? null;
+			if ( ! in_array( $action, array( 'exclude', 'restore', 'confirm' ), true ) ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+			$raw = $post['rows'] ?? array();
+			if ( ! is_array( $raw ) || count( $raw ) > Free_Support_Contract::MAX_JOB_PRODUCTS ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+			$ids = array();
+			foreach ( $raw as $id ) {
+				if ( ! is_string( $id ) || ! preg_match( '/\A[1-9][0-9]{0,9}\z/D', $id ) ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+				$ids[] = (int) $id;
+			}
+			$ids = Selection_Refinement::ids( $ids );
+			if ( array_diff( $ids, $source['candidate']->data()['resolved_product_ids'] ) ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+			$excluded = $source['plan']->data()['selection_refinement']['excluded_ids'] ?? array();
+			if ( 'exclude' === $action ) { $excluded = Selection_Refinement::ids( array_values( array_unique( array_merge( $excluded, $ids ) ) ) ); }
+			if ( 'restore' === $action ) { $excluded = array_values( array_diff( $excluded, $ids ) ); }
+			$plan = Selection_Refinement::preview( $source['candidate'], $excluded, $source['root']['public_id'] );
+			// A concurrent approval of either source invalidates further selection refinement.
+			self::refinement_source( $public_id );
+			$job = Job_Repository::create_from_plan( $plan, get_current_user_id() );
+			return array( 'status' => 'OK', 'reason' => 'preview_ready', 'public_id' => $job['public_id'], 'plan_id' => $plan->data()['plan_id'] );
+		} catch ( \Throwable $error ) { return self::invalid( $error ); }
+	}
+
+	private static function render_refinement_counts( Change_Plan $plan ): void {
+		$d = $plan->data(); $r = $d['selection_refinement']; $s = $plan->summary();
+		if ( 'CATEGORY' === $r['source_selection']['type'] ) {
+			echo '<p>' . esc_html( ! empty( $r['source_selection']['include_children'] ) ? __( 'Category scope: direct members and all nested subcategories. This preview freezes the reviewed product IDs, including expanded variations.', 'writeleash' ) : __( 'Category scope: direct members only; subcategories are not included. This preview freezes the reviewed product IDs, including expanded variations.', 'writeleash' ) ) . '</p>';
+		}
+		echo '<p class="writeleash-refinement-counts">' . esc_html( sprintf( /* translators: 1: resolved candidates, 2: included targets, 3: excluded targets, 4: changing targets, 5: unchanged targets, 6: refused candidates. */ __( 'Resolved candidates %1$d · Included targets %2$d · Excluded targets %3$d · Changing included targets %4$d · Unchanged included targets %5$d · Unsupported/refused candidates %6$d', 'writeleash' ), count( $r['candidate_ids'] ), $s['selected'], count( $r['excluded_ids'] ), $s['changing'], $s['unchanged'], count( $r['refused_ids'] ) ) ) . '</p>';
+		echo '<p>' . esc_html__( 'Only included targets belong to this immutable Plan. Excluded and refused candidates receive no Apply or Undo entries. A separate approval is required.', 'writeleash' ) . '</p>';
+	}
+
+	private static function render_refinement_view( string $public_id, int $offset ): void {
+		try { $source = self::refinement_source( $public_id ); $page = $source['candidate']->preview_page( $offset, self::PREVIEW_PAGE_SIZE ); }
+		catch ( \Throwable $error ) { echo '<p>' . esc_html__( 'Selection refinement is unavailable. Open an unapproved Preview visible to your account.', 'writeleash' ) . '</p>'; return; }
+		$plan = $source['plan']; $d = $plan->data(); $r = $d['selection_refinement'] ?? array();
+		echo '<h2>' . esc_html__( 'Exclude individual products', 'writeleash' ) . '</h2><p>' . esc_html__( 'Select rows and submit Exclude or Restore before navigating pages. Each submission saves a fresh immutable Preview with all previously confirmed exclusions. No prices change here.', 'writeleash' ) . '</p>';
+		echo '<p>' . esc_html__( 'Checked excluded rows retain their confirmed state on reload. Unchecking alone does not restore a row: select it and use Restore selected rows.', 'writeleash' ) . '</p>';
+		if ( $r ) { self::render_refinement_counts( $plan ); }
+		else { echo '<p>' . esc_html( sprintf( /* translators: %d: resolved candidate count. */ __( 'Resolved candidates %d. Confirm the selection to create the final included Plan; unsupported rows will remain explained outside its target set.', 'writeleash' ), $plan->summary()['selected'] ) ) . '</p>'; }
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION_REFINE ) . '"><input type="hidden" name="job" value="' . esc_attr( $public_id ) . '">';
+		wp_nonce_field( self::ACTION_REFINE . '_' . $public_id );
+		echo '<table class="widefat striped"><thead><tr><th scope="col">' . esc_html__( 'Select row', 'writeleash' ) . '</th><th scope="col">' . esc_html__( 'Product', 'writeleash' ) . '</th><th scope="col">' . esc_html__( 'Membership', 'writeleash' ) . '</th></tr></thead><tbody>';
+		foreach ( $page['items'] as $item ) {
+			$id = $item['product_id'];
+			$label = in_array( $id, $r['excluded_ids'] ?? array(), true ) ? __( 'Excluded', 'writeleash' ) : ( in_array( $id, $r['refused_ids'] ?? array(), true ) || 'UNSUPPORTED' === $item['result'] ? __( 'Unsupported/refused', 'writeleash' ) : __( 'Included', 'writeleash' ) );
+			echo '<tr><td><label><input type="checkbox" name="rows[]" value="' . esc_attr( (string) $id ) . '"' . ( in_array( $id, $r['excluded_ids'] ?? array(), true ) ? ' checked' : '' ) . '> ' . esc_html( sprintf( /* translators: %d: exact product ID. */ __( 'Select product #%d', 'writeleash' ), $id ) ) . '</label></td><td>'; self::render_identity( $item ); echo '</td><td>' . esc_html( $label ) . '</td></tr>';
+		}
+		echo '</tbody></table><p><button class="button" name="refinement_action" value="exclude">' . esc_html__( 'Exclude selected rows', 'writeleash' ) . '</button> <button class="button" name="refinement_action" value="restore">' . esc_html__( 'Restore selected rows', 'writeleash' ) . '</button> <button class="button" name="refinement_action" value="confirm">' . esc_html__( 'Confirm selection with no additional changes', 'writeleash' ) . '</button></p></form>';
+		self::render_pager( 'refine', $public_id, $offset, self::PREVIEW_PAGE_SIZE, $page['next_offset'] );
+		echo '<p><a class="button button-primary" href="' . esc_url( self::page_url( 'preview', $public_id ) ) . '">' . esc_html__( 'Review updated Preview', 'writeleash' ) . '</a> <a class="button" href="' . esc_url( self::page_url( 'preview', $public_id ) ) . '">' . esc_html__( 'Cancel selection changes', 'writeleash' ) . '</a></p>';
 	}
 
 	private static function render_pager( string $view, string $public_id, int $offset, int $limit, $next_offset, string $filter = '' ): void {

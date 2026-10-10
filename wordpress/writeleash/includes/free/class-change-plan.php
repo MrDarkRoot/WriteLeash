@@ -236,6 +236,14 @@ final class Change_Plan {
 		}
 		ksort( $plan->items, SORT_NUMERIC );
 		if ( array_keys( $plan->items ) !== $material['resolved_product_ids'] ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		if ( array_key_exists( 'requested_selection', $material ) ) {
+			if ( ! is_array( $material['requested_selection'] ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+			Selection_Refinement::selection( $material['requested_selection'] );
+		}
+		if ( array_key_exists( 'selection_refinement', $material ) ) {
+			if ( ! is_array( $material['selection_refinement'] ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+			Selection_Refinement::assert_metadata( $material['selection_refinement'], $material['resolved_product_ids'] );
+		}
 		$plan->summary = self::summarize( $plan->items, $decision, $selection['warnings'] );
 		if ( isset( $data['summary'] ) && Plan_Hasher::canonical_json( $data['summary'] ) !== Plan_Hasher::canonical_json( $plan->summary ) ) { throw new Price_Validation_Error( 'plan_summary_mismatch' ); }
 		$plan->hash = $data['plan_hash'];
@@ -262,6 +270,20 @@ final class Change_Plan {
 		return $copy;
 	}
 	public function hash(): string { return $this->hash; }
+	/** Optional new-Preview provenance. Old material is never augmented on hydration. */
+	public function with_requested_selection( Price_Selection_Spec $selection ): self {
+		$copy = clone $this;
+		$copy->material['requested_selection'] = $selection->data();
+		$copy->hash = Plan_Hasher::hash( $copy->material );
+		return $copy;
+	}
+	public function with_selection_refinement( array $metadata ): self {
+		Selection_Refinement::assert_metadata( $metadata, $this->material['resolved_product_ids'] );
+		$copy = clone $this;
+		$copy->material['selection_refinement'] = $metadata;
+		$copy->hash = Plan_Hasher::hash( $copy->material );
+		return $copy;
+	}
 	/** Target price field of the frozen plan; legacy plans default to the regular price. */
 	public function price_field(): string {
 		$field = $this->material['operation']['field'] ?? Price_Operation::FIELD_REGULAR;
@@ -349,6 +371,69 @@ final class Woo_Price_Planner {
 			if ( $snapshot->data()['exists'] && ! current_user_can( 'edit_post', $snapshot->data()['product_id'] ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
 		}
 		if ( $context->data() !== Price_Store_Context::current()->data() ) { throw new Price_Validation_Error( 'store_context_changed_during_planning' ); }
-		return Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor, $context, $resolved_selection, $operation, $policy, $snapshots );
+		$plan = Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor, $context, $resolved_selection, $operation, $policy, $snapshots );
+		// Ordinary selections already carry their full source context. Do not
+		// perturb their established material/fingerprint with redundant metadata.
+		return $selection->data() === $resolved_selection->data() ? $plan : $plan->with_requested_selection( $selection );
+	}
+}
+
+/** Selection intent only. The ordinary planner, journal and workers own all pricing. */
+final class Selection_Refinement {
+	public static function selection( array $data ): Price_Selection_Spec {
+		if ( 'IDS' === ( $data['type'] ?? '' ) ) { return Price_Selection_Spec::resolved( $data['ids'] ?? array(), $data['warnings'] ?? array() ); }
+		if ( 'CATEGORY' === ( $data['type'] ?? '' ) && is_int( $data['term_id'] ?? null ) && is_bool( $data['include_children'] ?? false ) ) { return Price_Selection_Spec::category( $data['term_id'], $data['include_children'] ?? false ); }
+		if ( 'SKU' === ( $data['type'] ?? '' ) && is_string( $data['sku'] ?? null ) ) { return Price_Selection_Spec::sku( $data['sku'] ); }
+		throw new Price_Validation_Error( 'invalid_selection_refinement' );
+	}
+	public static function ids( array $ids ): array {
+		if ( count( $ids ) > Product_Price_Selector::MAX_SELECTED ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+		foreach ( $ids as $id ) { if ( ! is_int( $id ) || $id < 1 ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); } }
+		$ids = array_values( array_unique( $ids ) );
+		sort( $ids, SORT_NUMERIC );
+		return $ids;
+	}
+	public static function assert_metadata( array $metadata, array $included ): void {
+		if ( 1 !== ( $metadata['version'] ?? null ) || ! is_string( $metadata['candidate_job'] ?? null ) || ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $metadata['candidate_job'] ) ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+		foreach ( array( 'candidate_ids', 'excluded_ids', 'refused_ids' ) as $key ) {
+			if ( ! is_array( $metadata[$key] ?? null ) || self::ids( $metadata[$key] ) !== $metadata[$key] ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+		}
+		self::selection( $metadata['source_selection'] ?? array() );
+		$partition = array_merge( $included, $metadata['excluded_ids'], $metadata['refused_ids'] );
+		if ( count( $partition ) !== count( self::ids( $partition ) ) || self::ids( $partition ) !== $metadata['candidate_ids'] ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+	}
+	/** Resolve the whole original selection BEFORE exclusions; the limit cannot be discounted. */
+	public static function preview( Change_Plan $candidate, array $excluded, string $candidate_job ): Change_Plan {
+		$d = $candidate->data();
+		$excluded = self::ids( $excluded );
+		if ( isset( $d['source_job'] ) || array_diff( $excluded, $d['resolved_product_ids'] ) ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+		$selection = self::selection( $d['requested_selection'] ?? $d['selection'] );
+		$op = $d['operation']; $p = $d['policy_snapshot'];
+		$operation = new Price_Operation( $op['type'], $op['input'], $candidate->price_field(), $op['ending'] ?? 'default' );
+		$policy = new Safety_Policy( $p['max_products_changed'], $p['max_increase_percent'], $p['max_decrease_percent'], $p['block_zero'], $p['warning_threshold_percent'] );
+		$fresh = Woo_Price_Planner::preview( $selection, $operation, $policy );
+		if ( $fresh->data()['resolved_product_ids'] !== $d['resolved_product_ids'] ) { throw new Price_Validation_Error( 'selection_changed' ); }
+		// One second bounded resolution detects changes during confirmation without N queries.
+		$reads = array();
+		foreach ( Product_Price_Selector::resolve( $selection ) as $snapshot ) { $reads[ $snapshot->data()['product_id'] ] = $snapshot; }
+		if ( array_keys( $reads ) !== $d['resolved_product_ids'] ) { throw new Price_Validation_Error( 'selection_changed' ); }
+		$snapshots = array(); $refused = array(); $included = array();
+		foreach ( $fresh->data()['items'] as $item ) {
+			$id = $item['product_id']; $now = $item['snapshot']; $old = $candidate->item( $id )->data()['snapshot'];
+			// Do not silently accept a removed, retyped, reparented or republished identity.
+			foreach ( array( 'exists', 'type', 'core_simple', 'core_variation', 'parent_id', 'parent_core_variable', 'parent_status', 'status' ) as $key ) {
+				if ( ( $now[$key] ?? null ) !== ( $old[$key] ?? null ) ) { throw new Price_Validation_Error( 'selection_changed' ); }
+			}
+			if ( in_array( $id, $excluded, true ) ) { continue; }
+			if ( 'UNSUPPORTED' === $item['result'] ) { $refused[] = $id; continue; }
+			$included[] = $id;
+			if ( $reads[$id]->data() !== $now || ! current_user_can( 'edit_post', $id ) ) { throw new Price_Validation_Error( 'selection_changed' ); }
+			$snapshots[] = $reads[$id];
+		}
+		if ( ! $included ) { throw new Price_Validation_Error( 'no_included_targets' ); }
+		$context = Price_Store_Context::current();
+		if ( $context->data() !== $fresh->data()['store'] ) { throw new Price_Validation_Error( 'store_context_changed_during_planning' ); }
+		$plan = Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), get_current_user_id(), $context, Price_Selection_Spec::resolved( $included, $selection->data()['warnings'] ), $operation, $policy, $snapshots );
+		return $plan->with_selection_refinement( array( 'version' => 1, 'candidate_job' => $candidate_job, 'candidate_ids' => $d['resolved_product_ids'], 'excluded_ids' => $excluded, 'refused_ids' => $refused, 'source_selection' => $selection->data() ) );
 	}
 }

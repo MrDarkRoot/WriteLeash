@@ -930,6 +930,7 @@ require __DIR__ . '/presentation-integration.php';
 require __DIR__ . '/polish-integration.php';
 require __DIR__ . '/sale-operations.php';
 require __DIR__ . '/preview-csv-integration.php';
+require __DIR__ . '/exclusions-integration.php';
 
 // WooCommerce dependency loss fails closed at the Admin boundary. Plugin
 // code cannot be unloaded in-process, so the loss itself is asserted in a

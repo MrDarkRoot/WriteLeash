@@ -117,3 +117,14 @@ ending provenance in task descriptions. Historical PNGs/result JSONs and their
 hashes remain unchanged. The existing exact-HEAD Chromium/Firefox journey now
 also selects .99 by keyboard and independently checks the frozen final target.
 The refreshed fingerprints alone are not browser acceptance evidence.
+
+## #231 selection-refinement source refresh
+
+The current Admin fingerprint includes native exclude/restore forms and final
+included-population counts. Historical PNGs and observer/result hashes remain
+unchanged; this is the established source-refresh contract, not a claim that
+historical captures show the new feature. The original #170 Chromium/Firefox
+journeys retain every assertion. A separate #231 JavaScript-disabled keyboard
+journey runs on fresh fixtures in both browsers. Exact-HEAD hosted Admin PASS is
+required before the new workflow is accepted; refreshing this hash is not proof
+of runtime acceptance.
