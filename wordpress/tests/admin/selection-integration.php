@@ -155,7 +155,7 @@ $range_preview234 = Admin::process_preview( $range_post234, 'POST' );
 eq( $range_preview234['status'], 'OK', 'range preview created' );
 $range_plan234 = Repo::hydrate_plan( Repo::read_by_public_id( $range_preview234['public_id'] ) );
 eq( $range_plan234->data()['resolved_product_ids'], array( $range_in234 ), 'range freezes only the in-range product' );
-eq( $range_plan234->data()['price_range']['filter'], array( 'enabled' => true, 'min' => '20', 'max' => '150', 'basis' => 'regular_price' ), 'range filter retained in hashed selection' );
+eq( $range_plan234->data()['price_range']['filter'], array( 'basis' => 'regular_price', 'enabled' => true, 'max' => '150', 'min' => '20' ), 'range filter retained in hashed selection' );
 $html234 = render_view( 'preview', $range_preview234['public_id'], 0 );
 ok( str_contains( $html234, 'excluded by the range' ) && str_contains( $html234, 'never adds more' ), 'review explains the frozen range selection' );
 $bad_range234 = Admin::process_preview( array_merge( $range_post234, array( 'range_min' => '150', 'range_max' => '20' ) ), 'POST' );
