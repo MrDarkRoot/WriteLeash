@@ -48,9 +48,11 @@ try {
  wp_set_current_user( $other230 ); eq( Presets::listing(), array(), 'other manager sees no names/configurations' );
  foreach ( array( 'load', 'rename', 'delete' ) as $verb230 ) { eq( preset_call230( $verb230, $preset_id230, array( 'preset_name' => 'Stolen' ) )['reason'], 'preset_unavailable', 'actor isolation ' . $verb230 ); }
  wp_set_current_user( 0 ); eq( preset_call230( 'load', $preset_id230 )['status'], 'FORBIDDEN', 'anonymous denied' );
- wp_set_current_user( $actor230 ); wp_get_current_user()->add_cap( 'manage_woocommerce', false );
+ wp_set_current_user( $actor230 );
+ // Capability fixture setup is independent of the measured preset request.
+ remove_filter( 'query', $query230 ); wp_get_current_user()->add_cap( 'manage_woocommerce', false ); add_filter( 'query', $query230 );
  eq( preset_call230( 'load', $preset_id230 )['status'], 'FORBIDDEN', 'revoked capability denied' );
- wp_get_current_user()->remove_cap( 'manage_woocommerce' );
+ remove_filter( 'query', $query230 ); wp_get_current_user()->remove_cap( 'manage_woocommerce' ); add_filter( 'query', $query230 );
  $raw230 = get_option( 'writeleash_price_preset_0' ); $bad230 = $raw230; $bad230['configuration']['operation']['input'] = '1';
  update_option( 'writeleash_price_preset_0', $bad230, false );
  eq( preset_call230( 'load', $preset_id230 )['reason'], 'invalid_preset', 'valid arithmetic tamper rejected by signature' );
@@ -75,6 +77,24 @@ try {
  try { $cas230->invoke( null, $slot230, $old_cas230, null ); throw new RuntimeException( 'Stale delete accepted' ); }
  catch ( WriteLeash\Price_Validation_Error $error230 ) { eq( $error230->reason(), 'preset_changed', 'stale conditional delete rejected' ); }
  eq( Presets::load( $new_cas230['id'] )['name'], 'Reused slot', 'new record survives stale delete' ); Presets::delete( $new_cas230['id'] );
+ // Inject a competing real save immediately before slot reservation.
+ // The first INSERT must ignore that occupied slot, not upsert its creator.
+ $raced230 = false; $competing230 = null;
+ $race230 = static function ( $query ) use ( &$raced230, &$competing230, $other230, $actor230, $base230 ) {
+  if ( ! $raced230 && preg_match( '/^INSERT IGNORE INTO /', $query ) && str_contains( $query, 'writeleash_price_preset_' ) ) {
+   $raced230 = true; wp_set_current_user( $other230 );
+   try { $competing230 = Presets::save( 'Competing creator', PresetConfig::capture( $base230 ) ); }
+   finally { wp_set_current_user( $actor230 ); }
+  }
+  return $query;
+ };
+ add_filter( 'query', $race230 );
+ try { $reserved230 = Presets::save( 'Original creator', PresetConfig::capture( $base230 ) ); }
+ finally { remove_filter( 'query', $race230 ); }
+ ok( $raced230, 'real slot race injected' );
+ eq( Presets::load( $reserved230['id'] )['creator_id'], $actor230, 'original reservation survives race' );
+ wp_set_current_user( $other230 ); eq( Presets::load( $competing230['id'] )['creator_id'], $other230, 'competing creator was not overwritten' );
+ Presets::delete( $competing230['id'] ); wp_set_current_user( $actor230 ); Presets::delete( $reserved230['id'] );
  eq( $writes230, array(), 'CRUD performs zero Woo saves' );
  foreach ( $sql230 as $query ) {
   if ( preg_match( '/^\s*(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP)\b/i', $query ) ) {

@@ -100,11 +100,19 @@ final class Price_Preset_Repository {
 	}
 	public static function load( $id ): array { return self::find( $id )[1]; }
 	public static function save( $name, array $configuration ): array {
+		global $wpdb;
 		self::require_actor(); Price_Preset_Configuration::form( $configuration );
 		$record = array( 'id' => wp_generate_uuid4(), 'creator_id' => get_current_user_id(), 'name' => self::name( $name ), 'configuration' => $configuration );
 		$record['signature'] = self::signature( $record );
 		for ( $slot = 0; $slot < self::MAX_PRESETS; ++$slot ) {
-			if ( add_option( self::PREFIX . $slot, $record, '', false ) ) { return $record; }
+			$key = self::PREFIX . $slot;
+			// WordPress add_option uses an upsert in some supported versions.
+			// INSERT IGNORE reserves a slot without ever replacing its owner.
+			$sql = $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name,option_value,autoload) VALUES (%s,%s,%s)", $key, maybe_serialize( $record ), 'no' );
+			$inserted = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			if ( false === $inserted ) { throw new Price_Validation_Error( 'preset_unavailable' ); }
+			if ( 1 === $inserted ) { wp_cache_delete( $key, 'options' ); wp_cache_delete( 'notoptions', 'options' ); return $record; }
+
 		}
 		throw new Price_Validation_Error( 'preset_limit' );
 	}

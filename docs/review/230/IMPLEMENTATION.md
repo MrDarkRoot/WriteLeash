@@ -44,7 +44,10 @@ presets; it never preserves approval. Invalid slots remain counted and are hidde
 from listing; explicit loads fail closed. Administrators can remove corrupt option
 slots through trusted WordPress maintenance if needed.
 
-Atomic option insertion enforces the store cap under concurrent saves. Conditional
+Conditional INSERT IGNORE (not the potentially upserting add_option API)
+reserves each slot and enforces the store cap under concurrent saves. A real
+competing save injected before reservation verifies that neither creator is
+overwritten. Conditional
 SQL rename/delete compares the complete old serialized record, preventing stale
 requests from replacing/deleting a reused slot. Options cache invalidation covers
 default and Redis caches. These writes touch only preset options. No prior plan
