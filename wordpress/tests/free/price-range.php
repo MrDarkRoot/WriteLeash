@@ -205,6 +205,19 @@ ok234( $salefilter234->matches( array( 'regular_price' => '10', 'sale_price' => 
 ok234( ! $salefilter234->matches( array( 'regular_price' => '10', 'sale_price' => '50.000001' ) ), 'sale basis excludes above' );
 ok234( ! $filter234->matches( array( 'regular_price' => 'not-a-price', 'sale_price' => '' ) ), 'malformed stored price never matches' );
 ok234( ! $filter234->matches( array( 'regular_price' => '', 'sale_price' => '' ) ), 'empty regular never matches an enabled range' );
+// Tri-state verdict: membership (matches()) is predicate-only, while counts
+// distinguish healthy non-matches from unevaluable prices. A blank regular
+// price and any malformed stored price are domain-unsupported
+// (empty_regular_price / invalid_price in eligibility, for every field), so
+// they report as unsupported; a blank sale under a sale basis is a healthy
+// determinate non-match.
+eq234( $filter234->verdict( array( 'regular_price' => '20', 'sale_price' => '' ) ), 'matched', 'verdict matched' );
+eq234( $filter234->verdict( array( 'regular_price' => '19.99', 'sale_price' => '' ) ), 'excluded', 'verdict excluded' );
+eq234( $filter234->verdict( array( 'regular_price' => 'not-a-price', 'sale_price' => '' ) ), 'unevaluable', 'verdict malformed regular' );
+eq234( $filter234->verdict( array( 'regular_price' => '', 'sale_price' => '45' ) ), 'unevaluable', 'verdict blank regular' );
+eq234( $salefilter234->verdict( array( 'regular_price' => '10', 'sale_price' => '' ) ), 'excluded', 'verdict blank sale stays excluded, never unsupported' );
+eq234( $salefilter234->verdict( array( 'regular_price' => '10', 'sale_price' => 'cheap' ) ), 'unevaluable', 'verdict malformed sale' );
+eq234( Range234::disabled()->verdict( array( 'regular_price' => '', 'sale_price' => '' ) ), 'matched', 'verdict disabled matches everything' );
 // Six fractional digits are the configured precision ceiling; the seventh is refused.
 ok234( Range234::from_inputs( '1', '0.000001', '999999999999.999999', 'regular_price' )->matches( array( 'regular_price' => '0.000001', 'sale_price' => '' ) ), 'base precision bounds accepted' );
 error234( static fn() => Range234::from_inputs( '1', '0.0000001', '', 'regular_price' ), 'invalid_price_range' );
@@ -234,7 +247,7 @@ $GLOBALS['throw234'] = array( 109 );
 $ids_spec234 = Spec234::ids( array( 101, 102, 103, 104, 105, 106, 107, 112 ), Range234::from_inputs( '1', '20', '150', 'regular_price' ) );
 eq234( ids234( $ids_spec234 ), array( 102, 103, 105, 106, 107 ), 'explicit IDs filtered by regular range; malformed/outside excluded' );
 $outcome_ids234 = outcome234( $ids_spec234 );
-eq234( $outcome_ids234['outcome'], array( 'matched' => 5, 'excluded_by_range' => 3, 'unsupported' => 0 ), 'explicit ID outcome counts' );
+eq234( $outcome_ids234['outcome'], array( 'matched' => 5, 'excluded_by_range' => 2, 'unsupported' => 1 ), 'explicit ID outcome: outside band excluded, malformed unsupported' );
 // Sale basis: 105 matches on its sale price, 106 (blank sale) and 107 (sale 60) do not.
 $sale_spec234 = Spec234::ids( array( 105, 106, 107 ), Range234::from_inputs( '1', '40', '50', 'sale_price' ) );
 eq234( ids234( $sale_spec234 ), array( 105 ), 'sale basis uses the variation/product sale price, blank never matches' );
@@ -248,7 +261,7 @@ $direct234 = Spec234::category( 1, false, Range234::from_inputs( '1', '20', '150
 eq234( ids234( $direct234 ), array( 102, 103, 105, 106, 107, 110, 201 ), 'direct category filtered; nested members excluded' );
 $nested234 = Spec234::category( 1, true, Range234::from_inputs( '1', '20', '150', 'regular_price' ) );
 eq234( ids234( $nested234 ), array( 102, 103, 105, 106, 107, 108, 110, 201 ), 'nested category filtered with overlap deduplicated once' );
-eq234( outcome234( $nested234 )['outcome'], array( 'matched' => 8, 'excluded_by_range' => 5, 'unsupported' => 1 ), 'nested outcome: outside/malformed/grouped excluded, unreadable unsupported' );
+eq234( outcome234( $nested234 )['outcome'], array( 'matched' => 8, 'excluded_by_range' => 3, 'unsupported' => 3 ), 'nested outcome: band outsiders excluded; unreadable, grouped and malformed unsupported' );
 // Variable parents expand to variations judged by their own price: the parent
 // regular of 999 never admits child 202 (500), and child 201 (25) matches.
 $parent_spec234 = Spec234::ids( array( 200 ), Range234::from_inputs( '1', '20', '150', 'regular_price' ) );
@@ -300,7 +313,7 @@ $GLOBALS['products234'] = array(
 // ---- Count and authorization ----
 $count234 = Selector234::discover_count( Spec234::category( 1, true, Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) );
 eq234( $count234['selected'], 8, 'count reports matched targets only' );
-eq234( $count234['excluded_by_range'], 5, 'count reports range exclusions' );
+eq234( $count234['excluded_by_range'], 3, 'count reports healthy range exclusions' );
 eq234( $count234['unreadable'], 1, 'count keeps unreadable over the whole population' );
 eq234( $count234['missing'], 0, 'count keeps missing over the whole population' );
 eq234( $count234['range'], array( 'enabled' => true, 'min' => '20', 'max' => '150', 'basis' => 'regular_price' ), 'count echoes the frozen filter' );
@@ -310,6 +323,9 @@ $GLOBALS['denied234'] = array( 102 );
 error234( static fn() => Selector234::discover_count( Spec234::category( 1, true, Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) ), 'permission_denied' );
 $GLOBALS['denied234'] = array( 104 );
 error234( static fn() => Selector234::discover_count( Spec234::category( 1, true, Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) ), 'permission_denied' );
+$GLOBALS['denied234'] = array( 109 );
+error234( static fn() => Selector234::discover_count( Spec234::category( 1, true, Range234::from_inputs( '1', '20', '150', 'regular_price' ) ) ), 'permission_denied' );
+error234( static fn() => Selector234::discover_count( Spec234::category( 1, true ) ), 'permission_denied' );
 $GLOBALS['denied234'] = array();
 $GLOBALS['actor234'] = 0;
 error234( static fn() => Selector234::discover_count( Spec234::category( 1 ) ), 'permission_denied' );
@@ -323,7 +339,7 @@ function plan234( $spec, $field = 'regular_price' ) {
 $plan_ids234 = plan234( $ids_spec234 );
 eq234( $plan_ids234->data()['resolved_product_ids'], array( 102, 103, 105, 106, 107 ), 'frozen preview holds exactly the matched IDs' );
 eq234( $plan_ids234->data()['selection']['price_range'], array( 'enabled' => true, 'min' => '20', 'max' => '150', 'basis' => 'regular_price' ), 'filter retained in hashed selection' );
-eq234( $plan_ids234->data()['price_range'], array( 'filter' => array( 'enabled' => true, 'min' => '20', 'max' => '150', 'basis' => 'regular_price' ), 'matched' => 5, 'excluded_by_range' => 3, 'unsupported' => 0 ), 'range provenance frozen in plan material' );
+eq234( $plan_ids234->data()['price_range'], array( 'filter' => array( 'enabled' => true, 'min' => '20', 'max' => '150', 'basis' => 'regular_price' ), 'matched' => 5, 'excluded_by_range' => 2, 'unsupported' => 1 ), 'range provenance frozen in plan material' );
 eq234( $plan_ids234->price_range_context(), $plan_ids234->data()['price_range'], 'provenance accessor matches material' );
 $rehydrated234 = Plan234::hydrate( json_decode( $plan_ids234->json(), true ) );
 eq234( $rehydrated234->json(), $plan_ids234->json(), 'ranged plan hydrates byte-for-byte' );
@@ -381,7 +397,7 @@ $legacy_message234 = Admin234::selection_count_message( array( 'selected' => 2, 
 ok234( str_contains( $legacy_message234, '2' ) && ! str_contains( $legacy_message234, 'range' ), 'filter-free count copy unchanged' );
 ok234( str_contains( Admin234::reason_message( 'invalid_price_range' ), 'price range' ), 'invalid range guidance names the control' );
 $summary234 = Admin234::price_range_summary( array( 'filter' => array( 'enabled' => true, 'min' => '20', 'max' => '150', 'basis' => 'regular_price' ), 'matched' => 5, 'excluded_by_range' => 3, 'unsupported' => 1 ), array( 'currency' => 'USD', 'price_decimals' => 2 ) );
-ok234( str_contains( $summary234, '$20.00 USD' ) && str_contains( $summary234, '$150.00 USD' ) && str_contains( $summary234, 'never adds more' ), 'frozen summary shows formatted bounds, counts and the no-adds promise' );
+ok234( str_contains( $summary234, '$20.00 USD' ) && str_contains( $summary234, '$150.00 USD' ) && str_contains( $summary234, 'never adds more' ) && str_contains( $summary234, 'unsupported, unreadable or missing' ), 'frozen summary shows formatted bounds, counts and the no-adds promise' );
 $open_summary234 = Admin234::price_range_summary( array( 'filter' => array( 'enabled' => true, 'min' => null, 'max' => null, 'basis' => 'sale_price' ), 'matched' => 1, 'excluded_by_range' => 0, 'unsupported' => 0 ), array( 'currency' => 'USD', 'price_decimals' => 2 ) );
 ok234( str_contains( $open_summary234, '1 matching product frozen' ), 'singular matched copy' );
 // Rendered form: accessible labels, retained values and output escaping (no-JS identical fields).

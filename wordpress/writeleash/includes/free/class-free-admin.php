@@ -1190,8 +1190,11 @@ final class Free_Admin {
 		$basis = Price_Operation::FIELD_SALE === ( $filter['basis'] ?? '' ) ? __( 'Sale prices', 'writeleash' ) : __( 'Regular prices', 'writeleash' );
 		$min = ( isset( $filter['min'] ) && is_string( $filter['min'] ) && '' !== $filter['min'] ) ? self::money_display( $filter['min'], $store ) : __( 'no minimum', 'writeleash' );
 		$max = ( isset( $filter['max'] ) && is_string( $filter['max'] ) && '' !== $filter['max'] ) ? self::money_display( $filter['max'], $store ) : __( 'no maximum', 'writeleash' );
-		/* translators: 1: matched products, 2: price basis, 3: minimum price, 4: maximum price, 5: excluded products, 6: unreadable or missing products. */
-		return sprintf( _n( '%1$d matching product frozen for review · price range on stored %2$s, inclusive: %3$s to %4$s · %5$d excluded by the range · %6$d unreadable or missing. Apply changes only these frozen products and never adds more.', '%1$d matching products frozen for review · price range on stored %2$s, inclusive: %3$s to %4$s · %5$d excluded by the range · %6$d unreadable or missing. Apply changes only these frozen products and never adds more.', (int) ( $context['matched'] ?? 0 ), 'writeleash' ), (int) ( $context['matched'] ?? 0 ), $basis, $min, $max, (int) ( $context['excluded_by_range'] ?? 0 ), (int) ( $context['unsupported'] ?? 0 ) );
+		// The matched total rides in a plain variable: the official catalog
+		// extractor skips _n() calls whose count argument it cannot trace.
+		$matched = (int) ( $context['matched'] ?? 0 );
+		/* translators: 1: matched products, 2: price basis, 3: minimum price, 4: maximum price, 5: excluded products, 6: unsupported, unreadable or missing products. */
+		return sprintf( _n( '%1$d matching product frozen for review · price range on stored %2$s, inclusive: %3$s to %4$s · %5$d excluded by the range · %6$d unsupported, unreadable or missing. Apply changes only these frozen products and never adds more.', '%1$d matching products frozen for review · price range on stored %2$s, inclusive: %3$s to %4$s · %5$d excluded by the range · %6$d unsupported, unreadable or missing. Apply changes only these frozen products and never adds more.', $matched, 'writeleash' ), $matched, $basis, $min, $max, (int) ( $context['excluded_by_range'] ?? 0 ), (int) ( $context['unsupported'] ?? 0 ) );
 	}
 
 	public static function task_description( array $plan ): string {

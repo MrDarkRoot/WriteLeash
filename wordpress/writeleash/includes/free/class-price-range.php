@@ -22,6 +22,12 @@ defined( 'ABSPATH' ) || exit;
  * - Matching reads only fresh snapshot rows; it never mutates product data
  *   and never replaces snapshot validation (DB price sorting/lookup hints
  *   stay optimizations, never approval evidence).
+ * - Counting distinguishes `excluded` from `unevaluable` (see verdict()):
+ *   a healthy product outside the band is excluded by the range, while a
+ *   product that cannot supply a comparable basis price (blank regular
+ *   price or malformed stored price, both domain-unsupported) is reported
+ *   as unsupported. Membership is identical either way; only the
+ *   explanation differs.
  */
 final class Price_Range_Filter {
 	use Immutable_Price_Value;
@@ -92,23 +98,44 @@ final class Price_Range_Filter {
 	}
 
 	/**
-	 * Price predicate over one fresh snapshot row (`Product_Price_Snapshot::data()`).
-	 * Disabled filters match everything. Otherwise the row matches only when
-	 * its own basis-field price is present, parseable and inside the
-	 * inclusive bounds. A blank Sale Price therefore never matches, and a
-	 * malformed stored price is a determinate non-match (counted as excluded
-	 * by range, never silently dropped or escalated).
+	 * Tri-state range verdict over one fresh snapshot row
+	 * (`Product_Price_Snapshot::data()`).
+	 *
+	 * - `matched`: the row carries a parseable basis price inside the
+	 *   inclusive bounds.
+	 * - `excluded`: the row carries a parseable basis price outside the
+	 *   bounds, or a blank Sale Price under a sale basis (a healthy product
+	 *   with no sale is a determinate non-match, never an unsupported
+	 *   product).
+	 * - `unevaluable`: the row cannot supply a comparable basis price — a
+	 *   blank Regular Price or a malformed stored price. Both states are
+	 *   domain-unsupported (`empty_regular_price` / `invalid_price` in
+	 *   eligibility, for every operation and field), so they are reported
+	 *   as unsupported rather than attributed to band narrowness.
+	 *
+	 * Disabled filters verdict every row as `matched`.
 	 */
-	public function matches( array $snapshot ): bool {
-		if ( ! $this->values['enabled'] ) { return true; }
+	public function verdict( array $snapshot ): string {
+		if ( ! $this->values['enabled'] ) { return 'matched'; }
 		$key = Price_Operation::meta_key( $this->values['basis'] );
 		$price = $snapshot[ $key ] ?? null;
-		if ( ! is_string( $price ) || '' === $price ) { return false; }
+		if ( ! is_string( $price ) || '' === $price ) {
+			return Price_Operation::FIELD_SALE === $this->values['basis'] ? 'excluded' : 'unevaluable';
+		}
 		try { $units = Price_Decimal::units( Price_Decimal::parse( $price ) ); }
-		catch ( Price_Validation_Error $error ) { return false; }
-		if ( null !== $this->values['min'] && Price_Decimal::compare( $units, Price_Decimal::units( $this->values['min'] ) ) < 0 ) { return false; }
-		if ( null !== $this->values['max'] && Price_Decimal::compare( $units, Price_Decimal::units( $this->values['max'] ) ) > 0 ) { return false; }
-		return true;
+		catch ( Price_Validation_Error $error ) { return 'unevaluable'; }
+		if ( null !== $this->values['min'] && Price_Decimal::compare( $units, Price_Decimal::units( $this->values['min'] ) ) < 0 ) { return 'excluded'; }
+		if ( null !== $this->values['max'] && Price_Decimal::compare( $units, Price_Decimal::units( $this->values['max'] ) ) > 0 ) { return 'excluded'; }
+		return 'matched';
+	}
+
+	/**
+	 * Price predicate over one fresh snapshot row (`Product_Price_Snapshot::data()`).
+	 * True exactly for the `matched` verdict; see verdict() for the
+	 * excluded/unevaluable split used in outcome counts.
+	 */
+	public function matches( array $snapshot ): bool {
+		return 'matched' === $this->verdict( $snapshot );
 	}
 
 	public function data(): array { return $this->values; }

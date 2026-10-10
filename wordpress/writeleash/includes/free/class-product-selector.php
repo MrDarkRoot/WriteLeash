@@ -208,9 +208,12 @@ final class Product_Price_Selector {
 	}
 	/**
 	 * Partition fresh snapshots through the spec's range filter.
-	 * Unreadable/missing rows (no price to compare) are `unsupported`; every
-	 * other non-matching readable row — including a blank basis price and an
-	 * unparseable stored price — is determinately `excluded_by_range`.
+	 * Unreadable/missing rows (no snapshot to compare) are `unsupported`.
+	 * Among readable rows the filter verdict decides: `matched` rows freeze,
+	 * `excluded` rows count as excluded_by_range, and `unevaluable` rows
+	 * (blank regular price or malformed stored price, both
+	 * domain-unsupported) count as unsupported. Membership is predicate-only;
+	 * eligibility typing of matched items happens later in the plan.
 	 *
 	 * @return array{snapshots: Product_Price_Snapshot[], outcome: array{matched: int, excluded_by_range: int, unsupported: int}}
 	 */
@@ -225,9 +228,10 @@ final class Product_Price_Selector {
 		foreach ( $snapshots as $snapshot ) {
 			$row = $snapshot->data();
 			if ( empty( $row['exists'] ) || ! empty( $row['unreadable'] ) ) { ++$outcome['unsupported']; continue; }
-			if ( ! $filter->matches( $row ) ) { ++$outcome['excluded_by_range']; continue; }
-			$matched[] = $snapshot;
-			++$outcome['matched'];
+			$verdict = $filter->verdict( $row );
+			if ( 'matched' === $verdict ) { $matched[] = $snapshot; ++$outcome['matched']; continue; }
+			if ( 'unevaluable' === $verdict ) { ++$outcome['unsupported']; continue; }
+			++$outcome['excluded_by_range'];
 		}
 		return array( 'snapshots' => $matched, 'outcome' => $outcome );
 	}
@@ -264,10 +268,13 @@ final class Product_Price_Selector {
 	 *
 	 * With an enabled #234 range filter, `selected` counts only the matched
 	 * targets while `unreadable`/`missing` still describe the whole source
-	 * population; `excluded_by_range` counts readable targets outside the
-	 * range and `range` echoes the frozen filter. Authorization is checked
-	 * over the complete pre-filter population first, so the counts can never
-	 * leak prices of products the actor cannot inspect.
+	 * population; `excluded_by_range` counts healthy readable targets outside
+	 * the range (including blank sale prices under a sale basis) and `range`
+	 * echoes the frozen filter. Readable targets that cannot supply a
+	 * comparable basis price stay inside the review provenance's unsupported
+	 * count. Authorization is checked over the complete pre-filter population
+	 * first, so the counts can never leak prices of products the actor cannot
+	 * inspect.
 	 */
 	public static function discover_count( Price_Selection_Spec $spec ): array {
 		if ( ! get_current_user_id() || ! current_user_can( 'manage_woocommerce' ) || ! current_user_can( 'edit_products' ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
