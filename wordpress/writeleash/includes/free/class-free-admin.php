@@ -36,6 +36,7 @@ final class Free_Admin {
 	public const ACTION_RESUME = 'writeleash_free_resume';
 	public const ACTION_UNDO = 'writeleash_free_undo';
 	public const ACTION_EXPORT = 'writeleash_free_export';
+	public const ACTION_EXPORT_PREVIEW = 'writeleash_free_export_preview';
 	public const ACTION_PROGRESS = 'writeleash_free_progress';
 	public const PREVIEW_PAGE_SIZE = 20;
 	public const HISTORY_PAGE_SIZE = 20;
@@ -54,6 +55,7 @@ final class Free_Admin {
 		add_action( 'admin_post_' . self::ACTION_RESUME, array( __CLASS__, 'handle_resume' ) );
 		add_action( 'admin_post_' . self::ACTION_UNDO, array( __CLASS__, 'handle_undo' ) );
 		add_action( 'admin_post_' . self::ACTION_EXPORT, array( __CLASS__, 'handle_export' ) );
+		add_action( 'admin_post_' . self::ACTION_EXPORT_PREVIEW, array( __CLASS__, 'handle_export_preview' ) );
 	}
 
 	/**
@@ -1382,6 +1384,93 @@ final class Free_Admin {
 		echo '</tbody></table></div>';
 	}
 
+	/** Native POST download bound to the verified final Preview, independent of its page. */
+	private static function render_preview_export_form( array $job ): void {
+		if ( ! self::can_mutate() ) { return; }
+		echo '<p>' . esc_html__( 'This is a Preview snapshot, not the current live catalog and not an offline approval.', 'writeleash' ) . '</p>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_EXPORT_PREVIEW ) . '"><input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
+		wp_nonce_field( self::ACTION_EXPORT_PREVIEW . '_' . $job['public_id'] . '_' . $job['plan_hash'] );
+		echo '<p><button type="submit" class="button">' . esc_html__( 'Download Preview CSV', 'writeleash' ) . '</button></p></form>';
+	}
+
+	/** Read only: authorize before rehydrating private Plan material. No client Plan selector. */
+	public static function export_preview( array $post, string $method ): array {
+		if ( ! self::can_mutate() ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'capability_required' ); }
+		if ( 'POST' !== $method ) { return array( 'status' => 'INVALID', 'reason' => 'post_required' ); }
+		if ( ! self::jobs_installed() ) { return array( 'status' => 'INVALID', 'reason' => 'invalid_job' ); }
+		$job = self::job_from_post( $post );
+		if ( ! $job || ! self::authorized_for_job( $job, get_current_user_id() ) ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'not_authorized' ); }
+		$nonce = self::normalize_nonce( $post['_wpnonce'] ?? null );
+		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, self::ACTION_EXPORT_PREVIEW . '_' . $job['public_id'] . '_' . $job['plan_hash'] ) ) { return array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' ); }
+		if ( ! self::reviewable( $job ) ) { return array( 'status' => 'INVALID', 'reason' => 'invalid_job' ); }
+		try {
+			$plan = Job_Repository::hydrate_plan( $job );
+			if ( $plan->summary()['selected'] > Free_Support_Contract::MAX_JOB_PRODUCTS ) { throw new \RuntimeException( 'Preview limit exceeded' ); }
+		} catch ( \Throwable $error ) { return array( 'status' => 'INVALID', 'reason' => 'job_material_mismatch' ); }
+		return array( 'status' => 'OK', 'job' => $job, 'plan' => $plan );
+	}
+
+	/** Text is always guarded; only strict decimal strings in amount columns bypass quoting. */
+	private static function preview_csv_cell( $value, bool $amount = false ): string {
+		$text = null === $value ? '' : (string) $value;
+		if ( $amount && preg_match( '/\A-?[0-9]+(?:\.[0-9]+)?\z/D', $text ) ) { return $text; }
+		// Guard any leading whitespace/control/format character, including Unicode disguises.
+		$unsafe = preg_match( '/\A[=+@\-\s\p{Z}\p{C}]/u', $text );
+		return false === $unsafe || 1 === $unsafe ? "'" . $text : $text;
+	}
+
+	/** Frozen Preview pages only. At most 100 row copies; no result/history or catalog queries. */
+	public static function write_preview_csv( $stream, Change_Plan $plan ): void {
+		$data = $plan->data();
+		$exported = gmdate( 'Y-m-d\TH:i:s\Z' );
+		$header = array( 'plan_id', 'product_id', 'product_name_at_preview', 'sku_at_preview', 'price_field', 'expected_price', 'planned_price', 'delta', 'percent_delta', 'result', 'reason', 'currency', 'exported_at_utc', 'plan_hash', 'plan_status', 'warnings', 'plan_warnings', 'regular_price_at_preview', 'stored_price_at_preview', 'plan_blockers' );
+		if ( false === fputcsv( $stream, $header, ',', '"', '' ) ) { throw new \RuntimeException( 'CSV unavailable' ); }
+		$offset = 0;
+		do {
+			$page = $plan->preview_page( $offset, 100 );
+			foreach ( $page['items'] as $item ) {
+				$reasons = $item['blockers'];
+				if ( null !== $item['eligibility']['reason'] ) { array_unshift( $reasons, $item['eligibility']['reason'] ); }
+				if ( 'BLOCKED' === $data['status'] && 'CHANGING' === $item['result'] ) { array_unshift( $reasons, 'plan_policy_blocked' ); }
+				$row = array(
+					$data['plan_id'], $item['product_id'], $item['snapshot']['name'] ?? '', $item['snapshot']['sku'] ?? '', $plan->price_field(),
+					$item['expected_regular_price'], $item['planned_regular_price'], $item['absolute_delta'], $item['percentage_delta']['display'] ?? null,
+					$item['result'], implode( ';', $reasons ), $data['store']['currency'], $exported, $plan->hash(), $data['status'],
+					implode( ';', $item['warnings'] ), Plan_Hasher::canonical_json( array( 'selection' => $data['selection']['warnings'], 'policy' => $data['policy_result']['warnings'] ) ),
+					$item['snapshot']['regular_price'], $item['stored_price'], Plan_Hasher::canonical_json( $data['policy_result']['blockers'] ),
+				);
+				foreach ( $row as $column => $value ) { $row[$column] = self::preview_csv_cell( $value, in_array( $column, array( 5, 6, 7, 8, 17, 18 ), true ) ); }
+				if ( false === fputcsv( $stream, $row, ',', '"', '' ) ) { throw new \RuntimeException( 'CSV unavailable' ); }
+			}
+			$offset = $page['next_offset'];
+		} while ( null !== $offset );
+	}
+
+	public static function handle_export_preview(): void {
+		$result = self::export_preview( self::post_input(), self::request_method() );
+		if ( 'OK' !== $result['status'] ) { wp_die( esc_html( self::reason_message( $result['reason'] ) ), '', array( 'response' => 'FORBIDDEN' === $result['status'] ? 403 : 400 ) ); }
+		// Spill to disk beyond 1 MiB and complete validation before sending any private bytes.
+		$stream = fopen( 'php://temp/maxmemory:1048576', 'w+' );
+		try {
+			if ( false === $stream ) { throw new \RuntimeException( 'CSV unavailable' ); }
+			self::write_preview_csv( $stream, $result['plan'] );
+		} catch ( \Throwable $error ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Generated response stream, not a filesystem operation.
+			if ( is_resource( $stream ) ) { fclose( $stream ); }
+			wp_die( esc_html__( 'Saved export evidence is unavailable. No products were changed.', 'writeleash' ), '', array( 'response' => 409 ) );
+		}
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=UTF-8' );
+		header( 'Content-Disposition: attachment; filename="writeleash-preview-' . $result['job']['public_id'] . '.csv"' );
+		header( 'X-Content-Type-Options: nosniff' );
+		rewind( $stream );
+		fpassthru( $stream );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Generated response stream, not a filesystem operation.
+		fclose( $stream );
+		exit;
+	}
+
 	private static function render_export_form( array $job ): void {
 		if ( ! self::can_mutate() ) { return; }
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -1781,6 +1870,7 @@ final class Free_Admin {
 		}
 		echo '</tbody></table></div>';
 		self::render_pager( 'preview', $job['public_id'], $offset, $limit, $page['next_offset'] );
+		self::render_preview_export_form( $job );
 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html__( 'Create a new preview', 'writeleash' ) . '</a> ' . esc_html( __( 'Changing the selection or price settings creates a new preview; this saved preview stays unchanged.', 'writeleash' ) ) . '</p>';
 		if ( ! $blocked && Job_State::PLANNED === $job['status'] && self::can_mutate() ) {
 			echo '<h2>' . esc_html( __( 'Approve this preview', 'writeleash' ) ) . '</h2>';

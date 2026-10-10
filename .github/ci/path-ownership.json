@@ -58,6 +58,7 @@
     }
   ],
   "rules": [
+    {"paths": ["wordpress/tests/admin/preview-csv-unit.php"], "gates": ["plan", "journal", "jobs", "undo", "admin"], "reason": "#233 frozen export regression requires Plan, Journal, Jobs and Undo no-write/compatibility gates in addition to Admin."},
     {"paths": ["wordpress/writeleash/languages/**"], "gates": ["admin"]},
     {"paths": ["wordpress/writeleash/includes/free/free-progress.js", "wordpress/writeleash/includes/free/free-selection.js", "wordpress/writeleash/includes/free/free-selection.css"], "gates": ["admin", "acceptance"]},
     {"paths": ["experiments/mysql_tx_budget/**"], "gates": ["feasibility", "engine", "historical"]},

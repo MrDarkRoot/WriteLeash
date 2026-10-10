@@ -229,6 +229,8 @@ bok( str_contains( $preview_page['body'], '80.00' ), 'frozen target visible' );
 a11y_check( $preview_page['body'], 'frozen preview' );
 echo '#111 browser first-plan journey: ' . round( microtime( true ) - $journey_start, 2 ) . "s (Bulk Prices open to frozen preview render)\n";
 
+require __DIR__ . '/preview-csv-http.php';
+
 // Approve the exact plan over HTTP, then follow to durable progress.
 $approve_forms = forms_for_action( $preview_page['body'], 'writeleash_free_approve' );
 beq( count( $approve_forms ), 1, 'exactly one approval form bound to the plan' );
