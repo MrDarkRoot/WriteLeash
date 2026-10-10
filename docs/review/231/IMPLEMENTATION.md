@@ -19,7 +19,7 @@ The new `Selection_Refinement` is selection confirmation, not a mutation engine.
 
 No temporary-state database, transient or client-side membership store was added. Existing authenticated saved Preview jobs are sufficient: every Exclude, Restore or Confirm submission creates a separate immutable unapproved Plan/job. Links across pages carry the current saved review ID, preserving previously confirmed exclusions. Reload reads the same saved membership. Unsubmitted checkboxes are action intent; the UI explicitly requires submission before navigating.
 
-Initial new Previews record optional hashed `requested_selection` so an expanded parent or source category is not lost. Final new Plans record optional hashed `selection_refinement` version 1:
+Parent-expanded initial new Previews record optional hashed `requested_selection` so the selected parent context is not lost. Ordinary IDS/SKU/category selections already retain their source context and keep their established material/fingerprint without redundant metadata. Final new Plans record optional hashed `selection_refinement` version 1:
 
 - original authorized candidate job reference;
 - exact bounded candidate IDs;
@@ -62,6 +62,10 @@ The existing disposable browser runner adds an independent JavaScript-disabled C
 
 Required gates selected by the existing owner of `class-change-plan.php`: PR_FAST, Plan, Journal, Jobs, Undo, Admin, Acceptance and CI_COVERAGE. SHA-bound acceptance budget authorization must match exact final HEAD; skipped/cancelled jobs are not passes. Final CI URLs/conclusions will be recorded in the PR handoff.
 
+Initial hosted run [38035975128](https://github.com/MrDarkRoot/WriteLeash/actions/runs/38035975128) at implementation SHA `0aac03d8fcb04ff92705286a1766e94081befb92` exposed the classifier's intentional deferred acceptance rule (`ownership.py` requires direct acceptance-fixture changes). A focused native-HTTP acceptance fixture was therefore wired into the existing journey to validate final membership on every selected platform profile. No CI condition or assertion was weakened. The superseded opening run was cancelled by normal concurrency and is not counted as a pass.
+
+That run also failed Journal's existing concurrent same-material fingerprint assertion because initial provenance was attached unnecessarily to ordinary selections. The planner was corrected to attach requested-selection context only when resolution changed it (parent expansion); the original Journal assertion remains unchanged. A focused domain regression now compares the ordinary planner fingerprint with its established factory material. This failed run is not acceptance evidence.
+
 ## File inventory
 
 - `wordpress/writeleash/includes/free/class-change-plan.php`: optional provenance, hydration partition checks, selection confirmation.
@@ -69,6 +73,7 @@ Required gates selected by the existing owner of `class-change-plan.php`: PR_FAS
 - `wordpress/tests/free/exclusions.php`, `exclusions-category.php`, `in-container.sh`: focused domain and category coverage/wiring.
 - `wordpress/tests/admin/exclusions-integration.php`, `integration.php`: live matrix and existing harness wiring.
 - `wordpress/tests/admin/exclusions-browser.cjs`, `selection-browser-run.sh`: independent no-JS Chromium/Firefox journey.
+- `wordpress/tests/acceptance/exclusions.php`, `journey.php`: exact included population/no-write confirmation over native authenticated HTTP across selected platform profiles.
 - `docs/review/231/IMPLEMENTATION.md`: this evidence.
 - `docs/review/170/proof.json`, `README.md`: established current-source fingerprint refresh, historical screenshots/observer assertions unchanged.
 - `wordpress/writeleash/languages/writeleash.pot`: generated catalog for new native UI messages.

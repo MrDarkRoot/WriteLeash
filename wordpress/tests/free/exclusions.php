@@ -16,11 +16,16 @@ function plan231( S $selection, ?O $op = null ): Plan { return Planner::preview(
 $GLOBALS['wl179_products'] = array();
 for ( $id = 1; $id <= 350; ++$id ) { wl179_simple( $id, '100.00' ); }
 $candidate = plan231( S::ids( range( 1, 350 ) ) ); $before = $candidate->json();
+$plain231 = WriteLeash\Change_Plan::create( 'plain231', '2026-10-10T00:00:00Z', 1, wl179_context(), S::ids( range( 1, 350 ) ), new O( O::SET, '80' ), wl179_policy(), WriteLeash\Product_Price_Selector::resolve( S::ids( range( 1, 350 ) ) ) );
+wl179_equal( $candidate->hash(), $plain231->hash(), 'ordinary Preview retains established material fingerprint' );
 $final = R::preview( $candidate, range( 1, 7 ), ROOT231 );
 wl179_equal( $final->summary()['selected'], 343, '350 minus 7 = exactly 343 frozen targets' );
 wl179_equal( $final->data()['resolved_product_ids'], range( 8, 350 ), 'exact included membership' );
 wl179_equal( $candidate->json(), $before, 'previous reviewed Plan bytes unchanged' );
 wl179_equal( Plan::hydrate( json_decode( $final->json(), true ) )->json(), $final->json(), 'provenance and hash round trip' );
+$tampered231 = $final->data(); $tampered231['selection_refinement']['excluded_ids'][] = 9999;
+wl179_error( fn() => Plan::hydrate( $tampered231 ), 'plan_hash_mismatch' );
+wl179_error( fn() => $final->item( 1 ), 'unpreviewed_product' );
 wl179_equal( R::preview( $candidate, array( 1, 1, 2 ), ROOT231 )->summary()['selected'], 348, 'duplicates do not inflate exclusion counts' );
 wl179_equal( R::preview( $candidate, array(), ROOT231 )->summary()['selected'], 350, 'zero excluded' );
 wl179_error( fn() => R::preview( $candidate, range( 1, 350 ), ROOT231 ), 'no_included_targets' );
@@ -43,6 +48,7 @@ wl179_error( fn() => plan231( S::category( 1 ) ), 'selection_limit_exceeded' );
 // Variation identity and one-row exclusion preserve the sibling and exact parent guard.
 $GLOBALS['wl179_products'] = array(); $parent = wl179_variable( 10, array( 11, 12, 11 ) ); $a = wl179_variation( 11, 10, '100', '0' ); $b = wl179_variation( 12, 10, '200', '' );
 $v = plan231( S::ids( array( 10, 11, 11 ) ) );
+wl179_equal( $v->data()['requested_selection']['ids'], array( 10, 11 ), 'only expansion adds the necessary original parent context' );
 wl179_equal( R::preview( $v, array( 11 ), ROOT231 )->data()['resolved_product_ids'], array( 12 ), 'one parent-expanded variation excluded, sibling included once' );
 wl179_equal( R::preview( plan231( S::ids( array( 11, 12 ) ) ), array( 11 ), ROOT231 )->data()['resolved_product_ids'], array( 12 ), 'direct variation selection' );
 $parent->wl_set_value( 'status', 'draft' ); wl179_error( fn() => R::preview( $v, array( 11 ), ROOT231 ), 'selection_changed' ); $parent->wl_set_value( 'status', 'publish' );

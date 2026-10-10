@@ -44,6 +44,11 @@ eq( $plan231->data()['selection_refinement']['excluded_ids'], $excluded231, '#23
 eq( $plan231->data()['selection_refinement']['source_selection']['include_children'], true, '#231 source category scope retained' );
 eq( R231::hydrate_plan( R231::read( (int) $root231['id'] ) )->json(), $root_bytes231, '#231 old immutable Preview unchanged' );
 eq( (int) $job231['approver_id'], 0, '#231 no hidden automatic approval' );
+$restore231 = A231::process_refine( refine231( $job231, array( $excluded231[0] ), 'restore' ), 'POST' ); eq( $restore231['status'], 'OK', '#231 explicit Restore creates a fresh review' );
+$restored231 = R231::read_by_public_id( $restore231['public_id'] ); eq( R231::hydrate_plan( $restored231 )->summary()['selected'], 344, '#231 restores only the chosen row' );
+eq( R231::hydrate_plan( R231::read( (int) $job231['id'] ) )->summary()['selected'], 343, '#231 Restore leaves previous reviewed Plan unchanged' );
+$confirm231 = A231::process_refine( refine231( $job231, $excluded231, 'confirm' ), 'POST' ); eq( $confirm231['status'], 'OK', '#231 confirmed checked exclusions do not reset membership' );
+eq( R231::hydrate_plan( R231::read_by_public_id( $confirm231['public_id'] ) )->data()['selection_refinement']['excluded_ids'], $excluded231, '#231 confirm preserves explicit server state' );
 $html231 = render_view( 'preview', $job231['public_id'], 20 );
 foreach ( array( 'Resolved candidates 350', 'Included targets 343', 'Excluded targets 7', 'Changing included targets 343', 'Unchanged included targets 0' ) as $copy231 ) { ok( str_contains( $html231, $copy231 ), '#231 server count ' . $copy231 ); }
 render_view( 'refine', $job231['public_id'], 0 ); render_view( 'refine', $job231['public_id'], 20 );
@@ -57,6 +62,10 @@ eq( A231::process_refine( refine231( $job231 ), 'GET' )['reason'], 'post_require
 $other231 = wp_insert_user( array( 'user_login' => 'exclude-other-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );
 wp_set_current_user( $other231 ); eq( A231::process_refine( refine231( $job231 ), 'POST' )['status'], 'INVALID', '#231 unrelated actor cannot refine another Preview' );
 wp_set_current_user( 0 ); eq( A231::process_refine( refine231( $job231 ), 'POST' )['status'], 'FORBIDDEN', '#231 anonymous capability refusal' ); wp_set_current_user( 1 );
+$deny231 = static function ( $caps, $cap, $uid, $args ) use ( $ids231 ) { return 'edit_post' === $cap && (int) ( $args[0] ?? 0 ) === $ids231[7] ? array( 'do_not_allow' ) : $caps; };
+add_filter( 'map_meta_cap', $deny231, 10, 4 );
+eq( A231::process_refine( refine231( $job231 ), 'POST' )['reason'], 'permission_denied', '#231 revoked included-product permission refused' );
+remove_filter( 'map_meta_cap', $deny231, 10 );
 eq( A231::process_approve( array_merge( approve_post( $root231 ), array( 'job' => $job231['public_id'] ) ), 'POST' )['reason'], 'invalid_nonce', '#231 previous Plan approval nonce cannot approve new Plan' );
 eq( A231::process_approve( approve_post( $job231 ), 'POST' )['status'], 'OK', '#231 explicit final approval' ); finish231( (int) $job231['id'] );
 eq( R231::counts( (int) $job231['id'] )['applied'], 343, '#231 exactly 343 actual Apply successes' );

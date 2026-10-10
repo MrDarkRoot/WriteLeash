@@ -371,7 +371,10 @@ final class Woo_Price_Planner {
 			if ( $snapshot->data()['exists'] && ! current_user_can( 'edit_post', $snapshot->data()['product_id'] ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
 		}
 		if ( $context->data() !== Price_Store_Context::current()->data() ) { throw new Price_Validation_Error( 'store_context_changed_during_planning' ); }
-		return Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor, $context, $resolved_selection, $operation, $policy, $snapshots )->with_requested_selection( $selection );
+		$plan = Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor, $context, $resolved_selection, $operation, $policy, $snapshots );
+		// Ordinary selections already carry their full source context. Do not
+		// perturb their established material/fingerprint with redundant metadata.
+		return $selection->data() === $resolved_selection->data() ? $plan : $plan->with_requested_selection( $selection );
 	}
 }
 

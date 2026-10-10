@@ -239,6 +239,7 @@ try {
     wl112_assert( $seen === $ids, 'all preview pages cover frozen catalog exactly' );
     $facts['preview_later_page_seconds'] = $later;
     require __DIR__ . '/preview-csv.php';
+    require __DIR__ . '/exclusions.php';
     // Scheduler cannot accept the approval wake-up. Domain truth must pause.
     update_option( 'wl112_scheduler_down', true, false );
     $approval = wl112_post( wl112_form( $preview['body'], 'writeleash_free_approve' ) );
