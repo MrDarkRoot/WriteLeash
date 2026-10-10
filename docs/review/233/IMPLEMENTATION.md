@@ -124,6 +124,53 @@ Preview rendering impact LOW; file-level UNKNOWN callers were verified against
 actual shell/CI consumers. Whole-repository process enumeration is budget-limited;
 precommit changed-symbol gating separately requires nonpartial/nontruncated output.
 
+### Completed implementation matrix
+
+Draft PR: https://github.com/MrDarkRoot/WriteLeash/pull/238.
+Implementation HEAD `958a38c6acb4b3a4d84b80cef3396e5462104537` completed green:
+https://github.com/MrDarkRoot/WriteLeash/actions/runs/38027950565.
+
+| Selected gate | Conclusion | Job ID |
+|---|---|---|
+| PR_FAST | PASS | 114142770344 |
+| Plan | PASS | 114142844253 |
+| Journal | PASS | 114142844257 |
+| Jobs | PASS | 114142844270 |
+| Undo | PASS | 114142844250 |
+| Admin | PASS | 114142844269 |
+| CI_COVERAGE | PASS | 114150615830 |
+| current-normal-default | PASS | 114142844392 |
+| current-constrained-redis | PASS | 114142844469 |
+| previous-wordpress | PASS | 114142844438 |
+| previous-woo | PASS | 114142844494 |
+| php74 | PASS | 114142844448 |
+| php80 | PASS | 114142844464 |
+| php81 | PASS | 114142844441 |
+| unsupported-woo refusal | PASS | 114142844384 |
+
+Admin logs explicitly pass #233 security/integrity/no-write/live-drift tests and
+native no-JS HTTP downloads on MySQL/MariaDB × default/Redis. The full Admin PHP
+journey passes **951 assertions per profile**. Existing #168 Job CSV HTTP/security
+tests pass in every profile too. Chromium 154.0.8037.97 and Firefox 151.0 each pass
+264 existing keyboard/accessibility/safety assertions. WriteLeash-originated
+WP_DEBUG warnings/notices/deprecations/fatals/headers-sent: zero.
+
+Current-normal-default logs prove both database engines exported **100, 101 and
+1,000** targets, matching every frozen value, identical normalized first/last-page
+CSV hashes and zero saves. The Redis and other supported acceptance profiles also
+complete the added CSV checks; unsupported Woo is an intentional early-refusal
+profile, not a claim of export execution with an unsupported dependency.
+
+CI_COVERAGE confirms every selected owner succeeded. Legitimate ownership skips:
+engine, feasibility, research, adapter, native, foundation and historical. The
+initial same-SHA preparation run `38027942597` was cancelled by attaching the
+required SHA-bound budget label, and is not counted as a pass.
+
+This evidence-only commit does not change runtime or tests. Its **own final-HEAD
+matrix must complete** before READY; the exact final SHA/run/job conclusions are
+recorded in PR #238 after that run, without a later source-changing evidence push.
+The implementation run above completed before this documentation update.
+
 ## Inventory and compatibility
 
 1. `wordpress/writeleash/includes/free/class-free-admin.php`
