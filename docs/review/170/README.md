@@ -1,5 +1,13 @@
 # #170 browser/accessibility/safety gate
 
+### #233 current-source identity refresh
+
+The current Admin source fingerprint includes the read-only Preview CSV form
+and handler. Historical screenshots and result JSONs retain their original
+bytes and baseline; this refresh does not claim new captures. Exact-HEAD Admin
+CI re-runs the existing Chromium/Firefox safety journeys plus focused native
+HTTP CSV tests, including the no-JavaScript path. No audit assertion is relaxed.
+
 Base: main `bd66a79` (includes #167–#169). Runtime fixes are confined to the
 existing picker JS/CSS: enhanced control names/roles/controls relationships,
 closing empty/error listboxes while retaining visible status/native fallback,

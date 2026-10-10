@@ -48,6 +48,10 @@ foreach ( $files as $file ) {
 header( 'Content-Disposition: attachment; filename="writeleash-' . $result['job']['public_id'] . '.csv"' );
 HEADER
 			,
+			<<<'HEADER'
+header( 'Content-Disposition: attachment; filename="writeleash-preview-' . $result['job']['public_id'] . '.csv"' );
+HEADER
+			,
 			"header( 'X-Content-Type-Options: nosniff' );",
 		);
 		$code = str_replace( $allowed_headers, '', $code );
