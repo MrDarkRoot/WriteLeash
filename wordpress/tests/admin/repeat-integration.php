@@ -44,7 +44,8 @@ $html = $render( 'repeat', $source );
 foreach ( array( 'Repeat as new Preview', 'Based on previous job', $source['public_id'], 'Original operation:', 'not Undo, Resume', 'name="source_job"', 'name="repeat" value="1"', 'name="operation"', 'INCREASE_PERCENT', 'name="amount"', 'value="5"', 'Preview price changes', 'Cancel and return to results', 'View original results' ) as $needle ) {
  $eq( str_contains( $html, $needle ), true, 'repeat view: ' . $needle );
 }
-$eq( str_contains( $html, 'name="product_ids[]"' ), false, 'repeat uses the full selector form, not conflict checkboxes' );
+$eq( str_contains( $html, 'writeleash-conflict-recovery-form' ), false, 'repeat uses the full selector form, not conflict checkboxes' );
+$eq( str_contains( $html, 'Choose Apply-conflict products' ), false, 'no conflict row selection in repeat' );
 $eq( $saved( $source ), $original, 'opening repeat preserves durable source' );
 $eq( $price( $a ), '105', 'opening writes no prices' );
 $eq( str_contains( $render( 'job', $source ), 'Repeat as new Preview' ), true, 'job detail entry point' );
