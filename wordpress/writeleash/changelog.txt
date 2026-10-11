@@ -1,11 +1,19 @@
 *** WriteLeash Changelog ***
 
 2026-10-09 - version 0.2.0
-* Added - Live read-only Apply and Undo progress without reloading the page.
-* Added - Explicit option to include nested subcategories in category selection; Preview freezes the reviewed product IDs.
-* Added - Conflict to fresh Preview: re-preview conflicted products at their current prices.
-* Update - Public-cache compatibility for default and persistent object-cache modes.
-* Update - Merchant-facing PHP and JavaScript translation readiness.
+* Added - live read-only Apply and Undo progress without page reloads.
+* Added - Conflict to fresh Preview for conflicted products at current prices.
+* Added - optional nested subcategories and clearer selection counts; Preview freezes reviewed product IDs.
+* Added - Clear Sale Price and sale discounts from reviewed Regular Price.
+* Added - optional Price Endings, subject to precision, eligibility and safety limits.
+* Added - save/load editable price-operation presets; fresh Preview and separate approval required.
+* Added - individual product exclusions before final Preview approval.
+* Added - Repeat from eligible History jobs into an editable fresh Preview with separate approval; previously excluded targets stay out of its suggestions.
+* Added - frozen saved-Preview CSV export before approval; no prices changed.
+* Added - inclusive stored Regular/Sale Price range selection.
+* Update - public-cache compatibility for default and persistent object-cache modes.
+* Update - merchant-facing PHP and JavaScript translation readiness.
+* Update - Requires WooCommerce 10.0 through 11.x.
 
 2026-10-07 - version 0.1.0
 * Added - Bulk Regular Price and Sale Price changes for simple products and variations, with exact Preview before Apply and protection for relevant newer edits.
