@@ -72,9 +72,9 @@ merchant FAQ and qualified historical captions replace repetitive v0.1 copy.
 | Preview + explicit approval; conflict-aware Apply and History; eligible guarded Undo | #245 E1–E6: Change Plan, Admin, repositories and mutators; Free unit, Admin integration/browser, durable integration and Undo integration/parent-state tests. |
 | Simple products, variations, Regular/Sale operations | #245 E7; free sale-price/variation and parent-state tests. Scope stays core published products and base currency. |
 | Clear Sale / relative Sale Discount and optional Price Endings | Merged #235/#237; operation/calculator and frozen plan; free/Admin/Undo/acceptance sale-operations tests; [#208 record](../review/208/IMPLEMENTATION.md). Clear is blank, dates unchanged; relative discount checks reviewed Regular Price; endings respect precision and final policy. |
-| Inclusive Price Range | Merged #238; selector and `wordpress/tests/free/price-range.php`: inclusive endpoints, own variation prices, blank sales excluded. |
-| Exclude individual products | Merged #231; free/Admin/acceptance exclusion tests: fresh reviewed plan, excluded targets absent from Apply/Undo; limits remain. |
-| Frozen Preview CSV | Merged #233; Admin Preview CSV unit/integration and acceptance Preview CSV tests; read-only saved Preview, not live catalog or approval. |
+| Inclusive Price Range | Accepted #234 commit `778af88` (included in merged PR #239); selector and `wordpress/tests/free/price-range.php`: inclusive endpoints, own variation prices, blank sales excluded. |
+| Exclude individual products | Issue #231 via merged PR #239; free/Admin/acceptance exclusion tests: fresh reviewed plan, excluded targets absent from Apply/Undo; limits remain. |
+| Frozen Preview CSV | Issue #233 via merged PR #238; Admin Preview CSV unit/integration and acceptance Preview CSV tests; read-only saved Preview, not live catalog or approval. |
 | Tested 1,000-target envelope and compatibility | #245 E9 and claim matrix: support boundaries, acceptance journey and exact compatibility fixtures. No unlimited scale, arbitrary product types/extensions, multisite or real-host certification. Remove the older all-WordPress-7.x support sentence; retain exact exercised fixtures without changing metadata. |
 | Presets and Repeat Previous Job | #241/#242 remain open/unmerged at research handoff; omitted. Recheck selected source before #240 publishes, then inspect accepted tests if merged. |
 
