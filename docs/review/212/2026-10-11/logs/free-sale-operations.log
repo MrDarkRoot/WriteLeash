@@ -1,0 +1,11 @@
+#178 snapshot and eligibility keep sale configuration: PASS (6 cumulative assertions)
+#178 regular edits on sale-configured products refuse only sale-clearing targets: PASS (14 cumulative assertions)
+#178 sale target operations, first-sale SET and Woo-clearing refusals: PASS (28 cumulative assertions)
+#178 plan hash coverage, legacy compatibility and field-scoped hydration: PASS (42 cumulative assertions)
+#178 field-scoped preconditions preserve the untouched field: PASS (54 cumulative assertions)
+#178 field-aware verification against Woo save/lookup semantics: PASS (63 cumulative assertions)
+#178 legacy fingerprint stability and field-scoped undo blocking facts: PASS (75 cumulative assertions)
+#178 compact journal regular/sale identity, versions, exact material and legacy binding: PASS (105 cumulative assertions)
+#178 sale-price domain harness: PASS (105 assertions)
+#207 sale operations domain: PASS
+#208 Price Endings domain: PASS (99 new assertions)
