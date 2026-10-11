@@ -289,6 +289,7 @@ final class Price_Reason_Messages {
 			'selection_limit_exceeded' => __( 'Narrow the selection to at most one thousand products.', 'writeleash' ),
 			'invalid_sku' => __( 'Use a non-empty exact SKU without whitespace or markup.', 'writeleash' ),
 			'invalid_category' => __( 'Select an existing product category.', 'writeleash' ),
+			'invalid_price_range' => __( 'Enter a minimum and/or maximum price with the range enabled, using unsigned decimals with a dot separator, with the minimum not above the maximum.', 'writeleash' ),
 			'unsupported_operation' => __( 'Select a supported price operation.', 'writeleash' ),
 			'sale_operation_requires_sale_field' => __( 'Choose Sale price for this operation.', 'writeleash' ),
 			'clear_sale_requires_empty_input' => __( 'Clear Sale Price takes no amount. Leave the amount blank.', 'writeleash' ),

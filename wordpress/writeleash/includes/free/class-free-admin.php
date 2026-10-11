@@ -141,6 +141,10 @@ final class Free_Admin {
 			'sku' => self::post_field( 'sku' ),
 			'category' => self::post_field( 'category' ),
 			'include_subcategories' => self::post_field( 'include_subcategories' ),
+			'range_enabled' => self::post_field( 'range_enabled' ),
+			'range_min' => self::post_field( 'range_min' ),
+			'range_max' => self::post_field( 'range_max' ),
+			'range_basis' => self::post_field( 'range_basis' ),
 			'operation' => self::post_field( 'operation' ),
 			'price_field' => self::post_field( 'price_field' ),
 			'amount' => self::post_field( 'amount' ),
@@ -362,6 +366,7 @@ final class Free_Admin {
 		elseif ( 'ids' === $kind && '1' === ( $post['picker_present'] ?? '' ) ) {
 			$post['ids'] = implode( ',', self::picker_ids( $post ) );
 		}
+		$range = self::build_price_range( $post );
 		if ( 'ids' === $kind ) {
 			$raw = $post['ids'] ?? null;
 			if ( ! is_string( $raw ) || '' === trim( $raw ) ) {
@@ -376,14 +381,14 @@ final class Free_Admin {
 				$ids[] = (int) $token;
 			}
 			Free_Support_Contract::assert_job_size( count( $ids ) );
-			return Price_Selection_Spec::ids( $ids );
+			return Price_Selection_Spec::ids( $ids, $range );
 		}
 		if ( 'sku' === $kind ) {
 			$sku = $post['sku'] ?? null;
 			if ( ! is_string( $sku ) ) {
 				throw new Price_Validation_Error( 'invalid_sku' );
 			}
-			return Price_Selection_Spec::sku( $sku );
+			return Price_Selection_Spec::sku( $sku, $range );
 		}
 		if ( 'category' === $kind ) {
 			$raw = $post['category'] ?? null;
@@ -392,9 +397,26 @@ final class Free_Admin {
 			}
 			$include_children = $post['include_subcategories'] ?? null;
 			if ( null !== $include_children && '1' !== $include_children ) { throw new Price_Validation_Error( 'invalid_category' ); }
-			return Price_Selection_Spec::category( (int) $raw, '1' === $include_children );
+			return Price_Selection_Spec::category( (int) $raw, '1' === $include_children, $range );
 		}
 		throw new Price_Validation_Error( 'invalid_selector' );
+	}
+
+	/**
+	 * #234 optional inclusive price-range filter from the merchant form.
+	 *
+	 * The basis defaults to the form's own target price field when the
+	 * merchant leaves the basis control empty, so the default basis follows
+	 * the field being edited unless an explicit choice was made. A disabled
+	 * filter ignores every bound/basis input, so stale values can never
+	 * narrow a population silently.
+	 */
+	public static function build_price_range( array $post ): Price_Range_Filter {
+		$field = $post['price_field'] ?? Price_Operation::FIELD_REGULAR;
+		if ( ! is_string( $field ) || ! in_array( $field, Price_Operation::FIELDS, true ) ) {
+			$field = Price_Operation::FIELD_REGULAR;
+		}
+		return Price_Range_Filter::from_inputs( $post['range_enabled'] ?? null, $post['range_min'] ?? null, $post['range_max'] ?? null, $post['range_basis'] ?? null, $field );
 	}
 
 	/** Only the merchant picker deduplicates IDs; the established advanced contract stays intact. */
@@ -419,7 +441,7 @@ final class Free_Admin {
 	/** Bounded, escaped-on-output, session-scoped input recovery; never plan or execution truth. */
 	private static function retained_inputs( array $post ): array {
 		$values = array();
-		foreach ( array( 'source_job', 'selector', 'ids', 'sku', 'category', 'include_subcategories', 'operation', 'price_field', 'amount', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
+		foreach ( array( 'source_job', 'selector', 'ids', 'sku', 'category', 'include_subcategories', 'range_enabled', 'range_min', 'range_max', 'range_basis', 'operation', 'price_field', 'amount', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
 			$value = $post[$key] ?? null;
 			if ( is_string( $value ) && strlen( $value ) <= ( 'ids' === $key ? 20000 : 100 ) ) { $values[$key] = $value; }
 		}
@@ -985,6 +1007,7 @@ final class Free_Admin {
 			'invalid_product_id' => __( 'Product IDs must be comma-separated positive integers.', 'writeleash' ),
 			'invalid_sku' => __( 'Use a non-empty exact SKU without whitespace or markup.', 'writeleash' ),
 			'invalid_category' => __( 'Select an existing product category.', 'writeleash' ),
+			'invalid_price_range' => __( 'Check the optional price range: enable it, enter a minimum and/or maximum price as an unsigned decimal with a dot separator, and keep the minimum at or below the maximum.', 'writeleash' ),
 			'unsupported_operation' => __( 'Select one of the five supported price operations.', 'writeleash' ),
 			'malformed_decimal' => __( 'Use an unsigned decimal amount string with a dot separator.', 'writeleash' ),
 
@@ -1139,6 +1162,17 @@ final class Free_Admin {
 	}
 
 	public static function selection_count_message( array $count ): string {
+		$range = ( isset( $count['range'] ) && is_array( $count['range'] ) && ! empty( $count['range']['enabled'] ) ) ? $count['range'] : null;
+		$excluded = (int) ( $count['excluded_by_range'] ?? 0 );
+		if ( null !== $range ) {
+			$basis = Price_Operation::FIELD_SALE === ( $range['basis'] ?? '' ) ? __( 'sale prices', 'writeleash' ) : __( 'regular prices', 'writeleash' );
+			if ( 0 === $count['selected'] ) {
+				/* translators: 1: price basis (regular/sale prices), 2: excluded targets. */
+				return sprintf( __( 'No products match this price range. The range was compared against each product’s stored %1$s; %2$d readable products fall outside it. Adjust the range or the selection. Preview explains skipped or unsupported products.', 'writeleash' ), $basis, $excluded );
+			}
+			/* translators: 1: matched price targets, 2: price basis, 3: excluded targets, 4: unreadable targets, 5: missing targets. */
+			return sprintf( _n( 'At last check: %1$d deduplicated price target matches the range on stored %2$s. %3$d excluded by the range; %4$d unreadable; %5$d missing. Preview explains skipped or unsupported products.', 'At last check: %1$d deduplicated price targets match the range on stored %2$s. %3$d excluded by the range; %4$d unreadable; %5$d missing. Preview explains skipped or unsupported products.', $count['selected'], 'writeleash' ), $count['selected'], $basis, $excluded, $count['unreadable'], $count['missing'] );
+		}
 		if ( 0 === $count['selected'] ) { return __( 'No products match this selection. Choose products or another category. Preview explains skipped or unsupported products.', 'writeleash' ); }
 		/* translators: 1: deduplicated price targets, 2: unreadable targets, 3: missing targets. */
 		return sprintf( _n( 'At last check: %1$d deduplicated price target after variation expansion. %2$d unreadable; %3$d missing. Preview explains skipped or unsupported products.', 'At last check: %1$d deduplicated price targets after variation expansion. %2$d unreadable; %3$d missing. Preview explains skipped or unsupported products.', $count['selected'], 'writeleash' ), $count['selected'], $count['unreadable'], $count['missing'] );
@@ -1146,6 +1180,25 @@ final class Free_Admin {
 
 	private static function support_details( string $text ): void {
 		echo '<details><summary>' . esc_html__( 'Support details', 'writeleash' ) . '</summary><p>' . esc_html( $text ) . '</p></details>';
+	}
+
+	/**
+	 * #234 frozen range provenance for the review page. Rendered from the
+	 * hashed plan material only: the bounds use the store display, the
+	 * counts restate the frozen matched/excluded populations, and the copy
+	 * states that Apply cannot add products. Legacy plans without provenance
+	 * show no paragraph.
+	 */
+	public static function price_range_summary( array $context, array $store ): string {
+		$filter = ( isset( $context['filter'] ) && is_array( $context['filter'] ) ) ? $context['filter'] : array();
+		$basis = Price_Operation::FIELD_SALE === ( $filter['basis'] ?? '' ) ? __( 'Sale prices', 'writeleash' ) : __( 'Regular prices', 'writeleash' );
+		$min = ( isset( $filter['min'] ) && is_string( $filter['min'] ) && '' !== $filter['min'] ) ? self::money_display( $filter['min'], $store ) : __( 'no minimum', 'writeleash' );
+		$max = ( isset( $filter['max'] ) && is_string( $filter['max'] ) && '' !== $filter['max'] ) ? self::money_display( $filter['max'], $store ) : __( 'no maximum', 'writeleash' );
+		// The matched total rides in a plain variable: the official catalog
+		// extractor skips _n() calls whose count argument it cannot trace.
+		$matched = (int) ( $context['matched'] ?? 0 );
+		/* translators: 1: matched products, 2: price basis, 3: minimum price, 4: maximum price, 5: excluded products, 6: unsupported, unreadable or missing products. */
+		return sprintf( _n( '%1$d matching product frozen for review · price range on stored %2$s, inclusive: %3$s to %4$s · %5$d excluded by the range · %6$d unsupported, unreadable or missing. Apply changes only these frozen products and never adds more.', '%1$d matching products frozen for review · price range on stored %2$s, inclusive: %3$s to %4$s · %5$d excluded by the range · %6$d unsupported, unreadable or missing. Apply changes only these frozen products and never adds more.', $matched, 'writeleash' ), $matched, $basis, $min, $max, (int) ( $context['excluded_by_range'] ?? 0 ), (int) ( $context['unsupported'] ?? 0 ) );
 	}
 
 	public static function task_description( array $plan ): string {
@@ -1599,9 +1652,39 @@ final class Free_Admin {
 		echo '<button class="button" type="submit" name="selection_action" value="' . esc_attr( $action ) . '" formaction="' . esc_url( self::page_url() ) . '"' . ( '' !== $accessible_label ? ' aria-label="' . esc_attr( $accessible_label ) . '"' : '' ) . ' formnovalidate>' . esc_html( $label ) . '</button> ';
 	}
 
+	/**
+	 * #234 optional inclusive price-range filter controls. Native inputs
+	 * only: the no-JavaScript form submits the same fields, and the server
+	 * re-applies the filter at Preview time. Values come from retained
+	 * inputs, so a validation failure redisplays exactly what was entered.
+	 */
+	private static function render_price_range( array $values ): void {
+		$currency = '';
+		if ( function_exists( 'get_woocommerce_currency' ) ) {
+			try { $candidate = (string) get_woocommerce_currency(); }
+			catch ( \Throwable $error ) { $candidate = ''; }
+			if ( preg_match( '/\A[A-Z]{3}\z/', $candidate ) ) { $currency = $candidate; }
+		}
+		$unit = '' !== $currency ? ' (' . $currency . ')' : '';
+		$basis = '' !== $values['range_basis'] ? $values['range_basis'] : $values['price_field'];
+		echo '<div id="writeleash-free-price-range">';
+		echo '<p><input id="writeleash-free-range-enabled" name="range_enabled" type="checkbox" value="1"' . checked( $values['range_enabled'], '1', false ) . ' aria-describedby="writeleash-free-range-help"> <label for="writeleash-free-range-enabled">' . esc_html__( 'Only change products in a price range', 'writeleash' ) . '</label></p>';
+		echo '<p id="writeleash-free-range-help">' . esc_html__( 'Optional. When enabled, Preview includes only products whose stored price falls within the inclusive range: the minimum and maximum both count as matches. Each variation is judged by its own price, not its parent’s. Products without a stored sale price never match a sale-price range. Use unsigned numbers with a dot for decimals; leave out currency symbols.', 'writeleash' ) . '</p>';
+		echo '<p><label for="writeleash-free-range-basis">' . esc_html__( 'Compare prices using', 'writeleash' ) . '</label><br><select id="writeleash-free-range-basis" name="range_basis" aria-describedby="writeleash-free-range-help">';
+		foreach ( array( Price_Operation::FIELD_REGULAR => __( 'Regular price', 'writeleash' ), Price_Operation::FIELD_SALE => __( 'Sale price', 'writeleash' ) ) as $value => $label ) {
+			echo '<option value="' . esc_attr( $value ) . '"' . selected( $basis, $value, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select></p>';
+		/* translators: %s: ISO currency code in parentheses, or empty. */
+		self::selector_field( 'range_min', sprintf( __( 'Minimum price%s', 'writeleash' ), $unit ), 'text', $values['range_min'], 'writeleash-free-range-help' );
+		/* translators: %s: ISO currency code in parentheses, or empty. */
+		self::selector_field( 'range_max', sprintf( __( 'Maximum price%s', 'writeleash' ), $unit ), 'text', $values['range_max'], 'writeleash-free-range-help' );
+		echo '</div>';
+	}
+
 	private static function render_selector_form( array $values = array(), ?array $recovery = null ): void {
 		if ( ! self::can_mutate() ) { return; }
-		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'include_subcategories' => '', 'operation' => Price_Operation::SET, 'price_field' => Price_Operation::FIELD_REGULAR, 'amount' => '', 'max_products' => (string) Free_Support_Contract::MAX_JOB_PRODUCTS, 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
+		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'include_subcategories' => '', 'range_enabled' => '', 'range_min' => '', 'range_max' => '', 'range_basis' => '', 'operation' => Price_Operation::SET, 'price_field' => Price_Operation::FIELD_REGULAR, 'amount' => '', 'max_products' => (string) Free_Support_Contract::MAX_JOB_PRODUCTS, 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
 		$values = array_merge( $defaults, $values );
 		$values['ending'] = $values['ending'] ?? 'default';
 		if ( null === $recovery ) {
@@ -1674,7 +1757,9 @@ final class Free_Admin {
 			echo '<details id="writeleash-free-advanced-selection"' . ( in_array( $values['selector'], array( 'sku', 'manual_ids' ), true ) ? ' open' : '' ) . '><summary>' . esc_html__( 'Exact SKU or manual product IDs', 'writeleash' ) . '</summary><p>' . esc_html__( 'Enter one complete SKU or comma-separated product IDs for the selection method chosen above.', 'writeleash' ) . '</p>';
 			self::selector_field( 'ids', __( 'Explicit product IDs (advanced), e.g. 12,34,56', 'writeleash' ), 'text', $values['ids'], 'writeleash-free-selector-help' );
 			self::selector_field( 'sku', __( 'One exact SKU', 'writeleash' ), 'text', $values['sku'], 'writeleash-free-selector-help' );
-			echo '</details></fieldset>';
+			echo '</details>';
+			self::render_price_range( $values );
+			echo '</fieldset>';
 		} else {
 			echo '<form id="writeleash-conflict-recovery-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_PREVIEW ) . '"><input type="hidden" name="source_job" value="' . esc_attr( $recovery['job']['public_id'] ) . '">';
@@ -1799,6 +1884,10 @@ final class Free_Admin {
 		self::support_details( $data['plan_id'] . ' · ' . $plan->hash() );
 		if ( 'CATEGORY' === ( $data['selection']['type'] ?? '' ) ) {
 			echo '<p>' . esc_html( ( ! empty( $data['selection']['include_children'] ) ? __( 'Category scope: direct members and all nested subcategories. This preview freezes the reviewed product IDs, including expanded variations.', 'writeleash' ) : __( 'Category scope: direct members only; subcategories are not included. This preview freezes the reviewed product IDs, including expanded variations.', 'writeleash' ) ) ) . '</p>';
+		}
+		$range_context = $plan->price_range_context();
+		if ( is_array( $range_context ) && ! empty( $range_context['filter']['enabled'] ) ) {
+			echo '<p>' . esc_html( self::price_range_summary( $range_context, $data['store'] ) ) . '</p>';
 		}
 
 		echo '<p>' . esc_html( sprintf( /* translators: 1: selected products, 2: translated outcome counts. */ _n( 'Selected %1$d product: %2$s.', 'Selected %1$d products: %2$s.', $summary['selected'], 'writeleash' ), $summary['selected'], implode( ' · ', array( self::count_copy( 'changing', $summary['changing'] ), self::count_copy( 'unchanged', $summary['unchanged'] ), self::count_copy( 'skipped', $summary['unsupported'] ) ) ) ) ) . '</p>';

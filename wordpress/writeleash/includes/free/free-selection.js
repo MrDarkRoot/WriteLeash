@@ -31,9 +31,15 @@
         }
         method.on('change', selectionMethod);
         $('#writeleash-free-include-subcategories').on('change', selectionMethod);
-        form.find('[name=selector], [name=category], [name=include_subcategories], [name="product_ids[]"], [name=ids], [name=sku]').on('change input', function () {
+        form.find('[name=selector], [name=category], [name=include_subcategories], [name="product_ids[]"], [name=ids], [name=sku], [name=range_enabled], [name=range_min], [name=range_max], [name=range_basis]').on('change input', function () {
             $('#writeleash-free-selection-count').text(__( 'Selection changed. Check selection count again; Preview resolves and freezes the products independently.', 'writeleash' ));
         });
+        function rangeToggle() {
+            var enabled = $('#writeleash-free-range-enabled').prop('checked');
+            $('#writeleash-free-range-basis, #writeleash-free-range_min, #writeleash-free-range_max').prop('disabled', !enabled);
+        }
+        $('#writeleash-free-range-enabled').on('change', rangeToggle);
+        rangeToggle();
         $('#writeleash-free-operation').on('change', amountLabel);
         selectionMethod();
         amountLabel();
