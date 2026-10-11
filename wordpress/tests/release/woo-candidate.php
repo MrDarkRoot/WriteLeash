@@ -182,6 +182,10 @@ if ( $entries !== $sorted || count( $entries ) !== count( array_unique( $entries
 if ( ! in_array( 'changelog.txt', $entries, true ) ) {
 	$fail( 'candidate manifest must include the Woo changelog.txt' );
 }
+// Check the Woo allowlist itself even when auditing the full source tree.
+// File existence alone misses runtime dependencies omitted from the ZIP.
+require_once __DIR__ . '/public-runtime-audit.php';
+writeleash_public_runtime_audit( $root, $entries );
 foreach ( $entries as $entry ) {
 	if ( ! is_file( $root . '/' . $entry ) ) {
 		$fail( 'allowlisted file missing from candidate: ' . $entry );
