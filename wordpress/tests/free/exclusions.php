@@ -64,4 +64,7 @@ wl179_equal( $clear->summary()['changing'], 1, 'clear zero changes, clear blank 
 $a->wl_set_value( 'status', 'draft' ); $mixed = R::preview( plan231( S::ids( array( 11, 12 ) ) ), array(), ROOT231 );
 wl179_equal( $mixed->data()['resolved_product_ids'], array( 12 ), 'only supported candidates become included targets' );
 wl179_equal( $mixed->data()['selection_refinement']['refused_ids'], array( 11 ), 'refusal provenance outside executable items' );
+$GLOBALS['wl179_products'] = array(); wl179_variable( 40, array() ); wl179_variation( 41, 40, '100' );
+$empty_parent231 = plan231( S::ids( array( 40, 41 ) ) );
+wl179_error( fn() => R::preview( $empty_parent231, array( 40 ), ROOT231 ), 'parent_exclusion_conflict' );
 echo "#231 exclusions domain: PASS; 350 -> 343, bounds, forgery, identity, variations, operations, immutable Plans\n";

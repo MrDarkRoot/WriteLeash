@@ -70,6 +70,8 @@ That run also failed Journal's existing concurrent same-material fingerprint ass
 
 Positive operation fixtures use a Sale Price of 70 so a Regular Price target of 80 preserves the sale. The unsafe 100/90 → Regular 80 case is tested separately as a refused included target; a pure existing Woo fixture independently confirmed `regular_price_not_above_sale`. Added numeric-zero Sale SET, rounded-final-target blocker and ordinary post-final-Preview conflict cases. Existing pricing safety and prior assertions remain intact.
 
+A discriminating parent-synchronization regression failed before its fix: a refused empty-parent row plus a directly selected changing variation could otherwise put the parent in excluded metadata while Woo would still synchronize it. Confirmation now refuses that exact combination (`parent_exclusion_conflict`) and asks the merchant to exclude variation rows instead. The existing parent synchronization and frozen-parent-ID Undo engine remain unchanged.
+
 ## File inventory
 
 - `wordpress/writeleash/includes/free/class-change-plan.php`: optional provenance, hydration partition checks, selection confirmation.

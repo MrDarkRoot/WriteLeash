@@ -426,6 +426,9 @@ final class Selection_Refinement {
 			}
 			if ( in_array( $id, $excluded, true ) ) { continue; }
 			if ( 'UNSUPPORTED' === $item['result'] ) { $refused[] = $id; continue; }
+			// Even a refused parent row must not be price-synchronized through
+			// a changing included child when the parent was explicitly excluded.
+			if ( 'CHANGING' === $item['result'] && ! empty( $now['core_variation'] ) && in_array( (int) ( $now['parent_id'] ?? 0 ), $excluded, true ) ) { throw new Price_Validation_Error( 'parent_exclusion_conflict' ); }
 			$included[] = $id;
 			if ( $reads[$id]->data() !== $now || ! current_user_can( 'edit_post', $id ) ) { throw new Price_Validation_Error( 'selection_changed' ); }
 			$snapshots[] = $reads[$id];

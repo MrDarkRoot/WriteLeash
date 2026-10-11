@@ -976,6 +976,7 @@ final class Free_Admin {
 			'invalid_selection_refinement' => __( 'Selection changes were refused. Use only rows from an unapproved Preview visible to your account. No prices changed.', 'writeleash' ),
 			'selection_changed' => __( 'The resolved selection or a product identity changed. Create a new Preview and review its candidates again. No prices changed.', 'writeleash' ),
 			'no_included_targets' => __( 'No supported included targets remain. The last reviewed Preview and its exclusions stay unchanged. Restore a row or cancel; no prices changed.', 'writeleash' ),
+			'parent_exclusion_conflict' => __( 'A variable parent’s price range follows its changing included variations. Exclude the variation rows instead of their parent. No prices changed.', 'writeleash' ),
 			'invalid_price' => __( 'This product has an invalid stored price. Open it in WooCommerce, correct the price and save it before creating a new preview.', 'writeleash' ),
 			'capability_required' => __( 'You need WooCommerce product management capabilities for this action.', 'writeleash' ),
 			'post_required' => __( 'This action requires an authenticated POST request.', 'writeleash' ),
