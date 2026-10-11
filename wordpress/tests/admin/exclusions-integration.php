@@ -27,7 +27,9 @@ wp_set_current_user( 1 );
 $parent231 = wp_insert_term( 'Exclusions parent ' . wp_generate_uuid4(), 'product_cat' );
 $child231 = wp_insert_term( 'Exclusions child ' . wp_generate_uuid4(), 'product_cat', array( 'parent' => $parent231['term_id'] ) );
 $ids231 = array();
-for ( $n231 = 0; $n231 < 350; ++$n231 ) { $ids231[] = make_product( '100.00', 'publish', array( 'category' => $child231['term_id'] ) ); }
+// Full population with sparse changes, matching the existing acceptance harness:
+// excluded rows plus two included rows start at 100; 341 included rows already at 80.
+for ( $n231 = 0; $n231 < 350; ++$n231 ) { $ids231[] = make_product( $n231 < 9 ? '100.00' : '80.00', 'publish', array( 'category' => $child231['term_id'] ) ); }
 $resolved231 = A231::process_preview( preview_post( array( 'selector' => 'category', 'category' => (string) $parent231['term_id'], 'include_subcategories' => '1', 'max_products' => '1000' ) ), 'POST' );
 eq( $resolved231['status'], 'OK', '#231 descendants resolve 350 candidates' );
 $root231 = R231::read_by_public_id( $resolved231['public_id'] ); $root_bytes231 = R231::hydrate_plan( $root231 )->json();
@@ -50,7 +52,7 @@ eq( R231::hydrate_plan( R231::read( (int) $job231['id'] ) )->summary()['selected
 $confirm231 = A231::process_refine( refine231( $job231, $excluded231, 'confirm' ), 'POST' ); eq( $confirm231['status'], 'OK', '#231 confirmed checked exclusions do not reset membership' );
 eq( R231::hydrate_plan( R231::read_by_public_id( $confirm231['public_id'] ) )->data()['selection_refinement']['excluded_ids'], $excluded231, '#231 confirm preserves explicit server state' );
 $html231 = render_view( 'preview', $job231['public_id'], 20 );
-foreach ( array( 'Resolved candidates 350', 'Included targets 343', 'Excluded targets 7', 'Changing included targets 343', 'Unchanged included targets 0' ) as $copy231 ) { ok( str_contains( $html231, $copy231 ), '#231 server count ' . $copy231 ); }
+foreach ( array( 'Resolved candidates 350', 'Included targets 343', 'Excluded targets 7', 'Changing included targets 2', 'Unchanged included targets 341' ) as $copy231 ) { ok( str_contains( $html231, $copy231 ), '#231 server count ' . $copy231 ); }
 render_view( 'refine', $job231['public_id'], 0 ); render_view( 'refine', $job231['public_id'], 20 );
 eq( $saves231, array(), '#231 exclude, reload, pagination and cancel links perform zero Woo saves' );
 eq( A231::process_refine( refine231( $job231, $ids231 ), 'POST' )['reason'], 'no_included_targets', '#231 all excluded explicitly refused' );
@@ -68,13 +70,15 @@ eq( A231::process_refine( refine231( $job231 ), 'POST' )['reason'], 'permission_
 remove_filter( 'map_meta_cap', $deny231, 10 );
 eq( A231::process_approve( array_merge( approve_post( $root231 ), array( 'job' => $job231['public_id'] ) ), 'POST' )['reason'], 'invalid_nonce', '#231 previous Plan approval nonce cannot approve new Plan' );
 eq( A231::process_approve( approve_post( $job231 ), 'POST' )['status'], 'OK', '#231 explicit final approval' ); finish231( (int) $job231['id'] );
-eq( R231::counts( (int) $job231['id'] )['applied'], 343, '#231 exactly 343 actual Apply successes' );
+eq( R231::counts( (int) $job231['id'] )['applied'], 2, '#231 exactly two changing included Apply successes' );
+eq( R231::counts( (int) $job231['id'] )['unchanged'], 341, '#231 all 341 unchanged included rows remain explicit' );
 foreach ( $excluded231 as $id231 ) { price_eq( fresh_price( $id231 ), '100', '#231 excluded price unchanged' ); eq( journal231( $job231['plan_id'], $id231 ), 0, '#231 excluded has zero Apply/Undo journal entries' ); ok( ! in_array( $id231, $saves231, true ), '#231 excluded has zero Woo saves' ); }
 $undo231 = WriteLeash\Undo_Repository::initiate( (int) $job231['id'], 1 ); finish231( (int) $undo231['id'], true );
-eq( WriteLeash\Undo_Repository::history_job( (int) $job231['id'] )['undo']['undone'], 343, '#231 included targets Undo normally' );
-foreach ( $ids231 as $id231 ) { price_eq( fresh_price( $id231 ), '100', '#231 all originals restored or untouched' ); }
+eq( WriteLeash\Undo_Repository::history_job( (int) $job231['id'] )['undo']['undone'], 2, '#231 changing included targets Undo normally' );
+foreach ( $ids231 as $index231 => $id231 ) { price_eq( fresh_price( $id231 ), $index231 < 9 ? '100' : '80', '#231 all originals restored or untouched' ); }
 foreach ( $excluded231 as $id231 ) { eq( journal231( $job231['plan_id'], $id231 ), 0, '#231 excluded remains absent after Undo' ); ok( ! in_array( $id231, $saves231, true ), '#231 excluded remains zero-save after Undo' ); }
 remove_action( 'woocommerce_before_product_object_save', $watch231 );
+marker( '#231 350 -> 343: changing 2, unchanged 341, excluded 7; Apply/Undo and zero excluded saves/journal' );
 eq( A231::process_refine( refine231( R231::read( (int) $job231['id'] ) ), 'POST' )['status'], 'INVALID', '#231 approved Plan cannot be edited' );
 // Real Woo parent expansion, direct variation, reparenting, publication and removal.
 $vp231 = new WC_Product_Variable(); $vp231->set_name( 'Exclusions variable' ); $vp231->set_status( 'publish' ); $vp231->save();
