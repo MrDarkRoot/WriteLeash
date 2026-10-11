@@ -61,6 +61,14 @@ $values = A::repeat_form_values( $legacy );
 wl107_equal( $values['price_field'], 'regular_price', 'legacy field defaults to regular' );
 wl107_equal( $values['ending'], 'default', 'legacy ending defaults' );
 
+// Stored plans survive a canonical-JSON round trip (key order normalized):
+// the adapter must accept rehydrated material, not just live objects.
+$rehydrated = \WriteLeash\Change_Plan::hydrate( json_decode( $category_plan->json(), true ) )->data();
+wl107_equal( A::repeat_form_values( $rehydrated )['category'], '7', 'rehydrated category maps' );
+$rehydrated_ids = \WriteLeash\Change_Plan::hydrate( json_decode( $thousand_plan->json(), true ) )->data();
+wl107_equal( A::repeat_form_values( $rehydrated_ids )['selector'], 'manual_ids', 'rehydrated ids map' );
+wl107_equal( A::repeat_form_values( $rehydrated_ids )['ids'], implode( ',', range( 1, 1000 ) ), 'rehydrated ids preserved' );
+
 // Unsupported shapes refuse explicitly; never a silent mutating fallback.
 $base = $category_plan->data();
 wl107_error( static fn() => A::repeat_form_values( array() ), 'repeat_unsupported' );

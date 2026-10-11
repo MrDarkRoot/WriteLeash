@@ -606,8 +606,12 @@ final class Free_Admin {
 		if ( ! is_array( $selection ) || ! is_array( $operation ) || ! is_array( $policy ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
 		$values = array();
 		$type = $selection['type'] ?? null;
+		// Stored material survives a canonical-JSON round trip, so key order
+		// is meaningless; only the exact key set is significant.
+		$selection_keys = array_keys( $selection );
+		sort( $selection_keys, SORT_STRING );
 		if ( 'IDS' === $type ) {
-			if ( array_keys( $selection ) !== array( 'type', 'ids', 'warnings', 'price_range' ) && array_keys( $selection ) !== array( 'type', 'ids', 'warnings' ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+			if ( array( 'ids', 'price_range', 'type', 'warnings' ) !== $selection_keys && array( 'ids', 'type', 'warnings' ) !== $selection_keys ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
 			$ids = $selection['ids'] ?? null;
 			if ( ! is_array( $ids ) || ! $ids ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
 			foreach ( $ids as $id ) { if ( ! is_int( $id ) || $id < 1 ) { throw new Price_Validation_Error( 'repeat_unsupported' ); } }
@@ -616,13 +620,13 @@ final class Free_Admin {
 			$values['selector'] = 'manual_ids';
 			$values['ids'] = implode( ',', $ids );
 		} elseif ( 'SKU' === $type ) {
-			if ( array_keys( $selection ) !== array( 'type', 'sku', 'warnings', 'price_range' ) && array_keys( $selection ) !== array( 'type', 'sku', 'warnings' ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+			if ( array( 'price_range', 'sku', 'type', 'warnings' ) !== $selection_keys && array( 'sku', 'type', 'warnings' ) !== $selection_keys ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
 			$sku = $selection['sku'] ?? null;
 			if ( ! is_string( $sku ) || '' === $sku ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
 			$values['selector'] = 'sku';
 			$values['sku'] = $sku;
 		} elseif ( 'CATEGORY' === $type ) {
-			if ( array_keys( $selection ) !== array( 'type', 'term_id', 'include_children', 'warnings', 'price_range' ) && array_keys( $selection ) !== array( 'type', 'term_id', 'include_children', 'warnings' ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+			if ( array( 'include_children', 'price_range', 'term_id', 'type', 'warnings' ) !== $selection_keys && array( 'include_children', 'term_id', 'type', 'warnings' ) !== $selection_keys ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
 			$term_id = $selection['term_id'] ?? null;
 			if ( ! is_int( $term_id ) || $term_id < 1 ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
 			$values['selector'] = 'category';
