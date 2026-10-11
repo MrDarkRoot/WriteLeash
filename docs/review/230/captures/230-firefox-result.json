@@ -1,0 +1,19 @@
+{
+  "engine": "firefox",
+  "version": "151.0",
+  "checks": 57,
+  "scans": [
+    {
+      "name": "configuration",
+      "violations": []
+    },
+    {
+      "name": "refined Preview",
+      "violations": []
+    }
+  ],
+  "enhanced": "PASS",
+  "noJavaScript": "PASS",
+  "keyboard": "PASS",
+  "screenReader": "NOT_TESTED"
+}

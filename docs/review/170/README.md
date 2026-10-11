@@ -143,3 +143,37 @@ historical screenshots show the new range controls. Genuine range captures
 Firefox 151.0 on MariaDB 10.11.15; the exact candidate must still pass the
 hosted Admin gate, which reruns #170 in Chromium and Firefox. Until that
 runtime check passes, the fingerprint refresh is not acceptance evidence.
+
+### #230 preset source refresh
+
+The Admin source identity includes native configuration-only preset controls.
+Existing screenshots and result JSONs remain historical. All original browser
+assertions remain enabled; hosted Admin journeys additionally test enhanced and
+no-JavaScript preset CRUD, no Woo writes and fresh independent Preview.
+
+### #241 takeover: integrated #230/#231/#234 source review
+
+The fingerprint above now identifies the integrated range, preset and refinement
+UI after rebasing onto `464cfd0b505b07de14c3276a9cbd8a261612525b`. This refresh
+follows genuine local WordPress/Woo browser execution and agent-operated render
+review, not an expected-hash substitution. New evidence and the source identity
+are in [the takeover receipt](../230/TAKEOVER.md) and `../230/captures/`.
+Chromium and Firefox each passed the integrated enhanced/no-JS preset keyboard
+journey (57 checks, two clean axe scans). The unchanged #170 Firefox journey
+passed 264 assertions and 13 clean axe scans, with independent 120.00 Apply and
+93.00 Undo conflict preservation. Historical #170 PNG/result bytes and observer
+assertions are untouched. Exact-head hosted Admin still must rerun every original
+Chromium/Firefox, refinement and database/cache journey before READY.
+
+### #241 final integration with merged #242
+
+The Admin identity now binds the combined Presets/History Repeat source on main
+`04e7f3a39b0b903d4f2cbe499ea0f20731295a37`. Genuine new local Chromium/Firefox
+journeys passed 115 combined preset/Repeat checks and three clean axe scans per
+browser, including keyboard History navigation, independent form actions and
+no-JS count/error/unchecked-range retention. Both unchanged #170 journeys passed
+264 assertions and 13 clean scans, including real Apply/Undo conflict observers.
+New captures were inspected before refreshing the fingerprint and are kept in
+`../230/integration-242-captures/`; see [the integration receipt](../230/INTEGRATION-242.md).
+Historical #170 screenshots, result JSONs and observer bytes remain unchanged.
+Exact-head hosted Admin and the adversarial asset gate are still mandatory.
