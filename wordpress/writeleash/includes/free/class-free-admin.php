@@ -2090,10 +2090,19 @@ final class Free_Admin {
 		if ( isset( $data['selection_refinement'] ) ) { self::render_refinement_counts( $plan ); }
 		if ( isset( $data['source_job'] ) ) {
 			// Recovery (#205) provenance keeps its exact copy; anything else
-			// citing a source job is a #232 repeat. The probe re-verifies
-			// conflict authority for the viewer and changes no durable state.
+			// citing a source job is a #232 repeat. A source that merely
+			// satisfies the recovery gates (e.g. a cleanly applied job with
+			// no conflicts) is not recovery evidence, so the plan's frozen
+			// IDs must also sit inside the source's current conflict rows.
+			// The probe re-verifies conflict authority for the viewer and
+			// changes no durable state.
 			$from_conflicts = false;
-			try { self::recovery_source( $data['source_job'] ); $from_conflicts = true; }
+			try {
+				$conflict_rows = self::recovery_source( $data['source_job'] );
+				$conflict_ids = array_map( 'intval', array_keys( $conflict_rows['rows'] ) );
+				$resolved = array_map( 'intval', (array) ( $plan->data()['resolved_product_ids'] ?? array() ) );
+				$from_conflicts = array() !== $resolved && array() === array_diff( $resolved, $conflict_ids );
+			}
 			catch ( \Throwable $error ) {}
 			echo '<p>' . ( $from_conflicts ? esc_html__( 'Fresh Preview from chosen Apply conflicts. Original results stay unchanged.', 'writeleash' ) : esc_html__( 'Fresh Preview repeated from a previous job. Original results stay unchanged; this Preview needs its own approval before Apply.', 'writeleash' ) ) . '';
 			if ( null !== self::load_job_for_view( $data['source_job'] ) ) { echo ' <a href="' . esc_url( self::page_url( 'job', $data['source_job'] ) ) . '">' . esc_html__( 'View original results', 'writeleash' ) . '</a>'; }
