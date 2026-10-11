@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+php /opt/tests/acceptance/form-unit.php
 for host in mysql mariadb; do
   site="/tmp/wl112-$host"
   cp -R /opt/wp-core "$site"
