@@ -17,6 +17,7 @@ mkdir -p /tmp/opencode
 php "$tests/public-audit-cases.php" "$source" "$manifest"
 php "$tests/readme-validate.php" "$source"
 php "$tests/woo-candidate.php" "$source" wordpress/release/writeleash-woo-distribution-files.txt "$(git rev-parse HEAD)" 0.2.0
+php "$tests/woo-candidate-cases.php"
 php "$tests/historical-shim-cases.php" "$source"
 if [[ -f "$tests/claim-matrix-audit.php" ]]; then
   php "$tests/claim-matrix-audit.php" "$repo"
