@@ -68,6 +68,8 @@ That run also failed Journal's existing concurrent same-material fingerprint ass
 
 [38036491525](https://github.com/MrDarkRoot/WriteLeash/actions/runs/38036491525) at `d3be00012ceb84aa663ad76c626bd81bd741f6ca` passed Plan, Journal and Jobs, but the new acceptance include lacked its own lexical namespace alias, and the new browser test attempted an uninstalled Playwright Chromium instead of the existing runner Chrome. These fixture prerequisites were corrected, including native expansion of the advanced-ID details with JavaScript disabled. No runtime assertion was relaxed. This run is not a complete pass.
 
+Positive operation fixtures use a Sale Price of 70 so a Regular Price target of 80 preserves the sale. The unsafe 100/90 → Regular 80 case is tested separately as a refused included target; a pure existing Woo fixture independently confirmed `regular_price_not_above_sale`. Added numeric-zero Sale SET, rounded-final-target blocker and ordinary post-final-Preview conflict cases. Existing pricing safety and prior assertions remain intact.
+
 ## File inventory
 
 - `wordpress/writeleash/includes/free/class-change-plan.php`: optional provenance, hydration partition checks, selection confirmation.
