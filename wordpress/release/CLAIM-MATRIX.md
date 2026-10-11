@@ -60,11 +60,11 @@ Status values:
 * **COPY CLAIM:** "Published core simple WooCommerce products", "Published core variable WooCommerce products: selecting the parent targets all of its variations, or select individual variations", "Stored regular and sale prices in the base store currency", "Regular-price edits on products with an existing sale price or schedule".
 * **SUPPORTING ISSUE:** #107 (contract), #108 (mutation proof), #111 (Admin), #112 (acceptance rows), #178 (sale field), #179 (variations).
 * **SUPPORTING TEST/EVIDENCE:**
-  * `FREE-PRICE-CONTRACT.md` — eligibility rules for published simple products and variations of published core variable products, the stored regular or sale price, base currency and the sale-clearing refusals (`regular_price_not_above_sale`, `sale_price_not_below_regular`, `empty_sale_price`).
+  * `FREE-PRICE-CONTRACT.md` — eligibility rules for published simple products and variations of published core variable products, the stored regular or sale price, base currency and numeric target refusals (`regular_price_not_above_sale`, `sale_price_not_below_regular`, `empty_sale_price`); #207 explicitly adds Clear Sale and relative sale discount (see the #244 addendum).
   * `wordpress/writeleash/FREE-PRICE-APPLY-CONTRACT.md` — stock `WC_Product_Data_Store_CPT` / `WC_Product_Variation_Data_Store_CPT` and Woo CRUD path.
   * `wordpress/tests/acceptance/EVIDENCE.md` — price/meta/lookup/cache/journal parity on every completed row.
 * **ALLOWED WORDING:** "Not changed: sale dates, stock and orders. Variable parent price ranges are refreshed with WooCommerce's own sync after every variation change."
-* **REQUIRED LIMITATION:** Sale-date editing, stock, orders and non-simple/non-variation product types are unsupported; variation selections save their exact variation IDs in the preview; a regular or sale target that WooCommerce would use to clear the sale is refused. SKU, product name and category are reference details only and do not by themselves cause a conflict.
+* **REQUIRED LIMITATION:** Sale-date editing, stock, orders and non-simple/non-variation product types are unsupported; variation selections save their exact variation IDs in the preview; a numeric regular or sale target that WooCommerce would use to clear the sale is refused; explicit Clear Sale is supported. SKU, product name and category are reference details only and do not by themselves cause a conflict.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 5. WooCommerce version
@@ -305,3 +305,32 @@ selection; (2) exact Sale Price Preview; (3) background progress and Resume;
 (4) completed Regular Price changes and explained invalid-price skip; (5) a $100 expected / $120 current / $80
 planned conflict with the newer edit preserved; (6) History and eligible Undo.
 See `docs/visual-assets-v0.1.md` for exact captions and capture provenance.
+
+## #244 current-source listing addendum (2026-10-11)
+
+Source: `c291cdb596b7d5b6f2a0345d7f1ac91070619794` (#247 merged).
+The historical baseline above remains evidence, not a final v0.2 artifact receipt.
+This addendum supersedes older operation/screenshot wording where noted.
+All rows are **PUBLISHABLE WITH LIMITATION on reviewed source**; #240 must
+verify the selected final source and ZIP before publishing them.
+
+| Listing claim | Accepted source / tests | Required limitation |
+| --- | --- | --- |
+| Clear Sale and relative Sale Discount | `class-price-operation.php`, `class-change-plan.php`, `class-woo-price-mutator.php`; `tests/free/sale-operations.php`, `tests/undo/sale-operations.php`, `tests/acceptance/sale-operations.php`; merged #235 | Clear means blank, not zero; dates remain. Relative discount uses each reviewed Regular Price. Both operations conflict if that basis changes. |
+| Optional Price Endings | Same calculator/plan and sale-operation tests; merged #237, `docs/review/208/IMPLEMENTATION.md` | Precision-dependent .99/.95/.90/whole options; final eligibility, direction and safety checks; Clear ignores endings. |
+| Inclusive Price Range | `class-product-selector.php`; `tests/free/price-range.php`; accepted #234 commit `778af88` (included in merged PR #239) | Stored Regular/Sale Price, both endpoints inclusive, each variation's own price; blank sales excluded from numeric sale ranges. Not shopper or parent display prices. |
+| Exclude individual products | `class-free-admin.php`, `class-product-selector.php`; `tests/free/exclusions.php`, `tests/admin/exclusions-integration.php`, `tests/acceptance/exclusions.php`; issue #231 via merged PR #239 | Rebuild/review Preview before approval; confirmed excluded targets have no Apply/Undo items. Existing limits remain. |
+| Frozen Preview CSV | `class-free-admin.php`; `tests/admin/preview-csv-unit.php`, `tests/admin/preview-csv-integration.php`, `tests/acceptance/preview-csv.php`; issue #233 via merged PR #238 | Saved Preview only, read-only; not current catalog data or approval. |
+| $100 reviewed / $80 target / $120 current conflict | Plan precondition and locked target-field comparison; `tests/durable/integration.php`, `tests/admin/regression-browser.cjs`, `tests/admin/recovery-integration.php`; #245 E3/E4 | Otherwise eligible target, USD/two decimals and permissive limits; current-value checks, not intervening-edit detection; fresh Preview requires separate approval. |
+
+Paths beginning `class-` are under `wordpress/writeleash/includes/free/`;
+`tests/` paths are under `wordpress/`. Additional core/Undo/compatibility
+traceability is in `docs/marketing/245-safety-messaging.md` E1–E10 and the
+#244 SEO brief. Only exact exercised WordPress fixtures are claimed, not all
+7.x releases. Existing metadata is unchanged; #240 owns final versions.
+
+The six revised captions match `wordpress/release/assets-122/proof.json`.
+No PNG, capture hash or timestamp changed. Screenshots 1/3 are explicitly
+historical; 2 does not prove new CSV/exclusion controls, 5 shows the preserved
+$120 Regular Price, and 6 proves availability rather than completed Undo.
+See `docs/marketing/244-wporg-seo-brief.md` for recapture guidance.
