@@ -152,12 +152,8 @@ foreach ( $changelog_lines as $line ) {
 if ( $entry_count < 1 || $typed_bullets < 1 ) {
 	$fail( 'changelog.txt must carry at least one version entry with typed changes' );
 }
-// Deferred Free P2 work must not be claimed as shipped.
-foreach ( array( 'price ending', 'Clear Sale Price' ) as $deferred ) {
-	if ( false !== stripos( $changelog, $deferred ) ) {
-		$fail( 'changelog claims deferred functionality: ' . $deferred );
-	}
-}
+// Feature wording follows the reviewed candidate source, not the original
+// #211 candidate's historical deferred-feature list (#207/#208 are merged).
 
 // D. Allowlist validation: exact public-file closure for the candidate.
 $raw = file( $manifest_path, FILE_IGNORE_NEW_LINES );
