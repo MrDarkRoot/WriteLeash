@@ -153,7 +153,7 @@ Checks compare current values: changes away and back may not be detected.
 
 = Can I review the Preview without changing prices? =
 
-Yes. Preview and its CSV do not change prices or grant approval. Review the
+Yes. Preview and its CSV do not change prices or approve changes. Review the
 final products, prices, warnings and skips before approving.
 
 = Can Undo reverse everything? =
