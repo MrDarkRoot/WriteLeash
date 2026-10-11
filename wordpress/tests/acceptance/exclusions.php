@@ -1,4 +1,5 @@
 <?php
+use WriteLeash\Job_Repository as Repo;
 // Native authenticated HTTP; independent final membership on every selected profile.
 // Keep the existing main Apply/Undo journey and every original assertion intact.
 $root231 = $job; $root_json231 = $plan->json();

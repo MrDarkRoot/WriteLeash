@@ -66,6 +66,8 @@ Initial hosted run [38035975128](https://github.com/MrDarkRoot/WriteLeash/action
 
 That run also failed Journal's existing concurrent same-material fingerprint assertion because initial provenance was attached unnecessarily to ordinary selections. The planner was corrected to attach requested-selection context only when resolution changed it (parent expansion); the original Journal assertion remains unchanged. A focused domain regression now compares the ordinary planner fingerprint with its established factory material. This failed run is not acceptance evidence.
 
+[38036491525](https://github.com/MrDarkRoot/WriteLeash/actions/runs/38036491525) at `d3be00012ceb84aa663ad76c626bd81bd741f6ca` passed Plan, Journal and Jobs, but the new acceptance include lacked its own lexical namespace alias, and the new browser test attempted an uninstalled Playwright Chromium instead of the existing runner Chrome. These fixture prerequisites were corrected, including native expansion of the advanced-ID details with JavaScript disabled. No runtime assertion was relaxed. This run is not a complete pass.
+
 ## File inventory
 
 - `wordpress/writeleash/includes/free/class-change-plan.php`: optional provenance, hydration partition checks, selection confirmation.

@@ -29,7 +29,7 @@ async function check(page, id) {
     await tab(page, target); await page.keyboard.press('Space'); assert.equal(await target.isChecked(), true);
 }
 (async () => {
-    const browser = await pw[engine].launch({ headless: true });
+    const browser = await pw[engine].launch({ headless: true, ...(engine === 'chromium' ? { executablePath: process.env.WL167_CHROME || '/usr/bin/google-chrome' } : {}) });
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage(); page.setDefaultTimeout(60000);
     try {
@@ -38,6 +38,8 @@ async function check(page, id) {
         await page.getByLabel('Password', { exact: true }).fill(f.users.manager.password);
         await enter(page, page.getByRole('button', { name: 'Log In', exact: true })); await page.goto(home);
         await page.locator('#writeleash-free-selector').selectOption('manual_ids');
+        await tab(page, page.locator('#writeleash-free-advanced-selection > summary'));
+        await page.keyboard.press('Enter');
         await page.locator('#writeleash-free-ids').fill(f.ids.join(','));
         await page.locator('#writeleash-free-operation').selectOption('SET');
         await page.locator('#writeleash-free-amount').fill('80');
