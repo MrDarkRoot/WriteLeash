@@ -62,7 +62,7 @@
       "sha256": "78adbbc08784c716f0c6de62ea7fba2da83bfea40e986bddd70112a391a7819a",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "Select products and choose the price target",
-      "caption": "Select products by name, SKU or category before reviewing your price changes.",
+      "caption": "Earlier selection-screen example: choose products by name, SKU or category. Current category selection also offers nested subcategories.",
       "visible_ui_text": "WriteLeash Bulk Prices\nSelect products and preview every regular-price or sale-price change before it runs.\n1. Select products\n2. Choose the price change\nPrice to change\nRegular price\nSale price\n3. Safety limits\nPreview price changes\nNothing is saved until you approve the preview.",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     },
@@ -74,7 +74,7 @@
       "sha256": "543326ae8ff365407d6cd0d637c28bf55c5ac504d80fdcf6f641e50076833d03",
       "captured_at_utc": "2026-10-07T04:28:55.750290+00:00",
       "real_state": "Real prepared local #188 Woo Admin fixture; minimal static capture for #195",
-      "caption": "Review exact before-and-after Sale Price changes, including variations and skipped products, before Apply.",
+      "caption": "Sale Price Preview example: review before-and-after values, variations, warnings and skipped products before Apply.",
       "visible_ui_text": "Review price change\nSet sale prices to $20.00 USD · 5 products (2 variations)\nSale price before\tSale price after\nCotton tee — Small\nSKU: TEE-SMALL · Variation #29\n$24.00 USD\t$20.00 USD\nCotton tee — Large\nSKU: TEE-LARGE · Variation #30\n$28.00 USD\t$20.00 USD\nApprove and apply",
       "captured_product_base": "2e059cacf46977cc3ae1eba15eba628ad6e7570e",
       "capture_job_id": "5b36537d-13d8-40ca-993f-2f2e428e7918",
@@ -88,7 +88,7 @@
       "sha256": "a12d8a9a0e2413d3c54c75f66194fc6eef68e44e91d2e6e1152d39b343a8227b",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "Large-job progress and pagination",
-      "caption": "See changed and remaining products in a background job, and Resume interrupted work.",
+      "caption": "Background-job example with 24 products: see changed and remaining products, and Resume interrupted work. This capture predates live progress updates.",
       "visible_ui_text": "WriteLeash Bulk Prices\nProgress and results\nA large job shows what is done, what remains and what needs attention, page by page.\nchanged · already at the target price · skipped · conflicts · remaining\nPrevious page\nNext page",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     },
@@ -124,7 +124,7 @@
       "sha256": "5181b4fba8643483cc0b57c2ebeffe4eba61c69ed278b6efd91d2b6d8dd9f956",
       "captured_at_utc": null,
       "real_state": "Real Regular Price conflict row and two completed rows from retained #170 Chromium capture",
-      "caption": "A later price or setting change becomes a conflict instead of a blind overwrite. A planned $100 to $80 change leaves a newer $120 edit alone.",
+      "caption": "A later price or setting change becomes a conflict instead of a blind overwrite. Regular Price example: expected $100, planned $80, current $120 remains unchanged.",
       "visible_ui_text": "Product\tExpected\tCurrent\tPlanned\tApply\tUndo\n$100.00 USD\t$120.00 USD\t$80.00 USD\tNot changed\nThis product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.\nChanged",
       "captured_product_base": "bd66a79",
       "source_capture": "docs/review/170/170-chromium-apply-conflict.png",
@@ -145,7 +145,7 @@
       "sha256": "df7c40f4552bd8f9511e5c9320756fa5efba30cc834a0665bba78c476428d767",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "History and Undo availability",
-      "caption": "Review History, job outcomes and the availability of eligible Undo.",
+      "caption": "History example: review job outcomes and eligible Undo availability. Availability does not guarantee that every product will restore.",
       "visible_ui_text": "WriteLeash Bulk Prices\nHistory\nTask / operator / time\tOutcome\tUndo\tAction\nUndo available for prices changed by this job.\nUntil ",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     }
