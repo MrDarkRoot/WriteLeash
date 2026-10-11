@@ -53,15 +53,52 @@ Confirmed excluded rows remain checked and visibly labelled across reload/pagina
 
 These PHP stub tests are domain evidence, **not actual Woo/MySQL/browser execution evidence**.
 
-### Hosted validation — pending
+### Hosted validation — completed implementation matrix
 
-Local Docker is unavailable (`/var/run/docker.sock` absent). Live database/cache/browser claims depend on hosted final-HEAD CI.
+Local Docker is unavailable (`/var/run/docker.sock` absent). The live database/cache/browser evidence below is hosted Actions execution, not local inference.
 
 The Admin matrix runs `exclusions-integration.php` on MySQL 8.0.44 and MariaDB 10.11.15 with default and Redis cache. It asserts actual 350-category/descendant candidates → 343 final targets: **2 changing + 341 unchanged included rows**, followed by 2 successful Apply and 2 normal Undo outcomes. This follows the existing acceptance harness's sparse-change pattern: population and journal membership remain fully checked without adding 686 price mutations to every matrix profile. For each excluded ID, independent Woo save hooks, price reads and Journal SQL assert **zero Woo saves and zero Apply/Undo journal records**. It also exercises exact variations, parent publication/reparenting, removed products, real 1,000/1,001 category bounds, all pricing operations and separate approval.
 
 The existing disposable browser runner adds an independent JavaScript-disabled Chromium/Firefox keyboard journey using exact product IDs and semantic operation identifiers. It checks pagination/reload, explicit exclusion membership, Cancel, zero saves before approval, no refinement-page Apply button and separate final approval. Prior browser assertions are preserved.
 
-Required gates selected by the existing owner of `class-change-plan.php`: PR_FAST, Plan, Journal, Jobs, Undo, Admin, Acceptance and CI_COVERAGE. SHA-bound acceptance budget authorization must match exact final HEAD; skipped/cancelled jobs are not passes. Final CI URLs/conclusions will be recorded in the PR handoff.
+Required gates selected by the existing owner of `class-change-plan.php` plus direct acceptance wiring: PR_FAST, Plan, Journal, Jobs, Undo, Admin, Acceptance and CI_COVERAGE. SHA-bound acceptance budget authorization matches the validated HEAD; skipped/cancelled jobs are not passes.
+
+Draft PR: https://github.com/MrDarkRoot/WriteLeash/pull/239.
+
+Validated implementation HEAD: **84eec360af322ae2c3f64661465c4d998220ff5f**.
+Completed green run: https://github.com/MrDarkRoot/WriteLeash/actions/runs/38110912532.
+
+| Required selected gate | Conclusion | Job ID |
+|---|---|---|
+| PR_FAST | PASS | 114386169842 |
+| Plan | PASS | 114386242654 |
+| Journal | PASS | 114386242592 |
+| Jobs | PASS | 114386242641 |
+| Undo | PASS | 114386242764 |
+| Admin | PASS | 114386242672 |
+| current-normal-default | PASS | 114386242779 |
+| current-constrained-redis | PASS | 114386242763 |
+| previous-wordpress | PASS | 114386242745 |
+| previous-woo | PASS | 114386242726 |
+| php74 | PASS | 114386242731 |
+| php80 | PASS | 114386242724 |
+| php81 | PASS | 114386242749 |
+| unsupported-woo refusal | PASS | 114386242707 |
+| CI_COVERAGE | PASS | 114394986169 |
+
+Admin log evidence on this exact implementation:
+
+- Chromium no-JS keyboard/pagination/reload/cancel/membership/separate approval: **PASS**, 2026-10-11 04:26:31 UTC.
+- Firefox same journey: **PASS**, 04:31:36 UTC.
+- MySQL 8.0.44/default: 350 → 343, changing 2/unchanged 341/excluded 7 and zero excluded saves/journal **PASS** at 04:46:37; full #231 fixture **PASS** at 04:48:14.
+- MySQL/Redis: same population/no-write proof **PASS** at 04:54:30; full fixture **PASS** at 04:56:23.
+- MariaDB 10.11.15/default: same proof **PASS** at 05:01:25; full fixture **PASS** at 05:02:33.
+- MariaDB/Redis: same proof **PASS** at 05:07:00; full fixture **PASS** at 05:08:26.
+- Whole Admin two-engine/default/Redis gate **PASS** at 05:10:28. Redis server pinned to 7.4.2.
+
+The full #231 fixture also passed forged/out-of-selection IDs, nonce/capability/current-product-rights refusal, duplicate/zero/all exclusions, Restore/Confirm, old approval nonce refusal, variable-parent expansion/direct variation/reparenting/publication, removed products, actual 1,000/1,001 bounds, every accepted operation, numeric-zero versus blank sale, rounded-target blocking, stale final Preview conflict and accepted range-filter integration. Prior Admin assertions remained intact.
+
+Nonselected engine/foundation/native/research/adapter/historical/feasibility gates were ownership skips, not passes; all required selected gates completed. Earlier failures and normal-concurrency cancellations are recorded below and are not counted as final evidence. This evidence-only documentation commit will receive a fresh exact-HEAD run; its final SHA/run URL/conclusions are pinned in the PR handoff.
 
 Initial hosted run [38035975128](https://github.com/MrDarkRoot/WriteLeash/actions/runs/38035975128) at implementation SHA `0aac03d8fcb04ff92705286a1766e94081befb92` exposed the classifier's intentional deferred acceptance rule (`ownership.py` requires direct acceptance-fixture changes). A focused native-HTTP acceptance fixture was therefore wired into the existing journey to validate final membership on every selected platform profile. No CI condition or assertion was weakened. The superseded opening run was cancelled by normal concurrency and is not counted as a pass.
 
@@ -89,6 +126,7 @@ The integrated acceptance preflight exposed a prior form-fixture defect: it post
 - `wordpress/tests/admin/exclusions-integration.php`, `integration.php`: live matrix and existing harness wiring.
 - `wordpress/tests/admin/exclusions-browser.cjs`, `selection-browser-run.sh`: independent no-JS Chromium/Firefox journey.
 - `wordpress/tests/acceptance/exclusions.php`, `journey.php`: exact included population/no-write confirmation over native authenticated HTTP across selected platform profiles.
+- `wordpress/tests/acceptance/http.php`, `form-unit.php`, `in-container.sh`: verified native successful-control fixture semantics and hosted wiring.
 - `docs/review/231/IMPLEMENTATION.md`: this evidence.
 - `docs/review/170/proof.json`, `README.md`: established current-source fingerprint refresh, historical screenshots/observer assertions unchanged.
 - `wordpress/writeleash/languages/writeleash.pot`: generated catalog for new native UI messages.
@@ -98,5 +136,5 @@ The integrated acceptance preflight exposed a prior form-fixture defect: it post
 - Selection drift refuses confirmation and asks for a new initial Preview; it never silently adds/removes unseen targets.
 - Refinement requires the original candidate Preview to remain available and unapproved. This uses normal job retention rather than a permanent cross-job exclusion database.
 - All-excluded selections are refused rather than saved as empty executable Plans.
-- Real MySQL/MariaDB, Redis, browser and final-HEAD CI conclusions are pending. **HOLD** until required hosted evidence passes.
-- No merge, release, issue closure, Marketplace submission or candidate ZIP changes. Founder retains GO/NO-GO.
+- Implementation matrix is complete and green. The documentation-inclusive exact final HEAD still requires its fresh selected run before the final **READY FOR FOUNDER REVIEW** handoff.
+- Only the explicitly authorized accepted-main integration was performed in the feature branch. Draft PR #239 is unmerged; no release, issue closure, Marketplace submission or candidate ZIP changes. Founder retains GO/NO-GO.
