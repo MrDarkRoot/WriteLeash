@@ -1,6 +1,6 @@
 # WriteLeash for WooCommerce
 
-**Bulk price changes without blindly overwriting newer edits.**
+**Change WooCommerce prices. Protect newer edits.**
 
 WriteLeash for WooCommerce is the first commercial product from the broader
 WriteLeash database-safety research project.
@@ -27,27 +27,43 @@ the plan you actually saw.
 ![History listing completed price-change jobs and Undo availability](../assets/screenshot-6.png)
 
 **Review results and recover.** History keeps each job, its outcome and which
-changes are still eligible for Undo, so a bulk update is not a one-way door.
+changes are still eligible for Undo. Restoration requires Apply to finish safely,
+an open Undo window and passing current-state checks. Availability does not
+guarantee every price restores.
 
-## Why merchants use it
+These authentic historical screenshots do not show every current control.
+
+## Free v0.2.0 source capabilities
 
 - **Review before you apply** — Preview shows the exact before/after price for every selected product and variation.
 - **Regular Price and Sale Price** — set a price, add or subtract an amount, or increase or decrease by a percentage.
 - **Simple products and variations** — select a variable product to include its variations, or choose individual variations.
-- **Select by name, SKU or category** — build the list the way your catalog is organized.
+- **Clear Sale and relative discounts** — clear a sale to blank or calculate a discount from reviewed Regular Price; sale dates stay unchanged.
+- **Optional Price Endings** — .99, .95, .90 or whole numbers where precision permits, with final eligibility and safety checks.
+- **Select by name, SKU or category** — optionally include nested subcategories; use inclusive stored Regular/Sale Price ranges.
+- **Exclude individual products** — refine and review the final Preview before approval; excluded targets are absent from Apply and Undo.
+- **Download Preview CSV** — inspect a frozen saved-Preview snapshot before approval, without changing prices.
+- **Save Price Presets** — save, load and edit configuration, not old target prices, approval or individual exclusions. Always create a fresh Preview and approve separately; no automatic scheduling or Apply.
+- **Repeat as new Preview** — with access to an eligible History job, prefill an editable operation and recalculate current eligible prices. Review and approve separately. Previously excluded targets are not silently re-added to suggestions. Repeat is not Undo, Resume or automatic retry; results may differ.
 - **Up to 1,000 products per job** — in the tested configuration.
-- **Runs in the background** — close the browser and come back; progress is saved.
+- **Live progress** — follow Apply and Undo without reloading, or return later; progress is saved.
 - **Resume** — continue an interrupted job without starting over or repeating completed work.
 - **History** — see what changed, what was skipped and what needs attention.
 - **Eligible Undo** — restore prices WriteLeash changed while the current state still allows it; newer edits are preserved as conflicts.
 - **Explained skips** — invalid or unsupported items show a reason and are skipped while clean work continues where safe.
 - **Newer edits preserved** — if a relevant price or setting changed after Preview, WriteLeash shows a conflict rather than overwriting it.
 
+Supported scope is published core simple products and published variations of
+published core variable products, in the base store currency. No arbitrary
+custom product types, universal extension compatibility or automatic sale
+scheduling. Undo does not reverse orders, completed sales or external effects.
+Back up and test on staging before a large update.
+
 ## Select → Preview → Apply
 
 1. **Select** products by name, SKU or category and choose Regular Price or Sale Price.
 2. **Preview** the exact before/after values, warnings and skipped items.
-3. **Apply** the reviewed plan, then follow progress, History or eligible Undo.
+3. **Approve separately and Apply** the reviewed plan, then follow progress, History or eligible Undo.
 
 ## Install and use
 
@@ -63,8 +79,11 @@ custom database account or manual SQL setup is required.
 - Supported scope and limitations: [readme.txt](readme.txt)
 - License: [GPL-2.0-or-later](LICENSE)
 
-The listing is being prepared for submission; this repository does not announce
-a published download.
+WordPress.org approval is founder-reported. Public distribution and a usable
+v0.2.0 download were not verified on 2026-10-11. This README describes merged
+source functionality, not an accepted final ZIP or a live release. Release
+packaging, exact-artifact testing and publication are coordinated in
+[#240](https://github.com/MrDarkRoot/WriteLeash/issues/240).
 
 ## Repository research
 
