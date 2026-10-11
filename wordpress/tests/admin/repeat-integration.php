@@ -171,4 +171,24 @@ $eq( $var_plan->item( $child )->data()['snapshot']['parent_id'], $parent, 'varia
 // 15. Presets independence: zero presets, none created by repeat.
 $eq( (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE 'writeleash_price_preset_%'" ), 0, 'repeat needs no presets and creates none' );
 
+// 16. Refined (#231) source: excluded products stay out, explicitly noticed.
+$e1 = $create(); $e2 = $create(); $e3 = $create();
+$candidate = $preview( $post( null, array( 'selector' => 'ids', 'picker_present' => '1', 'product_ids' => array( (string) $e1, (string) $e2, (string) $e3 ) ) ) );
+$refine_post = array( 'job' => $candidate['public_id'], '_wpnonce' => wp_create_nonce( A::ACTION_REFINE . '_' . $candidate['public_id'] ), 'rows' => array( (string) $e3 ), 'refinement_action' => 'exclude' );
+$refined_result = A::process_refine( $refine_post, 'POST' );
+$eq( $refined_result['status'], 'OK', 'exclusion refinement' );
+$refined = R::read_by_public_id( $refined_result['public_id'] );
+$eq( R::hydrate_plan( $refined )->data()['selection_refinement']['excluded_ids'], array( $e3 ), 'exclusion frozen on source' );
+$refined_original = $saved( $refined );
+$refined_html = $render( 'repeat', $refined );
+$eq( str_contains( $refined_html, 'excluded 1 product' ), true, 'explicit exclusion notice' );
+$eq( str_contains( $refined_html, 'value="' . $e1 . ',' . $e2 . '"' ), true, 'only included ids suggested' );
+$eq( str_contains( $refined_html, 'value="' . $e1 . ',' . $e2 . ',' . $e3 . '"' ), false, 'excluded id absent from the suggestion' );
+$refined_new = $preview( $post( $refined['public_id'], array( 'ids' => $e1 . ',' . $e2 ) ) );
+$eq( R::hydrate_plan( $refined_new )->data()['resolved_product_ids'], array( $e1, $e2 ), 'excluded product never reintroduced' );
+$eq( $saved( $refined ), $refined_original, 'repeat preserves the refined source' );
+$apply( $refined_new );
+$eq( $price( $e3 ), '100', 'excluded price untouched by the repeated operation' );
+$eq( $saved( $refined ), $refined_original, 'apply preserves the refined source' );
+
 echo "#232 repeat-as-new-Preview real-Woo integration: PASS ($n assertions)\n";

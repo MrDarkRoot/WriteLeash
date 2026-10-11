@@ -589,12 +589,14 @@ final class Free_Admin {
 	 * advanced manual IDs; the new Preview revalidates every ID against the
 	 * current catalog, rights, types and the 1,000-target ceiling. Category
 	 * selections prefill the category and nested-category scope; the new
-	 * Preview resolves current membership. Unknown selection shapes or keys
-	 * (including any future exclusion metadata this version does not
-	 * understand) refuse with `repeat_unsupported` rather than silently
-	 * widening the operation. Unsupported legacy operations, fields, endings
-	 * or price-range formats refuse the same way: never a silent mutating
-	 * fallback.
+	 * Preview resolves current membership. Plans refined by #231 exclusions
+	 * prefill their frozen *included* population; excluded products stay out
+	 * by construction and are surfaced separately by repeat_excluded_ids().
+	 * Unknown selection shapes or keys (including any exclusion metadata
+	 * this version does not understand) refuse with `repeat_unsupported`
+	 * rather than silently widening the operation. Unsupported legacy
+	 * operations, fields, endings or price-range formats refuse the same
+	 * way: never a silent mutating fallback.
 	 *
 	 * @param array $plan_data Change_Plan::data() of a verified source plan.
 	 * @return array Editable form defaults for render_selector_form().
@@ -675,6 +677,33 @@ final class Free_Admin {
 		return $values;
 	}
 
+	/**
+	 * #232/#231 excluded-product transparency: IDs the previous job's Preview
+	 * explicitly excluded from its frozen population.
+	 *
+	 * A refined historical plan freezes only its included targets in
+	 * `selection`; repeat prefills exactly those, so excluded products can
+	 * never silently re-enter a bulk operation. The count feeds an explicit
+	 * merchant notice naming how to add products back deliberately. The
+	 * original `requested_selection` is intentionally never used as a repeat
+	 * source: re-resolving it would broaden the operation beyond what the
+	 * merchant reviewed.
+	 *
+	 * @param array $plan_data Change_Plan::data() of a verified source plan.
+	 * @return int[] Sorted explicit exclusion IDs, possibly empty.
+	 */
+	public static function repeat_excluded_ids( array $plan_data ): array {
+		$refinement = $plan_data['selection_refinement'] ?? null;
+		if ( null === $refinement ) { return array(); }
+		if ( ! is_array( $refinement ) || ! is_array( $refinement['excluded_ids'] ?? null ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		$ids = $refinement['excluded_ids'];
+		foreach ( $ids as $id ) { if ( ! is_int( $id ) || $id < 1 ) { throw new Price_Validation_Error( 'repeat_unsupported' ); } }
+		$unique = array_values( array_unique( $ids ) );
+		sort( $unique, SORT_NUMERIC );
+		if ( $unique !== $ids ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		return $ids;
+	}
+
 	private static function render_recovery_view( string $public_id, array $form ): void {
 		try { $source = self::recovery_source( $public_id ); }
 		catch ( \Throwable $error ) { echo '<p>' . esc_html__( 'No recoverable Apply conflicts are visible to your account for this job.', 'writeleash' ) . '</p>'; return; }
@@ -741,6 +770,15 @@ final class Free_Admin {
 			echo '<p><strong>' . esc_html__( 'Category selections use current membership: products added to or removed from the category since the previous job enter or leave the new Preview. The new Preview freezes its own product list for your review.', 'writeleash' ) . '</strong></p>';
 		} else {
 			echo '<p><strong>' . esc_html__( 'Exact product selections reuse the previously reviewed product IDs as editable suggestions. Every ID is checked again against the current catalog, your current editing rights and supported product types; missing or unsupported products are explained in the new Preview and never applied.', 'writeleash' ) . '</strong></p>';
+		}
+		try { $excluded = self::repeat_excluded_ids( $source['plan']->data() ); }
+		catch ( \Throwable $error ) { $excluded = null; }
+		if ( null === $excluded ) {
+			echo '<p>' . esc_html( self::reason_message( 'repeat_unsupported' ) ) . '</p>';
+			return;
+		}
+		if ( array() !== $excluded ) {
+			echo '<p><strong>' . esc_html( sprintf( /* translators: %d: number of products the previous job excluded. */ _n( 'The previous job’s Preview excluded %d product from its frozen population; it is not included in the suggestion below. Add its ID explicitly if you want it reviewed again.', 'The previous job’s Preview excluded %d products from its frozen population; they are not included in the suggestion below. Add their IDs explicitly if you want them reviewed again.', count( $excluded ), 'writeleash' ), count( $excluded ) ) ) . '</strong></p>';
 		}
 		if ( ( $form['source_job'] ?? null ) === $public_id ) { $values = array_merge( $values, $form ); }
 		self::render_selector_form( $values, null, $public_id );

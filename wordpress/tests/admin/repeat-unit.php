@@ -100,4 +100,20 @@ $bad = $base; $bad['policy_snapshot']['max_products_changed'] = '10';
 wl107_error( static fn() => A::repeat_form_values( $bad ), 'repeat_unsupported' );
 $bad = $base; $bad['policy_snapshot']['extra_cap'] = '1';
 wl107_error( static fn() => A::repeat_form_values( $bad ), 'repeat_unsupported' );
-wl107_marker( '#232 repeat prefill maps selection/range/operation/safety and refuses unsupported shapes' );
+// Refined (#231) material prefills the frozen included population while the
+// excluded IDs stay out by construction and surface through their own helper.
+$refined_plan = Plan::create( 'wl232-refined', gmdate( 'Y-m-d\TH:i:s\Z' ), 1, $context, S::ids( array( 41, 42, 43 ) ), new O( O::INCREASE_PERCENT, '5' ), new P( 1000, '50', '50', false, '20' ), array( $snapshot( 41 ), $snapshot( 42 ), $snapshot( 43 ) ) )->data();
+$refined_plan['selection_refinement'] = array( 'version' => 1, 'candidate_job' => '12345678-1234-1234-1234-123456789abc', 'candidate_ids' => array( 41, 42, 43 ), 'excluded_ids' => array( 43 ), 'refused_ids' => array(),
+	'source_selection' => array( 'type' => 'CATEGORY', 'term_id' => 9, 'include_children' => true, 'warnings' => array(), 'price_range' => array( 'enabled' => false, 'min' => null, 'max' => null, 'basis' => 'regular_price' ) ) );
+$refined_values = A::repeat_form_values( $refined_plan );
+wl107_equal( $refined_values['selector'], 'manual_ids', 'refined plan prefills included ids, never the requested category' );
+wl107_equal( $refined_values['ids'], '41,42,43', 'included population preserved' );
+wl107_equal( A::repeat_excluded_ids( $refined_plan ), array( 43 ), 'excluded ids surface explicitly' );
+wl107_equal( A::repeat_excluded_ids( $category_plan->data() ), array(), 'unrefined plans exclude nothing' );
+$bad_refined = $refined_plan; $bad_refined['selection_refinement']['excluded_ids'] = array( '43' );
+wl107_error( static fn() => A::repeat_excluded_ids( $bad_refined ), 'repeat_unsupported' );
+$bad_refined = $refined_plan; $bad_refined['selection_refinement']['excluded_ids'] = array( 43, 43 );
+wl107_error( static fn() => A::repeat_excluded_ids( $bad_refined ), 'repeat_unsupported' );
+$bad_refined = $refined_plan; $bad_refined['selection_refinement'] = array( 'version' => 1 );
+wl107_error( static fn() => A::repeat_excluded_ids( $bad_refined ), 'repeat_unsupported' );
+wl107_marker( '#232 refined exclusion semantics: included prefill, explicit exclusions, malformed refusal' );
