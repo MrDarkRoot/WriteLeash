@@ -4,6 +4,7 @@
 
 - Fetched initial `origin/main`: **da84e64886773a07694448a3d156e64f18489f3b**.
 - Expected baseline `3e90043a4225f1f413721e94c4f6cbf78a370c64` was superseded by the merged #233 Preview CSV PR (#238).
+- Integration base: **778af88db32978b98f8843f1378e901dbc000b34**, accepted #234 price-range filtering. Founder explicitly authorized incorporation of this already-merged commit into the feature branch; Draft PR #239 remains unmerged.
 - Branch: `work/231-preview-exclusions`; isolated worktree `/tmp/opencode/writeleash-231`.
 - Exact final HEAD is the Draft PR's `headRefOid` and the linked final CI run's `headSha`; use `git rev-parse HEAD` in this checkout. A commit cannot contain its own eventual SHA. The final handoff records the literal SHA and CI conclusions.
 - Reviewed issue #231, selector and current tests, immutable Plan construction/hydration/hashing, job import/approval, Free Admin forms, category scope (#206), conflict recovery (#205), sale operations (#207), Price Endings (#208), and variation Apply/Undo parent protections (#229).
@@ -71,6 +72,12 @@ That run also failed Journal's existing concurrent same-material fingerprint ass
 Positive operation fixtures use a Sale Price of 70 so a Regular Price target of 80 preserves the sale. The unsafe 100/90 → Regular 80 case is tested separately as a refused included target; a pure existing Woo fixture independently confirmed `regular_price_not_above_sale`. Added numeric-zero Sale SET, rounded-final-target blocker and ordinary post-final-Preview conflict cases. Existing pricing safety and prior assertions remain intact.
 
 A discriminating parent-synchronization regression failed before its fix: a refused empty-parent row plus a directly selected changing variation could otherwise put the parent in excluded metadata while Woo would still synchronize it. Confirmation now refuses that exact combination (`parent_exclusion_conflict`) and asks the merchant to exclude variation rows instead. The existing parent synchronization and frozen-parent-ID Undo engine remain unchanged.
+
+## Accepted-main integration (#234 → #231)
+
+`main` advanced while hosted checks were running. Conflicts blocked pull-request Actions for later pushed SHAs. Exact textual overlaps: `class-change-plan.php` planner return (range outcome versus source-selection attachment), `free/in-container.sh` suite additions, POT generated locations/messages, and `docs/review/170/{README.md,proof.json}` source-refresh append/fingerprint. The Admin merge combined separate additions automatically. Integration order is accepted #234 first, then #231.
+
+The planner retains #234 `resolve_with_outcome()` and full pre-range authorization. Exclusion confirmation reconstructs the original range filter and resolves the complete bounded source again. A final confirmed IDS Plan does not reselect by range; optional `selection_refinement.source_price_range` records honest candidate-stage range counts separately from individual excluded IDs. Final included IDs remain the shared Preview/CSV/Apply authority. Combined tests reject newly entering range members instead of silently broadening the final set. No unfinished agent branch was incorporated.
 
 ## File inventory
 

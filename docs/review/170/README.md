@@ -128,3 +128,18 @@ journeys retain every assertion. A separate #231 JavaScript-disabled keyboard
 journey runs on fresh fixtures in both browsers. Exact-HEAD hosted Admin PASS is
 required before the new workflow is accepted; refreshing this hash is not proof
 of runtime acceptance.
+
+## Issue #234 candidate source refresh
+
+The Admin source fingerprint includes the optional inclusive price-range
+selection filter (#236): the enable checkbox, Regular/Sale basis select and
+minimum/maximum inputs in `class-free-admin.php`, plus the enable/disable
+toggle and stale-count triggers in `free-selection.js`. Historical PNGs,
+independent observer results and their hashes remain unchanged. This follows
+the existing source-refresh contract above; it does not claim that those
+historical screenshots show the new range controls. Genuine range captures
+(new screenshots plus a keyboard/axe result JSON, reviewed in
+`../234/README.md`) were captured against the exact candidate tree with
+Firefox 151.0 on MariaDB 10.11.15; the exact candidate must still pass the
+hosted Admin gate, which reruns #170 in Chromium and Firefox. Until that
+runtime check passes, the fingerprint refresh is not acceptance evidence.

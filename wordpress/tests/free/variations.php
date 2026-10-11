@@ -14,6 +14,7 @@ namespace {
 	require __DIR__ . '/assertions.php';
 	require __DIR__ . '/../../writeleash/includes/free/class-price-decimal.php';
 	require __DIR__ . '/../../writeleash/includes/free/class-price-operation.php';
+	require __DIR__ . '/../../writeleash/includes/free/class-price-range.php';
 	require __DIR__ . '/../../writeleash/includes/free/class-safety-policy.php';
 	require __DIR__ . '/../../writeleash/includes/free/class-free-support-contract.php';
 	require __DIR__ . '/../../writeleash/includes/free/class-product-snapshot.php';

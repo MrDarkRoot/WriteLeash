@@ -67,4 +67,15 @@ wl179_equal( $mixed->data()['selection_refinement']['refused_ids'], array( 11 ),
 $GLOBALS['wl179_products'] = array(); wl179_variable( 40, array() ); wl179_variation( 41, 40, '100' );
 $empty_parent231 = plan231( S::ids( array( 40, 41 ) ) );
 wl179_error( fn() => R::preview( $empty_parent231, array( 40 ), ROOT231 ), 'parent_exclusion_conflict' );
+$GLOBALS['wl179_products'] = array(); wl179_simple( 51, '50' ); wl179_simple( 52, '100' ); wl179_simple( 53, '150' );
+$range231 = WriteLeash\Price_Range_Filter::from_inputs( '1', '100', '150', O::FIELD_REGULAR );
+$ranged231 = plan231( S::ids( array( 51, 52, 53 ), $range231 ) );
+$rangedFinal231 = R::preview( $ranged231, array( 52 ), ROOT231 );
+wl179_equal( $rangedFinal231->data()['resolved_product_ids'], array( 53 ), 'accepted #234 range retained before individual exclusions' );
+wl179_equal( $rangedFinal231->data()['selection_refinement']['source_price_range']['excluded_by_range'], 1, 'range exclusions are distinct from row exclusions' );
+wl179_equal( $rangedFinal231->data()['selection_refinement']['source_price_range']['matched'], 2, 'source matching candidates remain honest' );
+wl179_equal( $rangedFinal231->data()['price_range']['matched'], 1, 'final Plan counts only final confirmed IDS' );
+wl179_equal( Plan::hydrate( json_decode( $rangedFinal231->json(), true ) )->json(), $rangedFinal231->json(), 'combined provenance hydrates' );
+$GLOBALS['wl179_products'][51]->wl_set_value( 'regular_price', '120' );
+wl179_error( fn() => R::preview( $ranged231, array( 52 ), ROOT231 ), 'selection_changed' );
 echo "#231 exclusions domain: PASS; 350 -> 343, bounds, forgery, identity, variations, operations, immutable Plans\n";

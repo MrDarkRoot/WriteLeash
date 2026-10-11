@@ -372,4 +372,30 @@ foreach ( array( array( '1' ), array( 0 ), array( -1 ), array() ) as $bad ) { wl
 wp_set_current_user( 0 );
 wl107_error( static fn() => Planner::preview( $sel, $op, $policy ), 'permission_denied' );
 wl107_marker( 'persisted drift; unexpected duplicate SKU fails closed; validation and capability rejection' );
+
+// #234 inclusive price-range filter over real Woo snapshots. Read-only like
+// every planning call above: a local save guard counts saves during this block.
+wp_set_current_user( 1 );
+$saves234 = 0;
+$guard234 = static function () use ( &$saves234 ) { ++$saves234; };
+add_action( 'woocommerce_before_product_object_save', $guard234 );
+$range234 = \WriteLeash\Price_Range_Filter::from_inputs( '1', '20', '80', 'regular_price' );
+$plan234 = Planner::preview( S::ids( array( $a->get_id(), $b->get_id(), $zero->get_id() ), $range234 ), new O( O::INCREASE_PERCENT, '8' ), $policy );
+wl107_equal( $plan234->data()['resolved_product_ids'], array( $b->get_id() ), '#234 range freezes only the in-range ID' );
+wl107_equal( $plan234->item( $b->get_id() )->data()['planned_regular_price'], '54.00', '#234 target computed from the frozen snapshot' );
+wl107_equal( $plan234->data()['selection']['price_range'], array( 'enabled' => true, 'min' => '20', 'max' => '80', 'basis' => 'regular_price' ), '#234 filter retained in hashed selection' );
+wl107_equal( array( $plan234->data()['price_range']['matched'], $plan234->data()['price_range']['excluded_by_range'] ), array( 1, 2 ), '#234 matched/excluded counts frozen in provenance' );
+$sale_range234 = \WriteLeash\Price_Range_Filter::from_inputs( '1', '70', '90', 'sale_price' );
+$sale_ids234 = array_map( static fn( $snapshot ) => $snapshot->data()['product_id'], \WriteLeash\Product_Price_Selector::resolve( S::ids( array( $active->get_id(), $b->get_id() ), $sale_range234 ) ) );
+wl107_equal( $sale_ids234, array( $active->get_id() ), '#234 blank sale never matches a numeric sale range' );
+$var_ids234 = array_map( static fn( $snapshot ) => $snapshot->data()['product_id'], \WriteLeash\Product_Price_Selector::resolve( S::ids( array( $variable->get_id() ), $range234 ) ) );
+wl107_equal( $var_ids234, array( $variation_two->get_id() ), '#234 variation judged by its own price, not the parent price' );
+$nested_ids234 = array_map( static fn( $snapshot ) => $snapshot->data()['product_id'], \WriteLeash\Product_Price_Selector::resolve( S::category( $category, true, \WriteLeash\Price_Range_Filter::from_inputs( '1', '20', '150', 'regular_price' ) ) ) );
+// $a stayed a persisted member of $category (its later category edit was
+// in-memory only) at regular 110: in range alongside the nested child.
+wl107_equal( $nested_ids234, array( $a->get_id(), $child_product->get_id() ), '#234 nested category filtered by each final target price' );
+wl107_error( static fn() => Planner::preview( S::ids( array( $b->get_id() ), \WriteLeash\Price_Range_Filter::from_inputs( '1', '80', '20', 'regular_price' ) ), $op, $policy ), 'invalid_price_range' );
+wl107_equal( $saves234, 0, '#234 range resolution performs zero Woo saves' );
+remove_action( 'woocommerce_before_product_object_save', $guard234 );
+wl107_marker( 'inclusive range freezes in-range IDs only; blank sale excluded; variation-own price; nested category; min>max refused' );
 echo '#107 fixture: WordPress ' . get_bloginfo( 'version' ) . '; WooCommerce ' . WC_VERSION . '; PHP ' . PHP_VERSION . "; planning complete, no executor\n";

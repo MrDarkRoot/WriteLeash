@@ -149,10 +149,19 @@ final class Change_Plan {
 	private string $hash;
 	private function __construct() {}
 
-	/** Trusted domain factory; all snapshots are immutable Woo public-API reads. */
-	public static function create( string $id, string $created_at, int $actor, Price_Store_Context $context, Price_Selection_Spec $selection, Price_Operation $operation, Safety_Policy $policy, array $snapshots ): self {
+	/**
+	 * Trusted domain factory; all snapshots are immutable Woo public-API reads.
+	 *
+	 * `$range_outcome` is the #234 selector outcome for this exact snapshot
+	 * population (`matched` must equal the snapshot count). It is frozen
+	 * into the hashed material as `price_range` provenance so the review
+	 * explains what the filter selected; Apply consumes only these frozen
+	 * IDs and never reselects.
+	 */
+	public static function create( string $id, string $created_at, int $actor, Price_Store_Context $context, Price_Selection_Spec $selection, Price_Operation $operation, Safety_Policy $policy, array $snapshots, ?array $range_outcome = null ): self {
 		if ( ! preg_match( '/\A[a-zA-Z0-9_-]{1,64}\z/D', $id ) || ! preg_match( '/\A[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\z/D', $created_at ) || $actor < 1 ) { throw new Price_Validation_Error( 'invalid_plan_identity' ); }
 		if ( count( $snapshots ) > Product_Price_Selector::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
+		$range_outcome = self::range_provenance( $selection, $snapshots, $range_outcome );
 		$plan = new self();
 		$plan->identity = array( 'plan_id' => $id, 'created_at' => $created_at );
 		$plan->items = array();
@@ -172,10 +181,30 @@ final class Change_Plan {
 			'schema_version' => self::SCHEMA_VERSION, 'hash_version' => self::HASH_VERSION, 'actor_id' => $actor,
 			'store' => $context->data(), 'selection' => $selection->data(), 'resolved_product_ids' => array_keys( $plan->items ),
 			'operation' => $operation->data(), 'policy_snapshot' => $policy->data(), 'policy_result' => $decision,
-			'status' => Policy_Result::BLOCKED === $decision['state'] ? 'BLOCKED' : 'PREVIEW', 'items' => $item_data,
+			'status' => Policy_Result::BLOCKED === $decision['state'] ? 'BLOCKED' : 'PREVIEW', 'price_range' => $range_outcome, 'items' => $item_data,
 		);
 		$plan->hash = Plan_Hasher::hash( $plan->material );
 		return $plan;
+	}
+	/**
+	 * Validate and normalize the #234 range provenance block. An omitted
+	 * outcome means "no filtering happened": the disabled filter with the
+	 * population fully matched. A supplied outcome must agree with the
+	 * frozen snapshots exactly, so planner wiring mistakes refuse loudly
+	 * instead of persisting inventive counts.
+	 */
+	private static function range_provenance( Price_Selection_Spec $selection, array $snapshots, ?array $range_outcome ): array {
+		$filter = $selection->price_range();
+		if ( null === $range_outcome ) {
+			return array( 'filter' => $filter, 'matched' => count( $snapshots ), 'excluded_by_range' => 0, 'unsupported' => 0 );
+		}
+		foreach ( array( 'matched', 'excluded_by_range', 'unsupported' ) as $key ) {
+			if ( ! array_key_exists( $key, $range_outcome ) || ! is_int( $range_outcome[ $key ] ) || $range_outcome[ $key ] < 0 ) {
+				throw new Price_Validation_Error( 'invalid_snapshot' );
+			}
+		}
+		if ( $range_outcome['matched'] !== count( $snapshots ) ) { throw new Price_Validation_Error( 'invalid_snapshot' ); }
+		return array( 'filter' => $filter, 'matched' => $range_outcome['matched'], 'excluded_by_range' => $range_outcome['excluded_by_range'], 'unsupported' => $range_outcome['unsupported'] );
 	}
 	/**
 	 * Trusted persistence rehydration of previously stored canonical material.
@@ -203,6 +232,18 @@ final class Change_Plan {
 		if ( $expected_status !== ( $material['status'] ?? null ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
 		$selection = $material['selection'];
 		if ( ! is_array( $selection ) || ! is_array( $selection['warnings'] ?? null ) || ! is_array( $material['store'] ?? null ) || ! is_array( $material['operation'] ?? null ) || ! is_array( $material['policy_snapshot'] ?? null ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		// #234 range provenance is absent on plans frozen before the filter
+		// existed; a present block must carry a well-formed filter and counts.
+		if ( array_key_exists( 'price_range', $material ) ) {
+			$provenance = $material['price_range'];
+			if ( ! is_array( $provenance ) || ! is_array( $provenance['filter'] ?? null )
+				|| ! is_int( $provenance['matched'] ?? null ) || ! is_int( $provenance['excluded_by_range'] ?? null ) || ! is_int( $provenance['unsupported'] ?? null )
+				|| $provenance['matched'] < 0 || $provenance['excluded_by_range'] < 0 || $provenance['unsupported'] < 0 ) {
+				throw new Price_Validation_Error( 'invalid_plan_material' );
+			}
+			try { Price_Range_Filter::from_data( $provenance['filter'] ); }
+			catch ( Price_Validation_Error $error ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		}
 		// Legacy plans have no `field` key: default to the regular price and
 		// never inject the key into the hashed material (old plan_hash values
 		// must keep verifying byte-for-byte).
@@ -289,6 +330,15 @@ final class Change_Plan {
 		$field = $this->material['operation']['field'] ?? Price_Operation::FIELD_REGULAR;
 		return Price_Operation::assert_field( $field );
 	}
+	/**
+	 * #234 frozen range provenance (`filter` plus matched/excluded_by_range/
+	 * unsupported counts), or null for plans frozen before the filter
+	 * existed. Review rendering must handle null by showing no range context.
+	 */
+	public function price_range_context(): ?array {
+		$stored = $this->material['price_range'] ?? null;
+		return is_array( $stored ) ? $stored : null;
+	}
 	public function data(): array { return array_merge( $this->identity, $this->material, array( 'plan_hash' => $this->hash, 'summary' => $this->summary ) ); }
 	public function json(): string { return Plan_Hasher::canonical_json( $this->data() ); }
 	public function summary(): array { return $this->summary; }
@@ -362,16 +412,29 @@ final class Woo_Price_Planner {
 		// Refuse a forged/unavailable control choice with its actionable reason,
 		// before resolving products or persisting an unsupported frozen plan.
 		if ( ! Price_Operation::ending_supported( $operation->data()['ending'] ?? 'default', $context->data()['price_decimals'] ) ) { throw new Price_Validation_Error( 'price_ending_precision' ); }
-		$snapshots = Product_Price_Selector::resolve( $selection );
+		$resolved = Product_Price_Selector::resolve_with_outcome( $selection );
+		$snapshots = $resolved['snapshots'];
 		// A selected variable parent is replaced by its exact variation IDs
 		// before the plan exists, so the frozen population and the IDS
 		// invariant both operate on children only.
 		$resolved_selection = Product_Price_Selector::resolved_selection( $selection, $snapshots );
-		foreach ( $snapshots as $snapshot ) {
-			if ( $snapshot->data()['exists'] && ! current_user_can( 'edit_post', $snapshot->data()['product_id'] ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
+		// Authorize every resolvable source ID before the range narrows
+		// the population: the matched subset alone must never decide
+		// visibility, or an excluded product would become a price/count
+		// oracle. Unreadable rows resolve to a real product, so a denied
+		// unreadable ID refuses here instead of leaking through the
+		// unsupported count. Missing products have no post row and no
+		// prices to disclose (WordPress maps edit_post on them to
+		// do_not_allow for every actor, so gating on them would refuse
+		// all stale-ID selections); they freeze as explained missing rows
+		// when the actor named them.
+		foreach ( $resolved['population'] as $snapshot ) {
+			$row = $snapshot->data();
+			if ( empty( $row['exists'] ) && empty( $row['unreadable'] ) ) { continue; }
+			if ( ! current_user_can( 'edit_post', (int) $row['product_id'] ) ) { throw new Price_Validation_Error( 'permission_denied' ); }
 		}
 		if ( $context->data() !== Price_Store_Context::current()->data() ) { throw new Price_Validation_Error( 'store_context_changed_during_planning' ); }
-		$plan = Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor, $context, $resolved_selection, $operation, $policy, $snapshots );
+		$plan = Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor, $context, $resolved_selection, $operation, $policy, $snapshots, $resolved['outcome'] );
 		// Ordinary selections already carry their full source context. Do not
 		// perturb their established material/fingerprint with redundant metadata.
 		return $selection->data() === $resolved_selection->data() ? $plan : $plan->with_requested_selection( $selection );
@@ -381,9 +444,10 @@ final class Woo_Price_Planner {
 /** Selection intent only. The ordinary planner, journal and workers own all pricing. */
 final class Selection_Refinement {
 	public static function selection( array $data ): Price_Selection_Spec {
-		if ( 'IDS' === ( $data['type'] ?? '' ) ) { return Price_Selection_Spec::resolved( $data['ids'] ?? array(), $data['warnings'] ?? array() ); }
-		if ( 'CATEGORY' === ( $data['type'] ?? '' ) && is_int( $data['term_id'] ?? null ) && is_bool( $data['include_children'] ?? false ) ) { return Price_Selection_Spec::category( $data['term_id'], $data['include_children'] ?? false ); }
-		if ( 'SKU' === ( $data['type'] ?? '' ) && is_string( $data['sku'] ?? null ) ) { return Price_Selection_Spec::sku( $data['sku'] ); }
+		$range = array_key_exists( 'price_range', $data ) ? Price_Range_Filter::from_data( $data['price_range'] ) : Price_Range_Filter::disabled();
+		if ( 'IDS' === ( $data['type'] ?? '' ) ) { return Price_Selection_Spec::resolved( $data['ids'] ?? array(), $data['warnings'] ?? array(), $range ); }
+		if ( 'CATEGORY' === ( $data['type'] ?? '' ) && is_int( $data['term_id'] ?? null ) && is_bool( $data['include_children'] ?? false ) ) { return Price_Selection_Spec::category( $data['term_id'], $data['include_children'] ?? false, $range ); }
+		if ( 'SKU' === ( $data['type'] ?? '' ) && is_string( $data['sku'] ?? null ) ) { return Price_Selection_Spec::sku( $data['sku'], $range ); }
 		throw new Price_Validation_Error( 'invalid_selection_refinement' );
 	}
 	public static function ids( array $ids ): array {
@@ -399,6 +463,16 @@ final class Selection_Refinement {
 			if ( ! is_array( $metadata[$key] ?? null ) || self::ids( $metadata[$key] ) !== $metadata[$key] ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
 		}
 		self::selection( $metadata['source_selection'] ?? array() );
+		if ( array_key_exists( 'source_price_range', $metadata ) ) {
+			$range = $metadata['source_price_range'];
+			if ( ! is_array( $range ) || ! is_array( $range['filter'] ?? null ) ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+			$filter = Price_Range_Filter::from_data( $range['filter'] )->data();
+			if ( $filter !== self::selection( $metadata['source_selection'] )->price_range() ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+			foreach ( array( 'matched', 'excluded_by_range', 'unsupported' ) as $key ) {
+				if ( ! is_int( $range[$key] ?? null ) || $range[$key] < 0 ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+			}
+			if ( $range['matched'] !== count( $metadata['candidate_ids'] ) || array_sum( array( $range['matched'], $range['excluded_by_range'], $range['unsupported'] ) ) > Product_Price_Selector::MAX_SELECTED ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
+		}
 		$partition = array_merge( $included, $metadata['excluded_ids'], $metadata['refused_ids'] );
 		if ( count( $partition ) !== count( self::ids( $partition ) ) || self::ids( $partition ) !== $metadata['candidate_ids'] ) { throw new Price_Validation_Error( 'invalid_selection_refinement' ); }
 	}
@@ -437,6 +511,10 @@ final class Selection_Refinement {
 		$context = Price_Store_Context::current();
 		if ( $context->data() !== $fresh->data()['store'] ) { throw new Price_Validation_Error( 'store_context_changed_during_planning' ); }
 		$plan = Change_Plan::create( wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), get_current_user_id(), $context, Price_Selection_Spec::resolved( $included, $selection->data()['warnings'] ), $operation, $policy, $snapshots );
-		return $plan->with_selection_refinement( array( 'version' => 1, 'candidate_job' => $candidate_job, 'candidate_ids' => $d['resolved_product_ids'], 'excluded_ids' => $excluded, 'refused_ids' => $refused, 'source_selection' => $selection->data() ) );
+		$metadata = array( 'version' => 1, 'candidate_job' => $candidate_job, 'candidate_ids' => $d['resolved_product_ids'], 'excluded_ids' => $excluded, 'refused_ids' => $refused, 'source_selection' => $selection->data() );
+		// The final IDS selection is already confirmed; range exclusions belong
+		// to candidate discovery, not to the final Plan's executable population.
+		if ( $selection->price_range()['enabled'] ) { $metadata['source_price_range'] = $fresh->data()['price_range']; }
+		return $plan->with_selection_refinement( $metadata );
 	}
 }

@@ -78,6 +78,7 @@ require_once __DIR__ . '/includes/class-plugin.php';
 require_once __DIR__ . '/includes/free/class-free-support-contract.php';
 require_once __DIR__ . '/includes/free/class-price-decimal.php';
 require_once __DIR__ . '/includes/free/class-price-operation.php';
+require_once __DIR__ . '/includes/free/class-price-range.php';
 require_once __DIR__ . '/includes/free/class-safety-policy.php';
 require_once __DIR__ . '/includes/free/class-product-snapshot.php';
 require_once __DIR__ . '/includes/free/class-product-selector.php';
