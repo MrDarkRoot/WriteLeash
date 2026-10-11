@@ -164,3 +164,16 @@ passed 264 assertions and 13 clean axe scans, with independent 120.00 Apply and
 93.00 Undo conflict preservation. Historical #170 PNG/result bytes and observer
 assertions are untouched. Exact-head hosted Admin still must rerun every original
 Chromium/Firefox, refinement and database/cache journey before READY.
+
+### #241 final integration with merged #242
+
+The Admin identity now binds the combined Presets/History Repeat source on main
+`04e7f3a39b0b903d4f2cbe499ea0f20731295a37`. Genuine new local Chromium/Firefox
+journeys passed 115 combined preset/Repeat checks and three clean axe scans per
+browser, including keyboard History navigation, independent form actions and
+no-JS count/error/unchecked-range retention. Both unchanged #170 journeys passed
+264 assertions and 13 clean scans, including real Apply/Undo conflict observers.
+New captures were inspected before refreshing the fingerprint and are kept in
+`../230/integration-242-captures/`; see [the integration receipt](../230/INTEGRATION-242.md).
+Historical #170 screenshots, result JSONs and observer bytes remain unchanged.
+Exact-head hosted Admin and the adversarial asset gate are still mandatory.

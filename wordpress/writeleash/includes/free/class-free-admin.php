@@ -456,7 +456,11 @@ final class Free_Admin {
 			if ( is_string( $value ) && strlen( $value ) <= ( 'ids' === $key ? 20000 : 100 ) ) { $values[$key] = $value; }
 		}
 		// An unchecked recovery suggestion must not be restored from the source default.
-		if ( isset( $values['source_job'] ) && ! array_key_exists( 'block_zero', $values ) ) { $values['block_zero'] = ''; }
+		if ( isset( $values['source_job'] ) ) {
+			foreach ( array( 'block_zero', 'range_enabled', 'include_subcategories' ) as $checkbox ) {
+				if ( ! array_key_exists( $checkbox, $values ) ) { $values[$checkbox] = ''; }
+			}
+		}
 		try { $values['product_ids'] = array_map( 'strval', self::picker_ids( $post ) ); }
 		catch ( \Throwable $error ) { $values['product_ids'] = array(); }
 		return $values;
@@ -485,6 +489,9 @@ final class Free_Admin {
 		$nonce_action = self::ACTION_PRESET . '_' . $action . ( 'save' === $action ? '' : '_' . $id );
 		$refused = self::gate( $nonce_action, array( '_wpnonce' => $post['preset_nonce'] ?? null ), $method );
 		if ( null !== $refused ) { return $refused; }
+		// Preset actions belong to the ordinary configuration form, not a
+		// historical Repeat/Recovery workflow. Those markers grant no authority.
+		if ( null !== ( $post['source_job'] ?? null ) || null !== ( $post['repeat'] ?? null ) ) { return array( 'status' => 'INVALID', 'reason' => 'invalid_preset' ); }
 		try {
 			if ( 'save' === $action ) {
 				$record = Price_Preset_Repository::save( $post['preset_name'] ?? null, Price_Preset_Configuration::capture( $post ) );
@@ -1190,6 +1197,11 @@ final class Free_Admin {
 		if ( 'POST' === self::request_method() && null !== self::post_field( 'selection_action' ) ) {
 			$result = self::process_selection( self::post_input(), 'POST' );
 			$form = $result['form'] ?? array();
+			// Native discovery/count actions preserve the active Repeat view.
+			// The view independently reauthorizes and hydrates the historical source.
+			if ( '1' === ( $form['repeat'] ?? null ) && is_string( $form['source_job'] ?? null ) && preg_match( Job_Repository::PUBLIC_ID_REGEX, $form['source_job'] ) ) {
+				$view = 'repeat'; $job_param = $form['source_job'];
+			}
 			if ( 'OK' !== $result['status'] ) { echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( $result['reason'] ) ) . '</p></div>'; }
 		}
 		self::render_view( $view, $job_param, $offset, $form, $filter );
@@ -2140,7 +2152,7 @@ final class Free_Admin {
 		self::selector_field( 'max_products', sprintf( /* translators: %d: maximum products allowed. */ __( 'Maximum changing products (0-%d)', 'writeleash' ), $maximum ), 'number', $values['max_products'], 'writeleash-free-operation', true, 0, $maximum );
 		foreach ( array( 'max_increase' => __( 'Maximum increase percent', 'writeleash' ), 'max_decrease' => __( 'Maximum decrease percent', 'writeleash' ), 'warning_threshold' => __( 'Warning threshold percent', 'writeleash' ) ) as $name => $label ) { self::selector_field( $name, $label, 'text', $values[$name], 'writeleash-free-operation', true ); }
 		echo '<p class="writeleash-full-width"><input id="writeleash-free-block-zero" name="block_zero" type="checkbox" value="1"' . checked( $values['block_zero'] ?? '', '1', false ) . '> <label for="writeleash-free-block-zero">' . esc_html__( 'Block a preview that sets any changing price to zero', 'writeleash' ) . '</label></p></fieldset></details>';
-		if ( null === $recovery ) {
+		if ( null === $recovery && null === $repeat_job ) {
 			wp_nonce_field( self::ACTION_PRESET . '_save', 'preset_nonce' );
 			echo '<p><label for="writeleash-preset-name">' . esc_html__( 'Preset name', 'writeleash' ) . '</label> <input id="writeleash-preset-name" name="preset_name" maxlength="100"> <button type="submit" class="button" name="preset_action" value="save" formaction="' . esc_url( self::page_url() ) . '">' . esc_html__( 'Save as preset', 'writeleash' ) . '</button></p>';
 		}

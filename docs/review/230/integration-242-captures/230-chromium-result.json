@@ -1,0 +1,23 @@
+{
+  "engine": "chromium",
+  "version": "148.0.7778.178",
+  "checks": 115,
+  "scans": [
+    {
+      "name": "configuration",
+      "violations": []
+    },
+    {
+      "name": "refined Preview",
+      "violations": []
+    },
+    {
+      "name": "combined Repeat form",
+      "violations": []
+    }
+  ],
+  "enhanced": "PASS",
+  "noJavaScript": "PASS",
+  "keyboard": "PASS",
+  "screenReader": "NOT_TESTED"
+}
