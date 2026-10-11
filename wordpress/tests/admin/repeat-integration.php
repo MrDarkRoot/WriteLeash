@@ -57,6 +57,7 @@ $second = $preview( $post( $source['public_id'], array( 'ids' => $a . ',' . $b )
 $plan = R::hydrate_plan( $second );
 $eq( $plan->item( $a )->data()['planned_regular_price'], '110.25', '105 + 5 percent from the current price' );
 $eq( $plan->data()['source_job'], $source['public_id'], 'bounded provenance, not authority' );
+$eq( $plan->data()['source_kind'], 'repeat', 'repeat workflow discriminator frozen' );
 $eq( $second['plan_id'] !== $source['plan_id'] && $second['public_id'] !== $source['public_id'], true, 'distinct plan and job identity' );
 $eq( $price( $a ), '105', 'new Preview has no price side effect' );
 $eq( $saved( $source ), $original, 'new Preview preserves original records' );
@@ -190,5 +191,51 @@ $eq( $saved( $refined ), $refined_original, 'repeat preserves the refined source
 $apply( $refined_new );
 $eq( $price( $e3 ), '100', 'excluded price untouched by the repeated operation' );
 $eq( $saved( $refined ), $refined_original, 'apply preserves the refined source' );
+
+// 17. HOLD regression: repeat from a conflicted source selecting conflict-only
+// IDs keeps the repeat copy — the discriminator is frozen, never inferred.
+$f1 = $create(); $f2 = $create();
+$conf_source = $preview( $post( null, array( 'selector' => 'ids', 'picker_present' => '1', 'product_ids' => array( (string) $f1, (string) $f2 ) ) ) );
+$edit( $f1, '120' );
+$apply( $conf_source );
+$eq( R::items( (int) $conf_source['id'], 'CONFLICT' )[0]['product_id'], (string) $f1, 'conflicted source fixture' );
+$conf_repeat = $preview( $post( $conf_source['public_id'], array( 'ids' => (string) $f1 ) ) );
+$eq( R::hydrate_plan( $conf_repeat )->data()['source_kind'], 'repeat', 'conflict-only repeat classified at creation' );
+$conf_html = $render( 'preview', $conf_repeat );
+$eq( str_contains( $conf_html, 'repeated from a previous job' ), true, 'conflict-only repeat keeps repeat copy' );
+$eq( str_contains( $conf_html, 'Fresh Preview from chosen Apply conflicts' ), false, 'no recovery mislabel' );
+$apply( $conf_repeat );
+$eq( $price( $f1 ), '126', 'conflict-only repeat applies from the current price' );
+$eq( A::process_undo( array( 'job' => $conf_repeat['public_id'], '_wpnonce' => wp_create_nonce( A::ACTION_UNDO . '_' . $conf_repeat['public_id'] ) ), 'POST' )['status'], 'OK', 'kind-carrying job Undo initiates' );
+$eq( $price( $f1 ), '120', 'Undo restores through the discriminator without interference' );
+
+// 18. HOLD regression: a genuine #205 recovery keeps its copy even after the
+// source conflicts later disappear.
+$g1 = $create();
+$g_source = $preview( $post( null, array( 'selector' => 'ids', 'picker_present' => '1', 'product_ids' => array( (string) $g1 ) ) ) );
+$edit( $g1, '130' );
+$apply( $g_source );
+$rec_post = array( '_wpnonce' => wp_create_nonce( A::ACTION_PREVIEW ), 'selector' => 'ids', 'ids' => (string) $g1, 'product_ids' => array( (string) $g1 ), 'source_job' => $g_source['public_id'], 'operation' => 'INCREASE_PERCENT', 'amount' => '10', 'max_products' => '1000', 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'block_zero' => '1' );
+$rec = $preview( $rec_post );
+$eq( R::hydrate_plan( $rec )->data()['source_kind'], 'recovery', 'recovery kind frozen' );
+$eq( R::hydrate_plan( $rec )->item( $g1 )->data()['planned_regular_price'], '143.00', '130 + 10 percent from the current price' );
+$wpdb->update( S::items_table( $wpdb ), array( 'state' => 'APPLIED', 'reason' => 'APPLIED' ), array( 'job_id' => $g_source['id'], 'product_id' => $g1 ) );
+$rec_html = $render( 'preview', $rec );
+$eq( str_contains( $rec_html, 'Fresh Preview from chosen Apply conflicts' ), true, 'recovery copy survives source change' );
+$eq( str_contains( $rec_html, 'repeated from a previous job' ), false, 'no repeat mislabel' );
+
+// 19. HOLD regression: legacy plans without the discriminator render as recovery.
+$h1 = $create();
+$legacy_plan = WriteLeash\Woo_Price_Planner::preview( WriteLeash\Price_Selection_Spec::ids( array( $h1 ) ), new WriteLeash\Price_Operation( 'INCREASE_PERCENT', '5' ), new WriteLeash\Safety_Policy( 1000, '50', '50', false, '20' ) )->with_source_job( $g_source['public_id'] );
+$legacy_job = R::create_from_plan( $legacy_plan, $actor );
+$eq( R::hydrate_plan( $legacy_job )->source_kind(), null, 'legacy absence rehydrates' );
+$legacy_html = $render( 'preview', $legacy_job );
+$eq( str_contains( $legacy_html, 'Fresh Preview from chosen Apply conflicts' ), true, 'legacy source renders recovery copy' );
+
+// 20. HOLD regression: discriminator tamper refuses without prefill or preview.
+$wpdb->update( S::jobs_table( $wpdb ), array( 'plan_json' => str_replace( '"source_kind":"repeat"', '"source_kind":"recoveR"', $second['plan_json'] ) ), array( 'id' => $second['id'] ) );
+$eq( A::process_preview( $post( $second['public_id'], array( 'ids' => (string) $a ) ), 'POST' )['reason'], 'repeat_unavailable', 'kind tamper refused' );
+$kind_html = $render( 'preview', R::read( (int) $second['id'] ) );
+$eq( str_contains( $kind_html, 'no longer matches its approved preview' ), true, 'tampered preview explains mismatch' );
 
 echo "#232 repeat-as-new-Preview real-Woo integration: PASS ($n assertions)\n";

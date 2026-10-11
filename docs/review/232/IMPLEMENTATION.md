@@ -92,6 +92,22 @@ silent mutating fallback).
 - `docs/review/170/proof.json`: `class-free-admin.php` source-hash refresh
   only (actual new bytes); screenshots and capture evidence untouched.
 
+## Provenance discriminator (maintainer HOLD resolution)
+
+`Free_Admin::render_preview_view()` no longer infers Recovery vs Repeat
+from live conflict rows. New plans carry an explicit immutable
+`source_kind` (`recovery` | `repeat`) set once at creation beside
+`source_job` via `Change_Plan::with_source_kind()`, covered by the plan
+hash and validated on hydration. Rendering branches on the frozen field
+only: `repeat` renders the repeat copy however the source later changes;
+absent (legacy #205, the only pre-discriminator writer) renders the
+recovery copy. `source_kind` without `source_job`, unknown kinds, double
+attachment, and any retargeting all refuse (`invalid_source_job` or hash
+mismatch), so tampering can only destroy verifiability, never reclassify.
+Regression: unit material/hydration/tamper matrix plus real-Woo render
+cases for conflict-only repeat, post-resolution recovery stability,
+legacy rendering, kind tamper, and kind-carrying approval/Undo.
+
 ## Verification
 
 - `repeat-unit.php`: adapter mapping + 17 unsupported-shape refusals.

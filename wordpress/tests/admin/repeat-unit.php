@@ -2,6 +2,7 @@
 // #232 Repeat-as-new-Preview prefill adapter: verified plan material maps to
 // editable form defaults, and every unsupported shape refuses explicitly.
 require __DIR__ . '/../free/unit.php';
+require __DIR__ . '/../../writeleash/includes/free/class-job-repository.php';
 require __DIR__ . '/../../writeleash/includes/free/class-free-admin.php';
 use WriteLeash\Free_Admin as A;
 use WriteLeash\Price_Operation as O;
@@ -117,3 +118,26 @@ wl107_error( static fn() => A::repeat_excluded_ids( $bad_refined ), 'repeat_unsu
 $bad_refined = $refined_plan; $bad_refined['selection_refinement'] = array( 'version' => 1 );
 wl107_error( static fn() => A::repeat_excluded_ids( $bad_refined ), 'repeat_unsupported' );
 wl107_marker( '#232 refined exclusion semantics: included prefill, explicit exclusions, malformed refusal' );
+
+// HOLD: explicit immutable source-workflow discriminator. Legacy #205 plans
+// carry source_job alone; new plans classify it at creation under the hash.
+$kind_source = '12345678-1234-1234-1234-123456789abc';
+$repeat_marked = $thousand_plan->with_source_job( $kind_source )->with_source_kind( Plan::SOURCE_REPEAT );
+$recovery_marked = $thousand_plan->with_source_job( $kind_source )->with_source_kind( Plan::SOURCE_RECOVERY );
+wl107_equal( $repeat_marked->source_kind(), 'repeat', 'repeat kind attached' );
+wl107_equal( $recovery_marked->source_kind(), 'recovery', 'recovery kind attached' );
+wl107_equal( \WriteLeash\Change_Plan::hydrate( json_decode( $repeat_marked->json(), true ) )->source_kind(), 'repeat', 'kind survives trusted hydration' );
+$legacy_marked = $thousand_plan->with_source_job( $kind_source );
+wl107_equal( $legacy_marked->source_kind(), null, 'legacy recovery has no kind' );
+wl107_equal( \WriteLeash\Change_Plan::hydrate( json_decode( $legacy_marked->json(), true ) )->source_kind(), null, 'legacy absence rehydrates' );
+wl107_equal( \WriteLeash\Change_Plan::hydrate( json_decode( $legacy_marked->json(), true ) )->data()['source_job'], $kind_source, 'legacy reference intact' );
+wl107_error( static fn() => $thousand_plan->with_source_kind( Plan::SOURCE_REPEAT ), 'invalid_source_job' );
+wl107_error( static fn() => $repeat_marked->with_source_kind( Plan::SOURCE_REPEAT ), 'invalid_source_job' );
+wl107_error( static fn() => $thousand_plan->with_source_job( $kind_source )->with_source_kind( 'someday' ), 'invalid_source_job' );
+$retarget = $repeat_marked->data(); $retarget['source_kind'] = 'recovery';
+wl107_error( static fn() => \WriteLeash\Change_Plan::hydrate( $retarget ), 'plan_hash_mismatch' );
+$orphan = $repeat_marked->data(); unset( $orphan['source_job'] );
+wl107_error( static fn() => \WriteLeash\Change_Plan::hydrate( $orphan ), 'invalid_source_job' );
+$garbled = $repeat_marked->data(); $garbled['source_kind'] = 'conflict';
+wl107_error( static fn() => \WriteLeash\Change_Plan::hydrate( $garbled ), 'invalid_source_job' );
+wl107_marker( '#232 source-kind discriminator: classified creation, legacy compatibility, tamper refusal' );

@@ -222,6 +222,11 @@ final class Change_Plan {
 			throw new Price_Validation_Error( 'invalid_plan_material' );
 		}
 		if ( array_key_exists( 'source_job', $data ) && ( ! is_string( $data['source_job'] ) || ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $data['source_job'] ) ) ) { throw new Price_Validation_Error( 'invalid_source_job' ); }
+		// #232 explicit source-workflow discriminator. Legacy #205 recovery
+		// plans carry `source_job` alone and keep verifying byte-for-byte;
+		// a present `source_kind` must name its workflow and never appear
+		// without the job reference it classifies.
+		if ( array_key_exists( 'source_kind', $data ) && ( ! array_key_exists( 'source_job', $data ) || ! in_array( $data['source_kind'], array( self::SOURCE_RECOVERY, self::SOURCE_REPEAT ), true ) ) ) { throw new Price_Validation_Error( 'invalid_source_job' ); }
 		$material = $data;
 		unset( $material['plan_id'], $material['created_at'], $material['plan_hash'], $material['summary'] );
 		if ( ! hash_equals( $data['plan_hash'], Plan_Hasher::hash( $material ) ) ) { throw new Price_Validation_Error( 'plan_hash_mismatch' ); }
@@ -309,6 +314,31 @@ final class Change_Plan {
 		$copy->material['source_job'] = $public_id;
 		$copy->hash = Plan_Hasher::hash( $copy->material );
 		return $copy;
+	}
+	/**
+	 * #232 immutable source-workflow discriminator, set once at creation
+	 * beside the job reference it classifies and covered by the plan hash.
+	 * `recovery` marks a #205 conflict-recovery Preview; `repeat` marks a
+	 * #232 independent repeat. Review rendering branches on this field, never
+	 * on mutable live conflict rows. Legacy #205 plans without the field
+	 * keep verifying and render as recovery, the only workflow that wrote
+	 * `source_job` before the discriminator existed.
+	 */
+	public const SOURCE_RECOVERY = 'recovery';
+	public const SOURCE_REPEAT = 'repeat';
+	public function with_source_kind( string $kind ): self {
+		if ( ! isset( $this->material['source_job'] ) || isset( $this->material['source_kind'] ) || ! in_array( $kind, array( self::SOURCE_RECOVERY, self::SOURCE_REPEAT ), true ) ) { throw new Price_Validation_Error( 'invalid_source_job' ); }
+		$copy = clone $this;
+		$copy->material['source_kind'] = $kind;
+		$copy->hash = Plan_Hasher::hash( $copy->material );
+		return $copy;
+	}
+	/** The frozen workflow discriminator, or null for legacy #205 recovery plans. */
+	public function source_kind(): ?string {
+		$kind = $this->material['source_kind'] ?? null;
+		if ( null === $kind ) { return null; }
+		if ( ! in_array( $kind, array( self::SOURCE_RECOVERY, self::SOURCE_REPEAT ), true ) ) { throw new Price_Validation_Error( 'invalid_source_job' ); }
+		return $kind;
 	}
 	public function hash(): string { return $this->hash; }
 	/** Optional new-Preview provenance. Old material is never augmented on hydration. */

@@ -835,7 +835,7 @@ final class Free_Admin {
 				// Re-read source membership after planning; it grants no execution approval.
 				$latest = self::recovery_source( $post['source_job'] );
 				foreach ( $selection->data()['ids'] as $id ) { if ( ! isset( $latest['rows'][$id] ) ) { throw new Price_Validation_Error( 'invalid_conflict_selection' ); } }
-				$plan = $plan->with_source_job( $source['job']['public_id'] );
+				$plan = $plan->with_source_job( $source['job']['public_id'] )->with_source_kind( Change_Plan::SOURCE_RECOVERY );
 			}
 			if ( null !== $repeat ) {
 				// Bounded explanatory provenance on the fresh immutable plan.
@@ -844,7 +844,7 @@ final class Free_Admin {
 				// reference grants no capability and no approval.
 				$latest = self::repeat_source( $post['source_job'] );
 				if ( $latest['job']['plan_id'] !== $repeat['job']['plan_id'] ) { throw new Price_Validation_Error( 'repeat_unavailable' ); }
-				$plan = $plan->with_source_job( $repeat['job']['public_id'] );
+				$plan = $plan->with_source_job( $repeat['job']['public_id'] )->with_source_kind( Change_Plan::SOURCE_REPEAT );
 			}
 			// The frozen selected population is authoritative even if the policy
 			// blocks it or most selected items are unchanged/unsupported.
@@ -2127,22 +2127,12 @@ final class Free_Admin {
 		$data = $plan->data();
 		if ( isset( $data['selection_refinement'] ) ) { self::render_refinement_counts( $plan ); }
 		if ( isset( $data['source_job'] ) ) {
-			// Recovery (#205) provenance keeps its exact copy; anything else
-			// citing a source job is a #232 repeat. A source that merely
-			// satisfies the recovery gates (e.g. a cleanly applied job with
-			// no conflicts) is not recovery evidence, so the plan's frozen
-			// IDs must also sit inside the source's current conflict rows.
-			// The probe re-verifies conflict authority for the viewer and
-			// changes no durable state.
-			$from_conflicts = false;
-			try {
-				$conflict_rows = self::recovery_source( $data['source_job'] );
-				$conflict_ids = array_map( 'intval', array_keys( $conflict_rows['rows'] ) );
-				$resolved = array_map( 'intval', (array) ( $plan->data()['resolved_product_ids'] ?? array() ) );
-				$from_conflicts = array() !== $resolved && array() === array_diff( $resolved, $conflict_ids );
-			}
-			catch ( \Throwable $error ) {}
-			echo '<p>' . ( $from_conflicts ? esc_html__( 'Fresh Preview from chosen Apply conflicts. Original results stay unchanged.', 'writeleash' ) : esc_html__( 'Fresh Preview repeated from a previous job. Original results stay unchanged; this Preview needs its own approval before Apply.', 'writeleash' ) ) . '';
+			// Creation-time workflow discriminator, never a live inference:
+			// `repeat` marks an independent #232 repeat however the source
+			// job later changes; legacy plans without the field predate the
+			// discriminator, when only #205 recovery wrote `source_job`.
+			$is_repeat = Change_Plan::SOURCE_REPEAT === $plan->source_kind();
+			echo '<p>' . ( $is_repeat ? esc_html__( 'Fresh Preview repeated from a previous job. Original results stay unchanged; this Preview needs its own approval before Apply.', 'writeleash' ) : esc_html__( 'Fresh Preview from chosen Apply conflicts. Original results stay unchanged.', 'writeleash' ) ) . '';
 			if ( null !== self::load_job_for_view( $data['source_job'] ) ) { echo ' <a href="' . esc_url( self::page_url( 'job', $data['source_job'] ) ) . '">' . esc_html__( 'View original results', 'writeleash' ) . '</a>'; }
 			echo '</p>';
 		}
