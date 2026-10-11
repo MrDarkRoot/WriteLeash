@@ -74,7 +74,7 @@
       "sha256": "543326ae8ff365407d6cd0d637c28bf55c5ac504d80fdcf6f641e50076833d03",
       "captured_at_utc": "2026-10-07T04:28:55.750290+00:00",
       "real_state": "Real prepared local #188 Woo Admin fixture; minimal static capture for #195",
-      "caption": "Sale Price Preview example: review before-and-after values, variations, warnings and skipped products before Apply.",
+      "caption": "Review exact before-and-after Sale Price values, variations, warnings and skips in this earlier Preview example.",
       "visible_ui_text": "Review price change\nSet sale prices to $20.00 USD · 5 products (2 variations)\nSale price before\tSale price after\nCotton tee — Small\nSKU: TEE-SMALL · Variation #29\n$24.00 USD\t$20.00 USD\nCotton tee — Large\nSKU: TEE-LARGE · Variation #30\n$28.00 USD\t$20.00 USD\nApprove and apply",
       "captured_product_base": "2e059cacf46977cc3ae1eba15eba628ad6e7570e",
       "capture_job_id": "5b36537d-13d8-40ca-993f-2f2e428e7918",
@@ -145,7 +145,7 @@
       "sha256": "df7c40f4552bd8f9511e5c9320756fa5efba30cc834a0665bba78c476428d767",
       "captured_at_utc": "2026-10-05T22:53:47.382416Z",
       "real_state": "History and Undo availability",
-      "caption": "History example: review job outcomes and eligible Undo availability. Availability does not guarantee that every product will restore.",
+      "caption": "Review History outcomes and eligible Undo availability in this earlier example. Availability does not guarantee that every product will restore.",
       "visible_ui_text": "WriteLeash Bulk Prices\nHistory\nTask / operator / time\tOutcome\tUndo\tAction\nUndo available for prices changed by this job.\nUntil ",
       "captured_product_base": "a5a736b9d77308afd7534f23e7950b064aea767a"
     }

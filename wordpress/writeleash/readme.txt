@@ -128,11 +128,11 @@ effects.
 == Screenshots ==
 
 1. Earlier selection-screen example: choose products by name, SKU or category. Current category selection also offers nested subcategories.
-2. Sale Price Preview example: review before-and-after values, variations, warnings and skipped products before Apply.
+2. Review exact before-and-after Sale Price values, variations, warnings and skips in this earlier Preview example.
 3. Background-job example with 24 products: see changed and remaining products, and Resume interrupted work. This capture predates live progress updates.
 4. Review completed changes and explained skips; one invalid price does not stop the useful result.
 5. A later price or setting change becomes a conflict instead of a blind overwrite. Regular Price example: expected $100, planned $80, current $120 remains unchanged.
-6. History example: review job outcomes and eligible Undo availability. Availability does not guarantee that every product will restore.
+6. Review History outcomes and eligible Undo availability in this earlier example. Availability does not guarantee that every product will restore.
 
 Earlier authentic captures; current labels and controls may differ.
 Not all features are pictured.
