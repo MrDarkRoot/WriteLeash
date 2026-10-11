@@ -79,6 +79,8 @@ A discriminating parent-synchronization regression failed before its fix: a refu
 
 The planner retains #234 `resolve_with_outcome()` and full pre-range authorization. Exclusion confirmation reconstructs the original range filter and resolves the complete bounded source again. A final confirmed IDS Plan does not reselect by range; optional `selection_refinement.source_price_range` records honest candidate-stage range counts separately from individual excluded IDs. Final included IDs remain the shared Preview/CSV/Apply authority. Combined tests reject newly entering range members instead of silently broadening the final set. No unfinished agent branch was incorporated.
 
+The integrated acceptance preflight exposed a prior form-fixture defect: it posted unchecked `range_enabled` as enabled. `http.php::wl112_form()` now follows native successful-control rules for unchecked/disabled inputs, with a focused test; the original no-CREATE and journey assertions remain intact. Run [38110594223](https://github.com/MrDarkRoot/WriteLeash/actions/runs/38110594223) is failed/incomplete evidence, not a pass.
+
 ## File inventory
 
 - `wordpress/writeleash/includes/free/class-change-plan.php`: optional provenance, hydration partition checks, selection confirmation.

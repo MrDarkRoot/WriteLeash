@@ -35,7 +35,11 @@ function wl112_form( string $html, string $action ): array {
     libxml_clear_errors();
     foreach ( $dom->getElementsByTagName( 'form' ) as $form ) {
         $fields = array();
-        foreach ( $form->getElementsByTagName( 'input' ) as $input ) { $fields[$input->getAttribute( 'name' )] = $input->getAttribute( 'value' ); }
+        foreach ( $form->getElementsByTagName( 'input' ) as $input ) {
+            if ( $input->hasAttribute( 'disabled' ) || '' === $input->getAttribute( 'name' ) ) { continue; }
+            if ( in_array( $input->getAttribute( 'type' ), array( 'checkbox', 'radio' ), true ) && ! $input->hasAttribute( 'checked' ) ) { continue; }
+            $fields[$input->getAttribute( 'name' )] = $input->getAttribute( 'value' );
+        }
         if ( ( $fields['action'] ?? '' ) === $action ) { return $fields; }
     }
     throw new RuntimeException( 'missing Admin form ' . $action );
