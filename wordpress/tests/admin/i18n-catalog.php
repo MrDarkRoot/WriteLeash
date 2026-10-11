@@ -2,7 +2,7 @@
 // No substitute extractor: inspect the committed output of official WP-CLI.
 $root = dirname( __DIR__, 2 );
 $pot = file_get_contents( $root . '/writeleash/languages/writeleash.pot' );
-$required = array( 'writeleash', 'msgid_plural', 'msgctxt', '#. translators:', 'includes/free/free-progress.js', 'includes/free/free-selection.js', 'Re-preview conflicted products', 'Resume remaining products', 'No products match this selection.', 'Processed %d product in this step.', 'Selected %1$d product: %2$s.', 'Choose at most %d product.', 'Session or permission expired.', 'Download job CSV', 'Review the product, then %1$sCreate a new preview%2$s', 'Undo restores eligible %s values' );
+$required = array( 'writeleash', 'msgid_plural', 'msgctxt', '#. translators:', 'includes/free/free-progress.js', 'includes/free/free-selection.js', 'Re-preview conflicted products', 'Repeat as new Preview', 'Based on previous job %s.', 'Resume remaining products', 'No products match this selection.', 'Processed %d product in this step.', 'Selected %1$d product: %2$s.', 'Choose at most %d product.', 'Session or permission expired.', 'Download job CSV', 'Review the product, then %1$sCreate a new preview%2$s', 'Undo restores eligible %s values' );
 foreach ( $required as $text ) { if ( ! str_contains( $pot, $text ) ) { throw new RuntimeException( 'Catalog missing ' . $text ); } }
 if ( substr_count( $pot, "\nmsgid " ) < 250 || str_contains( $pot, 'msgid "<a href=' ) || str_contains( $pot, 'msgid "Planned "' ) ) { throw new RuntimeException( 'Empty or fragment catalog' ); }
 foreach ( array( 'SET', 'INCREASE_PERCENT', 'CONFLICT', 'UNDO_CONFLICT', 'plan_json', 'product_ids', 'expected_price' ) as $machine ) {

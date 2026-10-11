@@ -158,6 +158,7 @@ final class Free_Admin {
 			'block_zero' => self::post_field( 'block_zero' ),
 			'job' => self::post_field( 'job' ),
 			'source_job' => self::post_field( 'source_job' ),
+			'repeat' => self::post_field( 'repeat' ),
 			'picker_present' => self::post_field( 'picker_present' ),
 			'product_ids' => filter_input( INPUT_POST, 'product_ids', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ),
 			'discovery_nonce' => self::post_field( 'discovery_nonce' ),
@@ -193,7 +194,7 @@ final class Free_Admin {
 		}
 		$public_id = 'OK' === ( $result['status'] ?? '' ) ? (string) ( $result['public_id'] ?? '' ) : null;
 		$view = 'OK' === ( $result['status'] ?? '' ) ? 'preview' : '';
-		if ( '' === $view && is_string( $post['source_job'] ?? null ) && preg_match( Job_Repository::PUBLIC_ID_REGEX, $post['source_job'] ) ) { $view = 'recovery'; $public_id = $post['source_job']; }
+		if ( '' === $view && is_string( $post['source_job'] ?? null ) && preg_match( Job_Repository::PUBLIC_ID_REGEX, $post['source_job'] ) ) { $view = '1' === ( $post['repeat'] ?? null ) ? 'repeat' : 'recovery'; $public_id = $post['source_job']; }
 		return self::finish( $result, $view, $public_id );
 	}
 
@@ -443,7 +444,7 @@ final class Free_Admin {
 	/** Bounded, escaped-on-output, session-scoped input recovery; never plan or execution truth. */
 	private static function retained_inputs( array $post ): array {
 		$values = array();
-		foreach ( array( 'source_job', 'selector', 'ids', 'sku', 'category', 'include_subcategories', 'range_enabled', 'range_min', 'range_max', 'range_basis', 'operation', 'price_field', 'amount', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
+		foreach ( array( 'source_job', 'repeat', 'selector', 'ids', 'sku', 'category', 'include_subcategories', 'range_enabled', 'range_min', 'range_max', 'range_basis', 'operation', 'price_field', 'amount', 'ending', 'max_products', 'max_increase', 'max_decrease', 'warning_threshold', 'block_zero', 'product_search', 'category_search', 'product_page', 'category_page' ) as $key ) {
 			$value = $post[$key] ?? null;
 			if ( is_string( $value ) && strlen( $value ) <= ( 'ids' === $key ? 20000 : 100 ) ) { $values[$key] = $value; }
 		}
@@ -548,6 +549,161 @@ final class Free_Admin {
 		return array( 'job' => $job, 'plan' => $plan, 'rows' => $rows );
 	}
 
+	/**
+	 * #232 authorized historical-job entry point for Repeat as new Preview.
+	 *
+	 * Unlike recovery_source() (#205), this imposes no Apply-conflict, approval
+	 * or journal-completeness requirement: any job the actor may view whose
+	 * stored plan still verifies is a repeatable configuration source. The
+	 * returned plan is configuration evidence only — never execution authority.
+	 * Historical snapshot prices, frozen target IDs beyond the stored
+	 * selection, approvals, hashes and job state grant nothing; the fresh
+	 * Preview re-resolves, re-authorizes and recomputes everything. No reads
+	 * or writes beyond job/plan hydration occur here.
+	 */
+	public static function repeat_source( $public_id ): array {
+		if ( get_current_user_id() < 1 || ! self::can_mutate() ) { throw new Price_Validation_Error( 'permission_denied' ); }
+		if ( ! is_string( $public_id ) || ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $public_id ) || ! self::jobs_installed() ) { throw new Price_Validation_Error( 'repeat_unavailable' ); }
+		$job = self::load_job_for_view( $public_id );
+		if ( null === $job ) { throw new Price_Validation_Error( 'permission_denied' ); }
+		try { $plan = Job_Repository::hydrate_plan( $job ); }
+		catch ( \Throwable $error ) { throw new Price_Validation_Error( 'repeat_unavailable' ); }
+		return array( 'job' => $job, 'plan' => $plan );
+	}
+
+	/**
+	 * #232 configuration-only prefill: verified stored plan material mapped to
+	 * editable merchant-form defaults. Carries selection intent, price field,
+	 * operation, optional price ending, supported price-range filter and
+	 * safety settings. Never carries snapshot prices, planned targets, frozen
+	 * resolved IDs beyond the stored selection, approvals or job authority.
+	 *
+	 * This is an independent bounded adapter, not the #230 preset
+	 * infrastructure: it reads a verified Change_Plan (never preset CRUD) and
+	 * works with zero saved presets. The intended shared contract is
+	 * `configuration array <-> editable form array`; when #241 merges, this
+	 * adapter should converge onto its shipped configuration mapping instead
+	 * of living on as a duplicate abstraction.
+	 *
+	 * Exact-ID selections prefill the reviewed product IDs as editable
+	 * advanced manual IDs; the new Preview revalidates every ID against the
+	 * current catalog, rights, types and the 1,000-target ceiling. Category
+	 * selections prefill the category and nested-category scope; the new
+	 * Preview resolves current membership. Plans refined by #231 exclusions
+	 * prefill their frozen *included* population; excluded products stay out
+	 * by construction and are surfaced separately by repeat_excluded_ids().
+	 * Unknown selection shapes or keys (including any exclusion metadata
+	 * this version does not understand) refuse with `repeat_unsupported`
+	 * rather than silently widening the operation. Unsupported legacy
+	 * operations, fields, endings or price-range formats refuse the same
+	 * way: never a silent mutating fallback.
+	 *
+	 * @param array $plan_data Change_Plan::data() of a verified source plan.
+	 * @return array Editable form defaults for render_selector_form().
+	 */
+	public static function repeat_form_values( array $plan_data ): array {
+		$selection = $plan_data['selection'] ?? null;
+		$operation = $plan_data['operation'] ?? null;
+		$policy = $plan_data['policy_snapshot'] ?? null;
+		if ( ! is_array( $selection ) || ! is_array( $operation ) || ! is_array( $policy ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		$values = array();
+		$type = $selection['type'] ?? null;
+		// Stored material survives a canonical-JSON round trip, so key order
+		// is meaningless; only the exact key set is significant.
+		$selection_keys = array_keys( $selection );
+		sort( $selection_keys, SORT_STRING );
+		if ( 'IDS' === $type ) {
+			if ( array( 'ids', 'price_range', 'type', 'warnings' ) !== $selection_keys && array( 'ids', 'type', 'warnings' ) !== $selection_keys ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+			$ids = $selection['ids'] ?? null;
+			if ( ! is_array( $ids ) || ! $ids ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+			foreach ( $ids as $id ) { if ( ! is_int( $id ) || $id < 1 ) { throw new Price_Validation_Error( 'repeat_unsupported' ); } }
+			// Reviewed IDs stay visible even when a product has since
+			// disappeared from discovery; Preview explains missing products.
+			$values['selector'] = 'manual_ids';
+			$values['ids'] = implode( ',', $ids );
+		} elseif ( 'SKU' === $type ) {
+			if ( array( 'price_range', 'sku', 'type', 'warnings' ) !== $selection_keys && array( 'sku', 'type', 'warnings' ) !== $selection_keys ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+			$sku = $selection['sku'] ?? null;
+			if ( ! is_string( $sku ) || '' === $sku ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+			$values['selector'] = 'sku';
+			$values['sku'] = $sku;
+		} elseif ( 'CATEGORY' === $type ) {
+			if ( array( 'include_children', 'price_range', 'term_id', 'type', 'warnings' ) !== $selection_keys && array( 'include_children', 'term_id', 'type', 'warnings' ) !== $selection_keys ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+			$term_id = $selection['term_id'] ?? null;
+			if ( ! is_int( $term_id ) || $term_id < 1 ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+			$values['selector'] = 'category';
+			$values['category'] = (string) $term_id;
+			if ( ! empty( $selection['include_children'] ) ) { $values['include_subcategories'] = '1'; }
+		} else { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		try { $range = Price_Range_Filter::from_data( $selection['price_range'] ?? array( 'enabled' => false ) ); }
+		catch ( Price_Validation_Error $error ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		$range_data = $range->data();
+		if ( ! empty( $range_data['enabled'] ) ) {
+			$values['range_enabled'] = '1';
+			if ( null !== $range_data['min'] ) { $values['range_min'] = $range_data['min']; }
+			if ( null !== $range_data['max'] ) { $values['range_max'] = $range_data['max']; }
+			$values['range_basis'] = $range_data['basis'];
+		}
+		if ( ! is_string( $operation['type'] ?? null ) || ! in_array( $operation['type'], array( Price_Operation::SET, Price_Operation::INCREASE_FIXED, Price_Operation::DECREASE_FIXED, Price_Operation::INCREASE_PERCENT, Price_Operation::DECREASE_PERCENT, Price_Operation::CLEAR_SALE, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		$op_keys = array_keys( $operation );
+		sort( $op_keys, SORT_STRING );
+		if ( ! in_array( $op_keys, array( array( 'input', 'type' ), array( 'field', 'input', 'type' ), array( 'ending', 'field', 'input', 'type' ) ), true ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		// Legacy plans predate the explicit field key and default to regular.
+		$field = $operation['field'] ?? Price_Operation::FIELD_REGULAR;
+		if ( ! is_string( $field ) || ! in_array( $field, Price_Operation::FIELDS, true ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		$ending = $operation['ending'] ?? 'default';
+		if ( ! is_string( $ending ) || ! in_array( $ending, array( 'default', '99', '95', '90', 'whole' ), true ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		try { Price_Decimal::parse( $operation['input'] ?? null ); }
+		catch ( \Throwable $error ) {
+			// Clear Sale stores a blank input; anything else unparseable is unsupported.
+			if ( Price_Operation::CLEAR_SALE !== $operation['type'] || '' !== ( $operation['input'] ?? null ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		}
+		if ( Price_Operation::CLEAR_SALE === $operation['type'] && '' !== ( $operation['input'] ?? null ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		$values['operation'] = $operation['type'];
+		$values['price_field'] = $field;
+		$values['amount'] = Price_Operation::CLEAR_SALE === $operation['type'] ? '' : (string) ( $operation['input'] ?? '' );
+		$values['ending'] = $ending;
+		if ( ! is_int( $policy['max_products_changed'] ?? null ) || $policy['max_products_changed'] < 0 || $policy['max_products_changed'] > Free_Support_Contract::MAX_JOB_PRODUCTS ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		$policy_keys = array_keys( $policy );
+		sort( $policy_keys, SORT_STRING );
+		if ( array( 'block_zero', 'max_decrease_percent', 'max_increase_percent', 'max_products_changed', 'warning_threshold_percent' ) !== $policy_keys ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		$values['max_products'] = (string) $policy['max_products_changed'];
+		foreach ( array( 'max_increase_percent' => 'max_increase', 'max_decrease_percent' => 'max_decrease', 'warning_threshold_percent' => 'warning_threshold' ) as $stored => $form_key ) {
+			if ( ! is_string( $policy[ $stored ] ?? null ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+			$values[ $form_key ] = $policy[ $stored ];
+		}
+		if ( ! is_bool( $policy['block_zero'] ?? null ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		if ( $policy['block_zero'] ) { $values['block_zero'] = '1'; }
+		return $values;
+	}
+
+	/**
+	 * #232/#231 excluded-product transparency: IDs the previous job's Preview
+	 * explicitly excluded from its frozen population.
+	 *
+	 * A refined historical plan freezes only its included targets in
+	 * `selection`; repeat prefills exactly those, so excluded products can
+	 * never silently re-enter a bulk operation. The count feeds an explicit
+	 * merchant notice naming how to add products back deliberately. The
+	 * original `requested_selection` is intentionally never used as a repeat
+	 * source: re-resolving it would broaden the operation beyond what the
+	 * merchant reviewed.
+	 *
+	 * @param array $plan_data Change_Plan::data() of a verified source plan.
+	 * @return int[] Sorted explicit exclusion IDs, possibly empty.
+	 */
+	public static function repeat_excluded_ids( array $plan_data ): array {
+		$refinement = $plan_data['selection_refinement'] ?? null;
+		if ( null === $refinement ) { return array(); }
+		if ( ! is_array( $refinement ) || ! is_array( $refinement['excluded_ids'] ?? null ) ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		$ids = $refinement['excluded_ids'];
+		foreach ( $ids as $id ) { if ( ! is_int( $id ) || $id < 1 ) { throw new Price_Validation_Error( 'repeat_unsupported' ); } }
+		$unique = array_values( array_unique( $ids ) );
+		sort( $unique, SORT_NUMERIC );
+		if ( $unique !== $ids ) { throw new Price_Validation_Error( 'repeat_unsupported' ); }
+		return $ids;
+	}
+
 	private static function render_recovery_view( string $public_id, array $form ): void {
 		try { $source = self::recovery_source( $public_id ); }
 		catch ( \Throwable $error ) { echo '<p>' . esc_html__( 'No recoverable Apply conflicts are visible to your account for this job.', 'writeleash' ) . '</p>'; return; }
@@ -581,6 +737,59 @@ final class Free_Admin {
 	}
 
 	/**
+	 * #232 Repeat entry view: an authorized historical job rendered as
+	 * editable suggestions in the established Preview form. Read-only
+	 * navigation: opening this view creates no job, writes no prices and
+	 * modifies no historical record. Submitting the form takes the normal
+	 * Preview pipeline with a repeat provenance marker.
+	 */
+	private static function render_repeat_view( string $public_id, array $form ): void {
+		try {
+			$source = self::repeat_source( $public_id );
+			$values = self::repeat_form_values( $source['plan']->data() );
+		} catch ( Price_Validation_Error $error ) {
+			if ( 'repeat_unsupported' === $error->reason() ) {
+				echo '<h2>' . esc_html__( 'Repeat as new Preview', 'writeleash' ) . '</h2>';
+				echo '<p>' . esc_html( self::reason_message( 'repeat_unsupported' ) ) . '</p>';
+				echo '<p><a class="button" href="' . esc_url( self::page_url( 'job', $public_id ) ) . '">' . esc_html__( 'Cancel and return to results', 'writeleash' ) . '</a></p>';
+				return;
+			}
+			echo '<p>' . esc_html( self::reason_message( 'repeat_unavailable' ) ) . '</p>';
+			return;
+		} catch ( \Throwable $error ) {
+			echo '<p>' . esc_html( self::reason_message( 'repeat_unavailable' ) ) . '</p>';
+			return;
+		}
+
+		echo '<h2>' . esc_html__( 'Repeat as new Preview', 'writeleash' ) . '</h2>';
+		echo '<p><strong>' . esc_html( sprintf( /* translators: %s: source job public identifier. */ __( 'Based on previous job %s.', 'writeleash' ), $source['job']['public_id'] ) ) . '</strong></p>';
+		echo '<p>' . esc_html( sprintf( /* translators: %s: complete saved price-operation description. */ __( 'Original operation: %s', 'writeleash' ), self::task_description( $source['plan']->data() ) ) ) . '</p>';
+		echo '<p>' . esc_html__( 'This creates a new pricing operation. Current product prices and eligibility will be checked, current category membership may differ from the previous job, and a new Preview with a separate approval is required. This is not Undo, Resume or an automatic retry: no historical approval stays valid and no price changes until you approve the new Preview.', 'writeleash' ) . '</p>';
+		echo '<p><a class="button" href="' . esc_url( self::page_url( 'job', $public_id ) ) . '">' . esc_html__( 'Cancel and return to results', 'writeleash' ) . '</a> <a href="' . esc_url( self::page_url( 'job', $source['job']['public_id'] ) ) . '">' . esc_html__( 'View original results', 'writeleash' ) . '</a></p>';
+		if ( 'CATEGORY' === ( $source['plan']->data()['selection']['type'] ?? '' ) ) {
+			echo '<p><strong>' . esc_html__( 'Category selections use current membership: products added to or removed from the category since the previous job enter or leave the new Preview. The new Preview freezes its own product list for your review.', 'writeleash' ) . '</strong></p>';
+		} else {
+			echo '<p><strong>' . esc_html__( 'Exact product selections reuse the previously reviewed product IDs as editable suggestions. Every ID is checked again against the current catalog, your current editing rights and supported product types; missing or unsupported products are explained in the new Preview and never applied.', 'writeleash' ) . '</strong></p>';
+		}
+		try { $excluded = self::repeat_excluded_ids( $source['plan']->data() ); }
+		catch ( \Throwable $error ) { $excluded = null; }
+		if ( null === $excluded ) {
+			echo '<p>' . esc_html( self::reason_message( 'repeat_unsupported' ) ) . '</p>';
+			return;
+		}
+		if ( array() !== $excluded ) {
+			echo '<p><strong>' . esc_html( sprintf( /* translators: %d: number of products the previous job excluded. */ _n( 'The previous job’s Preview excluded %d product from its frozen population; it is not included in the suggestion below. Add its ID explicitly if you want it reviewed again.', 'The previous job’s Preview excluded %d products from its frozen population; they are not included in the suggestion below. Add their IDs explicitly if you want them reviewed again.', count( $excluded ), 'writeleash' ), count( $excluded ) ) ) . '</strong></p>';
+		}
+		if ( ( $form['source_job'] ?? null ) === $public_id ) { $values = array_merge( $values, $form ); }
+		self::render_selector_form( $values, null, $public_id );
+	}
+
+	/** Read-only navigation to the repeat view; the link itself authorizes nothing. */
+	private static function repeat_action_link( array $job ): void {
+		echo '<a class="button" href="' . esc_url( self::page_url( 'repeat', $job['public_id'] ) ) . '">' . esc_html__( 'Repeat as new Preview', 'writeleash' ) . '</a>';
+	}
+
+	/**
 	 * Preview step: plan with #107, import as a PLANNED (or BLOCKED) #109
 	 * job. Blocked plans are returned for inspection and can never approve.
 	 */
@@ -591,7 +800,22 @@ final class Free_Admin {
 		}
 		try {
 			$source = null;
-			if ( null !== ( $post['source_job'] ?? null ) ) {
+			$repeat = null;
+			if ( '1' === ( $post['repeat'] ?? null ) && is_string( $post['source_job'] ?? null ) ) {
+				// #232 Repeat as new Preview: the historical job is a
+				// configuration source, never execution authority. The source
+				// plan must verify, its stored configuration must map onto
+				// currently supported editable values, and the merchant's
+				// submitted form is then planned from scratch against current
+				// WooCommerce data through the established pipeline below.
+				$repeat = self::repeat_source( $post['source_job'] );
+				// Refuse when the stored configuration itself is no longer
+				// supported, even if the submitted fields look valid: the
+				// merchant never reviewed a form for this source, so there is
+				// no reviewed fallback to execute.
+				self::repeat_form_values( $repeat['plan']->data() );
+				$selection = self::build_selection( $post );
+			} elseif ( null !== ( $post['source_job'] ?? null ) ) {
 				$source = self::recovery_source( $post['source_job'] );
 				$ids = self::picker_ids( $post );
 				foreach ( $ids as $id ) { if ( ! isset( $source['rows'][$id] ) ) { throw new Price_Validation_Error( 'invalid_conflict_selection' ); } }
@@ -611,7 +835,16 @@ final class Free_Admin {
 				// Re-read source membership after planning; it grants no execution approval.
 				$latest = self::recovery_source( $post['source_job'] );
 				foreach ( $selection->data()['ids'] as $id ) { if ( ! isset( $latest['rows'][$id] ) ) { throw new Price_Validation_Error( 'invalid_conflict_selection' ); } }
-				$plan = $plan->with_source_job( $source['job']['public_id'] );
+				$plan = $plan->with_source_job( $source['job']['public_id'] )->with_source_kind( Change_Plan::SOURCE_RECOVERY );
+			}
+			if ( null !== $repeat ) {
+				// Bounded explanatory provenance on the fresh immutable plan.
+				// Re-read the source after planning so a concurrently
+				// deleted, revoked or tampered source cannot be cited; the
+				// reference grants no capability and no approval.
+				$latest = self::repeat_source( $post['source_job'] );
+				if ( $latest['job']['plan_id'] !== $repeat['job']['plan_id'] ) { throw new Price_Validation_Error( 'repeat_unavailable' ); }
+				$plan = $plan->with_source_job( $repeat['job']['public_id'] )->with_source_kind( Change_Plan::SOURCE_REPEAT );
 			}
 			// The frozen selected population is authoritative even if the policy
 			// blocks it or most selected items are unchanged/unsupported.
@@ -910,6 +1143,8 @@ final class Free_Admin {
 			self::render_refinement_view( $job_param, $offset );
 		} elseif ( 'recovery' === $view ) {
 			self::render_recovery_view( $job_param, $form );
+		} elseif ( 'repeat' === $view ) {
+			self::render_repeat_view( $job_param, $form );
 		} elseif ( 'preview' === $view ) {
 			self::render_preview_view( $job_param, $offset );
 		} elseif ( 'job' === $view ) {
@@ -1039,6 +1274,8 @@ final class Free_Admin {
 			'undo_terminal' => __( 'This Undo has already finished.', 'writeleash' ),
 			'undo_unavailable' => __( 'Undo is currently unavailable; no price was restored.', 'writeleash' ),
 			'worker_failed' => __( 'The background step could not run. Saved progress was kept; try Resume remaining products again.', 'writeleash' ),
+			'repeat_unavailable' => __( 'No repeatable configuration is visible to your account for that job. It may not exist, you may lack access, or its saved preview may be damaged. Nothing was changed.', 'writeleash' ),
+			'repeat_unsupported' => __( 'The previous job uses a selection, price range, operation or safety setting this version no longer supports. Repeat cannot suggest a replacement on its own; set the values directly in a new preview. Nothing was changed.', 'writeleash' ),
 			'action_failed' => __( 'The action could not be completed; nothing was changed.', 'writeleash' ),
 		);
 		if ( isset( $messages[ $reason ] ) ) {
@@ -1428,8 +1665,20 @@ final class Free_Admin {
 		foreach ( $entries as $entry ) {
 			$job = Job_Repository::read( (int) $entry['job_id'] );
 			if ( ! $job || ! self::authorized_for_job( $job, get_current_user_id() ) ) { continue; }
-			try { $description = self::task_description( Job_Repository::hydrate_plan( $job )->data() ); }
-			catch ( \Throwable $error ) { $description = __( 'Saved task details unavailable; needs checking', 'writeleash' ); }
+			$repeatable = false;
+			$description = null;
+			try {
+				$plan_data = Job_Repository::hydrate_plan( $job )->data();
+				$description = self::task_description( $plan_data );
+				// Offer Repeat only when the stored configuration maps onto
+				// currently supported editable values; anything else stays a
+				// plain history row instead of a misleading entry point.
+				self::repeat_form_values( $plan_data );
+				$repeatable = true;
+			}
+			catch ( \Throwable $error ) {
+				if ( null === $description ) { $description = __( 'Saved task details unavailable; needs checking', 'writeleash' ); }
+			}
 			echo '<tr><td><strong>' . esc_html( $description ) . '</strong><br>';
 
 			echo esc_html( sprintf( /* translators: %s: creator display name. */ __( 'Created by %s', 'writeleash' ), self::operator_name( (int) $job['creator_id'] ) ) );
@@ -1440,7 +1689,7 @@ final class Free_Admin {
 			echo '<td>' . esc_html( self::undo_availability( $job, $entry ) );
 
 			if ( $entry['undo_eligible'] ) { echo '<br>' . esc_html( sprintf( /* translators: %s: localized expiry date and time. */ __( 'Until %s', 'writeleash' ), self::site_time( $entry['undo_expires_at'] ) ) ); }
-			echo '</td><td>'; self::job_action_link( $job ); self::render_export_form( $job ); echo '</td></tr>';
+			echo '</td><td>'; self::job_action_link( $job ); if ( $repeatable ) { echo ' '; self::repeat_action_link( $job ); } self::render_export_form( $job ); echo '</td></tr>';
 		}
 		echo '</tbody></table></div>';
 	}
@@ -1690,11 +1939,16 @@ final class Free_Admin {
 		echo '</div>';
 	}
 
-	private static function render_selector_form( array $values = array(), ?array $recovery = null ): void {
+	private static function render_selector_form( array $values = array(), ?array $recovery = null, ?string $repeat_job = null ): void {
 		if ( ! self::can_mutate() ) { return; }
 		$defaults = array( 'selector' => 'ids', 'ids' => '', 'sku' => '', 'category' => '', 'include_subcategories' => '', 'range_enabled' => '', 'range_min' => '', 'range_max' => '', 'range_basis' => '', 'operation' => Price_Operation::SET, 'price_field' => Price_Operation::FIELD_REGULAR, 'amount' => '', 'max_products' => (string) Free_Support_Contract::MAX_JOB_PRODUCTS, 'max_increase' => '50', 'max_decrease' => '50', 'warning_threshold' => '20', 'product_search' => '', 'category_search' => '', 'product_page' => '1', 'category_page' => '1' );
 		$values = array_merge( $defaults, $values );
 		$values['ending'] = $values['ending'] ?? 'default';
+		// #232 repeat provenance: echoed only for a well-formed source-job
+		// reference supplied by the repeat view. The marker routes the
+		// submission through the repeat branch of process_preview(); it
+		// grants no authority and the reference is re-verified there.
+		if ( null !== $repeat_job && ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $repeat_job ) ) { $repeat_job = null; }
 		if ( null === $recovery ) {
 			$selected = array(); $matches = array( 'results' => array(), 'more' => false ); $categories = $matches;
 			try {
@@ -1706,6 +1960,7 @@ final class Free_Admin {
 			}
 			echo '<form id="writeleash-free-selection-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-discovery-url="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '" data-discovery-action="' . esc_attr( Product_Discovery::ACTION ) . '" data-discovery-nonce="' . esc_attr( wp_create_nonce( Product_Discovery::ACTION ) ) . '" data-max-selection="' . esc_attr( (string) Free_Support_Contract::MAX_JOB_PRODUCTS ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_PREVIEW ) . '"><input type="hidden" name="picker_present" value="1">';
+			if ( null !== $repeat_job ) { echo '<input type="hidden" name="source_job" value="' . esc_attr( $repeat_job ) . '"><input type="hidden" name="repeat" value="1">'; }
 			wp_nonce_field( self::ACTION_PREVIEW );
 			echo '<input type="hidden" name="discovery_nonce" value="' . esc_attr( wp_create_nonce( Product_Discovery::ACTION ) ) . '">';
 			echo '<fieldset><legend>' . esc_html__( '1. Select products', 'writeleash' ) . '</legend>';
@@ -1872,7 +2127,12 @@ final class Free_Admin {
 		$data = $plan->data();
 		if ( isset( $data['selection_refinement'] ) ) { self::render_refinement_counts( $plan ); }
 		if ( isset( $data['source_job'] ) ) {
-			echo '<p>' . esc_html__( 'Fresh Preview from chosen Apply conflicts. Original results stay unchanged.', 'writeleash' ) . '';
+			// Creation-time workflow discriminator, never a live inference:
+			// `repeat` marks an independent #232 repeat however the source
+			// job later changes; legacy plans without the field predate the
+			// discriminator, when only #205 recovery wrote `source_job`.
+			$is_repeat = Change_Plan::SOURCE_REPEAT === $plan->source_kind();
+			echo '<p>' . ( $is_repeat ? esc_html__( 'Fresh Preview repeated from a previous job. Original results stay unchanged; this Preview needs its own approval before Apply.', 'writeleash' ) : esc_html__( 'Fresh Preview from chosen Apply conflicts. Original results stay unchanged.', 'writeleash' ) ) . '';
 			if ( null !== self::load_job_for_view( $data['source_job'] ) ) { echo ' <a href="' . esc_url( self::page_url( 'job', $data['source_job'] ) ) . '">' . esc_html__( 'View original results', 'writeleash' ) . '</a>'; }
 			echo '</p>';
 		}
@@ -2249,6 +2509,13 @@ final class Free_Admin {
 			$recovery = self::recovery_source( $public_id );
 			if ( $recovery['rows'] ) { echo '<p><a class="button" href="' . esc_url( self::page_url( 'recovery', $public_id ) ) . '">' . esc_html__( 'Re-preview conflicted products', 'writeleash' ) . '</a></p>'; }
 		} catch ( \Throwable $error ) { /* No recovery action without verified authority and evidence. */ }
+		try {
+			// Repeat is offered for any verified historical plan, independent
+			// of Apply conflicts. Unsupported stored configurations stay
+			// explainable from the repeat view instead of hiding the entry.
+			self::repeat_source( $public_id );
+			echo '<p>'; self::repeat_action_link( $job ); echo ' <span class="description">' . esc_html__( 'Start a new editable Preview from this job’s settings. No prices change until you approve the new Preview.', 'writeleash' ) . '</span></p>';
+		} catch ( \Throwable $error ) { /* No repeat action without verified authority and plan integrity. */ }
 		self::render_export_form( $job );
 		echo '<section class="writeleash-undo"><h2>' . esc_html( _x( 'Undo', 'merchant price workflow label', 'writeleash' ) ) . '</h2>';
 		if ( $complete_evidence ) { self::render_undo_section( $job, $history, $plan->price_field() ); }
