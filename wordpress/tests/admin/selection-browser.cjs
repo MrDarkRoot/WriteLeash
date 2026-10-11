@@ -49,11 +49,17 @@ async function action(page, name) {
 }
 async function presets230(page, suffix) {
     const before = observe();
+    const bound = before.prices[fixture.products[0]].woo;
+    const expected = fixture.products.slice(0, 2).filter(id => Number(before.prices[id].woo) === Number(bound));
     await page.locator('#writeleash-free-selector').selectOption('manual_ids');
     if (!await page.locator('#writeleash-free-advanced-selection').getAttribute('open').then(value => value !== null)) { await page.locator('#writeleash-free-advanced-selection > summary').click(); }
     await page.locator('#writeleash-free-ids').fill(fixture.products.slice(0, 2).join(','));
     await page.locator('#writeleash-free-amount').fill('80');
     await page.locator('#writeleash-free-ending').selectOption('99');
+    await page.locator('#writeleash-free-range-enabled').check();
+    await page.locator('#writeleash-free-range_min').fill(bound);
+    await page.locator('#writeleash-free-range_max').fill(bound);
+    await page.locator('#writeleash-free-range-basis').selectOption('regular_price');
     await page.locator('#writeleash-preset-name').fill('Preset & ' + suffix);
     await action(page, 'Save as preset');
     ok((await page.locator('#wpbody-content').innerText()).includes('Preset saved.'), '#230 native save notice ' + suffix);
@@ -61,6 +67,10 @@ async function presets230(page, suffix) {
     await action(page, 'Load preset');
     ok(await page.locator('#writeleash-free-ids').inputValue() === fixture.products.slice(0, 2).join(','), '#230 exact chosen IDs reopen ' + suffix);
     ok(await page.locator('#writeleash-free-ending').inputValue() === '99', '#230 ending reopens ' + suffix);
+    ok(await page.locator('#writeleash-free-range-enabled').isChecked(), '#230 enabled range reopens ' + suffix);
+    ok(Number(await page.locator('#writeleash-free-range_min').inputValue()) === Number(bound), '#230 exact minimum reopens ' + suffix);
+    ok(Number(await page.locator('#writeleash-free-range_max').inputValue()) === Number(bound), '#230 independent maximum reopens ' + suffix);
+    ok(await page.locator('#writeleash-free-range-basis').inputValue() === 'regular_price', '#230 independent basis reopens ' + suffix);
     const unchanged = observe();
     assert.deepEqual(unchanged.jobs, before.jobs, '#230 CRUD creates no job');
     assert.deepEqual(unchanged.prices, before.prices, '#230 CRUD preserves live prices');
@@ -73,6 +83,8 @@ async function presets230(page, suffix) {
     await action(page, 'Preview price changes');
     ok(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count() === 1, '#230 fresh Preview needs independent approval ' + suffix);
     ok(observe().saves === before.saves, '#230 Preview still performs no Woo saves ' + suffix);
+    const preview = observe().jobs[0];
+    assert.deepEqual(JSON.parse(preview.plan_json).resolved_product_ids, expected, '#230 persisted range freezes exact current membership');
     await page.goto(home);
     await action(page, 'Delete preset');
     ok(await page.getByRole('button', { name: 'Load preset', exact: true }).count() === 0, '#230 delete ' + suffix);

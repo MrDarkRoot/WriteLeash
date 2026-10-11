@@ -69,7 +69,7 @@ they are omitted from the public allowlist and loaded only by repository tests.
 | LICENSE | Reviewed GPLv2 text | PUBLIC_FREE_REQUIRED |
 | readme.txt | Minimum Woo-only user instructions; full copy belongs to #121 | PUBLIC_FREE_REQUIRED |
 
-All 33 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
+All 34 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
 inventory (multi-class files included):
 
 | File stem (`includes/free/class-<stem>.php`) | Classes / interfaces / traits | Classification |

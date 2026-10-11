@@ -7,9 +7,13 @@ defined( 'ABSPATH' ) || exit;
 final class Price_Preset_Configuration {
 	public const MAX_BYTES = 20000;
 	public static function capture( array $form ): array {
+		// This adapter accepts editable form configuration, never a refined Plan.
+		foreach ( array( 'selection_refinement', 'excluded_ids', 'candidate_ids', 'refused_ids', 'source_selection' ) as $key ) {
+			if ( array_key_exists( $key, $form ) ) { throw new Price_Validation_Error( 'invalid_preset' ); }
+		}
 		$selection = Free_Admin::build_selection( $form )->data();
 		unset( $selection['warnings'] );
-		$config = array( 'schema' => 1, 'selection' => $selection,
+		$config = array( 'schema' => 2, 'selection' => $selection,
 			'operation' => Free_Admin::build_operation( $form )->data(),
 			'safety' => Free_Admin::build_policy( $form )->data() );
 		if ( strlen( wp_json_encode( $config ) ) > self::MAX_BYTES ) { throw new Price_Validation_Error( 'invalid_preset' ); }
@@ -18,14 +22,30 @@ final class Price_Preset_Configuration {
 
 	/** Also useful for a future historical configuration prefill; never imports a plan. */
 	public static function form( array $config ): array {
-		if ( 1 !== ( $config['schema'] ?? null ) || strlen( wp_json_encode( $config ) ) > self::MAX_BYTES ) { throw new Price_Validation_Error( 'invalid_preset' ); }
+		$schema = $config['schema'] ?? null;
+		if ( ! in_array( $schema, array( 1, 2 ), true ) || strlen( wp_json_encode( $config ) ) > self::MAX_BYTES ) { throw new Price_Validation_Error( 'invalid_preset' ); }
 		$s = $config['selection'] ?? array(); $o = $config['operation'] ?? array(); $p = $config['safety'] ?? array();
 		if ( ! is_array( $s ) || ! is_array( $o ) || ! is_array( $p ) ) { throw new Price_Validation_Error( 'invalid_preset' ); }
+		// Schema 1 predates range filtering and means unfiltered, without migration
+		// writes or HMAC changes. Schema 2 requires exact canonical range material.
+		if ( 1 === $schema ) {
+			if ( array_key_exists( 'price_range', $s ) ) { throw new Price_Validation_Error( 'invalid_preset' ); }
+			$range = Price_Range_Filter::disabled()->data();
+		} else {
+			if ( ! is_array( $s['price_range'] ?? null ) ) { throw new Price_Validation_Error( 'invalid_preset' ); }
+			try { $range = Price_Range_Filter::from_data( $s['price_range'] )->data(); }
+			catch ( Price_Validation_Error $error ) { throw new Price_Validation_Error( 'invalid_preset' ); }
+			if ( $range !== $s['price_range'] ) { throw new Price_Validation_Error( 'invalid_preset' ); }
+		}
 		$form = array( 'operation' => $o['type'] ?? null, 'amount' => $o['input'] ?? null,
 			'price_field' => $o['field'] ?? null, 'ending' => $o['ending'] ?? 'default',
 			'max_products' => is_int( $p['max_products_changed'] ?? null ) ? (string) $p['max_products_changed'] : null,
 			'max_increase' => $p['max_increase_percent'] ?? null, 'max_decrease' => $p['max_decrease_percent'] ?? null,
 			'warning_threshold' => $p['warning_threshold_percent'] ?? null );
+		$form['range_enabled'] = $range['enabled'] ? '1' : '';
+		$form['range_min'] = $range['min'] ?? '';
+		$form['range_max'] = $range['max'] ?? '';
+		$form['range_basis'] = $range['basis'];
 		if ( ! is_bool( $p['block_zero'] ?? null ) ) { throw new Price_Validation_Error( 'invalid_preset' ); }
 		if ( $p['block_zero'] ) { $form['block_zero'] = '1'; }
 		if ( 'IDS' === ( $s['type'] ?? null ) ) {
@@ -40,8 +60,9 @@ final class Price_Preset_Configuration {
 			if ( $s['include_children'] ) { $form['include_subcategories'] = '1'; }
 		} else { throw new Price_Validation_Error( 'invalid_preset' ); }
 		// Reject unknown fields, malformed types and noncanonical saved configuration.
-		// Future selection metadata can extend the versioned selection envelope.
-		if ( self::capture( $form ) !== $config ) { throw new Price_Validation_Error( 'invalid_preset' ); }
+		$canonical = self::capture( $form );
+		if ( 1 === $schema ) { $canonical['schema'] = 1; unset( $canonical['selection']['price_range'] ); }
+		if ( $canonical !== $config ) { throw new Price_Validation_Error( 'invalid_preset' ); }
 		return $form;
 	}
 }

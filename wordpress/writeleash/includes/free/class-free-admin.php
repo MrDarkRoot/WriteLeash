@@ -513,6 +513,7 @@ final class Free_Admin {
 	private static function render_presets(): void {
 		if ( ! self::can_mutate() ) { return; }
 		echo '<h2>' . esc_html__( 'Saved price presets', 'writeleash' ) . '</h2><p>' . esc_html__( 'Presets save configuration only. Load, edit, then prepare and approve a fresh Preview. Current products, permissions and limits are checked again. Up to 20 presets per store; creators and administrators can manage them.', 'writeleash' ) . '</p>';
+		echo '<p>' . esc_html__( 'Presets save the editable selection and price range, not individual Preview exclusions. To exclude products, create a fresh Preview and confirm exclusions before approving it.', 'writeleash' ) . '</p>';
 		try { $records = Price_Preset_Repository::listing(); }
 		catch ( \Throwable $error ) { echo '<p>' . esc_html__( 'Presets are unavailable right now.', 'writeleash' ) . '</p>'; return; }
 		foreach ( $records as $record ) {
@@ -2402,6 +2403,7 @@ final class Free_Admin {
 		}
 		echo '<p class="writeleash-refinement-counts">' . esc_html( sprintf( /* translators: 1: resolved candidates, 2: included targets, 3: excluded targets, 4: changing targets, 5: unchanged targets, 6: refused candidates. */ __( 'Resolved candidates %1$d · Included targets %2$d · Excluded targets %3$d · Changing included targets %4$d · Unchanged included targets %5$d · Unsupported/refused candidates %6$d', 'writeleash' ), count( $r['candidate_ids'] ), $s['selected'], count( $r['excluded_ids'] ), $s['changing'], $s['unchanged'], count( $r['refused_ids'] ) ) ) . '</p>';
 		echo '<p>' . esc_html__( 'Only included targets belong to this immutable Plan. Excluded and refused candidates receive no Apply or Undo entries. A separate approval is required.', 'writeleash' ) . '</p>';
+		echo '<p>' . esc_html__( 'This refined Preview cannot be saved as a preset. Its individual exclusions stay frozen here; an ordinary preset does not preserve them or change this Preview.', 'writeleash' ) . '</p>';
 	}
 
 	private static function render_refinement_view( string $public_id, int $offset ): void {

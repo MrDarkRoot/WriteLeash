@@ -78,7 +78,10 @@ try {
  $cas230 = new ReflectionMethod( Presets::class, 'replace' ); $cas230->setAccessible( true );
  try { $cas230->invoke( null, $slot230, $old_cas230, null ); throw new RuntimeException( 'Stale delete accepted' ); }
  catch ( WriteLeash\Price_Validation_Error $error230 ) { eq( $error230->reason(), 'preset_changed', 'stale conditional delete rejected' ); }
- eq( Presets::load( $new_cas230['id'] )['name'], 'Reused slot', 'new record survives stale delete' ); Presets::delete( $new_cas230['id'] );
+ eq( Presets::load( $new_cas230['id'] )['name'], 'Reused slot', 'new record survives stale delete' );
+ try { $cas230->invoke( null, $slot230, $old_cas230, $old_cas230 ); throw new RuntimeException( 'Stale rename accepted' ); }
+ catch ( WriteLeash\Price_Validation_Error $error230 ) { eq( $error230->reason(), 'preset_changed', 'stale conditional rename rejected' ); }
+ eq( Presets::load( $new_cas230['id'] )['name'], 'Reused slot', 'new record survives stale rename' ); Presets::delete( $new_cas230['id'] );
  // Inject a competing real save immediately before slot reservation.
  // The first INSERT must ignore that occupied slot, not upsert its creator.
  $raced230 = false; $competing230 = null;
@@ -180,3 +183,4 @@ foreach ( Presets::listing() as $record230 ) { eq( preset_call230( 'delete', $re
 eq( Presets::listing(), array(), 'all slots deleted' );
 eq( Repo::read( (int) $new_job230['id'] ), $new_job230, 'deletion leaves existing job and plan untouched' );
 marker( '#230 preset CRUD, actor/nonce/integrity/no-write/current-Preview and DB/cache durability' );
+require __DIR__ . '/presets-selection-integration.php';

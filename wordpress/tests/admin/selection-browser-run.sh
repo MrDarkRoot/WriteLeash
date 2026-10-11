@@ -101,6 +101,8 @@ SETUP
         docker exec -e WL170_MODE=seed -e WL170_FIXTURE=/tmp/wl170-fixture.json "$container" wp --path="$WL167_SITE" eval-file /opt/tests/admin/regression-browser-fixture.php
         docker cp "$container:/tmp/wl170-fixture.json" "$WL170_FIXTURE"
         node "$here/exclusions-browser.cjs"
+        # Integrated presets keep ranges and explicitly leave frozen exclusions to Preview.
+        node "$here/presets-browser.cjs"
       done
     fi
     docker exec "$container" sh -c 'kill "$(cat /tmp/wl167-web.pid)"'

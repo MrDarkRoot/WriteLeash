@@ -150,3 +150,17 @@ The Admin source identity includes native configuration-only preset controls.
 Existing screenshots and result JSONs remain historical. All original browser
 assertions remain enabled; hosted Admin journeys additionally test enhanced and
 no-JavaScript preset CRUD, no Woo writes and fresh independent Preview.
+
+### #241 takeover: integrated #230/#231/#234 source review
+
+The fingerprint above now identifies the integrated range, preset and refinement
+UI after rebasing onto `464cfd0b505b07de14c3276a9cbd8a261612525b`. This refresh
+follows genuine local WordPress/Woo browser execution and agent-operated render
+review, not an expected-hash substitution. New evidence and the source identity
+are in [the takeover receipt](../230/TAKEOVER.md) and `../230/captures/`.
+Chromium and Firefox each passed the integrated enhanced/no-JS preset keyboard
+journey (57 checks, two clean axe scans). The unchanged #170 Firefox journey
+passed 264 assertions and 13 clean axe scans, with independent 120.00 Apply and
+93.00 Undo conflict preservation. Historical #170 PNG/result bytes and observer
+assertions are untouched. Exact-head hosted Admin still must rerun every original
+Chromium/Firefox, refinement and database/cache journey before READY.
