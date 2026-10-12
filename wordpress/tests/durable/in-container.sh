@@ -29,6 +29,7 @@ for host in mysql mariadb; do
       wp --path="$site" redis status
     fi
     echo "#108 engine=$host cache=$cache"
+    WL108_CACHE="$cache" wp --path="$site" eval-file /opt/tests/durable/journal-ddl-integration.php
     WL108_CACHE="$cache" wp --path="$site" eval-file /opt/tests/durable/integration.php
     # One focused cache probe with the optional instance cache enabled at
     # request startup; restore the prior value so the regular journal gate
