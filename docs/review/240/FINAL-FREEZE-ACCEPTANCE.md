@@ -1,4 +1,37 @@
-# #240 — FINAL SOURCE FREEZE & ACCEPTANCE
+# #240 — ACTIVE FINAL SOURCE FREEZE & ACCEPTANCE
+
+## Active candidate — Founder-selected PR #255 merge
+
+**Selected production source:** `8748d831f8a3a0931b320e4bc67abf85ece964b0`.
+**New independently rebuilt ZIP A/B:**
+`a77704b42c9bbb2350f32b0de23a3c46f3a0fe76c617561b91133651ec9d8bb7`.
+**Observed:** 2,152,069 bytes; 46 `writeleash/` members; Version/Stable Tag 0.2.0;
+manifest `5155ca3121772cac6397dcd4f8b90b5cb726beb14f29b0cde74ae89ab321bca3`;
+runtime/SVN tree `ea4486c1a0b813c5773a54f4996f0ebd2cc68eb149f3157b7d648614924cdcb4`;
+11 matching separate assets; **Plugin Check 2.1.0: 0 ERROR / 15 WARNING**.
+
+The active [selected-source snapshot](refreeze-8748/README.md) contains corrected
+fixture/negative controls, two-build identity, fresh installed-ZIP acceptance,
+all source-level warning dispositions, local SVN parity and classifications.
+The evidence/test branch HEAD and its eventual merge commit do **not** replace
+the selected release source. Public payloads are built only from 8748d83.
+
+**Technical verdict: READY_FOR_FOUNDER_RELEASE_GO**, with final exact evidence-HEAD
+CI/review/merge results linked in PR #254 and the #240 handoff. No WordPress.org
+publication, confirmation or remote SVN writes are authorized/performed.
+Publisher slug-specific permission remains NOT_CONFIRMED; **#240 stays OPEN**
+because its acceptance criteria include actual publication/public verification.
+
+## Historical snapshot — superseded 04dbbcd / 509… artifact
+
+**Everything below is the preserved former acceptance report for different
+runtime bytes, not active release instructions or fresh acceptance of the new
+ZIP.** Its exact original blob is retained in
+[HISTORICAL-REPORT.md](refreeze-8748/HISTORICAL-REPORT.md). Original `final/` receipts,
+raw scan and command-provenance gaps remain unchanged. The old publication
+checksum below is historical and must not be used for the active candidate.
+
+# Historical #240 — FINAL SOURCE FREEZE & ACCEPTANCE
 
 **Overall verdict: READY_FOR_FOUNDER_RELEASE_GO — technical artifact preparation.**
 
