@@ -1,0 +1,41 @@
+PHP Fatal error:  Uncaught RuntimeException: #240 parent: reparented Undo refusal in phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code:17
+Stack trace:
+#0 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code(60): EvalFile_Command::{closure}()
+#1 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85): eval()
+#2 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(59): EvalFile_Command::execute_eval()
+#3 [internal function]: EvalFile_Command->__invoke()
+#4 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Dispatcher/CommandFactory.php(100): call_user_func()
+#5 [internal function]: WP_CLI\Dispatcher\CommandFactory::WP_CLI\Dispatcher\{closure}()
+#6 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Dispatcher/Subcommand.php(497): call_user_func()
+#7 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(470): WP_CLI\Dispatcher\Subcommand->invoke()
+#8 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(493): WP_CLI\Runner->run_command()
+#9 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(136): WP_CLI\Runner->run_command_and_exit()
+#10 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(1228): WP_CLI\Runner->do_early_invoke()
+#11 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Bootstrap/LaunchRunner.php(28): WP_CLI\Runner->start()
+#12 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/bootstrap.php(84): WP_CLI\Bootstrap\LaunchRunner->process()
+#13 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/wp-cli.php(35): WP_CLI\bootstrap()
+#14 phar:///home/vanta/.local/bin/wp/php/boot-phar.php(20): include('...')
+#15 /home/vanta/.local/bin/wp(4): include('...')
+#16 {main}
+  thrown in phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code on line 17
+Fatal error: Uncaught RuntimeException: #240 parent: reparented Undo refusal in phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code:17
+Stack trace:
+#0 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code(60): EvalFile_Command::{closure}()
+#1 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85): eval()
+#2 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(59): EvalFile_Command::execute_eval()
+#3 [internal function]: EvalFile_Command->__invoke()
+#4 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Dispatcher/CommandFactory.php(100): call_user_func()
+#5 [internal function]: WP_CLI\Dispatcher\CommandFactory::WP_CLI\Dispatcher\{closure}()
+#6 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Dispatcher/Subcommand.php(497): call_user_func()
+#7 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(470): WP_CLI\Dispatcher\Subcommand->invoke()
+#8 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(493): WP_CLI\Runner->run_command()
+#9 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(136): WP_CLI\Runner->run_command_and_exit()
+#10 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(1228): WP_CLI\Runner->do_early_invoke()
+#11 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Bootstrap/LaunchRunner.php(28): WP_CLI\Runner->start()
+#12 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/bootstrap.php(84): WP_CLI\Bootstrap\LaunchRunner->process()
+#13 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/wp-cli.php(35): WP_CLI\bootstrap()
+#14 phar:///home/vanta/.local/bin/wp/php/boot-phar.php(20): include('...')
+#15 /home/vanta/.local/bin/wp(4): include('...')
+#16 {main}
+  thrown in phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code on line 17
+Error: There has been a critical error on this website.Learn more about troubleshooting WordPress. There has been a critical error on this website.

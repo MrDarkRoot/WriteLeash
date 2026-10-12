@@ -1,0 +1,1 @@
+#240 scale: 1000 selected, 2 changed / 998 unchanged, restored 110/110, exact journal/Undo membership, zero ineligible writes, 1001 rejected PASS

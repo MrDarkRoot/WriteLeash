@@ -57,7 +57,7 @@ try {
 		Verifier::invalidate( $id240 ); $child240 = WriteLeash\Product_Price_Snapshot::fresh_product( $id240 );
 		$child240->set_parent_id( $other240->get_id() ); $child240->save(); WC_Product_Variable::sync( $other240 ); WC_Product_Variable::sync( $parent240 );
 		$op = Undo::initiate( (int) $job['id'], 1 ); $before240 = $count240( $id240 ); $undo240( $op );
-		$check240( 'CONFLICT' === Undo::read_item( $wpdb, (int) $job['id'], $id240 )['state'], 'reparented Undo refusal' );
+		$check240( WriteLeash\Undo_Item_State::CONFLICT === Undo::read_item( $wpdb, (int) $job['id'], $id240 )['state'], 'reparented Undo refusal' );
 		$check240( $count240( $id240 ) === $before240, 'refused Undo zero variation saves' );
 		Verifier::invalidate( $id240 ); $child240 = WriteLeash\Product_Price_Snapshot::fresh_product( $id240 );
 		$check240( $child240->get_parent_id( 'edit' ) === $other240->get_id(), 'external parent preserved' );

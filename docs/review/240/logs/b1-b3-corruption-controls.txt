@@ -1,0 +1,12 @@
+PASS rejection: version
+PASS rejection: stable tag
+PASS rejection: runtime version
+PASS rejection: missing member
+PASS rejection: duplicate
+PASS rejection: unsafe path
+PASS rejection: credential marker
+PASS rejection: archive wrong root
+PASS rejection: archive missing member
+PASS rejection: archive extra member
+PASS rejection: tag drift
+PASS: intact ZIP/staging identity and 11 independent corruption controls

@@ -64,7 +64,7 @@ class Price_Apply_Journal {
 class Product_Price_Snapshot { public static function fresh_product( $id ) { return $GLOBALS['products253'][$id]; } }
 class Price_Cache_Verifier { public static function invalidate( $id ) {} public static function assert_parent_range( ...$args ) {} }
 class Price_Decimal { public static function parse( $value ) { return (string) $value; } }
-class Undo_Item_State { public const CONFLICT = 'CONFLICT', UNDONE = 'UNDONE'; }
+class Undo_Item_State { public const CONFLICT = 'UNDO_CONFLICT', UNDONE = 'UNDONE'; }
 class Undo_State { public static function is_terminal( $state ) { return 'COMPLETED' === $state; } }
 class Undo_Schema { public static function items_table( $db ) { return 'undo_items'; } }
 class Undo_Repository {
@@ -81,7 +81,7 @@ class Undo_Worker {
 			$p = $GLOBALS['products253'][$pid];
 			if ( $p->parent !== $old['parent'] ) {
 				if ( 'blind-variations' === $GLOBALS['fault253'] ) { $p->save(); }
-				Undo_Repository::$rows[$op['job']][$pid] = array( 'product_id' => $pid, 'state' => 'CONFLICT' ); continue;
+				Undo_Repository::$rows[$op['job']][$pid] = array( 'product_id' => $pid, 'state' => Undo_Item_State::CONFLICT ); continue;
 			}
 			// Deliberate B3 fault: claim successful durable outcomes but do not restore.
 			if ( 'false-undone' !== $GLOBALS['fault253'] ) { $p->assign( $old['field'], $old['price'] ); $p->save(); }
