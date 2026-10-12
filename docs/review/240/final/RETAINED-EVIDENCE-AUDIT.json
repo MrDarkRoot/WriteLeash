@@ -1,0 +1,19 @@
+{
+  "original_log_hashes_verified": 92,
+  "old_pass_without_command": 78,
+  "reconstructed_command_records": 48,
+  "unavailable_command_records": 30,
+  "plugin_check_raw_stdout_sha256": "d79651d251587581e50c76415933ea79a8c09264bd19af01979dd886890b05d6",
+  "original_files_preserved": true,
+  "frozen_runtime_equals_original_artifact": true,
+  "inherited_only": [
+    "WP 7.1.2/Woo 11.1.2/PHP 8.2.32 MySQL/MariaDB default/Redis broader Admin/browser profiles",
+    "Official Plugin Check 2.1.0 and official web readme validator",
+    "Lifecycle/uninstall and browser accessibility receipts"
+  ],
+  "superseded_assurance": [
+    "Old aggregate parent observer",
+    "Old scale undone-count-only assertion",
+    "Historical clean-Resume-only upgrade coverage"
+  ]
+}

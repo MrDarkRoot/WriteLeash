@@ -1,0 +1,53 @@
+import concurrent.futures
+import datetime
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+
+base = Path('/tmp/opencode/wl240-env')
+repo = Path('/tmp/opencode/writeleash-240-release')
+receipt = json.loads(Path('/tmp/opencode/wl240-build-a/evidence.json').read_text())
+
+def profile(engine):
+    rows = []
+    site = base / (engine + '-site')
+    wp = ['wp', '--path=' + str(site)]
+    def run(name, command, env):
+        start = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        log = engine + '-r2-' + name + '.txt'
+        with (base / 'evidence' / log).open('w') as output:
+            try:
+                result = subprocess.run(command, stdout=output, stderr=output, env=env, timeout=1800)
+            except subprocess.TimeoutExpired:
+                rows.append(dict(test=name, status='BLOCKED', reason='Local fixture exceeded 1800-second execution budget', evidence=log,
+                                 source_sha=receipt['SOURCE_GIT_SHA'], zip_sha256=receipt['ZIP_SHA256']))
+                (base / 'evidence' / (engine + '-runtime-r2.json')).write_text(json.dumps(rows, indent=2) + '\n')
+                return False
+        rows.append(dict(test=name, source_sha=receipt['SOURCE_GIT_SHA'], zip_sha256=receipt['ZIP_SHA256'],
+                         engine=engine, environment='WP 7.1.2 / Woo 11.1.2 / PHP 8.2.32 / ' + engine,
+                         cache=env.get('WL111_CACHE'), status='PASS' if result.returncode == 0 else 'FAIL',
+                         exit_code=result.returncode, started_at=start,
+                         ended_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), evidence=log))
+        (base / 'evidence' / (engine + '-runtime-r2.json')).write_text(json.dumps(rows, indent=2) + '\n')
+        print(engine, name, rows[-1]['status'], flush=True)
+        return result.returncode == 0
+    for cache in ['default', 'persistent']:
+        env = dict(os.environ, WL111_CACHE=cache, WL111_BASE_URL='http://127.0.0.1:' + ('8240' if engine == 'mariadb' else '8241'),
+                   WL111_ADMIN_PASSWORD='<private-fixture-value>')
+        if cache == 'persistent':
+            if not run('redis-enable', wp + ['redis', 'enable'], env):
+                break
+        scripts = ['sql-audit', 'integration', 'progress-integration', 'recovery-integration',
+                   'repeat-integration', 'presets-repeat-integration', 'browser-e2e', 'nonce-normalization']
+        for script in scripts:
+            run(cache + '-' + script, wp + ['eval-file', str(repo / ('wordpress/tests/admin/' + script + '.php'))], env)
+        actual = {p.relative_to(site / 'wp-content/plugins/writeleash').as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                  for p in (site / 'wp-content/plugins/writeleash').rglob('*') if p.is_file()}
+        assert actual == {r['path']: r['sha256'] for r in receipt['RUNTIME_FILES']}
+    return rows
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+    rows = sum(list(pool.map(profile, ['mariadb', 'mysql'])), [])
+print('Installed ZIP runtime:', len(rows), 'runs;', sum(r['status'] == 'FAIL' for r in rows), 'failures')

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<info>
+<entry
+   path="writeleash"
+   revision="3740592"
+   kind="dir">
+<url>https://plugins.svn.wordpress.org/writeleash</url>
+<relative-url>^/writeleash</relative-url>
+<repository>
+<root>https://plugins.svn.wordpress.org</root>
+<uuid>b8457f37-d9ea-0310-8a92-e5e31aec5664</uuid>
+</repository>
+<commit
+   revision="3736473">
+<author>plugin-master</author>
+<date>2026-10-09T11:12:15.361550Z</date>
+</commit>
+</entry>
+</info>

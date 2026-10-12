@@ -1,0 +1,1 @@
+Missing Woo: Core activation refused, plugin inactive PASS

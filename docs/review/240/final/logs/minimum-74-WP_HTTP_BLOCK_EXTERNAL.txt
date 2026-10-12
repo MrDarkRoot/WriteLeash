@@ -1,0 +1,1 @@
+[32;1mSuccess:[0m Added the constant 'WP_HTTP_BLOCK_EXTERNAL' to the 'wp-config.php' file with the raw value 'true'.

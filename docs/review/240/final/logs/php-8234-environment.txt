@@ -1,0 +1,1 @@
+{"wp":"7.1.2","woo":"11.1.2","php":"8.2.34","db":"10.11.15-MariaDB","cache":"default","zip_version":"0.2.0"}

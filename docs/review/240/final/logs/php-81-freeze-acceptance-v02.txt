@@ -1,0 +1,1 @@
+#240 exact-ZIP Preview/Approve/Apply/History/Undo, plan preservation, nonce/capability and no-write controls PASS; PHP=8.1.34; Woo=10.0.0

@@ -1,0 +1,14 @@
+[
+  {
+    "file": "woocommerce.10.0.0.zip",
+    "sha256": "e9dd3671816d7b36c25776b7149c1e403e5f072f95d2e0adc6744b4b590a2419",
+    "size": 17782758,
+    "source_url": "https://downloads.wordpress.org/plugin/woocommerce.10.0.0.zip"
+  },
+  {
+    "file": "wordpress-7.0.1.zip",
+    "sha256": "f171740cf45b1f5a1bf52194ca914787cd9d8ea078599b430eca951b62b2d000",
+    "size": 31552576,
+    "source_url": "https://wordpress.org/wordpress-7.0.1.zip"
+  }
+]

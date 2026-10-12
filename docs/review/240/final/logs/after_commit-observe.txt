@@ -1,0 +1,1 @@
+#240 after_commit: interrupted price/journal authoritative, unvisited targets unchanged PASS

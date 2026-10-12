@@ -1,0 +1,39 @@
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/banner-1544x500.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/banner-772x250.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/icon-128x128.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/icon-256x256.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/icon.svg':
+  svn:mime-type
+    image/svg+xml
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/screenshot-1.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/screenshot-2.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/screenshot-3.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/screenshot-4.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/screenshot-5.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/assets/screenshot-6.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/tags/0.2.0/includes/free/admin-logo.png':
+  svn:mime-type
+    image/png
+Properties on '/tmp/opencode/wl240-final-svn/working/trunk/includes/free/admin-logo.png':
+  svn:mime-type
+    image/png

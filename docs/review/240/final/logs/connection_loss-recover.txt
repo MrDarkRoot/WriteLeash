@@ -1,0 +1,1 @@
+#240 connection_loss: explicit recovery/Resume, no percent replay, truthful history and eligible Undo PASS

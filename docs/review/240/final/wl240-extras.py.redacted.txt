@@ -1,0 +1,35 @@
+import datetime
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+base=Path('/tmp/opencode/wl240-env')
+repo=Path('/tmp/opencode/writeleash-240-release')
+engine=sys.argv[1]
+site=base/(engine+'-site')
+wp=['wp','--path='+str(site)]
+env=dict(os.environ,WL111_CACHE='persistent',WL111_BASE_URL='http://127.0.0.1:'+('8240' if engine=='mariadb' else '8241'),WL111_ADMIN_PASSWORD='<private-fixture-value>')
+rows=[]
+def run(name,cmd):
+    start=datetime.datetime.now(datetime.timezone.utc).isoformat()
+    r=subprocess.run(cmd,capture_output=True,text=True,env=env,timeout=180)
+    file=engine+'-extra-r2-'+name+'.txt'
+    (base/'evidence'/file).write_text(r.stdout+r.stderr)
+    rows.append(dict(test=name,status='PASS' if r.returncode==0 else 'FAIL',engine=engine,cache=env['WL111_CACHE'],
+                     source_sha='39d67bfba9cd4f265c3dfa34657c76abe203fa79',zip_sha256='50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757',
+                     started_at=start,ended_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),exit_code=r.returncode,evidence=file))
+    (base/'evidence'/(engine+'-extra-r2.json')).write_text(json.dumps(rows,indent=2)+'\n')
+    print(engine,name,rows[-1]['status'],flush=True)
+    if r.returncode: raise RuntimeError(name+': '+r.stdout+r.stderr)
+run('redis-enable-for-measured-parent-state',wp+['redis','enable'])
+run('measured-parent-state',wp+['eval-file',str(repo/'wordpress/tests/release/parent-state-v02.php')])
+run('redis-disable-for-default-retest',wp+['redis','disable'])
+env['WL111_CACHE']='default'
+run('clear-default-cache-core-update-notice',wp+['eval','delete_site_transient("update_core"); echo wp_json_encode(array("cache"=>wp_using_ext_object_cache(),"network_blocked"=>WP_HTTP_BLOCK_EXTERNAL));'])
+run('browser-e2e-default-retest',wp+['eval-file',str(repo/'wordpress/tests/admin/browser-e2e.php')])
+run('measured-parent-state-default',wp+['eval-file',str(repo/'wordpress/tests/release/parent-state-v02.php')])
+run('lifecycle',wp+['eval-file',str(repo/'wordpress/tests/admin/public-lifecycle.php')])
+run('deactivate',wp+['plugin','deactivate','writeleash'])
+run('reactivate',wp+['eval','require_once ABSPATH."wp-admin/includes/plugin.php"; $r=activate_plugin("writeleash/writeleash.php","",false); if(is_wp_error($r)){throw new RuntimeException($r->get_error_message());}'])
