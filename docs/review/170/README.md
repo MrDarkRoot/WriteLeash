@@ -177,3 +177,16 @@ New captures were inspected before refreshing the fingerprint and are kept in
 `../230/integration-242-captures/`; see [the integration receipt](../230/INTEGRATION-242.md).
 Historical #170 screenshots, result JSONs and observer bytes remain unchanged.
 Exact-head hosted Admin and the adversarial asset gate are still mandatory.
+
+### #257 loaded Preset selection display
+
+The Admin fingerprint now binds the #256 presentation fix. Current installed
+Admin captures were inspected before this refresh: [loaded variation labels](../256/preset-fix/loaded-variations.png)
+and [fresh edited Preview](../256/preset-fix/fresh-preview.png).
+[The focused receipt](../256/preset-fix/README.md) records actual Chromium
+JS/no-JS variation/simple/deleted-selection journeys, the existing Presets
+keyboard/range/refinement/History/Repeat journeys in both modes, 1,703 local
+Admin assertions and 78 Preset/Repeat assertions. Historical #170 PNGs, result
+JSONs, captions and conflict observer assertions remain byte-for-byte unchanged.
+Only the current Admin source fingerprint is refreshed; original #170 browser
+coverage must still run in exact-head hosted Admin before release readiness.

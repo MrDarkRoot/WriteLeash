@@ -2046,11 +2046,24 @@ final class Free_Admin {
 		if ( null !== $repeat_job && ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $repeat_job ) ) { $repeat_job = null; }
 		if ( null === $recovery ) {
 			$selected = array(); $matches = array( 'results' => array(), 'more' => false ); $categories = $matches;
+			$selected_ids = array();
 			try {
-				$selected = Product_Discovery::selected( self::picker_ids( $values ) );
+				$selected_ids = self::picker_ids( $values );
+				$selected = Product_Discovery::selected( $selected_ids );
 				$matches = Product_Discovery::products( $values['product_search'], (int) $values['product_page'] );
 				$categories = Product_Discovery::categories( $values['category_search'], (int) $values['category_page'] );
 			} catch ( \Throwable $error ) {
+				// Display-only fallback: retain every submitted ID, including missing or
+				// inaccessible products. Discovery and Preview authorization stay strict.
+				foreach ( $selected_ids as $id ) {
+					if ( isset( $selected[$id] ) ) { continue; }
+					try { $selected += Product_Discovery::selected( array( $id ) ); }
+					catch ( \Throwable $unavailable ) {
+						$selected[$id] = array( 'id' => (string) $id, 'text' => sprintf(
+							/* translators: %d: selected product ID. No product details are disclosed. */
+							__( 'Product #%d unavailable or inaccessible. ID retained; remove it or check access before Preview.', 'writeleash' ), $id ) );
+					}
+				}
 				echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( self::reason_message( $error instanceof Price_Validation_Error ? $error->reason() : 'discovery_unavailable' ) ) . '</p></div>';
 			}
 			echo '<form id="writeleash-free-selection-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-discovery-url="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '" data-discovery-action="' . esc_attr( Product_Discovery::ACTION ) . '" data-discovery-nonce="' . esc_attr( wp_create_nonce( Product_Discovery::ACTION ) ) . '" data-max-selection="' . esc_attr( (string) Free_Support_Contract::MAX_JOB_PRODUCTS ) . '">';
