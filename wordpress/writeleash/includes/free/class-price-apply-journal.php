@@ -120,12 +120,17 @@ final class Price_Apply_Journal {
 		self::upgrade_v1( $wpdb );
 		$exists = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) );
 		if ( $exists ) {
-			$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
-			$changes = array( 'MODIFY plan_json longtext NULL' );
-			if ( ! in_array( 'plan_fingerprint', $columns, true ) ) { $changes[] = "ADD plan_fingerprint char(64) NOT NULL DEFAULT ''"; }
-			if ( ! in_array( 'price_field', $columns, true ) ) { $changes[] = "ADD price_field varchar(16) NOT NULL DEFAULT ''"; }
-			if ( false === $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ', $table ) . implode( ', ', $changes ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
-			Price_Apply_Connection::forget_table_metadata( $wpdb, $table );
+			$columns = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ), ARRAY_A );
+			$columns = array_column( $columns, null, 'Field' );
+			// Do not invent missing legacy plan material or narrow an unexpected type.
+			if ( ! isset( $columns['plan_json'] ) || 'longtext' !== $columns['plan_json']['Type'] || ! in_array( $columns['plan_json']['Null'], array( 'YES', 'NO' ), true ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+			// Literal, individually atomic DDL. If interrupted, introspection on retry
+			// resumes only missing changes; no row compaction occurs until all succeed.
+			try {
+				if ( 'NO' === $columns['plan_json']['Null'] && false === $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i MODIFY plan_json longtext NULL', $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+				if ( ! isset( $columns['plan_fingerprint'] ) && false === $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD plan_fingerprint char(64) NOT NULL DEFAULT ''", $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+				if ( ! isset( $columns['price_field'] ) && false === $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD price_field varchar(16) NOT NULL DEFAULT ''", $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+			} finally { Price_Apply_Connection::forget_table_metadata( $wpdb, $table ); }
 			self::compact_legacy( $wpdb );
 		}
 		dbDelta( "CREATE TABLE $table (
