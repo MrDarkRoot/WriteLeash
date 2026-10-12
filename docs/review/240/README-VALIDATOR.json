@@ -1,0 +1,8 @@
+{
+  "url": "https://wordpress.org/plugins/developers/readme-validator/",
+  "observed_at": "2026-10-11T17:31:23.497992+00:00",
+  "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+  "readme_sha256": "9c17468043f67ca16ee09819ee440026190f9551fa9ca113ed136af3a134d804",
+  "response_sha256": "af220502daf434d181fe8e09e69862e072963683d0fd807c4a6cfc9a99236afb",
+  "echoed_readme_byte_equal": true
+}

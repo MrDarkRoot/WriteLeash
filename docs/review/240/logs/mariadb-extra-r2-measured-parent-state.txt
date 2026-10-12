@@ -1,0 +1,2 @@
+#212 variation parent drift: both fields, draft Apply refusal, reparent Undo refusal, same-parent restore and lookup control: PASS
+#240 save observer: successful controls measured; refused Apply/Undo zero-save checks are active PASS

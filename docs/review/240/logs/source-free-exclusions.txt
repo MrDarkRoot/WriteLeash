@@ -1,0 +1,8 @@
+#179 variation snapshot identity, parent facts and attribute label: PASS (13 cumulative assertions)
+#179 variation eligibility and parent requirements: PASS (23 cumulative assertions)
+#179 regular and sale target operations on variations: PASS (34 cumulative assertions)
+#179 parent expansion, dedupe, category expansion and the exact preview freeze: PASS (56 cumulative assertions)
+#179 field-scoped variation preconditions and reparenting conflict: PASS (65 cumulative assertions)
+#179 parent range computation and field-scoped variation Undo provenance: PASS (77 cumulative assertions)
+#179 variation domain harness: PASS (77 assertions)
+#231 exclusions domain: PASS; 350 -> 343, bounds, forgery, identity, variations, operations, immutable Plans

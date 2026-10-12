@@ -1,0 +1,3 @@
+#240 upgrade completed: old plan/approval retained, percentage not replayed, Undo/conflict PASS
+#240 upgrade undo_eligible: old plan/approval retained, percentage not replayed, Undo/conflict PASS
+#240 upgrade resumable: old plan/approval retained, percentage not replayed, Undo/conflict PASS
