@@ -1,0 +1,175 @@
+{
+  "selected_source_sha": "566a91f3d41e2f7d030e1154478e2f023b2409bf",
+  "features": [
+    {
+      "head_sha": "4420ec346a00460184a14105d61e51557e4da3ad",
+      "merge_commit_sha": "dc151e2e554e3fcb894041c2e8ca7de852268811",
+      "merged": true,
+      "merged_at": "2026-10-08T16:16:17Z",
+      "number": 223,
+      "title": "integration: combined #219+#220+#221+#222 on exact source ad6377 (CI validation only)",
+      "issue": 204,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "5ba32678c58da125aacc1aa0013f2b9a7f6aeb1a",
+      "merge_commit_sha": "fd7a0dcd588bdfe0537a64f90f5417471950a8c0",
+      "merged": true,
+      "merged_at": "2026-10-09T07:47:24Z",
+      "number": 224,
+      "title": "feat(free): re-preview conflicted products from current prices (#205)",
+      "issue": 205,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "4420ec346a00460184a14105d61e51557e4da3ad",
+      "merge_commit_sha": "dc151e2e554e3fcb894041c2e8ca7de852268811",
+      "merged": true,
+      "merged_at": "2026-10-08T16:16:17Z",
+      "number": 223,
+      "title": "integration: combined #219+#220+#221+#222 on exact source ad6377 (CI validation only)",
+      "issue": 206,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "e0535190bb77b7016f53abba2af28880e1b48066",
+      "merge_commit_sha": "5a10195e8eed1637aacd32bf72c545fd5a078bc6",
+      "merged": true,
+      "merged_at": "2026-10-10T02:55:36Z",
+      "number": 235,
+      "title": "feat(free): clear and relative sale operations (#207)",
+      "issue": 207,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "a7d6bbf3cf82d8cf596abea70f951cc2bafb7474",
+      "merge_commit_sha": "3e90043a4225f1f413721e94c4f6cbf78a370c64",
+      "merged": true,
+      "merged_at": "2026-10-10T05:08:24Z",
+      "number": 237,
+      "title": "feat(free): optional safe price endings (#208)",
+      "issue": 208,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "4420ec346a00460184a14105d61e51557e4da3ad",
+      "merge_commit_sha": "dc151e2e554e3fcb894041c2e8ca7de852268811",
+      "merged": true,
+      "merged_at": "2026-10-08T16:16:17Z",
+      "number": 223,
+      "title": "integration: combined #219+#220+#221+#222 on exact source ad6377 (CI validation only)",
+      "issue": 209,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "7c416ab9612a29ac044ce389514c35771d100600",
+      "merge_commit_sha": "f02db253cfb08dc236f19ad4a62c567afa7be1b0",
+      "merged": true,
+      "merged_at": "2026-10-09T13:15:06Z",
+      "number": 225,
+      "title": "feat(i18n): complete merchant UI translation readiness (#210)",
+      "issue": 210,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "b2105ded0822fe7797d834974a1ab87b1f889e1f",
+      "merge_commit_sha": "1ab8af4508b12be50ab9fc91fea288af9f6c1925",
+      "merged": true,
+      "merged_at": "2026-10-11T16:04:00Z",
+      "number": 241,
+      "title": "feat(free): save and reuse price-operation presets (#230)",
+      "issue": 230,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "fe1d9209044f73b6ad6977fa875538336b5b76b6",
+      "merge_commit_sha": "464cfd0b505b07de14c3276a9cbd8a261612525b",
+      "merged": true,
+      "merged_at": "2026-10-11T06:33:19Z",
+      "number": 239,
+      "title": "feat(free): exclude individual products before Preview approval (#231)",
+      "issue": 231,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "8254d955570116c065ea7fde035022fa768d06b2",
+      "merge_commit_sha": "04e7f3a39b0b903d4f2cbe499ea0f20731295a37",
+      "merged": true,
+      "merged_at": "2026-10-11T13:37:20Z",
+      "number": 242,
+      "title": "feat(free): repeat historical price job as fresh Preview (#232)",
+      "issue": 232,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "0a1802894d3e2338b49ceb62eb9bc9eba2620178",
+      "merge_commit_sha": "da84e64886773a07694448a3d156e64f18489f3b",
+      "merged": true,
+      "merged_at": "2026-10-10T07:25:57Z",
+      "number": 238,
+      "title": "feat(free): download frozen Preview CSV before Apply (#233)",
+      "issue": 233,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "ebc019beea04726e06c04e11d7fb0ce7e1452cd4",
+      "merge_commit_sha": "778af88db32978b98f8843f1378e901dbc000b34",
+      "merged": true,
+      "merged_at": "2026-10-11T03:07:40Z",
+      "number": 236,
+      "title": "feat(free): inclusive price-range selection filter (#234)",
+      "issue": 234,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "cd47d97028307c3295dbb835f484ed1657581394",
+      "merge_commit_sha": "5d8d8cd129e198eaceb08f6363b812ef0f32429f",
+      "merged": true,
+      "merged_at": "2026-10-09T17:46:32Z",
+      "number": 229,
+      "title": "test(woo): senior QIT and compatibility review (#212)",
+      "issue": 229,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "b0bcc88acb478a94f99a6dff5d40bbe504c04e12",
+      "merge_commit_sha": "898c7602f86edcc2647cb619fc249f3ddd28629e",
+      "merged": true,
+      "merged_at": "2026-10-11T10:27:06Z",
+      "number": 248,
+      "title": "docs(marketing): WordPress.org SEO brief and accurate Free listing (#244)",
+      "issue": 244,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "eeb073b99525b7648876881b001022a8edd8a824",
+      "merge_commit_sha": "c291cdb596b7d5b6f2a0345d7f1ac91070619794",
+      "merged": true,
+      "merged_at": "2026-10-11T09:44:28Z",
+      "number": 247,
+      "title": "docs(marketing): evidence-backed safety messaging and real screenshot audit (#245)",
+      "issue": 245,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "ae8197d0f0d01a6bb02d62318eeb90760a769fd1",
+      "merge_commit_sha": "d553c1c4a022970616589861fe1ae0f4c6bd3998",
+      "merged": true,
+      "merged_at": "2026-10-11T11:05:44Z",
+      "number": 249,
+      "title": "docs(launch): organic channel research and Free v0.2 launch content (#246)",
+      "issue": 246,
+      "merge_is_ancestor_of_selected": true
+    },
+    {
+      "head_sha": "a0748cc327636384bf47e886e5c66320ff2d5efb",
+      "merge_commit_sha": "566a91f3d41e2f7d030e1154478e2f023b2409bf",
+      "merged": true,
+      "merged_at": "2026-10-11T17:09:23Z",
+      "number": 251,
+      "title": "docs: complete Free v0.2 merchant documentation (#250)",
+      "issue": 250,
+      "merge_is_ancestor_of_selected": true
+    }
+  ]
+}

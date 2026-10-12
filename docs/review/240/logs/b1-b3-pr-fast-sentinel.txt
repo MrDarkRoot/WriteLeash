@@ -1,0 +1,83 @@
+#125 release preflight history: full checkout required; shallow/default/duplicate depth rejected PASS
+#133 Requires at least header-only change: adapter, foundation, historical PASS
+#133 Requires PHP header-only change: adapter, foundation, historical PASS
+#133 Description header-only change: PR_FAST only PASS
+#133 Tested up to header-only change: PR_FAST only PASS
+#133 ownership/policy audit: 61 production PHP files; 13 release suites; listing-only=PR_FAST; new PHP rejected PASS
+#133 Admin browser npm lock: 4 package versions/public-registry SHA512 integrities; npm ci --ignore-scripts PASS
+#133 ADMIN BROWSER/OS EXCEPTION: Playwright-selected Firefox download has no repository checksum lock; --with-deps OS packages and hosted Chrome/Node remain runner-managed, not an immutable toolchain
+#133 dependency audit: 55 literal image references digest-pinned; 11 plugin ZIP fetch harnesses verify SHA256 PASS
+#133 UNPINNED RESEARCH TOOLCHAIN: experiments/native_tx_state/Dockerfile: Alpine build-base and transitive APK repository packages; never distributed in WordPress runtime
+./usr/lib/python3.12/zipfile/__init__.py:1620: UserWarning: Duplicate name: 'writeleash/writeleash.php'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+..#120 public runtime: literal include closure 37 PHP files, 56 resolved classes/types; no historical artifacts/hooks/authority PASS
+#63 distribution allowlist: 42 files, verbatim GPLv2, version 0.1.0, exact operation wording, no internal docs PASS
+#120 checked inventory: 37 PHP files, exactly one classification each; public=37; explicit legacy overlay agrees PASS
+#97 active-brand audit: only the finite uninstall cleanup literals may mention the old local option names; no stale low-level brand remains PASS
+#62/#63 source audit: 37 guarded PHP files; one public header; GPLv2 LICENSE; readme staged; no internal docs; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS
+#63/#121 readme preflight: title, 59-char description, 5 tags, Stable tag 0.1.0, directory/header requirements coherent, GPLv2-or-later PASS
+#120 public runtime: literal include closure 37 PHP files, 56 resolved classes/types; no historical artifacts/hooks/authority PASS
+#63 distribution allowlist: 42 files, verbatim GPLv2, version 0.1.0, exact operation wording, no internal docs PASS
+#120 checked inventory: 37 PHP files, exactly one classification each; public=37; explicit legacy overlay agrees PASS
+#97 active-brand audit: only the finite uninstall cleanup literals may mention the old local option names; no stale low-level brand remains PASS
+#62/#63 source audit: 37 guarded PHP files; one public header; GPLv2 LICENSE; readme staged; no internal docs; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS
+#63/#121 readme preflight: title, 59-char description, 5 tags, Stable tag 0.1.0, directory/header requirements coherent, GPLv2-or-later PASS
+.......
+----------------------------------------------------------------------
+Ran 10 tests in 3.776s
+
+OK
+test_b1_replace_tree_cannot_change_reviewed_bytes (__main__.ReleaseRegressionCases.test_b1_replace_tree_cannot_change_reviewed_bytes) ... ok
+test_b2_parent_positive_control (__main__.ReleaseRegressionCases.test_b2_parent_positive_control) ... ok
+test_b2_variation_blind_observer_is_rejected (__main__.ReleaseRegressionCases.test_b2_variation_blind_observer_is_rejected) ... ok
+test_b3_false_undone_outcomes_are_rejected (__main__.ReleaseRegressionCases.test_b3_false_undone_outcomes_are_rejected) ... ok
+test_b3_scale_positive_control (__main__.ReleaseRegressionCases.test_b3_scale_positive_control) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 1.662s
+
+OK
+#122 required files, exact dimensions, contiguous six screenshots, readme captions, capture hashes, SVG policy, size caps and runtime manifest: PASS
+#170 reviewed source, capture hashes/dimensions/captions and same-row independent conflict evidence PASS
+#133 tracked directory asset format/size/dimensions: 11 files PASS
+#122 asset audit valid control + 26 rejection cases PASS
+#120 public runtime: literal include closure 39 PHP files, 60 resolved classes/types; no historical artifacts/hooks/authority PASS
+#63 distribution allowlist: 46 files, verbatim GPLv2, version 0.2.0, exact operation wording, no internal docs PASS
+#120 checked inventory: 61 PHP files, exactly one classification each; public=39; explicit legacy overlay agrees PASS
+#120 audit negative/positive case: exact public closure accepted PASS
+#120 audit negative/positive case: required include omitted fails PASS
+#120 audit negative/positive case: new unused repository PHP does not become public PASS
+#120 audit negative/positive case: unused PHP added to manifest fails closure PASS
+#120 audit negative/positive case: operator setup rejected PASS
+#120 audit negative/positive case: historical class path rejected PASS
+#120 audit negative/positive case: test loader path rejected PASS
+#120 audit negative/positive case: English guard comment allowed PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: Guard::update(); PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: guard::update(); PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: call_user_func('WriteLeash\\Guard::update'); PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: Compatibility_Doctor::runtime(); PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: Admin_Page::boot(); PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: Product_CLI::class; PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: new Missing_Public_Class(); PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: \WriteLeash\Missing_Public_Class::run(); PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: class_exists('WriteLeash\\Missing_Public_Class'); PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: require_once __DIR__ . '/includes/free/class-missing.php'; PASS
+#120 audit negative/positive case: forbidden/unresolved/dynamic dependency: require_once $unreviewed; PASS
+#168 source audit rejects arbitrary/dynamic header: PASS
+#168 source audit rejects arbitrary/dynamic header: PASS
+#120 audit negative/positive case: symlinked payload rejected PASS
+#63/#121 readme preflight: title, 99-char description, 5 tags, Stable tag 0.2.0, directory/header requirements coherent, GPLv2-or-later PASS
+#211 woo candidate 0.2.0 @35e1d14544bd: 17 headers, version coherence, 2 changelog entries with 16 typed changes, 47 allowlisted files, no Woo identifier, no product URL PASS
+#211 Woo coherence: supported Clear Sale/Price Endings accepted in exact/subset modes; 20 malformed/identity/manifest negatives rejected PASS
+#121 HISTORICAL TEST ONLY shim boundary: independent exact historical copy accepted; production untouched PASS
+#121 HISTORICAL TEST ONLY shim boundary: second shim/previously modified copy rejected PASS
+#121 HISTORICAL TEST ONLY shim boundary: supported Core cannot be shimmed PASS
+#121 HISTORICAL TEST ONLY shim boundary: symlink to production rejected PASS
+#121 HISTORICAL TEST ONLY shim boundary: hardlink to production rejected PASS
+#121 HISTORICAL TEST ONLY shim boundary: symlink to production readme rejected PASS
+#121 HISTORICAL TEST ONLY shim boundary: hardlink to production readme rejected PASS
+#121 claim matrix audit: 15 required topics, forbidden-claim guard, readme/matrix wording and packaging boundary PASS
+#97 active-brand audit: only the finite uninstall cleanup literals may mention the old local option names; no stale low-level brand remains PASS
+#62/#63 source audit: 39 guarded PHP files; one public header; GPLv2 LICENSE; readme staged; no internal docs; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS
+#133 PHP lint: 218 source/fixture files PASS
+#133 PR_FAST PASS

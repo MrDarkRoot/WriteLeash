@@ -1,0 +1,23 @@
+Fatal error: Uncaught RuntimeException: bulk prices home notices announced as text alerts: {"actual":false,"expected":true} in phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code:23
+Stack trace:
+#0 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code(25): beq()
+#1 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code(131): bok()
+#2 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code(206): a11y_check()
+#3 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85): eval()
+#4 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(59): EvalFile_Command::execute_eval()
+#5 [internal function]: EvalFile_Command->__invoke()
+#6 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Dispatcher/CommandFactory.php(100): call_user_func()
+#7 [internal function]: WP_CLI\Dispatcher\CommandFactory::WP_CLI\Dispatcher\{closure}()
+#8 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Dispatcher/Subcommand.php(497): call_user_func()
+#9 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(470): WP_CLI\Dispatcher\Subcommand->invoke()
+#10 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(493): WP_CLI\Runner->run_command()
+#11 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(136): WP_CLI\Runner->run_command_and_exit()
+#12 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Runner.php(1228): WP_CLI\Runner->do_early_invoke()
+#13 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/WP_CLI/Bootstrap/LaunchRunner.php(28): WP_CLI\Runner->start()
+#14 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/bootstrap.php(84): WP_CLI\Bootstrap\LaunchRunner->process()
+#15 phar:///home/vanta/.local/bin/wp/vendor/wp-cli/wp-cli/php/wp-cli.php(35): WP_CLI\bootstrap()
+#16 phar:///home/vanta/.local/bin/wp/php/boot-phar.php(20): include('...')
+#17 /home/vanta/.local/bin/wp(4): include('...')
+#18 {main}
+  thrown in phar:///home/vanta/.local/bin/wp/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code on line 23
+Error: There has been a critical error on this website.Learn more about troubleshooting WordPress. There has been a critical error on this website.

@@ -1,0 +1,1 @@
+{"wp":"7.1.2","woo":"11.1.2","php":"8.2.32","db":"8.0.44","persistent_cache":true}

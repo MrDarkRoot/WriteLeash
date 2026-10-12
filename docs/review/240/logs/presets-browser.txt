@@ -1,0 +1,4 @@
+#230 chromium JS=true keyboard CRUD/range/refinement/no-write/new-approval PASS
+#230 chromium JS=false keyboard CRUD/range/refinement/no-write/new-approval PASS
+#241+#242 chromium JS=true preset -> Apply -> History Repeat, no-JS count/error retention, frozen kind/new approval PASS
+#241+#242 chromium JS=false preset -> Apply -> History Repeat, no-JS count/error retention, frozen kind/new approval PASS

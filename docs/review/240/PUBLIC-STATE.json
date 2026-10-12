@@ -1,0 +1,63 @@
+[
+  {
+    "url": "https://wordpress.org/plugins/writeleash/",
+    "http_status": 200,
+    "final_url": "https://wordpress.org/plugins/search/writeleash/",
+    "response_excerpt": null,
+    "status": "NOT_FOUND",
+    "observed_at": "2026-10-11T23:09:03.079192+00:00"
+  },
+  {
+    "url": "https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&request%5Bslug%5D=writeleash",
+    "http_status": 404,
+    "status": "NOT_FOUND",
+    "response_excerpt": "{\"error\":\"Plugin not found.\"}",
+    "observed_at": "2026-10-11T23:09:03.835888+00:00"
+  },
+  {
+    "url": "https://downloads.wordpress.org/plugin/writeleash.0.1.0.zip",
+    "http_status": 404,
+    "status": "NOT_FOUND",
+    "response_excerpt": "Not found",
+    "observed_at": "2026-10-11T23:09:04.839890+00:00"
+  },
+  {
+    "url": "https://plugins.svn.wordpress.org/writeleash/",
+    "status": "VERIFIED",
+    "entries": [
+      "assets/",
+      "tags/",
+      "trunk/"
+    ],
+    "observed_at": "2026-10-11T23:09:06.561305+00:00"
+  },
+  {
+    "url": "https://plugins.svn.wordpress.org/writeleash/trunk/",
+    "status": "VERIFIED",
+    "entries": [],
+    "observed_at": "2026-10-11T23:09:08.306046+00:00"
+  },
+  {
+    "url": "https://plugins.svn.wordpress.org/writeleash/tags/",
+    "status": "VERIFIED",
+    "entries": [],
+    "observed_at": "2026-10-11T23:09:10.025702+00:00"
+  },
+  {
+    "url": "https://plugins.svn.wordpress.org/writeleash/assets/",
+    "status": "VERIFIED",
+    "entries": [],
+    "observed_at": "2026-10-11T23:09:11.687501+00:00"
+  },
+  {
+    "url": "https://api.wordpress.org/plugins/update-check/1.1/",
+    "http_status": 200,
+    "status": "VERIFIED",
+    "response": {
+      "plugins": [],
+      "translations": [],
+      "no_update": []
+    },
+    "observed_at": "2026-10-11T23:09:12.509373+00:00"
+  }
+]

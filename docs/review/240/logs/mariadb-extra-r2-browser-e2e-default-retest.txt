@@ -1,0 +1,7 @@
+#111 browser first-plan journey: 0.49s (Bulk Prices open to frozen preview render)
+#233 native no-JS HTTP Preview CSV: PASS
+#167 real HTTP discovery/native selection/session recovery/saved-review continuity: PASS
+#206 real HTTP category toggle/count/Preview/no-JS/accessibility: PASS
+#234 real HTTP range count/Preview/refusal/retention: PASS
+#168 real HTTP per-job CSV attachment, POST/nonce, other-Manager and anonymous controls: PASS
+#111 real-HTTP browser Admin E2E (menu, POST, nonce, PRG, reload, resume, history, Undo, negatives): PASS

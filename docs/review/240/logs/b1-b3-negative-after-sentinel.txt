@@ -1,0 +1,10 @@
+test_b1_replace_tree_cannot_change_reviewed_bytes (__main__.ReleaseRegressionCases.test_b1_replace_tree_cannot_change_reviewed_bytes) ... ok
+test_b2_parent_positive_control (__main__.ReleaseRegressionCases.test_b2_parent_positive_control) ... ok
+test_b2_variation_blind_observer_is_rejected (__main__.ReleaseRegressionCases.test_b2_variation_blind_observer_is_rejected) ... ok
+test_b3_false_undone_outcomes_are_rejected (__main__.ReleaseRegressionCases.test_b3_false_undone_outcomes_are_rejected) ... ok
+test_b3_scale_positive_control (__main__.ReleaseRegressionCases.test_b3_scale_positive_control) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 1.507s
+
+OK

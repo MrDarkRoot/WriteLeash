@@ -1,0 +1,2 @@
+#109 no-replan audit: worker/repository/schema/scheduler contain no selector, planner, arithmetic or catalog-query call; execution uses hydrated #107 material and #108 Woo_Price_Mutator::apply PASS
+#110 no-replan audit: undo worker/repository/schema/scheduler contain no selector, planner, arithmetic, catalog-query or direct Woo price SQL; restore uses hydrated #107 material, Woo_Undo_Mutator::restore and the Undo fence PASS

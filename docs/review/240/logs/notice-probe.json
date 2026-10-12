@@ -1,0 +1,8 @@
+[
+  {
+    "tag": "div",
+    "classes": "notice notice-warning update-nag inline",
+    "role": null,
+    "text": "WordPress 7.1.3 is available! Please update now ."
+  }
+]

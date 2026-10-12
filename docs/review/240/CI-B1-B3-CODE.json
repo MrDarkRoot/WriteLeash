@@ -1,0 +1,232 @@
+{
+  "conclusion": "success",
+  "event": "pull_request",
+  "headSha": "28ae986d72975c25b1ca14923f1e4549449a24b2",
+  "jobs": [
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "success",
+      "databaseId": 114661866696,
+      "name": "PR_FAST",
+      "startedAt": "2026-10-12T04:22:34Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Public package and CI ownership gate",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Immutable workflow syntax validator",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Classify exact base-to-head paths (including deletions)",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661866696"
+    },
+    {
+      "completedAt": "2026-10-12T04:23:08Z",
+      "conclusion": "success",
+      "databaseId": 114661960819,
+      "name": "CI_COVERAGE",
+      "startedAt": "2026-10-12T04:23:01Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Propagate all path-owned results (no runtime work for docs)",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 7,
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661960819"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961052,
+      "name": "undo",
+      "startedAt": "2026-10-12T04:22:59Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961052"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961128,
+      "name": "historical",
+      "startedAt": "2026-10-12T04:22:59Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961128"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961245,
+      "name": "journal",
+      "startedAt": "2026-10-12T04:22:59Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961245"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961263,
+      "name": "research",
+      "startedAt": "2026-10-12T04:22:59Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961263"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961280,
+      "name": "native",
+      "startedAt": "2026-10-12T04:22:59Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961280"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961290,
+      "name": "foundation",
+      "startedAt": "2026-10-12T04:22:59Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961290"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961428,
+      "name": "feasibility",
+      "startedAt": "2026-10-12T04:22:59Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961428"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961497,
+      "name": "jobs",
+      "startedAt": "2026-10-12T04:22:59Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961497"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961523,
+      "name": "acceptance",
+      "startedAt": "2026-10-12T04:22:59Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961523"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961629,
+      "name": "engine",
+      "startedAt": "2026-10-12T04:23:00Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961629"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961717,
+      "name": "admin",
+      "startedAt": "2026-10-12T04:23:00Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961717"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961795,
+      "name": "plan",
+      "startedAt": "2026-10-12T04:23:00Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961795"
+    },
+    {
+      "completedAt": "2026-10-12T04:22:59Z",
+      "conclusion": "skipped",
+      "databaseId": 114661961847,
+      "name": "adapter",
+      "startedAt": "2026-10-12T04:23:00Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929/job/114661961847"
+    }
+  ],
+  "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38203522929"
+}

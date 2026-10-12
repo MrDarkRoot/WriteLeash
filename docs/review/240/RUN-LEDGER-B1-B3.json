@@ -1,0 +1,403 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-10-12T04:19:31.078777+00:00",
+  "fixture_sha256": {
+    "parent-state-v02.php": "7061cfe05cfa133eb2f6e2554df4ea3d4b1f4a8899f6497cbe7116d616042531",
+    "scale-v02.php": "0140ea78b62ac6c4bdf7bb6594fdf54e67b96d627abca206a1102a5a44f40709"
+  },
+  "tested_worktree_parent_sha": "35e1d14544bdc69ed5b6d08cbd87de63c6025830",
+  "source_label_note": "Tests ran on the recorded worktree parent plus changes identified by fixture hashes; final code SHA is recorded in B1-B3-REMEDIATION.md.",
+  "archive_source_sha": "35e1d14544bdc69ed5b6d08cbd87de63c6025830",
+  "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+  "runs": [
+    {
+      "test": "mariadb-exact-zip-install",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "plugin",
+        "install",
+        "/tmp/opencode/wl253-fixed-build-a/writeleash-0.2.0.zip",
+        "--force"
+      ],
+      "started_at": "2026-10-12T04:07:10.228662+00:00",
+      "ended_at": "2026-10-12T04:07:11.307726+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mariadb-exact-zip-install.txt",
+      "evidence_sha256": "ca4a723d51c63fe8ecac12e9106d33d36d4ab7e43eace0ed84c7626e3840e1d4",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mariadb-default-environment.txt"
+    },
+    {
+      "test": "mariadb-activation",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "eval",
+        "require_once ABSPATH.\"wp-admin/includes/plugin.php\"; $r=activate_plugin(\"writeleash/writeleash.php\",\"\",false); if(is_wp_error($r)){throw new RuntimeException($r->get_error_message());} echo \"Core activation PASS\";"
+      ],
+      "started_at": "2026-10-12T04:07:11.307979+00:00",
+      "ended_at": "2026-10-12T04:07:12.136025+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mariadb-activation.txt",
+      "evidence_sha256": "31e8c8300bac82fb779cecf64bec537946b9adacfad2df37e0933dca81df660e",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mariadb-default-environment.txt"
+    },
+    {
+      "test": "mariadb-default-environment",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "eval",
+        "global $wpdb; echo wp_json_encode(array(\"wp\"=>get_bloginfo(\"version\"),\"woo\"=>WC_VERSION,\"php\"=>PHP_VERSION,\"db\"=>$wpdb->get_var(\"SELECT VERSION()\"),\"persistent_cache\"=>wp_using_ext_object_cache()));"
+      ],
+      "started_at": "2026-10-12T04:07:12.141898+00:00",
+      "ended_at": "2026-10-12T04:07:12.948598+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mariadb-default-environment.txt",
+      "evidence_sha256": "d0bfe6509c576b4a181045236dc833409f3b7fdb1a77a3943f25ad60f99534fe",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mariadb-default-environment.txt"
+    },
+    {
+      "test": "mariadb-default-parent-state-v02.php",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/wl253-fix/wordpress/tests/release/parent-state-v02.php"
+      ],
+      "started_at": "2026-10-12T04:07:12.949080+00:00",
+      "ended_at": "2026-10-12T04:07:16.303719+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mariadb-default-parent-state-v02.php.txt",
+      "evidence_sha256": "d8c32578a5e5deb661b2fad111ec49391945a83e1158c6d32ba38f537ae08a5c",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mariadb-default-environment.txt",
+      "fixture_sha256": "7061cfe05cfa133eb2f6e2554df4ea3d4b1f4a8899f6497cbe7116d616042531"
+    },
+    {
+      "test": "mariadb-default-scale-v02.php",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/wl253-fix/wordpress/tests/release/scale-v02.php"
+      ],
+      "started_at": "2026-10-12T04:07:16.304038+00:00",
+      "ended_at": "2026-10-12T04:08:49.233281+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mariadb-default-scale-v02.php.txt",
+      "evidence_sha256": "6797d3e403854f55bff7c6cbc75d5ce299684eaa5d7af4d699c4136a16b61c29",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mariadb-default-environment.txt",
+      "fixture_sha256": "0140ea78b62ac6c4bdf7bb6594fdf54e67b96d627abca206a1102a5a44f40709"
+    },
+    {
+      "test": "mariadb-redis-enable",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "redis",
+        "enable"
+      ],
+      "started_at": "2026-10-12T04:08:49.233518+00:00",
+      "ended_at": "2026-10-12T04:08:50.073001+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mariadb-redis-enable.txt",
+      "evidence_sha256": "d876ebd17e344df9adf9dd0f40aa11f1e83c040c168196541164ea8bc4982ff0",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mariadb-default-environment.txt"
+    },
+    {
+      "test": "mariadb-persistent-environment",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "eval",
+        "global $wpdb; echo wp_json_encode(array(\"wp\"=>get_bloginfo(\"version\"),\"woo\"=>WC_VERSION,\"php\"=>PHP_VERSION,\"db\"=>$wpdb->get_var(\"SELECT VERSION()\"),\"persistent_cache\"=>wp_using_ext_object_cache()));"
+      ],
+      "started_at": "2026-10-12T04:08:50.073405+00:00",
+      "ended_at": "2026-10-12T04:08:51.002708+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mariadb-persistent-environment.txt",
+      "evidence_sha256": "1bb5460fb745c32cb52cf000b15204c1af5500beb069182aa520b81d9d729190",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mariadb-persistent-environment.txt"
+    },
+    {
+      "test": "mariadb-persistent-parent-state-v02.php",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/wl253-fix/wordpress/tests/release/parent-state-v02.php"
+      ],
+      "started_at": "2026-10-12T04:08:51.003034+00:00",
+      "ended_at": "2026-10-12T04:08:54.494621+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mariadb-persistent-parent-state-v02.php.txt",
+      "evidence_sha256": "d8c32578a5e5deb661b2fad111ec49391945a83e1158c6d32ba38f537ae08a5c",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mariadb-persistent-environment.txt",
+      "fixture_sha256": "7061cfe05cfa133eb2f6e2554df4ea3d4b1f4a8899f6497cbe7116d616042531"
+    },
+    {
+      "test": "mariadb-persistent-scale-v02.php",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/wl253-fix/wordpress/tests/release/scale-v02.php"
+      ],
+      "started_at": "2026-10-12T04:08:54.495276+00:00",
+      "ended_at": "2026-10-12T04:11:07.192014+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mariadb-persistent-scale-v02.php.txt",
+      "evidence_sha256": "6797d3e403854f55bff7c6cbc75d5ce299684eaa5d7af4d699c4136a16b61c29",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mariadb-persistent-environment.txt",
+      "fixture_sha256": "0140ea78b62ac6c4bdf7bb6594fdf54e67b96d627abca206a1102a5a44f40709"
+    },
+    {
+      "test": "mariadb-redis-disable",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "redis",
+        "disable"
+      ],
+      "started_at": "2026-10-12T04:11:07.192422+00:00",
+      "ended_at": "2026-10-12T04:11:07.995503+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mariadb-redis-disable.txt",
+      "evidence_sha256": "376fbb9a63aaa1c05b9c01555521f758a135e77f8c6f4d925b50239118670c21",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mariadb-default-environment.txt"
+    },
+    {
+      "test": "mysql-exact-zip-install",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mysql-site",
+        "plugin",
+        "install",
+        "/tmp/opencode/wl253-fixed-build-a/writeleash-0.2.0.zip",
+        "--force"
+      ],
+      "started_at": "2026-10-12T04:11:07.995817+00:00",
+      "ended_at": "2026-10-12T04:11:09.122611+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mysql-exact-zip-install.txt",
+      "evidence_sha256": "ca4a723d51c63fe8ecac12e9106d33d36d4ab7e43eace0ed84c7626e3840e1d4",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mysql-default-environment.txt"
+    },
+    {
+      "test": "mysql-activation",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mysql-site",
+        "eval",
+        "require_once ABSPATH.\"wp-admin/includes/plugin.php\"; $r=activate_plugin(\"writeleash/writeleash.php\",\"\",false); if(is_wp_error($r)){throw new RuntimeException($r->get_error_message());} echo \"Core activation PASS\";"
+      ],
+      "started_at": "2026-10-12T04:11:09.122972+00:00",
+      "ended_at": "2026-10-12T04:11:09.913097+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mysql-activation.txt",
+      "evidence_sha256": "31e8c8300bac82fb779cecf64bec537946b9adacfad2df37e0933dca81df660e",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mysql-default-environment.txt"
+    },
+    {
+      "test": "mysql-default-environment",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mysql-site",
+        "eval",
+        "global $wpdb; echo wp_json_encode(array(\"wp\"=>get_bloginfo(\"version\"),\"woo\"=>WC_VERSION,\"php\"=>PHP_VERSION,\"db\"=>$wpdb->get_var(\"SELECT VERSION()\"),\"persistent_cache\"=>wp_using_ext_object_cache()));"
+      ],
+      "started_at": "2026-10-12T04:11:09.919123+00:00",
+      "ended_at": "2026-10-12T04:11:10.689519+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mysql-default-environment.txt",
+      "evidence_sha256": "0b93a52700325d23ecc61a91524d10750c14317950663053f247fa041142caed",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mysql-default-environment.txt"
+    },
+    {
+      "test": "mysql-default-parent-state-v02.php",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mysql-site",
+        "eval-file",
+        "/tmp/opencode/wl253-fix/wordpress/tests/release/parent-state-v02.php"
+      ],
+      "started_at": "2026-10-12T04:11:10.689885+00:00",
+      "ended_at": "2026-10-12T04:11:17.062602+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mysql-default-parent-state-v02.php.txt",
+      "evidence_sha256": "d8c32578a5e5deb661b2fad111ec49391945a83e1158c6d32ba38f537ae08a5c",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mysql-default-environment.txt",
+      "fixture_sha256": "7061cfe05cfa133eb2f6e2554df4ea3d4b1f4a8899f6497cbe7116d616042531"
+    },
+    {
+      "test": "mysql-default-scale-v02.php",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mysql-site",
+        "eval-file",
+        "/tmp/opencode/wl253-fix/wordpress/tests/release/scale-v02.php"
+      ],
+      "started_at": "2026-10-12T04:11:17.062953+00:00",
+      "ended_at": "2026-10-12T04:13:43.315869+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mysql-default-scale-v02.php.txt",
+      "evidence_sha256": "6797d3e403854f55bff7c6cbc75d5ce299684eaa5d7af4d699c4136a16b61c29",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mysql-default-environment.txt",
+      "fixture_sha256": "0140ea78b62ac6c4bdf7bb6594fdf54e67b96d627abca206a1102a5a44f40709"
+    },
+    {
+      "test": "mysql-redis-enable",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mysql-site",
+        "redis",
+        "enable"
+      ],
+      "started_at": "2026-10-12T04:13:43.316226+00:00",
+      "ended_at": "2026-10-12T04:13:44.139050+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mysql-redis-enable.txt",
+      "evidence_sha256": "d876ebd17e344df9adf9dd0f40aa11f1e83c040c168196541164ea8bc4982ff0",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mysql-default-environment.txt"
+    },
+    {
+      "test": "mysql-persistent-environment",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mysql-site",
+        "eval",
+        "global $wpdb; echo wp_json_encode(array(\"wp\"=>get_bloginfo(\"version\"),\"woo\"=>WC_VERSION,\"php\"=>PHP_VERSION,\"db\"=>$wpdb->get_var(\"SELECT VERSION()\"),\"persistent_cache\"=>wp_using_ext_object_cache()));"
+      ],
+      "started_at": "2026-10-12T04:13:44.139397+00:00",
+      "ended_at": "2026-10-12T04:13:45.038711+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mysql-persistent-environment.txt",
+      "evidence_sha256": "cccadf6af0b20e6033701b751c3e96a8b1ca17546b7e18a71e2b06767c7bfe53",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mysql-persistent-environment.txt"
+    },
+    {
+      "test": "mysql-persistent-parent-state-v02.php",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mysql-site",
+        "eval-file",
+        "/tmp/opencode/wl253-fix/wordpress/tests/release/parent-state-v02.php"
+      ],
+      "started_at": "2026-10-12T04:13:45.039084+00:00",
+      "ended_at": "2026-10-12T04:13:51.786826+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mysql-persistent-parent-state-v02.php.txt",
+      "evidence_sha256": "d8c32578a5e5deb661b2fad111ec49391945a83e1158c6d32ba38f537ae08a5c",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mysql-persistent-environment.txt",
+      "fixture_sha256": "7061cfe05cfa133eb2f6e2554df4ea3d4b1f4a8899f6497cbe7116d616042531"
+    },
+    {
+      "test": "mysql-persistent-scale-v02.php",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mysql-site",
+        "eval-file",
+        "/tmp/opencode/wl253-fix/wordpress/tests/release/scale-v02.php"
+      ],
+      "started_at": "2026-10-12T04:13:51.787241+00:00",
+      "ended_at": "2026-10-12T04:16:47.819994+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mysql-persistent-scale-v02.php.txt",
+      "evidence_sha256": "6797d3e403854f55bff7c6cbc75d5ce299684eaa5d7af4d699c4136a16b61c29",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mysql-persistent-environment.txt",
+      "fixture_sha256": "0140ea78b62ac6c4bdf7bb6594fdf54e67b96d627abca206a1102a5a44f40709"
+    },
+    {
+      "test": "mysql-redis-disable",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mysql-site",
+        "redis",
+        "disable"
+      ],
+      "started_at": "2026-10-12T04:16:47.820359+00:00",
+      "ended_at": "2026-10-12T04:16:48.559734+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "evidence": "logs/b1-b3-mysql-redis-disable.txt",
+      "evidence_sha256": "376fbb9a63aaa1c05b9c01555521f758a135e77f8c6f4d925b50239118670c21",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "environment_receipt": "logs/b1-b3-mysql-default-environment.txt"
+    }
+  ],
+  "failed_attempts_preserved": [
+    {
+      "test": "mariadb-default-parent-state-v02.php",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/wl253-fix/wordpress/tests/release/parent-state-v02.php"
+      ],
+      "started_at": "2026-10-12T03:50:38.537350+00:00",
+      "ended_at": "2026-10-12T03:50:40.377401+00:00",
+      "exit_code": 1,
+      "status": "FAIL",
+      "evidence": "logs/b1-b3-attempt-1-mariadb-default-parent-state-v02.php.txt",
+      "evidence_sha256": "2be45afbb3933bc3ac1ec2623073a5e4d77636f02ed372eac1063649b6c67ddf"
+    },
+    {
+      "test": "mariadb-default-scale-v02.php",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl253-runtime/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/wl253-fix/wordpress/tests/release/scale-v02.php"
+      ],
+      "started_at": "2026-10-12T04:04:20.463598+00:00",
+      "ended_at": "2026-10-12T04:05:42.925862+00:00",
+      "exit_code": 1,
+      "status": "FAIL",
+      "evidence": "logs/b1-b3-attempt-3-mariadb-default-scale-v02.php.txt",
+      "evidence_sha256": "7553d08dc6c6bb1544b1ce633f9895a534d6a3060da06d5747b4cd9fe5b2a9eb"
+    }
+  ],
+  "commands": {
+    "negative_controls": "PYTHONDONTWRITEBYTECODE=1 python3 wordpress/release/test-wordpress-org-v02-regressions.py",
+    "pr_fast": "PYTHONDONTWRITEBYTECODE=1 bash .github/ci/pr-fast.sh",
+    "corruption": "PYTHONDONTWRITEBYTECODE=1 python3 wordpress/release/test-wordpress-org-v02.py /tmp/opencode/wl253-fixed-build-a"
+  }
+}

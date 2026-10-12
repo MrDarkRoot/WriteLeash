@@ -1,0 +1,1 @@
+#204 real Woo persisted Apply/Undo, actor/capability/session/nonce bounds, read-only SQL/product-read audit, conflict/terminal, no-JS and missing evidence PASS (default)

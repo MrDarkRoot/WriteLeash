@@ -1,0 +1,2 @@
+#240 parent regular_price: same-variation Apply/Undo observer active before zero-save refusals; values/parent preserved PASS
+#240 parent sale_price: same-variation Apply/Undo observer active before zero-save refusals; values/parent preserved PASS

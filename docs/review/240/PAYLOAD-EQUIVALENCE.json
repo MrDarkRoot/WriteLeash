@@ -1,0 +1,10 @@
+{
+  "selected_main_sha": "566a91f3d41e2f7d030e1154478e2f023b2409bf",
+  "initial_tooling_source": "ba249dc96d3ea8318df0f3e65cf5a0833422e10a",
+  "proposed_source": "39d67bfba9cd4f265c3dfa34657c76abe203fa79",
+  "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+  "independently_rebuilt_zip_bytes_equal": true,
+  "plugin_assets_manifest_diff_empty": true,
+  "run_labels_preserved": true,
+  "final_merge_source_revalidation_required": true
+}
