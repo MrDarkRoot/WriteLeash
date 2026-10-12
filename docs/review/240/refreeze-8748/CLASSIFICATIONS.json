@@ -1,0 +1,404 @@
+{
+  "historical_source": "04dbbcd11a53abbf816ad1b11b7e659156daca29",
+  "historical_files": {
+    "docs/review/240/PLUGIN-CHECK-RAW.json": {
+      "sha256": "9e6b727514f936d72d4aae5cb38fa5e4928abae48c047c077851f3fae4647aad",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/COMMAND-PROVENANCE-ADDENDUM.json": {
+      "sha256": "61aa2c8148f9d7d49193f3b5729909b23bc67d8cea7047be53b3393a97ba764b",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/DOWNLOADED-ARCHIVES.json": {
+      "sha256": "0d3b3eff28dcb03ce9b90bdfd990b67cf44569e74651f79560e7d0d5a25d5184",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/FREEZE-ARTIFACT.json": {
+      "sha256": "35616abd236aa7b80403b9f44d6888fc6aed4ca0e4845206e494f2724bdd5231",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/FRESH-RUN-LEDGER.json": {
+      "sha256": "584bef1510194a7f1c3f45fc58f220c5910667d7b62d78974edad96c0c61980d",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/OBSERVED-INSTALLED-HASHES.json": {
+      "sha256": "e9b0afab2281fdc87df446b88d64fc7530756ea49f5e92b649c731c3360800e1",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/PHP-PACKAGE-PROVENANCE.json": {
+      "sha256": "11a1b764687efcd1e32793f6b11347e56641870d6cc21fed9bdaf447efdfb295",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/RETAINED-EVIDENCE-AUDIT.json": {
+      "sha256": "b203ee82eb644dd4d53e22bd87a24ac1d1d0e3f6427c6878cb66a093de41a57b",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/SVN-READINESS.json": {
+      "sha256": "8f0d16b78d621e7fd1c126cd97074b80d960e10ec5b4fa87e798e433c495bb8a",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/VERIFICATION-SUMMARY.json": {
+      "sha256": "21ea72371b165a9bcbbb27240dd74473972f2fda54629e53b80817a08465105d",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/after_commit-observe.txt": {
+      "sha256": "ca91dd96e20e1e3f9bea74418e523d6953acf57febf52d95fe9f95ce05865e4f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/after_commit-recover.txt": {
+      "sha256": "6311ea8034818a5f105f24fa63ae3dcd74ecde02a89f570b685e84e74945f1ae",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/after_commit-seed.txt": {
+      "sha256": "8e606007455b67acadc78810ec50e3b664277728d261c738cf647fef577f32c3",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/after_commit-worker.txt": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/before_commit-observe.txt": {
+      "sha256": "6efbfe255a7ef4b195dfee7a9e08990bc16a18e787631d3c7a3511e6bc9207a5",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/before_commit-recover.txt": {
+      "sha256": "de8d360ff4f7ba8a9bbccae3f67fc9c3ecb168b62d9b0633a04b8f8818324c7f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/before_commit-seed.txt": {
+      "sha256": "8e606007455b67acadc78810ec50e3b664277728d261c738cf647fef577f32c3",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/before_commit-worker.txt": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/connection_loss-observe.txt": {
+      "sha256": "53ad3a7292f80210f2591fe6a60c790391b9d49d5a441d3c8d6d1790996e5bdb",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/connection_loss-recover.txt": {
+      "sha256": "0604d762327c89ff53d5ffc4500d5b49be1ee7afd835c20184d863043a0790ce",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/connection_loss-seed.txt": {
+      "sha256": "8e606007455b67acadc78810ec50e3b664277728d261c738cf647fef577f32c3",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/connection_loss-worker.txt": {
+      "sha256": "1a92a832e140e2428716db669ef26817d1e43206a18fd33fa07c11d5fa5975c0",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/final-pr-fast.txt": {
+      "sha256": "f778255a49fb806efdcdbaba3f1040b495854b7d488e5710629dbbd9798a4271",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/historical-upgrade-DISABLE_WP_CRON.txt": {
+      "sha256": "0f74da558b157f99fca371806e6b8d7366e0c006721be99d4f4d3a73b4d4e76b",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/historical-upgrade-WP_HTTP_BLOCK_EXTERNAL.txt": {
+      "sha256": "d7fee599f7627725fe1a3c8efec5d1919ff64d2d0670c771293d9aec3c17d5ae",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/minimum-74-DISABLE_WP_CRON.txt": {
+      "sha256": "d40f0309957b8634b75bff4f07a530ba38c0ecb625f557f72a340b9240868afa",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/minimum-74-WP_HTTP_BLOCK_EXTERNAL.txt": {
+      "sha256": "0fd2d05d042e31ab289e3208e8e0e15283a4252f38298bf86de5730d88a09598",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/minimum-74-activation.txt": {
+      "sha256": "31e8c8300bac82fb779cecf64bec537946b9adacfad2df37e0933dca81df660e",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/minimum-74-environment.txt": {
+      "sha256": "4661b7df505b9947180dd7ebbab1f57e55dab5d3c80bacab60ccc0bdd6efdf7a",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/minimum-74-exact-zip-install-without-woo.txt": {
+      "sha256": "f3a0d51ed3f58b529abb0caea0a4116467d238ef13bd16c8978604fd7deaaf06",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/minimum-74-freeze-acceptance-v02.txt": {
+      "sha256": "0b095113b2ca4f4732cbbf172fa49592eec05aa1b8172527d21a67ed78219809",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/minimum-74-missing-woo.txt": {
+      "sha256": "06fb958c6d31547753d890b634e855653671eaded7ae9cf7b00f9ded3db79b0f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/minimum-74-presets-repeat-integration.txt": {
+      "sha256": "d27860e82a9e0c7cbc5e627595246f2228b424d1e2485839ac44c0c4e78357b0",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/minimum-74-woo-install.txt": {
+      "sha256": "ffb086fc9239e9ff7f6125dea5bca00e68dfeec3870096866ea7bc071c0c0b5f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-80-DISABLE_WP_CRON.txt": {
+      "sha256": "d40f0309957b8634b75bff4f07a530ba38c0ecb625f557f72a340b9240868afa",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-80-WP_HTTP_BLOCK_EXTERNAL.txt": {
+      "sha256": "0fd2d05d042e31ab289e3208e8e0e15283a4252f38298bf86de5730d88a09598",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-80-activation.txt": {
+      "sha256": "31e8c8300bac82fb779cecf64bec537946b9adacfad2df37e0933dca81df660e",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-80-environment.txt": {
+      "sha256": "3a0d5d6a8f739842edb98708cd8bd065f8399a2a118167b73d5b716d86528b5f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-80-exact-zip-install-without-woo.txt": {
+      "sha256": "f3a0d51ed3f58b529abb0caea0a4116467d238ef13bd16c8978604fd7deaaf06",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-80-freeze-acceptance-v02.txt": {
+      "sha256": "dd628b06329da7bab018d99bc1a1baacc99ec5992812b6c8cf8c48e34f5b9f42",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-80-missing-woo.txt": {
+      "sha256": "06fb958c6d31547753d890b634e855653671eaded7ae9cf7b00f9ded3db79b0f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-80-presets-repeat-integration.txt": {
+      "sha256": "9184030651bfdca6cdcd68d45c881aa05bf79255107d274de830053eba9a2d0d",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-80-woo-install.txt": {
+      "sha256": "ffb086fc9239e9ff7f6125dea5bca00e68dfeec3870096866ea7bc071c0c0b5f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-81-DISABLE_WP_CRON.txt": {
+      "sha256": "d40f0309957b8634b75bff4f07a530ba38c0ecb625f557f72a340b9240868afa",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-81-WP_HTTP_BLOCK_EXTERNAL.txt": {
+      "sha256": "0fd2d05d042e31ab289e3208e8e0e15283a4252f38298bf86de5730d88a09598",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-81-activation.txt": {
+      "sha256": "31e8c8300bac82fb779cecf64bec537946b9adacfad2df37e0933dca81df660e",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-81-environment.txt": {
+      "sha256": "240de5aa8a8611f32a23f5e5710b86584e8d361090777d603faa59d74e6403bf",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-81-exact-zip-install-without-woo.txt": {
+      "sha256": "f3a0d51ed3f58b529abb0caea0a4116467d238ef13bd16c8978604fd7deaaf06",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-81-freeze-acceptance-v02.txt": {
+      "sha256": "141943dc21e2a8469f324addbf2f399a6f94fbbfbd0f481ecafa41943e85d443",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-81-missing-woo.txt": {
+      "sha256": "06fb958c6d31547753d890b634e855653671eaded7ae9cf7b00f9ded3db79b0f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-81-presets-repeat-integration.txt": {
+      "sha256": "2154bcbe9ba3f498ba3553f679fdad26c5109c10d0993b884efee43ae1875bb8",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-81-woo-install.txt": {
+      "sha256": "ffb086fc9239e9ff7f6125dea5bca00e68dfeec3870096866ea7bc071c0c0b5f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-8234-DISABLE_WP_CRON.txt": {
+      "sha256": "d40f0309957b8634b75bff4f07a530ba38c0ecb625f557f72a340b9240868afa",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-8234-WP_HTTP_BLOCK_EXTERNAL.txt": {
+      "sha256": "0fd2d05d042e31ab289e3208e8e0e15283a4252f38298bf86de5730d88a09598",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-8234-activation.txt": {
+      "sha256": "31e8c8300bac82fb779cecf64bec537946b9adacfad2df37e0933dca81df660e",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-8234-environment.txt": {
+      "sha256": "42d67c33334ab5db7bd9bb2ab172410714a33952d56a161f3681cddc45ba8733",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-8234-exact-zip-install-without-woo.txt": {
+      "sha256": "f3a0d51ed3f58b529abb0caea0a4116467d238ef13bd16c8978604fd7deaaf06",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-8234-freeze-acceptance-v02.txt": {
+      "sha256": "0e7877b9c969c885997007338784a088412ceff61fbf2eadabdb501ce50bc9d0",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-8234-missing-woo.txt": {
+      "sha256": "06fb958c6d31547753d890b634e855653671eaded7ae9cf7b00f9ded3db79b0f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-8234-presets-repeat-integration.txt": {
+      "sha256": "ea774a80de8dc70a06457a7fcb42ad9bead290c7a77eb16405dd5e4cee0b5912",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/php-8234-woo-install.txt": {
+      "sha256": "ffb086fc9239e9ff7f6125dea5bca00e68dfeec3870096866ea7bc071c0c0b5f",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/svn-local-diff-summary.txt": {
+      "sha256": "2c1f2294142b6e91486d188899c8a444d9b2df9abf10dadf399e9e1c1d16be00",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/svn-local-properties.txt": {
+      "sha256": "d5538e8ac1e981ebd4793a22a6d98ad23130e6c6da4a3d1ca6390c1ec41dcdc6",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/svn-local-status.txt": {
+      "sha256": "9d02aa322dc0904e5c66c9071306e7f548b7133c7fe803d5624fdb25e8a6a67e",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/svn-remote-info.txt": {
+      "sha256": "a7c256818b5eaf761acd7631fe24736aefe56558e60f4bb6e37999e63f7dce06",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/svn-remote-inventory.txt": {
+      "sha256": "e30f432219aac4d977704f95576debaedc5dcc6817ab3b07a3ebf7427da884d3",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/upgrade-historical-install.txt": {
+      "sha256": "fc80be4e115ca7e1250a23d6b1809ffe59c2efa8eccf3e1639d24e8b59c0f5bb",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/upgrade-in-place-exact-zip.txt": {
+      "sha256": "ca4a723d51c63fe8ecac12e9106d33d36d4ab7e43eace0ed84c7626e3840e1d4",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/upgrade-seed.txt": {
+      "sha256": "a905cc12679f27138a2d795ca7673d6beefd9743fe834fd9003d8cc92c5723d5",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/upgrade-verify.txt": {
+      "sha256": "10a0eec7f0ca11dc1803eacf768f6b5540a898b3a288a77ed58516c9eed0aa22",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/logs/upgrade-woo-install.txt": {
+      "sha256": "86a8c3f7eb7606f3d638044a479a294e254e8f0338e2c406d4b5f723bef5df68",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/wl240-extras.py.redacted.txt": {
+      "sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/wl240-runtime.py.redacted.txt": {
+      "sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/wl240-sites.py.redacted.txt": {
+      "sha256": "52986c01b3b3bead849f5fa75f7af5fb3b460b701d017e638c069c82f72ab8a7",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    },
+    "docs/review/240/final/wl240-upgrade-run.py.redacted.txt": {
+      "sha256": "f67bfd8edb422c445b0957d42f2c374bb2ec89bb15eaf2dfd9881f5c05502c60",
+      "classification": "RETAINED_HISTORICAL_EVIDENCE",
+      "archive": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757"
+    }
+  },
+  "previous_remediation": "RETAINED_HISTORICAL_EVIDENCE; earlier same-byte receipts are not new executions",
+  "fresh_count": 282,
+  "fail_count": 1,
+  "not_tested": [
+    "remote publication/release confirmation/public update verification",
+    "publisher private slug permission",
+    "shared/managed hosts/multisite/unlisted cross-products",
+    "manual screen-reader certification"
+  ],
+  "skipped_ci_families": [
+    "admin",
+    "jobs",
+    "undo",
+    "plan",
+    "acceptance",
+    "historical",
+    "adapter",
+    "engine",
+    "foundation",
+    "feasibility",
+    "native",
+    "research"
+  ],
+  "gaps_preserved": "30 unavailable older commands; reconstructed provenance remains distinguished; no records invented"
+}

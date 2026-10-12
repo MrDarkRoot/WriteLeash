@@ -1,0 +1,45 @@
+import datetime
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+
+base=Path('/tmp/opencode/wl240-env')
+repo=Path('/tmp/opencode/writeleash-240-release')
+site=base/'upgrade-site'
+rows=[]
+receipt=json.loads(Path('/tmp/opencode/wl240-build-a/evidence.json').read_text())
+def run(name, cmd, env=None):
+    start=datetime.datetime.now(datetime.timezone.utc).isoformat()
+    r=subprocess.run(cmd,capture_output=True,text=True,env=env,timeout=180)
+    (base/'evidence'/('upgrade-'+name+'.txt')).write_text(r.stdout+r.stderr)
+    rows.append(dict(test=name,status='PASS' if r.returncode==0 else 'FAIL',exit_code=r.returncode,
+                     source_sha=receipt['SOURCE_GIT_SHA'],zip_sha256=receipt['ZIP_SHA256'],
+                     started_at=start,ended_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),evidence='upgrade-'+name+'.txt'))
+    (base/'evidence/upgrade-results.json').write_text(json.dumps(rows,indent=2)+'\n')
+    print(name,r.returncode,flush=True)
+    if r.returncode: raise RuntimeError(r.stdout+r.stderr)
+
+run('database',['php','-r','$d=new mysqli("127.0.0.1","root","","",33240); $d->query("CREATE DATABASE wp240_upgrade CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"); $d->query("GRANT ALL ON wp240_upgrade.* TO \'wp240\'@\'127.0.0.1\'");'])
+shutil.copytree(base/'wp-core',site)
+wp=['wp','--path='+str(site)]
+run('config',wp+['config','create','--dbname=wp240_upgrade','--dbuser=wp240','--dbpass=<private-fixture-value>','--dbhost=127.0.0.1:33240','--skip-check'])
+run('core',wp+['core','install','--url=http://127.0.0.1:8242','--title=Upgrade240','--admin_user=admin','--admin_password=<private-fixture-value>','--admin_email=admin@example.test','--skip-email'])
+run('cron',wp+['config','set','DISABLE_WP_CRON','true','--raw'])
+mu=site/'wp-content/mu-plugins'; mu.mkdir(exist_ok=True)
+(mu/'manual.php').write_text('<?php add_filter("action_scheduler_allow_async_request_runner", "__return_false");\n')
+run('woo',wp+['plugin','install','/tmp/opencode/wl234-stack/zips/woocommerce.11.1.2.zip','--activate'])
+old=Path('/tmp/opencode/wl240-historical-build/writeleash-0.1.0.zip')
+assert hashlib.sha256(old.read_bytes()).hexdigest()=='b8bd5f406667f6f686348ea67453ec25b90e09607cd9a13b542e6054c9f8a3e8'
+run('historical-install',wp+['plugin','install',str(old)])
+activation='require_once ABSPATH."wp-admin/includes/plugin.php"; $r=activate_plugin("writeleash/writeleash.php","",false); if(is_wp_error($r)){throw new RuntimeException($r->get_error_message());}'
+run('historical-activate',wp+['eval',activation])
+env=dict(os.environ,WL240_UPGRADE_MODE='seed',WL240_UPGRADE_RECEIPT=str(base/'upgrade-private.json'))
+run('seed',wp+['eval-file',str(repo/'wordpress/tests/release/upgrade-v02.php')],env)
+run('in-place-zip-upgrade',wp+['plugin','install','/tmp/opencode/wl240-build-a/writeleash-0.2.0.zip','--force'])
+run('candidate-activate',wp+['eval',activation])
+env['WL240_UPGRADE_MODE']='verify'
+run('verify',wp+['eval-file',str(repo/'wordpress/tests/release/upgrade-v02.php')],env)
+print('Historical ZIP fixture upgrade completed; not a distributed public-update test.')

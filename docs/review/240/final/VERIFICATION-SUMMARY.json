@@ -1,0 +1,14 @@
+{
+  "frozen_source_sha": "04dbbcd11a53abbf816ad1b11b7e659156daca29",
+  "fresh_records_verified": 55,
+  "fixture_and_log_hashes": "PASS",
+  "old_runner_snapshot_hashes": "PASS",
+  "new_evidence_secret_value_scan": "PASS",
+  "final_pr_fast": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 bash .github/ci/pr-fast.sh",
+    "status": "PASS",
+    "evidence": "logs/final-pr-fast.txt",
+    "sha256": "f778255a49fb806efdcdbaba3f1040b495854b7d488e5710629dbbd9798a4271"
+  },
+  "artifact_frozen_independently_of_evidence_commit": true
+}

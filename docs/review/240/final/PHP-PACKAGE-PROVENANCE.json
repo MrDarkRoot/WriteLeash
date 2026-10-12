@@ -1,0 +1,187 @@
+[
+  {
+    "file": "php7.4-bcmath_1%3a7.4.33-30+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "34d5d536e33894fb8e42684d06a01657b2e77bd7d0bca886ef4611c6255a8e27",
+    "package_version": "1:7.4.33-30+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php7.4-cli_1%3a7.4.33-30+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "11e3c4557414dcfbafcda520156440e6e826ce45cd872b2a6a76bf6cbea6e1ee",
+    "package_version": "1:7.4.33-30+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php7.4-common_1%3a7.4.33-30+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "f87821f693516f2a75a417ec1afdc53c1ac35ff6e80be23dfcfafd79ae6e3482",
+    "package_version": "1:7.4.33-30+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php7.4-curl_1%3a7.4.33-30+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "55768ca67c7033a5f214433ebae9939d7782b3c6b12bdc9a779def7f744c7142",
+    "package_version": "1:7.4.33-30+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php7.4-intl_1%3a7.4.33-30+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "cc14335abbc3189f058323db37e195014ddbaefb947d1a578595492f8d675138",
+    "package_version": "1:7.4.33-30+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php7.4-json_1%3a7.4.33-30+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "4bc13d6773565827fb3f23b54175600b91dce819bba3eed1bb252ee0f898ea8e",
+    "package_version": "1:7.4.33-30+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php7.4-mbstring_1%3a7.4.33-30+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "07e3fd1a14ca0e7e7217f0d6b651d5ac76e9dceb5304cfd9976e7c29a62cf2e1",
+    "package_version": "1:7.4.33-30+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php7.4-mysql_1%3a7.4.33-30+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "c9a20a96206a015c05266845aabc49aa4af48a3fb1d535986778a3914a1217f9",
+    "package_version": "1:7.4.33-30+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php7.4-xml_1%3a7.4.33-30+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "28c9af68c641719a0c5cd0ceea3bc52d894a4a8b3e4f1e9c8df535b20565d2f0",
+    "package_version": "1:7.4.33-30+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php7.4-zip_1%3a7.4.33-30+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "e310c22b9a361c11f3102aa1520b5b0c8dcc47e7b489b9abe78fac6c448522ba",
+    "package_version": "1:7.4.33-30+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.0-bcmath_1%3a8.0.30-24+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "188fde0f21c56a9aa24b5525e24c37edaf3f1a5a43c69a3a54f0f5ede0bbe582",
+    "package_version": "1:8.0.30-24+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.0-cli_1%3a8.0.30-24+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "b9358482ae9409a170bbd4ca977e7997c3590b842542637efcea71025b83600a",
+    "package_version": "1:8.0.30-24+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.0-common_1%3a8.0.30-24+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "c259feb633298ecace3c19af53846a742c0af06af9a8aad3107616acce70eb15",
+    "package_version": "1:8.0.30-24+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.0-curl_1%3a8.0.30-24+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "9e61e0ff993c560ebce3208a60cd57dba7e98b02f522f43efa32f0fb40dad989",
+    "package_version": "1:8.0.30-24+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.0-intl_1%3a8.0.30-24+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "3c7c7194e0db820ac1aa09c3fc89f5c8b881bf2ce57169a1534092015db90cc8",
+    "package_version": "1:8.0.30-24+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.0-mbstring_1%3a8.0.30-24+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "d8d415303e91a74d09c37937be24811a9506beb3df4f1e2b79f6c7ff24e53b3b",
+    "package_version": "1:8.0.30-24+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.0-mysql_1%3a8.0.30-24+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "c20c2665f7ef257a69195176bbe3a0ce5157880cc7434ea477c0cf0af84bc836",
+    "package_version": "1:8.0.30-24+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.0-xml_1%3a8.0.30-24+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "2e6135b04e64d0f66f9ef1183d5387793f07c9baa23a6773eb9139073d746156",
+    "package_version": "1:8.0.30-24+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.0-zip_1%3a8.0.30-24+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "b9a193658a72d94bda7eccf1814dc1ea9e1e908f9cf67c3cabe6856b043e2c46",
+    "package_version": "1:8.0.30-24+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.1-bcmath_8.1.34-8+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "140d881c2727a0f1011a255ed9d2eb2f021530483204f35fedf7e30ce457a576",
+    "package_version": "8.1.34-8+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.1-cli_8.1.34-8+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "a51924bd60fdf11056580e00fcfc6fd40235544313ea65f7b236fafd31dd422f",
+    "package_version": "8.1.34-8+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.1-common_8.1.34-8+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "8e0c86d057a864d2251ec930bfc182636ad34feb6c1f82f31eb9c89be5f00708",
+    "package_version": "8.1.34-8+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.1-curl_8.1.34-8+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "d0611252d95aab848c48b49115b12dada25633a3482cb98ca43236d778645d8c",
+    "package_version": "8.1.34-8+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.1-intl_8.1.34-8+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "65dc5e1879d2fe86688bca47b9f322eaa4d1ceb91a30c77cacc4919309f2bf6c",
+    "package_version": "8.1.34-8+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.1-mbstring_8.1.34-8+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "b58fc64df3a83cb2c3d6a6cce66969131a43ab70ee140db9e470dd5bc4ce8130",
+    "package_version": "8.1.34-8+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.1-mysql_8.1.34-8+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "0afaa3c7b5deb8caa91d765db049cf3f09bc47ce5e3bfb71b9f9de52ad08c5cb",
+    "package_version": "8.1.34-8+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.1-xml_8.1.34-8+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "b3004250551b24227239cbe996583f21b41eacf26db4c65c9465c0802db135ab",
+    "package_version": "8.1.34-8+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.1-zip_8.1.34-8+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "f92a2ab34731136bcf6e3d85f99112040f66c4a20a8e08eecf0c01a19975513b",
+    "package_version": "8.1.34-8+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.2-bcmath_8.2.34-1+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "dd9e136c1a4c923c3e9a1665b5bfc151f045f60fe6dd0114ed04843472c05d69",
+    "package_version": "8.2.34-1+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.2-cli_8.2.34-1+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "a323335d3df002edfe6809ca727f3cbb69cbb5fee24282adf6add72c7d3298ef",
+    "package_version": "8.2.34-1+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.2-common_8.2.34-1+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "4d7f9130e46c1d0b4f13214a97a63b49f0a9b9d9f10dd7bc62575881c607aa7c",
+    "package_version": "8.2.34-1+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.2-curl_8.2.34-1+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "239541efbfa8df03a3b90baac2ccbb6f12359d58ea14f39fe7f6cb804944056f",
+    "package_version": "8.2.34-1+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.2-intl_8.2.34-1+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "31239ca426446648b64d6afaec8ffcc9e87c3edc14da75310a7ad3e12e49684b",
+    "package_version": "8.2.34-1+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.2-mbstring_8.2.34-1+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "c1707daecdf13494d4444c34542bbe1d3aabe14ba8b3927644c885f5940e33ca",
+    "package_version": "8.2.34-1+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.2-mysql_8.2.34-1+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "3c84646f17a9ea3f742af5fb3eb77c4425a792f318af0513c2e73a5d3c4b4be9",
+    "package_version": "8.2.34-1+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.2-xml_8.2.34-1+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "ebea4962d1da09e33fefab20b0651f90d57ca6861fc13a5d25328ed783da121a",
+    "package_version": "8.2.34-1+ubuntu24.04.1+deb.sury.org+1"
+  },
+  {
+    "file": "php8.2-zip_8.2.34-1+ubuntu24.04.1+deb.sury.org+1_amd64.deb",
+    "sha256": "d397547a44688a159d716dccd2253b51af528a0442525fe9abc48cbf8c6b9c2b",
+    "package_version": "8.2.34-1+ubuntu24.04.1+deb.sury.org+1"
+  }
+]

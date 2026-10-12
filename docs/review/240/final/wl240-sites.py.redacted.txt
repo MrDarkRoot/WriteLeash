@@ -1,0 +1,60 @@
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import time
+
+base = Path('/tmp/opencode/wl240-env')
+repo = Path('/tmp/opencode/writeleash-240-release')
+archive = Path('/tmp/opencode/wl240-build-a/writeleash-0.2.0.zip')
+retained = Path('/tmp/opencode/wl234-stack')
+rows = []
+sha = 'ba249dc96d3ea8318df0f3e65cf5a0833422e10a'
+zipsha = hashlib.sha256(archive.read_bytes()).hexdigest()
+def run(name, cmd, env=None, expected=0):
+    result = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=180)
+    (base / 'evidence' / (name + '.txt')).write_text(result.stdout + result.stderr)
+    rows.append(dict(test=name, source_sha=sha, zip_sha256=zipsha, status='PASS' if result.returncode == expected else 'FAIL',
+                     exit_code=result.returncode, expected_exit=expected, evidence=name + '.txt'))
+    (base / 'evidence/setup.json').write_text(json.dumps(rows, indent=2) + '\n')
+    print(name, result.returncode, flush=True)
+    if result.returncode != expected:
+        raise RuntimeError(name + ': ' + result.stdout + result.stderr)
+    return result.stdout
+
+for engine, port in [('mariadb', 33240), ('mysql', 33241)]:
+    # Disposable site bootstrap on our newly initialized instance only.
+    run(engine + '-db-bootstrap', ['php', '-r', '$db=new mysqli("127.0.0.1","root","","",' + str(port) + '); $db->query("CREATE DATABASE wp240_' + engine + ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"); $db->query("CREATE USER \'wp240\'@\'127.0.0.1\' IDENTIFIED BY \'<private-fixture-value>\'"); $db->query("GRANT ALL ON wp240_' + engine + '.* TO \'wp240\'@\'127.0.0.1\'"); echo $db->server_info;'])
+    site = base / (engine + '-site')
+    shutil.copytree(base / 'wp-core', site)
+    wp = ['wp', '--path=' + str(site)]
+    url = 'http://127.0.0.1:' + ('8240' if engine == 'mariadb' else '8241')
+    run(engine + '-config', wp + ['config', 'create', '--dbname=wp240_' + engine, '--dbuser=wp240', '--dbpass=<private-fixture-value>', '--dbhost=127.0.0.1:' + str(port), '--skip-check'])
+    run(engine + '-core-install', wp + ['core', 'install', '--url=' + url, '--title=WL240', '--admin_user=admin', '--admin_password=<private-fixture-value>', '--admin_email=admin@example.test', '--skip-email'])
+    for key, value in [('DISABLE_WP_CRON', 'true'), ('WP_DEBUG', 'true'), ('WP_DEBUG_LOG', 'true'), ('WP_DEBUG_DISPLAY', 'false')]:
+        run(engine + '-' + key, wp + ['config', 'set', key, value, '--raw'])
+    mu = site / 'wp-content/mu-plugins'
+    mu.mkdir(exist_ok=True)
+    (mu / 'manual.php').write_text('<?php add_filter("action_scheduler_allow_async_request_runner", "__return_false");\n')
+    run(engine + '-woo-install', wp + ['plugin', 'install', str(retained / 'zips/woocommerce.11.1.2.zip'), '--activate'])
+    run(engine + '-exact-zip-install', wp + ['plugin', 'install', str(archive)])
+    run(engine + '-activation', wp + ['eval', 'require_once ABSPATH."wp-admin/includes/plugin.php"; $r=activate_plugin("writeleash/writeleash.php","",false); if(is_wp_error($r)){throw new RuntimeException($r->get_error_message());} echo "Core activation PASS";'])
+    run(engine + '-redis-install', wp + ['plugin', 'install', str(retained / 'zips/redis-cache.2.7.0.zip'), '--activate'])
+    run(engine + '-redis-host', wp + ['config', 'set', 'WP_REDIS_HOST', '127.0.0.1'])
+    run(engine + '-redis-port', wp + ['config', 'set', 'WP_REDIS_PORT', '63840', '--raw'])
+    run(engine + '-redis-client', wp + ['config', 'set', 'WP_REDIS_CLIENT', 'predis'])
+    run(engine + '-redis-prefix', wp + ['config', 'set', 'WP_REDIS_PREFIX', 'wl240-' + engine + ':'])
+    log = (base / 'evidence' / (engine + '-web.txt')).open('w')
+    process = subprocess.Popen(['php', '-d', 'memory_limit=256M', '-S', url.removeprefix('http://'), '-t', str(site)], stdout=log, stderr=log)
+    (base / (engine + '-web.pid')).write_text(str(process.pid))
+    time.sleep(1)
+    if process.poll() is not None:
+        raise RuntimeError('HTTP server failed')
+    run(engine + '-environment', wp + ['eval', 'global $wpdb; echo wp_json_encode(array("wp"=>get_bloginfo("version"),"woo"=>WC_VERSION,"php"=>PHP_VERSION,"db"=>$wpdb->get_var("SELECT VERSION()"),"cache"=>wp_using_ext_object_cache(),"hpos"=>Automattic\\WooCommerce\\Utilities\\OrderUtil::custom_orders_table_usage_is_enabled()));'])
+    expected = json.loads(Path('/tmp/opencode/wl240-build-a/evidence.json').read_text())
+    runtime = site / 'wp-content/plugins/writeleash'
+    actual = {p.relative_to(runtime).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in runtime.rglob('*') if p.is_file()}
+    assert actual == {r['path']: r['sha256'] for r in expected['RUNTIME_FILES']}
+print('Both real-DB sites installed/activated exact ZIP; 46 installed-file hashes verified.')

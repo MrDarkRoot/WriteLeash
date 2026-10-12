@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lists>
+<list
+   path="https://plugins.svn.wordpress.org/writeleash">
+<entry
+   kind="dir">
+<name>assets</name>
+<commit
+   revision="3736473">
+<author>plugin-master</author>
+<date>2026-10-09T11:12:15.361550Z</date>
+</commit>
+</entry>
+<entry
+   kind="dir">
+<name>tags</name>
+<commit
+   revision="3736473">
+<author>plugin-master</author>
+<date>2026-10-09T11:12:15.361550Z</date>
+</commit>
+</entry>
+<entry
+   kind="dir">
+<name>trunk</name>
+<commit
+   revision="3736473">
+<author>plugin-master</author>
+<date>2026-10-09T11:12:15.361550Z</date>
+</commit>
+</entry>
+</list>
+</lists>

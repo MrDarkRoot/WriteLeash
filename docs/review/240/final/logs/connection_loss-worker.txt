@@ -1,0 +1,1 @@
+{"job_id":16,"stop":"ITEM_NEEDS_REVIEW","processed":1,"status":"NEEDS_REVIEW","reason":"ITEM_NEEDS_REVIEW","generation":1,"counts":{"planned":3,"pending":2,"applying":0,"applied":0,"unchanged":0,"conflict":0,"failed":0,"needs_review":1,"unsupported":0}}

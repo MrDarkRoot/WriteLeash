@@ -1,0 +1,1310 @@
+{
+  "runner_sources": {
+    "wl240-runtime.py": {
+      "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+      "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+    },
+    "wl240-extras.py": {
+      "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+      "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+    },
+    "wl240-upgrade-run.py": {
+      "original_local_sha256": "86fe8d9fc6907c1ae871a7e3f06df3f692db3dd94b9f8158472369af0b10d413",
+      "redacted_source_sha256": "f67bfd8edb422c445b0957d42f2c374bb2ec89bb15eaf2dfd9881f5c05502c60"
+    },
+    "wl240-sites.py": {
+      "original_local_sha256": "9c89bed960de76f880c45ff49fb6c2d38525a1fae7b0c92fac3cc5605584208c",
+      "redacted_source_sha256": "52986c01b3b3bead849f5fa75f7af5fb3b460b701d017e638c069c82f72ab8a7"
+    }
+  },
+  "reconstructed": [
+    {
+      "original_ledger_index": 0,
+      "test": "default-sql-audit",
+      "original_evidence": "logs/mariadb-r2-default-sql-audit.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/sql-audit.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 1,
+      "test": "default-integration",
+      "original_evidence": "logs/mariadb-r2-default-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 2,
+      "test": "default-progress-integration",
+      "original_evidence": "logs/mariadb-r2-default-progress-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/progress-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 3,
+      "test": "default-recovery-integration",
+      "original_evidence": "logs/mariadb-r2-default-recovery-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/recovery-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 4,
+      "test": "default-repeat-integration",
+      "original_evidence": "logs/mariadb-r2-default-repeat-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/repeat-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 5,
+      "test": "default-presets-repeat-integration",
+      "original_evidence": "logs/mariadb-r2-default-presets-repeat-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/presets-repeat-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 7,
+      "test": "default-nonce-normalization",
+      "original_evidence": "logs/mariadb-r2-default-nonce-normalization.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/nonce-normalization.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 9,
+      "test": "persistent-sql-audit",
+      "original_evidence": "logs/mariadb-r2-persistent-sql-audit.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/sql-audit.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 10,
+      "test": "persistent-integration",
+      "original_evidence": "logs/mariadb-r2-persistent-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 11,
+      "test": "persistent-progress-integration",
+      "original_evidence": "logs/mariadb-r2-persistent-progress-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/progress-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 12,
+      "test": "persistent-recovery-integration",
+      "original_evidence": "logs/mariadb-r2-persistent-recovery-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/recovery-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 13,
+      "test": "persistent-repeat-integration",
+      "original_evidence": "logs/mariadb-r2-persistent-repeat-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/repeat-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 14,
+      "test": "persistent-presets-repeat-integration",
+      "original_evidence": "logs/mariadb-r2-persistent-presets-repeat-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/presets-repeat-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 15,
+      "test": "persistent-browser-e2e",
+      "original_evidence": "logs/mariadb-r2-persistent-browser-e2e.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/browser-e2e.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 16,
+      "test": "persistent-nonce-normalization",
+      "original_evidence": "logs/mariadb-r2-persistent-nonce-normalization.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/nonce-normalization.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 17,
+      "test": "redis-enable-for-measured-parent-state",
+      "original_evidence": "logs/mariadb-extra-r2-redis-enable-for-measured-parent-state.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "redis",
+        "enable"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 18,
+      "test": "measured-parent-state",
+      "original_evidence": "logs/mariadb-extra-r2-measured-parent-state.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/release/parent-state-v02.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 19,
+      "test": "redis-disable-for-default-retest",
+      "original_evidence": "logs/mariadb-extra-r2-redis-disable-for-default-retest.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "redis",
+        "disable"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 21,
+      "test": "browser-e2e-default-retest",
+      "original_evidence": "logs/mariadb-extra-r2-browser-e2e-default-retest.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/browser-e2e.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 22,
+      "test": "measured-parent-state-default",
+      "original_evidence": "logs/mariadb-extra-r2-measured-parent-state-default.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/release/parent-state-v02.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 23,
+      "test": "lifecycle",
+      "original_evidence": "logs/mariadb-extra-r2-lifecycle.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/public-lifecycle.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 24,
+      "test": "deactivate",
+      "original_evidence": "logs/mariadb-extra-r2-deactivate.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "plugin",
+        "deactivate",
+        "writeleash"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 25,
+      "test": "reactivate",
+      "original_evidence": "logs/mariadb-extra-r2-reactivate.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval",
+        "require_once ABSPATH.\"wp-admin/includes/plugin.php\"; $r=activate_plugin(\"writeleash/writeleash.php\",\"\",false); if(is_wp_error($r)){throw new RuntimeException($r->get_error_message());}"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 26,
+      "test": "default-sql-audit",
+      "original_evidence": "logs/mysql-r2-default-sql-audit.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/sql-audit.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 27,
+      "test": "default-integration",
+      "original_evidence": "logs/mysql-r2-default-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 28,
+      "test": "default-progress-integration",
+      "original_evidence": "logs/mysql-r2-default-progress-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/progress-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 29,
+      "test": "default-recovery-integration",
+      "original_evidence": "logs/mysql-r2-default-recovery-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/recovery-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 30,
+      "test": "default-repeat-integration",
+      "original_evidence": "logs/mysql-r2-default-repeat-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/repeat-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 31,
+      "test": "default-presets-repeat-integration",
+      "original_evidence": "logs/mysql-r2-default-presets-repeat-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/presets-repeat-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 33,
+      "test": "default-nonce-normalization",
+      "original_evidence": "logs/mysql-r2-default-nonce-normalization.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/nonce-normalization.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 35,
+      "test": "persistent-sql-audit",
+      "original_evidence": "logs/mysql-r2-persistent-sql-audit.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/sql-audit.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 36,
+      "test": "persistent-integration",
+      "original_evidence": "logs/mysql-r2-persistent-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 37,
+      "test": "persistent-progress-integration",
+      "original_evidence": "logs/mysql-r2-persistent-progress-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/progress-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 38,
+      "test": "persistent-recovery-integration",
+      "original_evidence": "logs/mysql-r2-persistent-recovery-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/recovery-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 39,
+      "test": "persistent-repeat-integration",
+      "original_evidence": "logs/mysql-r2-persistent-repeat-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/repeat-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 40,
+      "test": "persistent-presets-repeat-integration",
+      "original_evidence": "logs/mysql-r2-persistent-presets-repeat-integration.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/presets-repeat-integration.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 41,
+      "test": "persistent-browser-e2e",
+      "original_evidence": "logs/mysql-r2-persistent-browser-e2e.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/browser-e2e.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 42,
+      "test": "persistent-nonce-normalization",
+      "original_evidence": "logs/mysql-r2-persistent-nonce-normalization.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/nonce-normalization.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-runtime.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "fffb7afeb042f04e64b9b07cf85cc394bffae4ed8506292d4f42826ea85f8923",
+        "redacted_source_sha256": "4d72545b09f12358231fb6e48d7ac150ffc1f6e95b13d16bad04a17bb0b357a0"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 43,
+      "test": "redis-enable-for-measured-parent-state",
+      "original_evidence": "logs/mysql-extra-r2-redis-enable-for-measured-parent-state.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "redis",
+        "enable"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 44,
+      "test": "measured-parent-state",
+      "original_evidence": "logs/mysql-extra-r2-measured-parent-state.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/release/parent-state-v02.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 45,
+      "test": "redis-disable-for-default-retest",
+      "original_evidence": "logs/mysql-extra-r2-redis-disable-for-default-retest.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "redis",
+        "disable"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 47,
+      "test": "browser-e2e-default-retest",
+      "original_evidence": "logs/mysql-extra-r2-browser-e2e-default-retest.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/browser-e2e.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 48,
+      "test": "measured-parent-state-default",
+      "original_evidence": "logs/mysql-extra-r2-measured-parent-state-default.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/release/parent-state-v02.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 49,
+      "test": "lifecycle",
+      "original_evidence": "logs/mysql-extra-r2-lifecycle.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/admin/public-lifecycle.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 50,
+      "test": "deactivate",
+      "original_evidence": "logs/mysql-extra-r2-deactivate.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "plugin",
+        "deactivate",
+        "writeleash"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 51,
+      "test": "reactivate",
+      "original_evidence": "logs/mysql-extra-r2-reactivate.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mysql-site",
+        "eval",
+        "require_once ABSPATH.\"wp-admin/includes/plugin.php\"; $r=activate_plugin(\"writeleash/writeleash.php\",\"\",false); if(is_wp_error($r)){throw new RuntimeException($r->get_error_message());}"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "default",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 52,
+      "test": "measured-parent-state",
+      "original_evidence": "logs/mariadb-extra-measured-parent-state.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "eval-file",
+        "/tmp/opencode/writeleash-240-release/wordpress/tests/release/parent-state-v02.php"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    },
+    {
+      "original_ledger_index": 53,
+      "test": "redis-disable-for-default-retest",
+      "original_evidence": "logs/mariadb-extra-redis-disable-for-default-retest.txt",
+      "command": [
+        "wp",
+        "--path=/tmp/opencode/wl240-env/mariadb-site",
+        "redis",
+        "disable"
+      ],
+      "provenance": "RECONSTRUCTED_FROM_RETAINED_RUNNER; NOT_ORIGINAL_COMMAND_CAPTURE",
+      "runner": "wl240-extras.py",
+      "runner_source_receipt": {
+        "original_local_sha256": "d11176ec60d0f3975570eff613b4bf1369d5e834f6e69f85ea7ca29b55ef237d",
+        "redacted_source_sha256": "9aa07485f3c81dfed6e9bfaa69adf986d9e2526485b86d8ece549b34e61a802d"
+      },
+      "required_environment": {
+        "WL111_CACHE": "persistent",
+        "WL111_BASE_URL": "<recorded loopback fixture URL>",
+        "WL111_ADMIN_PASSWORD": "<private fixture value; not disclosed>"
+      },
+      "note": "Reconstruction does not strengthen old weak parent/scale assertions; new focused receipts supersede those claims"
+    }
+  ],
+  "unavailable": [
+    {
+      "original_ledger_index": 8,
+      "test": "redis-enable",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 20,
+      "test": "clear-default-cache-core-update-notice",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 34,
+      "test": "redis-enable",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 46,
+      "test": "clear-default-cache-core-update-notice",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 75,
+      "test": "database",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 76,
+      "test": "config",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 77,
+      "test": "core",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 78,
+      "test": "cron",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 79,
+      "test": "woo",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 80,
+      "test": "historical-install",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 81,
+      "test": "historical-activate",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 82,
+      "test": "seed",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 83,
+      "test": "in-place-zip-upgrade",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 84,
+      "test": "candidate-activate",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 85,
+      "test": "verify",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 86,
+      "test": "mariadb-exact-zip-install",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 87,
+      "test": "mariadb-activation",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 88,
+      "test": "mariadb-environment",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 89,
+      "test": "mysql-exact-zip-install",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 90,
+      "test": "mysql-activation",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 91,
+      "test": "mysql-environment",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 92,
+      "test": "PRESETS-BROWSER.json",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 93,
+      "test": "REGRESSION-BROWSER.json",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 94,
+      "test": "two proposed-source builds byte identical; ZIP/public closure; 11 corruption controls",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 95,
+      "test": "four installed trees and 39 PHP direct-access controls",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 96,
+      "test": "1000 selected / 2 changing / 998 unchanged; Undo two; 1001 refused",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 97,
+      "test": "official readme validator, exact returned UTF-8 bytes",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 99,
+      "test": "Plugin Check all findings individually reviewed",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 100,
+      "test": "missing Woo graceful refusal; zero products/tables",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    },
+    {
+      "original_ledger_index": 101,
+      "test": "local SVN checkout/add/copy/status/diff with exact tree parity",
+      "status": "COMMAND_PROVENANCE_UNAVAILABLE",
+      "next_action": "Retain historical receipt as reported evidence; do not invent invocation or rerun full matrix for formatting alone"
+    }
+  ]
+}
