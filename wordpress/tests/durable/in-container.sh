@@ -30,6 +30,16 @@ for host in mysql mariadb; do
     fi
     echo "#108 engine=$host cache=$cache"
     WL108_CACHE="$cache" wp --path="$site" eval-file /opt/tests/durable/journal-ddl-integration.php
+    for control in noop missing nullability rename type; do
+      control_log="/tmp/wl240-ddl-$host-$cache-$control.log"
+      control_exit=0
+      WL240_DDL_CONTROL="$control" wp --path="$site" eval-file /opt/tests/durable/journal-ddl-negative-controls.php >"$control_log" 2>&1 || control_exit=$?
+      cat "$control_log"
+      test "$control_exit" -eq 1
+      # A generic crash is not an accepted negative control.
+      grep -F '"journal_preserved":true' "$control_log"
+      if grep -F 'NEGATIVE_CONTROL_NOT_PROVEN' "$control_log"; then exit 1; fi
+    done
     WL108_CACHE="$cache" wp --path="$site" eval-file /opt/tests/durable/integration.php
     # One focused cache probe with the optional instance cache enabled at
     # request startup; restore the prior value so the regular journal gate
