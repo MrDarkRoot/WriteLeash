@@ -1,0 +1,1 @@
+#230 acceptance presets: PHP=8.2.32 WP=7.1.2 Woo=11.1.2 DB=127.0.0.1:3307 cache=default CRUD/configuration/range/refinement/fresh-Preview/no-write PASS

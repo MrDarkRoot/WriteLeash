@@ -51,8 +51,9 @@ final class Price_Preset_Configuration {
 		if ( 'IDS' === ( $s['type'] ?? null ) ) {
 			if ( ! is_array( $s['ids'] ?? null ) ) { throw new Price_Validation_Error( 'invalid_preset' ); }
 			foreach ( $s['ids'] as $id ) { if ( ! is_int( $id ) ) { throw new Price_Validation_Error( 'invalid_preset' ); } }
-			// Exact IDs remain visible even if a product disappeared from discovery.
-			$form['selector'] = 'manual_ids'; $form['ids'] = implode( ',', $s['ids'] );
+			// Prefill the existing picker; IDs, never display labels, remain authority.
+			$form['selector'] = 'ids'; $form['ids'] = implode( ',', $s['ids'] );
+			$form['picker_present'] = '1'; $form['product_ids'] = array_map( 'strval', $s['ids'] );
 		} elseif ( 'SKU' === ( $s['type'] ?? null ) ) { $form['selector'] = 'sku'; $form['sku'] = $s['sku'] ?? null; }
 		elseif ( 'CATEGORY' === ( $s['type'] ?? null ) ) {
 			if ( ! is_int( $s['term_id'] ?? null ) || ! is_bool( $s['include_children'] ?? null ) ) { throw new Price_Validation_Error( 'invalid_preset' ); }
