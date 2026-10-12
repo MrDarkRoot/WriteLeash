@@ -1,0 +1,8 @@
+Initial operator invocation used an incorrectly transcribed SHA:
+35e1d147d927875d479b60954899ddbc4dc0f3b8
+The clean checkout actually had HEAD 35e1d14544bdc69ed5b6d08cbd87de63c6025830.
+The corrected builder rejected the invocation with nonzero status before creating output:
+fatal: git cat-file: could not get object info
+BLOCKED: CalledProcessError
+This is a preserved rejected-input attempt, not a build PASS. Subsequent commands
+obtained the requested SHA from git rev-parse HEAD rather than transcribing it.

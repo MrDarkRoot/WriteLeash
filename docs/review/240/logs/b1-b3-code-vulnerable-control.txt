@@ -1,0 +1,39 @@
+test_b1_replace_tree_cannot_change_reviewed_bytes (__main__.ReleaseRegressionCases.test_b1_replace_tree_cannot_change_reviewed_bytes) ... FAIL
+test_b2_parent_positive_control (__main__.ReleaseRegressionCases.test_b2_parent_positive_control) ... ok
+test_b2_variation_blind_observer_is_rejected (__main__.ReleaseRegressionCases.test_b2_variation_blind_observer_is_rejected) ... FAIL
+test_b3_false_undone_outcomes_are_rejected (__main__.ReleaseRegressionCases.test_b3_false_undone_outcomes_are_rejected) ... FAIL
+test_b3_scale_positive_control (__main__.ReleaseRegressionCases.test_b3_scale_positive_control) ... ok
+
+======================================================================
+FAIL: test_b1_replace_tree_cannot_change_reviewed_bytes (__main__.ReleaseRegressionCases.test_b1_replace_tree_cannot_change_reviewed_bytes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/opencode/wl253-fix/wordpress/release/test-wordpress-org-v02-regressions.py", line 58, in test_b1_replace_tree_cannot_change_reviewed_bytes
+    self.assertEqual(archive.read('writeleash/writeleash.php'), genuine,
+AssertionError: b"<?php\n// Independent review source-binding repla[5455 chars]);\n" != b"<?php\n/**\n * Plugin Name: WriteLeash\n * Plugin[5398 chars]);\n" : B1: replacement bytes accepted under the reviewed source SHA
+
+======================================================================
+FAIL: test_b2_variation_blind_observer_is_rejected (__main__.ReleaseRegressionCases.test_b2_variation_blind_observer_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/opencode/wl253-fix/wordpress/release/test-wordpress-org-v02-regressions.py", line 74, in test_b2_variation_blind_observer_is_rejected
+    self.assertNotEqual(result.returncode, 0, 'B2: parent-only observer and refused variation saves accepted\n' + result.stdout)
+AssertionError: 0 == 0 : B2: parent-only observer and refused variation saves accepted
+#212 variation parent drift: both fields, draft Apply refusal, reparent Undo refusal, same-parent restore and lookup control: PASS
+#240 save observer: successful controls measured; refused Apply/Undo zero-save checks are active PASS
+
+
+======================================================================
+FAIL: test_b3_false_undone_outcomes_are_rejected (__main__.ReleaseRegressionCases.test_b3_false_undone_outcomes_are_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/opencode/wl253-fix/wordpress/release/test-wordpress-org-v02-regressions.py", line 84, in test_b3_false_undone_outcomes_are_rejected
+    self.assertNotEqual(result.returncode, 0, 'B3: two UNDONE outcomes without restoration accepted\n' + result.stdout)
+AssertionError: 0 == 0 : B3: two UNDONE outcomes without restoration accepted
+#240 scale: 1000 selected, 2 changed / 998 unchanged, eligible Undo 2, 1001 rejected PASS
+
+
+----------------------------------------------------------------------
+Ran 5 tests in 2.324s
+
+FAILED (failures=3)

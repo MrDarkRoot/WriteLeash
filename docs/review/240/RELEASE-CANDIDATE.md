@@ -1,5 +1,12 @@
 # #240 — WordPress.org Free v0.2.0 candidate
 
+**Historical acceptance note:** The B1–B3 independent-review corrections and new
+discriminating/installed-fixture receipts are recorded in
+[B1-B3-REMEDIATION.md](B1-B3-REMEDIATION.md). The original receipt files and failed
+attempts below are retained. Its earlier aggregate parent-observer and scale Undo
+assurance is superseded by the variation-specific and restored-value assertions
+in that remediation; identical ZIP bytes do not rehabilitate weak old assertions.
+
 ## RELEASE CANDIDATE VERDICT: BLOCKED
 
 The available exact-ZIP checks passed after the documented fixture corrections. **This is a proposed release artifact, not an authorized publication or a final accepted source freeze.** Draft [PR #253](https://github.com/MrDarkRoot/WriteLeash/pull/253) requires review/merge and source revalidation. The remaining advertised WP/PHP profiles and private #133 committer readiness are outstanding. Founder publication GO is **NOT GRANTED**.
