@@ -1,0 +1,19 @@
+{
+  "source_git_sha": "0affead9307eddb34a4d99038169a5aa3f313376",
+  "url": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38224055777",
+  "status": "completed",
+  "conclusion": "success",
+  "passed": [
+    "PR_FAST",
+    "journal / woo-durable-journal",
+    "jobs / woo-durable-jobs",
+    "admin / woo-free-admin",
+    "undo / woo-conflict-aware-undo",
+    "CI_COVERAGE"
+  ],
+  "skipped": [
+    "native", "research", "engine", "feasibility", "plan",
+    "foundation", "adapter", "acceptance", "historical"
+  ],
+  "note": "Exact runtime-source CI, not the subsequent evidence-only PR HEAD. Skipped families are not PASS. Local exact-ZIP acceptance is separately retained."
+}
