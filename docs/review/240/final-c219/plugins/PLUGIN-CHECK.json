@@ -1,0 +1,24 @@
+{
+  "version": "2.1.0",
+  "installed_from": "https://downloads.wordpress.org/plugin/plugin-check.2.1.0.zip",
+  "scanner_zip_sha256": "6ff4bd2145f3befcf907df158cc466b1649dafed5686de8369907403c3013fc4",
+  "commands": {
+    "static": "wp plugin check writeleash --include-low-severity-errors --include-low-severity-warnings --include-experimental --format=json",
+    "runtime": "wp --require=<installed-plugin-check>/cli.php plugin check writeleash --include-low-severity-errors --include-low-severity-warnings --include-experimental --format=json"
+  },
+  "exit_codes": {
+    "static": 0,
+    "runtime": 0
+  },
+  "stdout_sha256": {
+    "static": "7ed4853f7ea3191832bab6ca030e468b3efd364658150376aed7db6ba84e1f6f",
+    "runtime": "7ed4853f7ea3191832bab6ca030e468b3efd364658150376aed7db6ba84e1f6f"
+  },
+  "stderr_bytes_runtime": 0,
+  "results": {
+    "ERROR": 0,
+    "WARNING": 15,
+    "NOTICE": 0,
+    "INFO": 0
+  }
+}

@@ -1,0 +1,10 @@
+#120 public runtime: literal include closure 39 PHP files, 60 resolved classes/types; no historical artifacts/hooks/authority PASS
+#63 distribution allowlist: 46 files, verbatim GPLv2, version 0.2.0, exact operation wording, no internal docs PASS
+#120 checked inventory: 39 PHP files, exactly one classification each; public=39; explicit legacy overlay agrees PASS
+#97 active-brand audit: only the finite uninstall cleanup literals may mention the old local option names; no stale low-level brand remains PASS
+#62/#63 source audit: 39 guarded PHP files; one public header; GPLv2 LICENSE; readme staged; no internal docs; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS
+#63/#121 readme preflight: title, 99-char description, 5 tags, Stable tag 0.2.0, directory/header requirements coherent, GPLv2-or-later PASS
+#122 required files, exact dimensions, contiguous six screenshots, readme captions, capture hashes, SVG policy, size caps and runtime manifest: PASS
+#170 reviewed source, capture hashes/dimensions/captions and same-row independent conflict evidence PASS
+#133 tracked directory asset format/size/dimensions: 11 files PASS
+ZIP_SHA256=60d1b816a6cce6a067043aa2113c0e6b6ce510bc6bac24f7f644b493a1d1b017

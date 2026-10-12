@@ -1,0 +1,21 @@
+{
+  "previous_source_sha": "8748d831f8a3a0931b320e4bc67abf85ece964b0",
+  "selected_source_sha": "c219bc857d1f7d0a205caed3b22236fb5683c6bb",
+  "changed_files": [
+    {
+      "path": "includes/free/class-free-admin.php",
+      "previous_sha256": "3692444f65c3802c58d4e2132eff23d9c9af8ecd33438c3c40db95c0017e1dc7",
+      "selected_sha256": "438e3c9632fb8decb0532743850870d70c4b9b04a5f9abcd8c901b61b2d866b9"
+    },
+    {
+      "path": "includes/free/class-price-presets.php",
+      "previous_sha256": "55d880452c753a14a87ee89590b28767ca3061f14a54b7b09d965c0373cd3b21",
+      "selected_sha256": "277d9d8bfa657c3ca855ad892a7e52e045edeac4d00cf70fe3ac9e6543d75506"
+    },
+    {
+      "path": "languages/writeleash.pot",
+      "previous_sha256": "0f52c8b49c91f60636517a3dfdd48a577a3c31f785179f26d427da8dbb1f069e",
+      "selected_sha256": "4f7b1663300b9e1f9f4a892b93bfdf8cfa7e9227c4b06d095d9aea27437028ba"
+    }
+  ]
+}

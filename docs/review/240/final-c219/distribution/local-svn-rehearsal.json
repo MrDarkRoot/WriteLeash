@@ -1,0 +1,137 @@
+{
+  "rehearsal": "isolated file:// repository only",
+  "remote_svn_writes": "NONE",
+  "trunk_files": 46,
+  "trunk_tag_payload_equal": true,
+  "asset_files": 11,
+  "asset_payload_equal": true,
+  "mime_types": {
+    "banner-1544x500.png": "image/png",
+    "banner-772x250.png": "image/png",
+    "icon-128x128.png": "image/png",
+    "icon-256x256.png": "image/png",
+    "icon.svg": "image/svg+xml",
+    "screenshot-1.png": "image/png",
+    "screenshot-2.png": "image/png",
+    "screenshot-3.png": "image/png",
+    "screenshot-4.png": "image/png",
+    "screenshot-5.png": "image/png",
+    "screenshot-6.png": "image/png"
+  },
+  "working_copy_status": [
+    {
+      "path": "assets/banner-1544x500.png",
+      "item": "normal",
+      "props": "modified"
+    },
+    {
+      "path": "assets/banner-772x250.png",
+      "item": "normal",
+      "props": "modified"
+    },
+    {
+      "path": "assets/icon-128x128.png",
+      "item": "normal",
+      "props": "modified"
+    },
+    {
+      "path": "assets/icon-256x256.png",
+      "item": "normal",
+      "props": "modified"
+    },
+    {
+      "path": "assets/icon.svg",
+      "item": "normal",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-1.png",
+      "item": "normal",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-2.png",
+      "item": "normal",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-3.png",
+      "item": "normal",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-4.png",
+      "item": "normal",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-5.png",
+      "item": "normal",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-6.png",
+      "item": "normal",
+      "props": "modified"
+    }
+  ],
+  "working_copy_diff": [
+    {
+      "path": "assets/banner-1544x500.png",
+      "item": "none",
+      "props": "modified"
+    },
+    {
+      "path": "assets/banner-772x250.png",
+      "item": "none",
+      "props": "modified"
+    },
+    {
+      "path": "assets/icon-128x128.png",
+      "item": "none",
+      "props": "modified"
+    },
+    {
+      "path": "assets/icon-256x256.png",
+      "item": "none",
+      "props": "modified"
+    },
+    {
+      "path": "assets/icon.svg",
+      "item": "none",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-1.png",
+      "item": "none",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-2.png",
+      "item": "none",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-3.png",
+      "item": "none",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-4.png",
+      "item": "none",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-5.png",
+      "item": "none",
+      "props": "modified"
+    },
+    {
+      "path": "assets/screenshot-6.png",
+      "item": "none",
+      "props": "modified"
+    }
+  ],
+  "unexpected_additions_deletions_replacements": 0,
+  "plugin_root_nesting": "NONE"
+}

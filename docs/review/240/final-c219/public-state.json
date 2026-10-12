@@ -1,0 +1,20 @@
+{
+  "observed_utc": "2026-10-12",
+  "directory_url": "https://wordpress.org/plugins/writeleash/",
+  "directory_get": "301 to search/writeleash, no live listing",
+  "plugin_info_api_error": {
+    "error": "Plugin not found."
+  },
+  "public_svn_root_entries": [
+    "assets/",
+    "tags/",
+    "trunk/"
+  ],
+  "trunk_tags_assets": {
+    "trunk": [],
+    "tags": [],
+    "assets": []
+  },
+  "remote_svn_writes": "NONE",
+  "slug_committer_permission": "NOT_TESTED"
+}
