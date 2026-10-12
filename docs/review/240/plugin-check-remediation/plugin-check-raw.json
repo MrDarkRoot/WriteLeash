@@ -1,0 +1,56 @@
+{
+  "scans": [
+    {
+      "phase": "before",
+      "source_git_sha": "04dbbcd11a53abbf816ad1b11b7e659156daca29",
+      "zip_sha256": "50901f2c034c705dff355427fe496090d1e4968f0c299853b1b9a4da46655757",
+      "scanner_version": "2.1.0",
+      "counts": {
+        "ERROR": 1,
+        "WARNING": 9
+      },
+      "stdout": "FILE: includes/free/class-price-apply-journal.php\n[{\"line\":121,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":121,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":123,\"column\":24,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":123,\"column\":24,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":127,\"column\":26,\"type\":\"ERROR\",\"code\":\"PluginCheck.Security.DirectDB.UnescapedDBParameter\",\"message\":\"Unescaped parameter $changes used in $wpdb->query()\\\\n$changes assigned unsafely at line 126.\",\"docs\":\"\"},{\"line\":127,\"column\":28,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":127,\"column\":28,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":127,\"column\":58,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.SchemaChange\",\"message\":\"Attempting a database schema change is discouraged.\",\"docs\":\"\"}]\n\nFILE: includes/free/class-price-presets.php\n[{\"line\":133,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":149,\"column\":20,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"}]\n\n",
+      "stderr": "",
+      "stdout_sha256": "d79651d251587581e50c76415933ea79a8c09264bd19af01979dd886890b05d6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "after",
+      "source_git_sha": "0affead9307eddb34a4d99038169a5aa3f313376",
+      "zip_sha256": "a77704b42c9bbb2350f32b0de23a3c46f3a0fe76c617561b91133651ec9d8bb7",
+      "scanner_version": "2.1.0",
+      "counts": {
+        "ERROR": 0,
+        "WARNING": 15
+      },
+      "stdout": "FILE: includes/free/class-price-presets.php\n[{\"line\":133,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":149,\"column\":20,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"}]\n\nFILE: includes/free/class-price-apply-journal.php\n[{\"line\":121,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":121,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":123,\"column\":24,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":123,\"column\":24,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":130,\"column\":74,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":130,\"column\":74,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":130,\"column\":104,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.SchemaChange\",\"message\":\"Attempting a database schema change is discouraged.\",\"docs\":\"\"},{\"line\":131,\"column\":75,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":131,\"column\":75,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":131,\"column\":105,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.SchemaChange\",\"message\":\"Attempting a database schema change is discouraged.\",\"docs\":\"\"},{\"line\":132,\"column\":70,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":132,\"column\":70,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":132,\"column\":100,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.SchemaChange\",\"message\":\"Attempting a database schema change is discouraged.\",\"docs\":\"\"}]\n\n",
+      "stderr": "",
+      "stdout_sha256": "6ffcb41bdaba487930100154b9b08524d6bb39271af3ebc84a7302c5b513ea92",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "original_raw_preserved_byte_for_byte": true,
+  "original_receipt_path": "docs/review/240/PLUGIN-CHECK-RAW.json",
+  "command_flags": [
+    "--format=json",
+    "--include-low-severity-errors",
+    "--include-low-severity-warnings",
+    "--include-experimental",
+    "--require=<site>/wp-content/plugins/plugin-check/cli.php"
+  ],
+  "exclusions": "NONE",
+  "development_trials": [
+    {
+      "name": "development-plugin-check",
+      "stdout": "FILE: includes/free/class-price-apply-journal.php\n[{\"line\":121,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":121,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":123,\"column\":24,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":123,\"column\":24,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":140,\"column\":45,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":140,\"column\":45,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":140,\"column\":50,\"type\":\"ERROR\",\"code\":\"WordPress.DB.PreparedSQL.NotPrepared\",\"message\":\"Use placeholders and $wpdb->prepare(); found $sql\",\"docs\":\"\"}]\n\nFILE: includes/free/class-price-presets.php\n[{\"line\":133,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":149,\"column\":20,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"}]\n\n",
+      "stderr": "",
+      "acceptance": false
+    },
+    {
+      "name": "development-plugin-check-attempt2",
+      "stdout": "FILE: includes/free/class-price-apply-journal.php\n[{\"line\":121,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":121,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":123,\"column\":24,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":123,\"column\":24,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":140,\"column\":45,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":140,\"column\":45,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.NoCaching\",\"message\":\"Direct database call without caching detected. Consider using wp_cache_get() \\/ wp_cache_set() or wp_cache_delete().\",\"docs\":\"\"},{\"line\":140,\"column\":66,\"type\":\"ERROR\",\"code\":\"WordPress.DB.PreparedSQL.NotPrepared\",\"message\":\"Use placeholders and $wpdb->prepare(); found $sql\",\"docs\":\"\"}]\n\nFILE: includes/free/class-price-presets.php\n[{\"line\":133,\"column\":25,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"},{\"line\":149,\"column\":20,\"type\":\"WARNING\",\"code\":\"WordPress.DB.DirectDatabaseQuery.DirectQuery\",\"message\":\"Use of a direct database call is discouraged.\",\"docs\":\"\"}]\n\n",
+      "stderr": "",
+      "acceptance": false
+    }
+  ]
+}

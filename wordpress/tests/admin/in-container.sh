@@ -44,6 +44,7 @@ for host in mysql mariadb; do
       wp --path="$site" redis status
     fi
     echo "#111 engine=$host cache=$cache"
+    WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/presets-concurrency.php
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/integration.php
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/progress-integration.php
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/recovery-integration.php
