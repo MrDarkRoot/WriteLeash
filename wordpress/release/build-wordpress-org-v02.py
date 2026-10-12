@@ -9,6 +9,7 @@ and repository README are not part of this channel's runtime allowlist.
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -25,6 +26,22 @@ MANIFEST = 'wordpress/release/writeleash-distribution-files.txt'
 VERSION = '0.2.0'
 EXPECTED_COUNT = 46
 require = ORG.require
+
+
+def git(root, *args):
+    # One boundary for ALL Git reads, including ORG.blob's tree/blob reads.
+    # -C must select this source, not an inherited directory/index/object override.
+    env = dict(os.environ)
+    for name in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE',
+                 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_NAMESPACE'):
+        env.pop(name, None)
+    env['GIT_NO_REPLACE_OBJECTS'] = '1'
+    return subprocess.check_output(['git', '--no-replace-objects', '-C', str(root), *args], env=env)
+
+
+# This imported module is private to v0.2. Historical on-disk tooling is untouched.
+# Route inherited helpers through the same replacement-independent boundary.
+ORG.git = git
 
 
 def read_manifest(data):
@@ -96,6 +113,10 @@ def audit_staging(output, runtime, assets, version):
 def build(root, requested, output, version):
     root, output = root.resolve(), output.resolve()
     require(re.fullmatch(r'[0-9a-f]{40}', requested), 'invalid source SHA')
+    require(ORG.git(root, 'rev-parse', '--show-toplevel').decode().strip() == str(root),
+            'source is not the repository root')
+    require(ORG.git(root, 'cat-file', '-t', requested).decode().strip() == 'commit',
+            'source SHA is not a commit')
     require(ORG.git(root, 'rev-parse', 'HEAD').decode().strip() == requested, 'wrong source HEAD')
     require(not ORG.git(root, 'status', '--porcelain', '--untracked-files=all', '--ignored'),
             'dirty tree or untracked/ignored input')
