@@ -1,0 +1,2 @@
+Plugin file detected.
+Success: POT file successfully generated.

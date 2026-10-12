@@ -1,0 +1,19 @@
+./usr/lib/python3.12/zipfile/__init__.py:1620: UserWarning: Duplicate name: 'writeleash/writeleash.php'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+..#120 public runtime: literal include closure 37 PHP files, 56 resolved classes/types; no historical artifacts/hooks/authority PASS
+#63 distribution allowlist: 42 files, verbatim GPLv2, version 0.1.0, exact operation wording, no internal docs PASS
+#120 checked inventory: 37 PHP files, exactly one classification each; public=37; explicit legacy overlay agrees PASS
+#97 active-brand audit: only the finite uninstall cleanup literals may mention the old local option names; no stale low-level brand remains PASS
+#62/#63 source audit: 37 guarded PHP files; one public header; GPLv2 LICENSE; readme staged; no internal docs; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS
+#63/#121 readme preflight: title, 59-char description, 5 tags, Stable tag 0.1.0, directory/header requirements coherent, GPLv2-or-later PASS
+#120 public runtime: literal include closure 37 PHP files, 56 resolved classes/types; no historical artifacts/hooks/authority PASS
+#63 distribution allowlist: 42 files, verbatim GPLv2, version 0.1.0, exact operation wording, no internal docs PASS
+#120 checked inventory: 37 PHP files, exactly one classification each; public=37; explicit legacy overlay agrees PASS
+#97 active-brand audit: only the finite uninstall cleanup literals may mention the old local option names; no stale low-level brand remains PASS
+#62/#63 source audit: 37 guarded PHP files; one public header; GPLv2 LICENSE; readme staged; no internal docs; no forbidden network/updater/dynamic execution/secret fixture/table literals/compiled assets PASS
+#63/#121 readme preflight: title, 59-char description, 5 tags, Stable tag 0.1.0, directory/header requirements coherent, GPLv2-or-later PASS
+.......
+----------------------------------------------------------------------
+Ran 10 tests in 3.629s
+
+OK

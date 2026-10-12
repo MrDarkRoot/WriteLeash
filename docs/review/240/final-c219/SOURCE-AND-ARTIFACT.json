@@ -1,0 +1,31 @@
+{
+  "selected_source_sha": "c219bc857d1f7d0a205caed3b22236fb5683c6bb",
+  "source_tree_sha": "c9b4d83a6d6ab81e6e70798f99e4ad946c4014e6",
+  "main_sha_at_fetch": "c219bc857d1f7d0a205caed3b22236fb5683c6bb",
+  "main_sha_at_final_check": "c219bc857d1f7d0a205caed3b22236fb5683c6bb",
+  "pr257_merge_sha": "c219bc857d1f7d0a205caed3b22236fb5683c6bb",
+  "pr257_head_tree": "c9b4d83a6d6ab81e6e70798f99e4ad946c4014e6",
+  "pr257_exact_head_run": "https://github.com/MrDarkRoot/WriteLeash/actions/runs/38260845880",
+  "pr257_exact_head_sha": "a1d4d0c43d2f4d61f92abed32b2c64e934ddae6e",
+  "pr257_tree_equals_selected": true,
+  "tracked_main_checkout_left_untouched": true,
+  "selected_source_worktrees": [
+    "/tmp/wl240-c219-a",
+    "/tmp/wl240-c219-b"
+  ],
+  "zip_a_sha256": "60d1b816a6cce6a067043aa2113c0e6b6ce510bc6bac24f7f644b493a1d1b017",
+  "zip_b_sha256": "60d1b816a6cce6a067043aa2113c0e6b6ce510bc6bac24f7f644b493a1d1b017",
+  "zip_bytes_equal": true,
+  "builder_sha256": "775d98483cf0fd65cab855c7246d3f1b8734492adbd910d9a0c07dcac2ed48cb",
+  "manifest_sha256": "5155ca3121772cac6397dcd4f8b90b5cb726beb14f29b0cde74ae89ab321bca3",
+  "runtime_tree_sha256": "146de1dc95b716cfa9ef93aa9c30c78ac17c72f08dcdac3545e1c60a81696a56",
+  "runtime_file_count": 46,
+  "archive_size": 2153128,
+  "version": "0.2.0",
+  "stable_tag": "0.2.0",
+  "changed_packaged_files": [
+    "includes/free/class-free-admin.php",
+    "includes/free/class-price-presets.php",
+    "languages/writeleash.pot"
+  ]
+}

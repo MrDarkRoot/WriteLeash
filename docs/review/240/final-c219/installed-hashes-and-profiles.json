@@ -1,0 +1,49 @@
+{
+  "designated_zip": "60d1b816a6cce6a067043aa2113c0e6b6ce510bc6bac24f7f644b493a1d1b017",
+  "profiles": [
+    {
+      "store": "fresh-browser-and-repeat",
+      "wordpress": "7.1.2",
+      "woocommerce": "11.1.2",
+      "php": "8.2.32",
+      "database": "10.11.15-MariaDB",
+      "cache": "default",
+      "installed_file_count": 46,
+      "every_file_matches_designated_zip": true,
+      "runtime_tree_sha256": "146de1dc95b716cfa9ef93aa9c30c78ac17c72f08dcdac3545e1c60a81696a56"
+    },
+    {
+      "store": "fresh-admin-and-readme",
+      "wordpress": "7.1.2",
+      "woocommerce": "11.1.2",
+      "php": "8.2.32",
+      "database": "10.11.15-MariaDB",
+      "cache": "default",
+      "installed_file_count": 46,
+      "every_file_matches_designated_zip": true,
+      "runtime_tree_sha256": "146de1dc95b716cfa9ef93aa9c30c78ac17c72f08dcdac3545e1c60a81696a56"
+    },
+    {
+      "store": "plugin-check-run",
+      "wordpress": "7.1.2",
+      "woocommerce": "11.1.2",
+      "php": "8.2.32",
+      "database": "10.11.15-MariaDB",
+      "cache": "default",
+      "installed_file_count": 46,
+      "every_file_matches_designated_zip": true,
+      "runtime_tree_sha256": "146de1dc95b716cfa9ef93aa9c30c78ac17c72f08dcdac3545e1c60a81696a56"
+    },
+    {
+      "store": "in-place-candidate-update",
+      "wordpress": "7.1.3",
+      "woocommerce": "11.1.2",
+      "php": "8.2.32",
+      "database": "10.11.15-MariaDB",
+      "cache": "default",
+      "installed_file_count": 46,
+      "every_file_matches_designated_zip": true,
+      "runtime_tree_sha256": "146de1dc95b716cfa9ef93aa9c30c78ac17c72f08dcdac3545e1c60a81696a56"
+    }
+  ]
+}

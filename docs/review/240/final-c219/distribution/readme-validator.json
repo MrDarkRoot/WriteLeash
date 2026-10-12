@@ -1,0 +1,12 @@
+{
+  "url": "https://wordpress.org/plugins/developers/readme-validator/",
+  "http_response": "200 (curl --fail)",
+  "readme_sha256": "9c17468043f67ca16ee09819ee440026190f9551fa9ca113ed136af3a134d804",
+  "echoed_readme_byte_equal": true,
+  "notices": [
+    [
+      "notice notice-info notice-alt",
+      "No == Upgrade Notice == section was found No donate link was found"
+    ]
+  ]
+}

@@ -1,0 +1,2 @@
+#256 JS=true variation/simple labels, exact IDs, editable fresh prices, range, no writes, new approval PASS
+#256 JS=false variation/simple labels, exact IDs, editable fresh prices, range, no writes, new approval PASS
