@@ -1,5 +1,8 @@
 *** WriteLeash Changelog ***
 
+2026-10-13 - version 0.2.1
+* Update - refreshed plugin listing copy with clearer benefits, a How it works summary and FAQ entries; no price-change behavior changed.
+
 2026-10-09 - version 0.2.0
 * Added - live read-only Apply and Undo progress without page reloads.
 * Added - Conflict to fresh Preview for conflicted products at current prices.

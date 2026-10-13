@@ -26,7 +26,7 @@ import sys
 import zipfile
 from pathlib import Path
 
-CANDIDATE_VERSION = '0.2.0'
+CANDIDATE_VERSION = '0.2.1'
 MANIFEST = 'wordpress/release/writeleash-woo-distribution-files.txt'
 EXPECTED_COUNT = 45
 

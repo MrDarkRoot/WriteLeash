@@ -23,14 +23,14 @@ $prepare = static function () use ( $repo, $fixture, $root, $manifest, $remove )
   if ( ! is_dir( dirname( $destination ) ) ) { mkdir( dirname( $destination ), 0700, true ); }
   copy( $repo . '/wordpress/writeleash/' . $entry, $destination );
  }
- file_put_contents( $root . '/changelog.txt', "*** WriteLeash Changelog ***\n\n2026-10-09 - version 0.2.0\n* Added - Clear Sale Price and sale discounts from reviewed Regular Price.\n* Added - optional Price Endings, subject to precision, eligibility and safety limits.\n" );
+ file_put_contents( $root . '/changelog.txt', "*** WriteLeash Changelog ***\n\n2026-10-09 - version 0.2.1\n* Added - Clear Sale Price and sale discounts from reviewed Regular Price.\n* Added - optional Price Endings, subject to precision, eligibility and safety limits.\n" );
 };
 $replace = static function ( string $path, string $from, string $to ): void {
  $bytes = file_get_contents( $path );
  if ( false === strpos( $bytes, $from ) ) { throw new RuntimeException( 'Missing negative-control input: ' . $from ); }
  file_put_contents( $path, str_replace( $from, $to, $bytes ) );
 };
-$run = static function ( string $reason = '', bool $exact = true, ?string $identity = null, string $version = '0.2.0' ) use ( $repo, $root, $manifest, $sha ): void {
+$run = static function ( string $reason = '', bool $exact = true, ?string $identity = null, string $version = '0.2.1' ) use ( $repo, $root, $manifest, $sha ): void {
  $command = array( PHP_BINARY, __DIR__ . '/woo-candidate.php', $root, $manifest, $identity ?? $sha, $version );
  if ( $exact ) { $command[] = '--exact'; }
  $pipes = array();
@@ -50,11 +50,11 @@ $cases = array(
  'invalid date' => array( 'invalid date', static function () use ( $root, $replace ) { $replace( $root . '/changelog.txt', '2026-10-09', '2026-13-09' ); } ),
  'wrong title' => array( 'changelog title must be exactly', static function () use ( $root, $replace ) { $replace( $root . '/changelog.txt', 'WriteLeash Changelog', 'Different Changelog' ); } ),
  'missing newline' => array( 'must end with a newline', static function () use ( $root ) { $path = $root . '/changelog.txt'; file_put_contents( $path, rtrim( file_get_contents( $path ), "\n" ) ); } ),
- 'missing typed changes' => array( 'at least one version entry with typed changes', static function () use ( $root ) { file_put_contents( $root . '/changelog.txt', "*** WriteLeash Changelog ***\n2026-10-09 - version 0.2.0\n" ); } ),
- 'changelog version mismatch' => array( 'no entry for the candidate version', static function () use ( $root, $replace ) { $replace( $root . '/changelog.txt', '0.2.0', '9.9.9' ); } ),
- 'header version mismatch' => array( 'plugin header mismatch for Version', static function () use ( $root, $replace ) { $replace( $root . '/writeleash.php', 'Version: 0.2.0', 'Version: 9.9.9' ); } ),
- 'runtime version mismatch' => array( 'runtime WRITELEASH_VERSION does not match', static function () use ( $root, $replace ) { $replace( $root . '/writeleash.php', "define( 'WRITELEASH_VERSION', '0.2.0' )", "define( 'WRITELEASH_VERSION', '9.9.9' )" ); } ),
- 'readme version mismatch' => array( 'Stable tag does not match', static function () use ( $root, $replace ) { $replace( $root . '/readme.txt', 'Stable tag: 0.2.0', 'Stable tag: 9.9.9' ); } ),
+ 'missing typed changes' => array( 'at least one version entry with typed changes', static function () use ( $root ) { file_put_contents( $root . '/changelog.txt', "*** WriteLeash Changelog ***\n2026-10-09 - version 0.2.1\n" ); } ),
+ 'changelog version mismatch' => array( 'no entry for the candidate version', static function () use ( $root, $replace ) { $replace( $root . '/changelog.txt', '0.2.1', '9.9.9' ); } ),
+ 'header version mismatch' => array( 'plugin header mismatch for Version', static function () use ( $root, $replace ) { $replace( $root . '/writeleash.php', 'Version: 0.2.1', 'Version: 9.9.9' ); } ),
+ 'runtime version mismatch' => array( 'runtime WRITELEASH_VERSION does not match', static function () use ( $root, $replace ) { $replace( $root . '/writeleash.php', "define( 'WRITELEASH_VERSION', '0.2.1' )", "define( 'WRITELEASH_VERSION', '9.9.9' )" ); } ),
+ 'readme version mismatch' => array( 'Stable tag does not match', static function () use ( $root, $replace ) { $replace( $root . '/readme.txt', 'Stable tag: 0.2.1', 'Stable tag: 9.9.9' ); } ),
  'compatibility header mismatch' => array( 'plugin header mismatch for WC tested up to', static function () use ( $root, $replace ) { $replace( $root . '/writeleash.php', 'WC tested up to: 11.1', 'WC tested up to: 99.0' ); } ),
  'invented identifier' => array( 'manually supplied Woo deployment identifier', static function () use ( $root, $replace ) { $replace( $root . '/writeleash.php', 'Plugin Name: WriteLeash', "Plugin Name: WriteLeash\n * Woo: 123:invented" ); } ),
  'invented URL' => array( 'invented WooCommerce Marketplace product URL', static function () use ( $root, $replace ) { $replace( $root . '/writeleash.php', 'Plugin Name: WriteLeash', "Plugin Name: WriteLeash\n * Marketplace: https://woocommerce.com/products/invented/" ); } ),
