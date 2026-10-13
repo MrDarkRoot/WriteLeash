@@ -23,7 +23,7 @@ SPEC = importlib.util.spec_from_file_location('historical_org', HERE / 'build-wo
 ORG = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ORG)
 MANIFEST = 'wordpress/release/writeleash-distribution-files.txt'
-VERSION = '0.2.0'
+VERSION = '0.2.1'
 EXPECTED_COUNT = 46
 require = ORG.require
 
@@ -79,7 +79,7 @@ def metadata(payload, version):
     require(re.search(r'^Stable tag:\s*' + re.escape(version) + r'\s*$', readme, re.M),
             'stable-tag mismatch')
     require(re.search(r'^Contributors:\s*duyytrann\s*$', readme, re.M), 'contributor mismatch')
-    require(len(payload['readme.txt']) < 10000 and '= 0.2.0 =' in readme,
+    require(len(payload['readme.txt']) < 10000 and '= ' + version + ' =' in readme,
             'readme size or release notes')
     require(sum(bool(re.search(rb'^\s*\*?\s*Plugin Name:', d, re.M))
                 for p, d in payload.items() if p.endswith('.php')) == 1,

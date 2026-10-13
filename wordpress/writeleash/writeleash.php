@@ -3,7 +3,7 @@
  * Plugin Name: WriteLeash
  * Plugin URI: https://github.com/MrDarkRoot/WriteLeash
  * Description: Preview WooCommerce bulk price changes, preserve newer edits, resume interrupted jobs, and undo eligible changes.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Author: Duy Tran
  * Author URI: https://profiles.wordpress.org/duyytrann
  * Developer: Duy Tran
@@ -47,7 +47,7 @@ add_action( 'before_woocommerce_init', static function () {
 	}
 } );
 
-define( 'WRITELEASH_VERSION', '0.2.0' );
+define( 'WRITELEASH_VERSION', '0.2.1' );
 define( 'WRITELEASH_PLUGIN_FILE', __FILE__ );
 
 // Register only a local lookup path. Core loads catalogs just in time, after
