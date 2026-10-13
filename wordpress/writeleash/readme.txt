@@ -3,107 +3,64 @@ Contributors: duyytrann
 Tags: woocommerce, bulk edit, prices, variations, undo
 Requires at least: 7.0
 Tested up to: 7.1
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-WooCommerce bulk price editor with Preview, newer-price conflict checks, History and eligible Undo.
+Bulk edit WooCommerce prices safely: exact Preview, newer-edit conflict protection, background jobs, History and eligible Undo. No ads or tracking.
 
 == Description ==
 
-**Change WooCommerce prices. Protect newer edits.**
+**Bulk edit WooCommerce prices. Never overwrite a price someone changed after you reviewed it.**
 
-Bulk edit WooCommerce prices with exact Preview before Apply. Relevant
-price/setting conflicts preserve newer values instead of overwriting them.
+You prepare a 20% sale for 300 products. While you review, a colleague fixes one price by hand. Many bulk editors apply your number anyway, and the fix is silently lost.
 
-Select by name, SKU or category. Run background jobs, Resume remaining work
-and review History.
+WriteLeash checks every product again at the moment of Apply. If a price changed after your Preview, it keeps the newer value, marks the product as a conflict, and carries on with the rest.
+
+= How it works =
+
+1. Select products by name, SKU, category or ID.
+2. Preview every change in exact before-and-after prices.
+3. Approve separately, then Apply in the background.
+4. Review History and restore eligible prices with Undo.
+
+= Built for stores where a wrong price costs money =
+
+* **Nothing changes until you approve it.** Preview first, then a separate Approve step. Change any setting and you get a new Preview.
+* **See what shoppers would pay after Apply.** Before-and-after prices, delta and percent change, and a plain-language reason for every skipped product.
+* **Safety limits you control.** Cap how many products can change, set maximum increase and decrease percentages, get warnings on big swings, and block zero prices.
+* **Runs in the background.** Follow live progress, or close the tab and come back later. Resume skips work that is already done.
+* **History and eligible Undo.** See who changed what and when, and restore eligible prices within the Undo window (30 days by default).
+* **Presets and Repeat.** Save a price-operation setup as a reusable preset, or repeat an eligible job from History as a fresh, editable Preview.
+
+= Choose products your way =
+
+Search by product name or SKU, pick a category (optionally including nested subcategories), enter exact IDs, or choose a variable parent to target all of its variations. Narrow the list with an inclusive Regular Price or Sale Price range, and exclude individual products or variations before approval; confirmed exclusions are left out of Apply and Undo.
 
 = Bulk edit Regular Price and Sale Price =
 
-Set a price, add/subtract a fixed amount, or increase/decrease by a percentage.
-Choose Regular Price or Sale Price. Select a variable parent for its variations,
-or choose variations individually. Category selection includes direct members
-by default; an explicit option includes nested subcategories.
+Set a price, add or subtract a fixed amount, or increase or decrease by a percentage. Choose Regular Price or Sale Price. A Regular Price change preserves the existing Sale Price and sale schedule. Use Set to add a first Sale Price, or calculate a sale discount from each product's reviewed Regular Price. Clear Sale Price makes the sale price blank, not zero, and keeps its dates.
 
-A Regular Price change preserves the existing Sale Price and sale schedule.
-Use Set to add a first Sale Price, or calculate a sale discount from each
-product's reviewed Regular Price. Clear Sale Price makes the sale price blank,
-not zero, and keeps its dates. Sale dates, stock and orders are not changed.
-
-Choose optional .99, .95, .90 or whole-number Price Endings where precision
-allows. Final prices still pass eligibility and safety limits; Clear ignores
-endings.
-
-= Choose products by price range and exclude individual items =
-
-Filter selected products by an inclusive stored Regular Price or Sale Price
-range. Both endpoints count; variations use their own prices. Blank sales do
-not match numeric ranges. Shopper and parent display prices are not the basis.
-
-Exclude individual products or variations before approval, then review the
-updated Preview. Confirmed excluded targets are left out of Apply and Undo.
-Existing selection and count limits still apply.
-
-= Saved presets and Repeat previous jobs =
-
-Save a price-operation configuration as a preset, then load and edit it.
-Presets reuse settings, not old calculated prices, approval or individual
-product exclusions. They never schedule or automatically apply updates.
-
-With access to an eligible job in History, choose Repeat as new Preview to
-prefill an editable operation. Current eligible prices are recalculated;
-category membership may change. A previously refined job suggests only its
-included products, without silently re-adding excluded targets. Repeat is not
-Undo, Resume or an automatic retry; results and eligibility may differ.
-
-Both workflows require a fresh Preview, review and separate approval before
-Apply. Current products, permissions and limits are checked again.
-
-= Preview exact changes before Apply =
-
-Preview shows before-and-after prices, warnings and explained skips. Invalid
-or unsupported items are skipped where safe; a safety-limit blocker refuses
-the whole Preview. Planned stored prices are not guaranteed shopper prices.
-
-Set product-count, increase/decrease and zero-price limits. Approve separately
-to Apply the reviewed products and targets; changed settings need a new Preview.
-
-Download Preview CSV before approval. It reflects the saved Preview, not the
-live catalog, and does not apply changes.
+Use optional .99, .95, .90 or whole-number Price Endings where store precision allows. Sale dates, stock and orders are not changed.
 
 = Preserve newer edits =
 
-If the stored price WriteLeash is changing or another checked setting no
-longer matches the preview, WriteLeash leaves the newer value alone and marks
-that product as a conflict. Other eligible products can continue.
+If the stored price WriteLeash is changing or another checked setting no longer matches the preview, WriteLeash leaves the newer value alone and marks that product as a conflict. Other eligible products can continue.
 
-A Regular Price change preserves a later Sale Price or schedule where valid.
-A nonblank Sale Price target must stay below Regular Price. Clear and sale
-discounts also check the reviewed Regular Price basis. Product name, SKU and
-category are reference details only; changing them alone does not conflict.
+Product name, SKU and category are reference details only; changing them alone does not conflict.
 
-Example: reviewed Regular Price $100, target $80; another edit sets it to $120
-before Apply. WriteLeash leaves $120 unchanged. Proceed only through a fresh
-Preview and separate approval.
+Example: reviewed Regular Price $100, target $80; another edit sets it to $120 before Apply. WriteLeash leaves $120 unchanged. Proceed only through a fresh Preview and separate approval.
 
-= Background processing and Resume =
+= Good to know =
 
-Follow live progress or return later. Resume stalled work without repeating
-completed changes.
+* Preview shows planned stored prices, not guaranteed shopper prices. Invalid or unsupported items are skipped where safe, and a safety-limit blocker refuses the whole Preview.
+* Download Preview CSV before approval; it reflects the saved Preview, not the live catalog, and does not apply changes.
+* Undo availability does not guarantee restoration. Failed current price/setting checks leave the product alone as a conflict, and Undo does not reverse orders, completed sales, emails, webhooks, remote requests, external queues or other plugins' effects.
 
-= History and eligible Undo =
+= Respects your store and your data =
 
-History shows results, conflicts and Undo availability. After Apply safely
-finishes, Undo can restore eligible prices within its window. Failed current
-price/setting checks leave the product alone as a conflict. Regular Price Undo
-preserves later sales where valid; Sale Price Undo checks its recorded Regular
-Price. Availability does not guarantee restoration.
-
-Undo restores eligible prices only. It does not reverse orders, completed
-sales, emails, webhooks, remote requests, external queues or other plugins'
-effects.
+No tracking, no ads, no upgrade nags, no remote code and no auto-updater. Declares WooCommerce HPOS (custom order tables) compatibility. Uninstalling never changes your products or prices.
 
 == Supported scope ==
 
@@ -135,39 +92,44 @@ effects.
 5. A later price or setting change becomes a conflict instead of a blind overwrite. Regular Price example: expected $100, planned $80, current $120 remains unchanged.
 6. Review History outcomes and eligible Undo availability in this earlier example. Availability does not guarantee that every product will restore.
 
-Earlier authentic captures; current labels and controls may differ.
-Not all features are pictured.
+Earlier authentic captures; current labels and controls may differ. Not all features are pictured.
 
 == Frequently Asked Questions ==
 
+= Is WriteLeash free? =
+
+Yes. Every feature is free: no paid tier, no account and no credit card. Preview, conflict protection, Presets, Repeat, background jobs, History and eligible Undo are all included.
+
 = Can I bulk edit sale prices and variation prices? =
 
-Yes, within the supported scope above. Nonblank sale targets must be below
-Regular Price; regular targets must remain above an existing sale.
+Yes, within the supported scope above. Nonblank sale targets must be below Regular Price; regular targets must remain above an existing sale.
+
+= Does WriteLeash change prices automatically? =
+
+No. Every change needs a Preview and a separate approval. Presets and Repeat only prefill settings; they never schedule or apply anything.
 
 = What happens if a price changes after Preview? =
 
-Target-price, product/parent eligibility, currency and precision checks can
-refuse a change. Review conflicts in a fresh Preview with separate approval.
-Checks compare current values: changes away and back may not be detected.
+Target-price, product/parent eligibility, currency and precision checks can refuse a change. Review conflicts in a fresh Preview with separate approval. Checks compare current values: changes away and back may not be detected.
 
 = Can I review the Preview without changing prices? =
 
-Yes. Preview and its CSV do not change prices or approve changes. Review the
-final products, prices, warnings and skips before approving.
+Yes. Preview and its CSV do not change prices or approve changes. Review the final products, prices, warnings and skips before approving.
 
 = Can Undo reverse everything? =
 
-No. Only confirmed eligible prices can be restored. Missing evidence,
-ineligible products, changed relevant values, uncertain outcomes or an expired
-window can prevent Undo. Orders, sales and external effects are not reversed.
+No. Only confirmed eligible prices can be restored. Missing evidence, ineligible products, changed relevant values, uncertain outcomes or an expired window can prevent Undo. Orders, sales and external effects are not reversed.
 
 = Should I back up my store before a large update? =
 
-Yes. Back up and test on staging first. Preview and eligible Undo do not
-replace backups. WriteLeash creates no backups.
+Yes. Back up and test on staging first. Undo and backups are not the same: a backup is a full point-in-time snapshot restored through your host or backup plugin, and no backup is a 100% guarantee. Undo restores only eligible prices WriteLeash changed, within its window. WriteLeash keeps a mistake contained: Preview first, conflict protection and safety limits. It creates no backups.
 
 == Changelog ==
+
+= 0.2.1 =
+
+* Refreshed the plugin listing with clearer benefits, a How it works summary and an FAQ entry confirming every feature is free.
+* No price-change behavior changed in this release.
 
 = 0.2.0 =
 

@@ -54,11 +54,11 @@ class ReleaseRegressionCases(unittest.TestCase):
                 self.assertIn('BLOCKED: dirty tree or untracked/ignored input', result.stderr)
                 self.assertFalse(attacked.exists(), 'Rejected attack must not leave an artifact')
             else:
-                with zipfile.ZipFile(attacked / 'writeleash-0.2.0.zip') as archive:
+                with zipfile.ZipFile(attacked / 'writeleash-0.2.1.zip') as archive:
                     self.assertEqual(archive.read('writeleash/writeleash.php'), genuine,
                                      'B1: replacement bytes accepted under the reviewed source SHA')
-                self.assertEqual((attacked / 'writeleash-0.2.0.zip').read_bytes(),
-                                 (intact / 'writeleash-0.2.0.zip').read_bytes())
+                self.assertEqual((attacked / 'writeleash-0.2.1.zip').read_bytes(),
+                                 (intact / 'writeleash-0.2.1.zip').read_bytes())
 
     def fixture(self, kind, fault='none'):
         return subprocess.run(['php', str(ROOT / 'wordpress/tests/release/fixture-controls-v02.php'),

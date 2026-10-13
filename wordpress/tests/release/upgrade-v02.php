@@ -52,7 +52,7 @@ if ( 'seed' === $mode240 ) {
 echo "#240 historical 0.1 exact-ZIP seed: completed, Undo-eligible, partial percent and pending-drift jobs; direct Apply-journal snapshots PASS\n";
 	return;
 }
-$assert240( 'verify' === $mode240 && '0.2.0' === WRITELEASH_VERSION, 'candidate installed for verification' );
+$assert240( 'verify' === $mode240 && '0.2.1' === WRITELEASH_VERSION, 'candidate installed for verification' );
 $receipt240 = json_decode( file_get_contents( $file240 ), true, 512, JSON_THROW_ON_ERROR );
 foreach ( $receipt240['cases'] as $case240 => $saved240 ) {
 	$job240 = Repo::read( (int) $saved240['job']['id'] ); $plan240 = Repo::hydrate_plan( $job240 );
