@@ -122,7 +122,7 @@ No. Only confirmed eligible prices can be restored. Missing evidence, ineligible
 
 = Should I back up my store before a large update? =
 
-Yes. Back up and test on staging first. Preview and eligible Undo do not replace backups. WriteLeash creates no backups.
+Yes. Back up and test on staging first. Undo and backups are not the same: a backup is a full point-in-time snapshot restored through your host or backup plugin, and no backup is a 100% guarantee. Undo restores only eligible prices WriteLeash changed, within its window. WriteLeash keeps a mistake contained: Preview first, conflict protection and safety limits. It creates no backups.
 
 == Changelog ==
 
