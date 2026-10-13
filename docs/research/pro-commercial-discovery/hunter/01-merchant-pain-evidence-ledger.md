@@ -10,6 +10,7 @@ Research date: **2026-10-13 Asia/Ho_Chi_Minh** (2026-10-12 UTC at mission start)
 4. [Anti-Thesis](04-anti-thesis.md).
 5. [Customer Discovery Targets](05-customer-discovery-targets.md).
 6. [Database seatbelt / blast-radius follow-up](06-database-seatbelt-blast-radius.md): Founder-requested expansion to finite mutation authority, with new operational evidence and explicit substrate limits. This supplements the original pricing research; it does not authorize a product scope change.
+7. [Write amplification and incumbent database controls](07-write-amplification-and-incumbent-controls.md): continued evidence on webhook feedback, repeated production repairs, free guards and Bytebase; deepens the existing five hypotheses.
 
 **INFERRED: INVESTIGATE_FURTHER.** Recurring supplier-file preparation is the strongest lead. No differentiated recurring paid WriteLeash workflow has been established. Public evidence supports jobs that existing software also solves. No merchant was contacted, no interview conducted, no private file inspected, no transaction verified and no WriteLeash willingness to pay established.
 
