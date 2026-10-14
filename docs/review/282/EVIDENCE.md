@@ -2,7 +2,7 @@
 
 Template only. No checkpoint in this file was executed. No PASS is recorded.
 
-Keyboard-only (K1–K8) and screen reader (S1–S8) are `NOT_RUN` / blocked on #281. They must be run on the branch that contains #281 (partial-outcome copy), not on pre-#281 SHA `867c04bb065a31a6718cafeb9431501231279013`. Do not mark them pass against that SHA.
+This branch contains #281 (`4df31051950bcf8e8738fd2df52d17344f7c37fe`, PR #285). On 2026-10-14 the final keyboard and screen-reader pass was not executed: no disposable WordPress/Woo site (`docker info` failed) and no assistive-technology session. K1–K8 and S1–S8 stay `NOT_RUN`. That is not a pass. Do not mark them pass against pre-#281 SHA `867c04bb065a31a6718cafeb9431501231279013` either.
 
 This file does not certify accessibility, WCAG conformance, or universal compatibility.
 
@@ -14,14 +14,14 @@ Leave blank until a real run. Do not copy #170 or CI versions into these fields.
 
 | Field | Value |
 | --- | --- |
-| Date | |
-| OS | |
-| Browser + version | |
-| AT name + version | |
-| Plugin ZIP path | |
-| ZIP SHA-256 | |
-| Source commit | |
-| #281 commit | |
+| Date | 2026-10-14 attempt only; no run |
+| OS | Linux (host). Not a tested admin session. |
+| Browser + version | not launched against the plugin |
+| AT name + version | not launched |
+| Plugin ZIP path | not built for this pass |
+| ZIP SHA-256 | not recorded; no tested artifact |
+| Source commit | branch contains `4df31051950bcf8e8738fd2df52d17344f7c37fe` |
+| #281 commit | `4df31051950bcf8e8738fd2df52d17344f7c37fe` |
 
 Required screen-reader slot (named, run unfilled):
 
@@ -31,7 +31,7 @@ Required screen-reader slot (named, run unfilled):
 | OS | Linux |
 | AT name | Orca |
 | AT version | |
-| Run | NOT_RUN / blocked on #281 |
+| Run | NOT_RUN after #281 landed; no disposable site and no AT session |
 
 Tested flow (fill on the run): selector, price field, exclusions offered yes/no, Preview CSV offered yes/no, Apply/Resume which, Undo eligible yes/no.
 
@@ -41,26 +41,26 @@ Tested flow (fill on the run): selector, price field, exclusions offered yes/no,
 
 | checkpoint | method | viewport or AT | result | evidence pointer | defect issue | notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| K1 logical focus order | keyboard-only | | NOT_RUN | — | none | Blocked on #281. Do not run on pre-#281 SHA 867c04bb. |
-| K2 visible focus | keyboard-only | | NOT_RUN | — | none | Blocked on #281. Not a pass. |
-| K3 no traps | keyboard-only | | NOT_RUN | — | none | Blocked on #281. Not a pass. |
-| K4 focus after removing a selected product | keyboard-only | | NOT_RUN | — | none | Blocked on #281. Not a pass. |
-| K5 disclosure controls | keyboard-only | | NOT_RUN | — | none | Blocked on #281. Not a pass. |
-| K6 table scroll region | keyboard-only | | NOT_RUN | — | none | Blocked on #281. Not a pass. |
-| K7 notices and primary actions | keyboard-only | | NOT_RUN | — | none | Blocked on #281. Not a pass. |
-| K8 remove and Undo names | keyboard-only | | NOT_RUN | — | none | Blocked on #281. Not a pass. |
-| S1 page heading and landmarks | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. Blocked on #281. |
-| S2 form labels and descriptions | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. Blocked on #281. |
-| S3 selection count announcements | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. Blocked on #281. |
-| S4 table headers | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. Blocked on #281. |
+| K1 logical focus order | keyboard-only | | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Do not run on pre-#281 SHA 867c04bb. |
+| K2 visible focus | keyboard-only | | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
+| K3 no traps | keyboard-only | | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
+| K4 focus after removing a selected product | keyboard-only | | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
+| K5 disclosure controls | keyboard-only | | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
+| K6 table scroll region | keyboard-only | | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
+| K7 notices and primary actions | keyboard-only | | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
+| K8 remove and Undo names | keyboard-only | | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
+| S1 page heading and landmarks | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. NOT_RUN after #281; no disposable site. |
+| S2 form labels and descriptions | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. NOT_RUN after #281; no disposable site. |
+| S3 selection count announcements | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. NOT_RUN after #281; no disposable site. |
+| S4 table headers | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. NOT_RUN after #281; no disposable site. |
 | S5 status changes | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Must hear #281 partial-outcome copy. Not a pass. |
-| S6 progress updates | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. Blocked on #281. |
-| S7 notices | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. Blocked on #281. |
-| S8 remove control names | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. Blocked on #281. |
-| R1 layout 1440 | responsive | 1440 CSS px | NOT_RUN | — | none | Not executed. Recheck Results/History after #281 before any PASS. |
-| R2 layout 1024 | responsive | 1024 CSS px | NOT_RUN | — | none | Not executed. Recheck Results/History after #281 before any PASS. |
-| R3 layout 782 | responsive | 782 CSS px | NOT_RUN | — | none | Not executed. Recheck Results/History after #281 before any PASS. |
-| R4 layout 375 | responsive | 375 CSS px | NOT_RUN | — | none | Not executed. Recheck Results/History after #281 before any PASS. |
+| S6 progress updates | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. NOT_RUN after #281; no disposable site. |
+| S7 notices | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. NOT_RUN after #281; no disposable site. |
+| S8 remove control names | screen reader | Firefox / Linux / Orca (version blank) | NOT_RUN | — | none | Slot named. Run unfilled. NOT_RUN after #281; no disposable site. |
+| R1 layout 1440 | responsive | 1440 CSS px | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
+| R2 layout 1024 | responsive | 1024 CSS px | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
+| R3 layout 782 | responsive | 782 CSS px | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
+| R4 layout 375 | responsive | 375 CSS px | NOT_RUN | — | none | NOT_RUN after #281; no disposable site. Not a pass. |
 | R5 zoom 200% | zoom | 200% browser zoom | NOT_RUN | — | none | Not executed. Not a 375 zoom pass. See Z375. |
 | R6 no page-level horizontal overflow | responsive | R1–R5 | NOT_RUN | — | none | Contained table scrolling is the only allowed overflow. Not executed. |
 | N1 selection without JS | no-JS | JS disabled | NOT_RUN | — | none | Promised path. Not executed in this commit. |
