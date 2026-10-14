@@ -1541,7 +1541,8 @@ final class Free_Admin {
 	}
 
 	private static function support_details( string $text ): void {
-		echo '<details><summary>' . esc_html__( 'Support details', 'writeleash' ) . '</summary><p>' . esc_html( $text ) . '</p></details>';
+		if ( '' === trim( str_replace( '·', '', $text ) ) ) { return; }
+		echo '<details><summary>' . esc_html__( 'Details', 'writeleash' ) . '</summary><p>' . esc_html( $text ) . '</p></details>';
 	}
 
 	/**
@@ -1985,15 +1986,14 @@ final class Free_Admin {
 
 	private static function render_home_view( array $form = array() ): void {
 		echo '<p>';
-		echo esc_html( __( 'Preview bulk regular or sale prices before they happen. Run them safely. If the price or a checked setting changed after review, WriteLeash leaves the newer value alone. Undo changes that are still safe to restore.', 'writeleash' ) );
+		echo esc_html( __( 'Preview bulk regular or sale prices safely. No prices change until you approve.', 'writeleash' ) );
 		echo '</p>';
-		echo '<p>';
-		echo esc_html( __( 'Change the stored price of published simple products and variations of published variable products in the base store currency. Variations can be selected as a whole product or individually. Sale dates, stock, orders and subscriptions are not changed.', 'writeleash' ) );
-		echo '</p>';
-		echo '<p>';
-
-		echo esc_html( sprintf( /* translators: %d: maximum selected products per new job. */ __( 'Up to %d selected products per new job in the tested configuration. Planned prices are not guaranteed shopper prices: taxes, currency settings, dynamic pricing and later edits still apply. You can close this page at any time; saved progress appears again when you return.', 'writeleash' ), Free_Support_Contract::MAX_JOB_PRODUCTS ) );
-		echo '</p>';
+		echo '<details><summary>' . esc_html__( 'How it works', 'writeleash' ) . '</summary><ol>';
+		echo '<li>' . esc_html( sprintf( /* translators: %d: maximum selected products per new job. */ __( 'Select products or one category, up to %d per new job. Variations can be selected as a whole product or individually.', 'writeleash' ), Free_Support_Contract::MAX_JOB_PRODUCTS ) ) . '</li>';
+		echo '<li>' . esc_html__( 'Preview without changing prices. If a price or checked setting changed after review, WriteLeash leaves the newer value alone.', 'writeleash' ) . '</li>';
+		echo '<li>' . esc_html__( 'Approve to apply exactly the prices shown. Planned prices are not guaranteed shopper prices.', 'writeleash' ) . '</li>';
+		echo '<li>' . esc_html__( 'Track results in history. Undo restores eligible prices; later changes are left alone.', 'writeleash' ) . '</li>';
+		echo '</ol></details>';
 		if ( ! self::can_mutate() ) {
 			echo '<div class="notice notice-warning"><p>' . esc_html( __( 'Your role can view this page but cannot preview or apply bulk price changes.', 'writeleash' ) ) . '</p></div>';
 		}
@@ -2396,10 +2396,10 @@ final class Free_Admin {
 		if ( ! isset( $data['source_job'] ) && self::can_mutate() ) {
 			echo '<p><a class="button" href="' . esc_url( self::page_url( 'refine', $job['public_id'] ) ) . '">' . esc_html__( 'Exclude individual products', 'writeleash' ) . '</a></p>';
 		}
-		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html__( 'Create a new preview', 'writeleash' ) . '</a> ' . esc_html( __( 'Changing the selection or price settings creates a new preview; this saved preview stays unchanged.', 'writeleash' ) ) . '</p>';
+		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html__( 'Create a new preview', 'writeleash' ) . '</a> ' . esc_html( __( 'Changing settings builds a new preview.', 'writeleash' ) ) . '</p>';
 		if ( $approvable ) {
 			echo '<h2>' . esc_html( __( 'Approve this preview', 'writeleash' ) ) . '</h2>';
-			echo '<p>' . esc_html( __( 'Approving applies exactly the products and prices shown above. Planned prices are not guaranteed shopper prices. If you change any setting, build a new preview.', 'writeleash' ) ) . '</p>';
+			echo '<p>' . esc_html( __( 'Approving applies only the prices shown above. Planned prices are not guaranteed shopper prices.', 'writeleash' ) ) . '</p>';
 			self::render_approve_form( $job );
 		} elseif ( ! $blocked ) {
 
@@ -2722,7 +2722,8 @@ final class Free_Admin {
 			$field_name = Price_Operation::label( $field );
 			$field_label = $field_name;
 
-			echo '<p>' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( 'Expected and planned are %1$s values. Now shows the stored %1$s at page load, not the shopper price. Unavailable means the product or price could not be read.', 'writeleash' ), $field_label ) ) . '</p>';
+			echo '<p>' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( 'Expected and planned are %1$s values.', 'writeleash' ), $field_label ) ) . '</p>';
+			self::support_details( sprintf( /* translators: %s: translated price-field name. */ __( 'Now shows the stored %1$s at page load, not the shopper price. Unavailable means the product or price could not be read.', 'writeleash' ), $field_label ) );
 			echo '<div class="writeleash-table-scroll" role="region" aria-label="' . esc_attr__( 'Product prices and outcomes', 'writeleash' ) . '" tabindex="0"><table class="widefat striped writeleash-prices writeleash-results" data-writeleash-results="1"><thead><tr><th scope="col">' . esc_html( __( 'Product', 'writeleash' ) ) . '</th><th scope="col" class="writeleash-amount">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s expected', 'writeleash' ), $field_name ) ) . '</th><th scope="col" class="writeleash-amount">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s now', 'writeleash' ), $field_name ) ) . '</th><th scope="col" class="writeleash-amount">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s planned', 'writeleash' ), $field_name ) ) . '</th><th scope="col">' . esc_html( _x( 'Apply', 'merchant price workflow label', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( _x( 'Undo', 'merchant price workflow label', 'writeleash' ) ) . '</th></tr></thead><tbody>';
 			if ( ! $items['items'] ) { echo '<tr><td colspan="6">' . esc_html__( 'No retained products on this page match this view.', 'writeleash' ) . '</td></tr>'; }
 			foreach ( $items['items'] as $item ) {
@@ -2768,7 +2769,8 @@ final class Free_Admin {
 	private static function render_undo_section( array $job, array $history, string $field, bool $resume_available = false ): void {
 		$field_label = Price_Operation::label( $field );
 
-		echo '<p>' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( 'Undo restores eligible %s values changed by this job to their values before this job. Later price or sale-setting changes are left alone. Undo does not reverse: orders, completed sales or effects in other plugins and services.', 'writeleash' ), $field_label ) ) . '</p>';
+		echo '<p>' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( 'Undo restores eligible %s values changed by this job. Later changes are left alone.', 'writeleash' ), $field_label ) ) . '</p>';
+		self::support_details( __( 'Undo does not reverse: orders, completed sales or effects in other plugins and services.', 'writeleash' ) );
 		echo '<p><strong data-progress-undo-label>' . esc_html( self::undo_availability( $job, $history ) ) . '</strong></p>';
 		if ( ! empty( $history['undo_expires_at'] ) ) {
 

@@ -252,7 +252,7 @@ final class Price_Reason_Messages {
 			'unsupported_status' => __( 'Only published products are supported.', 'writeleash' ),
 			'sale_configured' => __( 'Remove sale configuration and create a new preview.', 'writeleash' ),
 			'empty_regular_price' => __( 'The stored regular price is empty, not zero.', 'writeleash' ),
-			'invalid_price' => __( 'The stored price is outside the supported decimal contract.', 'writeleash' ),
+			'invalid_price' => __( 'This stored price format is not supported.', 'writeleash' ),
 			'unsupported_currency_context' => __( 'A base-store-currency context is required.', 'writeleash' ),
 			'unsupported_price_field' => __( 'Choose either the regular price or the sale price as the target.', 'writeleash' ),
 			'regular_price_not_above_sale' => __( 'The planned regular price is not above the current sale price; WooCommerce would clear the sale. Remove or reprice the sale first.', 'writeleash' ),
