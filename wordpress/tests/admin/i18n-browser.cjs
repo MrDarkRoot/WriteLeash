@@ -21,7 +21,7 @@ function fixture(mode) {
 }
 async function clickSubmit(page, locator) {
  await page.waitForLoadState('networkidle');
- await Promise.all([page.waitForNavigation({waitUntil: 'networkidle'}), locator.click()]);
+ await Promise.all([page.waitForNavigation({waitUntil: 'networkidle'}), locator.first().click()]);
 }
 async function capture(page, name) {
  if (!out) return;
