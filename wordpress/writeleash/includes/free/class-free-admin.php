@@ -2636,12 +2636,16 @@ final class Free_Admin {
 		echo '<h2>' . esc_html( __( 'Products', 'writeleash' ) ) . '</h2>';
 		$filters = array( '' => array( __( 'All products', 'writeleash' ), null, null ), 'conflict' => array( __( 'Conflicts', 'writeleash' ), 'CONFLICT', null ), 'attention' => array( __( 'Changes needing attention', 'writeleash' ), 'FAILED', null ), 'review' => array( __( 'Uncertain changes', 'writeleash' ), 'NEEDS_REVIEW', null ), 'undo_conflict' => array( __( 'Undo conflicts', 'writeleash' ), null, 'UNDO_CONFLICT' ), 'undo_review' => array( __( 'Uncertain restorations', 'writeleash' ), null, 'UNDO_NEEDS_REVIEW' ) );
 		if ( ! isset( $filters[ $filter ] ) ) { $filter = ''; }
-		echo '<p class="writeleash-filters">';
+		echo '<ul class="subsubsub writeleash-filters">';
+		$filter_keys = array_keys( $filters );
+		$last_key = end( $filter_keys );
 		foreach ( $filters as $key => $choice ) {
-			if ( $key === $filter ) { echo '<strong>' . esc_html( $choice[0] ) . '</strong> '; }
-			else { echo '<a class="button" href="' . esc_url( self::page_url( 'job', $job['public_id'], 0, $key ) ) . '">' . esc_html( $choice[0] ) . '</a> '; }
+			$is_current = ( $key === $filter );
+			echo '<li class="' . esc_attr( '' === $key ? 'all' : $key ) . '"><a href="' . esc_url( self::page_url( 'job', $job['public_id'], 0, $key ) ) . '"' . ( $is_current ? ' class="current" aria-current="page"' : '' ) . '>' . esc_html( $choice[0] ) . '</a>';
+			if ( $key !== $last_key ) { echo ' |'; }
+			echo '</li>';
 		}
-		echo '</p>';
+		echo '</ul>';
 		try {
 			$items = Undo_Repository::history_items( (int) $job['id'], $filters[ $filter ][1], $filters[ $filter ][2], $offset, self::ITEM_PAGE_SIZE );
 		} catch ( \Throwable $error ) {

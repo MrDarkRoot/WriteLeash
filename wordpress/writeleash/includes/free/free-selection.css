@@ -117,11 +117,25 @@
 .writeleash-admin .writeleash-undo > :last-child {
     margin-bottom: 0;
 }
-.writeleash-admin .writeleash-filters {
+.writeleash-admin ul.writeleash-filters {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 8px;
+    gap: 4px 8px;
+    margin: 8px 0 16px;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+}
+.writeleash-admin ul.writeleash-filters li {
+    margin: 0;
+    padding: 0;
+    overflow-wrap: anywhere;
+}
+.writeleash-admin ul.writeleash-filters a.current {
+    color: #000;
+    font-weight: 600;
+    text-decoration: none;
 }
 .writeleash-admin .writeleash-table-scroll {
     max-width: 100%;
