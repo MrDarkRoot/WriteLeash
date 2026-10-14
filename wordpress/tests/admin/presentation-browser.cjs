@@ -112,7 +112,7 @@ async function row(page, id) { return page.locator('tr[data-product-id="' + id +
         const conflict = await row(page, fixture.mixed_ids[0]);
         const cells = await conflict.locator('td').allTextContents();
         ok(cells[1] === '$18.00 USD' && cells[2] === '$21.00 USD' && cells[3] === '$14.40 USD', 'exact stale expected/current/target in same row');
-        ok((await conflict.locator('td strong').allTextContents()).includes('Not changed'), 'merchant conflict label primary');
+        ok((await conflict.locator('td strong').allTextContents()).includes('Newer price kept'), 'merchant conflict label primary');
         ok((await conflict.innerText()).includes('left the newer value unchanged'), 'preserved newer edit explanation');
         ok(await conflict.getByRole('link', { name: 'Review product', exact: true }).count() === 1 && await conflict.getByRole('link', { name: 'Create a new preview', exact: true }).count() === 1, 'safe conflict next actions');
         ok(!/Force apply|Retry conflict/.test(await text(page)), 'no blind overwrite or terminal retry');

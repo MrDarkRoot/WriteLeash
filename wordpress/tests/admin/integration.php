@@ -738,7 +738,7 @@ try { $current_html = render_view( 'job', $current_job['public_id'], 0 ); }
 finally { remove_filter( 'query', $trace_queries ); remove_filter( 'woocommerce_product_get_regular_price', $shopper_price ); }
 $current_rows = wl122_current_rows( $current_html );
 eq( array_slice( $current_rows[$current_id], 1, 3 ), array( '$18.00 USD', '$21.00 USD', '$14.40 USD' ), 'same conflict row preserves saved and current decimal strings' );
-ok( str_contains( $current_rows[$current_id][4], 'Not changed' ) && str_contains( $current_rows[$current_id][4], 'left the newer value unchanged' ), 'merchant conflict explanation in the affected row' );
+	ok( str_contains( $current_rows[$current_id][4], 'Newer price kept' ) && str_contains( $current_rows[$current_id][4], 'left the newer value unchanged' ), 'merchant conflict explanation in the affected row' );
 eq( $current_rows[$current_other][2], '$19.20 USD', 'ordinary applied row also uses fresh Current' );
 foreach ( $render_queries as $query ) {
 	ok( ! preg_match( '/^\s*(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|START\s+TRANSACTION|BEGIN|LOCK)\b|\bFOR\s+UPDATE\b/i', $query ), 'Current render is SELECT-only, with no mutation/worker lock' );

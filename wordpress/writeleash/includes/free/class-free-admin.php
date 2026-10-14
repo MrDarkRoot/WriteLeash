@@ -1720,6 +1720,80 @@ final class Free_Admin {
 		return '';
 	}
 
+	private static function merchant_item_line( ?string $state, string $job_state ): string {
+		$lines = array(
+			'APPLIED' => __( 'Changed', 'writeleash' ),
+			'UNCHANGED' => __( 'Not changed', 'writeleash' ),
+			'UNSUPPORTED' => __( 'Skipped', 'writeleash' ),
+			'CONFLICT' => __( 'Newer price kept', 'writeleash' ),
+			'FAILED' => __( 'Not changed; needs attention', 'writeleash' ),
+			'NEEDS_REVIEW' => __( 'Needs review; outcome uncertain', 'writeleash' ),
+			'UNDONE' => __( 'Restored', 'writeleash' ),
+			'UNDO_CONFLICT' => __( 'Not restored; newer price kept', 'writeleash' ),
+			'UNDO_FAILED' => __( 'Not restored; needs attention', 'writeleash' ),
+			'UNDO_NEEDS_REVIEW' => __( 'Needs review; restoration uncertain', 'writeleash' ),
+		);
+		if ( null !== $state && isset( $lines[ $state ] ) ) { return $lines[ $state ]; }
+		return self::item_label( $state, $job_state );
+	}
+
+	private static function merchant_count_phrase( string $kind, int $count ): string {
+		switch ( $kind ) {
+			case 'changed':
+				/* translators: %d: number of products whose price was changed. */
+				return sprintf( _n( '%d changed', '%d changed', $count, 'writeleash' ), $count );
+			case 'unchanged':
+				/* translators: %d: number of products that were not changed. */
+				return sprintf( _n( '%d not changed', '%d not changed', $count, 'writeleash' ), $count );
+			case 'skipped':
+				/* translators: %d: number of products skipped. */
+				return sprintf( _n( '%d skipped', '%d skipped', $count, 'writeleash' ), $count );
+			case 'conflict':
+				/* translators: %d: number of products whose newer price was kept. */
+				return sprintf( _n( '%d newer price kept', '%d newer prices kept', $count, 'writeleash' ), $count );
+			case 'failed':
+				/* translators: %d: number of products not changed that need attention. */
+				return sprintf( _n( '%d not changed; needs attention', '%d not changed; needs attention', $count, 'writeleash' ), $count );
+			case 'review':
+				/* translators: %d: number of products whose outcome is uncertain. */
+				return sprintf( _n( '%d needs review; outcome uncertain', '%d need review; outcome uncertain', $count, 'writeleash' ), $count );
+			case 'remaining':
+				/* translators: %d: number of products still remaining. */
+				return sprintf( _n( '%d remaining', '%d remaining', $count, 'writeleash' ), $count );
+			case 'unprocessed':
+				/* translators: %d: number of products not processed. */
+				return sprintf( _n( '%d not processed', '%d not processed', $count, 'writeleash' ), $count );
+			case 'applying':
+				/* translators: %d: number of products still in progress. */
+				return sprintf( _n( '%d in progress; outcome not yet confirmed', '%d in progress; outcome not yet confirmed', $count, 'writeleash' ), $count );
+		}
+		return '';
+	}
+
+	private static function merchant_outcome_summary( array $counts, string $state ): string {
+		$parts = array();
+		foreach ( array( 'applied' => 'changed', 'unchanged' => 'unchanged', 'unsupported' => 'skipped', 'conflict' => 'conflict', 'failed' => 'failed', 'needs_review' => 'review' ) as $key => $kind ) {
+			$count = (int) ( $counts[ $key ] ?? 0 );
+			if ( $count > 0 ) { $parts[] = self::merchant_count_phrase( $kind, $count ); }
+		}
+		$applying = (int) ( $counts['applying'] ?? 0 );
+		if ( $applying > 0 ) { $parts[] = self::merchant_count_phrase( 'applying', $applying ); }
+		$pending = (int) ( $counts['pending'] ?? 0 );
+		if ( $pending > 0 && ! in_array( $state, array( 'PLANNED', 'BLOCKED', 'DRAFT', 'PLANNING' ), true ) ) {
+			$parts[] = self::merchant_count_phrase( Job_State::is_terminal( $state ) ? 'unprocessed' : 'remaining', $pending );
+		}
+		if ( ! $parts ) { return ''; }
+		/* translators: %s: saved outcome counts in merchant language. */
+		return sprintf( __( 'Outcomes: %s.', 'writeleash' ), implode( ' · ', $parts ) );
+	}
+
+	private static function merchant_next_step( bool $resume_available, bool $repreview_available, bool $undo_available ): string {
+		if ( $resume_available ) { return __( 'Next: use Resume remaining products. Completed changes are kept.', 'writeleash' ); }
+		if ( $repreview_available ) { return __( 'Next: use Re-preview conflicted products to build a fresh preview. Prices do not change until you approve that preview.', 'writeleash' ); }
+		if ( $undo_available ) { return __( 'Next: Undo restores eligible prices only. It does not reverse orders, sales, emails, webhooks, or other plugins.', 'writeleash' ); }
+		return __( 'Next: review the product.', 'writeleash' );
+	}
+
 	/** Polled outcome cells reuse the server cell renderer byte-for-byte. */
 	private static function outcome_cell_html( array $item, array $frozen, $reason, string $job_state, array $observation, bool $apply_side ): string {
 		if ( $apply_side ) {
@@ -1736,7 +1810,7 @@ final class Free_Admin {
 	}
 
 	private static function render_item_outcome( ?string $state, ?string $reason, string $job_state, array $observation ): void {
-		echo '<strong>' . esc_html( self::item_label( $state, $job_state ) ) . '</strong>';
+		echo '<strong>' . esc_html( self::merchant_item_line( $state, $job_state ) ) . '</strong>';
 		if ( 'CONFLICT' === $state || 'UNDO_CONFLICT' === $state ) {
 			$copy = self::outcome_conflict_copy( $state );
 			echo '<p>' . esc_html( $copy ) . '</p>';
@@ -1747,7 +1821,7 @@ final class Free_Admin {
 			/* translators: 1: opening link to a new preview, 2: closing link. */
 			echo '<p>' . sprintf( esc_html__( 'Review the product, then %1$sCreate a new preview%2$s if you still want to change it.', 'writeleash' ), '<a href="' . esc_url( self::page_url() ) . '">', '</a>' ) . '</p>';
 		} elseif ( in_array( $state, array( 'NEEDS_REVIEW', 'UNKNOWN', 'UNDO_NEEDS_REVIEW', 'FAILED', 'UNDO_FAILED' ), true ) ) {
-			echo '<p>' . esc_html__( 'Check the product and saved results before taking further action. This outcome is not confirmed as unchanged.', 'writeleash' ) . '</p>';
+			echo '<p>' . esc_html__( 'Review the product. This outcome is not confirmed as unchanged.', 'writeleash' ) . '</p>';
 			// Known apply-time refusals get their exact merchant recovery copy;
 			// unknown reasons never invent an explanation.
 			if ( null !== $reason && in_array( $reason, array( 'LOOKUP_MISMATCH', 'UNSUPPORTED_PRODUCT_STATE' ), true ) ) {
@@ -1803,7 +1877,11 @@ final class Free_Admin {
 			if ( (int) $job['approver_id'] > 0 ) { echo '<br>' . esc_html( sprintf( /* translators: %s: approver display name. */ __( 'Approved by %s', 'writeleash' ), self::operator_name( (int) $job['approver_id'] ) ) ); }
 			echo '<br><span class="description">' . esc_html( self::site_time( $job['created_at'] ) ) . '</span>';
 			self::support_details( $job['public_id'] ); echo '</td>';
-			echo '<td><strong>' . esc_html( self::job_label( $job['status'] ) ) . '</strong><br>' . esc_html( self::result_summary( $entry['apply'], $job['status'], true ) ) . '</td>';
+			echo '<td><strong>' . esc_html( self::job_label( $job['status'] ) ) . '</strong><br>';
+			$merchant_history = self::merchant_outcome_summary( $entry['apply'], $job['status'] );
+			echo esc_html( '' !== $merchant_history ? $merchant_history : self::result_summary( $entry['apply'], $job['status'], true ) );
+			self::support_details( $job['status'] . ' · ' . (string) ( $job['status_reason'] ?? '' ) );
+			echo '</td>';
 			echo '<td>' . esc_html( self::undo_availability( $job, $entry ) );
 
 			if ( $entry['undo_eligible'] ) { echo '<br>' . esc_html( sprintf( /* translators: %s: localized expiry date and time. */ __( 'Until %s', 'writeleash' ), self::site_time( $entry['undo_expires_at'] ) ) ); }
@@ -2641,6 +2719,13 @@ final class Free_Admin {
 		$counts = $observed['counts'];
 		$effective = $observed['effective_status'];
 		$complete_evidence = $counts['planned'] === $selected;
+		$resume_available = $complete_evidence && Job_State::can_manual_run( $job['status'] ) && self::can_mutate();
+		$repreview_available = false;
+		try {
+			$recovery = self::recovery_source( $public_id );
+			$repreview_available = ! empty( $recovery['rows'] );
+		} catch ( \Throwable $error ) { /* No recovery action without verified authority and evidence. */ }
+		$undo_form_available = $complete_evidence && ! empty( $history['undo_eligible'] ) && self::can_mutate() && ( empty( $history['undo']['operation_status'] ) || Undo_State::can_manual_run( $history['undo']['operation_status'] ) );
 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html( __( 'Back to bulk prices', 'writeleash' ) ) . '</a> ';
 		echo '<a class="button" href="' . esc_url( self::page_url( 'history' ) ) . '">' . esc_html( __( 'Open history', 'writeleash' ) ) . '</a></p>';
 		if ( self::reviewable( $job ) ) { self::job_action_link( $job, true ); echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html__( 'Create a new preview', 'writeleash' ) . '</a></p>'; }
@@ -2650,6 +2735,11 @@ final class Free_Admin {
 		echo '<p><strong data-progress-label>' . esc_html( $complete_evidence ? self::job_label( $effective ) : __( 'Saved product outcomes unavailable; needs checking', 'writeleash' ) ) . '</strong></p>';
 		if ( $complete_evidence ) { echo '<p data-progress-summary>' . esc_html( self::result_summary( $counts, $effective, true ) ) . '</p>'; }
 		else { echo '<p data-progress-summary>' . esc_html( sprintf( /* translators: %d: planned products. */ _n( 'Planned %d product. Some saved product evidence is unavailable. Check this job before taking further action.', 'Planned %d products. Some saved product evidence is unavailable. Check this job before taking further action.', $selected, 'writeleash' ), $selected ) ) . '</p>'; }
+		if ( $complete_evidence ) {
+			$merchant_summary = self::merchant_outcome_summary( $counts, $effective );
+			if ( '' !== $merchant_summary ) { echo '<p data-merchant-outcome>' . esc_html( $merchant_summary ) . '</p>'; }
+		}
+		echo '<p data-merchant-next>' . esc_html( $complete_evidence ? self::merchant_next_step( $resume_available, $repreview_available, $undo_form_available ) : __( 'Next: refresh saved progress before taking further action.', 'writeleash' ) ) . '</p>';
 		$apply_bar = $complete_evidence ? self::progress_bar_values( $counts ) : array( 0, 0 );
 		self::render_progress_bar( $apply_bar[0], $apply_bar[1], __( 'Apply progress', 'writeleash' ), 'data-progress-bar', 'data-progress-fill' );
 		if ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { echo '<p data-progress-initial-notice>' . esc_html( self::reason_message( $observed['effective_reason'] ) ) . '</p>'; }
@@ -2671,7 +2761,6 @@ final class Free_Admin {
 		// Single primary per view: Resume is the primary action while it is
 		// available; Undo drops to secondary then and returns to primary only
 		// when Resume is unavailable. Presentation only; same hooks/fields.
-		$resume_available = $complete_evidence && Job_State::can_manual_run( $job['status'] ) && self::can_mutate();
 		if ( $resume_available ) {
 			if ( in_array( $effective, array( Job_State::READY, Job_State::QUEUED ), true ) && ! $observed['stalled'] ) { echo '<p data-progress-initial-notice>' . esc_html( __( 'Waiting for background processing. Use Resume remaining products to run the next step now.', 'writeleash' ) ) . '</p>'; }
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -2682,10 +2771,7 @@ final class Free_Admin {
 			echo esc_html( __( 'Runs only the remaining products; completed changes are kept. Products changed since Preview are left alone.', 'writeleash' ) ) . '</p></form>';
 		}
 		echo '</div>';
-		try {
-			$recovery = self::recovery_source( $public_id );
-			if ( $recovery['rows'] ) { echo '<p><a class="button" href="' . esc_url( self::page_url( 'recovery', $public_id ) ) . '">' . esc_html__( 'Re-preview conflicted products', 'writeleash' ) . '</a></p>'; }
-		} catch ( \Throwable $error ) { /* No recovery action without verified authority and evidence. */ }
+		if ( $repreview_available ) { echo '<p><a class="button" href="' . esc_url( self::page_url( 'recovery', $public_id ) ) . '">' . esc_html__( 'Re-preview conflicted products', 'writeleash' ) . '</a></p>'; }
 		try {
 			// Repeat is offered for any verified historical plan, independent
 			// of Apply conflicts. Unsupported stored configurations stay
