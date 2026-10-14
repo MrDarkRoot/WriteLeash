@@ -79,7 +79,13 @@
                     // The change handlers rebuild the chips and refresh the
                     // selection count text synchronously.
                     products.trigger('change');
-                    focusChipRemove(position === -1 ? 0 : position);
+                    // Keep the chip's accessibility contract: removal must
+                    // return focus to the product search field so keyboard
+                    // users can continue typing, with the neighbour chip as
+                    // a focus fallback only if the search field is absent.
+                    var search = products.next('.select2-container').find('.select2-search__field');
+                    if (search.length) { search.trigger('focus'); }
+                    else { focusChipRemove(position === -1 ? 0 : position); }
                 }).appendTo(row);
                 row.data('id', option.value).appendTo(list);
             });
