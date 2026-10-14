@@ -2247,6 +2247,20 @@ final class Free_Admin {
 		return $job;
 	}
 
+	/**
+	 * Single approve-form renderer for the Preview view. The top summary
+	 * panel and the bottom approval block call this same renderer, so both
+	 * forms carry the same action, job field and plan nonce. Presentation
+	 * only; no contract change.
+	 */
+	private static function render_approve_form( array $job ): void {
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_APPROVE ) . '">';
+		echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
+		wp_nonce_field( self::ACTION_APPROVE . '_' . $job['plan_id'] );
+		echo '<p><button type="submit" class="button button-primary">' . esc_html( __( 'Approve and apply', 'writeleash' ) ) . '</button></p></form>';
+	}
+
 	private static function render_preview_view( string $public_id, int $offset ): void {
 		if ( ! self::jobs_installed() ) {
 			echo '<div class="notice notice-error"><p>' . esc_html( __( 'No preview is visible to your account for that identifier.', 'writeleash' ) ) . '</p></div>';
@@ -2303,7 +2317,17 @@ final class Free_Admin {
 
 		echo '<p>' . esc_html( sprintf( /* translators: 1: selected products, 2: translated outcome counts. */ _n( 'Selected %1$d product: %2$s.', 'Selected %1$d products: %2$s.', $summary['selected'], 'writeleash' ), $summary['selected'], implode( ' · ', array( self::count_copy( 'changing', $summary['changing'] ), self::count_copy( 'unchanged', $summary['unchanged'] ), self::count_copy( 'skipped', $summary['unsupported'] ) ) ) ) ) . '</p>';
 		$extra_counts = self::preview_extra_counts( $data['items'] );
-		echo '<p>' . esc_html( implode( ' · ', array( self::count_copy( 'large_increase', $extra_counts['large_increase'] ), self::count_copy( 'large_decrease', $extra_counts['large_decrease'] ), self::count_copy( 'zero_target', $extra_counts['zero_target'] ), self::count_copy( 'warning', $summary['warning_items'] ) ) ) . '.' ) . '</p></div>';
+		echo '<p>' . esc_html( implode( ' · ', array( self::count_copy( 'large_increase', $extra_counts['large_increase'] ), self::count_copy( 'large_decrease', $extra_counts['large_decrease'] ), self::count_copy( 'zero_target', $extra_counts['zero_target'] ), self::count_copy( 'warning', $summary['warning_items'] ) ) ) . '.' ) . '</p>';
+		// Top approve summary: same task description and compact counts as
+		// above, plus the shopper-price caveat and the same approve form as
+		// the bottom block, so summary and approval share the first viewport
+		// without JavaScript. The bottom block stays unchanged.
+		$approvable = ! $blocked && Job_State::PLANNED === $job['status'] && self::can_mutate();
+		if ( $approvable ) {
+			echo '<p>' . esc_html__( 'Planned prices are not guaranteed shopper prices.', 'writeleash' ) . '</p>';
+			self::render_approve_form( $job );
+		}
+		echo '</div>';
 		if ( $blocked ) {
 			echo '<div class="notice notice-error" role="alert"><p><strong>' . esc_html( __( 'This plan cannot be executed.', 'writeleash' ) ) . '</strong>: ' . esc_html__( 'Your safety limits block every changing product. You cannot approve this preview; build a new one with different settings.', 'writeleash' ) . '</p>';
 			$identities = array_column( $data['items'], null, 'product_id' );
@@ -2373,14 +2397,10 @@ final class Free_Admin {
 			echo '<p><a class="button" href="' . esc_url( self::page_url( 'refine', $job['public_id'] ) ) . '">' . esc_html__( 'Exclude individual products', 'writeleash' ) . '</a></p>';
 		}
 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html__( 'Create a new preview', 'writeleash' ) . '</a> ' . esc_html( __( 'Changing the selection or price settings creates a new preview; this saved preview stays unchanged.', 'writeleash' ) ) . '</p>';
-		if ( ! $blocked && Job_State::PLANNED === $job['status'] && self::can_mutate() ) {
+		if ( $approvable ) {
 			echo '<h2>' . esc_html( __( 'Approve this preview', 'writeleash' ) ) . '</h2>';
 			echo '<p>' . esc_html( __( 'Approving applies exactly the products and prices shown above. Planned prices are not guaranteed shopper prices. If you change any setting, build a new preview.', 'writeleash' ) ) . '</p>';
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_APPROVE ) . '">';
-			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
-			wp_nonce_field( self::ACTION_APPROVE . '_' . $job['plan_id'] );
-			echo '<p><button type="submit" class="button button-primary">' . esc_html( __( 'Approve and apply', 'writeleash' ) ) . '</button></p></form>';
+			self::render_approve_form( $job );
 		} elseif ( ! $blocked ) {
 
 			echo '<p>' . esc_html( sprintf( /* translators: %s: translated job status. */ __( 'Current status: %s.', 'writeleash' ), self::job_label( $job['status'] ) ) . ' ' ) . '<a href="' . esc_url( self::page_url( 'job', $job['public_id'] ) ) . '">' . esc_html( __( 'View progress and results', 'writeleash' ) ) . '</a></p>';
@@ -2648,7 +2668,11 @@ final class Free_Admin {
 			echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $selected ) ) . '</p></div>';
 		}
 		echo '<div data-progress-resume>';
-		if ( $complete_evidence && Job_State::can_manual_run( $job['status'] ) && self::can_mutate() ) {
+		// Single primary per view: Resume is the primary action while it is
+		// available; Undo drops to secondary then and returns to primary only
+		// when Resume is unavailable. Presentation only; same hooks/fields.
+		$resume_available = $complete_evidence && Job_State::can_manual_run( $job['status'] ) && self::can_mutate();
+		if ( $resume_available ) {
 			if ( in_array( $effective, array( Job_State::READY, Job_State::QUEUED ), true ) && ! $observed['stalled'] ) { echo '<p data-progress-initial-notice>' . esc_html( __( 'Waiting for background processing. Use Resume remaining products to run the next step now.', 'writeleash' ) ) . '</p>'; }
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_RESUME ) . '">';
@@ -2671,7 +2695,7 @@ final class Free_Admin {
 		} catch ( \Throwable $error ) { /* No repeat action without verified authority and plan integrity. */ }
 		self::render_export_form( $job );
 		echo '<section class="writeleash-undo"><h2>' . esc_html( _x( 'Undo', 'merchant price workflow label', 'writeleash' ) ) . '</h2>';
-		if ( $complete_evidence ) { self::render_undo_section( $job, $history, $plan->price_field() ); }
+		if ( $complete_evidence ) { self::render_undo_section( $job, $history, $plan->price_field(), $resume_available ); }
 		else { echo '<p>' . esc_html__( 'Undo availability cannot be verified while product outcomes are missing. Refresh this job or ask an administrator to check its saved records.', 'writeleash' ) . '</p>'; }
 		echo '</section>';
 		echo '<h2>' . esc_html( __( 'Products', 'writeleash' ) ) . '</h2>';
@@ -2741,7 +2765,7 @@ final class Free_Admin {
 		echo '<div class="notice notice-warning" role="alert"><p><strong>' . esc_html( __( 'Older large job', 'writeleash' ) ) . '</strong></p><p>' . esc_html( self::legacy_oversize_message() ) . '</p></div>';
 	}
 
-	private static function render_undo_section( array $job, array $history, string $field ): void {
+	private static function render_undo_section( array $job, array $history, string $field, bool $resume_available = false ): void {
 		$field_label = Price_Operation::label( $field );
 
 		echo '<p>' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( 'Undo restores eligible %s values changed by this job to their values before this job. Later price or sale-setting changes are left alone. Undo does not reverse: orders, completed sales or effects in other plugins and services.', 'writeleash' ), $field_label ) ) . '</p>';
@@ -2766,7 +2790,10 @@ final class Free_Admin {
 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_UNDO ) . '">';
 			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
 			wp_nonce_field( self::ACTION_UNDO . '_' . $job['public_id'] );
-			echo '<p><button type="submit" class="button' . ( empty( $history['undo']['operation_status'] ) ? ' button-secondary' : ' button-primary' ) . '">' . esc_html( empty( $history['undo']['operation_status'] ) ? __( 'Restore eligible prices (Undo)', 'writeleash' ) : __( 'Continue Undo', 'writeleash' ) ) . '</button> ';
+			// Restore semantics stay blue/grey, never red. Undo is primary
+			// only when Resume is unavailable, so the view keeps one primary.
+			$undo_primary = ! $resume_available;
+			echo '<p><button type="submit" class="button' . ( $undo_primary ? ' button-primary' : ' button-secondary' ) . '">' . esc_html( empty( $history['undo']['operation_status'] ) ? __( 'Restore eligible prices (Undo)', 'writeleash' ) : __( 'Continue Undo', 'writeleash' ) ) . '</button> ';
 			echo esc_html( __( 'Newer prices and sale settings are left alone.', 'writeleash' ) ) . '</p></form>';
 		} elseif ( $history['undo_eligible'] && ! self::can_mutate() ) {
 			echo '<p>' . esc_html__( 'You do not have permission to restore prices.', 'writeleash' ) . '</p>';
