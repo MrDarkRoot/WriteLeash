@@ -29,7 +29,8 @@ async function capture(page, name) {
     for (const width of [1440, 1024, 782, 375]) {
         await page.setViewportSize({ width, height: 900 });
         ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), name + ': no page overflow at ' + width);
-        ok(await page.locator('.writeleash-admin .button-primary').count() <= 1, name + ': one primary action');
+        // #275 polish renders Approve top+bottom on preview (2 identical primaries, same POST); others stay 1.
+        ok(await page.locator('.writeleash-admin .button-primary').count() <= (name === 'preview' ? 2 : 1), name + ': one primary action' + (name === 'preview' ? ' (top+bottom)' : ''));
         for (const region of await page.locator('.writeleash-table-scroll').all()) {
             await region.focus(); await page.keyboard.press('Tab'); await page.keyboard.press('Shift+Tab');
             ok(await region.evaluate(el => document.activeElement === el && getComputedStyle(el).outlineStyle !== 'none'), name + ': keyboard scroll region focus visible');
