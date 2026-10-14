@@ -53,13 +53,28 @@
             var name = segments.shift();
             return { name: name, meta: segments.join(' · ') };
         }
-        function focusChipRemove(index) {
+        function inTabOrder(node) {
+            if (!node || node.disabled || node.tabIndex < 0 || node.closest('[hidden]')) { return false; }
+            var style = window.getComputedStyle(node);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+        }
+        function focusWithoutScroll(node) {
+            if (!node || !node.focus) { return false; }
+            try { node.focus({ preventScroll: true }); }
+            catch (error) { node.focus(); }
+            return document.activeElement === node;
+        }
+        function focusAfterRemoval(index) {
             var removes = $('#writeleash-free-selected').find('.writeleash-chip__remove');
-            var target = removes.eq(Math.min(index, removes.length - 1)).get(0) || $('#writeleash-free-clear').get(0);
-            if (target && target.focus) {
-                try { target.focus({ preventScroll: true }); }
-                catch (error) { target.focus(); }
+            if (removes.length) {
+                focusWithoutScroll(removes.eq(Math.min(Math.max(index, 0), removes.length - 1)).get(0));
+                return;
             }
+            var search = products.next('.select2-container').find('.select2-search__field').get(0);
+            var nativeSearch = document.getElementById('writeleash-free-product_search');
+            if (inTabOrder(search) && focusWithoutScroll(search)) { return; }
+            if (inTabOrder(nativeSearch) && focusWithoutScroll(nativeSearch)) { return; }
+            focusWithoutScroll(document.getElementById('writeleash-free-clear'));
         }
         function selectedList() {
             var list = $('#writeleash-free-selected').empty();
@@ -73,19 +88,12 @@
                 row.append(' ');
                 $('<button>', { type: 'button', 'class': 'writeleash-chip__remove', 'aria-label': sprintf( /* translators: %s: product description. */ __( 'Remove %s', 'writeleash' ), option.text ) }).append(
                     $('<span>', { 'class': 'dashicons dashicons-no-alt', 'aria-hidden': 'true' })
-                ).on('click', function () {
+                ).on('click', function (event) {
+                    event.preventDefault();
                     var position = ids.indexOf(option.value);
                     products.find('option').filter(function () { return this.value === option.value; }).prop('selected', false);
-                    // The change handlers rebuild the chips and refresh the
-                    // selection count text synchronously.
                     products.trigger('change');
-                    // Keep the chip's accessibility contract: removal must
-                    // return focus to the product search field so keyboard
-                    // users can continue typing, with the neighbour chip as
-                    // a focus fallback only if the search field is absent.
-                    var search = products.next('.select2-container').find('.select2-search__field');
-                    if (search.length) { search.trigger('focus'); }
-                    else { focusChipRemove(position === -1 ? 0 : position); }
+                    focusAfterRemoval(position);
                 }).appendTo(row);
                 row.data('id', option.value).appendTo(list);
             });
