@@ -37,9 +37,10 @@ async function action(page, name) {
     // Server-side form submission; the heavy multi-engine suite can queue the
     // request behind other work, so allow a longer budget than the default.
     try {
+        // #275 polish batch renders Approve top+bottom (both required no-JS); disambiguate to first when duplicated.
         await Promise.all([
             page.waitForEvent('framenavigated', { predicate: frame => frame === page.mainFrame(), timeout: 60000 }),
-            page.getByRole('button', { name, exact: true }).click()
+            (name === 'Approve and apply' ? page.getByRole('button', { name, exact: true }).first() : page.getByRole('button', { name, exact: true })).click()
         ]);
     } catch (error) {
         await capture(page, 'action-timeout-' + name.replace(/[^a-z0-9]+/gi, '-').toLowerCase());
@@ -81,7 +82,7 @@ async function presets230(page, suffix) {
     await action(page, 'Load preset');
     await page.locator('#writeleash-free-amount').fill('70');
     await action(page, 'Preview price changes');
-    ok(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count() === 1, '#230 fresh Preview needs independent approval ' + suffix);
+    ok(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count() === 2, '#230 fresh Preview needs independent approval (top + bottom) ' + suffix);
     ok(observe().saves === before.saves, '#230 Preview still performs no Woo saves ' + suffix);
     const preview = observe().jobs[0];
     assert.deepEqual(JSON.parse(preview.plan_json).resolved_product_ids, expected, '#230 persisted range freezes exact current membership');
