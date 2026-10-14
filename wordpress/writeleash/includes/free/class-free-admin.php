@@ -2096,8 +2096,14 @@ final class Free_Admin {
 			foreach ( $options as $id => $item ) { echo '<option value="' . esc_attr( (string) $id ) . '"' . ( isset( $selected[$id] ) ? ' selected' : '' ) . '>' . esc_html( $item['text'] ) . '</option>'; }
 			echo '</select></p><p id="writeleash-free-products-help">' . esc_html__( 'Check the selected products below. Preview checks their eligibility before any prices change.', 'writeleash' ) . '</p>';
 			echo '<h3>' . esc_html__( 'Selected products', 'writeleash' ) . '</h3><ul id="writeleash-free-selected">';
-
-			foreach ( $selected as $id => $item ) { echo '<li>' . esc_html( $item['text'] ) . ' '; self::selection_button( 'remove:' . $id, __( 'Remove', 'writeleash' ), sprintf( /* translators: %s: product description. */ __( 'Remove %s', 'writeleash' ), $item['text'] ) ); echo '</li>'; }
+			foreach ( $selected as $id => $item ) {
+				$parts = explode( ' · ', $item['text'], 2 );
+				$name = $parts[0];
+				$meta = isset( $parts[1] ) ? $parts[1] : '';
+				echo '<li class="writeleash-chip"><span class="writeleash-chip__text">' . esc_html( $name ) . '</span>';
+				if ( '' !== $meta ) { echo ' <span class="writeleash-chip__meta">' . esc_html( $meta ) . '</span>'; }
+				echo ' <button class="writeleash-chip__remove" type="submit" name="selection_action" value="remove:' . esc_attr( (string) $id ) . '" formaction="' . esc_url( self::page_url() ) . '" aria-label="' . esc_attr( sprintf( /* translators: %s: product description. */ __( 'Remove %s', 'writeleash' ), $item['text'] ) ) . '" formnovalidate><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>';
+			}
 			if ( ! $selected ) { echo '<li>' . esc_html__( 'No products selected. Search and choose products to add them.', 'writeleash' ) . '</li>'; }
 			echo '</ul><button id="writeleash-free-clear" class="button" type="submit" name="selection_action" value="clear-products" formaction="' . esc_url( self::page_url() ) . '" formnovalidate>' . esc_html__( 'Clear selected products', 'writeleash' ) . '</button>';
 			echo '</div><div id="writeleash-free-category-picker"><details id="writeleash-free-categories-fallback" open><summary>' . esc_html__( 'Search categories without live suggestions', 'writeleash' ) . '</summary>';
