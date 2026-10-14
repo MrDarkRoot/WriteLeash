@@ -75,7 +75,9 @@ async function search(page, term) {
     }
 }
 async function form(page, action) {
-    return page.locator('form').filter({ has: page.locator('input[name="action"][value="' + action + '"]') }).evaluate(el => Object.fromEntries(new FormData(el)));
+    // #275 polish renders Approve top+bottom (two byte-identical forms, same POST);
+    // disambiguate to first — both carry the same action/job/nonce fields.
+    return page.locator('form').filter({ has: page.locator('input[name="action"][value="' + action + '"]') }).first().evaluate(el => Object.fromEntries(new FormData(el)));
 }
 async function scan(page, name) {
     await page.addScriptTag({ path: require.resolve('axe-core/axe.min.js') });
@@ -240,7 +242,7 @@ async function responsive(page) {
             await route.fetch({ maxRedirects: 0 }); // Real server approval commits; browser receives no response.
             await route.abort('failed'); approvalForwarded();
         });
-        await tabTo(page, button(page, 'Approve and apply')); await page.keyboard.press('Enter');
+        await tabTo(page, button(page, 'Approve and apply').first()); await page.keyboard.press('Enter');
         await forwarded;
         await page.unroute('**/admin-post.php');
         const jobURL = home + '&wl_view=job&wl_job=' + publicId;

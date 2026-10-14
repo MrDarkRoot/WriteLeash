@@ -65,7 +65,7 @@ async function combined241(page, javaScriptEnabled) {
     assert.deepEqual(observe().jobs, before.jobs, 'combined Save/Load does not create Preview');
     await enter(page, button(page, 'Preview price changes'));
     const sourceId = new URL(page.url()).searchParams.get('wl_job');
-    await enter(page, button(page, 'Approve and apply'));
+    await enter(page, button(page, 'Approve and apply').first());
     for (let n = 0; n < 4 && await button(page, 'Resume remaining products').count(); n++) await enter(page, button(page, 'Resume remaining products'));
     const source = observe().jobs.find(j => j.public_id === sourceId);
     ok(ids.every(id => Number(observe().prices[id]) === 105), 'combined preset operation explicitly applied');
@@ -99,7 +99,7 @@ async function combined241(page, javaScriptEnabled) {
     ok(plan.source_kind === 'repeat' && plan.source_job === sourceId, 'new Preview freezes Repeat provenance');
     ok(next.plan_id !== source.plan_id && next.plan_hash !== source.plan_hash, 'Repeat has distinct immutable identity/hash');
     ok(plan.items.every(item => item.snapshot.regular_price === '105.00' && item.planned_regular_price === '110.25'), 'Repeat computes current-price 105 -> 110.25');
-    ok(Number(next.approver_id) === 0 && await button(page, 'Approve and apply').count() === 1, 'Repeat separately unapproved');
+    ok(Number(next.approver_id) === 0 && await button(page, 'Approve and apply').count() === 2, 'Repeat separately unapproved');
     ok((await page.locator('.writeleash-admin').innerText()).includes('repeated from a previous job'), 'Repeat visually distinct from Recovery');
     await page.evaluate(() => { document.activeElement.blur(); scrollTo(0, 0); });
     await capture(page, javaScriptEnabled ? 'combined-repeat-preview' : 'combined-nojs-repeat-preview');
@@ -159,7 +159,7 @@ async function combined241(page, javaScriptEnabled) {
                 const root = new URL(page.url()).searchParams.get('wl_job');
                 const rootJob = observe().jobs.find(j => j.public_id === root);
                 assert.deepEqual(JSON.parse(rootJob.plan_json).resolved_product_ids, f.ids, 'exact range membership after persistence');
-                ok(Number(rootJob.approver_id) === 0 && await button(page, 'Approve and apply').count() === 1, 'new independent approval required');
+                ok(Number(rootJob.approver_id) === 0 && await button(page, 'Approve and apply').count() === 2, 'new independent approval required');
                 await enter(page, page.getByRole('link', { name: 'Exclude individual products', exact: true }));
                 const row = page.getByRole('checkbox', { name: 'Select product #' + f.ids[0], exact: true });
                 await tab(page, row); await page.keyboard.press('Space');
@@ -173,7 +173,7 @@ async function combined241(page, javaScriptEnabled) {
                 const plan = JSON.parse(frozen.plan_json);
                 assert.deepEqual(plan.selection_refinement.excluded_ids, [f.ids[0]]);
                 assert.deepEqual(plan.resolved_product_ids, f.ids.slice(1));
-                ok(Number(frozen.approver_id) === 0 && await button(page, 'Approve and apply').count() === 1, 'refined Preview separately unapproved');
+                ok(Number(frozen.approver_id) === 0 && await button(page, 'Approve and apply').count() === 2, 'refined Preview separately unapproved');
                 await capture(page, javaScriptEnabled ? 'refined-preview' : 'nojs-refined-preview');
                 if (javaScriptEnabled) await scan(page, 'refined Preview');
                 await page.goto(home); await enter(page, button(page, 'Load preset'));

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>wl284 progress — 4 states (render_progress_bar output)</title>
+<style>
+html, body { margin: 0; padding: 0; background: #f0f0f5; }
+#wpadminbar { position: fixed; top: 0; left: 0; right: 0; height: 32px; background: #1d2327; z-index: 9; }
+#wq { display: flex; padding-top: 32px; }
+#sim-menu { flex: 0 0 160px; background: #1d2327; min-height: 100vh; }
+#wpcontent { flex: 1; min-width: 0; padding: 10px 20px 40px; }
+.wrap { max-width: none; }
+.writeleash-summary { max-width: 900px; }
+code { background: #fff; padding: 2px 6px; border: 1px solid #c3c4c7; font-size: 12px; }
+</style>
+<link rel="stylesheet" href="file:///tmp/wl-batch/wordpress/writeleash/includes/free/free-selection.css">
+</head>
+<body>
+<div id="wpadminbar"></div>
+<div id="wq">
+<div id="sim-menu"></div>
+<div id="wpcontent"><div class="wrap"><div class="writeleash-admin">
+<h2>Progress bars — 4 states (mirrors Free_Admin::render_progress_bar)</h2>
+<p class="description">Track is .writeleash-progress[role=progressbar][aria-label][aria-valuemin=0 aria-valuemax=N aria-valuenow=M data-progress-bar] with child .writeleash-progress-fill[data-progress-fill][style="width: PCT%"]. Total 0 adds hidden attribute. Width rounded from processed*100/total.</p>
+
+<section class="writeleash-progress-case" data-progress-case="apply-mid">
+<h3>1 — Apply mid (1/3, 33%)</h3>
+<p><strong data-progress-label>In progress</strong></p>
+<p data-progress-summary>Planned 3 products: 1 changed · 2 in progress.</p>
+<div class="writeleash-progress" role="progressbar" aria-label="Apply progress" aria-valuemin="0" aria-valuemax="3" aria-valuenow="1" data-progress-bar><div class="writeleash-progress-fill" data-progress-fill style="width:33%"></div></div>
+<p><code>aria-valuemax=3 aria-valuenow=1 width:33% label "Apply progress" data-progress-bar/data-progress-fill</code></p>
+</section>
+
+<section class="writeleash-progress-case" data-progress-case="apply-finished">
+<h3>2 — Apply finished (3/3, 100%)</h3>
+<p><strong data-progress-label>Finished</strong></p>
+<p data-progress-summary>Planned 3 products: 3 changed.</p>
+<div class="writeleash-progress" role="progressbar" aria-label="Apply progress" aria-valuemin="0" aria-valuemax="3" aria-valuenow="3" data-progress-bar><div class="writeleash-progress-fill" data-progress-fill style="width:100%"></div></div>
+<p><code>aria-valuemax=3 aria-valuenow=3 width:100% label "Apply progress"</code></p>
+</section>
+
+<section class="writeleash-progress-case" data-progress-case="undo-mid">
+<h3>3 — Undo mid (1/4, 25%)</h3>
+<p><strong data-progress-undo-label>Undo in progress</strong></p>
+<p data-progress-undo-summary>Undo: 1 restored · 3 pending.</p>
+<div class="writeleash-progress" role="progressbar" aria-label="Undo progress" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" data-progress-undo-bar><div class="writeleash-progress-fill" data-progress-undo-fill style="width:25%"></div></div>
+<p><code>aria-valuemax=4 aria-valuenow=1 width:25% label "Undo progress" data-progress-undo-bar/data-progress-undo-fill</code></p>
+</section>
+
+<section class="writeleash-progress-case" data-progress-case="undo-hidden">
+<h3>4 — Undo hidden on zero (0/0 — hidden attribute)</h3>
+<p><strong data-progress-undo-label>Undo unavailable</strong></p>
+<p data-progress-undo-summary>No undoable items.</p>
+<div class="writeleash-progress" role="progressbar" aria-label="Undo progress" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" data-progress-undo-bar hidden><div class="writeleash-progress-fill" data-progress-undo-fill style="width:0%"></div></div>
+<p><code>aria-valuemax=0 aria-valuenow=0 width:0% hidden — track hidden when total &lt; 1</code></p>
+</section>
+
+</div></div></div>
+</div>
+</body>
+</html>

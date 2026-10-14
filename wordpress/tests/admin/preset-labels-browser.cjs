@@ -79,7 +79,7 @@ const observe = () => wp(`global $wpdb; $prices=array(); foreach(array(${ids.joi
                     assert.deepEqual(JSON.parse(job.plan_json).resolved_product_ids, [Number(targets[1])]);
                     assert.ok((await page.locator('.writeleash-admin').innerText()).includes('116.00'));
                     assert.equal(Number(job.approver_id), 0);
-                    assert.equal(await button(page, 'Approve and apply').count(), 1);
+                    assert.equal(await button(page, 'Approve and apply').count(), 2);
                     await page.goto(home); await submit(page, preset().getByRole('button', { name: 'Delete preset', exact: true }));
                 }
                 // A deleted target must remain visible and selected, alongside readable products.

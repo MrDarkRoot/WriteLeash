@@ -1,0 +1,279 @@
+/* Native Admin presentation, confined to the WriteLeash page. */
+.writeleash-admin {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.writeleash-admin .writeleash-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.writeleash-admin .writeleash-heading img {
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+}
+.writeleash-admin h2 {
+    margin: 32px 0 16px;
+    font-size: 18px;
+}
+.writeleash-admin h3 {
+    margin: 16px 0 8px;
+}
+.writeleash-admin p {
+    margin: 8px 0 16px;
+    line-height: 1.6;
+}
+.writeleash-admin > p {
+    max-width: 1000px;
+}
+.writeleash-admin details {
+    margin: 16px 0;
+}
+.writeleash-admin summary {
+    cursor: pointer;
+    width: fit-content;
+    max-width: 100%;
+}
+.writeleash-admin details p,
+.writeleash-admin .description {
+    color: #50575e;
+    font-size: 13px;
+}
+.writeleash-admin .button {
+    white-space: normal;
+    height: auto;
+    margin: 0 4px 8px 0;
+}
+.writeleash-admin .button-link {
+    text-align: start;
+}
+.writeleash-admin p a:not(.button) {
+    text-decoration: underline;
+}
+.writeleash-admin #writeleash-free-selection-form {
+    max-width: 900px;
+}
+.writeleash-admin #writeleash-free-selection-form fieldset {
+    min-inline-size: 0;
+    margin: 0 0 24px;
+    padding: 16px 24px 8px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+}
+.writeleash-admin #writeleash-free-selection-form legend {
+    padding: 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+}
+.writeleash-admin #writeleash-free-selection-form label {
+    display: inline-block;
+    margin-bottom: 4px;
+}
+.writeleash-admin #writeleash-free-selection-form input:not([type="checkbox"]):not([type="hidden"]),
+.writeleash-admin #writeleash-free-selection-form select {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.writeleash-admin #writeleash-free-selection-form .select2-container {
+    max-width: 600px;
+}
+.writeleash-admin #writeleash-free-selection-form .select2-selection__choice {
+    box-sizing: border-box;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.writeleash-admin #writeleash-free-selected {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 16px;
+    padding: 0;
+    list-style: none;
+}
+.writeleash-admin #writeleash-free-selected li {
+    padding: 0;
+    overflow-wrap: anywhere;
+}
+/* Compact removable tokens in the SelectWoo choice language: name first,
+   SKU and ID as secondary text, one small icon remove per token. */
+.writeleash-admin #writeleash-free-selected .writeleash-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 2px 2px 2px 8px;
+    background: #e4e4e4;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    color: #3c434a;
+    line-height: 1.6;
+}
+.writeleash-admin #writeleash-free-selected .writeleash-chip__text {
+    font-weight: 600;
+}
+.writeleash-admin #writeleash-free-selected .writeleash-chip__meta {
+    color: #50575e;
+    font-size: 12px;
+}
+.writeleash-admin #writeleash-free-selected .writeleash-chip__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 2px;
+    margin: 0;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: #50575e;
+    cursor: pointer;
+    line-height: 1;
+}
+.writeleash-admin #writeleash-free-selected .writeleash-chip__remove:hover {
+    color: #1d2327;
+}
+.writeleash-admin #writeleash-free-selected .writeleash-chip__remove .dashicons {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+.writeleash-admin #writeleash-free-selection-form .writeleash-safety {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+}
+.writeleash-admin .writeleash-full-width {
+    grid-column: 1 / -1;
+}
+.writeleash-admin .writeleash-summary,
+.writeleash-admin .writeleash-undo {
+    padding: 16px 24px;
+    border: 1px solid #c3c4c7;
+    background: #fff;
+    margin-bottom: 24px;
+}
+.writeleash-admin .writeleash-summary p:first-child,
+.writeleash-admin .writeleash-undo h2 {
+    margin-top: 0;
+}
+.writeleash-admin .writeleash-summary p:first-child {
+    font-size: 16px;
+}
+.writeleash-admin .writeleash-summary > :last-child,
+.writeleash-admin .writeleash-undo > :last-child {
+    margin-bottom: 0;
+}
+/* Slim live progress tracks. Static width only: no gradients, no animation,
+ * so the no-JavaScript server render reads identically. */
+.writeleash-admin .writeleash-progress {
+    height: 8px;
+    margin: 8px 0 16px;
+    background: #f0f0f1;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.writeleash-admin .writeleash-progress[hidden] {
+    display: none;
+}
+.writeleash-admin .writeleash-progress-fill {
+    height: 100%;
+    width: 0;
+    background: #2271b1;
+}
+.writeleash-admin ul.writeleash-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    margin: 8px 0 16px;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+}
+.writeleash-admin ul.writeleash-filters li {
+    margin: 0;
+    padding: 0;
+    overflow-wrap: anywhere;
+}
+.writeleash-admin ul.writeleash-filters a.current {
+    color: #000;
+    font-weight: 600;
+    text-decoration: none;
+}
+.writeleash-admin .writeleash-table-scroll {
+    max-width: 100%;
+    margin: 16px 0;
+}
+/* Wide viewports keep the wrapper a plain block so the sticky header can
+   hold against the viewport. The fixed 900px minimum and fixed layout were
+   removed: with the merged preview columns and wrapping cells the tables
+   fit 1280px and 1024px viewports without page scrolling, measured with
+   retail-shaped rows. Narrow screens re-enable the contained region below. */
+.writeleash-admin .widefat th,
+.writeleash-admin .widefat td {
+    padding: 8px 12px;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+}
+.writeleash-admin .widefat thead th {
+    position: sticky;
+    top: 32px;
+    background: #fff;
+    z-index: 1;
+}
+.writeleash-admin .widefat th.writeleash-amount,
+.writeleash-admin .widefat td.writeleash-amount {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.writeleash-admin .widefat p,
+.writeleash-admin .widefat details {
+    margin: 4px 0;
+}
+.writeleash-admin .widefat details {
+    font-size: 12px;
+}
+.writeleash-admin .widefat details p {
+    margin: 4px 0;
+}
+.writeleash-admin .writeleash-attention > strong {
+    color: #795000;
+}
+.writeleash-admin :is(a, button, input, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+/* Woo hides the inline search outline; keep its enclosing picker visible. */
+.writeleash-admin #writeleash-free-selection-form .select2-container--focus .select2-selection {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+@media screen and (max-width: 782px) {
+    .writeleash-admin #writeleash-free-selection-form fieldset,
+    .writeleash-admin .writeleash-summary,
+    .writeleash-admin .writeleash-undo {
+        padding: 16px;
+    }
+    .writeleash-admin #writeleash-free-selection-form .writeleash-safety {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    /* Contained fallback: the table scrolls inside its labelled region,
+       never the page. The 600px floor is the documented exception to the
+       removed 900px minimum: measured at 375px without it, six amount
+       columns crush to about 45px and money strings wrap mid-number.
+       With the floor, amount columns keep about 85px and the region --
+       focusable by keyboard -- carries the scroll instead of the page. */
+    .writeleash-admin .writeleash-table-scroll {
+        overflow-x: auto;
+    }
+    .writeleash-admin .writeleash-table-scroll .widefat {
+        min-width: 600px;
+    }
+    .writeleash-admin .widefat thead th {
+        top: 46px;
+    }
+}

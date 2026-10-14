@@ -71,9 +71,9 @@ function observe(mode = 'observe') {
    const plan = JSON.parse(observed.jobs[1].plan_json);
    eq(plan.items[0].planned_regular_price, '132.00', 'current price arithmetic'); eq(plan.source_job, f.job, 'provenance');
    eq(plan.resolved_product_ids, [f.id], 'exact chosen population'); eq(plan.policy_snapshot.block_zero, false, 'edited safety setting frozen');
-   eq(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count(), 1, 'normal explicit approval');
+   eq(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count(), 2, 'normal explicit approval');
    if (process.env.WL167_EVIDENCE) await page.screenshot({ path: process.env.WL167_EVIDENCE + '/205-preview-' + js + '.png', fullPage: true });
-   await Promise.all([page.waitForURL('**wl_view=job**'), page.getByRole('button', { name: 'Approve and apply', exact: true }).click()]);
+   await Promise.all([page.waitForURL('**wl_view=job**'), page.getByRole('button', { name: 'Approve and apply', exact: true }).first().click()]);
    const applied = observe('run'); eq(applied.price, '132', 'normal Apply'); eq(applied.source, original.source, 'source unchanged after Apply');
    await page.reload(); eq(await page.locator('tr[data-product-id="' + f.id + '"] td').nth(4).locator('strong').innerText(), 'Changed', 'result visible');
    await context.close();

@@ -85,11 +85,62 @@
     overflow-wrap: anywhere;
 }
 .writeleash-admin #writeleash-free-selected {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     margin: 8px 0 16px;
+    padding: 0;
+    list-style: none;
 }
 .writeleash-admin #writeleash-free-selected li {
-    padding: 4px 0;
+    padding: 0;
     overflow-wrap: anywhere;
+}
+/* Compact removable tokens in the SelectWoo choice language: name first,
+   SKU and ID as secondary text, one small icon remove per token.
+   Contrast: chip text #3c434a on #e4e4e4 ≈7.9:1, meta #50575e on #e4e4e4 ≈5.8:1
+   (WCAG AA). Palette grays are the SelectWoo token colors, not admin chrome. */
+.writeleash-admin #writeleash-free-selected .writeleash-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 2px 2px 2px 8px;
+    background: #e4e4e4;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    color: #3c434a;
+    line-height: 1.6;
+}
+.writeleash-admin #writeleash-free-selected .writeleash-chip__text {
+    font-weight: 600;
+}
+.writeleash-admin #writeleash-free-selected .writeleash-chip__meta {
+    color: #50575e;
+    font-size: 12px;
+}
+.writeleash-admin #writeleash-free-selected .writeleash-chip__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 2px;
+    margin: 0;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: #50575e;
+    cursor: pointer;
+    line-height: 1;
+}
+.writeleash-admin #writeleash-free-selected .writeleash-chip__remove:hover {
+    color: #1d2327;
+}
+.writeleash-admin #writeleash-free-selected .writeleash-chip__remove .dashicons {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
 }
 .writeleash-admin #writeleash-free-selection-form .writeleash-safety {
     display: grid;
@@ -117,53 +168,79 @@
 .writeleash-admin .writeleash-undo > :last-child {
     margin-bottom: 0;
 }
-.writeleash-admin .writeleash-filters {
+/* Slim live progress tracks. Static width only: no gradients, no animation,
+ * so the no-JavaScript server render reads identically. */
+.writeleash-admin .writeleash-progress {
+    height: 8px;
+    margin: 8px 0 16px;
+    background: #f0f0f1;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.writeleash-admin .writeleash-progress[hidden] {
+    display: none;
+}
+.writeleash-admin .writeleash-progress-fill {
+    height: 100%;
+    width: 0;
+    background: #2271b1;
+}
+.writeleash-admin ul.writeleash-filters {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 8px;
+    gap: 4px 8px;
+    margin: 8px 0 16px;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+}
+.writeleash-admin ul.writeleash-filters li {
+    margin: 0;
+    padding: 0;
+    overflow-wrap: anywhere;
+}
+.writeleash-admin ul.writeleash-filters a.current {
+    color: #000;
+    font-weight: 600;
+    text-decoration: none;
 }
 .writeleash-admin .writeleash-table-scroll {
     max-width: 100%;
-    overflow-x: auto;
     margin: 16px 0;
 }
-.writeleash-admin .widefat {
-    table-layout: fixed;
-    min-width: 900px;
-}
+/* Wide viewports keep the wrapper a plain block so the sticky header can
+   hold against the viewport. The fixed 900px minimum and fixed layout were
+   removed: with the merged preview columns and wrapping cells the tables
+   fit 1280px and 1024px viewports without page scrolling, measured with
+   retail-shaped rows. Narrow screens re-enable the contained region below. */
 .writeleash-admin .widefat th,
 .writeleash-admin .widefat td {
-    padding: 16px;
+    padding: 8px 12px;
     vertical-align: top;
     overflow-wrap: anywhere;
     line-height: 1.6;
 }
-.writeleash-admin .writeleash-prices th:first-child {
-    width: 22%;
+.writeleash-admin .widefat thead th {
+    position: sticky;
+    top: 32px;
+    background: #fff;
+    z-index: 1;
 }
-.writeleash-admin .writeleash-prices th:last-child {
-    width: 24%;
-}
-.writeleash-admin .writeleash-results th:nth-child(5),
-.writeleash-admin .writeleash-results th:last-child {
-    width: 22%;
-}
-.writeleash-admin .writeleash-prices td:nth-child(2),
-.writeleash-admin .writeleash-prices td:nth-child(3),
-.writeleash-admin .writeleash-prices td:nth-child(4),
-.writeleash-admin .writeleash-prices td:nth-child(5) {
+.writeleash-admin .widefat th.writeleash-amount,
+.writeleash-admin .widefat td.writeleash-amount {
+    text-align: right;
     font-variant-numeric: tabular-nums;
-}
-.writeleash-admin .writeleash-history th:first-child {
-    width: 30%;
-}
-.writeleash-admin .writeleash-history th:last-child {
-    width: 15%;
 }
 .writeleash-admin .widefat p,
 .writeleash-admin .widefat details {
-    margin: 8px 0;
+    margin: 4px 0;
+}
+.writeleash-admin .widefat details {
+    font-size: 12px;
+}
+.writeleash-admin .widefat details p {
+    margin: 4px 0;
 }
 .writeleash-admin .writeleash-attention > strong {
     color: #795000;
@@ -186,8 +263,19 @@
     .writeleash-admin #writeleash-free-selection-form .writeleash-safety {
         grid-template-columns: minmax(0, 1fr);
     }
-    .writeleash-admin .widefat th,
-    .writeleash-admin .widefat td {
-        padding: 12px;
+    /* Contained fallback: the table scrolls inside its labelled region,
+       never the page. The 600px floor is the documented exception to the
+       removed 900px minimum: measured at 375px without it, six amount
+       columns crush to about 45px and money strings wrap mid-number.
+       With the floor, amount columns keep about 85px and the region --
+       focusable by keyboard -- carries the scroll instead of the page. */
+    .writeleash-admin .writeleash-table-scroll {
+        overflow-x: auto;
+    }
+    .writeleash-admin .writeleash-table-scroll .widefat {
+        min-width: 600px;
+    }
+    .writeleash-admin .widefat thead th {
+        top: 46px;
     }
 }

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>wl284 chips — flex chip list + no-JS fallback</title>
+<style>
+html, body { margin: 0; padding: 0; background: #f0f0f5; }
+#wpadminbar { position: fixed; top: 0; left: 0; right: 0; height: 32px; background: #1d2327; z-index: 9; }
+#wq { display: flex; padding-top: 32px; }
+#sim-menu { flex: 0 0 160px; background: #1d2327; min-height: 100vh; }
+#wpcontent { flex: 1; min-width: 0; padding: 10px 20px 40px; }
+.wrap { max-width: none; }
+a { color: #2271b1; }
+code { background: #fff; padding: 1px 4px; border: 1px solid #c3c4c7; font-size: 11px; }
+.native-select-wrap { background: #fff; border: 1px solid #c3c4c7; padding: 12px 16px; max-width: 600px; }
+.native-select-wrap select { width: 100%; min-height: 120px; }
+.dashicons { font: 16px/1 dashicons; display: inline-block; }
+.dashicons-no-alt::before { content: "×"; font-weight: 700; }
+</style>
+<link rel="stylesheet" href="file:///tmp/wl-batch/wordpress/writeleash/includes/free/free-selection.css">
+</head>
+<body>
+<div id="wpadminbar"></div>
+<div id="wq">
+<div id="sim-menu"></div>
+<div id="wpcontent"><div class="wrap"><div class="writeleash-admin">
+<h2>Chips — 12 items selected (flex chip list, ~⅓ height proof)</h2>
+<p class="description">Renders the #writeleash-free-selected flex row as SelectWoo would: each .writeleash-chip has name (.writeleash-chip__text) + SKU·ID meta (.writeleash-chip__meta) + remove button. Also visible fallback: native multi-select still present when SelectWoo not loaded.</p>
+
+<form id="writeleash-free-selection-form" data-max-selection="1000">
+<fieldset>
+<legend>Products</legend>
+<p><strong>Selected products</strong></p>
+<ul id="writeleash-free-selected">
+<li class="writeleash-chip"><span class="writeleash-chip__text">Blue T-Shirt — Large / Blue</span> <span class="writeleash-chip__meta">SKU: BTS-L-BLU · Variation #123</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Blue T-Shirt — Large / Blue"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Organic Cotton Hoodie</span> <span class="writeleash-chip__meta">SKU: HOOD-ORG · Product #124</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Organic Cotton Hoodie"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Café 日本 Hoodie</span> <span class="writeleash-chip__meta">SKU: CAFE-JP-01 · Product #125</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Café 日本 Hoodie"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Wool Beanie — Charcoal</span> <span class="writeleash-chip__meta">SKU: BEAN-WL-08 · Product #200</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Wool Beanie"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Trail Runner Socks (3-pack)</span> <span class="writeleash-chip__meta">SKU: SOCK-TR-3PK · Product #201</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Trail Runner Socks"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Canvas Tote — Natural</span> <span class="writeleash-chip__meta">SKU: TOTE-CN-02 · Product #202</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Canvas Tote"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Leather Belt — Brown / 32</span> <span class="writeleash-chip__meta">SKU: BELT-LT-BR32 · Variation #203</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Leather Belt"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Linen Shirt — White / M</span> <span class="writeleash-chip__meta">SKU: SHIRT-LN-WM · Variation #204</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Linen Shirt"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Denim Jacket — Washed Blue</span> <span class="writeleash-chip__meta">SKU: JKT-DM-WB · Product #205</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Denim Jacket"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Silk Scarf — Floral</span> <span class="writeleash-chip__meta">SKU: SCARF-SK-FL · Product #206</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Silk Scarf"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Running Shorts — Black / L</span> <span class="writeleash-chip__meta">SKU: SHORT-RN-BKL · Variation #207</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Running Shorts"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+<li class="writeleash-chip"><span class="writeleash-chip__text">Yoga Mat — Sage</span> <span class="writeleash-chip__meta">SKU: MAT-YG-SG · Product #208</span> <button class="writeleash-chip__remove" type="button" aria-label="Remove Yoga Mat"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button></li>
+</ul>
+<button id="writeleash-free-clear" class="button" type="button">Clear selected products</button>
+</fieldset>
+</form>
+
+<hr style="margin: 28px 0; border: none; border-top: 2px dashed #c3c4c7;">
+
+<h2>No-JS fallback — native &lt;select multiple&gt; still present when SelectWoo not loaded</h2>
+<p class="description">When SelectWoo fails or JS disabled, the underlying <code>&lt;select multiple id="writeleash-free-products"&gt;</code> remains interactive. Options shown selected mirror the chip list above.</p>
+
+<div class="native-select-wrap">
+<label for="writeleash-free-products" style="font-weight:600;">Products (native fallback)</label>
+<p id="writeleash-free-products-help" class="description">Check the selected products below. Use Ctrl/Command to select several matches.</p>
+<p><select id="writeleash-free-products" multiple size="8">
+<option value="123" selected>Blue T-Shirt — Large / Blue · SKU: BTS-L-BLU · Variation #123</option>
+<option value="124" selected>Organic Cotton Hoodie · SKU: HOOD-ORG · Product #124</option>
+<option value="125" selected>Café 日本 Hoodie · SKU: CAFE-JP-01 · Product #125</option>
+<option value="200" selected>Wool Beanie — Charcoal · SKU: BEAN-WL-08 · Product #200</option>
+<option value="201" selected>Trail Runner Socks (3-pack) · SKU: SOCK-TR-3PK · Product #201</option>
+<option value="202" selected>Canvas Tote — Natural · SKU: TOTE-CN-02 · Product #202</option>
+<option value="203" selected>Leather Belt — Brown / 32 · SKU: BELT-LT-BR32 · Variation #203</option>
+<option value="204" selected>Linen Shirt — White / M · SKU: SHIRT-LN-WM · Variation #204</option>
+<option value="205" selected>Denim Jacket — Washed Blue · SKU: JKT-DM-WB · Product #205</option>
+<option value="206" selected>Silk Scarf — Floral · SKU: SCARF-SK-FL · Product #206</option>
+<option value="207" selected>Running Shorts — Black / L · SKU: SHORT-RN-BKL · Variation #207</option>
+<option value="208" selected>Yoga Mat — Sage · SKU: MAT-YG-SG · Product #208</option>
+</select></p>
+<p class="description">Native multi-select: JS-free submission via Update selected products button.</p>
+</div>
+
+</div></div></div>
+</div>
+</body>
+</html>

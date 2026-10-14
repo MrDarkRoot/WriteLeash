@@ -1,0 +1,54 @@
+[
+  {
+    "idx": 0,
+    "label": "Apply progress",
+    "valuemin": "0",
+    "valuemax": "3",
+    "valuenow": "1",
+    "hidden": false,
+    "hook": "data-progress-bar",
+    "fillWidth": "33%",
+    "fillHook": "data-progress-fill",
+    "bg": "rgb(240, 240, 241)",
+    "fillBg": "rgb(34, 113, 177)"
+  },
+  {
+    "idx": 1,
+    "label": "Apply progress",
+    "valuemin": "0",
+    "valuemax": "3",
+    "valuenow": "3",
+    "hidden": false,
+    "hook": "data-progress-bar",
+    "fillWidth": "100%",
+    "fillHook": "data-progress-fill",
+    "bg": "rgb(240, 240, 241)",
+    "fillBg": "rgb(34, 113, 177)"
+  },
+  {
+    "idx": 2,
+    "label": "Undo progress",
+    "valuemin": "0",
+    "valuemax": "4",
+    "valuenow": "1",
+    "hidden": false,
+    "hook": "data-progress-undo-bar",
+    "fillWidth": "25%",
+    "fillHook": "data-progress-undo-fill",
+    "bg": "rgb(240, 240, 241)",
+    "fillBg": "rgb(34, 113, 177)"
+  },
+  {
+    "idx": 3,
+    "label": "Undo progress",
+    "valuemin": "0",
+    "valuemax": "0",
+    "valuenow": "0",
+    "hidden": true,
+    "hook": "data-progress-undo-bar",
+    "fillWidth": "0%",
+    "fillHook": "data-progress-undo-fill",
+    "bg": "rgb(240, 240, 241)",
+    "fillBg": "rgb(34, 113, 177)"
+  }
+]

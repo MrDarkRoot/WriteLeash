@@ -108,6 +108,19 @@ namespace {
 	$result = Admin::progress_snapshot( $post, 'POST' );
 	check204( $result['status'], 'OK', 'saved running fixture' ); check204( $result['poll'], true, 'running Apply polls' ); check204( $result['rows'][0]['apply_attention'], true, 'conflict not success' );
 	check204( $result['counts'], Jobs::$counts, 'durable counters authority' );
+	// #276 slim bar: exactly two additive ints ride the payload; every
+	// existing field keeps its name and meaning for older clients.
+	check204( array_key_exists( 'progress_total', $result ) && array_key_exists( 'progress_processed', $result ), true, 'two additive bar ints present' );
+	check204( is_int( $result['progress_total'] ) && is_int( $result['progress_processed'] ), true, 'bar ints are integers' );
+	check204( $result['progress_total'], 2, 'Apply planned total' );
+	check204( $result['progress_processed'], 1, 'Apply processed total' );
+	check204( Admin::progress_bar_values( array( 'planned' => 4, 'pending' => 1, 'applying' => 1 ) ), array( 4, 2 ), 'bar mid-job values' );
+	check204( Admin::progress_bar_values( array( 'planned' => 2, 'pending' => 0, 'applying' => 0 ) ), array( 2, 2 ), 'bar finished values' );
+	check204( Admin::progress_bar_values( array( 'planned' => 0 ) ), array( 0, 0 ), 'bar zero total hides' );
+	check204( Admin::progress_bar_values( array() ), array( 0, 0 ), 'bar unknown total hides' );
+	check204( Admin::undo_progress_bar_values( array( 'eligible' => 3, 'pending' => 2, 'applying' => 0, 'undone' => 1, 'conflict' => 0, 'failed' => 0, 'needs_review' => 0 ) ), array( 3, 1 ), 'undo bar mid-job values' );
+	check204( Admin::undo_progress_bar_values( array( 'eligible' => 2, 'pending' => 0, 'applying' => 0, 'undone' => 2, 'conflict' => 0, 'failed' => 0, 'needs_review' => 0 ) ), array( 2, 2 ), 'undo bar finished values' );
+	check204( Admin::undo_progress_bar_values( array() ), array( 0, 0 ), 'undo bar unknown total hides' );
 	// Round-4 defect: the polled row text must carry the exact conflict guidance
 	// the server-rendered table shows, never the short reason-message variant.
 	$long_apply = 'This product’s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.';
@@ -144,7 +157,7 @@ namespace {
 	check204( Admin::progress_snapshot( array_merge( $post, array( 'offset' => '1000' ) ), 'POST' )['status'], 'OK', 'offset at the evidence bound accepted' );
 	Jobs::$stalled = true; $stalled = Admin::progress_snapshot( $post, 'POST' ); check204( $stalled['poll'], false, 'stalled stops' ); check204( str_contains( $stalled['notice'], 'stopped' ), true, 'stalled honest' );
 	Jobs::$stalled = false; Jobs::$state = 'COMPLETED'; Jobs::$counts['pending'] = 0; Jobs::$counts['applied'] = 2;
-	$terminal = Admin::progress_snapshot( $post, 'POST' ); check204( $terminal['poll'], false, 'terminal Apply stops' ); check204( $terminal['resume_available'], false, 'terminal cannot resume' ); check204( $terminal['resume_nonce'], null, 'terminal cannot obtain Resume nonce' ); check204( $terminal['undo_available'], true, 'eligible Undo becomes available' );
+	$terminal = Admin::progress_snapshot( $post, 'POST' ); check204( $terminal['poll'], false, 'terminal Apply stops' ); check204( $terminal['resume_available'], false, 'terminal cannot resume' ); check204( $terminal['resume_nonce'], null, 'terminal cannot obtain Resume nonce' ); check204( $terminal['undo_available'], true, 'eligible Undo becomes available' ); check204( array( $terminal['progress_total'], $terminal['progress_processed'] ), array( 2, 2 ), 'terminal bar reads full' );
 	Undo::$state = 'UNDO_RUNNING'; $running = Admin::progress_snapshot( $post, 'POST' ); check204( $running['poll'], true, 'running Undo after Apply polls' ); check204( $running['undo_counts']['undone'], 1, 'Undo durable counts' );
 	Undo::$stalled = true; check204( Admin::progress_snapshot( $post, 'POST' )['poll'], false, 'stalled Undo stops' ); Undo::$stalled = false;
 	Jobs::$counts['planned'] = 1; $missing = Admin::progress_snapshot( $post, 'POST' ); check204( $missing['poll'], false, 'missing Apply evidence blocks Undo polling too' ); check204( $missing['undo_available'], false, 'missing blocks Undo action' ); check204( $missing['resume_nonce'], null, 'missing blocks Resume nonce' ); check204( $missing['undo_nonce'], null, 'missing blocks Undo nonce' ); check204( str_contains( $missing['summary'], 'unavailable' ), true, 'missing evidence visibly incomplete' );

@@ -48,17 +48,46 @@
         var status = $('#writeleash-free-discovery-status');
         var products = $('#writeleash-free-products');
         var category = $('#writeleash-free-category');
+        function chipParts(text) {
+            var segments = String(text).split(' · ');
+            var name = segments.shift();
+            return { name: name, meta: segments.join(' · ') };
+        }
+        function focusChipRemove(index) {
+            var removes = $('#writeleash-free-selected').find('.writeleash-chip__remove');
+            var target = removes.eq(Math.min(index, removes.length - 1)).get(0) || $('#writeleash-free-clear').get(0);
+            if (target && target.focus) {
+                try { target.focus({ preventScroll: true }); }
+                catch (error) { target.focus(); }
+            }
+        }
         function selectedList() {
             var list = $('#writeleash-free-selected').empty();
+            var ids = products.find('option:selected').map(function () { return this.value; }).get();
             products.find('option:selected').each(function () {
-                var row = $('<li>').text(this.text + ' ');
-                $('<button>', { type: 'button', 'class': 'button', text: __( 'Remove', 'writeleash' ), 'aria-label': sprintf( /* translators: %s: product description. */ __( 'Remove %s', 'writeleash' ), this.text ) }).on('click', function () {
-                    products.find('option').filter(function () { return this.value === row.data('id'); }).prop('selected', false);
+                var option = this;
+                var parts = chipParts(option.text);
+                var row = $('<li>', { 'class': 'writeleash-chip' });
+                $('<span>', { 'class': 'writeleash-chip__text' }).text(parts.name).appendTo(row);
+                if (parts.meta) { row.append(' '); $('<span>', { 'class': 'writeleash-chip__meta' }).text(parts.meta).appendTo(row); }
+                row.append(' ');
+                $('<button>', { type: 'button', 'class': 'writeleash-chip__remove', 'aria-label': sprintf( /* translators: %s: product description. */ __( 'Remove %s', 'writeleash' ), option.text ) }).append(
+                    $('<span>', { 'class': 'dashicons dashicons-no-alt', 'aria-hidden': 'true' })
+                ).on('click', function () {
+                    var position = ids.indexOf(option.value);
+                    products.find('option').filter(function () { return this.value === option.value; }).prop('selected', false);
+                    // The change handlers rebuild the chips and refresh the
+                    // selection count text synchronously.
                     products.trigger('change');
+                    // Keep the chip's accessibility contract: removal must
+                    // return focus to the product search field so keyboard
+                    // users can continue typing, with the neighbour chip as
+                    // a focus fallback only if the search field is absent.
                     var search = products.next('.select2-container').find('.select2-search__field');
-                    (search.length ? search : products).trigger('focus');
+                    if (search.length) { search.trigger('focus'); }
+                    else { focusChipRemove(position === -1 ? 0 : position); }
                 }).appendTo(row);
-                row.data('id', this.value).appendTo(list);
+                row.data('id', option.value).appendTo(list);
             });
             if (!list.children().length) { $('<li>').text(__( 'No products selected. Search and choose products to add them.', 'writeleash' )).appendTo(list); }
         }

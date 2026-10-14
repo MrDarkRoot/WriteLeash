@@ -242,7 +242,9 @@ require __DIR__ . '/preview-csv-http.php';
 
 // Approve the exact plan over HTTP, then follow to durable progress.
 $approve_forms = forms_for_action( $preview_page['body'], 'writeleash_free_approve' );
-beq( count( $approve_forms ), 1, 'exactly one approval form bound to the plan' );
+// #275 polish renders Approve top+bottom (two forms, same POST); both must bind the identical plan.
+beq( count( $approve_forms ), 2, 'top+bottom approval forms bound to the plan' );
+beq( $approve_forms[0], $approve_forms[1], 'both approval forms bind the identical plan' );
 $approve = http_post( admin_url_abs( '/wp-admin/admin-post.php' ), $approve_forms[0] );
 bok( in_array( $approve['code'], array( 302, 303 ), true ), 'approval POST redirects (PRG)' );
 bok( str_contains( (string) $approve['location'], 'wl_view=job' ), 'approval lands on durable progress' );

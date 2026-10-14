@@ -63,7 +63,7 @@ async function check(page, id) {
         await enter(page, page.getByRole('link', { name: 'Exclude individual products', exact: true }));
         await enter(page, page.getByRole('link', { name: 'Review updated Preview', exact: true }));
         assert.match(await page.locator('.writeleash-refinement-counts').innerText(), /Included targets 20/);
-        await enter(page, page.getByRole('button', { name: 'Approve and apply', exact: true }));
+        await enter(page, page.getByRole('button', { name: 'Approve and apply', exact: true }).first());
         const approved = observe().jobs.find(j => j.public_id === final);
         assert.equal(Number(approved.approver_id), f.users.manager.id, 'explicit final approval binds current merchant');
         const included = JSON.parse(approved.plan_json).resolved_product_ids;
