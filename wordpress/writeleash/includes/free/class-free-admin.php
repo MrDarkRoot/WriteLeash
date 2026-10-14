@@ -2312,7 +2312,7 @@ final class Free_Admin {
 		$field_label = Price_Operation::label( $field );
 
 		echo '<p>' . esc_html( ( Price_Operation::FIELD_SALE === $field ? sprintf( /* translators: %s: translated price-field name. */ __( 'Price to change: %s. The regular price is the sale baseline and is preserved.', 'writeleash' ), $field_label ) : sprintf( /* translators: %s: translated price-field name. */ __( 'Price to change: %s. The sale price and schedule are preserved.', 'writeleash' ), $field_label ) ) ) . '</p>';
-		echo '<div class="writeleash-table-scroll" role="region" aria-label="' . esc_attr__( 'Product prices and outcomes', 'writeleash' ) . '" tabindex="0"><table class="widefat striped writeleash-prices"><thead><tr><th scope="col">' . esc_html( __( 'Product', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s before', 'writeleash' ), $field_label ) ) . '</th><th scope="col">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s after', 'writeleash' ), $field_label ) ) . '</th><th scope="col">' . esc_html( __( 'Delta', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( __( 'Change %', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( __( 'Shoppers would pay after Apply', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( __( 'What will happen', 'writeleash' ) ) . '</th></tr></thead><tbody>';
+		echo '<div class="writeleash-table-scroll" role="region" aria-label="' . esc_attr__( 'Product prices and outcomes', 'writeleash' ) . '" tabindex="0"><table class="widefat striped writeleash-prices"><thead><tr><th scope="col">' . esc_html( __( 'Product', 'writeleash' ) ) . '</th><th scope="col" class="writeleash-amount">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s before to after', 'writeleash' ), $field_label ) ) . '</th><th scope="col" class="writeleash-amount">' . esc_html( __( 'Delta', 'writeleash' ) ) . '</th><th scope="col" class="writeleash-amount">' . esc_html( __( 'Shoppers would pay after Apply', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( __( 'What will happen', 'writeleash' ) ) . '</th></tr></thead><tbody>';
 		foreach ( $page['items'] as $item ) {
 			$state = (string) $item['result'];
 			$detail = array();
@@ -2329,11 +2329,9 @@ final class Free_Admin {
 			$ratio = $item['percentage_delta'] ?? null;
 			$ratio_text = ( is_array( $ratio ) && isset( $ratio['display'] ) && is_string( $ratio['display'] ) ) ? self::percentage_display( $ratio['display'], $ratio['numerator'] ?? null ) : __( 'Unavailable', 'writeleash' );
 			echo '<tr><td>'; self::render_identity( $item ); echo '</td>';
-			echo '<td>' . esc_html( self::money_display( $item['stored_price'], $data['store'], false, $field ) ) . '</td>';
-			echo '<td>' . esc_html( self::money_display( $item['planned_regular_price'], $data['store'], false, $field ) ) . '</td>';
-			echo '<td>' . esc_html( self::money_display( $item['absolute_delta'], $data['store'], true ) ) . '</td>';
-			echo '<td>' . esc_html( $ratio_text ) . '</td>';
-			echo '<td>' . esc_html( self::money_display( self::effective_shopper_price( $item, $field ), $data['store'] ) ) . '</td>';
+			echo '<td class="writeleash-amount">' . esc_html( self::money_display( $item['stored_price'], $data['store'], false, $field ) ) . '<br>' . esc_html( '→ ' . self::money_display( $item['planned_regular_price'], $data['store'], false, $field ) ) . '</td>';
+			echo '<td class="writeleash-amount">' . esc_html( self::money_display( $item['absolute_delta'], $data['store'], true ) ) . '<br><span class="description">' . esc_html( $ratio_text ) . '</span></td>';
+			echo '<td class="writeleash-amount">' . esc_html( self::money_display( self::effective_shopper_price( $item, $field ), $data['store'] ) ) . '</td>';
 			echo '<td class="' . esc_attr( in_array( $state, array( 'BLOCKED', 'CONFLICT', 'NEEDS_REVIEW' ), true ) ? 'writeleash-attention' : '' ) . '"><strong>' . esc_html( self::item_label( $state, $blocked ? Job_State::BLOCKED : Job_State::PLANNED ) ) . '</strong>';
 			foreach ( $detail as $reason ) { echo '<p>' . esc_html( self::reason_message( $reason ) ) . '</p>'; }
 			self::support_details( $state . ' · ' . implode( ', ', $detail ) );
@@ -2656,16 +2654,16 @@ final class Free_Admin {
 			$field_label = $field_name;
 
 			echo '<p>' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( 'Expected and planned are %1$s values. Now shows the stored %1$s at page load, not the shopper price. Unavailable means the product or price could not be read.', 'writeleash' ), $field_label ) ) . '</p>';
-			echo '<div class="writeleash-table-scroll" role="region" aria-label="' . esc_attr__( 'Product prices and outcomes', 'writeleash' ) . '" tabindex="0"><table class="widefat striped writeleash-prices writeleash-results" data-writeleash-results="1"><thead><tr><th scope="col">' . esc_html( __( 'Product', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s expected', 'writeleash' ), $field_name ) ) . '</th><th scope="col">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s now', 'writeleash' ), $field_name ) ) . '</th><th scope="col">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s planned', 'writeleash' ), $field_name ) ) . '</th><th scope="col">' . esc_html( _x( 'Apply', 'merchant price workflow label', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( _x( 'Undo', 'merchant price workflow label', 'writeleash' ) ) . '</th></tr></thead><tbody>';
+			echo '<div class="writeleash-table-scroll" role="region" aria-label="' . esc_attr__( 'Product prices and outcomes', 'writeleash' ) . '" tabindex="0"><table class="widefat striped writeleash-prices writeleash-results" data-writeleash-results="1"><thead><tr><th scope="col">' . esc_html( __( 'Product', 'writeleash' ) ) . '</th><th scope="col" class="writeleash-amount">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s expected', 'writeleash' ), $field_name ) ) . '</th><th scope="col" class="writeleash-amount">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s now', 'writeleash' ), $field_name ) ) . '</th><th scope="col" class="writeleash-amount">' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( '%s planned', 'writeleash' ), $field_name ) ) . '</th><th scope="col">' . esc_html( _x( 'Apply', 'merchant price workflow label', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( _x( 'Undo', 'merchant price workflow label', 'writeleash' ) ) . '</th></tr></thead><tbody>';
 			if ( ! $items['items'] ) { echo '<tr><td colspan="6">' . esc_html__( 'No retained products on this page match this view.', 'writeleash' ) . '</td></tr>'; }
 			foreach ( $items['items'] as $item ) {
 				$id = (int) $item['product_id'];
 				$frozen = $identities[ $id ] ?? array( 'product_id' => $id );
 				$observation = self::product_observation( $id, $field );
 				echo '<tr data-product-id="' . esc_attr( (string) $id ) . '"><td>'; self::render_identity( $frozen ); echo '</td>';
-				echo '<td>' . esc_html( self::money_display( self::expected_display( $frozen, $item, $field ), $plan->data()['store'], false, $field ) ) . '</td>';
-				echo '<td>' . esc_html( self::money_display( $observation['price'], $plan->data()['store'], false, $field ) ) . '</td>';
-				echo '<td>' . esc_html( self::money_display( $item['planned_price'], $plan->data()['store'], false, $field ) ) . '</td>';
+				echo '<td class="writeleash-amount">' . esc_html( self::money_display( self::expected_display( $frozen, $item, $field ), $plan->data()['store'], false, $field ) ) . '</td>';
+				echo '<td class="writeleash-amount">' . esc_html( self::money_display( $observation['price'], $plan->data()['store'], false, $field ) ) . '</td>';
+				echo '<td class="writeleash-amount">' . esc_html( self::money_display( $item['planned_price'], $plan->data()['store'], false, $field ) ) . '</td>';
 				echo '<td class="' . esc_attr( in_array( $item['apply_state'], array( 'CONFLICT', 'NEEDS_REVIEW', 'FAILED' ), true ) ? 'writeleash-attention' : '' ) . '">'; self::render_item_outcome( $item['apply_state'], 'UNSUPPORTED' === $item['apply_state'] ? ( $frozen['eligibility']['reason'] ?? $item['apply_reason'] ) : $item['apply_reason'], $job['status'], $observation ); echo '</td>';
 				echo '<td class="' . esc_attr( in_array( $item['undo_state'], array( 'UNDO_CONFLICT', 'UNDO_NEEDS_REVIEW', 'UNDO_FAILED' ), true ) ? 'writeleash-attention' : '' ) . '">';
 				if ( null === $item['undo_state'] ) { echo esc_html( self::undo_item_label( $item, $job['status'] ) ); }

@@ -125,45 +125,40 @@
 }
 .writeleash-admin .writeleash-table-scroll {
     max-width: 100%;
-    overflow-x: auto;
     margin: 16px 0;
 }
-.writeleash-admin .widefat {
-    table-layout: fixed;
-    min-width: 900px;
-}
+/* Wide viewports keep the wrapper a plain block so the sticky header can
+   hold against the viewport. The fixed 900px minimum and fixed layout were
+   removed: with the merged preview columns and wrapping cells the tables
+   fit 1280px and 1024px viewports without page scrolling, measured with
+   retail-shaped rows. Narrow screens re-enable the contained region below. */
 .writeleash-admin .widefat th,
 .writeleash-admin .widefat td {
-    padding: 16px;
+    padding: 8px 12px;
     vertical-align: top;
     overflow-wrap: anywhere;
     line-height: 1.6;
 }
-.writeleash-admin .writeleash-prices th:first-child {
-    width: 22%;
+.writeleash-admin .widefat thead th {
+    position: sticky;
+    top: 32px;
+    background: #fff;
+    z-index: 1;
 }
-.writeleash-admin .writeleash-prices th:last-child {
-    width: 24%;
-}
-.writeleash-admin .writeleash-results th:nth-child(5),
-.writeleash-admin .writeleash-results th:last-child {
-    width: 22%;
-}
-.writeleash-admin .writeleash-prices td:nth-child(2),
-.writeleash-admin .writeleash-prices td:nth-child(3),
-.writeleash-admin .writeleash-prices td:nth-child(4),
-.writeleash-admin .writeleash-prices td:nth-child(5) {
+.writeleash-admin .widefat th.writeleash-amount,
+.writeleash-admin .widefat td.writeleash-amount {
+    text-align: right;
     font-variant-numeric: tabular-nums;
-}
-.writeleash-admin .writeleash-history th:first-child {
-    width: 30%;
-}
-.writeleash-admin .writeleash-history th:last-child {
-    width: 15%;
 }
 .writeleash-admin .widefat p,
 .writeleash-admin .widefat details {
-    margin: 8px 0;
+    margin: 4px 0;
+}
+.writeleash-admin .widefat details {
+    font-size: 12px;
+}
+.writeleash-admin .widefat details p {
+    margin: 4px 0;
 }
 .writeleash-admin .writeleash-attention > strong {
     color: #795000;
@@ -186,8 +181,19 @@
     .writeleash-admin #writeleash-free-selection-form .writeleash-safety {
         grid-template-columns: minmax(0, 1fr);
     }
-    .writeleash-admin .widefat th,
-    .writeleash-admin .widefat td {
-        padding: 12px;
+    /* Contained fallback: the table scrolls inside its labelled region,
+       never the page. The 600px floor is the documented exception to the
+       removed 900px minimum: measured at 375px without it, six amount
+       columns crush to about 45px and money strings wrap mid-number.
+       With the floor, amount columns keep about 85px and the region --
+       focusable by keyboard -- carries the scroll instead of the page. */
+    .writeleash-admin .writeleash-table-scroll {
+        overflow-x: auto;
+    }
+    .writeleash-admin .writeleash-table-scroll .widefat {
+        min-width: 600px;
+    }
+    .writeleash-admin .widefat thead th {
+        top: 46px;
     }
 }
