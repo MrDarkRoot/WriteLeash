@@ -97,7 +97,9 @@
     overflow-wrap: anywhere;
 }
 /* Compact removable tokens in the SelectWoo choice language: name first,
-   SKU and ID as secondary text, one small icon remove per token. */
+   SKU and ID as secondary text, one small icon remove per token.
+   Contrast: chip text #3c434a on #e4e4e4 ≈7.9:1, meta #50575e on #e4e4e4 ≈5.8:1
+   (WCAG AA). Palette grays are the SelectWoo token colors, not admin chrome. */
 .writeleash-admin #writeleash-free-selected .writeleash-chip {
     display: inline-flex;
     align-items: center;

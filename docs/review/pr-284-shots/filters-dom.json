@@ -1,0 +1,260 @@
+[
+  {
+    "idx": 0,
+    "variant": "all",
+    "items": [
+      {
+        "cls": "all",
+        "text": "All products |",
+        "hasCurrent": true,
+        "aria": "page"
+      },
+      {
+        "cls": "conflict",
+        "text": "Conflicts |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "attention",
+        "text": "Changes needing attention |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "review",
+        "text": "Uncertain changes |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "undo_conflict",
+        "text": "Undo conflicts |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "undo_review",
+        "text": "Uncertain restorations",
+        "hasCurrent": false,
+        "aria": null
+      }
+    ],
+    "pipes": "pipe separators present"
+  },
+  {
+    "idx": 1,
+    "variant": "conflict",
+    "items": [
+      {
+        "cls": "all",
+        "text": "All products |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "conflict",
+        "text": "Conflicts |",
+        "hasCurrent": true,
+        "aria": "page"
+      },
+      {
+        "cls": "attention",
+        "text": "Changes needing attention |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "review",
+        "text": "Uncertain changes |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "undo_conflict",
+        "text": "Undo conflicts |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "undo_review",
+        "text": "Uncertain restorations",
+        "hasCurrent": false,
+        "aria": null
+      }
+    ],
+    "pipes": "pipe separators present"
+  },
+  {
+    "idx": 2,
+    "variant": "attention",
+    "items": [
+      {
+        "cls": "all",
+        "text": "All products |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "conflict",
+        "text": "Conflicts |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "attention",
+        "text": "Changes needing attention |",
+        "hasCurrent": true,
+        "aria": "page"
+      },
+      {
+        "cls": "review",
+        "text": "Uncertain changes |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "undo_conflict",
+        "text": "Undo conflicts |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "undo_review",
+        "text": "Uncertain restorations",
+        "hasCurrent": false,
+        "aria": null
+      }
+    ],
+    "pipes": "pipe separators present"
+  },
+  {
+    "idx": 3,
+    "variant": "review",
+    "items": [
+      {
+        "cls": "all",
+        "text": "All products |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "conflict",
+        "text": "Conflicts |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "attention",
+        "text": "Changes needing attention |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "review",
+        "text": "Uncertain changes |",
+        "hasCurrent": true,
+        "aria": "page"
+      },
+      {
+        "cls": "undo_conflict",
+        "text": "Undo conflicts |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "undo_review",
+        "text": "Uncertain restorations",
+        "hasCurrent": false,
+        "aria": null
+      }
+    ],
+    "pipes": "pipe separators present"
+  },
+  {
+    "idx": 4,
+    "variant": "undo-conflict",
+    "items": [
+      {
+        "cls": "all",
+        "text": "All products |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "conflict",
+        "text": "Conflicts |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "attention",
+        "text": "Changes needing attention |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "review",
+        "text": "Uncertain changes |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "undo_conflict",
+        "text": "Undo conflicts |",
+        "hasCurrent": true,
+        "aria": "page"
+      },
+      {
+        "cls": "undo_review",
+        "text": "Uncertain restorations",
+        "hasCurrent": false,
+        "aria": null
+      }
+    ],
+    "pipes": "pipe separators present"
+  },
+  {
+    "idx": 5,
+    "variant": "undo-review",
+    "items": [
+      {
+        "cls": "all",
+        "text": "All products |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "conflict",
+        "text": "Conflicts |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "attention",
+        "text": "Changes needing attention |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "review",
+        "text": "Uncertain changes |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "undo_conflict",
+        "text": "Undo conflicts |",
+        "hasCurrent": false,
+        "aria": null
+      },
+      {
+        "cls": "undo_review",
+        "text": "Uncertain restorations",
+        "hasCurrent": true,
+        "aria": "page"
+      }
+    ],
+    "pipes": "pipe separators present"
+  }
+]

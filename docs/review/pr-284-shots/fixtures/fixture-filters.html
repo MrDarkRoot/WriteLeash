@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>wl284 filters — ul.subsubsub coverage</title>
+<style>
+html, body { margin: 0; padding: 0; background: #f0f0f5; }
+#wpadminbar { position: fixed; top: 0; left: 0; right: 0; height: 32px; background: #1d2327; z-index: 9; }
+#wq { display: flex; padding-top: 32px; }
+#sim-menu { flex: 0 0 160px; background: #1d2327; min-height: 100vh; }
+#wpcontent { flex: 1; min-width: 0; padding: 10px 20px 40px; }
+.wrap { max-width: none; }
+a { color: #2271b1; }
+.subsubsub { font-size: 13px; color: #3c434a; }
+.subsubsub li { display: inline; }
+.subsubsub a.current { color: #000; font-weight: 600; text-decoration: none; }
+</style>
+<link rel="stylesheet" href="file:///tmp/wl-batch/wordpress/writeleash/includes/free/free-selection.css">
+</head>
+<body>
+<div id="wpadminbar"></div>
+<div id="wq">
+<div id="sim-menu"></div>
+<div id="wpcontent"><div class="wrap"><div class="writeleash-admin">
+<h2>Filters — each block sets a different active value (current)</h2>
+<p class="description">Pipe separators rendered server-side (echo ' |' except last). All 6 keys: All, Conflicts, Changes needing attention, Uncertain changes, Undo conflicts, Uncertain restorations. Current gets class="current" + aria-current="page".</p>
+
+<h3>1 — active: All products (filter = "")</h3>
+<ul class="subsubsub writeleash-filters" data-filter-variant="all"><li class="all"><a href="#" class="current" aria-current="page">All products</a> |</li><li class="conflict"><a href="#">Conflicts</a> |</li><li class="attention"><a href="#">Changes needing attention</a> |</li><li class="review"><a href="#">Uncertain changes</a> |</li><li class="undo_conflict"><a href="#">Undo conflicts</a> |</li><li class="undo_review"><a href="#">Uncertain restorations</a></li></ul>
+
+<h3>2 — active: Conflicts (filter = "conflict")</h3>
+<ul class="subsubsub writeleash-filters" data-filter-variant="conflict"><li class="all"><a href="#">All products</a> |</li><li class="conflict"><a href="#" class="current" aria-current="page">Conflicts</a> |</li><li class="attention"><a href="#">Changes needing attention</a> |</li><li class="review"><a href="#">Uncertain changes</a> |</li><li class="undo_conflict"><a href="#">Undo conflicts</a> |</li><li class="undo_review"><a href="#">Uncertain restorations</a></li></ul>
+
+<h3>3 — active: Changes needing attention (filter = "attention")</h3>
+<ul class="subsubsub writeleash-filters" data-filter-variant="attention"><li class="all"><a href="#">All products</a> |</li><li class="conflict"><a href="#">Conflicts</a> |</li><li class="attention"><a href="#" class="current" aria-current="page">Changes needing attention</a> |</li><li class="review"><a href="#">Uncertain changes</a> |</li><li class="undo_conflict"><a href="#">Undo conflicts</a> |</li><li class="undo_review"><a href="#">Uncertain restorations</a></li></ul>
+
+<h3>4 — active: Uncertain changes (filter = "review")</h3>
+<ul class="subsubsub writeleash-filters" data-filter-variant="review"><li class="all"><a href="#">All products</a> |</li><li class="conflict"><a href="#">Conflicts</a> |</li><li class="attention"><a href="#">Changes needing attention</a> |</li><li class="review"><a href="#" class="current" aria-current="page">Uncertain changes</a> |</li><li class="undo_conflict"><a href="#">Undo conflicts</a> |</li><li class="undo_review"><a href="#">Uncertain restorations</a></li></ul>
+
+<h3>5 — active: Undo conflicts (filter = "undo_conflict")</h3>
+<ul class="subsubsub writeleash-filters" data-filter-variant="undo-conflict"><li class="all"><a href="#">All products</a> |</li><li class="conflict"><a href="#">Conflicts</a> |</li><li class="attention"><a href="#">Changes needing attention</a> |</li><li class="review"><a href="#">Uncertain changes</a> |</li><li class="undo_conflict"><a href="#" class="current" aria-current="page">Undo conflicts</a> |</li><li class="undo_review"><a href="#">Uncertain restorations</a></li></ul>
+
+<h3>6 — active: Uncertain restorations (filter = "undo_review")</h3>
+<ul class="subsubsub writeleash-filters" data-filter-variant="undo-review"><li class="all"><a href="#">All products</a> |</li><li class="conflict"><a href="#">Conflicts</a> |</li><li class="attention"><a href="#">Changes needing attention</a> |</li><li class="review"><a href="#">Uncertain changes</a> |</li><li class="undo_conflict"><a href="#">Undo conflicts</a> |</li><li class="undo_review"><a href="#" class="current" aria-current="page">Uncertain restorations</a></li></ul>
+
+</div></div></div>
+</div>
+</body>
+</html>
