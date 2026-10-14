@@ -37,8 +37,9 @@ $http_rows167 = static function ( string $html ): array {
 $http_original_rows167 = $http_rows167( $http_saved167['body'] );
 beq( count( $http_original_rows167 ), 2, 'saved picker preview renders two product rows' );
 foreach ( $http_original_rows167 as $row ) {
- beq( $row[1], '$100.00 USD', 'saved expected price after prior Undo' );
- beq( $row[2], '$80.00 USD', 'saved absolute target' );
+ // #273 polish merges Preview before→after into one cell; Delta/Change % moved to the next cell.
+ beq( $row[1], '$100.00 USD→ $80.00 USD', 'saved before-to-after merged cell after prior Undo' );
+ bok( str_contains( $row[1], '$80.00 USD' ), 'saved absolute target in merged cell' );
 }
 login_session();
 $http_recent167 = admin_get( $bulk_url );
