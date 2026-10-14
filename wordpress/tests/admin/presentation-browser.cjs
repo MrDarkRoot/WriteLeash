@@ -59,7 +59,8 @@ async function open(page, key, view = 'job') {
     await page.goto(home + '&wl_view=' + view + '&wl_job=' + fixture.jobs[key]);
 }
 async function action(page, name) {
-    await Promise.all([page.waitForURL(/wl_view=job/), page.getByRole('button', { name, exact: true }).click()]);
+    // #275 batch renders Approve top+bottom; disambiguate to first when duplicated.
+    await Promise.all([page.waitForURL(/wl_view=job/), (name === 'Approve and apply' ? page.getByRole('button', { name, exact: true }).first() : page.getByRole('button', { name, exact: true })).click()]);
     await page.waitForLoadState('networkidle');
 }
 async function link(page, name) {
