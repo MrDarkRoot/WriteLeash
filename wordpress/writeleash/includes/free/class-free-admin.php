@@ -2613,7 +2613,7 @@ final class Free_Admin {
 		$percent = $total > 0 ? (int) round( $processed * 100 / $total ) : 0;
 		if ( $percent < 0 ) { $percent = 0; }
 		if ( $percent > 100 ) { $percent = 100; }
-		echo '<div class="writeleash-progress" role="progressbar" aria-label="' . esc_attr( $label ) . '" aria-valuemin="0" aria-valuemax="' . esc_attr( (string) $total ) . '" aria-valuenow="' . esc_attr( (string) $processed ) . '" ' . $bar_hook . ( $total < 1 ? ' hidden' : '' ) . '><div class="writeleash-progress-fill" ' . $fill_hook . ' style="width:' . esc_attr( (string) $percent ) . '%"></div></div>';
+		echo '<div class="writeleash-progress" role="progressbar" aria-label="' . esc_attr( $label ) . '" aria-valuemin="0" aria-valuemax="' . esc_attr( (string) $total ) . '" aria-valuenow="' . esc_attr( (string) $processed ) . '" ' . esc_attr( $bar_hook ) . ( $total < 1 ? ' hidden' : '' ) . '><div class="writeleash-progress-fill" ' . esc_attr( $fill_hook ) . ' style="width:' . esc_attr( (string) $percent ) . '%"></div></div>';
 	}
 
 	private static function render_job_view( string $public_id, int $offset, string $filter = '' ): void {
