@@ -37,7 +37,9 @@ ok( str_contains( $rows168[$identity168][0], 'Áo xanh 日本 <script>' ) && ! s
 eq( array_slice( $rows168[$identity168], 1, 3 ), array( '$18.00 USD', '$21.00 USD', '$14.40 USD' ), 'truthful expected/current/target conflict values' );
 ok( str_contains( $rows168[$sale168][4], 'sale price or schedule' ), 'equal-regular-price conflict explains live eligibility drift' );
 eq( $rows168[$sale168][2], '$18.00 USD', 'sale drift regular price still matches expected' );
-ok( str_contains( $html168, '2 conflicts' ) && str_contains( $html168, '1 already at the target price' ) && str_contains( $html168, '1 skipped' ), 'disjoint results categories visible' );
+	ok( str_contains( $html168, '2 conflicts' ) && str_contains( $html168, '1 already at the target price' ) && str_contains( $html168, '1 skipped' ), 'disjoint results categories visible' );
+	ok( str_contains( $html168, 'Outcomes: 1 not changed · 1 skipped · 2 newer prices kept.' ) && str_contains( $rows168[$identity168][4], 'Newer price kept' ) && str_contains( $rows168[$identity168][4], 'CONFLICT ·' ), 'merchant outcome line and typed Details stay together' );
+	ok( ! str_contains( $rows168[$identity168][4], 'rolled back' ) && ! str_contains( $html168, 'full rollback' ), 'conflict copy does not claim a rollback' );
 ok( ! str_contains( $html168, 'name="action" value="' . Admin::ACTION_RESUME . '"' ), 'terminal conflict never offers Resume' );
 ok( str_contains( $html168, 'Changes needing attention' ), 'needs-attention results filter is exposed' );
 wp_delete_post( $identity168, true );
@@ -75,7 +77,8 @@ wp_set_current_user( 1 );
 require_once ABSPATH . 'wp-admin/includes/user.php';
 wp_delete_user( $actor168 );
 $html168 = render_view( 'history', '', 0 );
-ok( str_contains( $html168, 'Decrease regular prices by 20% · 1 product' ) && str_contains( $html168, 'Deleted user (User #' . $actor168 . ')' ) && str_contains( $html168, 'Awaiting review' ), 'history descriptive task and honest deleted creator' );
+	ok( str_contains( $html168, 'Decrease regular prices by 20% · 1 product' ) && str_contains( $html168, 'Deleted user (User #' . $actor168 . ')' ) && str_contains( $html168, 'Awaiting review' ), 'history descriptive task and honest deleted creator' );
+	ok( str_contains( $html168, 'Outcomes: 1 not changed · 1 skipped · 2 newer prices kept.' ) && str_contains( $html168, 'Finished with products needing attention' ), 'history outcome column uses merchant counts and keeps the job label' );
 ok( str_contains( $html168, wp_timezone_string() ), 'history identifies site timezone' );
 
 function csv168( array $job ): array {

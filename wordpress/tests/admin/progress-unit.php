@@ -145,7 +145,7 @@ namespace {
 	// text, dropping the outcome emphasis and the conflict next-action links that
 	// the server-rendered cells carry. The payload must ship the same markup.
 	$html_rows = Admin::progress_snapshot( $post, 'POST' )['rows'][0];
-	check204( str_contains( $html_rows['apply_html'], '<strong>Not changed</strong>' ), true, 'polled Apply cell keeps the outcome emphasis' );
+	check204( str_contains( $html_rows['apply_html'], '<strong>Newer price kept</strong>' ), true, 'polled Apply cell keeps the merchant outcome emphasis' );
 	check204( str_contains( $html_rows['apply_html'], $long_apply ), true, 'polled Apply cell keeps the long guidance' );
 	check204( str_contains( $html_rows['apply_html'], 'Create a new preview' ), true, 'polled Apply cell keeps the conflict next action' );
 	check204( str_contains( $html_rows['apply_html'], '<script' ), false, 'polled Apply markup carries no executable bytes' );

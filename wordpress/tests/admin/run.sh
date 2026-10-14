@@ -4,6 +4,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 ls "$here" >/dev/null
 node "$here/progress-client.cjs"
 php "$here/progress-unit.php"
+php "$here/outcome-copy-unit.php"
 php "$here/recovery-unit.php"
 php "$here/repeat-unit.php"
 php "$here/presets-unit.php"

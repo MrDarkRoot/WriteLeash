@@ -205,3 +205,13 @@ Historical PNGs, result JSONs, captions and conflict observer assertions remain
 byte-for-byte unchanged; refreshed hashes alone are not browser acceptance
 evidence. Hosted Admin must rerun #170 in both browsers against the exact PR
 head before acceptance.
+
+### #281 merchant outcome copy source refresh
+
+The Admin fingerprint now binds presentation-only merchant outcome lines in
+`class-free-admin.php` (item headline, persisted-count summary, one existing
+next step). No planner math, storage, nonce, route, or handler change.
+Historical PNGs, result JSONs, captions and the conflict observer sentence
+remain byte-for-byte unchanged; this refresh does not claim new screenshots.
+Hosted Admin must rerun #170 in both browsers against the exact PR head before
+acceptance.

@@ -240,7 +240,7 @@ async function search(page, term) {
         await page.getByRole('link', { name: 'Continue review', exact: true }).click();
         await action(page, 'Approve and apply');
         await action(page, 'Resume remaining products');
-        ok((await page.locator('#wpbody-content').innerText()).includes('Not changed'), 'existing execution checks detect stale product');
+        ok((await page.locator('#wpbody-content').innerText()).includes('Newer price kept'), 'existing execution checks detect stale product');
         ok(Number(observe().prices[fixture.products[0]].stored) === 120, 'independent observer proves no blind overwrite');
         await page.goto(previewURL);
         ok(await page.getByRole('button', { name: 'Approve and apply', exact: true }).count() === 0, 'approved preview routes to actual results, cannot reapprove');
