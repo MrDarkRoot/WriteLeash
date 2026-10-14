@@ -2,7 +2,7 @@
 
 No capture happened. Capture date is blank on purpose. Today in this prep environment is 2026-10-14; that is not a capture date. Source commit, dimensions, viewport, and browser for the shipping PNGs stay blank until a real browser capture of the commit that will ship.
 
-Shots 4 and 5 are BLOCKED until #281 is on the branch. Do not capture a Results or History frame in this pass. Issue #281 will change outcome copy; a screenshot must match the commit that ships.
+#281 is on this branch (`4df31051950bcf8e8738fd2df52d17344f7c37fe`, PR #285). Shots 4 and 5 were still not captured. On 2026-10-14 a disposable Woo admin was unavailable (`docker info` failed). No reconstructed, scaled, or reused PNG was written. A screenshot must match the commit that ships; do not fill the shipping table until a live English USD admin capture exists.
 
 `wordpress/assets/screenshot-1.png` through `screenshot-6.png` were not replaced, copied, scaled, or composited.
 
@@ -10,7 +10,7 @@ Shots 4 and 5 are BLOCKED until #281 is on the branch. Do not capture a Results 
 
 | Field | screenshot-1.png | screenshot-2.png | screenshot-3.png | screenshot-4.png | screenshot-5.png | screenshot-6.png |
 | --- | --- | --- | --- | --- | --- | --- |
-| Capture date (UTC) | | | | BLOCKED until #281 | BLOCKED until #281 | |
+| Capture date (UTC) | | | | NOT_CAPTURED after #281; no disposable site | NOT_CAPTURED after #281; no disposable site | |
 | Source commit | | | | | | |
 | Dimensions | | | | | | |
 | SHA-256 | | | | | | |
@@ -34,4 +34,4 @@ Computed with `sha256sum` on 2026-10-14 against the files still at `wordpress/as
 
 `screenshot-5.png` is 480px tall, below the shipping minimum of 900. `screenshot-2.png` and `screenshot-4.png` are 1238px wide, below the shipping minimum of 1200. None of the six may be renamed or cropped into a new listing file.
 
-Prep baseline (not a capture commit): `867c04bb065a31a6718cafeb9431501231279013` on `marketing/279-shots`.
+Prep baseline (not a capture commit): `867c04bb065a31a6718cafeb9431501231279013`. Rebased onto #281 `4df31051950bcf8e8738fd2df52d17344f7c37fe`. That rebase is not a capture.
