@@ -2769,8 +2769,7 @@ final class Free_Admin {
 	private static function render_undo_section( array $job, array $history, string $field, bool $resume_available = false ): void {
 		$field_label = Price_Operation::label( $field );
 
-		echo '<p>' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( 'Undo restores eligible %s values changed by this job. Later changes are left alone.', 'writeleash' ), $field_label ) ) . '</p>';
-		self::support_details( __( 'Undo does not reverse: orders, completed sales or effects in other plugins and services.', 'writeleash' ) );
+		echo '<p>' . esc_html( sprintf( /* translators: %s: translated price-field name. */ __( 'Undo restores eligible %s values changed by this job. Later changes are left alone. Undo does not reverse: orders, completed sales or effects in other plugins and services.', 'writeleash' ), $field_label ) ) . '</p>';
 		echo '<p><strong data-progress-undo-label>' . esc_html( self::undo_availability( $job, $history ) ) . '</strong></p>';
 		if ( ! empty( $history['undo_expires_at'] ) ) {
 
