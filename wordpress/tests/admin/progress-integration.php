@@ -51,11 +51,17 @@ wp_set_current_user( $actor );
 $user = wp_get_current_user(); $user->add_cap( 'manage_woocommerce', false );
 wl204_assert( 'FORBIDDEN' === wl204_read( $post )['status'], 'revoked capability refused' ); $user->remove_cap( 'manage_woocommerce' );
 wl204_assert( 'OK' === Free_Admin::process_approve( array( 'job' => $job['public_id'], '_wpnonce' => wp_create_nonce( Free_Admin::ACTION_APPROVE . '_' . $job['plan_id'] ) ), 'POST' )['status'], 'exact approval accepted' );
+wl204_assert( str_contains( Free_Admin::reason_message( 'approved' ), 'Progress updates automatically' ), 'approved notice promises automatic updates' );
 $before = wl204_read( wl204_post( $job ) );
 Job_Worker::run( (int) $job['id'], array( 'max_items' => 1, 'budget_seconds' => 20 ), true );
 $partial = wl204_read( wl204_post( $job ) );
 wl204_assert( $partial['counts']['applied'] > $before['counts']['applied'] && $partial['counts']['pending'] > 0, 'Apply advances from real saved worker outcomes' );
 wl204_assert( $partial['counts'] === Job_Repository::counts( (int) $job['id'] ), 'polled Apply counters equal durable rows' );
+// #276 slim bar: two additive ints mirror the durable counters; no existing field renamed.
+wl204_assert( is_int( $partial['progress_total'] ) && is_int( $partial['progress_processed'] ), 'bar ints are integers' );
+wl204_assert( $partial['progress_total'] === $partial['counts']['planned'], 'bar total mirrors durable planned' );
+wl204_assert( $partial['progress_processed'] === $partial['counts']['planned'] - $partial['counts']['pending'] - $partial['counts']['applying'], 'bar processed mirrors durable counters' );
+wl204_assert( $partial['progress_processed'] > 0 && $partial['progress_processed'] < $partial['progress_total'], 'mid-job bar is partial' );
 // A newer supported edit is never described as success.
 $product = wc_get_product( $ids[2] ); $product->set_regular_price( '99.00' ); $product->save();
 for ( $n = 0; $n < 5; ++$n ) { Job_Worker::run( (int) $job['id'], array( 'max_items' => 3, 'budget_seconds' => 20 ), true ); }
@@ -64,6 +70,12 @@ wl204_assert( 1 === $terminal['counts']['conflict'] && ! $terminal['poll'] && ! 
 ob_start(); Free_Admin::render_view( 'job', $job['public_id'], 0 ); $html = ob_get_clean();
 wl204_assert( str_contains( $html, 'Refresh saved progress' ) && str_contains( $html, 'Automatic updates require JavaScript' ), 'manual/no-JS refresh visible' );
 wl204_assert( ! str_contains( $html, 'value="' . Free_Admin::ACTION_RESUME . '"' ), 'terminal no-JS view has no Resume form' );
+// #276 slim bars server-render from saved counters for Apply and Undo, with
+// value semantics for assistive technology; no Reload copy remains in view.
+wl204_assert( str_contains( $html, 'role="progressbar"' ) && str_contains( $html, 'data-progress-bar' ) && str_contains( $html, 'data-progress-undo-bar' ), 'Apply and Undo bars server-rendered' );
+wl204_assert( str_contains( $html, 'aria-valuemin="0"' ) && str_contains( $html, 'aria-valuenow' ) && str_contains( $html, 'aria-valuemax' ), 'bars carry value semantics' );
+wl204_assert( str_contains( $html, 'Apply progress' ) && str_contains( $html, 'Undo progress' ), 'bars carry labels' );
+wl204_assert( ! str_contains( $html, 'Reload' ), 'progress view carries no Reload copy' );
 $started = Undo_Repository::initiate( (int) $job['id'], $actor );
 $operation = Undo_Repository::read_operation_by_job( (int) $job['id'] );
 $undo_before = wl204_read( wl204_post( $job ) );
@@ -73,6 +85,7 @@ wl204_assert( $undo_partial['undo_counts']['undone'] > $undo_before['undo_counts
 wl204_assert( $undo_partial['poll'], 'unfinished Undo continues polling after terminal Apply' );
 for ( $n = 0; $n < 5; ++$n ) { Undo_Worker::run( (int) $operation['id'], array( 'max_items' => 3, 'budget_seconds' => 20 ), true ); }
 $undo_terminal = wl204_read( wl204_post( $job ) ); wl204_assert( ! $undo_terminal['poll'] && ! $undo_terminal['undo_available'], 'terminal Undo stops polling and hides action' );
+wl204_assert( $undo_terminal['undo_counts']['eligible'] > 0 && 0 === $undo_terminal['undo_counts']['pending'] + $undo_terminal['undo_counts']['applying'], 'terminal Undo counters fully processed for the bar' );
 // Missing item evidence must fail visibly without certifying successful completion.
 global $wpdb;
 $table = Job_Schema::items_table( $wpdb );

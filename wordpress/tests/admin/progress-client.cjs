@@ -22,7 +22,7 @@ function phpConflictCopy(state) {
     return match[1];
 }
 class Element {
-    constructor(tag = 'P') { this.tagName = tag.toUpperCase(); this.children = []; this.textContent = ''; this._html = ''; this.attrs = {}; this.events = {}; this.hidden = false; }
+    constructor(tag = 'P') { this.tagName = tag.toUpperCase(); this.children = []; this.textContent = ''; this._html = ''; this.attrs = {}; this.events = {}; this.hidden = false; this.style = {}; }
     set innerHTML(value) { this._html = String(value); this.textContent = String(value).replace(/<[^>]*>/g, ''); }
     get innerHTML() { return this._html; }
     appendChild(child) { this.children.push(child); child.parent = this; return child; }
@@ -53,7 +53,7 @@ function harness({withMount = true, nextTag = 'A', pseudo = false} = {}) {
     const insert = body.insertBefore.bind(body), append = body.appendChild.bind(body);
     body.insertBefore = (child, reference) => { moves.push({op: 'insertBefore', node: child}); return insert(child, reference); };
     body.appendChild = child => { moves.push({op: 'appendChild', node: child}); return append(child); };
-    ['connection', 'announcement', 'label', 'summary', 'notice', 'undo-label', 'undo-summary', 'undo-notice', 'resume', 'undo'].forEach(name => nodes[`[data-progress-${name}]`] = new Element());
+    ['connection', 'announcement', 'label', 'summary', 'notice', 'undo-label', 'undo-summary', 'undo-notice', 'resume', 'undo', 'bar', 'fill', 'undo-bar', 'undo-fill'].forEach(name => nodes[`[data-progress-${name}]`] = new Element());
     root.attrs = {'data-job': 'job-204', 'data-nonce': 'nonce-204', 'data-offset': '0', 'data-filter': '', 'data-endpoint': '/ajax', 'data-action-url': '/post'};
     root.querySelector = selector => selector === '[data-writeleash-results] tbody' ? body : nodes[selector] || null;
     root.querySelectorAll = () => [];
@@ -87,7 +87,7 @@ function seedRow(h, id, apply = 'Old apply', undo = 'Old undo') {
     tr.children[4].textContent = apply; tr.children[5].textContent = undo; h.body.appendChild(tr); return tr;
 }
 function snapshot(overrides = {}) {
-    return {status: 'OK', label: 'In progress', summary: '1 changed · 2 remaining', notice: '', undo_label: 'Undo unavailable', undo_summary: '0 restored', undo_notice: '', next_url: '/next', resume_available: true, undo_available: false, resume_nonce: 'bound-resume', undo_nonce: null, undo_button: 'Continue Undo', poll: true, rows: [row(4, {name: '<script>literal</script>'})], ...overrides};
+    return {status: 'OK', label: 'In progress', summary: '1 changed · 2 remaining', notice: '', undo_label: 'Undo unavailable', undo_summary: '0 restored', undo_notice: '', next_url: '/next', resume_available: true, undo_available: false, resume_nonce: 'bound-resume', undo_nonce: null, undo_button: 'Continue Undo', poll: true, progress_total: 2, progress_processed: 1, undo_counts: {eligible: 3, pending: 2, applying: 0, undone: 1, conflict: 0, failed: 0, needs_review: 0}, rows: [row(4, {name: '<script>literal</script>'})], ...overrides};
 }
 async function respond(h, index, data) { h.requests[index].resolve({ok: true, status: 200, json: async () => ({success: true, data})}); await flush(); }
 (async () => {
@@ -107,8 +107,18 @@ async function respond(h, index, data) { h.requests[index].resolve({ok: true, st
     await respond(h, 0, snapshot());
     assert.equal(h.nodes['[data-progress-summary]'].textContent, '1 changed · 2 remaining');
     assert.equal(h.body.children[0].children[0].textContent, '<script>literal</script>');
-    assert.equal(h.body.children[0].children[2].textContent, 'Reload to read the current price');
+    assert.equal(h.body.children[0].children[2].textContent, 'Refresh to read the current price');
     assert.match(h.nodes['[data-progress-connection]'].textContent, /Last successful refresh/);
+    // #276 slim bars: the two additive Apply ints drive width and aria-valuenow;
+    // Undo derives its totals from the existing undo_counts; text stays the truth.
+    assert.equal(h.nodes['[data-progress-bar]'].hidden, false);
+    assert.equal(h.nodes['[data-progress-bar]'].getAttribute('aria-valuemax'), '2');
+    assert.equal(h.nodes['[data-progress-bar]'].getAttribute('aria-valuenow'), '1');
+    assert.equal(h.nodes['[data-progress-fill]'].style.width, '50%');
+    assert.equal(h.nodes['[data-progress-undo-bar]'].hidden, false);
+    assert.equal(h.nodes['[data-progress-undo-bar]'].getAttribute('aria-valuemax'), '3');
+    assert.equal(h.nodes['[data-progress-undo-bar]'].getAttribute('aria-valuenow'), '1');
+    assert.equal(h.nodes['[data-progress-undo-fill]'].style.width, '33%');
     const button = h.nodes['[data-progress-resume]'].querySelector('button');
     assert(button); assert.equal(button.type, 'submit');
     const form = h.nodes['[data-progress-resume]'].children[0]; assert.equal(form.action, '/post');
@@ -126,6 +136,19 @@ async function respond(h, index, data) { h.requests[index].resolve({ok: true, st
     assert.equal(h.body.children[0].children[4].className, 'writeleash-attention'); assert.equal([...h.timers.values()].filter(x => x.delay === 5000).length, 0);
     assert.match(h.nodes['[data-progress-announcement]'].textContent, /1 uncertain/);
     assert.match(h.nodes['[data-progress-connection]'].textContent, /Automatic updates stopped; refresh manually/);
+    // #276 bar lifecycle: aria-valuenow follows polling to finished, and
+    // unknown or zero totals hide the track instead of guessing.
+    h = harness(); await respond(h, 0, snapshot({progress_total: 4, progress_processed: 1}));
+    assert.equal(h.nodes['[data-progress-bar]'].getAttribute('aria-valuenow'), '1');
+    assert.equal(h.nodes['[data-progress-fill]'].style.width, '25%');
+    h.timer(5000); await respond(h, 1, snapshot({progress_total: 4, progress_processed: 4}));
+    assert.equal(h.nodes['[data-progress-bar]'].hidden, false);
+    assert.equal(h.nodes['[data-progress-bar]'].getAttribute('aria-valuemax'), '4');
+    assert.equal(h.nodes['[data-progress-bar]'].getAttribute('aria-valuenow'), '4');
+    assert.equal(h.nodes['[data-progress-fill]'].style.width, '100%');
+    h.timer(5000); await respond(h, 2, snapshot({progress_total: 0, progress_processed: 0, undo_counts: {}}));
+    assert.equal(h.nodes['[data-progress-bar]'].hidden, true);
+    assert.equal(h.nodes['[data-progress-undo-bar]'].hidden, true);
     // A focused outcome cell keeps its previous saved text and gets an explicit stale-detail message.
     h = harness(); await respond(h, 0, snapshot());
     const cell = h.body.children[0].children[4], focusedSummary = new Element('SUMMARY'); cell.appendChild(focusedSummary); h.document.activeElement = focusedSummary;
@@ -216,9 +239,9 @@ async function respond(h, index, data) { h.requests[index].resolve({ok: true, st
     await respond(h, 1, snapshot({label: 'New observation'})); await respond(h, 0, snapshot({label: 'Old delayed observation'})); assert.equal(h.nodes['[data-progress-label]'].textContent, 'New observation');
     // Session refusal stops polling; repeated transport errors back off then stop.
     h = harness(); h.requests[0].resolve({ok: false, status: 403}); await flush();
-    assert.match(h.nodes['[data-progress-connection]'].textContent, /expired.*Reload and sign in/); assert.equal(h.timers.size, 0);
+    assert.match(h.nodes['[data-progress-connection]'].textContent, /expired.*Sign in again/); assert.equal(h.timers.size, 0);
     h = harness(); h.requests[0].resolve({ok: false, status: 401}); await flush();
-    assert.match(h.nodes['[data-progress-connection]'].textContent, /expired.*Reload and sign in/); assert.equal(h.timers.size, 0);
+    assert.match(h.nodes['[data-progress-connection]'].textContent, /expired.*Sign in again/); assert.equal(h.timers.size, 0);
     h = harness();
     for (let i = 0; i < 4; i++) { h.requests[i].reject(new Error('network failed')); await flush(); if (i === 0) { assert.match(h.nodes['[data-progress-connection]'].textContent, /retrying shortly/); } if (i < 3) { h.timer([10000, 20000, 40000][i]); } }
     assert.match(h.nodes['[data-progress-connection]'].textContent, /stopped after repeated errors/); assert.equal(h.timers.size, 0);

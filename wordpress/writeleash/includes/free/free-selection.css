@@ -166,6 +166,23 @@
 .writeleash-admin .writeleash-undo > :last-child {
     margin-bottom: 0;
 }
+/* Slim live progress tracks. Static width only: no gradients, no animation,
+ * so the no-JavaScript server render reads identically. */
+.writeleash-admin .writeleash-progress {
+    height: 8px;
+    margin: 8px 0 16px;
+    background: #f0f0f1;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.writeleash-admin .writeleash-progress[hidden] {
+    display: none;
+}
+.writeleash-admin .writeleash-progress-fill {
+    height: 100%;
+    width: 0;
+    background: #2271b1;
+}
 .writeleash-admin ul.writeleash-filters {
     display: flex;
     flex-wrap: wrap;

@@ -63,7 +63,7 @@
             if (!tr) {
                 tr = document.createElement('tr');
                 tr.setAttribute('data-product-id', String(row.id));
-                [row.name, row.expected, __( 'Reload to read the current price', 'writeleash' ), row.planned, '', ''].forEach(function (text) {
+                [row.name, row.expected, __( 'Refresh to read the current price', 'writeleash' ), row.planned, '', ''].forEach(function (text) {
                     var td = document.createElement('td'); td.textContent = text; tr.appendChild(td);
                 });
                 body.appendChild(tr);
@@ -92,6 +92,31 @@
             index += 1;
         });
     }
+    // Slim progress tracks mirror the saved text counters, which stay the
+    // source of truth. The bars carry no live region of their own so the
+    // existing polite announcement is never doubled. Unknown or zero totals
+    // hide the track instead of guessing.
+    function paint(trackSelector, fillSelector, total, processed) {
+        var track = root.querySelector(trackSelector);
+        var fill = root.querySelector(fillSelector);
+        if (!track || !fill) { return; }
+        total = Math.floor(Number(total));
+        processed = Math.floor(Number(processed));
+        if (!isFinite(total) || !isFinite(processed) || total < 1) { track.hidden = true; return; }
+        if (processed < 0) { processed = 0; }
+        if (processed > total) { processed = total; }
+        track.hidden = false;
+        track.setAttribute('aria-valuemax', String(total));
+        track.setAttribute('aria-valuenow', String(processed));
+        fill.style.width = Math.round(processed * 100 / total) + '%';
+    }
+    function paintUndo(counts) {
+        counts = counts || {};
+        function num(value) { var n = Math.floor(Number(value)); return isFinite(n) && n > 0 ? n : 0; }
+        var total = num(counts.eligible);
+        if (total < 1) { total = num(counts.undone) + num(counts.pending) + num(counts.applying) + num(counts.conflict) + num(counts.failed) + num(counts.needs_review); }
+        paint('[data-progress-undo-bar]', '[data-progress-undo-fill]', total, total - num(counts.pending) - num(counts.applying));
+    }
     function apply(data) {
         write('[data-progress-label]', data.label);
         write('[data-progress-summary]', data.summary);
@@ -99,6 +124,8 @@
         write('[data-progress-undo-label]', data.undo_label);
         write('[data-progress-undo-summary]', data.undo_summary);
         write('[data-progress-undo-notice]', data.undo_notice);
+        paint('[data-progress-bar]', '[data-progress-fill]', data.progress_total, data.progress_processed);
+        paintUndo(data.undo_counts);
         action('[data-progress-resume]', data.resume_available, __( 'Resume remaining products', 'writeleash' ), data.resume_nonce, 'writeleash_free_resume');
         action('[data-progress-undo]', data.undo_available, data.undo_button, data.undo_nonce, 'writeleash_free_undo');
         Array.prototype.slice.call(root.querySelectorAll('[data-progress-initial-notice], [data-progress-initial-undo]')).forEach(function (node) {
@@ -139,7 +166,7 @@
         failures += 1;
         if (status === 401 || status === 403 || failures >= 4) {
             stopped = true;
-            connectionText(status === 401 || status === 403 ? __( 'Session or permission expired. Reload and sign in to refresh saved progress.', 'writeleash' ) : __( 'Automatic updates stopped after repeated errors. Use Refresh saved progress to retry.', 'writeleash' ));
+            connectionText(status === 401 || status === 403 ? __( 'Session or permission expired. Sign in again, then use Refresh saved progress.', 'writeleash' ) : __( 'Automatic updates stopped after repeated errors. Use Refresh saved progress to retry.', 'writeleash' ));
         } else { connectionText(__( 'Saved progress may be stale. Refresh failed; retrying shortly.', 'writeleash' )); schedule(Math.min(60000, 5000 * Math.pow(2, failures))); }
     }
     function refresh() {

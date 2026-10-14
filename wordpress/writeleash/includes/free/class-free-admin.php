@@ -299,6 +299,7 @@ final class Free_Admin {
 			$active = $complete && ! $observed['stalled'] && in_array( $effective, array( Job_State::READY, Job_State::QUEUED, Job_State::RUNNING ), true );
 			$undo_active = $complete && null !== $undo_observed && ! $undo_observed['stalled'] && Undo_State::can_auto_run( $undo['operation_status'] );
 			$undo_summary = self::undo_summary( $undo );
+			list( $progress_total, $progress_processed ) = self::progress_bar_values( $counts );
 			return array(
 				'status' => 'OK', 'counts' => $counts, 'undo_counts' => $undo,
 				'label' => $complete ? self::job_label( $effective ) : __( 'Saved product outcomes unavailable; needs checking', 'writeleash' ),
@@ -311,6 +312,7 @@ final class Free_Admin {
 				'resume_nonce' => $complete && Job_State::can_manual_run( $job['status'] ) ? wp_create_nonce( self::ACTION_RESUME . '_' . $public_id ) : null,
 				'undo_nonce' => $complete && $history['undo_eligible'] && ( empty( $undo['operation_status'] ) || Undo_State::can_manual_run( $undo['operation_status'] ) ) ? wp_create_nonce( self::ACTION_UNDO . '_' . $public_id ) : null,
 				'undo_button' => empty( $undo['operation_status'] ) ? __( 'Restore eligible prices (Undo)', 'writeleash' ) : __( 'Continue Undo', 'writeleash' ),
+				'progress_total' => $progress_total, 'progress_processed' => $progress_processed,
 				'poll' => $active || $undo_active, 'rows' => $rows, 'next_url' => null === $page['next_offset'] ? null : self::page_url( 'job', $public_id, (int) $page['next_offset'], $filter ),
 			);
 		} catch ( \Throwable $error ) { return array( 'status' => 'UNAVAILABLE', 'reason' => 'saved_progress_unavailable' ); }
@@ -1325,13 +1327,13 @@ final class Free_Admin {
 			'invalid_preset_name' => __( 'Use a nonempty preset name of at most 100 bytes without markup or control characters.', 'writeleash' ),
 			'preset_limit' => __( 'This store has reached its limit of 20 presets. Delete a preset before saving another.', 'writeleash' ),
 			'preset_unavailable' => __( 'This preset is unavailable to your account.', 'writeleash' ),
-			'preset_changed' => __( 'This preset changed during your request. Reload and try again.', 'writeleash' ),
+			'preset_changed' => __( 'This preset changed during your request. Refresh and try again.', 'writeleash' ),
 			'preset_saved' => __( 'Preset saved. No prices changed; prepare a fresh Preview before applying.', 'writeleash' ),
 			'preset_loaded' => __( 'Preset loaded into the editable form. Check the selection, prepare a fresh Preview and approve independently. No prices changed.', 'writeleash' ),
 			'preset_references_changed' => __( 'Some saved product, SKU or category references are missing or unavailable. Exact saved inputs are retained. Review them before a fresh Preview, which checks current eligibility, permissions and limits. No prices changed.', 'writeleash' ),
 			'preset_updated' => __( 'Preset updated. Existing previews, jobs, History and Undo are unchanged.', 'writeleash' ),
 			'post_required' => __( 'This action requires an authenticated POST request.', 'writeleash' ),
-			'invalid_nonce' => __( 'The security token is missing or invalid. Reload the page and try again.', 'writeleash' ),
+			'invalid_nonce' => __( 'The security token is missing or invalid. Refresh the page and try again.', 'writeleash' ),
 			'woocommerce_unavailable' => __( 'WooCommerce must be active and initialized before bulk-price planning. Install and activate WooCommerce, then reopen this page. No job was created and no product was changed.', 'writeleash' ),
 			'permission_denied' => __( 'You do not have permission to plan these product edits.', 'writeleash' ),
 			'permission_revoked' => __( 'The approved actor can no longer edit one or more products; nothing was executed.', 'writeleash' ),
@@ -1361,7 +1363,7 @@ final class Free_Admin {
 			'job_terminal' => __( 'This job has already finished.', 'writeleash' ),
 			'job_not_resumable' => __( 'This job cannot be continued from its current state.', 'writeleash' ),
 			'job_not_approvable' => __( 'This job cannot be approved in its current state.', 'writeleash' ),
-			'approved' => __( 'Approved. WriteLeash will apply the reviewed prices in the background. Reload this page to check progress.', 'writeleash' ),
+			'approved' => __( 'Approved. WriteLeash will apply the reviewed prices in the background. Progress updates automatically.', 'writeleash' ),
 			'approved_scheduler_unavailable' => __( 'Approved, but background processing could not start. This job is paused; use Resume remaining products to continue it.', 'writeleash' ),
 			'resume_chunk' => __( 'Results updated after this step. Check changes, remaining products and anything needing attention below.', 'writeleash' ),
 			'undo_chunk' => __( 'Undo results updated. Check restorations, remaining products and anything needing attention below.', 'writeleash' ),
@@ -1498,6 +1500,27 @@ final class Free_Admin {
 		$parts = array();
 		foreach ( array( 'undone' => 'restored', 'conflict' => 'conflict', 'pending' => 'pending', 'failed' => 'failed', 'applying' => 'applying', 'needs_review' => 'review' ) as $key => $kind ) { $parts[] = self::count_copy( $kind, (int) $undo[$key] ); }
 		return implode( ' · ', $parts );
+	}
+
+	/** Presentation-only Apply bar values from saved counters; hidden on unknown/zero totals. */
+	public static function progress_bar_values( array $counts ): array {
+		$total = (int) ( $counts['planned'] ?? 0 );
+		$processed = $total - (int) ( $counts['pending'] ?? 0 ) - (int) ( $counts['applying'] ?? 0 );
+		if ( $processed < 0 ) { $processed = 0; }
+		if ( $processed > $total ) { $processed = $total; }
+		return array( $total, $processed );
+	}
+
+	/** Presentation-only Undo bar values from saved counters; hidden on unknown/zero totals. */
+	public static function undo_progress_bar_values( array $undo ): array {
+		$total = (int) ( $undo['eligible'] ?? 0 );
+		if ( $total < 1 ) {
+			$total = (int) ( $undo['undone'] ?? 0 ) + (int) ( $undo['pending'] ?? 0 ) + (int) ( $undo['applying'] ?? 0 ) + (int) ( $undo['conflict'] ?? 0 ) + (int) ( $undo['failed'] ?? 0 ) + (int) ( $undo['needs_review'] ?? 0 );
+		}
+		$processed = $total - (int) ( $undo['pending'] ?? 0 ) - (int) ( $undo['applying'] ?? 0 );
+		if ( $processed < 0 ) { $processed = 0; }
+		if ( $processed > $total ) { $processed = $total; }
+		return array( $total, $processed );
 	}
 
 	public static function selection_count_message( array $count ): string {
@@ -1748,7 +1771,7 @@ final class Free_Admin {
 		if ( (int) $job['applied'] < 1 ) { return __( 'Undo unavailable: no products were changed by this job.', 'writeleash' ); }
 		if ( Undo_State::NEEDS_REVIEW === $status ) { return __( 'Undo needs checking: a restoration outcome is uncertain. Continuing will not retry uncertain or conflicted products.', 'writeleash' ); }
 		if ( Undo_State::PAUSED === $status ) { return __( 'Undo paused. Continue Undo for remaining products.', 'writeleash' ); }
-		if ( in_array( $status, array( Undo_State::PENDING, Undo_State::RUNNING ), true ) ) { return __( 'Undo in progress. Reload to check results or continue remaining products.', 'writeleash' ); }
+		if ( in_array( $status, array( Undo_State::PENDING, Undo_State::RUNNING ), true ) ) { return __( 'Undo in progress. Progress updates automatically.', 'writeleash' ); }
 		if ( null !== $status ) { return __( 'Undo outcome unavailable; needs checking.', 'writeleash' ); }
 		return $history['undo_eligible'] ? __( 'Undo available for prices changed by this job.', 'writeleash' ) : __( 'Undo unavailable: saved restoration evidence is unavailable.', 'writeleash' );
 	}
@@ -2198,7 +2221,7 @@ final class Free_Admin {
 			// Actor-scoped in SQL: the page contains only caller-visible jobs.
 			$page = Undo_Repository::history_jobs( 0, 5, $user_id );
 		} catch ( \Throwable $error ) {
-			echo '<p>' . esc_html( __( 'History is unavailable right now. Reload the page to try again.', 'writeleash' ) ) . '</p>';
+			echo '<p>' . esc_html( __( 'History is unavailable right now. Refresh the page to try again.', 'writeleash' ) ) . '</p>';
 			return;
 		}
 		self::render_history_table( $page['jobs'] );
@@ -2563,6 +2586,16 @@ final class Free_Admin {
 		} catch ( \Throwable $error ) { return $unavailable; }
 	}
 
+	/** Slim static progress track. Text counters stay the source of truth; the live region announces them, never this bar. */
+	private static function render_progress_bar( int $total, int $processed, string $label, string $bar_hook, string $fill_hook ): void {
+		if ( $processed < 0 ) { $processed = 0; }
+		if ( $processed > $total ) { $processed = $total; }
+		$percent = $total > 0 ? (int) round( $processed * 100 / $total ) : 0;
+		if ( $percent < 0 ) { $percent = 0; }
+		if ( $percent > 100 ) { $percent = 100; }
+		echo '<div class="writeleash-progress" role="progressbar" aria-label="' . esc_attr( $label ) . '" aria-valuemin="0" aria-valuemax="' . esc_attr( (string) $total ) . '" aria-valuenow="' . esc_attr( (string) $processed ) . '" ' . $bar_hook . ( $total < 1 ? ' hidden' : '' ) . '><div class="writeleash-progress-fill" ' . $fill_hook . ' style="width:' . esc_attr( (string) $percent ) . '%"></div></div>';
+	}
+
 	private static function render_job_view( string $public_id, int $offset, string $filter = '' ): void {
 		if ( ! self::jobs_installed() ) {
 			echo '<div class="notice notice-error"><p>' . esc_html( __( 'No job is visible to your account for that identifier.', 'writeleash' ) ) . '</p></div>';
@@ -2582,7 +2615,7 @@ final class Free_Admin {
 			$selected = $plan->summary()['selected'];
 			$identities = array_column( $plan->data()['items'], null, 'product_id' );
 		} catch ( \Throwable $error ) {
-			echo '<div class="notice notice-error"><p>' . esc_html( __( 'Saved progress and results are unavailable right now. Reload this page to try again; if it persists, ask an administrator to check the saved records.', 'writeleash' ) ) . '</p></div>';
+			echo '<div class="notice notice-error"><p>' . esc_html( __( 'Saved progress and results are unavailable right now. Refresh this page to try again; if it persists, ask an administrator to check the saved records.', 'writeleash' ) ) . '</p></div>';
 			return;
 		}
 		$counts = $observed['counts'];
@@ -2597,6 +2630,8 @@ final class Free_Admin {
 		echo '<p><strong data-progress-label>' . esc_html( $complete_evidence ? self::job_label( $effective ) : __( 'Saved product outcomes unavailable; needs checking', 'writeleash' ) ) . '</strong></p>';
 		if ( $complete_evidence ) { echo '<p data-progress-summary>' . esc_html( self::result_summary( $counts, $effective, true ) ) . '</p>'; }
 		else { echo '<p data-progress-summary>' . esc_html( sprintf( /* translators: %d: planned products. */ _n( 'Planned %d product. Some saved product evidence is unavailable. Check this job before taking further action.', 'Planned %d products. Some saved product evidence is unavailable. Check this job before taking further action.', $selected, 'writeleash' ), $selected ) ) . '</p>'; }
+		$apply_bar = $complete_evidence ? self::progress_bar_values( $counts ) : array( 0, 0 );
+		self::render_progress_bar( $apply_bar[0], $apply_bar[1], __( 'Apply progress', 'writeleash' ), 'data-progress-bar', 'data-progress-fill' );
 		if ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { echo '<p data-progress-initial-notice>' . esc_html( self::reason_message( $observed['effective_reason'] ) ) . '</p>'; }
 		echo '<div data-progress-initial-notice>'; self::support_details( $effective . ' · ' . $observed['effective_reason'] . ' · ' . $job['public_id'] . ' · pending ' . $counts['pending'] . ' · applied ' . $counts['applied'] ); echo '</div>';
 		echo '</div>';
@@ -2637,7 +2672,7 @@ final class Free_Admin {
 		self::render_export_form( $job );
 		echo '<section class="writeleash-undo"><h2>' . esc_html( _x( 'Undo', 'merchant price workflow label', 'writeleash' ) ) . '</h2>';
 		if ( $complete_evidence ) { self::render_undo_section( $job, $history, $plan->price_field() ); }
-		else { echo '<p>' . esc_html__( 'Undo availability cannot be verified while product outcomes are missing. Reload this job or ask an administrator to check its saved records.', 'writeleash' ) . '</p>'; }
+		else { echo '<p>' . esc_html__( 'Undo availability cannot be verified while product outcomes are missing. Refresh this job or ask an administrator to check its saved records.', 'writeleash' ) . '</p>'; }
 		echo '</section>';
 		echo '<h2>' . esc_html( __( 'Products', 'writeleash' ) ) . '</h2>';
 		$filters = array( '' => array( __( 'All products', 'writeleash' ), null, null ), 'conflict' => array( __( 'Conflicts', 'writeleash' ), 'CONFLICT', null ), 'attention' => array( __( 'Changes needing attention', 'writeleash' ), 'FAILED', null ), 'review' => array( __( 'Uncertain changes', 'writeleash' ), 'NEEDS_REVIEW', null ), 'undo_conflict' => array( __( 'Undo conflicts', 'writeleash' ), null, 'UNDO_CONFLICT' ), 'undo_review' => array( __( 'Uncertain restorations', 'writeleash' ), null, 'UNDO_NEEDS_REVIEW' ) );
@@ -2716,6 +2751,8 @@ final class Free_Admin {
 			echo '<p>' . esc_html( sprintf( /* translators: %s: localized expiry date and time. */ __( 'Undo window ends: %s', 'writeleash' ), self::site_time( $history['undo_expires_at'] ) ) ) . '</p>';
 		}
 		echo '<p data-progress-undo-summary></p><p data-progress-undo-notice></p>';
+		$undo_bar = ! empty( $history['undo']['operation_status'] ) ? self::undo_progress_bar_values( $history['undo'] ) : array( 0, 0 );
+		self::render_progress_bar( $undo_bar[0], $undo_bar[1], __( 'Undo progress', 'writeleash' ), 'data-progress-undo-bar', 'data-progress-undo-fill' );
 		if ( ! empty( $history['undo']['operation_status'] ) ) {
 			$undo = $history['undo'];
 			$undo_review = (int) $undo['needs_review'];
@@ -2747,7 +2784,7 @@ final class Free_Admin {
 		try {
 			$page = Undo_Repository::history_jobs( $offset, self::HISTORY_PAGE_SIZE, get_current_user_id() );
 		} catch ( \Throwable $error ) {
-			echo '<p>' . esc_html( __( 'History is unavailable right now. Reload the page to try again.', 'writeleash' ) ) . '</p>';
+			echo '<p>' . esc_html( __( 'History is unavailable right now. Refresh the page to try again.', 'writeleash' ) ) . '</p>';
 			return;
 		}
 		self::render_history_table( $page['jobs'] );
