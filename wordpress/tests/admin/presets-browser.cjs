@@ -65,7 +65,7 @@ async function combined241(page, javaScriptEnabled) {
     assert.deepEqual(observe().jobs, before.jobs, 'combined Save/Load does not create Preview');
     await enter(page, button(page, 'Preview price changes'));
     const sourceId = new URL(page.url()).searchParams.get('wl_job');
-    await enter(page, button(page, 'Approve and apply'));
+    await enter(page, button(page, 'Approve and apply').first());
     for (let n = 0; n < 4 && await button(page, 'Resume remaining products').count(); n++) await enter(page, button(page, 'Resume remaining products'));
     const source = observe().jobs.find(j => j.public_id === sourceId);
     ok(ids.every(id => Number(observe().prices[id]) === 105), 'combined preset operation explicitly applied');
