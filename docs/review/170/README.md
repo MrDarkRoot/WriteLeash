@@ -190,3 +190,18 @@ Admin assertions and 78 Preset/Repeat assertions. Historical #170 PNGs, result
 JSONs, captions and conflict observer assertions remain byte-for-byte unchanged.
 Only the current Admin source fingerprint is refreshed; original #170 browser
 coverage must still run in exact-head hosted Admin before release readiness.
+
+### #284 UI polish batch source refresh
+
+The Admin fingerprint now binds the presentation-only polish batch #273–#278
+(tables, filters, primary, progress, copy, chips) on `ui/batch-273-278`.
+Exactly three files are touched: `class-free-admin.php`, `free-selection.js`,
+`free-selection.css`. No planner math, no frozen decimal contract, no storage,
+no handler/nonce/route change. The sole runtime-adjacent exception is two
+additive progress integers (`progress_total`, `progress_processed`) that are
+derived from existing durable counters and hidden on unknown/zero totals.
+
+Historical PNGs, result JSONs, captions and conflict observer assertions remain
+byte-for-byte unchanged; refreshed hashes alone are not browser acceptance
+evidence. Hosted Admin must rerun #170 in both browsers against the exact PR
+head before acceptance.
