@@ -215,3 +215,30 @@ Historical PNGs, result JSONs, captions and the conflict observer sentence
 remain byte-for-byte unchanged; this refresh does not claim new screenshots.
 Hosted Admin must rerun #170 in both browsers against the exact PR head before
 acceptance.
+
+### #288 chip-remove focus source refresh
+
+The Admin fingerprint now binds the chip-remove focus move in
+`free-selection.js`. No field name, selection contract, or no-JS submit change.
+Historical PNGs, result JSONs, captions and the conflict observer sentence
+remain byte-for-byte unchanged; this refresh does not claim new screenshots.
+Hosted Admin must rerun #170 in both browsers against the exact PR head before
+acceptance.
+
+### #288 chip-remove focus source refresh
+
+The Admin fingerprint now binds the chip-remove focus move in
+`free-selection.js`. No field name, selection contract, or no-JS submit change.
+Historical PNGs, result JSONs, captions and the conflict observer sentence
+remain byte-for-byte unchanged; this refresh does not claim new screenshots.
+Hosted Admin must rerun #170 in both browsers against the exact PR head before
+acceptance.
+
+### #288 chip-remove scroll source refresh
+
+The Admin fingerprint now binds the scroll pin after chip removal in
+`free-selection.js`. Focus still lands on the remaining chip. No field name,
+selection contract, or no-JS submit change. Historical PNGs, result JSONs,
+captions and the conflict observer sentence remain byte-for-byte unchanged;
+this refresh does not claim new screenshots. Hosted Admin must rerun #170 in
+both browsers against the exact PR head before acceptance.

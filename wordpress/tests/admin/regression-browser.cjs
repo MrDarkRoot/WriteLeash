@@ -207,7 +207,8 @@ async function responsive(page) {
         const remove = page.locator('#writeleash-free-selected button').last();
         ok((await remove.getAttribute('aria-label')).startsWith('Remove Gate'), 'removal accessible name includes identity');
         await enter(page, remove, false);
-        ok(await picker.evaluate(el => document.activeElement === el), 'removal returns focus to search');
+        ok(await page.locator('#writeleash-free-selected button').last().evaluate(el => el === document.activeElement), 'removal focuses the remaining chip');
+        ok(await page.evaluate(() => document.activeElement !== document.body), 'removal does not drop focus on body');
         await search(page, f.skus.at(-1)); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
         await tabTo(page, page.locator('#writeleash-free-operation'));
         const decreaseIndex = await page.locator('#writeleash-free-operation').evaluate(el => Array.from(el.options).findIndex(option => option.value === 'DECREASE_PERCENT'));
