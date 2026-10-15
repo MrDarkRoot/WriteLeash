@@ -24,6 +24,7 @@ for host in mysql mariadb; do
   esac
   echo "#110 pinned DB version: $server_version"
   php /opt/tests/jobs/no-replan-audit.php "$site/wp-content/plugins/writeleash"
+  php /opt/tests/jobs/price-write-allowlist.php "$site/wp-content/plugins/writeleash"
   for cache in default persistent; do
     if [ "$cache" = persistent ]; then
       wp --path="$site" redis enable

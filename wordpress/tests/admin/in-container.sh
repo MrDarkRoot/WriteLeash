@@ -32,6 +32,7 @@ for host in mysql mariadb; do
   echo "#111 pinned DB version: $server_version"
   php /opt/tests/admin/admin-audit.php "$site/wp-content/plugins/writeleash"
   php /opt/tests/jobs/no-replan-audit.php "$site/wp-content/plugins/writeleash"
+  php /opt/tests/jobs/price-write-allowlist.php "$site/wp-content/plugins/writeleash"
   # Read-only proof on the fresh schema: empty states stay silent, zero DDL.
   wp --path="$site" eval-file /opt/tests/admin/sql-audit.php
   # Local HTTP stack for the real-browser Admin E2E (default permalinks need
