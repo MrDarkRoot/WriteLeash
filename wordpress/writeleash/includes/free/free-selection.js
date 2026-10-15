@@ -53,28 +53,93 @@
             var name = segments.shift();
             return { name: name, meta: segments.join(' · ') };
         }
+        var settledScrollX = window.scrollX;
+        var settledScrollY = window.scrollY;
+        window.addEventListener('scroll', function () {
+            settledScrollX = window.scrollX;
+            settledScrollY = window.scrollY;
+        }, true);
         function inTabOrder(node) {
             if (!node || node.disabled || node.tabIndex < 0 || node.closest('[hidden]')) { return false; }
             var style = window.getComputedStyle(node);
             return style.display !== 'none' && style.visibility !== 'hidden';
         }
         function focusWithoutScroll(node) {
-            if (!node || !node.focus) { return false; }
+            if (!node || !node.focus) { return null; }
+            var x = window.scrollX;
+            var y = window.scrollY;
             try { node.focus({ preventScroll: true }); }
             catch (error) { node.focus(); }
-            return document.activeElement === node;
+            if (window.scrollX !== x || window.scrollY !== y) { window.scrollTo(x, y); }
+            if (document.activeElement !== node) {
+                try { node.focus({ preventScroll: true }); }
+                catch (error) { node.focus(); }
+                if (window.scrollX !== x || window.scrollY !== y) { window.scrollTo(x, y); }
+            }
+            return document.activeElement === node ? node : null;
+        }
+        function suppressScrollAnchor() {
+            var nodes = [document.documentElement, document.body];
+            var previous = [];
+            nodes.forEach(function (node, index) {
+                previous[index] = node ? node.style.overflowAnchor : '';
+                if (node) { node.style.overflowAnchor = 'none'; }
+            });
+            return function () {
+                nodes.forEach(function (node, index) {
+                    if (node) { node.style.overflowAnchor = previous[index]; }
+                });
+            };
+        }
+        function keepWindowScroll(x, y, node, releaseAnchor) {
+            var restoring = false;
+            function restore() {
+                if (restoring) { return; }
+                restoring = true;
+                try {
+                    if (window.scrollX !== x || window.scrollY !== y) { window.scrollTo(x, y); }
+                    if (node && node.isConnected && document.activeElement !== node) {
+                        try { node.focus({ preventScroll: true }); }
+                        catch (error) { node.focus(); }
+                        if (window.scrollX !== x || window.scrollY !== y) { window.scrollTo(x, y); }
+                    }
+                } finally { restoring = false; }
+            }
+            function onScroll() { restore(); }
+            window.addEventListener('scroll', onScroll);
+            restore();
+            if (typeof queueMicrotask === 'function') { queueMicrotask(restore); }
+            requestAnimationFrame(function () {
+                restore();
+                requestAnimationFrame(function () {
+                    restore();
+                    setTimeout(function () {
+                        restore();
+                        requestAnimationFrame(function () {
+                            restore();
+                            window.removeEventListener('scroll', onScroll);
+                            if (releaseAnchor) { releaseAnchor(); }
+                        });
+                    }, 1);
+                });
+            });
         }
         function focusAfterRemoval(index) {
             var removes = $('#writeleash-free-selected').find('.writeleash-chip__remove');
             if (removes.length) {
-                focusWithoutScroll(removes.eq(Math.min(Math.max(index, 0), removes.length - 1)).get(0));
-                return;
+                return focusWithoutScroll(removes.eq(Math.min(Math.max(index, 0), removes.length - 1)).get(0));
             }
             var search = products.next('.select2-container').find('.select2-search__field').get(0);
             var nativeSearch = document.getElementById('writeleash-free-product_search');
-            if (inTabOrder(search) && focusWithoutScroll(search)) { return; }
-            if (inTabOrder(nativeSearch) && focusWithoutScroll(nativeSearch)) { return; }
-            focusWithoutScroll(document.getElementById('writeleash-free-clear'));
+            if (inTabOrder(search)) {
+                var focused = focusWithoutScroll(search);
+                if (focused) { return focused; }
+            }
+            if (inTabOrder(nativeSearch)) {
+                var focusedNative = focusWithoutScroll(nativeSearch);
+                if (focusedNative) { return focusedNative; }
+            }
+            return focusWithoutScroll(document.getElementById('writeleash-free-clear'));
         }
         function selectedList() {
             var list = $('#writeleash-free-selected').empty();
@@ -88,12 +153,19 @@
                 row.append(' ');
                 $('<button>', { type: 'button', 'class': 'writeleash-chip__remove', 'aria-label': sprintf( /* translators: %s: product description. */ __( 'Remove %s', 'writeleash' ), option.text ) }).append(
                     $('<span>', { 'class': 'dashicons dashicons-no-alt', 'aria-hidden': 'true' })
-                ).on('click', function (event) {
+                ).on('mousedown', function (event) {
+                    if (event.button !== 0) { return; }
                     event.preventDefault();
+                }).on('click', function (event) {
+                    event.preventDefault();
+                    var x = settledScrollX;
+                    var y = settledScrollY;
+                    var releaseAnchor = suppressScrollAnchor();
+                    products.selectWoo('close');
                     var position = ids.indexOf(option.value);
                     products.find('option').filter(function () { return this.value === option.value; }).prop('selected', false);
                     products.trigger('change');
-                    focusAfterRemoval(position);
+                    keepWindowScroll(x, y, focusAfterRemoval(position), releaseAnchor);
                 }).appendTo(row);
                 row.data('id', option.value).appendTo(list);
             });
