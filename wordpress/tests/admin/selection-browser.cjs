@@ -153,9 +153,12 @@ async function search(page, term) {
         ok(await page.locator('.select2-results__option[data-selected="false"]').count() === 0, 'both matching products are already selected');
         await page.keyboard.press('Enter');
         ok(await page.locator('#writeleash-free-selected button').count() === 2, 'repeated keyboard selection does not duplicate products');
+        const scrollBeforeRemove = await page.evaluate(() => window.scrollY);
         await page.locator('#writeleash-free-selected button').first().click();
         ok(await page.locator('#writeleash-free-selected button').count() === 1, 'individual removal works');
-        ok(await input(page).evaluate(element => element === document.activeElement), 'removal returns focus to product search');
+        ok(await page.locator('#writeleash-free-selected button').evaluate(element => element === document.activeElement), 'removal focuses the remaining chip');
+        ok(await page.evaluate(() => document.activeElement !== document.body), 'removal does not drop focus on body');
+        ok(await page.evaluate(y => window.scrollY === y, scrollBeforeRemove), 'removal does not jump scroll');
         await page.getByRole('button', { name: 'Clear selected products', exact: true }).click();
         ok(await page.locator('#writeleash-free-selected button').count() === 0, 'clear works');
         await search(page, 'WL167-SEARCH-');
