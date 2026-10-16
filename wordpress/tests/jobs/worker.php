@@ -33,6 +33,7 @@ if ( ! empty( $spec['mutator_checkpoint'] ) ) {
 		$barrier = (string) ( $spec['mutator_barrier'] ?? $spec['barrier'] );
 		$release = (string) ( $spec['mutator_release'] ?? $spec['release'] );
 		file_put_contents( $barrier, $point . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
+		if ( 'throw' === ( $spec['mutator_fault'] ?? '' ) ) { throw new RuntimeException( 'controlled-mutator-fault' ); }
 		if ( 'wait' === ( $spec['mutator_fault'] ?? '' ) ) {
 			$deadline = microtime( true ) + 30;
 			while ( ! is_file( $release ) ) {
@@ -40,6 +41,28 @@ if ( ! empty( $spec['mutator_checkpoint'] ) ) {
 				usleep( 10000 );
 			}
 		}
+	}, 10, 3 );
+}
+// #297 commit-level fault: the hook fires inside Price_Apply_Connection::commit()
+// after the durable COMMIT succeeded but before ownership is released. A throw
+// here models a lost acknowledgement with the write already durable; the
+// worker cannot know the outcome from the exception alone.
+// The commit transport is shared (claims, setup, mutations), so the fault
+// arms only once the mutator reaches AFTER_JOURNAL_BEFORE_COMMIT: the next
+// commit on this connection is then provably the item commit, never a claim.
+if ( ! empty( $spec['commit_checkpoint'] ) ) {
+	add_action( 'writeleash_price_apply_checkpoint', static function ( $point ) use ( $spec ) {
+		if ( 'AFTER_JOURNAL_BEFORE_COMMIT' !== $point ) { return; }
+		// One-shot: the next transport commit is provably the item commit, so
+		// the fault must disarm itself to leave later claim/finish commits alone.
+		$fault = null;
+		$fault = static function ( $cpoint ) use ( $spec, &$fault ) {
+			if ( $cpoint !== $spec['commit_checkpoint'] ) { return; }
+			remove_action( 'writeleash_price_commit_checkpoint', $fault, 10 );
+			file_put_contents( $spec['barrier'], $cpoint . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
+			if ( 'throw-ambiguous' === ( $spec['commit_fault'] ?? '' ) ) { throw new \WriteLeash\Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
+		};
+		add_action( 'writeleash_price_commit_checkpoint', $fault, 10, 2 );
 	}, 10, 3 );
 }
 // Public Woo factory filter staging a transient read refusal for one product,
