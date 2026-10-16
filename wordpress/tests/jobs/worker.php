@@ -33,6 +33,7 @@ if ( ! empty( $spec['mutator_checkpoint'] ) ) {
 		$barrier = (string) ( $spec['mutator_barrier'] ?? $spec['barrier'] );
 		$release = (string) ( $spec['mutator_release'] ?? $spec['release'] );
 		file_put_contents( $barrier, $point . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
+		if ( 'throw' === ( $spec['mutator_fault'] ?? '' ) ) { throw new RuntimeException( 'controlled-mutator-fault' ); }
 		if ( 'wait' === ( $spec['mutator_fault'] ?? '' ) ) {
 			$deadline = microtime( true ) + 30;
 			while ( ! is_file( $release ) ) {

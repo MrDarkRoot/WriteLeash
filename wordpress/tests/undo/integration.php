@@ -508,6 +508,47 @@ eq( fresh_price( $pr_id ), '80.00', 'revoked zero mutation' );
 $manager_role->add_cap( 'edit_products' );
 marker( 'permission revocation: zero mutation, typed PERMISSION_DENIED' );
 
+// ---------------------------------------------------------------------------
+// #297 Undo executor refresh with a warm object cache: a user-level capability
+// revoke staged below the cache must still deny. The role-level revoke above
+// is visible through the role-option eviction the mutator already did; this
+// case targets the executor user cache that only clean_user_cache() drops.
+// ---------------------------------------------------------------------------
+$stale_actor = wp_insert_user( array( 'user_login' => 'wl110-stale-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );
+$st = apply_fixture( array( 'changing' => 1, 'actor' => (int) $stale_actor ) );
+$st_job = (int) $st['job']['id'];
+$st_id = $st['ids'][0];
+$st_op = start_undo( $st_job, (int) $stale_actor );
+$st_undo = (int) $st_op['id'];
+// Warm the executor's cached user/capability state while still authorized.
+$stale_probe = new WP_User( (int) $stale_actor );
+eq( user_can( $stale_probe, 'edit_products' ), true, 'stale-revoke fixture authorized before revoke' );
+$persistent = wp_using_ext_object_cache();
+echo '#110 undo revoke cache profile: persistent=' . ( $persistent ? 'yes' : 'no' ) . "\n";
+// External revoke straight in the database: the object cache keeps serving the
+// authorized caps until the mutator refreshes them. Never use set_role() here;
+// the metadata API would invalidate the cache and hide the staleness.
+$cap_key = $wpdb->get_blog_prefix() . 'capabilities';
+eq( (int) $wpdb->update( $wpdb->usermeta, array( 'meta_value' => serialize( array( 'subscriber' => true ) ) ), array( 'user_id' => (int) $stale_actor, 'meta_key' => $cap_key ) ), 1, 'stale-revoke staged below the cache' );
+// The smoking gun, read through a fresh user object: stale authorized caps.
+$stale_view = new WP_User( (int) $stale_actor );
+eq( user_can( $stale_view, 'edit_products' ), true, 'stale authorized caps served from cache' );
+if ( $persistent ) {
+	// Cross-process proof that the persistent cache holds the stale grant: a
+	// fresh process with a cold runtime cache still reads authorized.
+	$stale_probe_cmd = 'echo (int) user_can( new WP_User( ' . (int) $stale_actor . " ), 'edit_products' );";
+	$stale_probe_out = shell_exec( 'wp --path=' . escapeshellarg( ABSPATH ) . ' eval ' . escapeshellarg( $stale_probe_cmd ) );
+	eq( trim( (string) $stale_probe_out ), '1', 'persistent cache serves stale grant cross-process' );
+}
+$stale_saves = saves( $st_id );
+$stale_run = run_worker( array( 'undo_id' => $st_undo, 'mode' => 'undo', 'limits' => limits( 5 ) ) );
+eq( $stale_run['stop'], 'PERMISSION_REVOKED', 'stale-cache revoke typed pause' );
+eq( undo_row( $st_job, $st_id )['state'], UItem::FAILED, 'stale-cache revoke item failed without retry' );
+eq( undo_row( $st_job, $st_id )['reason'], 'PERMISSION_DENIED', 'stale-cache revoke typed reason' );
+eq( fresh_price( $st_id ), '80.00', 'stale-cache revoke zero mutation' );
+eq( saves( $st_id ), $stale_saves, 'stale-cache revoke zero restores' );
+marker( 'undo executor refresh: user-level revoke under warm cache denied, zero restores' );
+
 $actor2 = wp_insert_user( array( 'user_login' => 'wl110-gone-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );
 $gone = apply_fixture( array( 'changing' => 1, 'actor' => (int) $actor2 ) );
 $gone_job = (int) $gone['job']['id'];

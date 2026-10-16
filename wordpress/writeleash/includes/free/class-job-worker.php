@@ -178,6 +178,29 @@ final class Job_Worker {
 		return array( 'processed' => $processed, 'stop' => $stop, 'pause' => $pause, 'review' => $review );
 	}
 
+	/**
+	 * #297 live-worker reconciliation: a live mutator result of NEEDS_REVIEW
+	 * (ambiguous commit, lost acknowledgement) may still be a durable APPLIED.
+	 * The journal row plus binding is the oracle; the exception code is not.
+	 * Adopt only a bound APPLIED row under this worker's own claim token, so
+	 * the write stays APPLYING -> APPLIED with the journal's applied_at. A
+	 * lost claim token fails closed to the next generation's reconcile():
+	 * no forced outcome, no second mutation. Anything weaker than a bound
+	 * APPLIED returns false and the caller records NEEDS_REVIEW.
+	 */
+	private static function reconcile_durable_apply( Change_Plan $plan, array $item, string $token, int $product_id ): bool {
+		try { $observer = Price_Cache_Verifier::observer(); }
+		catch ( \Throwable $error ) { return false; }
+		try {
+			$row = Price_Apply_Journal::read( $observer, $plan->data()['plan_id'], $product_id );
+			if ( ! $row || 'APPLIED' !== $row['state'] ) { return false; }
+			try { Price_Apply_Journal::assert_binding( $row, $plan, $product_id ); }
+			catch ( \Throwable $error ) { return false; }
+			$applied_at = ! empty( $row['applied_at'] ) ? (string) $row['applied_at'] : null;
+			return Job_Repository::record_item( $item, $token, Job_Item_State::APPLIED, 'DURABLE_RECONCILED', $applied_at );
+		} catch ( \Throwable $error ) { return false; }
+		finally { $observer->close(); }
+	}
 	/** One #108 item transaction plus durable outcome recording. */
 	private static function attempt_item( int $job_id, string $owner, int $generation, Change_Plan $plan, array $item, string $token ): array {
 		try { Job_Repository::assert_item_material( $plan, $item ); }
@@ -251,6 +274,13 @@ final class Job_Worker {
 		if ( 'FAILED' === $code ) {
 			// #108 known caught rollback: journal is PENDING, bounded retry is safe.
 			Job_Repository::record_item( $item, $token, Job_Item_State::PENDING, 'FAILED', null, true );
+			return array( 'pause' => null, 'review' => false );
+		}
+		// #297: the mutator may report NEEDS_REVIEW after a durable journal
+		// commit (ambiguous COMMIT, lost acknowledgement). Re-read the journal
+		// before stranding the item: a bound APPLIED row is adopted with its
+		// own applied_at and no second save. Never inferred from the code.
+		if ( self::reconcile_durable_apply( $plan, $item, $token, $product_id ) ) {
 			return array( 'pause' => null, 'review' => false );
 		}
 		Job_Repository::record_item( $item, $token, Job_Item_State::NEEDS_REVIEW, $reason );

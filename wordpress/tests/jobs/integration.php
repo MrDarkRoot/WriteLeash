@@ -12,6 +12,9 @@ use WriteLeash\Price_Operation as Operation;
 use WriteLeash\Price_Selection_Spec as Selection;
 use WriteLeash\Safety_Policy as Policy;
 use WriteLeash\Woo_Price_Planner as Planner;
+use WriteLeash\Undo_Repository as URepo;
+use WriteLeash\Undo_Worker as UWorker;
+use WriteLeash\Undo_Item_State as UItem;
 
 global $wpdb, $work, $assertions, $hook_log, $items_table, $jobs_table;
 $assertions = 0;
@@ -511,6 +514,106 @@ foreach ( array( 'AFTER_WOO_SAVE_BEFORE_JOURNAL', 'AFTER_JOURNAL_BEFORE_COMMIT' 
 	assert_counts( $job_id, 'interrupted-before-commit-' . $point );
 	marker( 'kill between checkpoints ' . $point . ': durable PENDING, resume once, one net price change' );
 }
+
+// ---------------------------------------------------------------------------
+// #297 live-worker ambiguous commit: the mutator returns NEEDS_REVIEW while
+// the worker stays alive, after a durable journal APPLIED. Journal truth plus
+// binding is adopted with the journal applied_at; the Woo save never replays.
+// ---------------------------------------------------------------------------
+$f = job_fixture( array( 'changing' => 2 ) );
+$job_id = (int) $f['job']['id'];
+$live_ids = array_values( $f['ids'] );
+$live_a = $live_ids[0];
+$live_b = $live_ids[1];
+approves( $f );
+Worker::queue_job( $job_id );
+$live = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ), 'mutator_checkpoint' => 'AFTER_COMMIT_BEFORE_RESPONSE', 'mutator_fault' => 'throw' ) );
+$journal_a = journal_row( $f['plan']->data()['plan_id'], $live_a );
+$journal_b = journal_row( $f['plan']->data()['plan_id'], $live_b );
+eq( $journal_a['state'], 'APPLIED', 'live fault journal durable APPLIED A' );
+eq( $journal_b['state'], 'APPLIED', 'live fault journal durable APPLIED B' );
+ok( '' !== ( $journal_a['evidence'] ?? '' ), 'live fault journal evidence intact A' );
+$live_items = item_map( $job_id );
+eq( $live_items[ $live_a ]['state'], IState::APPLIED, 'live fault item adopted APPLIED A' );
+eq( $live_items[ $live_b ]['state'], IState::APPLIED, 'live fault item adopted APPLIED B' );
+eq( $live_items[ $live_a ]['reason'], 'DURABLE_RECONCILED', 'live fault typed adoption reason' );
+eq( $live_items[ $live_a ]['applied_at'], $journal_a['applied_at'], 'live fault applied_at is the journal applied_at' );
+eq( saves( $live_a ), 1, 'live fault no second save A' );
+eq( saves( $live_b ), 1, 'live fault no second save B' );
+eq( fresh_price( $live_a ), '80.00', 'live fault planned target A' );
+eq( $live['status'], JState::COMPLETED, 'live fault job completes without review' );
+assert_counts( $job_id, 'live-ambiguous-adopt' );
+marker( 'live ambiguous commit: bound APPLIED adopted with journal applied_at, zero replay' );
+
+// A reconciled APPLIED item stays eligible for conditional Undo, while a
+// newer external price on the sibling still conflicts instead of overwriting.
+$p = wc_get_product( $live_b );
+$p->set_regular_price( '70.00' );
+$p->save();
+$live_external_saves = saves( $live_b );
+wp_set_current_user( 1 );
+$live_op = URepo::initiate( $job_id, 1 );
+$live_undo = UWorker::run( (int) $live_op['id'], limits( 5 ), true );
+global $wpdb;
+$undo_a = URepo::read_item( $wpdb, $job_id, $live_a );
+$undo_b = URepo::read_item( $wpdb, $job_id, $live_b );
+eq( $undo_a['state'], UItem::UNDONE, 'reconciled item undo eligible and restored' );
+eq( fresh_price( $live_a ), '100.00', 'reconciled item restored to pre-apply price' );
+eq( $undo_b['state'], UItem::CONFLICT, 'newer external price still conflicts' );
+eq( fresh_price( $live_b ), '70.00', 'newer external price never overwritten' );
+eq( saves( $live_b ), $live_external_saves, 'conflicting undo performs zero restores' );
+marker( 'reconciled APPLIED feeds conditional Undo; newer price conflicts' );
+
+// ---------------------------------------------------------------------------
+// #297 fault before commit: the rolled-back attempt is never adopted as
+// APPLIED and never saves twice; an explicit retry still applies once.
+// ---------------------------------------------------------------------------
+$f = job_fixture( array( 'changing' => 1 ) );
+$job_id = (int) $f['job']['id'];
+$id = $f['ids'][0];
+approves( $f );
+Worker::queue_job( $job_id );
+$pre = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ), 'mutator_checkpoint' => 'AFTER_JOURNAL_BEFORE_COMMIT', 'mutator_fault' => 'throw' ) );
+eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'PENDING', 'pre-commit fault never durable APPLIED' );
+$pre_item = item_map( $job_id )[ $id ];
+eq( $pre_item['state'], IState::PENDING, 'pre-commit fault item stays retryable PENDING' );
+ok( IState::APPLIED !== $pre_item['state'], 'pre-commit fault never falsely adopted' );
+eq( saves( $id ), 1, 'pre-commit fault single rolled-back save' );
+eq( fresh_price( $id ), '100.00', 'pre-commit fault keeps the original price' );
+$wpdb->query( $wpdb->prepare( "UPDATE $items_table SET next_attempt_after=NULL WHERE job_id=%d AND product_id=%d", $job_id, $id ) );
+$retry = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ), 'manual' => true ) );
+eq( $retry['status'], JState::COMPLETED, 'retry after pre-commit fault completes' );
+eq( saves( $id ), 2, 'retry writes exactly once more after a rolled-back save' );
+eq( fresh_price( $id ), '80.00', 'retry writes the planned target once' );
+eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'APPLIED', 'retry durable APPLIED' );
+marker( 'pre-commit fault: no false adoption, explicit retry applies once' );
+
+// ---------------------------------------------------------------------------
+// #297 journal binding mismatch under a live worker: APPLIED in the journal
+// but corrupt material stays review, with zero new mutation.
+// ---------------------------------------------------------------------------
+$f = job_fixture( array( 'changing' => 1 ) );
+$job_id = (int) $f['job']['id'];
+$id = $f['ids'][0];
+approves( $f );
+Worker::queue_job( $job_id );
+$clean = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ) ) );
+eq( $clean['status'], JState::COMPLETED, 'binding fixture applies clean' );
+eq( saves( $id ), 1, 'binding fixture one save' );
+// Corrupt the material the binding check covers, then stage a live worker
+// attempt against the same row by returning its item to PENDING and its job
+// to PAUSED in the DB (staging only; no state-machine transition is used).
+$journal_table = Journal::table( $wpdb );
+eq( (int) $wpdb->update( $journal_table, array( 'target_price' => '79.99' ), array( 'plan_id' => $f['plan']->data()['plan_id'], 'product_id' => $id ) ), 1, 'binding mismatch staged' );
+eq( (int) $wpdb->update( $items_table, array( 'state' => IState::PENDING, 'claim_token' => '', 'claim_generation' => 0 ), array( 'job_id' => $job_id, 'product_id' => $id ) ), 1, 'live attempt staged' );
+eq( (int) $wpdb->update( $jobs_table, array( 'status' => JState::PAUSED ), array( 'id' => $job_id ) ), 1, 'staged job resumable' );
+$mis = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ), 'manual' => true ) );
+$mis_item = item_map( $job_id )[ $id ];
+eq( $mis_item['state'], IState::NEEDS_REVIEW, 'binding mismatch stays review' );
+eq( saves( $id ), 1, 'binding mismatch zero new saves' );
+eq( fresh_price( $id ), '80.00', 'binding mismatch keeps the applied price' );
+eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'APPLIED', 'binding mismatch leaves the journal row alone' );
+marker( 'binding mismatch under live worker: review, zero mutation' );
 
 // ---------------------------------------------------------------------------
 // Transient read refusal at the job boundary: durable PENDING, bounded retry.

@@ -41,6 +41,11 @@ final class Woo_Undo_Mutator {
 	private static function authorize( int $product_id ): void {
 		$user_id = get_current_user_id();
 		if ( $user_id < 1 ) { throw new Price_Apply_Error( 'PERMISSION_DENIED' ); }
+		// Same refresh as the Apply path, after the existing row locks and
+		// before capabilities are evaluated: role definitions and the current
+		// executor's cached user state are reloaded. Principal unchanged.
+		wp_roles()->for_site( get_current_blog_id() );
+		clean_user_cache( $user_id );
 		$user = new \WP_User( $user_id );
 		if ( ! user_can( $user, 'manage_woocommerce' ) || ! user_can( $user, 'edit_products' ) || ! user_can( $user, 'edit_post', $product_id ) ) { throw new Price_Apply_Error( 'PERMISSION_DENIED' ); }
 	}
