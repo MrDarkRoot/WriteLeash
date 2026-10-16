@@ -69,13 +69,15 @@ they are omitted from the public allowlist and loaded only by repository tests.
 | LICENSE | Reviewed GPLv2 text | PUBLIC_FREE_REQUIRED |
 | readme.txt | Minimum Woo-only user instructions; full copy belongs to #121 | PUBLIC_FREE_REQUIRED |
 
-All 34 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
+All 36 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
 inventory (multi-class files included):
 
 | File stem (`includes/free/class-<stem>.php`) | Classes / interfaces / traits | Classification |
 |---|---|---|
 | price-presets | Price_Preset_Configuration, Price_Preset_Repository | PUBLIC_FREE_REQUIRED |
 | free-support-contract | Free_Support_Contract, Free_Job_Limit_Error | PUBLIC_FREE_REQUIRED |
+| grant-schema | Grant_Schema, Grant_Error | PUBLIC_FREE_REQUIRED |
+| grant-repository | Grant_Repository | PUBLIC_FREE_REQUIRED |
 | price-decimal | Price_Validation_Error, Immutable_Price_Value, Price_Decimal | PUBLIC_FREE_REQUIRED |
 | price-operation | Price_Operation, Price_Calculator | PUBLIC_FREE_REQUIRED |
 | price-range | Price_Range_Filter; optional inclusive selection filter, never a mutation path | PUBLIC_FREE_REQUIRED |
@@ -130,7 +132,8 @@ inventory (multi-class files included):
 | writeleash_operation_budget_redirection_5_5_2_bulk_disable | Stale budget, no authority since #78 | REPOSITORY_ONLY_HISTORICAL |
 | writeleash_notice_* transients | Legacy Admin feedback only | REPOSITORY_ONLY_HISTORICAL |
 | writeleash_version, writeleash_runner_state | Free lifecycle metadata and durable fail-closed runner row | PUBLIC_FREE_REQUIRED |
-| writeleash_job_schema/setup, writeleash_undo_schema/setup | Free owned schema/setup metadata | PUBLIC_FREE_REQUIRED |
+| writeleash_job_schema/setup, writeleash_undo_schema/setup, writeleash_grant_schema/setup | Free owned schema/setup metadata | PUBLIC_FREE_REQUIRED |
+| writeleash_grants_disabled | Free standing-grant global disable; only explicit `0` enables grant writes | PUBLIC_FREE_REQUIRED |
 | Free preview/action notice transients | Free_Admin bounded ephemeral UI, not mutation truth | PUBLIC_FREE_REQUIRED |
 | WRITELEASH_VERSION, WRITELEASH_PLUGIN_FILE | Public bootstrap identity/lifecycle hooks | PUBLIC_FREE_REQUIRED |
 | WRITELEASH_DB_USER/PASSWORD/NAME/HOST | Historical config snippet / restricted account; HOST is account host, runtime uses normal DB_HOST connection host | REPOSITORY_ONLY_HISTORICAL |
@@ -140,7 +143,7 @@ inventory (multi-class files included):
 | Doctor READY / exact legacy WP matrix / grants and drain checks | Certified_Operation_Status enable/mutation gating; no Free activation/use dependency | REPOSITORY_ONLY_HISTORICAL |
 | Provisioning_Plan install/add_target/remove_target/rotate_credential/uninstall/drain | Explicit trusted installer, can create/drop helper/account/trigger/routines; no WordPress public entrypoint | REPOSITORY_ONLY_HISTORICAL |
 | Disposable_Demo_Setup install/cleanup | Trusted owned demo schema and policy; not Free setup | REPOSITORY_ONLY_HISTORICAL |
-| Free first-use dbDelta schema installation | Normal WP account; durable job/journal/Undo tables, no privileged helper SQL | PUBLIC_FREE_REQUIRED |
+| Free first-use dbDelta schema installation | Normal WP account; durable job/journal/Undo/grant tables, no privileged helper SQL | PUBLIC_FREE_REQUIRED |
 | uninstall exact deletion of three legacy writeleash option names above and four commitcap_* names | Backward local cleanup only: literals deleted, never read/migrated; no legacy class/include/callback/SQL authority | PUBLIC_FREE_REQUIRED |
 | uninstall runner-first shutdown, in-flight fence, owned AS group cancellation, retained journal/job/Undo evidence | #109/#110 implementation/assertions preserved; no price write or privileged DDL | PUBLIC_FREE_REQUIRED |
 
@@ -149,7 +152,7 @@ inventory (multi-class files included):
 | Element | Boundary | Classification |
 |---|---|---|
 | README.md (product-facing), RESEARCH.md and ADMIN-CLI.md, CANDIDATES.md, DEMO.md, DOCTOR.md, ENGINE.md, GUARD.md, OPERATION.md, PROVISIONING.md, REDIRECTION.md, RELEASE-MATRIX.md, THREAT-MODEL.md, LICENSE-AUDIT.md under plugin source | Repository product/research documentation; excluded from allowlist | REPOSITORY_ONLY_HISTORICAL |
-| FREE-PRICE-CONTRACT.md, FREE-PRICE-APPLY-CONTRACT.md, FREE-JOB-ENGINE-CONTRACT.md, FREE-UNDO-HISTORY-CONTRACT.md under plugin source | Repository engineering contracts/evidence for the public Woo domain; not user package files | REPOSITORY_ONLY_HISTORICAL |
+| FREE-PRICE-CONTRACT.md, FREE-PRICE-APPLY-CONTRACT.md, FREE-JOB-ENGINE-CONTRACT.md, FREE-UNDO-HISTORY-CONTRACT.md, FREE-GRANT-CONTRACT.md under plugin source | Repository engineering contracts/evidence for the public Woo domain; not user package files | REPOSITORY_ONLY_HISTORICAL |
 | Root docs/, experiments/, sql/, tests/ and historical plugin research source/tests | Engineering evidence only; no public manifest path | REPOSITORY_ONLY_HISTORICAL |
 | Historical Redirection/operator/Doctor instructions formerly in readme.txt | Removed from packaged readme; original remains in git history and research docs/operator-setup.txt | REMOVE_FROM_PUBLIC_PACKAGE |
 | wordpress/tests/legacy/ loader and staging mechanism | Explicit repository-only lab, never public staging or installed product authority | REPOSITORY_ONLY_HISTORICAL |
