@@ -53,11 +53,16 @@ if ( ! empty( $spec['mutator_checkpoint'] ) ) {
 if ( ! empty( $spec['commit_checkpoint'] ) ) {
 	add_action( 'writeleash_price_apply_checkpoint', static function ( $point ) use ( $spec ) {
 		if ( 'AFTER_JOURNAL_BEFORE_COMMIT' !== $point ) { return; }
-		add_action( 'writeleash_price_commit_checkpoint', static function ( $cpoint ) use ( $spec ) {
+		// One-shot: the next transport commit is provably the item commit, so
+		// the fault must disarm itself to leave later claim/finish commits alone.
+		$fault = null;
+		$fault = static function ( $cpoint ) use ( $spec, &$fault ) {
 			if ( $cpoint !== $spec['commit_checkpoint'] ) { return; }
+			remove_action( 'writeleash_price_commit_checkpoint', $fault, 10 );
 			file_put_contents( $spec['barrier'], $cpoint . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
 			if ( 'throw-ambiguous' === ( $spec['commit_fault'] ?? '' ) ) { throw new \WriteLeash\Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
-		}, 10, 2 );
+		};
+		add_action( 'writeleash_price_commit_checkpoint', $fault, 10, 2 );
 	}, 10, 3 );
 }
 // Public Woo factory filter staging a transient read refusal for one product,
