@@ -50,7 +50,7 @@ final class Woo_Price_Mutator {
 				try { Price_Apply_Journal::assert_binding( $row, $plan, $id ); }
 				catch ( Price_Apply_Error $error ) { $db->query( 'ROLLBACK' ); return; }
 			}
-			if ( $row && 'PENDING' === $row['state'] ) { Price_Apply_Journal::transition( $db, $plan->data()['plan_id'], $id, $state, $reason, $attempt ); }
+			if ( $row && 'PENDING' === $row['state'] ) { Price_Apply_Journal::transition( $db, $plan->data()['plan_id'], $id, $row['state'], $state, $reason, $attempt ); }
 			if ( false === $db->query( 'COMMIT' ) ) { throw new Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
 		} finally { $db->close(); }
 	}
@@ -87,7 +87,7 @@ final class Woo_Price_Mutator {
 				$tx->rollback();
 				return array( 'code' => $row['state'], 'reason' => $row['reason'], 'attempt_id' => $row['attempt_id'] );
 			}
-			Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, 'APPLYING', 'ITEM_LOCKED', $attempt );
+			Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, $row['state'], 'APPLYING', 'ITEM_LOCKED', $attempt );
 			$post = $tx->get_row( $tx->prepare( "SELECT ID FROM {$tx->posts} WHERE ID=%d FOR UPDATE", $id ) );
 			if ( ! $post ) { throw new Price_Apply_Error( 'CONFLICT' ); }
 			// Lock all product meta (including absent-key ranges), lookup and type terms.
@@ -164,7 +164,10 @@ final class Woo_Price_Mutator {
 			if ( $is_variation ) { $evidence['parent_id'] = $parent_id; }
 			if ( $guard && $guard->connection_id() > 0 ) { $evidence['fence_connection_id'] = $guard->connection_id(); }
 			$evidence = Plan_Hasher::canonical_json( $evidence );
-			Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, 'APPLIED', 'WOO_CRUD_VERIFIED', $attempt, $evidence );
+			// The row was claimed APPLYING above in this same transaction; the
+		// expected state makes a stale or reordered success fail closed
+		// before COMMIT instead of overwriting newer durable state.
+		Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, 'APPLYING', 'APPLIED', 'WOO_CRUD_VERIFIED', $attempt, $evidence );
 			self::checkpoint( 'AFTER_JOURNAL_BEFORE_COMMIT', $id, $attempt );
 			$tx->commit();
 			$committed = true;

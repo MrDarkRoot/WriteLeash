@@ -361,5 +361,42 @@ eq( M::undo_precondition( $b['object'], $b['id'] ), 'UNDO_ELIGIBLE', 'untouched 
 edit( $a, '80.00' );
 eq( M::undo_precondition( $a['object'], $a['id'] ), 'UNDO_ELIGIBLE', 'ABA equality limitation explicitly observed' );
 marker( 'Undo precondition only: current!=applied CONFLICT / current==applied ELIGIBLE / ABA limitation observed' );
+
+// #296 journal compare-and-set on the real engine: stale, duplicate and
+// skip-level transitions fail closed; APPLIED evidence stays intact.
+$c = fixture();
+eq( run_item( $c )['code'], 'APPLIED', 'CAS fixture applied' );
+$cas_plan = $c['object']->data()['plan_id'];
+$cas_before = J::read( $wpdb, $cas_plan, $c['id'] );
+eq( $cas_before['state'], 'APPLIED', 'CAS fixture durable APPLIED' );
+$cas_hooks = hook_count( $c );
+// A stale callback that still expects PENDING must not demote APPLIED.
+try { J::transition( $wpdb, $cas_plan, $c['id'], 'PENDING', 'FAILED', 'STALE', 'stale-attempt' ); throw new RuntimeException( 'stale CAS unexpectedly succeeded' ); }
+catch ( \WriteLeash\Price_Apply_Error $error ) { eq( $error->getMessage(), 'JOURNAL_MISMATCH', 'stale expected PENDING vs APPLIED fails closed' ); }
+// A stale callback that still expects APPLYING must not rewrite APPLIED either.
+try { J::transition( $wpdb, $cas_plan, $c['id'], 'APPLYING', 'APPLIED', 'WOO_CRUD_VERIFIED', 'stale-attempt', '{"target":"9.99"}' ); throw new RuntimeException( 'stale CAS unexpectedly succeeded' ); }
+catch ( \WriteLeash\Price_Apply_Error $error ) { eq( $error->getMessage(), 'JOURNAL_MISMATCH', 'stale expected APPLYING vs APPLIED fails closed' ); }
+$cas_after = J::read( $wpdb, $cas_plan, $c['id'] );
+eq( $cas_after['state'], 'APPLIED', 'stale CAS no demotion' );
+eq( $cas_after['evidence'], $cas_before['evidence'], 'stale CAS evidence preserved' );
+eq( $cas_after['applied_at'], $cas_before['applied_at'], 'stale CAS applied_at preserved' );
+eq( $cas_after['attempt_id'], $cas_before['attempt_id'], 'stale CAS attempt preserved' );
+eq( hook_count( $c ), $cas_hooks, 'stale CAS zero Woo save' );
+// A duplicate logical retry still short-circuits without a second save.
+eq( run_item( $c )['code'], 'ALREADY_APPLIED', 'CAS duplicate apply short-circuit' );
+eq( hook_count( $c ), $cas_hooks, 'CAS duplicate zero replay' );
+truth( $c, '80', 'APPLIED' );
+// No transition out of APPLIED, even when the caller names APPLIED itself.
+try { J::transition( $wpdb, $cas_plan, $c['id'], 'APPLIED', 'PENDING', 'STALE', 'demote-attempt' ); throw new RuntimeException( 'demotion unexpectedly succeeded' ); }
+catch ( \WriteLeash\Price_Apply_Error $error ) { eq( $error->getMessage(), 'JOURNAL_MISMATCH', 'no transition out of APPLIED' ); }
+eq( J::read( $wpdb, $cas_plan, $c['id'] )['state'], 'APPLIED', 'rejected demotion leaves APPLIED' );
+// A skip from PENDING straight to APPLIED is rejected and stays retryable.
+$p = fixture();
+try { J::transition( $wpdb, $p['object']->data()['plan_id'], $p['id'], 'PENDING', 'APPLIED', 'WOO_CRUD_VERIFIED', 'skip-attempt', '{}' ); throw new RuntimeException( 'skip unexpectedly succeeded' ); }
+catch ( \WriteLeash\Price_Apply_Error $error ) { eq( $error->getMessage(), 'JOURNAL_MISMATCH', 'PENDING->APPLIED skip rejected' ); }
+eq( J::read( $wpdb, $p['object']->data()['plan_id'], $p['id'] )['state'], 'PENDING', 'rejected skip leaves PENDING' );
+eq( run_item( $p )['code'], 'APPLIED', 'row still applicable after rejected skip' );
+truth( $p, '80', 'APPLIED' );
+marker( 'journal compare-and-set: stale/duplicate/skip fail closed; APPLIED evidence intact' );
 if ( wp_using_ext_object_cache() ) { marker( 'persistent cache COMMIT/ROLLBACK/retry/already-APPLIED/external-edit consistent' ); }
 marker( 'complete executable correctness matrix' );
