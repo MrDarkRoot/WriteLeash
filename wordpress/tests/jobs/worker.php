@@ -47,12 +47,18 @@ if ( ! empty( $spec['mutator_checkpoint'] ) ) {
 // after the durable COMMIT succeeded but before ownership is released. A throw
 // here models a lost acknowledgement with the write already durable; the
 // worker cannot know the outcome from the exception alone.
+// The commit transport is shared (claims, setup, mutations), so the fault
+// arms only once the mutator reaches AFTER_JOURNAL_BEFORE_COMMIT: the next
+// commit on this connection is then provably the item commit, never a claim.
 if ( ! empty( $spec['commit_checkpoint'] ) ) {
-	add_action( 'writeleash_price_commit_checkpoint', static function ( $point ) use ( $spec ) {
-		if ( $point !== $spec['commit_checkpoint'] ) { return; }
-		file_put_contents( $spec['barrier'], $point . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
-		if ( 'throw-ambiguous' === ( $spec['commit_fault'] ?? '' ) ) { throw new \WriteLeash\Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
-	}, 10, 2 );
+	add_action( 'writeleash_price_apply_checkpoint', static function ( $point ) use ( $spec ) {
+		if ( 'AFTER_JOURNAL_BEFORE_COMMIT' !== $point ) { return; }
+		add_action( 'writeleash_price_commit_checkpoint', static function ( $cpoint ) use ( $spec ) {
+			if ( $cpoint !== $spec['commit_checkpoint'] ) { return; }
+			file_put_contents( $spec['barrier'], $cpoint . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
+			if ( 'throw-ambiguous' === ( $spec['commit_fault'] ?? '' ) ) { throw new \WriteLeash\Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
+		}, 10, 2 );
+	}, 10, 3 );
 }
 // Public Woo factory filter staging a transient read refusal for one product,
 // exactly as the #209 durable probe does; never a mutator/production mock.
