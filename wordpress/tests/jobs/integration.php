@@ -15,6 +15,7 @@ use WriteLeash\Woo_Price_Planner as Planner;
 use WriteLeash\Undo_Repository as URepo;
 use WriteLeash\Undo_Worker as UWorker;
 use WriteLeash\Undo_Item_State as UItem;
+use WriteLeash\Undo_Schema as USchema;
 
 global $wpdb, $work, $assertions, $hook_log, $items_table, $jobs_table;
 $assertions = 0;
@@ -563,6 +564,11 @@ eq( $undo_b['state'], UItem::CONFLICT, 'newer external price still conflicts' );
 eq( fresh_price( $live_b ), '70.00', 'newer external price never overwritten' );
 eq( saves( $live_b ), $live_external_saves, 'conflicting undo performs zero restores' );
 marker( 'reconciled APPLIED feeds conditional Undo; newer price conflicts' );
+// The next cache profile reuses job IDs after mid-file table recreation while
+// Undo tables persist: remove only this block's Undo operation/items, exactly
+// like the migration fixture cleanup at the end of this file.
+eq( $wpdb->delete( USchema::items_table( $wpdb ), array( 'undo_id' => (int) $live_op['id'], 'plan_id' => $f['plan']->data()['plan_id'] ) ), 2, 'cleanup this reconciliation fixture Undo items' );
+eq( $wpdb->delete( USchema::operations_table( $wpdb ), array( 'id' => (int) $live_op['id'], 'plan_id' => $f['plan']->data()['plan_id'] ) ), 1, 'cleanup this reconciliation fixture Undo operation' );
 
 // ---------------------------------------------------------------------------
 // #297 fault before commit: the rolled-back attempt is never adopted as
