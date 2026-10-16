@@ -558,7 +558,7 @@ global $wpdb;
 $undo_a = URepo::read_item( $wpdb, $job_id, $live_a );
 $undo_b = URepo::read_item( $wpdb, $job_id, $live_b );
 eq( $undo_a['state'], UItem::UNDONE, 'reconciled item undo eligible and restored' );
-eq( fresh_price( $live_a ), '100.00', 'reconciled item restored to pre-apply price' );
+eq( Decimal::parse( fresh_price( $live_a ) ), '100', 'reconciled item restored to pre-apply price' );
 eq( $undo_b['state'], UItem::CONFLICT, 'newer external price still conflicts' );
 eq( fresh_price( $live_b ), '70.00', 'newer external price never overwritten' );
 eq( saves( $live_b ), $live_external_saves, 'conflicting undo performs zero restores' );
