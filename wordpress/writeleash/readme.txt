@@ -128,14 +128,13 @@ effects.
 
 == Screenshots ==
 
-1. Earlier selection-screen example: choose products by name, SKU or category. Current category selection also offers nested subcategories.
-2. Review exact before-and-after Sale Price values, variations, warnings and skips in this earlier Preview example.
-3. Background-job example with 24 products: see changed and remaining products, and Resume interrupted work. This capture predates live progress updates.
-4. Review completed changes and explained skips; one invalid price does not stop the useful result.
-5. A later price or setting change becomes a conflict instead of a blind overwrite. Regular Price example: expected $100, planned $80, current $120 remains unchanged.
-6. Review History outcomes and eligible Undo availability in this earlier example. Availability does not guarantee that every product will restore.
+1. Select products by name, SKU, category or ID – with nested subcategory option.
+2. Exact before-and-after Preview of Regular & Sale prices (including variations).
+3. Live background job progress with Resume.
+4. Conflict protection: newer price is kept instead of overwritten.
+5. History + eligible Undo within 30 days.
+6. Safety limits: max products, max % increase/decrease, block zero prices.
 
-Earlier authentic captures; current labels and controls may differ.
 Not all features are pictured.
 
 == Frequently Asked Questions ==
@@ -148,7 +147,8 @@ Regular Price; regular targets must remain above an existing sale.
 = What happens if a price changes after Preview? =
 
 Target-price, product/parent eligibility, currency and precision checks can
-refuse a change. Review conflicts in a fresh Preview with separate approval.
+refuse a change. A later price or setting change becomes a conflict instead of a blind overwrite.
+Review conflicts in a fresh Preview with separate approval.
 Checks compare current values: changes away and back may not be detected.
 
 = Can I review the Preview without changing prices? =
