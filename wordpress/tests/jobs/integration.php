@@ -622,6 +622,69 @@ eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'APPLIED', 'bind
 marker( 'binding mismatch under live worker: review, zero mutation' );
 
 // ---------------------------------------------------------------------------
+// #297 commit() itself throws after the durable write took effect: the worker
+// cannot know the outcome from the exception alone, so it must reconcile from
+// the journal instead of blindly retrying the mutation.
+// ---------------------------------------------------------------------------
+$f = job_fixture( array( 'changing' => 1 ) );
+$job_id = (int) $f['job']['id'];
+$id = $f['ids'][0];
+approves( $f );
+Worker::queue_job( $job_id );
+$amb_worker = start_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ), 'commit_checkpoint' => 'AFTER_COMMIT_BEFORE_RETURN', 'commit_fault' => 'throw-ambiguous' ) );
+$amb = finish_worker( $amb_worker );
+$amb_barrier = file_get_contents( $amb_worker['spec']['barrier'] );
+ok( str_starts_with( (string) $amb_barrier, 'AFTER_COMMIT_BEFORE_RETURN:' ), 'commit fault fired after durable COMMIT' );
+$amb_journal = journal_row( $f['plan']->data()['plan_id'], $id );
+eq( $amb_journal['state'], 'APPLIED', 'thrown commit left the durable APPLIED row' );
+$amb_item = item_map( $job_id )[ $id ];
+eq( $amb_item['state'], IState::APPLIED, 'thrown commit reconciled to APPLIED' );
+eq( $amb_item['reason'], 'DURABLE_RECONCILED', 'thrown commit typed adoption reason' );
+eq( $amb_item['applied_at'], $amb_journal['applied_at'], 'thrown commit applied_at is the journal applied_at' );
+eq( saves( $id ), 1, 'thrown commit never re-saved' );
+eq( fresh_price( $id ), '80.00', 'thrown commit kept the planned target' );
+eq( $amb['status'], JState::COMPLETED, 'thrown commit job completes without review' );
+assert_counts( $job_id, 'commit-throws-ambiguous' );
+marker( 'commit() throws after durable write: journal reconciliation, zero replay' );
+
+// ---------------------------------------------------------------------------
+// #297 fail closed on a bound APPLIED row without timestamp evidence: a NULL
+// applied_at (missing) and a zero-date applied_at (empty) both stay
+// NEEDS_REVIEW with zero new mutation. Valid APPLIED rows still reconcile,
+// as proven by every adoption case above.
+// ---------------------------------------------------------------------------
+foreach ( array( 'null' => null, 'zero-date' => '0000-00-00 00:00:00' ) as $variant => $stamp ) {
+	$f = job_fixture( array( 'changing' => 1 ) );
+	$job_id = (int) $f['job']['id'];
+	$id = $f['ids'][0];
+	approves( $f );
+	Worker::queue_job( $job_id );
+	$setup = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ) ) );
+	eq( $setup['status'], JState::COMPLETED, 'timestamp fixture applies clean ' . $variant );
+	eq( saves( $id ), 1, 'timestamp fixture one save ' . $variant );
+	$journal_table = Journal::table( $wpdb );
+	$sql_mode = null;
+	if ( 'zero-date' === $variant ) {
+		// Strict mode refuses the empty timestamp; relax this session only to
+		// stage the storable empty shape, then restore immediately.
+		$sql_mode = $wpdb->get_var( 'SELECT @@SESSION.sql_mode' );
+		$wpdb->query( "SET SESSION sql_mode=''" );
+	}
+	eq( (int) $wpdb->update( $journal_table, array( 'applied_at' => $stamp ), array( 'plan_id' => $f['plan']->data()['plan_id'], 'product_id' => $id ) ), 1, 'timestamp evidence removed ' . $variant );
+	if ( 'zero-date' === $variant ) { $wpdb->query( $wpdb->prepare( 'SET SESSION sql_mode=%s', (string) $sql_mode ) ); }
+	eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'APPLIED', 'timestamp case keeps APPLIED state ' . $variant );
+	eq( (int) $wpdb->update( $items_table, array( 'state' => IState::PENDING, 'claim_token' => '', 'claim_generation' => 0 ), array( 'job_id' => $job_id, 'product_id' => $id ) ), 1, 'live attempt staged ' . $variant );
+	eq( (int) $wpdb->update( $jobs_table, array( 'status' => JState::PAUSED ), array( 'id' => $job_id ) ), 1, 'staged job resumable ' . $variant );
+	$ts = run_worker( array( 'job_id' => $job_id, 'mode' => 'run', 'limits' => limits( 2 ), 'manual' => true ) );
+	$ts_item = item_map( $job_id )[ $id ];
+	eq( $ts_item['state'], IState::NEEDS_REVIEW, 'missing timestamp stays review ' . $variant );
+	eq( saves( $id ), 1, 'missing timestamp zero new saves ' . $variant );
+	eq( fresh_price( $id ), '80.00', 'missing timestamp keeps the applied price ' . $variant );
+	eq( journal_row( $f['plan']->data()['plan_id'], $id )['state'], 'APPLIED', 'missing timestamp leaves the journal row alone ' . $variant );
+	marker( 'missing applied_at (' . $variant . '): fail closed to NEEDS_REVIEW, zero mutation' );
+}
+
+// ---------------------------------------------------------------------------
 // Transient read refusal at the job boundary: durable PENDING, bounded retry.
 // The retry re-runs the frozen precondition, so a newer edit wins as CONFLICT.
 // ---------------------------------------------------------------------------

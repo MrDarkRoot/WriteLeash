@@ -43,6 +43,17 @@ if ( ! empty( $spec['mutator_checkpoint'] ) ) {
 		}
 	}, 10, 3 );
 }
+// #297 commit-level fault: the hook fires inside Price_Apply_Connection::commit()
+// after the durable COMMIT succeeded but before ownership is released. A throw
+// here models a lost acknowledgement with the write already durable; the
+// worker cannot know the outcome from the exception alone.
+if ( ! empty( $spec['commit_checkpoint'] ) ) {
+	add_action( 'writeleash_price_commit_checkpoint', static function ( $point ) use ( $spec ) {
+		if ( $point !== $spec['commit_checkpoint'] ) { return; }
+		file_put_contents( $spec['barrier'], $point . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
+		if ( 'throw-ambiguous' === ( $spec['commit_fault'] ?? '' ) ) { throw new \WriteLeash\Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
+	}, 10, 2 );
+}
 // Public Woo factory filter staging a transient read refusal for one product,
 // exactly as the #209 durable probe does; never a mutator/production mock.
 if ( ! empty( $spec['class_fault'] ) ) {

@@ -78,6 +78,11 @@ final class Price_Apply_Connection extends \wpdb {
 	public function commit(): void {
 		$this->assert_owned();
 		try { $this->raw( 'COMMIT' ); } catch ( \Throwable $e ) { throw new Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
+		// #297 test seam: fires after the durable COMMIT succeeded but before
+		// ownership is released, so a fault here models a lost acknowledgement
+		// with the write already durable. No listener in production; the
+		// mutator treats any throw as an unknown outcome, never as success.
+		do_action( 'writeleash_price_commit_checkpoint', 'AFTER_COMMIT_BEFORE_RETURN', $this->connection_id );
 		$this->owned = false;
 	}
 	public function owns_attempt(): bool { return $this->owned; }

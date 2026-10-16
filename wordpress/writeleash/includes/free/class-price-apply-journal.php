@@ -198,6 +198,14 @@ final class Price_Apply_Journal {
 		return $row ?: null;
 	}
 	/**
+	 * #297 timestamp evidence: applied_at is stamped atomically with the
+	 * APPLIED transition, so only a real timestamp counts. NULL, empty and
+	 * zero-date values are inconsistent evidence and must fail closed.
+	 */
+	public static function has_valid_applied_at( array $row ): bool {
+		return ! empty( $row['applied_at'] ) && 1 === preg_match( '/\A[1-9][0-9]{3}-[01][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9]\z/', (string) $row['applied_at'] );
+	}
+	/**
 	 * #296 compare-and-set: the row moves only from the state the caller
 	 * observed. The expected state is part of the UPDATE predicate, so the
 	 * check is atomic in the persistence operation, not just in memory. A

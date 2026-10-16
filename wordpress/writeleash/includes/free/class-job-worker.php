@@ -196,8 +196,12 @@ final class Job_Worker {
 			if ( ! $row || 'APPLIED' !== $row['state'] ) { return false; }
 			try { Price_Apply_Journal::assert_binding( $row, $plan, $product_id ); }
 			catch ( \Throwable $error ) { return false; }
-			$applied_at = ! empty( $row['applied_at'] ) ? (string) $row['applied_at'] : null;
-			return Job_Repository::record_item( $item, $token, Job_Item_State::APPLIED, 'DURABLE_RECONCILED', $applied_at );
+			// applied_at is stamped atomically with the APPLIED transition, and
+			// the observer rejects an APPLIED row without it. A bound APPLIED
+			// row lacking a valid timestamp is inconsistent evidence: fail
+			// closed to NEEDS_REVIEW. Never invent a timestamp here.
+			if ( ! Price_Apply_Journal::has_valid_applied_at( $row ) ) { return false; }
+			return Job_Repository::record_item( $item, $token, Job_Item_State::APPLIED, 'DURABLE_RECONCILED', (string) $row['applied_at'] );
 		} catch ( \Throwable $error ) { return false; }
 		finally { $observer->close(); }
 	}
