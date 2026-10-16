@@ -121,7 +121,7 @@ final class Job_Reason {
 			'ALL_ITEMS_CLEAN' => __( 'Every product was processed with no conflicts.', 'writeleash' ),
 			'ITEM_CONFLICTS' => __( 'One or more products changed after review or could not be changed; review the product list.', 'writeleash' ),
 			'ITEM_NEEDS_REVIEW' => __( 'At least one product outcome could not be confirmed; check the product list.', 'writeleash' ),
-			'PERMISSION_REVOKED' => __( 'The person who approved this change can no longer edit one or more products; remaining products are paused.', 'writeleash' ),
+			'PERMISSION_REVOKED' => __( 'The person who created this preview can no longer edit one or more products; remaining products are paused.', 'writeleash' ),
 			'DEPENDENCY_UNAVAILABLE' => sprintf( /* translators: %s: supported WooCommerce version range. */ __( 'WriteLeash requires an active, initialized %s; no product was changed.', 'writeleash' ), Free_Support_Contract::range_text() ),
 			'WOOCOMMERCE_VERSION_UNSUPPORTED' => sprintf( /* translators: %s: supported WooCommerce version range. */ __( 'The installed WooCommerce version is outside the supported %s range; update or roll back WooCommerce, then resume. No product was changed.', 'writeleash' ), Free_Support_Contract::range_text() ),
 			'MULTISITE_UNSUPPORTED' => __( 'Multisite is not supported; run WriteLeash on a single-site installation, then resume. No product was changed.', 'writeleash' ),

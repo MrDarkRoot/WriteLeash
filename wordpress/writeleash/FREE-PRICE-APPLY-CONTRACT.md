@@ -1,5 +1,31 @@
 # Free price apply: #108 engineering contract
 
+> 2026-10-15 (#295) price-write boundary, superseding without deleting the
+> historical sections below. In-scope WriteLeash price writers, enforced by
+> `tests/jobs/price-write-allowlist.php` over all plugin PHP:
+> `Woo_Price_Mutator::set_field()` / `apply()` (`set_regular_price` /
+> `set_sale_price`, then WooCommerce `save()`), `Woo_Undo_Mutator::restore()`
+> (same setters, then `save()`), and `Price_Cache_Verifier::sync_variable_parent()`
+> (`WC_Product_Variable::sync()` on the same pinned connection). Outside this
+> boundary and not controlled by it: WooCommerce product admin, WooCommerce
+> REST, external WP-CLI product commands, direct SQL, other plugins, and hooks
+> using a different database connection. Hooks running during `save()` on the
+> pinned connection may write other rows in the same transaction; price
+> verification does not independently reverse those writes unless verification
+> itself fails the item. Execution principal is the frozen `plan.actor_id`,
+> re-checked under locks by `Woo_Price_Mutator::authorize()`; the approver is
+> recorded but never substituted. Admin `precheck_product_rights()` checks the
+> clicker only; REST resume has no such clicker check and that is not a second
+> write path. Policy is evaluated when the plan is created and frozen into it;
+> Apply never re-evaluates percentages. This primitive is reachable through
+> `admin_post_writeleash_free_approve` (queues), `admin_post_writeleash_free_resume`,
+> `POST /wp-json/writeleash/v1/jobs/{uuid}/resume`, and the
+> `writeleash_process_job` scheduler hook, which supersedes the "no public
+> mutation endpoint" and "REST resume only" sentences retained below. The apply
+> journal state-conditional update (#296) is a separate pending gate and is not
+> claimed here. The allowlist is a token tripwire, not a sandbox: variable
+> methods, concatenated names and raw SQL need runtime review.
+
 > Journal schema 3 supersedes the full-JSON-per-item statements below. Public
 > jobs retain the canonical full plan once in `writeleash_jobs`; item rows keep
 > identity/versions, the existing material hash, a supplemental SHA-256 of the

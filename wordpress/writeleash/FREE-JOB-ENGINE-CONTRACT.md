@@ -205,6 +205,9 @@ MANUAL_PAUSE`. Display copy is separate
   nonces, subscribers, foreign shop managers, GET, malformed IDs, terminal jobs
   and broken schema all mutate zero products. It performs one bounded chunk and
   enqueues a follow-up when items remain.
+> 2026-10-15 (#295): the "only" above is stale but retained. Manual resume is
+> also `admin_post_writeleash_free_resume`; see the price-write boundary banner
+> in `FREE-PRICE-APPLY-CONTRACT.md`. Both entries reach the same #108 primitive.
 - Deactivation sets `writeleash_runner_state = deactivated` and cancels only the
   `writeleash-jobs` action group. Workers stop at the next boundary and persist
   `PAUSED/DEACTIVATED`; applied facts and history are retained. Reactivation
