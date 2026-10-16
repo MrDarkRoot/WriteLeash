@@ -1,0 +1,859 @@
+{
+  "accepted": [
+    {
+      "case": "1",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 795.0,
+        "p95_us": 7831.0,
+        "p99_us": 8585.0,
+        "mean_tps": 832.536001423475,
+        "tps_sample_sd": 409.6040929215553,
+        "mean_rows_per_sec": 832.536001423475,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 941.0,
+            "p95_us": 8218.0,
+            "p99_us": 8859.0,
+            "tps": 363.08447515532475,
+            "rows_per_sec": 363.08447515532475
+          },
+          {
+            "round": 2,
+            "p50_us": 778.0,
+            "p95_us": 1208.0,
+            "p99_us": 2039.0,
+            "tps": 1117.1312071197876,
+            "rows_per_sec": 1117.1312071197876
+          },
+          {
+            "round": 3,
+            "p50_us": 663.0,
+            "p95_us": 2724.0,
+            "p99_us": 3986.0,
+            "tps": 1017.3923219953125,
+            "rows_per_sec": 1017.3923219953125
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 863.0,
+        "p95_us": 5296.0,
+        "p99_us": 18386.0,
+        "mean_tps": 834.107015401188,
+        "tps_sample_sd": 394.6915725412102,
+        "mean_rows_per_sec": 834.107015401188,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 947.0,
+            "p95_us": 14283.0,
+            "p99_us": 18441.0,
+            "tps": 379.51384324409185,
+            "rows_per_sec": 379.51384324409185
+          },
+          {
+            "round": 2,
+            "p50_us": 847.0,
+            "p95_us": 1395.0,
+            "p99_us": 2161.0,
+            "tps": 1033.292690676902,
+            "rows_per_sec": 1033.292690676902
+          },
+          {
+            "round": 3,
+            "p50_us": 800.0,
+            "p95_us": 1193.0,
+            "p99_us": 2500.0,
+            "tps": 1089.5145122825702,
+            "rows_per_sec": 1089.5145122825702
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 8.553459119496853,
+      "protected_mean_tps_change_pct": 0.18870222729430175,
+      "paired_round_tps_change_pct": [
+        4.524943701252648,
+        -7.504804798985054,
+        7.088926142651775
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 358.920797,
+          "protected_tps": 1021.346134,
+          "protected_tps_change_pct": 184.5603103907072
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 367.345889,
+          "protected_tps": 233.056773,
+          "protected_tps_change_pct": -36.5565860463461
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 1188.368252,
+          "protected_tps": 979.201755,
+          "protected_tps_change_pct": -17.601151549444115
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 1053.951792,
+          "protected_tps": 1093.708986,
+          "protected_tps_change_pct": 3.772202324790963
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 1325.32835,
+          "protected_tps": 1084.881097,
+          "protected_tps_change_pct": -18.142466581960615
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 825.572948,
+          "protected_tps": 1094.187675,
+          "protected_tps_change_pct": 32.536764637302525
+        }
+      ],
+      "baseline_round_tps_cv": 0.4919956521053886,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%",
+        "baseline round TPS sample CV > 10%",
+        "paired overhead reverses sign with > 20 percentage-point spread"
+      ]
+    },
+    {
+      "case": "5",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 847.0,
+        "p95_us": 7846.0,
+        "p99_us": 8159.0,
+        "mean_tps": 868.3301219825611,
+        "tps_sample_sd": 448.58349438501597,
+        "mean_rows_per_sec": 4341.6506099128055,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 975.0,
+            "p95_us": 8035.0,
+            "p99_us": 8520.0,
+            "tps": 368.5107562903831,
+            "rows_per_sec": 1842.5537814519155
+          },
+          {
+            "round": 2,
+            "p50_us": 715.0,
+            "p95_us": 1067.0,
+            "p99_us": 1717.0,
+            "tps": 1235.9793593291377,
+            "rows_per_sec": 6179.8967966456885
+          },
+          {
+            "round": 3,
+            "p50_us": 864.0,
+            "p95_us": 1386.0,
+            "p99_us": 1820.0,
+            "tps": 1000.5002503281626,
+            "rows_per_sec": 5002.501251640813
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 893.0,
+        "p95_us": 7815.0,
+        "p99_us": 8297.0,
+        "mean_tps": 828.4588634644974,
+        "tps_sample_sd": 417.5400378900205,
+        "mean_rows_per_sec": 4142.294317322488,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1081.0,
+            "p95_us": 8063.0,
+            "p99_us": 8678.0,
+            "tps": 346.3335396372241,
+            "rows_per_sec": 1731.6676981861203
+          },
+          {
+            "round": 2,
+            "p50_us": 811.0,
+            "p95_us": 1288.0,
+            "p99_us": 1714.0,
+            "tps": 1067.0593445287923,
+            "rows_per_sec": 5335.296722643961
+          },
+          {
+            "round": 3,
+            "p50_us": 839.0,
+            "p95_us": 1255.0,
+            "p99_us": 1594.0,
+            "tps": 1071.983706227476,
+            "rows_per_sec": 5359.91853113738
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 5.430932703659974,
+      "protected_mean_tps_change_pct": -4.591716618908725,
+      "paired_round_tps_change_pct": [
+        -6.018064947793156,
+        -13.666896095419546,
+        7.144771415685991
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 368.935621,
+          "protected_tps": 364.799743,
+          "protected_tps_change_pct": -1.1210297310923156
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 368.086869,
+          "protected_tps": 329.646783,
+          "protected_tps_change_pct": -10.443210349891608
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 1222.852671,
+          "protected_tps": 1178.772662,
+          "protected_tps_change_pct": -3.6046868151298317
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 1249.390922,
+          "protected_tps": 974.687369,
+          "protected_tps_change_pct": -21.986997677257015
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 888.691402,
+          "protected_tps": 1084.187131,
+          "protected_tps_change_pct": 21.998156903514165
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 1144.492132,
+          "protected_tps": 1060.051943,
+          "protected_tps_change_pct": -7.377961511403397
+        }
+      ],
+      "baseline_round_tps_cv": 0.5166047831679678,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%",
+        "baseline round TPS sample CV > 10%",
+        "paired overhead reverses sign with > 20 percentage-point spread"
+      ]
+    },
+    {
+      "case": "100",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 1116.0,
+        "p95_us": 8782.0,
+        "p99_us": 42111.0,
+        "mean_tps": 562.3332193517564,
+        "tps_sample_sd": 444.01915872686146,
+        "mean_rows_per_sec": 56233.32193517564,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1340.0,
+            "p95_us": 36088.0,
+            "p99_us": 72292.0,
+            "tps": 49.704679965464386,
+            "rows_per_sec": 4970.467996546438
+          },
+          {
+            "round": 2,
+            "p50_us": 1051.0,
+            "p95_us": 1802.0,
+            "p99_us": 2666.0,
+            "tps": 810.7735591799984,
+            "rows_per_sec": 81077.35591799984
+          },
+          {
+            "round": 3,
+            "p50_us": 961.0,
+            "p95_us": 1793.0,
+            "p99_us": 4890.0,
+            "tps": 826.5214189098064,
+            "rows_per_sec": 82652.14189098064
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 1821.0,
+        "p95_us": 36379.0,
+        "p99_us": 40396.0,
+        "mean_tps": 390.4793532284591,
+        "tps_sample_sd": 258.76190130114446,
+        "mean_rows_per_sec": 39047.93532284591,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 2182.0,
+            "p95_us": 38539.0,
+            "p99_us": 41029.0,
+            "tps": 91.71345934868808,
+            "rows_per_sec": 9171.345934868808
+          },
+          {
+            "round": 2,
+            "p50_us": 1744.0,
+            "p95_us": 2402.0,
+            "p99_us": 4319.0,
+            "tps": 536.4087432122046,
+            "rows_per_sec": 53640.874321220464
+          },
+          {
+            "round": 3,
+            "p50_us": 1688.0,
+            "p95_us": 2345.0,
+            "p99_us": 3409.0,
+            "tps": 543.3158571244845,
+            "rows_per_sec": 54331.585712448454
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 63.1720430107527,
+      "protected_mean_tps_change_pct": -30.56085968412219,
+      "paired_round_tps_change_pct": [
+        84.5167485484507,
+        -33.83988203133824,
+        -34.2647577311274
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 332.198322,
+          "protected_tps": 94.266877,
+          "protected_tps_change_pct": -71.62331331703717
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 26.861928,
+          "protected_tps": 89.294723,
+          "protected_tps_change_pct": 232.42112405334422
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 738.18716,
+          "protected_tps": 549.082483,
+          "protected_tps_change_pct": -25.61744327820602
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 899.191627,
+          "protected_tps": 524.306866,
+          "protected_tps_change_pct": -41.69130914293978
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 784.9108729999999,
+          "protected_tps": 529.49555,
+          "protected_tps_change_pct": -32.540678411522016
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 872.790748,
+          "protected_tps": 557.876944,
+          "protected_tps_change_pct": -36.081249110582924
+        }
+      ],
+      "baseline_round_tps_cv": 0.7896015092949971,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%",
+        "baseline round TPS sample CV > 10%",
+        "paired overhead reverses sign with > 20 percentage-point spread"
+      ]
+    },
+    {
+      "case": "users",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 803.0,
+        "p95_us": 35119.0,
+        "p99_us": 39297.0,
+        "mean_tps": 794.7313091009066,
+        "tps_sample_sd": 603.4403183100986,
+        "mean_rows_per_sec": 794.7313091009066,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 947.0,
+            "p95_us": 39080.0,
+            "p99_us": 39876.0,
+            "tps": 98.79197162039355,
+            "rows_per_sec": 98.79197162039355
+          },
+          {
+            "round": 2,
+            "p50_us": 708.0,
+            "p95_us": 1254.0,
+            "p99_us": 2179.0,
+            "tps": 1172.55975666049,
+            "rows_per_sec": 1172.55975666049
+          },
+          {
+            "round": 3,
+            "p50_us": 771.0,
+            "p95_us": 1192.0,
+            "p99_us": 2284.0,
+            "tps": 1112.8421990218364,
+            "rows_per_sec": 1112.8421990218364
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 882.0,
+        "p95_us": 33576.0,
+        "p99_us": 38093.0,
+        "mean_tps": 740.0858906636577,
+        "tps_sample_sd": 562.3037156789981,
+        "mean_rows_per_sec": 740.0858906636577,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1026.0,
+            "p95_us": 37714.0,
+            "p99_us": 38679.0,
+            "tps": 101.7591615189961,
+            "rows_per_sec": 101.7591615189961
+          },
+          {
+            "round": 2,
+            "p50_us": 728.0,
+            "p95_us": 1155.0,
+            "p99_us": 1351.0,
+            "tps": 1162.1555660775293,
+            "rows_per_sec": 1162.1555660775293
+          },
+          {
+            "round": 3,
+            "p50_us": 912.0,
+            "p95_us": 1394.0,
+            "p99_us": 2302.0,
+            "tps": 956.3429443944477,
+            "rows_per_sec": 956.3429443944477
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 9.838107098381066,
+      "protected_mean_tps_change_pct": -6.875961449042478,
+      "paired_round_tps_change_pct": [
+        3.003472701206844,
+        -0.8873057875184331,
+        -14.063023020240252
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 98.336829,
+          "protected_tps": 99.143794,
+          "protected_tps_change_pct": 0.8206132007775091
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 99.251347,
+          "protected_tps": 104.516252,
+          "protected_tps_change_pct": 5.3046181831668315
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 1213.651148,
+          "protected_tps": 1108.930215,
+          "protected_tps_change_pct": -8.628585996278382
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 1134.159758,
+          "protected_tps": 1220.74783,
+          "protected_tps_change_pct": 7.634556894585209
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 1166.330375,
+          "protected_tps": 949.27096,
+          "protected_tps_change_pct": -18.61045717856744
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 1064.04486,
+          "protected_tps": 963.521091,
+          "protected_tps_change_pct": -9.447324335554796
+        }
+      ],
+      "baseline_round_tps_cv": 0.7593010510593589,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%",
+        "baseline round TPS sample CV > 10%",
+        "paired overhead reverses sign with > 20 percentage-point spread"
+      ]
+    },
+    {
+      "case": "refunds",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 867.0,
+        "p95_us": 34464.0,
+        "p99_us": 38343.0,
+        "mean_tps": 734.3305396248297,
+        "tps_sample_sd": 561.6743417997004,
+        "mean_rows_per_sec": 734.3305396248297,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1003.0,
+            "p95_us": 37877.0,
+            "p99_us": 104030.0,
+            "tps": 88.19298735655326,
+            "rows_per_sec": 88.19298735655326
+          },
+          {
+            "round": 2,
+            "p50_us": 859.0,
+            "p95_us": 1487.0,
+            "p99_us": 2027.0,
+            "tps": 1008.842504725943,
+            "rows_per_sec": 1008.842504725943
+          },
+          {
+            "round": 3,
+            "p50_us": 790.0,
+            "p95_us": 1228.0,
+            "p99_us": 2911.0,
+            "tps": 1105.956126791993,
+            "rows_per_sec": 1105.956126791993
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 868.0,
+        "p95_us": 33941.0,
+        "p99_us": 38816.0,
+        "mean_tps": 748.5661193559333,
+        "tps_sample_sd": 558.6666931958054,
+        "mean_rows_per_sec": 748.5661193559333,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1004.0,
+            "p95_us": 38301.0,
+            "p99_us": 39875.0,
+            "tps": 105.60303306521978,
+            "rows_per_sec": 105.60303306521978
+          },
+          {
+            "round": 2,
+            "p50_us": 857.0,
+            "p95_us": 1314.0,
+            "p99_us": 1979.0,
+            "tps": 1024.6899031102403,
+            "rows_per_sec": 1024.6899031102403
+          },
+          {
+            "round": 3,
+            "p50_us": 764.0,
+            "p95_us": 1119.0,
+            "p99_us": 1914.0,
+            "tps": 1115.40542189234,
+            "rows_per_sec": 1115.40542189234
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 0.11534025374855261,
+      "protected_mean_tps_change_pct": 1.9385792858862327,
+      "paired_round_tps_change_pct": [
+        19.740850412833687,
+        1.5708495934756872,
+        0.85440053827055
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 82.653098,
+          "protected_tps": 111.691784,
+          "protected_tps_change_pct": 35.13320940492757
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 94.52885900000001,
+          "protected_tps": 100.143807,
+          "protected_tps_change_pct": 5.939929942452804
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 915.331808,
+          "protected_tps": 967.604598,
+          "protected_tps_change_pct": 5.710802306129414
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 1123.633381,
+          "protected_tps": 1088.933172,
+          "protected_tps_change_pct": -3.0882145000994843
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 1044.65918,
+          "protected_tps": 1122.233694,
+          "protected_tps_change_pct": 7.425820352241574
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 1174.894847,
+          "protected_tps": 1108.659741,
+          "protected_tps_change_pct": -5.637534811657918
+        }
+      ],
+      "baseline_round_tps_cv": 0.764879453449751,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%",
+        "baseline round TPS sample CV > 10%",
+        "paired overhead reverses sign with > 20 percentage-point spread"
+      ]
+    },
+    {
+      "case": "mixed",
+      "baseline": {
+        "transactions": 600,
+        "p50_us": 1040.0,
+        "p95_us": 1501.0,
+        "p99_us": 3197.0,
+        "mean_tps": 854.1551715961795,
+        "tps_sample_sd": 63.170954784411315,
+        "mean_rows_per_sec": 5979.086201173256,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1141.0,
+            "p95_us": 1560.0,
+            "p99_us": 3197.0,
+            "tps": 808.5087456076858,
+            "rows_per_sec": 5659.561219253801
+          },
+          {
+            "round": 2,
+            "p50_us": 1051.0,
+            "p95_us": 1556.0,
+            "p99_us": 3092.0,
+            "tps": 827.7049396709581,
+            "rows_per_sec": 5793.934577696707
+          },
+          {
+            "round": 3,
+            "p50_us": 992.0,
+            "p95_us": 1350.0,
+            "p99_us": 1652.0,
+            "tps": 926.2518295098945,
+            "rows_per_sec": 6483.762806569262
+          }
+        ]
+      },
+      "protected": {
+        "transactions": 600,
+        "p50_us": 1167.0,
+        "p95_us": 1772.0,
+        "p99_us": 3056.0,
+        "mean_tps": 752.7110464141753,
+        "tps_sample_sd": 59.29689994781407,
+        "mean_rows_per_sec": 5268.977324899227,
+        "rounds": [
+          {
+            "round": 1,
+            "p50_us": 1289.0,
+            "p95_us": 1965.0,
+            "p99_us": 3056.0,
+            "tps": 685.2506647472171,
+            "rows_per_sec": 4796.75465323052
+          },
+          {
+            "round": 2,
+            "p50_us": 1103.0,
+            "p95_us": 1667.0,
+            "p99_us": 2722.0,
+            "tps": 796.5874199008655,
+            "rows_per_sec": 5576.111939306058
+          },
+          {
+            "round": 3,
+            "p50_us": 1123.0,
+            "p95_us": 1677.0,
+            "p99_us": 1985.0,
+            "tps": 776.2950545944433,
+            "rows_per_sec": 5434.065382161103
+          }
+        ]
+      },
+      "protected_p50_latency_overhead_pct": 12.211538461538463,
+      "protected_mean_tps_change_pct": -11.876545217472978,
+      "paired_round_tps_change_pct": [
+        -15.245114110401648,
+        -3.7594942688710886,
+        -16.18963333058111
+      ],
+      "paired_blocks": [
+        {
+          "round": 1,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 800.230466,
+          "protected_tps": 611.560948,
+          "protected_tps_change_pct": -23.576897658380325
+        },
+        {
+          "round": 1,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 816.960091,
+          "protected_tps": 779.1317359999999,
+          "protected_tps_change_pct": -4.630379796606254
+        },
+        {
+          "round": 2,
+          "pair": 1,
+          "order": "protected_first",
+          "baseline_tps": 828.088771,
+          "protected_tps": 808.459723,
+          "protected_tps_change_pct": -2.3704038368127955
+        },
+        {
+          "round": 2,
+          "pair": 2,
+          "order": "baseline_first",
+          "baseline_tps": 827.321464,
+          "protected_tps": 785.058762,
+          "protected_tps_change_pct": -5.10837731631727
+        },
+        {
+          "round": 3,
+          "pair": 1,
+          "order": "baseline_first",
+          "baseline_tps": 966.2489250000001,
+          "protected_tps": 824.218847,
+          "protected_tps_change_pct": -14.69911886318529
+        },
+        {
+          "round": 3,
+          "pair": 2,
+          "order": "protected_first",
+          "baseline_tps": 889.434409,
+          "protected_tps": 733.638038,
+          "protected_tps_change_pct": -17.51634178119591
+        }
+      ],
+      "baseline_round_tps_cv": 0.07395723503770667,
+      "reproducibility_warnings": [
+        "baseline pair TPS max/min spread > 20%"
+      ]
+    }
+  ],
+  "denied_protected_only": {
+    "row": {
+      "latency_us": {
+        "p50_us": 2969.0,
+        "p95_us": 4145.0,
+        "p99_us": 5269.0
+      },
+      "commit_us": {
+        "p50_us": 152.0,
+        "p95_us": 229.0,
+        "p99_us": 628.0
+      }
+    },
+    "transition": {
+      "latency_us": {
+        "p50_us": 1661.0,
+        "p95_us": 2435.0,
+        "p99_us": 3064.0
+      },
+      "commit_us": {
+        "p50_us": 120.0,
+        "p95_us": 284.0,
+        "p99_us": 1114.0
+      }
+    },
+    "numeric": {
+      "latency_us": {
+        "p50_us": 1596.0,
+        "p95_us": 2008.0,
+        "p99_us": 2991.0
+      },
+      "commit_us": {
+        "p50_us": 119.0,
+        "p95_us": 214.0,
+        "p99_us": 722.0
+      }
+    }
+  },
+  "interpretation_warning": true,
+  "percentile_method": "nearest rank across all measured transactions; per-round values retained",
+  "throughput_method": "per-pair pgbench TPS without initial connection; per-round 200 transactions / sum of both pair elapsed times; arithmetic mean of rounds and sample SD"
+}

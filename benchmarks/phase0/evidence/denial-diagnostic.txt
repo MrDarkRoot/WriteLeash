@@ -1,0 +1,1501 @@
+Timing is on.
+START_0
+BEGIN
+Time: 0.126 ms
+SAVEPOINT
+Time: 0.084 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 1.556 ms
+AFTER_UPDATE_0 54000
+ROLLBACK
+Time: 0.065 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.104 ms
+AFTER_COMMIT_0 54000
+START_1
+BEGIN
+Time: 0.048 ms
+SAVEPOINT
+Time: 0.043 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.257 ms
+AFTER_UPDATE_1 54000
+ROLLBACK
+Time: 0.052 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.079 ms
+AFTER_COMMIT_1 54000
+START_2
+BEGIN
+Time: 0.045 ms
+SAVEPOINT
+Time: 0.035 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.252 ms
+AFTER_UPDATE_2 54000
+ROLLBACK
+Time: 0.065 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.098 ms
+AFTER_COMMIT_2 54000
+START_3
+BEGIN
+Time: 0.043 ms
+SAVEPOINT
+Time: 0.046 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.239 ms
+AFTER_UPDATE_3 54000
+ROLLBACK
+Time: 0.066 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.131 ms
+AFTER_COMMIT_3 54000
+START_4
+BEGIN
+Time: 0.042 ms
+SAVEPOINT
+Time: 0.048 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.237 ms
+AFTER_UPDATE_4 54000
+ROLLBACK
+Time: 0.060 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.082 ms
+AFTER_COMMIT_4 54000
+START_5
+BEGIN
+Time: 0.043 ms
+SAVEPOINT
+Time: 0.032 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.204 ms
+AFTER_UPDATE_5 54000
+ROLLBACK
+Time: 0.057 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.087 ms
+AFTER_COMMIT_5 54000
+START_6
+BEGIN
+Time: 0.039 ms
+SAVEPOINT
+Time: 0.033 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.221 ms
+AFTER_UPDATE_6 54000
+ROLLBACK
+Time: 0.063 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.080 ms
+AFTER_COMMIT_6 54000
+START_7
+BEGIN
+Time: 0.045 ms
+SAVEPOINT
+Time: 0.034 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.238 ms
+AFTER_UPDATE_7 54000
+ROLLBACK
+Time: 0.047 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.084 ms
+AFTER_COMMIT_7 54000
+START_8
+BEGIN
+Time: 0.041 ms
+SAVEPOINT
+Time: 0.056 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.225 ms
+AFTER_UPDATE_8 54000
+ROLLBACK
+Time: 0.049 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.102 ms
+AFTER_COMMIT_8 54000
+START_9
+BEGIN
+Time: 0.042 ms
+SAVEPOINT
+Time: 0.030 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.207 ms
+AFTER_UPDATE_9 54000
+ROLLBACK
+Time: 0.049 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.093 ms
+AFTER_COMMIT_9 54000
+START_10
+BEGIN
+Time: 0.046 ms
+SAVEPOINT
+Time: 0.050 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.225 ms
+AFTER_UPDATE_10 54000
+ROLLBACK
+Time: 0.058 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.086 ms
+AFTER_COMMIT_10 54000
+START_11
+BEGIN
+Time: 0.045 ms
+SAVEPOINT
+Time: 0.034 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.202 ms
+AFTER_UPDATE_11 54000
+ROLLBACK
+Time: 0.050 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.110 ms
+AFTER_COMMIT_11 54000
+START_12
+BEGIN
+Time: 0.042 ms
+SAVEPOINT
+Time: 0.050 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.288 ms
+AFTER_UPDATE_12 54000
+ROLLBACK
+Time: 0.054 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.108 ms
+AFTER_COMMIT_12 54000
+START_13
+BEGIN
+Time: 0.041 ms
+SAVEPOINT
+Time: 0.031 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.223 ms
+AFTER_UPDATE_13 54000
+ROLLBACK
+Time: 0.048 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.137 ms
+AFTER_COMMIT_13 54000
+START_14
+BEGIN
+Time: 0.039 ms
+SAVEPOINT
+Time: 0.044 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.219 ms
+AFTER_UPDATE_14 54000
+ROLLBACK
+Time: 0.057 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.100 ms
+AFTER_COMMIT_14 54000
+START_15
+BEGIN
+Time: 0.039 ms
+SAVEPOINT
+Time: 0.034 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.194 ms
+AFTER_UPDATE_15 54000
+ROLLBACK
+Time: 0.058 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.111 ms
+AFTER_COMMIT_15 54000
+START_16
+BEGIN
+Time: 0.043 ms
+SAVEPOINT
+Time: 0.044 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.227 ms
+AFTER_UPDATE_16 54000
+ROLLBACK
+Time: 0.060 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.103 ms
+AFTER_COMMIT_16 54000
+START_17
+BEGIN
+Time: 0.049 ms
+SAVEPOINT
+Time: 0.031 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.262 ms
+AFTER_UPDATE_17 54000
+ROLLBACK
+Time: 0.087 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.112 ms
+AFTER_COMMIT_17 54000
+START_18
+BEGIN
+Time: 0.045 ms
+SAVEPOINT
+Time: 0.040 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.247 ms
+AFTER_UPDATE_18 54000
+ROLLBACK
+Time: 0.052 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.117 ms
+AFTER_COMMIT_18 54000
+START_19
+BEGIN
+Time: 0.044 ms
+SAVEPOINT
+Time: 0.033 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.277 ms
+AFTER_UPDATE_19 54000
+ROLLBACK
+Time: 0.067 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.114 ms
+AFTER_COMMIT_19 54000
+START_20
+BEGIN
+Time: 0.038 ms
+SAVEPOINT
+Time: 0.046 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.331 ms
+AFTER_UPDATE_20 54000
+ROLLBACK
+Time: 0.068 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.152 ms
+AFTER_COMMIT_20 54000
+START_21
+BEGIN
+Time: 0.044 ms
+SAVEPOINT
+Time: 0.035 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.442 ms
+AFTER_UPDATE_21 54000
+ROLLBACK
+Time: 0.050 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.098 ms
+AFTER_COMMIT_21 54000
+START_22
+BEGIN
+Time: 0.040 ms
+SAVEPOINT
+Time: 0.047 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.221 ms
+AFTER_UPDATE_22 54000
+ROLLBACK
+Time: 0.054 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.108 ms
+AFTER_COMMIT_22 54000
+START_23
+BEGIN
+Time: 0.052 ms
+SAVEPOINT
+Time: 0.045 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.270 ms
+AFTER_UPDATE_23 54000
+ROLLBACK
+Time: 0.064 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.102 ms
+AFTER_COMMIT_23 54000
+START_24
+BEGIN
+Time: 0.039 ms
+SAVEPOINT
+Time: 0.038 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.222 ms
+AFTER_UPDATE_24 54000
+ROLLBACK
+Time: 0.052 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.100 ms
+AFTER_COMMIT_24 54000
+START_25
+BEGIN
+Time: 0.040 ms
+SAVEPOINT
+Time: 0.032 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.218 ms
+AFTER_UPDATE_25 54000
+ROLLBACK
+Time: 0.065 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.103 ms
+AFTER_COMMIT_25 54000
+START_26
+BEGIN
+Time: 0.071 ms
+SAVEPOINT
+Time: 0.033 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.257 ms
+AFTER_UPDATE_26 54000
+ROLLBACK
+Time: 0.051 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.101 ms
+AFTER_COMMIT_26 54000
+START_27
+BEGIN
+Time: 0.049 ms
+SAVEPOINT
+Time: 0.038 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.255 ms
+AFTER_UPDATE_27 54000
+ROLLBACK
+Time: 0.063 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.117 ms
+AFTER_COMMIT_27 54000
+START_28
+BEGIN
+Time: 0.041 ms
+SAVEPOINT
+Time: 0.053 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.248 ms
+AFTER_UPDATE_28 54000
+ROLLBACK
+Time: 0.049 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.105 ms
+AFTER_COMMIT_28 54000
+START_29
+BEGIN
+Time: 0.045 ms
+SAVEPOINT
+Time: 0.034 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.244 ms
+AFTER_UPDATE_29 54000
+ROLLBACK
+Time: 0.054 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.100 ms
+AFTER_COMMIT_29 54000
+START_30
+BEGIN
+Time: 0.040 ms
+SAVEPOINT
+Time: 0.038 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.212 ms
+AFTER_UPDATE_30 54000
+ROLLBACK
+Time: 0.057 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.115 ms
+AFTER_COMMIT_30 54000
+START_31
+BEGIN
+Time: 0.045 ms
+SAVEPOINT
+Time: 0.040 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.264 ms
+AFTER_UPDATE_31 54000
+ROLLBACK
+Time: 0.053 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.123 ms
+AFTER_COMMIT_31 54000
+START_32
+BEGIN
+Time: 0.043 ms
+SAVEPOINT
+Time: 0.040 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.249 ms
+AFTER_UPDATE_32 54000
+ROLLBACK
+Time: 0.054 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.120 ms
+AFTER_COMMIT_32 54000
+START_33
+BEGIN
+Time: 0.041 ms
+SAVEPOINT
+Time: 0.046 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.236 ms
+AFTER_UPDATE_33 54000
+ROLLBACK
+Time: 0.052 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.096 ms
+AFTER_COMMIT_33 54000
+START_34
+BEGIN
+Time: 0.050 ms
+SAVEPOINT
+Time: 0.031 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.207 ms
+AFTER_UPDATE_34 54000
+ROLLBACK
+Time: 0.052 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.093 ms
+AFTER_COMMIT_34 54000
+START_35
+BEGIN
+Time: 0.041 ms
+SAVEPOINT
+Time: 0.036 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.219 ms
+AFTER_UPDATE_35 54000
+ROLLBACK
+Time: 0.050 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.094 ms
+AFTER_COMMIT_35 54000
+START_36
+BEGIN
+Time: 0.049 ms
+SAVEPOINT
+Time: 0.045 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.230 ms
+AFTER_UPDATE_36 54000
+ROLLBACK
+Time: 0.059 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.114 ms
+AFTER_COMMIT_36 54000
+START_37
+BEGIN
+Time: 0.044 ms
+SAVEPOINT
+Time: 0.038 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.248 ms
+AFTER_UPDATE_37 54000
+ROLLBACK
+Time: 0.058 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.116 ms
+AFTER_COMMIT_37 54000
+START_38
+BEGIN
+Time: 0.039 ms
+SAVEPOINT
+Time: 0.042 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.241 ms
+AFTER_UPDATE_38 54000
+ROLLBACK
+Time: 0.062 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.101 ms
+AFTER_COMMIT_38 54000
+START_39
+BEGIN
+Time: 0.047 ms
+SAVEPOINT
+Time: 0.039 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.192 ms
+AFTER_UPDATE_39 54000
+ROLLBACK
+Time: 0.043 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.109 ms
+AFTER_COMMIT_39 54000
+START_40
+BEGIN
+Time: 0.042 ms
+SAVEPOINT
+Time: 0.033 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.217 ms
+AFTER_UPDATE_40 54000
+ROLLBACK
+Time: 0.064 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.105 ms
+AFTER_COMMIT_40 54000
+START_41
+BEGIN
+Time: 0.036 ms
+SAVEPOINT
+Time: 0.031 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.198 ms
+AFTER_UPDATE_41 54000
+ROLLBACK
+Time: 0.056 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.094 ms
+AFTER_COMMIT_41 54000
+START_42
+BEGIN
+Time: 0.040 ms
+SAVEPOINT
+Time: 0.044 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.199 ms
+AFTER_UPDATE_42 54000
+ROLLBACK
+Time: 0.061 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.101 ms
+AFTER_COMMIT_42 54000
+START_43
+BEGIN
+Time: 0.038 ms
+SAVEPOINT
+Time: 0.044 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.229 ms
+AFTER_UPDATE_43 54000
+ROLLBACK
+Time: 0.052 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.095 ms
+AFTER_COMMIT_43 54000
+START_44
+BEGIN
+Time: 0.046 ms
+SAVEPOINT
+Time: 0.042 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.222 ms
+AFTER_UPDATE_44 54000
+ROLLBACK
+Time: 0.057 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.117 ms
+AFTER_COMMIT_44 54000
+START_45
+BEGIN
+Time: 0.042 ms
+SAVEPOINT
+Time: 0.047 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.228 ms
+AFTER_UPDATE_45 54000
+ROLLBACK
+Time: 0.049 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.096 ms
+AFTER_COMMIT_45 54000
+START_46
+BEGIN
+Time: 0.039 ms
+SAVEPOINT
+Time: 0.049 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.239 ms
+AFTER_UPDATE_46 54000
+ROLLBACK
+Time: 0.057 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.100 ms
+AFTER_COMMIT_46 54000
+START_47
+BEGIN
+Time: 0.037 ms
+SAVEPOINT
+Time: 0.046 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.225 ms
+AFTER_UPDATE_47 54000
+ROLLBACK
+Time: 0.050 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.098 ms
+AFTER_COMMIT_47 54000
+START_48
+BEGIN
+Time: 0.044 ms
+SAVEPOINT
+Time: 0.034 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.259 ms
+AFTER_UPDATE_48 54000
+ROLLBACK
+Time: 0.053 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.100 ms
+AFTER_COMMIT_48 54000
+START_49
+BEGIN
+Time: 0.049 ms
+SAVEPOINT
+Time: 0.041 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.224 ms
+AFTER_UPDATE_49 54000
+ROLLBACK
+Time: 0.049 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.096 ms
+AFTER_COMMIT_49 54000
+START_50
+BEGIN
+Time: 0.037 ms
+SAVEPOINT
+Time: 0.031 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.231 ms
+AFTER_UPDATE_50 54000
+ROLLBACK
+Time: 0.056 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.092 ms
+AFTER_COMMIT_50 54000
+START_51
+BEGIN
+Time: 0.046 ms
+SAVEPOINT
+Time: 0.038 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.217 ms
+AFTER_UPDATE_51 54000
+ROLLBACK
+Time: 0.045 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.097 ms
+AFTER_COMMIT_51 54000
+START_52
+BEGIN
+Time: 0.047 ms
+SAVEPOINT
+Time: 0.043 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.258 ms
+AFTER_UPDATE_52 54000
+ROLLBACK
+Time: 0.058 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.094 ms
+AFTER_COMMIT_52 54000
+START_53
+BEGIN
+Time: 0.040 ms
+SAVEPOINT
+Time: 0.041 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.210 ms
+AFTER_UPDATE_53 54000
+ROLLBACK
+Time: 0.051 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.103 ms
+AFTER_COMMIT_53 54000
+START_54
+BEGIN
+Time: 0.050 ms
+SAVEPOINT
+Time: 0.037 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.277 ms
+AFTER_UPDATE_54 54000
+ROLLBACK
+Time: 0.064 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.150 ms
+AFTER_COMMIT_54 54000
+START_55
+BEGIN
+Time: 0.040 ms
+SAVEPOINT
+Time: 0.051 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.434 ms
+AFTER_UPDATE_55 54000
+ROLLBACK
+Time: 0.061 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.102 ms
+AFTER_COMMIT_55 54000
+START_56
+BEGIN
+Time: 0.036 ms
+SAVEPOINT
+Time: 0.031 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.212 ms
+AFTER_UPDATE_56 54000
+ROLLBACK
+Time: 0.052 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.105 ms
+AFTER_COMMIT_56 54000
+START_57
+BEGIN
+Time: 0.042 ms
+SAVEPOINT
+Time: 0.037 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.223 ms
+AFTER_UPDATE_57 54000
+ROLLBACK
+Time: 0.047 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.093 ms
+AFTER_COMMIT_57 54000
+START_58
+BEGIN
+Time: 0.042 ms
+SAVEPOINT
+Time: 0.042 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.261 ms
+AFTER_UPDATE_58 54000
+ROLLBACK
+Time: 0.061 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.124 ms
+AFTER_COMMIT_58 54000
+START_59
+BEGIN
+Time: 0.054 ms
+SAVEPOINT
+Time: 0.038 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.223 ms
+AFTER_UPDATE_59 54000
+ROLLBACK
+Time: 0.050 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.093 ms
+AFTER_COMMIT_59 54000
+START_60
+BEGIN
+Time: 0.039 ms
+SAVEPOINT
+Time: 0.043 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.215 ms
+AFTER_UPDATE_60 54000
+ROLLBACK
+Time: 0.048 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.098 ms
+AFTER_COMMIT_60 54000
+START_61
+BEGIN
+Time: 0.044 ms
+SAVEPOINT
+Time: 0.030 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.223 ms
+AFTER_UPDATE_61 54000
+ROLLBACK
+Time: 0.052 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.121 ms
+AFTER_COMMIT_61 54000
+START_62
+BEGIN
+Time: 0.047 ms
+SAVEPOINT
+Time: 0.033 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.212 ms
+AFTER_UPDATE_62 54000
+ROLLBACK
+Time: 0.055 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.127 ms
+AFTER_COMMIT_62 54000
+START_63
+BEGIN
+Time: 0.051 ms
+SAVEPOINT
+Time: 0.034 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.201 ms
+AFTER_UPDATE_63 54000
+ROLLBACK
+Time: 0.044 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.092 ms
+AFTER_COMMIT_63 54000
+START_64
+BEGIN
+Time: 0.038 ms
+SAVEPOINT
+Time: 0.037 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.207 ms
+AFTER_UPDATE_64 54000
+ROLLBACK
+Time: 0.055 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.114 ms
+AFTER_COMMIT_64 54000
+START_65
+BEGIN
+Time: 0.043 ms
+SAVEPOINT
+Time: 0.035 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.207 ms
+AFTER_UPDATE_65 54000
+ROLLBACK
+Time: 0.050 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.090 ms
+AFTER_COMMIT_65 54000
+START_66
+BEGIN
+Time: 0.042 ms
+SAVEPOINT
+Time: 0.035 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.196 ms
+AFTER_UPDATE_66 54000
+ROLLBACK
+Time: 0.056 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.116 ms
+AFTER_COMMIT_66 54000
+START_67
+BEGIN
+Time: 0.042 ms
+SAVEPOINT
+Time: 0.051 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.226 ms
+AFTER_UPDATE_67 54000
+ROLLBACK
+Time: 0.047 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.082 ms
+AFTER_COMMIT_67 54000
+START_68
+BEGIN
+Time: 0.046 ms
+SAVEPOINT
+Time: 0.040 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.212 ms
+AFTER_UPDATE_68 54000
+ROLLBACK
+Time: 0.049 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.119 ms
+AFTER_COMMIT_68 54000
+START_69
+BEGIN
+Time: 0.045 ms
+SAVEPOINT
+Time: 0.034 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.228 ms
+AFTER_UPDATE_69 54000
+ROLLBACK
+Time: 0.047 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.093 ms
+AFTER_COMMIT_69 54000
+START_70
+BEGIN
+Time: 0.039 ms
+SAVEPOINT
+Time: 0.030 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.208 ms
+AFTER_UPDATE_70 54000
+ROLLBACK
+Time: 0.045 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.122 ms
+AFTER_COMMIT_70 54000
+START_71
+BEGIN
+Time: 0.041 ms
+SAVEPOINT
+Time: 0.043 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.224 ms
+AFTER_UPDATE_71 54000
+ROLLBACK
+Time: 0.059 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.095 ms
+AFTER_COMMIT_71 54000
+START_72
+BEGIN
+Time: 0.038 ms
+SAVEPOINT
+Time: 0.033 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.245 ms
+AFTER_UPDATE_72 54000
+ROLLBACK
+Time: 0.063 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.117 ms
+AFTER_COMMIT_72 54000
+START_73
+BEGIN
+Time: 0.048 ms
+SAVEPOINT
+Time: 0.037 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.315 ms
+AFTER_UPDATE_73 54000
+ROLLBACK
+Time: 0.050 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.101 ms
+AFTER_COMMIT_73 54000
+START_74
+BEGIN
+Time: 0.038 ms
+SAVEPOINT
+Time: 0.047 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.312 ms
+AFTER_UPDATE_74 54000
+ROLLBACK
+Time: 0.080 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.113 ms
+AFTER_COMMIT_74 54000
+START_75
+BEGIN
+Time: 0.037 ms
+SAVEPOINT
+Time: 0.029 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.271 ms
+AFTER_UPDATE_75 54000
+ROLLBACK
+Time: 0.072 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.170 ms
+AFTER_COMMIT_75 54000
+START_76
+BEGIN
+Time: 0.046 ms
+SAVEPOINT
+Time: 0.056 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.352 ms
+AFTER_UPDATE_76 54000
+ROLLBACK
+Time: 0.062 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.125 ms
+AFTER_COMMIT_76 54000
+START_77
+BEGIN
+Time: 0.046 ms
+SAVEPOINT
+Time: 0.055 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.354 ms
+AFTER_UPDATE_77 54000
+ROLLBACK
+Time: 0.060 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.113 ms
+AFTER_COMMIT_77 54000
+START_78
+BEGIN
+Time: 0.050 ms
+SAVEPOINT
+Time: 0.032 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.335 ms
+AFTER_UPDATE_78 54000
+ROLLBACK
+Time: 0.059 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.113 ms
+AFTER_COMMIT_78 54000
+START_79
+BEGIN
+Time: 0.045 ms
+SAVEPOINT
+Time: 0.044 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.295 ms
+AFTER_UPDATE_79 54000
+ROLLBACK
+Time: 0.058 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.110 ms
+AFTER_COMMIT_79 54000
+START_80
+BEGIN
+Time: 0.045 ms
+SAVEPOINT
+Time: 0.045 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.272 ms
+AFTER_UPDATE_80 54000
+ROLLBACK
+Time: 0.050 ms
+Time: 0.079 ms
+AFTER_COMMIT_80 54000
+START_81
+BEGIN
+Time: 0.027 ms
+SAVEPOINT
+Time: 0.024 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.274 ms
+AFTER_UPDATE_81 54000
+ROLLBACK
+Time: 0.065 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.109 ms
+AFTER_COMMIT_81 54000
+START_82
+BEGIN
+Time: 0.056 ms
+SAVEPOINT
+Time: 0.037 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.257 ms
+AFTER_UPDATE_82 54000
+ROLLBACK
+Time: 0.069 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.105 ms
+AFTER_COMMIT_82 54000
+START_83
+BEGIN
+Time: 0.052 ms
+SAVEPOINT
+Time: 0.031 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.360 ms
+AFTER_UPDATE_83 54000
+ROLLBACK
+Time: 0.058 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.113 ms
+AFTER_COMMIT_83 54000
+START_84
+BEGIN
+Time: 0.037 ms
+SAVEPOINT
+Time: 0.042 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.221 ms
+AFTER_UPDATE_84 54000
+ROLLBACK
+Time: 0.047 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.105 ms
+AFTER_COMMIT_84 54000
+START_85
+BEGIN
+Time: 0.048 ms
+SAVEPOINT
+Time: 0.031 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.324 ms
+AFTER_UPDATE_85 54000
+ROLLBACK
+Time: 0.049 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.086 ms
+AFTER_COMMIT_85 54000
+START_86
+BEGIN
+Time: 0.044 ms
+SAVEPOINT
+Time: 0.044 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.189 ms
+AFTER_UPDATE_86 54000
+ROLLBACK
+Time: 0.043 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.088 ms
+AFTER_COMMIT_86 54000
+START_87
+BEGIN
+Time: 0.046 ms
+SAVEPOINT
+Time: 0.034 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.219 ms
+AFTER_UPDATE_87 54000
+ROLLBACK
+Time: 0.052 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.096 ms
+AFTER_COMMIT_87 54000
+START_88
+BEGIN
+Time: 0.041 ms
+SAVEPOINT
+Time: 0.043 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.209 ms
+AFTER_UPDATE_88 54000
+ROLLBACK
+Time: 0.059 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.098 ms
+AFTER_COMMIT_88 54000
+START_89
+BEGIN
+Time: 0.044 ms
+SAVEPOINT
+Time: 0.046 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.332 ms
+AFTER_UPDATE_89 54000
+ROLLBACK
+Time: 0.063 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.145 ms
+AFTER_COMMIT_89 54000
+START_90
+BEGIN
+Time: 0.052 ms
+SAVEPOINT
+Time: 0.028 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.255 ms
+AFTER_UPDATE_90 54000
+ROLLBACK
+Time: 0.056 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.183 ms
+AFTER_COMMIT_90 54000
+START_91
+BEGIN
+Time: 0.055 ms
+SAVEPOINT
+Time: 0.054 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.367 ms
+AFTER_UPDATE_91 54000
+ROLLBACK
+Time: 0.060 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.109 ms
+AFTER_COMMIT_91 54000
+START_92
+BEGIN
+Time: 0.050 ms
+SAVEPOINT
+Time: 0.054 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.339 ms
+AFTER_UPDATE_92 54000
+ROLLBACK
+Time: 0.048 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.188 ms
+AFTER_COMMIT_92 54000
+START_93
+BEGIN
+Time: 0.067 ms
+SAVEPOINT
+Time: 0.042 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.312 ms
+AFTER_UPDATE_93 54000
+ROLLBACK
+Time: 0.083 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.142 ms
+AFTER_COMMIT_93 54000
+START_94
+BEGIN
+Time: 0.041 ms
+SAVEPOINT
+Time: 0.044 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.277 ms
+AFTER_UPDATE_94 54000
+ROLLBACK
+Time: 0.046 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.121 ms
+AFTER_COMMIT_94 54000
+START_95
+BEGIN
+Time: 0.045 ms
+SAVEPOINT
+Time: 0.038 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.269 ms
+AFTER_UPDATE_95 54000
+ROLLBACK
+Time: 0.061 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.117 ms
+AFTER_COMMIT_95 54000
+START_96
+BEGIN
+Time: 0.041 ms
+SAVEPOINT
+Time: 0.037 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.215 ms
+AFTER_UPDATE_96 54000
+ROLLBACK
+Time: 0.081 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.121 ms
+AFTER_COMMIT_96 54000
+START_97
+BEGIN
+Time: 0.043 ms
+SAVEPOINT
+Time: 0.051 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.287 ms
+AFTER_UPDATE_97 54000
+ROLLBACK
+Time: 0.050 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.117 ms
+AFTER_COMMIT_97 54000
+START_98
+BEGIN
+Time: 0.038 ms
+SAVEPOINT
+Time: 0.039 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.284 ms
+AFTER_UPDATE_98 54000
+ROLLBACK
+Time: 0.059 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.126 ms
+AFTER_COMMIT_98 54000
+START_99
+BEGIN
+Time: 0.049 ms
+SAVEPOINT
+Time: 0.037 ms
+ERROR:  54000: CommitCap forbidden state transition (* -> admin)
+LOCATION:  commitcap_native_enforce_role_transition, commitcap_native_tx_state.c:202
+Time: 0.290 ms
+AFTER_UPDATE_99 54000
+ROLLBACK
+Time: 0.050 ms
+ERROR:  54000: CommitCap top-level transaction denied after mutation authority violation
+LOCATION:  xact_callback, commitcap_native_tx_state.c:703
+Time: 0.093 ms
+AFTER_COMMIT_99 54000
