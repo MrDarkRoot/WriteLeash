@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  * then mutates zero products and persists a typed pause reason.
  */
 final class Job_Schema {
-	public const SCHEMA_VERSION = 1;
+	public const SCHEMA_VERSION = 2;
 	public const OPTION = 'writeleash_job_schema';
 
 	public static function jobs_table( \wpdb $db ): string {
@@ -26,16 +26,21 @@ final class Job_Schema {
 		return $name;
 	}
 
-	/** Replayable v1 install. Never drops or rewrites existing job evidence. */
+	/** Replayable v1/v2 install. Never drops or rewrites existing job evidence. */
 	public static function install(): void {
 		global $wpdb;
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		$stored = get_option( self::OPTION, null );
-		if ( null !== $stored && (int) $stored !== self::SCHEMA_VERSION ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
+		if ( null !== $stored && (int) $stored !== 1 && (int) $stored !== self::SCHEMA_VERSION ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
 		if ( null === $stored ) {
 			$present = ( self::table_exists( $wpdb, self::jobs_table( $wpdb ) ) ? 1 : 0 ) + ( self::table_exists( $wpdb, self::items_table( $wpdb ) ) ? 1 : 0 );
 			// A completely absent pair is a fresh install; one present table is partial/unknown state.
 			if ( 1 === $present ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
+		}
+		// v1 -> v2: explicit grant/approval-mode columns before dbDelta.
+		// Literal, individually atomic DDL; retry resumes only missing changes.
+		if ( 1 === (int) $stored ) {
+			self::upgrade_v1_to_v2( $wpdb );
 		}
 		$jobs = self::jobs_table( $wpdb );
 		$items = self::items_table( $wpdb );
@@ -74,9 +79,13 @@ final class Job_Schema {
  failed int unsigned NOT NULL DEFAULT 0,
  needs_review int unsigned NOT NULL DEFAULT 0,
  unsupported int unsigned NOT NULL DEFAULT 0,
- lease_owner varchar(64) NOT NULL DEFAULT '',
+		lease_owner varchar(64) NOT NULL DEFAULT '',
  lease_generation bigint unsigned NOT NULL DEFAULT 0,
  lease_expires_at datetime NULL,
+ approval_mode varchar(16) NOT NULL DEFAULT 'none',
+ grant_public_id char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '',
+ grant_version int unsigned NOT NULL DEFAULT 0,
+ grant_idempotency_key varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '',
  created_at datetime NOT NULL,
  approved_at datetime NULL,
  queued_at datetime NULL,
@@ -120,8 +129,35 @@ final class Job_Schema {
 ) ENGINE=InnoDB " . $charset . ';' );
 		Price_Apply_Connection::forget_table_metadata( $wpdb, $jobs );
 		Price_Apply_Connection::forget_table_metadata( $wpdb, $items );
+		// Fresh v2 installs via dbDelta leave existing v1 rows with the new
+		// defaults; approved human jobs must read as human, not none.
+		try {
+			$wpdb->query( $wpdb->prepare( "UPDATE %i SET approval_mode='human' WHERE approver_id>0 AND approval_mode='none'", $jobs ) );
+		} catch ( \Throwable $error ) {}
 		self::assert_schema( $wpdb );
 		update_option( self::OPTION, self::SCHEMA_VERSION, false );
+	}
+
+	/**
+	 * #298 v1 -> v2: add approval-mode + grant pinning columns, backfill
+	 * existing human approvals. Literal atomic DDL; retry resumes only
+	 * missing changes. Never drops or rewrites job evidence.
+	 */
+	private static function upgrade_v1_to_v2( \wpdb $db ): void {
+		$jobs = self::jobs_table( $db );
+		$exists = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $jobs ) );
+		if ( 1 !== $exists ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
+		$columns = array();
+		foreach ( $db->get_results( $db->prepare( 'SHOW COLUMNS FROM %i', $jobs ), ARRAY_A ) as $row ) { $columns[ $row['Field'] ] = $row; }
+		try {
+			if ( ! isset( $columns['approval_mode'] ) && false === $db->query( $db->prepare( "ALTER TABLE %i ADD approval_mode varchar(16) NOT NULL DEFAULT 'none'", $jobs ) ) ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
+			if ( ! isset( $columns['grant_public_id'] ) && false === $db->query( $db->prepare( 'ALTER TABLE %i ADD grant_public_id char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT \'\'', $jobs ) ) ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
+			if ( ! isset( $columns['grant_version'] ) && false === $db->query( $db->prepare( 'ALTER TABLE %i ADD grant_version int unsigned NOT NULL DEFAULT 0', $jobs ) ) ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
+			if ( ! isset( $columns['grant_idempotency_key'] ) && false === $db->query( $db->prepare( 'ALTER TABLE %i ADD grant_idempotency_key varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT \'\'', $jobs ) ) ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
+		} finally { Price_Apply_Connection::forget_table_metadata( $db, $jobs ); }
+		// Backfill: human-approved jobs carry approver>=1; all others stay none.
+		// Grant jobs do not exist before v2, so no grant backfill is possible.
+		$db->query( $db->prepare( "UPDATE %i SET approval_mode='human' WHERE approver_id>0 AND approval_mode='none'", $jobs ) );
 	}
 
 	/** The jobs table alone is enough to persist a typed pause; items may be missing. */
@@ -149,14 +185,14 @@ final class Job_Schema {
 			$engine = $db->get_var( $db->prepare( 'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) );
 			if ( 'InnoDB' !== $engine ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
 		}
-		$job_columns = array( 'id', 'schema_version', 'public_id', 'plan_id', 'plan_schema_version', 'plan_hash_version', 'plan_hash', 'plan_json', 'creator_id', 'approver_id', 'status', 'status_reason', 'currency', 'price_decimals', 'wordpress_version', 'woocommerce_version', 'planned', 'pending', 'applying', 'applied', 'unchanged', 'conflict', 'failed', 'needs_review', 'unsupported', 'lease_owner', 'lease_generation', 'created_at', 'updated_at' );
+		$job_columns = array( 'id', 'schema_version', 'public_id', 'plan_id', 'plan_schema_version', 'plan_hash_version', 'plan_hash', 'plan_json', 'creator_id', 'approver_id', 'status', 'status_reason', 'currency', 'price_decimals', 'wordpress_version', 'woocommerce_version', 'planned', 'pending', 'applying', 'applied', 'unchanged', 'conflict', 'failed', 'needs_review', 'unsupported', 'lease_owner', 'lease_generation', 'approval_mode', 'grant_public_id', 'grant_version', 'grant_idempotency_key', 'created_at', 'updated_at' );
 		$item_columns = array( 'id', 'schema_version', 'job_id', 'plan_id', 'product_id', 'sequence', 'plan_result', 'eligibility_state', 'expected_price', 'planned_price', 'state', 'reason', 'attempt_count', 'claim_token', 'claim_generation', 'created_at', 'updated_at' );
 		self::assert_columns( $db, $jobs, $job_columns );
 		self::assert_columns( $db, $items, $item_columns );
 		self::assert_indexes( $db, $jobs, array( 'public_id' => array( array( 'public_id' ), true ), 'plan_instance' => array( array( 'plan_id' ), true ) ) );
 		self::assert_indexes( $db, $items, array( 'job_product' => array( array( 'job_id', 'product_id' ), true ), 'job_sequence' => array( array( 'job_id', 'sequence' ), true ), 'job_state_sequence' => array( array( 'job_id', 'state', 'sequence' ), false ) ) );
 		try {
-			Durable_Charset::assert_table( $db, $jobs, array( 'plan_id', 'public_id' ), true );
+			Durable_Charset::assert_table( $db, $jobs, array( 'plan_id', 'public_id', 'grant_public_id', 'grant_idempotency_key' ), true );
 			Durable_Charset::assert_table( $db, $items, array( 'plan_id' ), true );
 		} catch ( \Throwable $error ) { throw new Job_Error( 'SCHEMA_UNAVAILABLE' ); }
 		foreach ( array( $jobs, $items ) as $table ) {

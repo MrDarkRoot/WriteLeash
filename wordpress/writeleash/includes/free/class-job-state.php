@@ -156,6 +156,20 @@ final class Job_Reason {
 			'UNEXPECTED_MUTATION_RESULT' => __( 'The mutation primitive returned an unclassified result; the item needs review.', 'writeleash' ),
 			'JOB_TERMINAL' => __( 'This job has already finished.', 'writeleash' ),
 			'PERMISSION_DENIED' => __( 'The requester is not authorized for this job operation.', 'writeleash' ),
+			// #298 standing-grant denials. Actor/issuer/approver/grant stay
+			// distinct; approver 0 is never rendered as a person (see
+			// Grant_Repository::operator_label). All deny with zero Woo saves
+			// and no unrestricted fallback.
+			'GRANT_ACCEPTED' => __( 'The grant-authorized preview was accepted and is ready to run. No human approval is implied.', 'writeleash' ),
+			'GRANT_REVOKED' => __( 'The standing grant was revoked; remaining grant-authorized products are paused. No product was changed by the denied item.', 'writeleash' ),
+			'GRANT_EXPIRED' => __( 'The standing grant expired; remaining grant-authorized products are paused. No product was changed by the denied item.', 'writeleash' ),
+			'GRANT_DISABLED' => __( 'Standing grants are globally disabled; grant-authorized writes cannot proceed. No product was changed. Re-enable grants only through the documented operator recovery.', 'writeleash' ),
+			'GRANT_BUDGET_EXHAUSTED' => __( 'The standing grant budget is exhausted; no further grant-authorized products can be changed. No product was changed by the denied item.', 'writeleash' ),
+			'GRANT_SCOPE_DENIED' => __( 'The product is outside the standing-grant price scope; it was not changed.', 'writeleash' ),
+			'GRANT_IDENTITY_INVALID' => __( 'The grant actor/issuer binding is invalid; no product was changed.', 'writeleash' ),
+			'GRANT_STORE_UNAVAILABLE' => __( 'The standing-grant records are unavailable; no grant-authorized product was changed.', 'writeleash' ),
+			'GRANT_BINDING_MISMATCH' => __( 'The saved job no longer matches its grant binding; no product was changed.', 'writeleash' ),
+			'GRANT_IDEMPOTENCY_MISMATCH' => __( 'The idempotency key was already used for different work; the request was rejected with no new plan or reservation.', 'writeleash' ),
 		);
 	}
 	public static function message( string $reason ): string {

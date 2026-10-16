@@ -17,6 +17,8 @@ includes/free/class-change-plan.php
 includes/free/class-durable-charset.php
 includes/free/class-free-admin.php
 includes/free/class-free-support-contract.php
+includes/free/class-grant-repository.php
+includes/free/class-grant-schema.php
 includes/free/class-job-repository.php
 includes/free/class-job-resume-rest.php
 includes/free/class-job-scheduler.php

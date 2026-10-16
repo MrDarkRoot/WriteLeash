@@ -38,7 +38,7 @@
     },
     {
       "prefix": "wordpress/writeleash/includes/free/class-",
-      "files": ["job-repository.php", "job-resume-rest.php", "job-scheduler.php", "job-schema.php", "job-state.php", "job-transaction-fence.php", "job-worker.php"],
+      "files": ["job-repository.php", "job-resume-rest.php", "job-scheduler.php", "job-schema.php", "job-state.php", "job-transaction-fence.php", "job-worker.php", "grant-schema.php", "grant-repository.php"],
       "gates": ["jobs", "undo", "admin", "acceptance"]
     },
     {

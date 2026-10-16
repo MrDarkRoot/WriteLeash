@@ -163,6 +163,10 @@ final class Job_Repository {
 			$jobs = Job_Schema::jobs_table( $tx );
 			$job = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE id=%d FOR UPDATE', $jobs, $job_id ), ARRAY_A );
 			if ( ! $job ) { throw new Job_Error( 'JOB_NOT_FOUND' ); }
+			// #298: grant-bound jobs never take the human approval path.
+			// They are accepted READY with approval_mode `grant` and
+			// approver 0; human approve() must not rewrite them.
+			if ( '' !== (string) ( $job['grant_public_id'] ?? '' ) || 'grant' === (string) ( $job['approval_mode'] ?? '' ) ) { throw new Job_Error( 'INVALID_TRANSITION' ); }
 			if ( Job_State::PLANNED !== $job['status'] ) {
 				$tx->rollback();
 				$wpdb = $original;
@@ -173,7 +177,7 @@ final class Job_Repository {
 			// Journal seed shares this transaction: a partial approval is not executable.
 			Price_Apply_Journal::seed( $plan );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fenced CAS transition; values are prepared.
-			if ( 1 !== $tx->query( $tx->prepare( "UPDATE %i SET status=%s,status_reason=%s,approver_id=%d,approved_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s", $jobs, Job_State::READY, 'APPROVED', $approver_id, $job_id, Job_State::PLANNED ) ) ) {
+			if ( 1 !== $tx->query( $tx->prepare( "UPDATE %i SET status=%s,status_reason=%s,approver_id=%d,approval_mode=%s,approved_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s", $jobs, Job_State::READY, 'APPROVED', $approver_id, 'human', $job_id, Job_State::PLANNED ) ) ) {
 				throw new Job_Error( 'INVALID_TRANSITION' );
 			}
 			$tx->commit();

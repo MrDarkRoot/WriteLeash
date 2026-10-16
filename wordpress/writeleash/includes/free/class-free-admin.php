@@ -1874,7 +1874,14 @@ final class Free_Admin {
 			echo '<tr><td><strong>' . esc_html( $description ) . '</strong><br>';
 
 			echo esc_html( sprintf( /* translators: %s: creator display name. */ __( 'Created by %s', 'writeleash' ), self::operator_name( (int) $job['creator_id'] ) ) );
-			if ( (int) $job['approver_id'] > 0 ) { echo '<br>' . esc_html( sprintf( /* translators: %s: approver display name. */ __( 'Approved by %s', 'writeleash' ), self::operator_name( (int) $job['approver_id'] ) ) ); }
+			// #298 approval-mode copy: human approver is a person; grant mode
+			// is never rendered as a person. Actor (creator) vs approver vs
+			// grant stay distinct in operator copy.
+			$approval_mode = (string) ( $job['approval_mode'] ?? 'none' );
+			if ( 'grant' === $approval_mode ) {
+				$grant_short = '' !== (string) ( $job['grant_public_id'] ?? '' ) ? substr( (string) $job['grant_public_id'], 0, 8 ) : 'unknown';
+				echo '<br>' . esc_html( sprintf( /* translators: %s: short grant ID. */ __( 'Grant-authorized (no human approval) · grant %s', 'writeleash' ), $grant_short ) );
+			} elseif ( (int) $job['approver_id'] > 0 ) { echo '<br>' . esc_html( sprintf( /* translators: %s: approver display name. */ __( 'Approved by %s', 'writeleash' ), self::operator_name( (int) $job['approver_id'] ) ) ); }
 			echo '<br><span class="description">' . esc_html( self::site_time( $job['created_at'] ) ) . '</span>';
 			self::support_details( $job['public_id'] ); echo '</td>';
 			echo '<td><strong>' . esc_html( self::job_label( $job['status'] ) ) . '</strong><br>';

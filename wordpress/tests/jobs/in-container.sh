@@ -25,6 +25,7 @@ for host in mysql mariadb; do
   echo "#109 pinned DB version: $server_version"
   php /opt/tests/jobs/no-replan-audit.php "$site/wp-content/plugins/writeleash"
   php /opt/tests/jobs/price-write-allowlist.php "$site/wp-content/plugins/writeleash"
+  php /opt/tests/jobs/grant-unit.php
   for cache in default persistent; do
     if [ "$cache" = persistent ]; then
       wp --path="$site" redis enable
@@ -32,6 +33,7 @@ for host in mysql mariadb; do
     fi
     echo "#109 engine=$host cache=$cache"
     WL109_ROOT_USER=root WL109_ROOT_PASSWORD=disposable_root_password WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/integration.php
+    WL109_ROOT_USER=root WL109_ROOT_PASSWORD=disposable_root_password WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/grant-integration.php
     sh /opt/tests/jobs/unicode-run.sh "$host" "$cache" /opt/wp-core /opt/woo-zips
   done
   php /opt/tests/release/source-audit.php "$site/wp-content/plugins/writeleash"

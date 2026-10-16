@@ -51,6 +51,23 @@ final class Woo_Price_Mutator {
 				catch ( Price_Apply_Error $error ) { $db->query( 'ROLLBACK' ); return; }
 			}
 			if ( $row && 'PENDING' === $row['state'] ) { Price_Apply_Journal::transition( $db, $plan->data()['plan_id'], $id, $row['state'], $state, $reason, $attempt ); }
+			// #298 grant release on definitive non-applied terminal outcomes.
+			// CONFLICT/FAILED release one reservation; PENDING/NEEDS_REVIEW
+			// retain the ambiguous reservation for reconciliation. Best-effort
+			// inside the same refusal transaction; failures retain.
+			try {
+				if ( in_array( $state, array( 'CONFLICT', 'FAILED' ), true ) ) {
+					$job = Grant_Repository::job_for_plan_in_tx( $db, $plan->data()['plan_id'] );
+					$pin = $job ? Grant_Repository::job_grant( $job ) : null;
+					if ( $job && $pin ) {
+						$grants = Grant_Schema::grants_table( $db );
+						$grant = $db->get_row( $db->prepare( 'SELECT * FROM %i WHERE public_id=%s FOR UPDATE', $grants, $pin['public_id'] ), ARRAY_A );
+						if ( is_array( $grant ) ) {
+							Grant_Repository::release_in_tx( $db, (int) $grant['id'], (int) $job['id'], $id );
+						}
+					}
+				}
+			} catch ( \Throwable $ignored ) {}
 			if ( false === $db->query( 'COMMIT' ) ) { throw new Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
 		} finally { $db->close(); }
 	}
@@ -73,6 +90,23 @@ final class Woo_Price_Mutator {
 			// Optional fenced guard: acquires its row lock on this same
 			// connection before any journal/Woo write and holds it to COMMIT.
 			if ( $guard ) { $guard->acquire( $tx ); }
+			// #298 standing-grant authorization/write boundary. Runner (guard)
+			// then job (guard), then disable + grant row here (held to
+			// COMMIT so revoke/disable wait), then journal/item, then Woo.
+			// Ordinary jobs (no grant pin) skip this block with zero behavior
+			// change. Missing/uncertain evidence fails closed, zero Woo saves.
+			$grant = null;
+			$grant_job = null;
+			$grant_pin = null;
+			try {
+				$candidate = Grant_Repository::job_for_plan_in_tx( $tx, $plan->data()['plan_id'] );
+				$candidate_pin = $candidate ? Grant_Repository::job_grant( $candidate ) : null;
+				if ( $candidate && $candidate_pin ) {
+					$grant_job = $candidate;
+					$grant_pin = $candidate_pin;
+					$grant = Grant_Repository::assert_grant_for_write( $tx, $candidate, $plan, $id );
+				}
+			} catch ( Price_Apply_Error $grant_error ) { throw $grant_error; } catch ( \Throwable $grant_error ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 			$row = Price_Apply_Journal::read( $tx, $plan->data()['plan_id'], $id, true );
 			if ( ! $row ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 			Price_Apply_Journal::assert_binding( $row, $plan, $id );
@@ -165,9 +199,18 @@ final class Woo_Price_Mutator {
 			if ( $guard && $guard->connection_id() > 0 ) { $evidence['fence_connection_id'] = $guard->connection_id(); }
 			$evidence = Plan_Hasher::canonical_json( $evidence );
 			// The row was claimed APPLYING above in this same transaction; the
-		// expected state makes a stale or reordered success fail closed
-		// before COMMIT instead of overwriting newer durable state.
-		Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, 'APPLYING', 'APPLIED', 'WOO_CRUD_VERIFIED', $attempt, $evidence );
+			// expected state makes a stale or reordered success fail closed
+			// before COMMIT instead of overwriting newer durable state.
+			Price_Apply_Journal::transition( $tx, $plan->data()['plan_id'], $id, 'APPLYING', 'APPLIED', 'WOO_CRUD_VERIFIED', $attempt, $evidence );
+			// #298 consume exactly once when the journal durably reaches
+			// APPLIED, in this same transaction before COMMIT. Budget lives
+			// here, never in `woocommerce_before_product_object_save`.
+			if ( $grant && $grant_job ) {
+				try {
+					Grant_Repository::consume_in_tx( $tx, $grant, (int) $grant_job['id'], $id );
+					Grant_Repository::audit_item_in_tx( $tx, (int) $grant['id'], (int) $grant['version'], (int) $grant_job['id'], $id, $plan->data()['plan_id'], (int) $plan->data()['actor_id'], (int) $grant['issuer_id'], 0, Grant_Repository::APPROVAL_GRANT, (string) ( $grant_pin['key'] ?? '' ), 'ITEM_APPLIED', array( 'expected' => $item['expected_regular_price'] ?? '', 'planned' => $item['planned_regular_price'] ?? '', 'field' => $field, 'attempt' => $attempt ) );
+				} catch ( Price_Apply_Error $consume_error ) { throw $consume_error; } catch ( \Throwable $consume_error ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+			}
 			self::checkpoint( 'AFTER_JOURNAL_BEFORE_COMMIT', $id, $attempt );
 			$tx->commit();
 			$committed = true;
@@ -182,8 +225,14 @@ final class Woo_Price_Mutator {
 			$rolled_back = $tx ? $tx->rollback() : false;
 			if ( $had_transaction && ! $rolled_back && 'AMBIGUOUS_COMMIT' !== $reason ) { $reason = 'TRANSACTION_LOST'; }
 			$wpdb = $original;
-			$review = $committed || in_array( $reason, array( 'TRANSACTION_LOST', 'AMBIGUOUS_COMMIT', 'CACHE_VERIFICATION_FAILED', 'LOOKUP_MISMATCH', 'JOURNAL_MISMATCH' ), true );
-			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'CONFLICT', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' );
+			// #298 grant failure policy: definitive grant denials fail closed
+			// with zero Woo saves and no unrestricted fallback. Ambiguous
+			// grant-store uncertainty retains the reservation via NEEDS_REVIEW.
+			$grant_definitive = array( 'GRANT_REVOKED', 'GRANT_EXPIRED', 'GRANT_DISABLED', 'GRANT_SCOPE_DENIED', 'GRANT_BUDGET_EXHAUSTED', 'GRANT_IDENTITY_INVALID', 'GRANT_BINDING_MISMATCH', 'GRANT_IDEMPOTENCY_MISMATCH', 'GRANT_NOT_FOUND', 'GRANT_PLAN_EXISTS' );
+			$grant_ambiguous = array( 'GRANT_STORE_UNAVAILABLE' );
+			$review = $committed || in_array( $reason, array( 'TRANSACTION_LOST', 'AMBIGUOUS_COMMIT', 'CACHE_VERIFICATION_FAILED', 'LOOKUP_MISMATCH', 'JOURNAL_MISMATCH' ), true ) || in_array( $reason, $grant_ambiguous, true );
+			if ( in_array( $reason, $grant_definitive, true ) ) { $code = 'GRANT_DENIED'; }
+			else { $code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'CONFLICT', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' ); }
 			try {
 				// Connection loss: cleanup uses independent live DB, never a dead writer.
 				$observer = Price_Cache_Verifier::observer();
