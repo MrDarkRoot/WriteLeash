@@ -203,7 +203,7 @@ final class Grant_Repository {
 		$db->query( $db->prepare( "UPDATE %i SET status='revoked',revoke_reason=%s,revoked_at=UTC_TIMESTAMP(),version=version+1,updated_at=UTC_TIMESTAMP() WHERE public_id=%s AND status='active'", $grants, $reason, $public_id ) );
 		$grant = self::read_by_public_id( $public_id );
 		if ( ! $grant || 'revoked' !== $grant['status'] ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
-		self::audit( (int) $grant['id'], (int) $grant['version'], 0, 0, (string) $grant['plan_id'] ?? '', (int) $grant['actor_id'], (int) $grant['issuer_id'], 0, self::APPROVAL_NONE, '', 'GRANT_REVOKED', array( 'reason' => $reason, 'revoker_id' => $revoker_id ) );
+		self::audit( (int) $grant['id'], (int) $grant['version'], 0, 0, '', (int) $grant['actor_id'], (int) $grant['issuer_id'], 0, self::APPROVAL_NONE, '', 'GRANT_REVOKED', array( 'reason' => $reason, 'revoker_id' => $revoker_id ) );
 		return $grant;
 	}
 

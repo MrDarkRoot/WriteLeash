@@ -293,12 +293,16 @@ Grants::revoke( $auth_grant['public_id'], $issuer );
 file_put_contents( $paused['spec']['release'], 'go' );
 $auth_result = finish_worker( $paused );
 eq( saves( $auth_ids[0] ), 0, 'revoke-before-boundary zero saves' );
-// Revoke races an in-flight write (paused after Woo save, holding the grant
-// lock): the in-flight item still commits once; the next item is denied.
+// Revoke races an in-flight write: the worker is paused after the Woo save
+// while holding the item transaction (and the grant row lock), so the
+// parallel revoke UPDATE blocks until COMMIT/ROLLBACK. Release lets the
+// item commit exactly once; the revoke becomes durable right after. The
+// documented boundary: revocation wins only pre-boundary. Single item, so
+// no racy second-item ordering is asserted here (the two-item
+// revoke-before-execution case above already proves denial pre-boundary).
 $flight_grant = Grants::create_grant( $issuer, $actor, 10, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
 wp_set_current_user( $actor );
-$flight_ids = array( create_product( '100.00' ), create_product( '100.00' ) );
-sort( $flight_ids, SORT_NUMERIC );
+$flight_ids = array( create_product( '100.00' ) );
 $flight_plan = Planner::preview( Selection::ids( $flight_ids ), new Operation( Operation::SET, '80.00' ), new Policy( 1000, '100', '100', false, '100' ) );
 $flight_accepted = Grants::accept_plan( $flight_plan, $flight_grant['public_id'], $issuer, 'id-flight' );
 $flight_job = (int) $flight_accepted['job']['id'];
@@ -307,11 +311,19 @@ $held = start_worker( array( 'job_id' => $flight_job, 'mode' => 'run', 'limits' 
 await_file( $held['spec']['barrier'] );
 $revoke_proc = start_worker( array( 'job_id' => $flight_job, 'mode' => 'revoke', 'grant' => $flight_grant['public_id'], 'issuer' => $issuer ), 'grant-revoke-worker.php' );
 // The revoke UPDATE blocks behind the held grant row lock; release the item
-// so it can commit, then the revoke becomes durable for the next item.
+// so it can commit, then the revoke becomes durable after the boundary.
 file_put_contents( $held['spec']['release'], 'go' );
 $held_result = finish_worker( $held );
 $revoke_result = finish_worker( $revoke_proc );
-eq( saves( $flight_ids[0] ) + saves( $flight_ids[1] ), 1, 'in-flight item commits once past the boundary' );
+eq( $revoke_result['revoked'], true, 'revoke serialized after the in-flight boundary' );
+eq( saves( $flight_ids[0] ), 1, 'in-flight item commits exactly once past the boundary' );
+eq( fresh_price( $flight_ids[0] ), '80.00', 'in-flight item reaches its frozen target' );
+eq( journal_row( $flight_plan->data()['plan_id'], $flight_ids[0] )['state'], 'APPLIED', 'in-flight journal APPLIED preserved' );
+$frow = grant_row( $flight_grant['public_id'] );
+eq( $frow['status'], 'revoked', 'revocation durable after serialization' );
+eq( (int) $frow['budget_consumed'], 1, 'past-boundary APPLIED consumes once' );
+eq( (int) $frow['budget_reserved'], 0, 'no leaked reservation' );
+eq( Repo::read( $flight_job )['status'], JState::COMPLETED, 'single-item grant job completes' );
 // Global disable blocks restricted writes with zero fallback saves.
 Grants::disable( $issuer );
 eq( Grants::is_disabled(), true, 'global disable durable' );

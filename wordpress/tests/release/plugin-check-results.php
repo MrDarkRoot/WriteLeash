@@ -92,6 +92,20 @@ foreach ( $data as $item ) {
 		$reviewed[] = "$code ($path:$line) fixed journal schema introspection/DDL with validated table identifier";
 		continue;
 	}
+	// The #298 job v1->v2 upgrade backfills approval_mode on already-approved
+	// human jobs. Same installer class as the journal precedent: a fixed
+	// UPDATE assembled only from literal column definitions, the table name
+	// %i-bound after jobs_table() validates its identifier. Such setup writes
+	// must not be object-cached.
+	$job_v2_backfill = 'includes/free/class-job-schema.php' === $path && is_string( $source ) &&
+		str_contains( $source, 'upgrade_v1_to_v2' ) &&
+		str_contains( $source, "UPDATE %i SET approval_mode='human' WHERE approver_id>0" );
+	if ( $job_v2_backfill && isset( $lines[ $line - 1 ] ) &&
+		str_contains( $lines[ $line - 1 ], "UPDATE %i SET approval_mode='human' WHERE approver_id>0 AND approval_mode='none'" ) &&
+		in_array( $code, array( 'WordPress.DB.DirectDatabaseQuery.DirectQuery', 'WordPress.DB.DirectDatabaseQuery.NoCaching' ), true ) ) {
+		$reviewed[] = "$code ($path:$line) fixed job v2 approval-mode backfill with validated table identifier";
+		continue;
+	}
 
 	$failures[] = $type . ':' . $code . ' (' . $item['file'] . ':' . ( $item['line'] ?? '?' ) . ') ' . strip_tags( $item['message'] ?? '' );
 }
