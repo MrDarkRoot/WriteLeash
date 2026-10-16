@@ -26,6 +26,7 @@ use WriteLeash\Woo_Price_Planner as Planner;
 use WriteLeash\Undo_Repository as URepo;
 use WriteLeash\Undo_Worker as UWorker;
 use WriteLeash\Undo_Item_State as UItem;
+use WriteLeash\Undo_Schema as USchema;
 
 global $wpdb, $work, $assertions, $hook_log, $items_table, $jobs_table;
 $assertions = 0;
@@ -388,11 +389,29 @@ eq( (int) $crow['budget_consumed'], 1, 'conflict consumes nothing' );
 eq( (int) $crow['budget_reserved'], 0, 'conflict releases its reservation' );
 // Undo of a grant APPLIED item preserves the original outcome and consumes nothing.
 wp_set_current_user( 1 );
-$undo_op = URepo::initiate( (int) $conflict_accepted['job']['id'], 1 );
+// Cross-iteration hygiene: the #109 no-DDL test drops/recreates the job
+// tables, so auto-increment restarts while the Undo tables persist. A stale
+// operation row for this reused job id (different plan) can only predate
+// this job's creation. Prove staleness, remove it, then initiate cleanly.
+// Same pattern as the #109 reconciliation-fixture cleanup.
+$conflict_job_id = (int) $conflict_accepted['job']['id'];
+$stale_op = URepo::read_operation_by_job( $conflict_job_id );
+if ( $stale_op ) {
+	ok( $stale_op['plan_id'] !== $conflict_plan->data()['plan_id'], 'stale cross-iteration Undo operation proven by plan mismatch' );
+	$stale_items = $wpdb->delete( USchema::items_table( $wpdb ), array( 'undo_id' => (int) $stale_op['id'] ) );
+	ok( false !== $stale_items, 'stale Undo items removed' );
+	eq( (int) $wpdb->delete( USchema::operations_table( $wpdb ), array( 'id' => (int) $stale_op['id'] ) ), 1, 'stale Undo operation removed' );
+}
+$undo_op = URepo::initiate( $conflict_job_id, 1 );
 UWorker::run( (int) $undo_op['id'], limits( 5 ), true );
 $urow = grant_row( $conflict_grant['public_id'] );
 eq( (int) $urow['budget_consumed'], 1, 'Undo consumes no budget unit' );
 eq( journal_row( $conflict_plan->data()['plan_id'], $conflict_ids[1] )['state'], 'APPLIED', 'original APPLIED preserved through Undo' );
+// Leave no Undo rows behind: a later cache iteration reuses job ids after
+// table recreation while Undo tables persist. Only the APPLIED sibling has
+// an Undo row (conflicts are never Undo-eligible).
+eq( $wpdb->delete( USchema::items_table( $wpdb ), array( 'undo_id' => (int) $undo_op['id'] ) ), 1, 'cleanup this grant Undo items' );
+eq( $wpdb->delete( USchema::operations_table( $wpdb ), array( 'id' => (int) $undo_op['id'] ) ), 1, 'cleanup this grant Undo operation' );
 // Ambiguous commit retains the reservation until reconciliation consumes it.
 $amb_grant = Grants::create_grant( $issuer, $actor, 5, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
 wp_set_current_user( $actor );
