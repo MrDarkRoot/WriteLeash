@@ -200,10 +200,17 @@ final class Price_Apply_Journal {
 	/**
 	 * #297 timestamp evidence: applied_at is stamped atomically with the
 	 * APPLIED transition, so only a real timestamp counts. NULL, empty and
-	 * zero-date values are inconsistent evidence and must fail closed.
+	 * zero-date values are inconsistent evidence and must fail closed. The
+	 * shape match alone cannot tell month lengths or leap years apart, so the
+	 * captured date also goes through checkdate(), which validates the real
+	 * calendar without normalizing or touching timezones. Hour 24+ passes the
+	 * shape but is not a valid clock reading.
 	 */
 	public static function has_valid_applied_at( array $row ): bool {
-		return ! empty( $row['applied_at'] ) && 1 === preg_match( '/\A[1-9][0-9]{3}-[01][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9]\z/', (string) $row['applied_at'] );
+		$stamp = (string) ( $row['applied_at'] ?? '' );
+		if ( 1 !== preg_match( '/\A([1-9][0-9]{3})-([01][0-9])-([0-3][0-9]) ([0-2][0-9]):([0-5][0-9]):([0-5][0-9])\z/', $stamp, $m ) ) { return false; }
+		if ( (int) $m[4] > 23 ) { return false; }
+		return checkdate( (int) $m[2], (int) $m[3], (int) $m[1] );
 	}
 	/**
 	 * #296 compare-and-set: the row moves only from the state the caller

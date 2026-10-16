@@ -235,4 +235,47 @@ eq( $thrown ? $thrown->getMessage() : '', 'JOURNAL_MISMATCH', 'F typed code' );
 eq( $db->read_row( 'plan-F', 31 )['state'], 'PENDING', 'F failed CAS wrote nothing' );
 echo "#296 F caller failure contract: PASS ($assertions assertions)\n";
 
+// G. #297 applied_at evidence: strict calendar/clock validity, not shape only.
+// The shape-only regex accepted month 19, February 31 and hour 24. The shared
+// helper backs both worker reconciliation and verifier observe(); downstream
+// NEEDS_REVIEW fail-closed behavior for NULL/zero-date rows is already proven
+// by the jobs integration cases, which need a real database.
+function stamp_row( $applied_at ) {
+	$row = array( 'applied_at' => $applied_at );
+	if ( null === $applied_at ) { unset( $row['applied_at'] ); }
+	return $row;
+}
+foreach ( array( '2026-10-16 17:29:30', '2024-02-29 12:00:00', '2026-01-31 23:59:59', '2026-04-30 00:00:00', '2026-10-15 14:00:01' ) as $valid ) {
+	eq( J::has_valid_applied_at( stamp_row( $valid ) ), true, 'G accepts ' . $valid );
+}
+foreach ( array(
+	'missing key' => null,
+	'empty string' => '',
+	'zero-date' => '0000-00-00 00:00:00',
+	'month 13' => '2026-13-01 00:00:00',
+	'month 00' => '2026-00-10 00:00:00',
+	'month 19 day 39 hour 29' => '2026-19-39 29:59:59',
+	'Feb 29 non-leap' => '2023-02-29 12:00:00',
+	'Feb 31' => '2026-02-31 12:00:00',
+	'day 00' => '2026-01-00 12:00:00',
+	'day 32' => '2026-01-32 12:00:00',
+	'hour 24' => '2026-04-15 24:00:00',
+	'hour 29' => '2026-10-16 29:00:00',
+	'minute 60' => '2026-10-16 12:60:00',
+	'second 60' => '2026-10-16 12:00:60',
+	'trailing space' => '2026-10-16 17:29:30 ',
+	'trailing char' => '2026-10-16 17:29:30x',
+	'leading space' => ' 2026-10-16 17:29:30',
+	'date only' => '2026-10-16',
+	'time only' => '17:29:30',
+	'slashes' => '2026/10/16 17:29:30',
+	'iso T' => '2026-10-16T17:29:30',
+	'dmy' => '16-10-2026 17:29:30',
+	'garbage' => 'not-a-timestamp',
+) as $label => $invalid ) {
+	eq( J::has_valid_applied_at( stamp_row( $invalid ) ), false, 'G rejects ' . $label );
+}
+eq( J::has_valid_applied_at( array( 'applied_at' => null ) ), false, 'G rejects explicit null' );
+echo "#297 G applied_at calendar/clock validity: PASS ($assertions assertions)\n";
+
 echo "#296 journal compare-and-set unit matrix: PASS ($assertions assertions total)\n";
