@@ -197,8 +197,27 @@ final class Price_Apply_Journal {
 		$row = $db->get_row( $db->prepare( "SELECT * FROM %i WHERE plan_id=%s AND product_id=%d" . ( $lock ? ' FOR UPDATE' : '' ), $table, $plan_id, $id ), ARRAY_A );
 		return $row ?: null;
 	}
-	public static function transition( \wpdb $db, string $plan_id, int $id, string $state, string $reason, string $attempt, string $evidence = '' ): void {
+	/**
+	 * #296 compare-and-set: the row moves only from the state the caller
+	 * observed. The expected state is part of the UPDATE predicate, so the
+	 * check is atomic in the persistence operation, not just in memory. A
+	 * stale or lock-free caller changes zero rows and gets JOURNAL_MISMATCH
+	 * instead of a successful demotion. Zero affected rows never report
+	 * success, so callers must handle the throw and must not continue as if
+	 * the transition happened (in particular, never into a Woo save()).
+	 */
+	public static function transition( \wpdb $db, string $plan_id, int $id, string $expected, string $state, string $reason, string $attempt, string $evidence = '' ): void {
+		// Closed transition graph, matching the only legal caller pairs:
+		// claim PENDING->APPLYING, success APPLYING->APPLIED, and refusal of a
+		// PENDING row (including the PENDING->PENDING diagnostic no-op that
+		// keeps a known-rollback row retryable). There is no transition out
+		// of APPLIED and no skip from PENDING straight to APPLIED.
+		static $allowed = array(
+			'PENDING'  => array( 'PENDING', 'APPLYING', 'CONFLICT', 'FAILED', 'NEEDS_REVIEW' ),
+			'APPLYING' => array( 'APPLIED' ),
+		);
+		if ( ! isset( $allowed[ $expected ] ) || ! in_array( $state, $allowed[ $expected ], true ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 		$table = self::table( $db );
-		if ( 1 !== $db->query( $db->prepare( "UPDATE %i SET state=%s,reason=%s,attempt_id=%s,evidence=%s,updated_at=UTC_TIMESTAMP(),applied_at=IF(%s='APPLIED',UTC_TIMESTAMP(),NULL) WHERE plan_id=%s AND product_id=%d", $table, $state, $reason, $attempt, $evidence, $state, $plan_id, $id ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+		if ( 1 !== $db->query( $db->prepare( "UPDATE %i SET state=%s,reason=%s,attempt_id=%s,evidence=%s,updated_at=UTC_TIMESTAMP(),applied_at=IF(%s='APPLIED',UTC_TIMESTAMP(),NULL) WHERE plan_id=%s AND product_id=%d AND state=%s", $table, $state, $reason, $attempt, $evidence, $state, $plan_id, $id, $expected ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 	}
 }
