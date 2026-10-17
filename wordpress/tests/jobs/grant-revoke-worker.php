@@ -8,6 +8,9 @@ if ( ! is_array( $spec ) || ! isset( $spec['grant'], $spec['issuer'], $spec['res
 }
 file_put_contents( $spec['started'], (string) getmypid() );
 try {
+	// Grant management is bound to the authenticated principal: impersonate
+	// the issuer before revoking (a real request would carry this session).
+	wp_set_current_user( (int) $spec['issuer'] );
 	$grant = WriteLeash\Grant_Repository::revoke( (string) $spec['grant'], (int) $spec['issuer'] );
 	$result = array( 'revoked' => true, 'version' => (int) $grant['version'] );
 } catch ( Throwable $error ) {

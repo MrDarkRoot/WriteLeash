@@ -65,6 +65,14 @@ if ( ! empty( $spec['commit_checkpoint'] ) ) {
 		add_action( 'writeleash_price_commit_checkpoint', $fault, 10, 2 );
 	}, 10, 3 );
 }
+// #298 audit-store fault: fire on the grant audit seam to prove the caller
+// rolls back a mandatory evidence append rather than committing without it.
+if ( ! empty( $spec['audit_fault_event'] ) ) {
+	add_action( 'writeleash_grant_audit_before_insert', static function ( $event ) use ( $spec ) {
+		if ( $event !== $spec['audit_fault_event'] ) { return; }
+		if ( 'throw' === ( $spec['audit_fault'] ?? '' ) ) { throw new RuntimeException( 'controlled-audit-fault' ); }
+	} );
+}
 // Public Woo factory filter staging a transient read refusal for one product,
 // exactly as the #209 durable probe does; never a mutator/production mock.
 if ( ! empty( $spec['class_fault'] ) ) {

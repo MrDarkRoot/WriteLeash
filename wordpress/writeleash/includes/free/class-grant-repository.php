@@ -48,6 +48,37 @@ final class Grant_Repository {
 	}
 
 	/**
+	 * True only when $claimed_id is the currently authenticated WordPress user.
+	 *
+	 * Possession of an id proves nothing: an anonymous caller (0), a deleted or
+	 * invalid id, and a caller supplying another user's id are all refused
+	 * before any capability is considered. There is no trusted-internal bypass
+	 * parameter; grant management is always bound to the authenticated request
+	 * principal. The only non-request caller is the #109 worker, which
+	 * impersonates the frozen actor for item execution and never manages grants.
+	 */
+	public static function is_authenticated_self( int $claimed_id ): bool {
+		if ( $claimed_id < 1 ) { return false; }
+		$current = (int) get_current_user_id();
+		return $current >= 1 && $current === $claimed_id;
+	}
+
+	/**
+	 * Resolve the authenticated human principal for a human-only grant operation
+	 * (issue/accept/revoke/update/disable/enable). Refuses anonymous, zero,
+	 * deleted, invalid and mismatched principals, then requires the existing
+	 * WooCommerce product-management capability on the actual authenticated
+	 * issuer. Never accepts an arbitrary payload id.
+	 */
+	private static function require_human_self( int $claimed_id ): \WP_User {
+		if ( ! self::is_authenticated_self( $claimed_id ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
+		$user = new \WP_User( $claimed_id );
+		if ( ! $user->exists() ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
+		if ( ! user_can( $user, 'manage_woocommerce' ) || ! user_can( $user, 'edit_products' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
+		return $user;
+	}
+
+	/**
 	 * Idempotent setup for the grant family. Fresh installs create
 	 * plugin-owned tables; unknown/partial state fails closed with a typed
 	 * reason and zero grant execution.
@@ -100,20 +131,61 @@ final class Grant_Repository {
 
 	/** Operator recovery: disable restricted writes. Requires product-management capability. */
 	public static function disable( int $operator_id ): void {
-		self::ensure_schema();
-		$user = new \WP_User( $operator_id );
-		if ( $operator_id < 1 || ! user_can( $user, 'manage_woocommerce' ) || ! user_can( $user, 'edit_products' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
-		update_option( Grant_Schema::DISABLE_OPTION, '1', false );
-		self::audit_global( $operator_id, 'GRANT_DISABLED' );
+		self::set_global_disabled( $operator_id, true );
 	}
 
 	/** Operator recovery: re-enable after the documented control. Same capability gate. */
 	public static function enable( int $operator_id ): void {
+		self::set_global_disabled( $operator_id, false );
+	}
+
+	/**
+	 * Flip the durable kill-switch and append its audit event in one
+	 * transaction. The option row is locked FOR UPDATE, so the flip waits for
+	 * in-flight item transactions holding the SHARE lock and blocks new ones;
+	 * a failed audit rolls the flip back (fail-closed). The direct option
+	 * write bypasses the object cache, so the cache is always dropped after
+	 * the transaction — a stale "enabled" read can never survive a rollback.
+	 * The operator must be the authenticated principal.
+	 */
+	private static function set_global_disabled( int $operator_id, bool $disabled ): void {
 		self::ensure_schema();
-		$user = new \WP_User( $operator_id );
-		if ( $operator_id < 1 || ! user_can( $user, 'manage_woocommerce' ) || ! user_can( $user, 'edit_products' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
-		update_option( Grant_Schema::DISABLE_OPTION, '0', false );
-		self::audit_global( $operator_id, 'GRANT_ENABLED' );
+		self::require_human_self( $operator_id );
+		$original = self::db();
+		$tx = null;
+		$committed = false;
+		try {
+			$tx = new Price_Apply_Connection( $original );
+			$tx->begin();
+			$value = $tx->get_var( $tx->prepare( 'SELECT option_value FROM %i WHERE option_name=%s FOR UPDATE', $tx->options, Grant_Schema::DISABLE_OPTION ) );
+			if ( null === $value ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+			$next = $disabled ? '1' : '0';
+			if ( 1 !== $tx->query( $tx->prepare( 'UPDATE %i SET option_value=%s WHERE option_name=%s', $tx->options, $next, Grant_Schema::DISABLE_OPTION ) ) ) {
+				throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
+			}
+			self::audit_in_tx( $tx, 0, 0, 0, 0, '', 0, $operator_id, 0, self::APPROVAL_NONE, '', $disabled ? 'GRANT_DISABLED' : 'GRANT_ENABLED', array( 'operator_id' => $operator_id ) );
+			$tx->commit();
+			$committed = true;
+		} catch ( \Throwable $error ) {
+			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
+			throw $error instanceof Grant_Error ? $error : new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
+		} finally {
+			if ( $tx ) { $tx->rollback(); }
+			self::flush_disable_cache();
+		}
+	}
+
+	/** Drop cached copies of the kill-switch after a direct option write/rollback. */
+	private static function flush_disable_cache(): void {
+		try {
+			wp_cache_delete( Grant_Schema::DISABLE_OPTION, 'options' );
+			wp_cache_delete( 'alloptions', 'options' );
+			$notoptions = wp_cache_get( 'notoptions', 'options' );
+			if ( is_array( $notoptions ) && isset( $notoptions[ Grant_Schema::DISABLE_OPTION ] ) ) {
+				unset( $notoptions[ Grant_Schema::DISABLE_OPTION ] );
+				wp_cache_set( 'notoptions', $notoptions, 'options' );
+			}
+		} catch ( \Throwable $ignored ) {}
 	}
 
 	/**
@@ -145,26 +217,40 @@ final class Grant_Repository {
 	 */
 	public static function create_grant( int $issuer_id, int $actor_id, int $budget_max, string $expires_at ): array {
 		self::ensure_schema();
-		if ( $issuer_id < 1 || $actor_id < 1 || $issuer_id === $actor_id ) { throw new Grant_Error( 'GRANT_IDENTITY_INVALID' ); }
+		self::require_human_self( $issuer_id );
+		if ( $actor_id < 1 || $issuer_id === $actor_id ) { throw new Grant_Error( 'GRANT_IDENTITY_INVALID' ); }
 		if ( $budget_max < 1 || $budget_max > self::MAX_BUDGET ) { throw new Grant_Error( 'GRANT_BUDGET_INVALID' ); }
 		if ( 1 !== preg_match( '/\A[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\z/', $expires_at ) ) { throw new Grant_Error( 'GRANT_EXPIRY_INVALID' ); }
-		$issuer = new \WP_User( $issuer_id );
-		if ( ! user_can( $issuer, 'manage_woocommerce' ) || ! user_can( $issuer, 'edit_products' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
 		// Expiry must be in the future at creation; comparison in UTC.
 		if ( strtotime( $expires_at . ' UTC' ) <= time() ) { throw new Grant_Error( 'GRANT_EXPIRY_INVALID' ); }
-		$db = self::db();
-		$grants = Grant_Schema::grants_table( $db );
+		$original = self::db();
 		$public_id = wp_generate_uuid4();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable grant INSERT; values are prepared.
-		if ( 1 !== $db->query( $db->prepare(
-			"INSERT INTO %i (schema_version,public_id,version,issuer_id,actor_id,budget_max,budget_consumed,budget_reserved,expires_at,status,revoke_reason,created_at,updated_at) VALUES (%d,%s,%d,%d,%d,%d,0,0,%s,'active','',UTC_TIMESTAMP(),UTC_TIMESTAMP())",
-			$grants, Grant_Schema::SCHEMA_VERSION, $public_id, 1, $issuer_id, $actor_id, $budget_max, $expires_at
-		) ) ) {
-			throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
-		}
+		$tx = null;
+		$committed = false;
+		try {
+			$tx = new Price_Apply_Connection( $original );
+			$tx->begin();
+			$grants = Grant_Schema::grants_table( $tx );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable grant INSERT; values are prepared.
+			if ( 1 !== $tx->query( $tx->prepare(
+				"INSERT INTO %i (schema_version,public_id,version,issuer_id,actor_id,budget_max,budget_consumed,budget_reserved,expires_at,status,revoke_reason,created_at,updated_at) VALUES (%d,%s,%d,%d,%d,%d,0,0,%s,'active','',UTC_TIMESTAMP(),UTC_TIMESTAMP())",
+				$grants, Grant_Schema::SCHEMA_VERSION, $public_id, 1, $issuer_id, $actor_id, $budget_max, $expires_at
+			) ) ) {
+				throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
+			}
+			$grant_id = (int) $tx->insert_id;
+			if ( $grant_id < 1 ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+			// Audit is mandatory evidence: append it in the same transaction so
+			// an unwritable audit store rolls the grant creation back.
+			self::audit_in_tx( $tx, $grant_id, 1, 0, 0, '', $actor_id, $issuer_id, 0, self::APPROVAL_NONE, '', 'GRANT_CREATED', array( 'budget_max' => $budget_max, 'expires_at' => $expires_at, 'actor_id' => $actor_id, 'issuer_id' => $issuer_id ) );
+			$tx->commit();
+			$committed = true;
+		} catch ( \Throwable $error ) {
+			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
+			throw $error instanceof Grant_Error ? $error : new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
+		} finally { if ( $tx ) { $tx->rollback(); } }
 		$grant = self::read_by_public_id( $public_id );
 		if ( ! $grant ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
-		self::audit( (int) $grant['id'], 1, 0, 0, '', $actor_id, $issuer_id, 0, self::APPROVAL_NONE, '', 'GRANT_CREATED', array( 'budget_max' => $budget_max, 'expires_at' => $expires_at, 'actor_id' => $actor_id, 'issuer_id' => $issuer_id ) );
 		return $grant;
 	}
 
@@ -194,16 +280,37 @@ final class Grant_Repository {
 		if ( ! preg_match( '/\A[A-Z0-9_]{1,64}\z/', $reason ) ) { throw new Grant_Error( 'GRANT_REVOKE_INVALID' ); }
 		$grant = self::read_by_public_id( $public_id );
 		if ( ! $grant ) { throw new Grant_Error( 'GRANT_NOT_FOUND' ); }
-		$user = new \WP_User( $revoker_id );
-		if ( $revoker_id < 1 || ! user_can( $user, 'manage_woocommerce' ) || ! user_can( $user, 'edit_products' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
-		if ( $revoker_id !== (int) $grant['issuer_id'] && ! user_can( $user, 'manage_options' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
-		$db = self::db();
-		$grants = Grant_Schema::grants_table( $db );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable revocation CAS; values are prepared.
-		$db->query( $db->prepare( "UPDATE %i SET status='revoked',revoke_reason=%s,revoked_at=UTC_TIMESTAMP(),version=version+1,updated_at=UTC_TIMESTAMP() WHERE public_id=%s AND status='active'", $grants, $reason, $public_id ) );
+		$revoker = self::require_human_self( $revoker_id );
+		if ( $revoker_id !== (int) $grant['issuer_id'] && ! user_can( $revoker, 'manage_options' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
+		$original = self::db();
+		$tx = null;
+		$committed = false;
+		try {
+			$tx = new Price_Apply_Connection( $original );
+			$tx->begin();
+			$grants = Grant_Schema::grants_table( $tx );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable revocation CAS; values are prepared.
+			$moved = $tx->query( $tx->prepare( "UPDATE %i SET status='revoked',revoke_reason=%s,revoked_at=UTC_TIMESTAMP(),version=version+1,updated_at=UTC_TIMESTAMP() WHERE public_id=%s AND status='active'", $grants, $reason, $public_id ) );
+			if ( 1 !== $moved ) {
+				// Revoking an already-revoked grant is an idempotent no-op that
+				// changes no state, so it appends no new evidence.
+				$row = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE public_id=%s', $grants, $public_id ), ARRAY_A );
+				if ( is_array( $row ) && 'revoked' === $row['status'] ) { $tx->rollback(); return $row; }
+				throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
+			}
+			$row = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE public_id=%s', $grants, $public_id ), ARRAY_A );
+			if ( ! is_array( $row ) ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+			// Audit shares the revocation transaction: a failed append rolls
+			// the revoke back rather than losing the record silently.
+			self::audit_in_tx( $tx, (int) $row['id'], (int) $row['version'], 0, 0, '', (int) $row['actor_id'], (int) $row['issuer_id'], 0, self::APPROVAL_NONE, '', 'GRANT_REVOKED', array( 'reason' => $reason, 'revoker_id' => $revoker_id ) );
+			$tx->commit();
+			$committed = true;
+		} catch ( \Throwable $error ) {
+			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
+			throw $error instanceof Grant_Error ? $error : new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
+		} finally { if ( $tx ) { $tx->rollback(); } }
 		$grant = self::read_by_public_id( $public_id );
 		if ( ! $grant || 'revoked' !== $grant['status'] ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
-		self::audit( (int) $grant['id'], (int) $grant['version'], 0, 0, '', (int) $grant['actor_id'], (int) $grant['issuer_id'], 0, self::APPROVAL_NONE, '', 'GRANT_REVOKED', array( 'reason' => $reason, 'revoker_id' => $revoker_id ) );
 		return $grant;
 	}
 
@@ -216,17 +323,20 @@ final class Grant_Repository {
 		self::ensure_schema();
 		$grant = self::read_by_public_id( $public_id );
 		if ( ! $grant ) { throw new Grant_Error( 'GRANT_NOT_FOUND' ); }
-		$user = new \WP_User( $editor_id );
-		if ( $editor_id < 1 || ! user_can( $user, 'manage_woocommerce' ) || ! user_can( $user, 'edit_products' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
-		if ( $editor_id !== (int) $grant['issuer_id'] && ! user_can( $user, 'manage_options' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
+		$editor = self::require_human_self( $editor_id );
+		if ( $editor_id !== (int) $grant['issuer_id'] && ! user_can( $editor, 'manage_options' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
 		if ( null === $expires_at && null === $budget_max ) { throw new Grant_Error( 'GRANT_UPDATE_EMPTY' ); }
 		if ( null !== $expires_at && 1 !== preg_match( '/\A[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\z/', $expires_at ) ) { throw new Grant_Error( 'GRANT_EXPIRY_INVALID' ); }
 		if ( null !== $budget_max && ( $budget_max < 1 || $budget_max > self::MAX_BUDGET ) ) { throw new Grant_Error( 'GRANT_BUDGET_INVALID' ); }
 		if ( null !== $budget_max && $budget_max < (int) $grant['budget_consumed'] + (int) $grant['budget_reserved'] ) { throw new Grant_Error( 'GRANT_BUDGET_INVALID' ); }
-		$db = self::db();
-		$grants = Grant_Schema::grants_table( $db );
-		$original = $db;
+		$original = self::db();
+		$grants = Grant_Schema::grants_table( $original );
 		$tx = null;
+		$committed = false;
+		$before_expires = (string) $grant['expires_at'];
+		$before_budget = (int) $grant['budget_max'];
+		$new_expires = null;
+		$new_budget = null;
 		try {
 			$tx = new Price_Apply_Connection( $original );
 			$tx->begin();
@@ -236,14 +346,18 @@ final class Grant_Repository {
 			$new_budget = null !== $budget_max ? $budget_max : (int) $row['budget_max'];
 			if ( $new_budget < (int) $row['budget_consumed'] + (int) $row['budget_reserved'] ) { throw new Grant_Error( 'GRANT_BUDGET_INVALID' ); }
 			if ( 1 !== $tx->query( $tx->prepare( 'UPDATE %i SET expires_at=%s,budget_max=%d,version=version+1,updated_at=UTC_TIMESTAMP() WHERE public_id=%s', $grants, $new_expires, $new_budget, $public_id ) ) ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+			// Evidence is mandatory and shares the edit transaction; the
+			// pre-edit values are recorded explicitly so the audit is not
+			// merely re-read from the mutated row.
+			self::audit_in_tx( $tx, (int) $row['id'], (int) $row['version'] + 1, 0, 0, '', (int) $row['actor_id'], (int) $row['issuer_id'], 0, self::APPROVAL_NONE, '', 'GRANT_UPDATED', array( 'editor_id' => $editor_id, 'before' => array( 'expires_at' => $before_expires, 'budget_max' => $before_budget ), 'after' => array( 'expires_at' => $new_expires, 'budget_max' => $new_budget ) ) );
 			$tx->commit();
+			$committed = true;
 		} catch ( \Throwable $error ) {
-			if ( $tx ) { $tx->rollback(); }
+			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
 			throw $error instanceof Grant_Error ? $error : new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
 		} finally { if ( $tx ) { $tx->rollback(); } }
 		$grant = self::read_by_public_id( $public_id );
 		if ( ! $grant ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
-		self::audit( (int) $grant['id'], (int) $grant['version'], 0, 0, '', (int) $grant['actor_id'], (int) $grant['issuer_id'], 0, self::APPROVAL_NONE, '', 'GRANT_UPDATED', array( 'expires_at' => $new_expires ?? $grant['expires_at'], 'budget_max' => $new_budget ?? (int) $grant['budget_max'], 'editor_id' => $editor_id ) );
 		return $grant;
 	}
 
@@ -338,7 +452,10 @@ final class Grant_Repository {
 		self::ensure_schema();
 		if ( ! preg_match( self::PUBLIC_ID_REGEX, $grant_public_id ) ) { throw new Grant_Error( 'GRANT_NOT_FOUND' ); }
 		if ( ! preg_match( self::IDEMPOTENCY_REGEX, $idempotency_key ) ) { throw new Grant_Error( 'GRANT_IDEMPOTENCY_INVALID' ); }
-		if ( $issuer_id < 1 ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
+		// The authenticated caller must be the issuer (and hold product
+		// management). The durable grant row is re-checked to the same issuer
+		// inside the transaction, so a supplied id cannot impersonate.
+		self::require_human_self( $issuer_id );
 		$data = $plan->data();
 		$actor_id = (int) ( $data['actor_id'] ?? 0 );
 		if ( $actor_id < 1 || $actor_id === $issuer_id ) { throw new Grant_Error( 'GRANT_IDENTITY_INVALID' ); }
@@ -357,27 +474,41 @@ final class Grant_Repository {
 			$engine = $tx->get_var( $tx->prepare( 'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $tx->options ) );
 			if ( 'InnoDB' !== $engine ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 			$disable = $tx->get_var( $tx->prepare( 'SELECT option_value FROM %i WHERE option_name=%s LOCK IN SHARE MODE', $tx->options, Grant_Schema::DISABLE_OPTION ) );
-			if ( '0' !== (string) $disable ) { throw new Grant_Error( 'GRANT_DISABLED' ); }
 			$grants = Grant_Schema::grants_table( $tx );
 			$grant = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE public_id=%s FOR UPDATE', $grants, $grant_public_id ), ARRAY_A );
 			if ( ! $grant ) { throw new Grant_Error( 'GRANT_NOT_FOUND' ); }
 			if ( (int) $grant['issuer_id'] !== $issuer_id ) { throw new Grant_Error( 'GRANT_IDEMPOTENCY_MISMATCH' ); }
 			if ( (int) $grant['actor_id'] !== $actor_id ) { throw new Grant_Error( 'GRANT_IDENTITY_INVALID' ); }
-			if ( 'active' !== $grant['status'] ) { throw new Grant_Error( 'GRANT_REVOKED' ); }
-			// Expiry is a durable UTC comparison inside the transaction.
-			$now = $tx->get_var( 'SELECT UTC_TIMESTAMP()' );
-			if ( ! is_string( $now ) || $now === '' || strcmp( (string) $grant['expires_at'], $now ) <= 0 ) { throw new Grant_Error( 'GRANT_EXPIRED' ); }
-			// Idempotency: same key + same payload replays; different rejects.
+			// Idempotency is evaluated BEFORE any mutable grant state. A replay
+			// of an already-accepted plan returns its original job even if the
+			// grant has since been revoked, expired or globally disabled: it
+			// creates no plan, no reservation and no new write authority (each
+			// item is still denied at execution by the current grant state).
 			$idem_table = Grant_Schema::idempotency_table( $tx );
 			$existing_key = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE grant_db_id=%d AND idempotency_key=%s FOR UPDATE', $idem_table, (int) $grant['id'], $idempotency_key ), ARRAY_A );
 			if ( $existing_key ) {
 				if ( ! hash_equals( (string) $existing_key['canonical_hash'], $hash ) ) { throw new Grant_Error( 'GRANT_IDEMPOTENCY_MISMATCH' ); }
+				if ( (int) $existing_key['issuer_id'] !== $issuer_id ) { throw new Grant_Error( 'GRANT_IDEMPOTENCY_MISMATCH' ); }
+				if ( (string) $existing_key['plan_id'] !== (string) $data['plan_id'] ) { throw new Grant_Error( 'GRANT_IDEMPOTENCY_MISMATCH' ); }
+				$job_id = (int) $existing_key['job_id'];
 				$tx->rollback();
-				$job = Job_Repository::read( (int) $existing_key['job_id'] );
+				$job = $job_id > 0 ? Job_Repository::read( $job_id ) : null;
 				if ( ! $job ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
-				self::assert_job_grant_binding( $job, $grant_public_id, (int) $grant['version'], $idempotency_key );
+				self::assert_job_grant_binding( $job, $grant_public_id, 0, $idempotency_key );
+				// Stored-record integrity: the returned job must still carry
+				// the original plan and a readable pinned version. A missing or
+				// inconsistent record fails closed rather than minting a job.
+				if ( (int) ( $job['grant_version'] ?? 0 ) < 1 ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+				if ( (string) ( $job['plan_id'] ?? '' ) !== (string) $data['plan_id'] || (string) ( $job['plan_hash'] ?? '' ) !== $plan->hash() ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+				if ( (int) ( $job['creator_id'] ?? 0 ) !== $actor_id ) { throw new Grant_Error( 'GRANT_IDENTITY_INVALID' ); }
 				return array( 'job' => $job, 'replayed' => true );
 			}
+			// New acceptance only: now enforce current grant state.
+			if ( '0' !== (string) $disable ) { throw new Grant_Error( 'GRANT_DISABLED' ); }
+			if ( 'active' !== $grant['status'] ) { throw new Grant_Error( 'GRANT_REVOKED' ); }
+			// Expiry is a durable UTC comparison inside the transaction.
+			$now = $tx->get_var( 'SELECT UTC_TIMESTAMP()' );
+			if ( ! is_string( $now ) || $now === '' || strcmp( (string) $grant['expires_at'], $now ) <= 0 ) { throw new Grant_Error( 'GRANT_EXPIRED' ); }
 			// Atomic reservation: one conditional UPDATE, so concurrent jobs
 			// cannot overbook the last unit. Zero rows => denial.
 			$reserved = $tx->query( $tx->prepare(
@@ -389,6 +520,10 @@ final class Grant_Repository {
 				if ( ! $fresh || 'active' !== $fresh['status'] ) { throw new Grant_Error( 'GRANT_REVOKED' ); }
 				throw new Grant_Error( 'GRANT_BUDGET_EXHAUSTED' );
 			}
+			// #298 test seam: no production listener. Lets the container gate
+			// hold the acceptance transaction open after the reservation (grant
+			// row lock held) to prove concurrent same-key submissions replay.
+			do_action( 'writeleash_grant_accept_checkpoint', 'AFTER_RESERVE', (int) $grant['id'], $idempotency_key, $tx );
 			// Freeze the plan as a grant-bound job: READY, approver 0, mode
 			// grant, pinned grant version/key. Change_Plan JSON itself is
 			// untouched (immutable); the job row carries the pin.
@@ -591,7 +726,7 @@ final class Grant_Repository {
 	 * APPLIED transition and BEFORE COMMIT. Idempotent via the reservation
 	 * state CAS (RESERVED -> CONSUMED); already-CONSUMED is a no-op success.
 	 */
-	public static function consume_in_tx( \wpdb $tx, array $grant, int $job_id, int $product_id ): void {
+	public static function consume_in_tx( \wpdb $tx, array $grant, int $job_id, int $product_id ): bool {
 		$res_table = Grant_Schema::reservations_table( $tx );
 		$grants = Grant_Schema::grants_table( $tx );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Grant consume CAS; values are prepared.
@@ -601,10 +736,10 @@ final class Grant_Repository {
 			if ( 1 !== $tx->query( $tx->prepare( 'UPDATE %i SET budget_reserved=IF(budget_reserved>0,budget_reserved-1,0),budget_consumed=budget_consumed+1,updated_at=UTC_TIMESTAMP() WHERE id=%d', $grants, (int) $grant['id'] ) ) ) {
 				throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' );
 			}
-			return;
+			return true;
 		}
 		$state = $tx->get_var( $tx->prepare( 'SELECT state FROM %i WHERE grant_db_id=%d AND job_id=%d AND product_id=%d', $res_table, (int) $grant['id'], $job_id, $product_id ) );
-		if ( 'CONSUMED' === (string) $state ) { return; }
+		if ( 'CONSUMED' === (string) $state ) { return false; }
 		throw new Price_Apply_Error( 'GRANT_BUDGET_EXHAUSTED' );
 	}
 
@@ -614,7 +749,7 @@ final class Grant_Repository {
 	 * persists the journal terminal state. Already-RELEASED/CONSUMED is a
 	 * no-op; ambiguous outcomes must not call this (retain RESERVED).
 	 */
-	public static function release_in_tx( \wpdb $tx, int $grant_db_id, int $job_id, int $product_id ): void {
+	public static function release_in_tx( \wpdb $tx, int $grant_db_id, int $job_id, int $product_id ): bool {
 		$res_table = Grant_Schema::reservations_table( $tx );
 		$grants = Grant_Schema::grants_table( $tx );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Grant release CAS; values are prepared.
@@ -622,7 +757,9 @@ final class Grant_Repository {
 		if ( 1 === $moved ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Grant budget release; values are prepared.
 			$tx->query( $tx->prepare( 'UPDATE %i SET budget_reserved=IF(budget_reserved>0,budget_reserved-1,0),updated_at=UTC_TIMESTAMP() WHERE id=%d', $grants, $grant_db_id ) );
+			return true;
 		}
+		return false;
 	}
 
 	/**
@@ -636,7 +773,15 @@ final class Grant_Repository {
 		try { $journal = Price_Apply_Journal::read( $observer, $plan_id, $product_id ); }
 		catch ( \Throwable $error ) { return 'RETAINED'; }
 		finally { if ( $observer ) { try { $observer->close(); } catch ( \Throwable $ignored ) {} } }
-		// Use a short transaction for the grant-side CAS.
+		// Evidence fields come from the immutable job pin, never the current
+		// grant row, so reconciliation preserves the original actor/version
+		// even after the grant has been edited.
+		$job = Job_Repository::read( $job_id );
+		$pin = $job ? self::job_grant( $job ) : null;
+		$actor_id = $job ? (int) $job['creator_id'] : 0;
+		$pinned_version = $pin ? (int) $pin['version'] : 0;
+		$key = $pin ? (string) $pin['key'] : '';
+		// Use a short transaction for the grant-side CAS + evidence append.
 		$original = self::db();
 		$tx = null;
 		try {
@@ -645,13 +790,20 @@ final class Grant_Repository {
 			$grants = Grant_Schema::grants_table( $tx );
 			$grant = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE id=%d FOR UPDATE', $grants, $grant_db_id ), ARRAY_A );
 			if ( ! $grant ) { $tx->rollback(); return 'RETAINED'; }
+			$version = $pinned_version > 0 ? $pinned_version : (int) $grant['version'];
 			if ( $journal && 'APPLIED' === $journal['state'] ) {
-				try { self::consume_in_tx( $tx, $grant, $job_id, $product_id ); } catch ( \Throwable $error ) { $tx->rollback(); return 'RETAINED'; }
+				try {
+					if ( self::consume_in_tx( $tx, $grant, $job_id, $product_id ) ) {
+						self::audit_item_in_tx( $tx, (int) $grant['id'], $version, $job_id, $product_id, $plan_id, $actor_id, (int) $grant['issuer_id'], 0, self::APPROVAL_GRANT, $key, 'ITEM_RECONCILED', array( 'source' => 'RECONCILE', 'journal' => 'APPLIED' ) );
+					}
+				} catch ( \Throwable $error ) { $tx->rollback(); return 'RETAINED'; }
 				$tx->commit();
 				return 'CONSUMED';
 			}
 			if ( $journal && in_array( $journal['state'], array( 'CONFLICT', 'FAILED' ), true ) ) {
-				self::release_in_tx( $tx, $grant_db_id, $job_id, $product_id );
+				if ( self::release_in_tx( $tx, $grant_db_id, $job_id, $product_id ) ) {
+					self::audit_item_in_tx( $tx, (int) $grant['id'], $version, $job_id, $product_id, $plan_id, $actor_id, (int) $grant['issuer_id'], 0, self::APPROVAL_GRANT, $key, 'ITEM_RELEASED', array( 'source' => 'RECONCILE', 'journal' => (string) $journal['state'] ) );
+				}
 				$tx->commit();
 				return 'RELEASED';
 			}
@@ -668,30 +820,15 @@ final class Grant_Repository {
 	// ------------------------------------------------------------------
 
 	private static function audit_in_tx( \wpdb $tx, int $grant_db_id, int $grant_version, int $job_id, int $product_id, string $plan_id, int $actor_id, int $issuer_id, int $approver_id, string $mode, string $key, string $event, array $details ): void {
+		// #298 test seam: no production listener. Lets the container gate
+		// inject an audit-store failure and prove the caller rolls back.
+		do_action( 'writeleash_grant_audit_before_insert', $event, $grant_db_id, $job_id, $product_id, $tx );
 		$audit = Grant_Schema::audit_table( $tx );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Append-only audit INSERT; values are prepared.
 		if ( 1 !== $tx->query( $tx->prepare(
 			'INSERT INTO %i (schema_version,grant_db_id,grant_version,job_id,product_id,plan_id,actor_id,issuer_id,approver_id,approval_mode,idempotency_key,event,details,created_at) VALUES (%d,%d,%d,%d,%d,%s,%d,%d,%d,%s,%s,%s,%s,UTC_TIMESTAMP())',
 			$audit, Grant_Schema::SCHEMA_VERSION, $grant_db_id, $grant_version, $job_id, $product_id, $plan_id, $actor_id, $issuer_id, $approver_id, $mode, $key, $event, Plan_Hasher::canonical_json( $details )
 		) ) ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
-	}
-
-	/** Best-effort autocommit audit (denials, revocation, disable). Never throws past the caller. */
-	public static function audit( int $grant_db_id, int $grant_version, int $job_id, int $product_id, string $plan_id, int $actor_id, int $issuer_id, int $approver_id, string $mode, string $key, string $event, array $details ): void {
-		try {
-			$db = self::db();
-			if ( ! Grant_Schema::ready( $db ) ) { return; }
-			$audit = Grant_Schema::audit_table( $db );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Append-only audit INSERT; values are prepared.
-			$db->query( $db->prepare(
-				'INSERT INTO %i (schema_version,grant_db_id,grant_version,job_id,product_id,plan_id,actor_id,issuer_id,approver_id,approval_mode,idempotency_key,event,details,created_at) VALUES (%d,%d,%d,%d,%d,%s,%d,%d,%d,%s,%s,%s,%s,UTC_TIMESTAMP())',
-				$audit, Grant_Schema::SCHEMA_VERSION, $grant_db_id, $grant_version, $job_id, $product_id, $plan_id, $actor_id, $issuer_id, $approver_id, $mode, $key, $event, Plan_Hasher::canonical_json( $details )
-			) );
-		} catch ( \Throwable $error ) {}
-	}
-
-	private static function audit_global( int $operator_id, string $event ): void {
-		self::audit( 0, 0, 0, 0, '', 0, $operator_id, 0, self::APPROVAL_NONE, '', $event, array( 'operator_id' => $operator_id ) );
 	}
 
 	/** Operator-facing identity copy. Never renders approver 0 as a person. */

@@ -62,8 +62,12 @@ final class Woo_Price_Mutator {
 					if ( $job && $pin ) {
 						$grants = Grant_Schema::grants_table( $db );
 						$grant = $db->get_row( $db->prepare( 'SELECT * FROM %i WHERE public_id=%s FOR UPDATE', $grants, $pin['public_id'] ), ARRAY_A );
-						if ( is_array( $grant ) ) {
-							Grant_Repository::release_in_tx( $db, (int) $grant['id'], (int) $job['id'], $id );
+						if ( is_array( $grant ) && Grant_Repository::release_in_tx( $db, (int) $grant['id'], (int) $job['id'], $id ) ) {
+							// Release evidence shares the refusal transaction and
+							// is pinned to the ACCEPTED grant version. The
+							// durable RELEASED reservation row is the primary
+							// release proof; this row adds the actor context.
+							Grant_Repository::audit_item_in_tx( $db, (int) $grant['id'], (int) $pin['version'], (int) $job['id'], $id, $plan->data()['plan_id'], (int) $plan->data()['actor_id'], (int) $grant['issuer_id'], 0, Grant_Repository::APPROVAL_GRANT, (string) $pin['key'], 'ITEM_RELEASED', array( 'source' => 'REFUSAL', 'state' => $state, 'reason' => $reason ) );
 						}
 					}
 				}
@@ -212,8 +216,12 @@ final class Woo_Price_Mutator {
 			// here, never in `woocommerce_before_product_object_save`.
 			if ( $grant && $grant_job ) {
 				try {
-					Grant_Repository::consume_in_tx( $tx, $grant, (int) $grant_job['id'], $id );
-					Grant_Repository::audit_item_in_tx( $tx, (int) $grant['id'], (int) $grant['version'], (int) $grant_job['id'], $id, $plan->data()['plan_id'], (int) $plan->data()['actor_id'], (int) $grant['issuer_id'], 0, Grant_Repository::APPROVAL_GRANT, (string) ( $grant_pin['key'] ?? '' ), 'ITEM_APPLIED', array( 'expected' => $item['expected_regular_price'] ?? '', 'planned' => $item['planned_regular_price'] ?? '', 'field' => $field, 'attempt' => $attempt ) );
+					// Evidence is pinned to the ACCEPTED grant version and the
+					// frozen before/after values; a later grant edit must never
+					// rewrite what this item was authorized against.
+					if ( Grant_Repository::consume_in_tx( $tx, $grant, (int) $grant_job['id'], $id ) ) {
+						Grant_Repository::audit_item_in_tx( $tx, (int) $grant['id'], (int) ( $grant_pin['version'] ?? 0 ), (int) $grant_job['id'], $id, $plan->data()['plan_id'], (int) $plan->data()['actor_id'], (int) $grant['issuer_id'], 0, Grant_Repository::APPROVAL_GRANT, (string) ( $grant_pin['key'] ?? '' ), 'ITEM_APPLIED', array( 'before' => (string) ( $item['expected_regular_price'] ?? '' ), 'after' => (string) ( $item['planned_regular_price'] ?? '' ), 'field' => $field, 'attempt' => $attempt ) );
+					}
 				} catch ( Price_Apply_Error $consume_error ) { throw $consume_error; } catch ( \Throwable $consume_error ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 			}
 			self::checkpoint( 'AFTER_JOURNAL_BEFORE_COMMIT', $id, $attempt );
