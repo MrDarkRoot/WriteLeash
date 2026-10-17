@@ -71,25 +71,70 @@ foreach ( $data as $item ) {
 		continue;
 	}
 	// The compact-journal upgrade must inspect and alter its own durable schema.
-	// These are fixed information_schema/SHOW statements and a single ALTER
-	// assembled only from literal column definitions; the table name is %i-bound
-	// after table() validates its identifier. Such metadata/DDL calls must not be
-	// object-cached, and PCP cannot infer the literal-only $changes construction.
+	// These are fixed information_schema/SHOW statements and three literal
+	// ALTERs; the table name is %i-bound after table() validates its
+	// identifier. Such metadata/DDL calls must not be object-cached.
+	//
+	// The expected literals are matched against the live source line rather
+	// than hardcoded line numbers. The previous hardcoded map drifted from the
+	// merged source (it expected get_col and an implode($changes) ALTER that no
+	// longer exists), which made this required gate fail on unchanged files.
 	$line = (int) ( $item['line'] ?? 0 );
 	$journal_install = 'includes/free/class-price-apply-journal.php' === $path && is_string( $source ) &&
 		str_contains( $source, "preg_match( '/\\A[a-zA-Z0-9_]+\\z/D', \$name )" ) &&
-		str_contains( $source, "\$changes = array( 'MODIFY plan_json longtext NULL' );" ) &&
-		str_contains( $source, "\$changes[] = \"ADD plan_fingerprint char(64) NOT NULL DEFAULT ''\"" ) &&
-		str_contains( $source, "\$changes[] = \"ADD price_field varchar(16) NOT NULL DEFAULT ''\"" );
-	$expected_journal_sql = array(
-		121 => "\$wpdb->get_var( \$wpdb->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', \$table ) )",
-		123 => "\$wpdb->get_col( \$wpdb->prepare( 'SHOW COLUMNS FROM %i', \$table ) )",
-		127 => "\$wpdb->query( \$wpdb->prepare( 'ALTER TABLE %i ', \$table ) . implode( ', ', \$changes ) )",
+		str_contains( $source, 'self::upgrade_v1( $wpdb );' ) &&
+		str_contains( $source, "ALTER TABLE %i ADD price_field varchar(16) NOT NULL DEFAULT ''" );
+	$journal_sql_literals = array(
+		"\$wpdb->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', \$table )",
+		"\$wpdb->prepare( 'SHOW COLUMNS FROM %i', \$table )",
+		"\$wpdb->prepare( 'ALTER TABLE %i MODIFY plan_json longtext NULL', \$table )",
+		"\$wpdb->prepare( \"ALTER TABLE %i ADD plan_fingerprint char(64) NOT NULL DEFAULT ''\", \$table )",
+		"\$wpdb->prepare( \"ALTER TABLE %i ADD price_field varchar(16) NOT NULL DEFAULT ''\", \$table )",
 	);
-	if ( $journal_install && isset( $expected_journal_sql[ $line ], $lines[ $line - 1 ] ) &&
-		str_contains( $lines[ $line - 1 ], $expected_journal_sql[ $line ] ) &&
+	$journal_line = isset( $lines[ $line - 1 ] ) ? $lines[ $line - 1 ] : '';
+	$journal_matched = false;
+	foreach ( $journal_sql_literals as $literal ) {
+		if ( str_contains( $journal_line, $literal ) ) { $journal_matched = true; break; }
+	}
+	if ( $journal_install && $journal_matched &&
 		in_array( $code, array( 'WordPress.DB.DirectDatabaseQuery.DirectQuery', 'WordPress.DB.DirectDatabaseQuery.NoCaching', 'WordPress.DB.DirectDatabaseQuery.SchemaChange', 'PluginCheck.Security.DirectDB.UnescapedDBParameter' ), true ) ) {
 		$reviewed[] = "$code ($path:$line) fixed journal schema introspection/DDL with validated table identifier";
+		continue;
+	}
+	// #230 preset slots use an explicit option-row compare-and-swap with
+	// phpcs-reviewed prepared SQL (the hidden option name is built from an
+	// internal prefix plus a validated integer slot). PCP's DirectQuery-family
+	// sniff still fires on the prepared $wpdb->query( $sql ) calls. Matched by
+	// exact reviewed source line, never by a bare line number.
+	$preset_cas = 'includes/free/class-price-presets.php' === $path && is_string( $source ) &&
+		str_contains( $source, 'private static function replace( int $slot, array $old, ?array $new ): void' ) &&
+		str_contains( $source, '$inserted = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared' );
+	$preset_line_literals = array(
+		'$inserted = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared',
+		"if ( 1 !== \$wpdb->query( \$sql ) ) { throw new Price_Validation_Error( 'preset_changed' ); } // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared",
+	);
+	$preset_line = isset( $lines[ $line - 1 ] ) ? $lines[ $line - 1 ] : '';
+	$preset_matched = false;
+	foreach ( $preset_line_literals as $literal ) {
+		if ( str_contains( $preset_line, $literal ) ) { $preset_matched = true; break; }
+	}
+	if ( $preset_cas && $preset_matched &&
+		in_array( $code, array( 'WordPress.DB.DirectDatabaseQuery.DirectQuery', 'WordPress.DB.DirectDatabaseQuery.NoCaching', 'WordPress.DB.PreparedSQL.NotPrepared', 'PluginCheck.Security.DirectDB.UnescapedDBParameter' ), true ) ) {
+		$reviewed[] = "$code ($path:$line) preset option-row compare-and-swap with reviewed prepared SQL";
+		continue;
+	}
+	// The #298 job v1->v2 upgrade backfills approval_mode on already-approved
+	// human jobs. Same installer class as the journal precedent: a fixed
+	// UPDATE assembled only from literal column definitions, the table name
+	// %i-bound after jobs_table() validates its identifier. Such setup writes
+	// must not be object-cached.
+	$job_v2_backfill = 'includes/free/class-job-schema.php' === $path && is_string( $source ) &&
+		str_contains( $source, 'upgrade_v1_to_v2' ) &&
+		str_contains( $source, "UPDATE %i SET approval_mode='human' WHERE approver_id>0" );
+	if ( $job_v2_backfill && isset( $lines[ $line - 1 ] ) &&
+		str_contains( $lines[ $line - 1 ], "UPDATE %i SET approval_mode='human' WHERE approver_id>0 AND approval_mode='none'" ) &&
+		in_array( $code, array( 'WordPress.DB.DirectDatabaseQuery.DirectQuery', 'WordPress.DB.DirectDatabaseQuery.NoCaching' ), true ) ) {
+		$reviewed[] = "$code ($path:$line) fixed job v2 approval-mode backfill with validated table identifier";
 		continue;
 	}
 

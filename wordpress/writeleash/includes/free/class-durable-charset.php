@@ -6,7 +6,7 @@ defined( 'ABSPATH' ) || exit;
 /** Physical encoding only. Logical row/plan versions, JSON bytes and mutation authority never change. */
 final class Durable_Charset {
 	private static function owned( \wpdb $db, string $table ): void {
-		if ( ! preg_match( '/\A[a-zA-Z0-9_]+\z/D', $table ) || ! in_array( $table, array( $db->prefix . 'writeleash_jobs', $db->prefix . 'writeleash_job_items', $db->prefix . 'writeleash_price_items', $db->prefix . 'writeleash_undo_operations', $db->prefix . 'writeleash_undo_items' ), true ) ) {
+		if ( ! preg_match( '/\A[a-zA-Z0-9_]+\z/D', $table ) || ! in_array( $table, array( $db->prefix . 'writeleash_jobs', $db->prefix . 'writeleash_job_items', $db->prefix . 'writeleash_price_items', $db->prefix . 'writeleash_undo_operations', $db->prefix . 'writeleash_undo_items', $db->prefix . 'writeleash_grants', $db->prefix . 'writeleash_grant_reservations', $db->prefix . 'writeleash_grant_idempotency', $db->prefix . 'writeleash_grant_audit' ), true ) ) {
 			throw new \RuntimeException( 'Durable encoding: unowned table.' );
 		}
 	}

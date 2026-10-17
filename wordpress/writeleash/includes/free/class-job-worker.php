@@ -263,6 +263,21 @@ final class Job_Worker {
 			Job_Repository::record_item( $item, $token, Job_Item_State::FAILED, 'PLAN_POLICY_BLOCKED' );
 			return array( 'pause' => 'BLOCKED_BY_POLICY', 'review' => false );
 		}
+		// #298 grant denial: definitive fail-closed with zero Woo saves and
+		// no unrestricted fallback. The mutator already released the
+		// reservation for CONFLICT/FAILED-class denials and retained it for
+		// ambiguous store uncertainty (which arrives as NEEDS_REVIEW, not
+		// here). Record terminal FAILED with the grant reason and pause the
+		// job so siblings do not silently proceed past a revoked/expired/
+		// disabled/budget/scope boundary.
+		if ( 'GRANT_DENIED' === $code ) {
+			$grant_reason = ( 0 === strpos( $reason, 'GRANT_' ) ) ? $reason : 'GRANT_SCOPE_DENIED';
+			// Preserve the exact grant reason vocabulary for audit/operator
+			// copy; all GRANT_* reasons are terminal FAILED, never retried.
+			if ( 1 !== preg_match( '/\A[A-Z0-9_]{1,64}\z/', $grant_reason ) ) { $grant_reason = 'GRANT_SCOPE_DENIED'; }
+			Job_Repository::record_item( $item, $token, Job_Item_State::FAILED, $grant_reason );
+			return array( 'pause' => $grant_reason, 'review' => false );
+		}
 		if ( 'TRANSACTION_UNAVAILABLE' === $code ) {
 			Job_Repository::record_item( $item, $token, Job_Item_State::PENDING, 'TRANSACTION_UNAVAILABLE', null, true );
 			return array( 'pause' => 'SCHEMA_UNAVAILABLE', 'review' => false );
@@ -338,6 +353,19 @@ final class Job_Worker {
 					$reason = 'JOB_MATERIAL_MISMATCH';
 				}
 				Job_Repository::reconcile_item( $item, $generation, $state, $reason, $applied_at );
+				// #298 reconcile retained ambiguous grant reservations from
+				// journal truth without a second Woo save. APPLIED consumes
+				// once; definitive non-applied releases; otherwise retained.
+				try {
+					$reconcile_job = Job_Repository::read( $job_id );
+					$reconcile_pin = $reconcile_job ? Grant_Repository::job_grant( $reconcile_job ) : null;
+					if ( $reconcile_job && $reconcile_pin ) {
+						$grant_row = Grant_Repository::read_by_public_id( $reconcile_pin['public_id'] );
+						if ( $grant_row ) {
+							Grant_Repository::reconcile_item( (int) $grant_row['id'], $job_id, $plan->data()['plan_id'], $product_id );
+						}
+					}
+				} catch ( \Throwable $ignored ) {}
 			}
 			Job_Repository::refresh_counters( $wpdb, $job_id );
 		} finally {
