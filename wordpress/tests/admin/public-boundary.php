@@ -19,7 +19,7 @@ foreach ( $legacy as $class ) {
 }
 global $wp_filter, $menu, $submenu, $wpdb;
 $allowed_callbacks = array( 'WriteLeash\\Lifecycle', 'WriteLeash\\Free_Admin', 'WriteLeash\\Product_Discovery',
-	'WriteLeash\\Job_Resume_Rest', 'WriteLeash\\Undo_Rest', 'WriteLeash\\Job_Worker',
+	'WriteLeash\\Job_Resume_Rest', 'WriteLeash\\Agent_Jobs_Rest', 'WriteLeash\\Undo_Rest', 'WriteLeash\\Job_Worker',
 	'WriteLeash\\Undo_Worker', 'WriteLeash\\Undo_Scheduler' );
 $observed = array();
 foreach ( $wp_filter as $hook => $registered ) {
@@ -66,10 +66,10 @@ $routes = rest_get_server()->get_routes();
 $public_routes = array();
 foreach ( $routes as $route => $handlers ) {
 	if ( 0 !== strpos( $route, '/writeleash/v1/' ) ) { continue; }
-	wl120_assert( 1 === preg_match( '#^/writeleash/v1/(jobs/.+/resume|undo/.+/start)$#', $route ), 'only Free REST endpoints: ' . $route );
+	wl120_assert( 1 === preg_match( '#^/writeleash/v1/(jobs/.+/resume|undo/.+/start|grants/.+/jobs)$#', $route ), 'only Free REST endpoints: ' . $route );
 	$public_routes[] = $route;
 }
-wl120_assert( 2 === count( $public_routes ), 'both Free resume and Undo routes registered' );
+wl120_assert( 3 === count( $public_routes ), 'resume, Undo, and grant submission routes registered' );
 wl120_assert( ! isset( WP_CLI::get_root_command()->get_subcommands()['writeleash'] ), 'legacy CLI namespace absent' );
 wl120_assert( ! is_file( WP_PLUGIN_DIR . '/writeleash/operator-setup.txt' ), 'operator guide absent' );
 wl120_assert( 0 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE()' ), 'no trigger setup' );

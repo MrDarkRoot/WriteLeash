@@ -78,7 +78,7 @@ final class Agent_Jobs_Rest {
 		if ( (int) $grant['actor_id'] !== $parsed['actor_id'] ) {
 			return self::error( 'GRANT_IDENTITY_INVALID', 403 );
 		}
-		$replay = self::idempotency_exists( $grant, $parsed['idempotency_key'] );
+		$replay = Grant_Repository::has_idempotency( (int) $grant['id'], $parsed['idempotency_key'] );
 		if ( ! $replay ) {
 			$pre = self::pre_accept( $grant, $parsed['grant_version'] );
 			if ( null !== $pre ) {
@@ -198,22 +198,6 @@ final class Agent_Jobs_Rest {
 		}
 		$decoded = json_decode( $request->get_body(), true );
 		return is_array( $decoded ) ? $decoded : null;
-	}
-
-	/** @param array<string,mixed> $grant */
-	private static function idempotency_exists( array $grant, string $key ): bool {
-		global $wpdb;
-		try {
-			if ( ! Grant_Schema::ready( $wpdb ) ) {
-				return false;
-			}
-			$table = Grant_Schema::idempotency_table( $wpdb );
-		} catch ( \Throwable $error ) {
-			unset( $error );
-			return false;
-		}
-		$found = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE grant_db_id=%d AND idempotency_key=%s', $table, (int) $grant['id'], $key ) );
-		return null !== $found && '' !== (string) $found;
 	}
 
 	/** @param array<string,mixed> $grant @return array{reason:string,status:int}|null */
