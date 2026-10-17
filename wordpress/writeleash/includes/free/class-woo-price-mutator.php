@@ -95,18 +95,23 @@ final class Woo_Price_Mutator {
 			// COMMIT so revoke/disable wait), then journal/item, then Woo.
 			// Ordinary jobs (no grant pin) skip this block with zero behavior
 			// change. Missing/uncertain evidence fails closed, zero Woo saves.
+			// The job row is taken from the guard's own locking read, so no
+			// extra non-locking SELECT is added before authorization (that
+			// would move the REPEATABLE READ view and change #108 timing).
 			$grant = null;
 			$grant_job = null;
 			$grant_pin = null;
-			try {
-				$candidate = Grant_Repository::job_for_plan_in_tx( $tx, $plan->data()['plan_id'] );
-				$candidate_pin = $candidate ? Grant_Repository::job_grant( $candidate ) : null;
-				if ( $candidate && $candidate_pin ) {
-					$grant_job = $candidate;
-					$grant_pin = $candidate_pin;
-					$grant = Grant_Repository::assert_grant_for_write( $tx, $candidate, $plan, $id );
-				}
-			} catch ( Price_Apply_Error $grant_error ) { throw $grant_error; } catch ( \Throwable $grant_error ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+			if ( $guard instanceof Price_Apply_Grant_Guard ) {
+				try {
+					$candidate = $guard->locked_job_row();
+					$candidate_pin = $candidate ? Grant_Repository::job_grant( $candidate ) : null;
+					if ( $candidate && $candidate_pin ) {
+						$grant_job = $candidate;
+						$grant_pin = $candidate_pin;
+						$grant = Grant_Repository::assert_grant_for_write( $tx, $candidate, $plan, $id );
+					}
+				} catch ( Price_Apply_Error $grant_error ) { throw $grant_error; } catch ( \Throwable $grant_error ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+			}
 			$row = Price_Apply_Journal::read( $tx, $plan->data()['plan_id'], $id, true );
 			if ( ! $row ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 			Price_Apply_Journal::assert_binding( $row, $plan, $id );

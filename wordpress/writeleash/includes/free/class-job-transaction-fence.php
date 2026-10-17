@@ -22,11 +22,12 @@ defined( 'ABSPATH' ) || exit;
  * before Woo mutation (no gap-lock authorization).
  * No path takes these locks in the opposite order, so no lock cycle exists.
  */
-final class Job_Transaction_Fence implements Price_Apply_Transaction_Guard {
+final class Job_Transaction_Fence implements Price_Apply_Transaction_Guard, Price_Apply_Grant_Guard {
 	private int $job_id;
 	private string $owner;
 	private int $generation;
 	private int $connection_id = 0;
+	private ?array $locked_job = null;
 
 	public function __construct( int $job_id, string $owner, int $generation ) {
 		if ( $job_id < 1 || ! preg_match( '/\A[a-zA-Z0-9-]{1,64}\z/D', $owner ) || $generation < 1 ) { throw new Job_Error( 'INVALID_FENCE' ); }
@@ -38,12 +39,18 @@ final class Job_Transaction_Fence implements Price_Apply_Transaction_Guard {
 	public function acquire( \wpdb $tx ): void {
 		if ( ! Runner_Authority::lock_active( $tx ) ) { throw new Price_Apply_Error( 'DEACTIVATED' ); }
 		$table = Job_Schema::jobs_table( $tx );
-		$row = $tx->get_row( $tx->prepare( 'SELECT lease_owner,lease_generation FROM %i WHERE id=%d FOR UPDATE', $table, $this->job_id ), ARRAY_A );
+		// Fetch the full row under the same current (locking) read: it supplies
+		// the #298 grant pin without adding a non-locking SELECT that would move
+		// the REPEATABLE READ view before authorization.
+		$row = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE id=%d FOR UPDATE', $table, $this->job_id ), ARRAY_A );
 		$this->connection_id = (int) $tx->dbh->thread_id;
 		if ( ! is_array( $row ) || (string) $row['lease_owner'] !== $this->owner || (int) $row['lease_generation'] !== $this->generation ) {
 			throw new Price_Apply_Error( 'FENCE_LOST' );
 		}
+		$this->locked_job = $row;
 	}
 
 	public function connection_id(): int { return $this->connection_id; }
+
+	public function locked_job_row(): ?array { return $this->locked_job; }
 }

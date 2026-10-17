@@ -27,3 +27,21 @@ interface Price_Apply_Transaction_Guard {
 	/** Writer connection ID observed while the guard lock was acquired; 0 when not acquired. */
 	public function connection_id(): int;
 }
+
+/**
+ * #298 optional capability for guards that also own the apply job row lock.
+ *
+ * The grant authorization boundary must read the job's grant pin BEFORE the
+ * journal lock (approved lock order), but a plain (non-locking) SELECT at the
+ * top of a REPEATABLE READ transaction establishes the read view earlier than
+ * the existing locked reads do. That shifts every later non-locking read to an
+ * older snapshot and changed #108 authorization behavior (the role-revocation
+ * regression). Exposing the already-locked job row avoids any extra read: the
+ * guard's own `SELECT ... FOR UPDATE` is a current read and cannot move the
+ * snapshot. Ordinary (non-grant) jobs and journal-only callers without a grant
+ * guard perform no grant lookup at all, preserving their exact prior timing.
+ */
+interface Price_Apply_Grant_Guard {
+	/** The apply job row locked by this guard for the item transaction, or null. */
+	public function locked_job_row(): ?array;
+}
