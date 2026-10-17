@@ -5,6 +5,7 @@ defined( 'ABSPATH' ) || exit;
 
 /** One item of a trusted #107 plan. No approval/UI/queue/Undo entry point. */
 final class Woo_Price_Mutator {
+	// #298 journal-baseline probe: inert comment only, no behavior change.
 	private static function checkpoint( string $point, int $id, string $attempt ): void {
 		do_action( 'writeleash_price_apply_checkpoint', $point, $id, $attempt );
 	}
