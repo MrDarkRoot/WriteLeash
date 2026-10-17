@@ -69,7 +69,7 @@ they are omitted from the public allowlist and loaded only by repository tests.
 | LICENSE | Reviewed GPLv2 text | PUBLIC_FREE_REQUIRED |
 | readme.txt | Minimum Woo-only user instructions; full copy belongs to #121 | PUBLIC_FREE_REQUIRED |
 
-All 36 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
+All 37 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
 inventory (multi-class files included):
 
 | File stem (`includes/free/class-<stem>.php`) | Classes / interfaces / traits | Classification |
@@ -99,6 +99,7 @@ inventory (multi-class files included):
 | job-scheduler | Job_Scheduler | PUBLIC_FREE_REQUIRED |
 | job-worker | Job_Worker | PUBLIC_FREE_REQUIRED |
 | job-resume-rest | Job_Resume_Rest | PUBLIC_FREE_REQUIRED |
+| agent-jobs-rest | Agent_Jobs_Rest; restricted grant submission, no second price writer | PUBLIC_FREE_REQUIRED |
 | undo-state | Undo_Error, Undo_State, Undo_Item_State, Undo_Reason | PUBLIC_FREE_REQUIRED |
 | undo-schema | Undo_Schema | PUBLIC_FREE_REQUIRED |
 | undo-fingerprint | Undo_Fingerprint | PUBLIC_FREE_REQUIRED |

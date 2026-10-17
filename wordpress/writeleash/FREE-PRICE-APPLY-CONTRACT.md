@@ -19,12 +19,20 @@
 > write path. Policy is evaluated when the plan is created and frozen into it;
 > Apply never re-evaluates percentages. This primitive is reachable through
 > `admin_post_writeleash_free_approve` (queues), `admin_post_writeleash_free_resume`,
-> `POST /wp-json/writeleash/v1/jobs/{uuid}/resume`, and the
+> `POST /wp-json/writeleash/v1/jobs/{uuid}/resume`,
+> `POST /wp-json/writeleash/v1/grants/{uuid}/jobs` (#299; freezes a plan and
+> queues `Job_Worker`; not a second writer), and the
 > `writeleash_process_job` scheduler hook, which supersedes the "no public
 > mutation endpoint" and "REST resume only" sentences retained below. The apply
-> journal state-conditional update (#296) is a separate pending gate and is not
-> claimed here. The allowlist is a token tripwire, not a sandbox: variable
-> methods, concatenated names and raw SQL need runtime review.
+> journal state-conditional update (#296) is merged. The allowlist is a token
+> tripwire, not a sandbox: variable methods, concatenated names and raw SQL need
+> runtime review. Unsupported, not enforced: WooCommerce admin product edit,
+> WooCommerce REST, direct `WC_Product::save()`, direct price meta writes,
+> stock helpers, trash/delete, checkout stock reduction, other plugins' hooks
+> during `save()`, direct SQL, and arbitrary PHP. Checkout stock reduction and
+> the Woo product edit form are regression-tested as still persisting
+> (`wordpress/tests/jobs/foreign-path-regression.php`); that is not a deny
+> control.
 
 > Journal schema 3 supersedes the full-JSON-per-item statements below. Public
 > jobs retain the canonical full plan once in `writeleash_jobs`; item rows keep

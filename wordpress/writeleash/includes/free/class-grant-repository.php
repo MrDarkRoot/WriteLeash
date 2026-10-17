@@ -254,6 +254,19 @@ final class Grant_Repository {
 		return $grant;
 	}
 
+	/** True when this grant already has a durable idempotency row for the key. */
+	public static function has_idempotency( int $grant_db_id, string $key ): bool {
+		if ( $grant_db_id < 1 || 1 !== preg_match( self::IDEMPOTENCY_REGEX, $key ) ) { return false; }
+		try { $db = self::db(); } catch ( \Throwable $error ) { return false; }
+		try {
+			if ( ! Grant_Schema::ready( $db ) ) { return false; }
+			$table = Grant_Schema::idempotency_table( $db );
+		} catch ( \Throwable $error ) { return false; }
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotency existence read; values are prepared.
+		$found = $db->get_var( $db->prepare( 'SELECT id FROM %i WHERE grant_db_id=%d AND idempotency_key=%s', $table, $grant_db_id, $key ) );
+		return null !== $found && '' !== (string) $found;
+	}
+
 	public static function read_by_public_id( string $public_id ): ?array {
 		if ( ! preg_match( self::PUBLIC_ID_REGEX, $public_id ) ) { return null; }
 		try { $db = self::db(); } catch ( \Throwable $error ) { return null; }
@@ -448,7 +461,7 @@ final class Grant_Repository {
 	 * @return array{job: array, replayed: bool}
 	 * @throws Grant_Error
 	 */
-	public static function accept_plan( Change_Plan $plan, string $grant_public_id, int $issuer_id, string $idempotency_key ): array {
+	public static function accept_plan( Change_Plan $plan, string $grant_public_id, int $issuer_id, string $idempotency_key, ?int $expected_version = null ): array {
 		self::ensure_schema();
 		if ( ! preg_match( self::PUBLIC_ID_REGEX, $grant_public_id ) ) { throw new Grant_Error( 'GRANT_NOT_FOUND' ); }
 		if ( ! preg_match( self::IDEMPOTENCY_REGEX, $idempotency_key ) ) { throw new Grant_Error( 'GRANT_IDEMPOTENCY_INVALID' ); }
@@ -502,6 +515,11 @@ final class Grant_Repository {
 				if ( (string) ( $job['plan_id'] ?? '' ) !== (string) $data['plan_id'] || (string) ( $job['plan_hash'] ?? '' ) !== $plan->hash() ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 				if ( (int) ( $job['creator_id'] ?? 0 ) !== $actor_id ) { throw new Grant_Error( 'GRANT_IDENTITY_INVALID' ); }
 				return array( 'job' => $job, 'replayed' => true );
+			}
+			// New acceptance only. A caller-supplied version must match the
+			// locked row; replay above is intentionally version-independent.
+			if ( null !== $expected_version && (int) $grant['version'] !== $expected_version ) {
+				throw new Grant_Error( 'GRANT_VERSION_MISMATCH' );
 			}
 			// New acceptance only: now enforce current grant state.
 			if ( '0' !== (string) $disable ) { throw new Grant_Error( 'GRANT_DISABLED' ); }
