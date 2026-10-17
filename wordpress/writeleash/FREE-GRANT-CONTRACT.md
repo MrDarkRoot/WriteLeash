@@ -2,9 +2,13 @@
 
 This is the durable delegated-authority layer over the #107 immutable Change
 Plan, the #108 Woo CRUD + price journal primitive, the #109 job engine and
-#110 Undo. It adds no agent REST route, no MCP adapter, no inventory or other
-asset family, no v0.3.0 change, no version bump and no public "agent-safe"
-claim. Research #270/#271 remain research-only. Closed #290-#293 stay closed.
+#110 Undo. #299 may submit grant-bound work only through
+`POST /wp-json/writeleash/v1/grants/{uuid}/jobs`, which authenticates the
+WordPress user and calls `Grant_Repository::accept_plan` then
+`Job_Worker::queue_job`. That route is not an MCP adapter, not a second price
+writer, and not a firewall. No inventory or other asset family, no v0.3.0
+change, no version bump and no public "agent-safe" claim. Research #270/#271
+remain research-only. Closed #290-#293 stay closed.
 
 ## Supported boundary
 
@@ -123,4 +127,6 @@ reruns or percentage recalculation at Apply/Resume, no budget logic in
 `woocommerce_before_product_object_save`, no unguarded alternate write path,
 no weakened capability/journal/idempotency/price-write boundaries, no new
 capability, no grant-as-human-approval, no firewall/sandbox claims, no
-release/version artifact changes.
+interception of WooCommerce admin, WooCommerce REST, direct `save()`, direct
+price meta, stock helpers, trash, checkout, or other plugins, no MCP adapter,
+no release/version artifact changes.
