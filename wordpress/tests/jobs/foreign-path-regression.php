@@ -16,13 +16,22 @@ function wl299_checkout_worker( string $spec_path ): void {
 	register_shutdown_function( static function () use ( &$id, &$reason, $result ): void {
 		if ( '' === $result || is_file( $result ) ) { return; }
 		$fresh = $id > 0 ? wc_get_product( $id ) : null;
-		$orders = function_exists( 'wc_get_orders' ) ? wc_get_orders( array( 'limit' => -1, 'return' => 'ids', 'status' => array( 'processing', 'completed', 'on-hold' ) ) ) : array();
+		$orders = 0;
+		if ( $id > 0 && function_exists( 'wc_get_orders' ) ) {
+			foreach ( wc_get_orders( array( 'limit' => -1, 'return' => 'ids', 'status' => array( 'processing', 'completed', 'on-hold' ) ) ) as $order_id ) {
+				$order = wc_get_order( $order_id );
+				if ( ! $order ) { continue; }
+				foreach ( $order->get_items() as $item ) {
+					if ( (int) $item->get_product_id() === $id ) { ++$orders; }
+				}
+			}
+		}
 		$stock = $fresh ? (string) $fresh->get_stock_quantity() : '';
 		file_put_contents( $result, wp_json_encode( array(
-			'ok' => '4' === $stock && count( $orders ) >= 1,
+			'ok' => '4' === $stock && 1 === $orders,
 			'product_id' => $id,
 			'stock' => $stock,
-			'orders' => count( $orders ),
+			'orders' => $orders,
 			'reason' => $reason,
 			'notices' => function_exists( 'wc_get_notices' ) ? wc_get_notices() : array(),
 		) ) );
