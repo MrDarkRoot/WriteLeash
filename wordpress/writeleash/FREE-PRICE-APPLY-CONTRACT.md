@@ -29,7 +29,10 @@
 > runtime review. Unsupported, not enforced: WooCommerce admin product edit,
 > WooCommerce REST, direct `WC_Product::save()`, direct price meta writes,
 > stock helpers, trash/delete, checkout stock reduction, other plugins' hooks
-> during `save()`, direct SQL, and arbitrary PHP.
+> during `save()`, direct SQL, and arbitrary PHP. Checkout stock reduction and
+> the Woo product edit form are regression-tested as still persisting
+> (`wordpress/tests/jobs/foreign-path-regression.php`); that is not a deny
+> control.
 
 > Journal schema 3 supersedes the full-JSON-per-item statements below. Public
 > jobs retain the canonical full plan once in `writeleash_jobs`; item rows keep
