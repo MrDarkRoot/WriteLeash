@@ -520,10 +520,10 @@ final class Grant_Repository {
 				if ( ! $fresh || 'active' !== $fresh['status'] ) { throw new Grant_Error( 'GRANT_REVOKED' ); }
 				throw new Grant_Error( 'GRANT_BUDGET_EXHAUSTED' );
 			}
-			// #298 test seam: no production listener. Lets the container gate
-			// hold the acceptance transaction open after the reservation (grant
-			// row lock held) to prove concurrent same-key submissions replay.
-			do_action( 'writeleash_grant_accept_checkpoint', 'AFTER_RESERVE', (int) $grant['id'], $idempotency_key, $tx );
+			// #298 test seam: no production listener. The callback may wait while
+			// this transaction still holds the grant row lock. The writer
+			// connection is not passed out.
+			do_action( 'writeleash_grant_accept_checkpoint', 'AFTER_RESERVE', (int) $grant['id'], $idempotency_key );
 			// Freeze the plan as a grant-bound job: READY, approver 0, mode
 			// grant, pinned grant version/key. Change_Plan JSON itself is
 			// untouched (immutable); the job row carries the pin.
@@ -622,7 +622,7 @@ final class Grant_Repository {
 		// current grant version, which may exceed the pin: allow drift, only
 		// refuse an unreadable pin. Exact-pin callers pass 0 to skip the check.
 		if ( 0 !== $grant_version && (int) ( $job['grant_version'] ?? 0 ) < 1 ) { throw new Grant_Error( 'GRANT_BINDING_MISMATCH' ); }
-		if ( '' !== $idempotency_key && '' !== (string) ( $job['grant_idempotency_key'] ?? '' ) && (string) $job['grant_idempotency_key'] !== $idempotency_key ) { throw new Grant_Error( 'GRANT_BINDING_MISMATCH' ); }
+		if ( '' !== $idempotency_key && (string) ( $job['grant_idempotency_key'] ?? '' ) !== $idempotency_key ) { throw new Grant_Error( 'GRANT_BINDING_MISMATCH' ); }
 	}
 
 	/** Whether a job row carries grant authority (v2 columns, non-empty pin). */
@@ -691,12 +691,15 @@ final class Grant_Repository {
 		// Pinned version is audit evidence; current-row revocation/expiry/
 		// disable/budget govern execution. Version unreadability fails closed.
 		if ( (int) $grant['version'] < 1 ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
-		// Reservation must exist and still be RESERVED for this item.
+		// RESERVED authorizes the write. CONSUMED lets the caller adopt a durable
+		// APPLIED row without a second save. Any other state fails closed.
 		try {
 			$res_table = Grant_Schema::reservations_table( $tx );
 			$res = $tx->get_row( $tx->prepare( 'SELECT * FROM %i WHERE grant_db_id=%d AND job_id=%d AND product_id=%d FOR UPDATE', $res_table, (int) $grant['id'], (int) $job['id'], $product_id ), ARRAY_A );
 		} catch ( \Throwable $error ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
-		if ( ! is_array( $res ) || 'RESERVED' !== $res['state'] ) { throw new Price_Apply_Error( 'GRANT_BUDGET_EXHAUSTED' ); }
+		if ( ! is_array( $res ) || 'RELEASED' === (string) $res['state'] ) { throw new Price_Apply_Error( 'GRANT_BUDGET_EXHAUSTED' ); }
+		if ( 'CONSUMED' === (string) $res['state'] ) { throw new Price_Apply_Error( 'GRANT_RESERVATION_CONSUMED' ); }
+		if ( 'RESERVED' !== (string) $res['state'] ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 		// Scope re-check on frozen material (no selector/percentage rerun).
 		try { self::assert_scope_for_item( $plan, $product_id ); } catch ( Grant_Error $error ) { throw new Price_Apply_Error( 'GRANT_SCOPE_DENIED' ); } catch ( \Throwable $error ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 		return $grant;
@@ -754,9 +757,12 @@ final class Grant_Repository {
 		$grants = Grant_Schema::grants_table( $tx );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Grant release CAS; values are prepared.
 		$moved = $tx->query( $tx->prepare( "UPDATE %i SET state='RELEASED',updated_at=UTC_TIMESTAMP() WHERE grant_db_id=%d AND job_id=%d AND product_id=%d AND state='RESERVED'", $res_table, $grant_db_id, $job_id, $product_id ) );
+		if ( false === $moved ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 		if ( 1 === $moved ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Grant budget release; values are prepared.
-			$tx->query( $tx->prepare( 'UPDATE %i SET budget_reserved=IF(budget_reserved>0,budget_reserved-1,0),updated_at=UTC_TIMESTAMP() WHERE id=%d', $grants, $grant_db_id ) );
+			if ( 1 !== $tx->query( $tx->prepare( 'UPDATE %i SET budget_reserved=IF(budget_reserved>0,budget_reserved-1,0),updated_at=UTC_TIMESTAMP() WHERE id=%d', $grants, $grant_db_id ) ) ) {
+				throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' );
+			}
 			return true;
 		}
 		return false;
@@ -820,9 +826,9 @@ final class Grant_Repository {
 	// ------------------------------------------------------------------
 
 	private static function audit_in_tx( \wpdb $tx, int $grant_db_id, int $grant_version, int $job_id, int $product_id, string $plan_id, int $actor_id, int $issuer_id, int $approver_id, string $mode, string $key, string $event, array $details ): void {
-		// #298 test seam: no production listener. Lets the container gate
-		// inject an audit-store failure and prove the caller rolls back.
-		do_action( 'writeleash_grant_audit_before_insert', $event, $grant_db_id, $job_id, $product_id, $tx );
+		// #298 test seam: no production listener. A throw here must roll the
+		// caller's transaction back. The writer connection is not passed out.
+		do_action( 'writeleash_grant_audit_before_insert', $event, $grant_db_id, $job_id, $product_id );
 		$audit = Grant_Schema::audit_table( $tx );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Append-only audit INSERT; values are prepared.
 		if ( 1 !== $tx->query( $tx->prepare(

@@ -44,35 +44,32 @@ final class Woo_Price_Mutator {
 	private static function refusal( Change_Plan $plan, int $id, string $state, string $reason, string $attempt ): void {
 		$db = Price_Cache_Verifier::observer();
 		try {
-			$db->query( 'START TRANSACTION' );
+			if ( false === $db->query( 'START TRANSACTION' ) ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 			$row = Price_Apply_Journal::read( $db, $plan->data()['plan_id'], $id, true );
 			if ( $row ) {
 				try { Price_Apply_Journal::assert_binding( $row, $plan, $id ); }
 				catch ( Price_Apply_Error $error ) { $db->query( 'ROLLBACK' ); return; }
 			}
 			if ( $row && 'PENDING' === $row['state'] ) { Price_Apply_Journal::transition( $db, $plan->data()['plan_id'], $id, $row['state'], $state, $reason, $attempt ); }
-			// #298 grant release on definitive non-applied terminal outcomes.
-			// CONFLICT/FAILED release one reservation; PENDING/NEEDS_REVIEW
-			// retain the ambiguous reservation for reconciliation. Best-effort
-			// inside the same refusal transaction; failures retain.
-			try {
-				if ( in_array( $state, array( 'CONFLICT', 'FAILED' ), true ) ) {
-					$job = Grant_Repository::job_for_plan_in_tx( $db, $plan->data()['plan_id'] );
-					$pin = $job ? Grant_Repository::job_grant( $job ) : null;
-					if ( $job && $pin ) {
-						$grants = Grant_Schema::grants_table( $db );
-						$grant = $db->get_row( $db->prepare( 'SELECT * FROM %i WHERE public_id=%s FOR UPDATE', $grants, $pin['public_id'] ), ARRAY_A );
-						if ( is_array( $grant ) && Grant_Repository::release_in_tx( $db, (int) $grant['id'], (int) $job['id'], $id ) ) {
-							// Release evidence shares the refusal transaction and
-							// is pinned to the ACCEPTED grant version. The
-							// durable RELEASED reservation row is the primary
-							// release proof; this row adds the actor context.
-							Grant_Repository::audit_item_in_tx( $db, (int) $grant['id'], (int) $pin['version'], (int) $job['id'], $id, $plan->data()['plan_id'], (int) $plan->data()['actor_id'], (int) $grant['issuer_id'], 0, Grant_Repository::APPROVAL_GRANT, (string) $pin['key'], 'ITEM_RELEASED', array( 'source' => 'REFUSAL', 'state' => $state, 'reason' => $reason ) );
-						}
+			// #298 grant release shares this refusal transaction. A failed
+			// release or mandatory ITEM_RELEASED append rolls the journal
+			// transition back; the reservation stays RESERVED.
+			if ( in_array( $state, array( 'CONFLICT', 'FAILED' ), true ) ) {
+				$job = Grant_Repository::job_for_plan_in_tx( $db, $plan->data()['plan_id'] );
+				$pin = $job ? Grant_Repository::job_grant( $job ) : null;
+				if ( $job && $pin ) {
+					$grants = Grant_Schema::grants_table( $db );
+					$grant = $db->get_row( $db->prepare( 'SELECT * FROM %i WHERE public_id=%s FOR UPDATE', $grants, $pin['public_id'] ), ARRAY_A );
+					if ( ! is_array( $grant ) ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+					if ( Grant_Repository::release_in_tx( $db, (int) $grant['id'], (int) $job['id'], $id ) ) {
+						Grant_Repository::audit_item_in_tx( $db, (int) $grant['id'], (int) $pin['version'], (int) $job['id'], $id, $plan->data()['plan_id'], (int) $plan->data()['actor_id'], (int) $grant['issuer_id'], 0, Grant_Repository::APPROVAL_GRANT, (string) $pin['key'], 'ITEM_RELEASED', array( 'source' => 'REFUSAL', 'state' => $state, 'reason' => $reason ) );
 					}
 				}
-			} catch ( \Throwable $ignored ) {}
+			}
 			if ( false === $db->query( 'COMMIT' ) ) { throw new Price_Apply_Error( 'AMBIGUOUS_COMMIT' ); }
+		} catch ( \Throwable $error ) {
+			try { $db->query( 'ROLLBACK' ); } catch ( \Throwable $rollback_error ) { unset( $rollback_error ); }
+			throw $error instanceof Price_Apply_Error ? $error : new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' );
 		} finally { $db->close(); }
 	}
 	public static function apply( Change_Plan $plan, int $id, ?Price_Apply_Transaction_Guard $guard = null ): array {
@@ -105,6 +102,7 @@ final class Woo_Price_Mutator {
 			$grant = null;
 			$grant_job = null;
 			$grant_pin = null;
+			$grant_consumed = false;
 			if ( $guard instanceof Price_Apply_Grant_Guard ) {
 				try {
 					$candidate = $guard->locked_job_row();
@@ -112,7 +110,12 @@ final class Woo_Price_Mutator {
 					if ( $candidate && $candidate_pin ) {
 						$grant_job = $candidate;
 						$grant_pin = $candidate_pin;
-						$grant = Grant_Repository::assert_grant_for_write( $tx, $candidate, $plan, $id );
+						try {
+							$grant = Grant_Repository::assert_grant_for_write( $tx, $candidate, $plan, $id );
+						} catch ( Price_Apply_Error $consumed ) {
+							if ( 'GRANT_RESERVATION_CONSUMED' !== $consumed->getMessage() ) { throw $consumed; }
+							$grant_consumed = true;
+						}
 					}
 				} catch ( Price_Apply_Error $grant_error ) { throw $grant_error; } catch ( \Throwable $grant_error ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 			}
@@ -126,6 +129,7 @@ final class Woo_Price_Mutator {
 				Price_Cache_Verifier::observe( $plan, $id );
 				return array( 'code' => 'ALREADY_APPLIED', 'reason' => 'DURABLE_APPLIED', 'attempt_id' => $row['attempt_id'] );
 			}
+			if ( $grant_consumed ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 			if ( 'PENDING' !== $row['state'] ) {
 				$tx->rollback();
 				return array( 'code' => $row['state'], 'reason' => $row['reason'], 'attempt_id' => $row['attempt_id'] );
@@ -259,7 +263,10 @@ final class Woo_Price_Mutator {
 					$state = $review ? 'NEEDS_REVIEW' : ( in_array( $code, array( 'FAILED', 'FENCE_LOST', 'DEACTIVATED', 'TRANSACTION_UNAVAILABLE', 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED' ), true ) ? 'PENDING' : ( 'CONFLICT' === $code ? 'CONFLICT' : 'FAILED' ) );
 					self::refusal( $plan, $id, $state, $reason, $attempt );
 				}
-			} catch ( \Throwable $cleanup ) { $code = 'NEEDS_REVIEW'; $reason = 'CACHE_VERIFICATION_FAILED'; }
+			} catch ( \Throwable $cleanup ) {
+				$code = 'NEEDS_REVIEW';
+				$reason = ( $cleanup instanceof Price_Apply_Error && in_array( $cleanup->getMessage(), array( 'GRANT_STORE_UNAVAILABLE', 'AMBIGUOUS_COMMIT' ), true ) ) ? $cleanup->getMessage() : 'CACHE_VERIFICATION_FAILED';
+			}
 			return array( 'code' => $code, 'reason' => $reason, 'attempt_id' => $attempt );
 		} finally { $wpdb = $original; }
 	}

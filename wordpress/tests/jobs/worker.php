@@ -72,6 +72,12 @@ if ( ! empty( $spec['audit_fault_event'] ) ) {
 		if ( $event !== $spec['audit_fault_event'] ) { return; }
 		if ( 'throw' === ( $spec['audit_fault'] ?? '' ) ) { throw new RuntimeException( 'controlled-audit-fault' ); }
 	} );
+	if ( 'false-insert' === ( $spec['audit_fault'] ?? '' ) ) {
+		add_filter( 'query', static function ( $sql ) use ( $spec ) {
+			if ( ! is_string( $sql ) || false === strpos( $sql, (string) $spec['audit_fault_event'] ) || false === stripos( $sql, 'insert' ) ) { return $sql; }
+			return 'SELECT missing_column FROM writeleash_grant_audit_fault_missing';
+		} );
+	}
 }
 // Public Woo factory filter staging a transient read refusal for one product,
 // exactly as the #209 durable probe does; never a mutator/production mock.

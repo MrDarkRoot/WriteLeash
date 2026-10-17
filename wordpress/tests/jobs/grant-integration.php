@@ -566,10 +566,10 @@ expect_grant_error( 'PERMISSION_DENIED', function () use ( $ident_plan, $ident_g
 wp_set_current_user( $issuer );
 $ident_accepted = Grants::accept_plan( $ident_plan, $ident_grant['public_id'], $issuer, 'id-ident-f3' );
 eq( (int) $ident_accepted['job']['approver_id'], 0, 'grant job accepted with approver 0' );
-$ident_approved = Repo::approve( (int) $ident_accepted['job']['id'], $approver );
-eq( (int) $ident_approved['approver_id'], 0, 'human approve cannot substitute the approver on a grant job' );
-eq( $ident_approved['approval_mode'], 'grant', 'grant job keeps grant mode through approve()' );
-$ident_job = Repo::read( (int) $ident_accepted['job']['id'] );
+	expect_job_error( 'INVALID_TRANSITION', function () use ( $ident_accepted, $approver ) {
+		Repo::approve( (int) $ident_accepted['job']['id'], $approver );
+	}, 'human approve cannot rewrite a grant job' );
+	$ident_job = Repo::read( (int) $ident_accepted['job']['id'] );
 eq( (int) $ident_job['approver_id'], 0, 'durable grant job approver stays 0' );
 marker( 'F3 identity binding: caller must be the authenticated issuer' );
 
@@ -771,7 +771,43 @@ for ( $i = 0; $i < 4 && ! JState::is_terminal( Repo::read( $fail_job )['status']
 eq( fresh_price( $fail_ids[0] ), '100.00', 'failed item audit leaves the price unwritten' );
 ok( 'APPLIED' !== journal_row( $fail_plan->data()['plan_id'], $fail_ids[0] )['state'], 'failed item audit leaves no durable APPLIED' );
 eq( (int) grant_row( $fail_grant['public_id'] )['budget_consumed'], 0, 'failed item audit consumes no budget' );
-eq( reservation_state( $fail_grant['public_id'], $fail_job, $fail_ids[0] ), 'RESERVED', 'failed item audit retains the reservation for operator review' );
-marker( 'F2 per-item evidence: pinned version + rollback on audit failure' );
+	eq( reservation_state( $fail_grant['public_id'], $fail_job, $fail_ids[0] ), 'RESERVED', 'failed item audit retains the reservation for operator review' );
+	// Consumed reservation must adopt durable APPLIED, not deny as budget exhaustion.
+	$pin_saves = saves( $pin_ids[0] );
+	$pin_consumed = (int) grant_row( $pin_grant['public_id'] )['budget_consumed'];
+	$pin_job = (int) $pin_accepted['job']['id'];
+	eq( 1, (int) $wpdb->query( $wpdb->prepare( "UPDATE %i SET state='PENDING',reason='',claim_token='',claim_generation=0,attempt_count=0,updated_at=UTC_TIMESTAMP() WHERE job_id=%d AND product_id=%d", Schema::items_table( $wpdb ), $pin_job, $pin_ids[0] ) ), 'reopen applied item' );
+	eq( 1, (int) $wpdb->query( $wpdb->prepare( "UPDATE %i SET status='READY',status_reason='GRANT_ACCEPTED',lease_owner='',lease_expires_at=NULL,updated_at=UTC_TIMESTAMP() WHERE id=%d", Schema::jobs_table( $wpdb ), $pin_job ) ), 'reopen completed job' );
+	run_worker( array( 'job_id' => $pin_job, 'mode' => 'run', 'limits' => limits( 2 ) ) );
+	eq( saves( $pin_ids[0] ), $pin_saves, 'consumed reservation does not save again' );
+	eq( journal_row( $pin_plan->data()['plan_id'], $pin_ids[0] )['state'], 'APPLIED', 'durable APPLIED is adopted' );
+	eq( reservation_state( $pin_grant['public_id'], $pin_job, $pin_ids[0] ), 'CONSUMED', 'consumed reservation stays consumed' );
+	eq( (int) grant_row( $pin_grant['public_id'] )['budget_consumed'], $pin_consumed, 'adopted APPLIED does not consume again' );
+	$adopted = null;
+	foreach ( Repo::items( $pin_job, null, 0, 10 ) as $row ) { if ( (int) $row['product_id'] === $pin_ids[0] ) { $adopted = $row; } }
+	eq( $adopted['state'], IState::APPLIED, 're-entered item is not a false grant denial' );
+	ok( 'GRANT_BUDGET_EXHAUSTED' !== $adopted['reason'], 'consumed reservation is not budget exhaustion' );
+	// Refusal evidence failure must not commit the journal terminal row.
+	foreach ( array( 'throw', 'false-insert' ) as $fault ) {
+		wp_set_current_user( $issuer );
+		$rel_grant = Grants::create_grant( $issuer, $actor, 5, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
+		wp_set_current_user( $actor );
+		$rel_ids = array( create_product( '100.00' ) );
+		$rel_plan = Planner::preview( Selection::ids( $rel_ids ), new Operation( Operation::SET, '80.00' ), new Policy( 1000, '100', '100', false, '100' ) );
+		wp_set_current_user( $issuer );
+		$rel_accepted = Grants::accept_plan( $rel_plan, $rel_grant['public_id'], $issuer, 'id-release-' . $fault );
+		$rel_job = (int) $rel_accepted['job']['id'];
+		$rel_reserved = (int) grant_row( $rel_grant['public_id'] )['budget_reserved'];
+		Grants::revoke( $rel_grant['public_id'], $issuer );
+		run_worker( array( 'job_id' => $rel_job, 'mode' => 'run', 'limits' => limits( 2 ), 'audit_fault_event' => 'ITEM_RELEASED', 'audit_fault' => $fault ) );
+		eq( fresh_price( $rel_ids[0] ), '100.00', $fault . ' refusal leaves the price unwritten' );
+		eq( journal_row( $rel_plan->data()['plan_id'], $rel_ids[0] )['state'], 'PENDING', $fault . ' refusal does not commit a terminal journal row' );
+		eq( reservation_state( $rel_grant['public_id'], $rel_job, $rel_ids[0] ), 'RESERVED', $fault . ' refusal retains the reservation' );
+		eq( (int) grant_row( $rel_grant['public_id'] )['budget_reserved'], $rel_reserved, $fault . ' refusal does not change budget_reserved' );
+		$released = false;
+		foreach ( grant_audit_rows( $rel_grant['public_id'] ) as $row ) { if ( 'ITEM_RELEASED' === $row['event'] ) { $released = true; } }
+		ok( ! $released, $fault . ' refusal writes no ITEM_RELEASED row' );
+	}
+	marker( 'F2 per-item evidence: pinned version + rollback on audit failure' );
 
 echo "#298 grant-integration PASS ($assertions assertions)\n";

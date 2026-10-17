@@ -137,8 +137,12 @@ Grants::assert_job_grant_binding( $grant_job, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeee
 Grants::assert_job_grant_binding( $grant_job, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 9, 'key-1' ); // version drift does not rewrite the pin
 try { Grants::assert_job_grant_binding( $human_job, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 3, 'key-1' ); throw new RuntimeException( 'human job must not satisfy grant binding' ); }
 catch ( WriteLeash\Grant_Error $e ) { eq( $e->reason(), 'GRANT_BINDING_MISMATCH', 'human job binding mismatch' ); }
-try { Grants::assert_job_grant_binding( $grant_job, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 3, 'other-key' ); throw new RuntimeException( 'wrong key must mismatch' ); }
-catch ( WriteLeash\Grant_Error $e ) { eq( $e->reason(), 'GRANT_BINDING_MISMATCH', 'idempotency key mismatch' ); }
+	try { Grants::assert_job_grant_binding( $grant_job, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 3, 'other-key' ); throw new RuntimeException( 'wrong key must mismatch' ); }
+	catch ( WriteLeash\Grant_Error $e ) { eq( $e->reason(), 'GRANT_BINDING_MISMATCH', 'idempotency key mismatch' ); }
+	$blank_key = $grant_job;
+	$blank_key['grant_idempotency_key'] = '';
+	try { Grants::assert_job_grant_binding( $blank_key, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 3, 'key-1' ); throw new RuntimeException( 'blank stored key must mismatch' ); }
+	catch ( WriteLeash\Grant_Error $e ) { eq( $e->reason(), 'GRANT_BINDING_MISMATCH', 'blank idempotency key fails closed' ); }
 $label = Grants::operator_label( $grant_job );
 ok( false === strpos( $label, 'Approved by' ), 'grant copy never renders approver' );
 ok( false !== strpos( $label, 'no human approval' ), 'grant copy names the mode' );
@@ -302,7 +306,8 @@ $consume_pos = strpos( $mutator, 'consume_in_tx' );
 ok( $guard_pos !== false && $grant_pos !== false && $journal_after_grant !== false && $consume_pos !== false, 'grant hooks present' );
 ok( $guard_pos < $grant_pos && $grant_pos < $journal_after_grant, 'lock order runner/job -> grant -> journal' );
 ok( $consume_pos > $journal_after_grant, 'consume with journal APPLIED, never in save hook' );
-ok( false === strpos( $mutator, "add_action( 'woocommerce_before_product_object_save'" ), 'no budget in save hook' );
+	ok( false === strpos( $mutator, "add_action( 'woocommerce_before_product_object_save'" ), 'no budget in save hook' );
+	ok( false === strpos( $mutator, 'catch ( \\Throwable $ignored )' ), 'grant evidence failure is not swallowed' );
 marker( 'audit, disable fail-closed, boundary and lock order' );
 
 echo "#298 grant-unit PASS ($assertions assertions)\n";

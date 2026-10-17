@@ -189,6 +189,8 @@ final class Job_Repository {
 			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
 			// A lost acknowledgement may still have committed; re-read before failing.
 			$job = self::read( $job_id );
+			$grant_bound = is_array( $job ) && ( '' !== (string) ( $job['grant_public_id'] ?? '' ) || 'grant' === (string) ( $job['approval_mode'] ?? '' ) );
+			if ( $grant_bound && $error instanceof Job_Error && 'INVALID_TRANSITION' === $error->reason() ) { throw $error; }
 			if ( $job && in_array( $job['status'], array( Job_State::READY, Job_State::QUEUED, Job_State::RUNNING, Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { return $job; }
 			throw $error instanceof Job_Error ? $error : new Job_Error( 'APPROVAL_FAILED' );
 		} finally {
