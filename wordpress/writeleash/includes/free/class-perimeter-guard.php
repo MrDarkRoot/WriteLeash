@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  * item transaction.
  *
  * Writes to another product, another asset, or another mutation while a frame
- * is open are rejected like no frame. `WC_Product_Variable::sync( $parent_id )`
+ * is open are rejected like no frame. A variable product's parent price sync
  * is authorized only as an explicit extra product id for that item; it never
  * authorizes sibling writes.
  */
@@ -108,8 +108,8 @@ final class Perimeter_Guard {
 		add_filter( 'rest_pre_dispatch', array( __CLASS__, 'rest_pre_dispatch' ), 10, 3 );
 		add_action( 'woocommerce_before_product_object_save', array( __CLASS__, 'before_product_save' ), 10, 1 );
 		add_action( 'woocommerce_before_product_variation_object_save', array( __CLASS__, 'before_variation_save' ), 10, 1 );
-		add_action( 'woocommerce_product_before_set_stock', array( __CLASS__, 'product_before_set_stock' ), 10, 2 );
-		add_action( 'woocommerce_variation_before_set_stock', array( __CLASS__, 'variation_before_set_stock' ), 10, 2 );
+		add_action( 'woocommerce_product_before_set_stock', array( __CLASS__, 'product_before_set_stock' ), 10, 1 );
+		add_action( 'woocommerce_variation_before_set_stock', array( __CLASS__, 'variation_before_set_stock' ), 10, 1 );
 		add_filter( 'woocommerce_update_product_stock_query', array( __CLASS__, 'update_product_stock_query' ), 10, 4 );
 		add_filter( 'update_post_metadata', array( __CLASS__, 'update_post_metadata' ), 10, 5 );
 		add_filter( 'add_post_metadata', array( __CLASS__, 'add_post_metadata' ), 10, 5 );
@@ -192,7 +192,7 @@ final class Perimeter_Guard {
 	// Stock writes.
 	// ------------------------------------------------------------------
 
-	public static function product_before_set_stock( $product, $value ): void {
+	public static function product_before_set_stock( $product ): void {
 		if ( ! $product instanceof \WC_Product ) {
 			return;
 		}
@@ -202,7 +202,7 @@ final class Perimeter_Guard {
 		self::throw_denied( 'product_set_stock', $product->get_id(), 'stock' );
 	}
 
-	public static function variation_before_set_stock( $product, $value ): void {
+	public static function variation_before_set_stock( $product ): void {
 		if ( ! $product instanceof \WC_Product ) {
 			return;
 		}
@@ -332,14 +332,6 @@ final class Perimeter_Guard {
 	private static function deny( string $where, int $object_id, string $kind, string $detail = '' ): void {
 		$actor = (int) get_current_user_id();
 		do_action( 'writeleash_perimeter_denied', self::DENY_CODE, $where, $actor, $object_id, $kind, $detail );
-		error_log( sprintf(
-			'[WriteLeash] Perimeter denied %s for actor %d on object %d (kind %s%s)',
-			$where,
-			$actor,
-			$object_id,
-			$kind,
-			$detail ? ' key ' . $detail : ''
-		) );
 	}
 
 	/**
@@ -349,6 +341,7 @@ final class Perimeter_Guard {
 	private static function throw_denied( string $where, int $object_id, string $kind ): void {
 		self::deny( $where, $object_id, $kind );
 		if ( class_exists( 'WC_Data_Exception' ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Typed machine reason code; not HTML output.
 			throw new \WC_Data_Exception( self::DENY_CODE, 'WriteLeash denied this write outside a matching Execution Frame.' );
 		}
 		throw new \RuntimeException( 'WriteLeash denied this write outside a matching Execution Frame.' );
