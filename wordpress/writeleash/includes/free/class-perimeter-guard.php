@@ -105,7 +105,7 @@ final class Perimeter_Guard {
 	}
 
 	public static function boot(): void {
-		add_filter( 'rest_dispatch_request', array( __CLASS__, 'rest_dispatch' ), 10, 4 );
+		add_filter( 'rest_pre_dispatch', array( __CLASS__, 'rest_pre_dispatch' ), 10, 3 );
 		add_action( 'woocommerce_before_product_object_save', array( __CLASS__, 'before_product_save' ), 10, 1 );
 		add_action( 'woocommerce_before_product_variation_object_save', array( __CLASS__, 'before_variation_save' ), 10, 1 );
 		add_action( 'woocommerce_product_before_set_stock', array( __CLASS__, 'product_before_set_stock' ), 10, 2 );
@@ -123,37 +123,46 @@ final class Perimeter_Guard {
 	// ------------------------------------------------------------------
 
 	/**
-	 * True when the matched REST route is a WooCommerce products write surface
-	 * (wc/v1-v3 products, including batch and per-product routes).
+	 * True when the request targets a WooCommerce products write surface
+	 * (wc/v1-v3 products, including batch and per-product routes). REST routes
+	 * carry a leading slash; normalize before matching.
 	 */
-	private static function is_restricted_product_route( $request, string $route ): bool {
+	private static function is_restricted_product_route( $request ): bool {
 		if ( ! $request instanceof \WP_REST_Request ) {
 			return false;
 		}
-		if ( ! preg_match( '#^wc/v[123]/products(?:/.*)?#D', (string) $route ) ) {
-			return false;
-		}
-		return true;
+		$route = '/' . ltrim( (string) $request->get_route(), '/' );
+		return (bool) preg_match( '#\A/wc/v[123]/products(?:/.*)?\z#D', $route );
 	}
 
-	public static function rest_dispatch( $result, $request, $route, $handler ) {
+	/**
+	 * WordPress runs `rest_pre_dispatch` after `serve_request()` has already
+	 * resolved authentication, so the current user is authoritative here.
+	 * A restricted principal is refused on every WooCommerce products write
+	 * route before the handler or permission callback runs; the controlled
+	 * path writes through Woo CRUD, never REST, so no frame authorizes REST.
+	 *
+	 * @param mixed            $result  Short-circuit result from an earlier filter, else null.
+	 * @param \WP_REST_Server  $server  Server instance.
+	 * @param \WP_REST_Request $request Request used to generate the response.
+	 * @return mixed Non-null only when a restricted principal must be refused.
+	 */
+	public static function rest_pre_dispatch( $result, $server, $request ) {
 		if ( null !== $result ) {
 			return $result;
 		}
-		if ( ! self::is_restricted_product_route( $request, $route ) ) {
+		if ( ! self::is_restricted_product_route( $request ) ) {
 			return $result;
 		}
 		$method = (string) $request->get_method();
 		if ( ! in_array( $method, array( 'POST', 'PUT', 'PATCH', 'DELETE' ), true ) ) {
 			return $result;
 		}
-		if ( ! is_restricted_actor() ) {
+		if ( ! Grant_Repository::is_restricted_actor() ) {
 			return $result;
 		}
-		if ( self::has_matching_frame( (int) get_current_user_id(), 0, 'rest' ) ) {
-			return $result;
-		}
-		self::deny( 'rest', (int) get_current_user_id(), 0, (string) $route );
+		$route = (string) $request->get_route();
+		self::deny( 'rest', (int) get_current_user_id(), 0, $route );
 		return new \WP_Error(
 			self::DENY_CODE,
 			'WriteLeash restricted actors must write products through the grant job route (POST /wp-json/writeleash/v1/grants/{uuid}/jobs); direct WooCommerce REST product writes are denied.',
@@ -289,7 +298,7 @@ final class Perimeter_Guard {
 		if ( $object_id < 1 ) {
 			return false;
 		}
-		if ( ! is_restricted_actor() ) {
+		if ( ! Grant_Repository::is_restricted_actor() ) {
 			return false;
 		}
 		return ! self::has_matching_frame( (int) get_current_user_id(), $object_id, $kind );
@@ -344,41 +353,4 @@ final class Perimeter_Guard {
 		}
 		throw new \RuntimeException( 'WriteLeash denied this write outside a matching Execution Frame.' );
 	}
-}
-
-/**
- * True when $user_id (default: current user) is the actor on a row in
- * `writeleash_grants`. Missing/malformed grant store returns false: an
- * unverifiable principal is never treated as restricted here; the controlled
- * mutator fails closed separately on grant-state uncertainty.
- */
-function is_restricted_actor( int $user_id = 0 ): bool {
-	if ( $user_id < 1 ) {
-		$user_id = (int) get_current_user_id();
-	}
-	if ( $user_id < 1 ) {
-		return false;
-	}
-	global $wpdb;
-	if ( ! $wpdb instanceof \wpdb ) {
-		return false;
-	}
-	static $cache = array();
-	if ( array_key_exists( $user_id, $cache ) ) {
-		return $cache[ $user_id ];
-	}
-	$result = false;
-	try {
-		if ( ! Grant_Schema::ready( $wpdb ) ) {
-			$result = false;
-		} else {
-			$table = Grant_Schema::grants_table( $wpdb );
-			$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE actor_id=%d', $table, $user_id ) );
-			$result = $count > 0;
-		}
-	} catch ( \Throwable $error ) {
-		$result = false;
-	}
-	$cache[ $user_id ] = $result;
-	return $result;
 }

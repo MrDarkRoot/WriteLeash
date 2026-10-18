@@ -69,7 +69,7 @@ they are omitted from the public allowlist and loaded only by repository tests.
 | LICENSE | Reviewed GPLv2 text | PUBLIC_FREE_REQUIRED |
 | readme.txt | Minimum Woo-only user instructions; full copy belongs to #121 | PUBLIC_FREE_REQUIRED |
 
-All 37 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
+All 38 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
 inventory (multi-class files included):
 
 | File stem (`includes/free/class-<stem>.php`) | Classes / interfaces / traits | Classification |
@@ -78,6 +78,7 @@ inventory (multi-class files included):
 | free-support-contract | Free_Support_Contract, Free_Job_Limit_Error | PUBLIC_FREE_REQUIRED |
 | grant-schema | Grant_Schema, Grant_Error | PUBLIC_FREE_REQUIRED |
 | grant-repository | Grant_Repository | PUBLIC_FREE_REQUIRED |
+| perimeter-guard | Execution_Frame, Perimeter_Guard; restricted-principal perimeter and execution frame | PUBLIC_FREE_REQUIRED |
 | price-decimal | Price_Validation_Error, Immutable_Price_Value, Price_Decimal | PUBLIC_FREE_REQUIRED |
 | price-operation | Price_Operation, Price_Calculator | PUBLIC_FREE_REQUIRED |
 | price-range | Price_Range_Filter; optional inclusive selection filter, never a mutation path | PUBLIC_FREE_REQUIRED |

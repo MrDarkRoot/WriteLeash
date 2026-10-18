@@ -167,10 +167,10 @@ $jobs_table = Schema::jobs_table( $wpdb );
 wp_set_current_user( $issuer );
 $grant = Grants::create_grant( $issuer, $actor, 10, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
 ok( Grants::is_disabled() === false, 'global disable defaults to enabled' );
-ok( is_restricted_actor( $actor ) === true, 'grant actor is restricted' );
-ok( is_restricted_actor( $issuer ) === false, 'grant issuer is not restricted' );
-ok( is_restricted_actor( $manager ) === false, 'shop manager is not restricted' );
-ok( is_restricted_actor( 0 ) === false, 'anonymous/cron user is not restricted' );
+ok( Grants::is_restricted_actor( $actor ) === true, 'grant actor is restricted' );
+ok( Grants::is_restricted_actor( $issuer ) === false, 'grant issuer is not restricted' );
+ok( Grants::is_restricted_actor( $manager ) === false, 'shop manager is not restricted' );
+ok( Grants::is_restricted_actor( 0 ) === false, 'anonymous/cron user is not restricted' );
 marker( 'restricted actor predicate' );
 
 // ---------------------------------------------------------------------------
