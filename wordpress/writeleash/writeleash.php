@@ -100,11 +100,12 @@ require_once __DIR__ . '/includes/free/class-job-repository.php';
 require_once __DIR__ . '/includes/free/class-job-scheduler.php';
 require_once __DIR__ . '/includes/free/class-job-worker.php';
 require_once __DIR__ . '/includes/free/class-job-resume-rest.php';
+require_once __DIR__ . '/includes/free/class-agent-jobs-rest.php';
 
-// #298 standing grant / durable delegated authority (v0.3.1 only). No agent
-// REST route, no MCP adapter, no inventory scope. Separate durable record,
-// budget reservation, idempotency and per-item enforcement over the #108
-// primitive; journal remains source of truth.
+// #298 standing grant / durable delegated authority (v0.3.1 only). The only
+// agent entry is the restricted #299 submission route. No MCP adapter, no
+// inventory scope. Separate durable record, budget reservation, idempotency
+// and per-item enforcement over the #108 primitive; journal remains source of truth.
 require_once __DIR__ . '/includes/free/class-grant-schema.php';
 require_once __DIR__ . '/includes/free/class-grant-repository.php';
 
