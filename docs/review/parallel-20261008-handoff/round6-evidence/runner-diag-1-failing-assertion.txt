@@ -1,1 +1,0 @@
-Fatal error: Uncaught RuntimeException: different jobs same product: one applies, one conflicts, no deadlock: {"actual":["COMPLETED_WITH_ISSUES","NEEDS_REVIEW"],"expected":["COMPLETED","COMPLETED_WITH_ISSUES"]} in phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code:29

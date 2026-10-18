@@ -1,8 +1,0 @@
-{
-  "content": [
-    {
-      "type": "text",
-      "text": "{\n  \"status\": \"found\",\n  \"symbol\": {\n    \"uid\": \"Function:wordpress/writeleash/includes/free/free-progress.js:fn@1:1.action@16:4\",\n    \"name\": \"action\",\n    \"kind\": \"Function\",\n    \"filePath\": \"wordpress/writeleash/includes/free/free-progress.js\",\n    \"startLine\": 17,\n    \"endLine\": 39\n  },\n  \"epistemic\": \"exact\",\n  \"incoming\": {\n    \"accesses\": [\n      {\n        \"uid\": \"Function:wordpress/writeleash/includes/free/free-progress.js:fn@1:1.action@16:4\",\n        \"name\": \"action\",\n        \"filePath\": \"wordpress/writeleash/includes/free/free-progress.js\"\n      }\n    ],\n    \"calls\": [\n      {\n        \"uid\": \"Function:wordpress/writeleash/includes/free/free-progress.js:fn@1:1.apply@85:4\",\n        \"name\": \"apply\",\n        \"filePath\": \"wordpress/writeleash/includes/free/free-progress.js\"\n      }\n    ]\n  },\n  \"outgoing\": {\n    \"accesses\": [\n      {\n        \"uid\": \"Function:wordpress/writeleash/includes/free/free-progress.js:fn@1:1.action@16:4\",\n        \"name\": \"action\",\n        \"filePath\": \"wordpress/writeleash/includes/free/free-progress.js\"\n      }\n    ]\n  },\n  \"processes\": []\n}\n\n---\n**Next:** If planning changes, use impact({target: \"action\", direction: \"upstream\", repo: \"/tmp/writeleash-round7-browser-rebuild\"}) to check blast radius. To see execution flows, READ gitnexus://repo//tmp/writeleash-round7-browser-rebuild/processes."
-    }
-  ]
-}

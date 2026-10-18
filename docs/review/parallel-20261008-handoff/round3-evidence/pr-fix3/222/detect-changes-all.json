@@ -1,9 +1,0 @@
-Changes: 2 files, 4 symbols
-Affected processes: 0
-Risk level: low
-
-Changed symbols:
-  Section #210 — Merchant-facing UI translation readiness (preparation) → docs/i18n/PREPARATION.md
-  Section 9. Evidence commands and observed results (2026-10-08) → docs/i18n/PREPARATION.md
-  Section Issue #210 preparation handoff → docs/review/210/IMPLEMENTATION.md
-  Section What was prepared → docs/review/210/IMPLEMENTATION.md

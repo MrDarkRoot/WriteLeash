@@ -1,9 +1,0 @@
-
-  GitNexus Analyzer (1.6.12)
-
-  GitNexus Analyzer (1.6.12)
-{"level":40,"time":1791461226989,"name":"gitnexus","workerIndex":0,"attempt":1,"msg":"Worker 0 crashed during startup; respawning slot (self-heal attempt 1/2)."}
-{"level":40,"time":1791461227107,"name":"gitnexus","workerIndex":1,"attempt":1,"msg":"Worker 1 crashed during startup; respawning slot (self-heal attempt 1/2)."}
-{"level":40,"time":1791461248543,"name":"gitnexus","msg":"[scope-resolution] 44 property read/write site(s) name a field that IS defined in this workspace, but only in another language, so per-language inference declined to link them. Queries for these fields return an empty result that does NOT mean \"unused\" — it means the definition anchor is in a different language. Affected: budget (php), data (php), id (php), name (php), selected (php), state (php), type (php)"}
-{"level":40,"time":1791461248955,"name":"gitnexus","truncation":{"truncated":true,"entryPointCandidatesDropped":308,"entryPointsUnexplored":0,"walksCutByBudget":36,"tracesDepthCapped":0,"calleesDropped":1782,"processesDropped":0},"msg":"[processes] 478 flows reported, but whole flows are MISSING: 308 of 508 candidate entry point(s) never ranked in, 0 ranked entry point(s) never traced, 0 deduplicated flow(s) dropped at maxProcesses, 0 trace(s) cut at maxTraceDepth, 1782 callee(s) skipped at maxBranching, 36 walk(s) cut by the per-entry trace budget. An absent flow does NOT mean the code path does not exist."}
-{"level":30,"time":1791461297488,"name":"gitnexus","msg":"name-fallback resolution: 2091 call sites (309 distinct caller-file/name pairs), 0 refused as impossible (guessed/refused by language: php 2091/0)"}

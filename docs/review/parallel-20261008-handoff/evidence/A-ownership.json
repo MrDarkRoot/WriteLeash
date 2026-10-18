@@ -1,1 +1,0 @@
-{"PR_FAST": true, "CODE_INTEGRATION": ["admin", "jobs", "journal", "plan", "undo"], "RELEASE_FULL_OWNERS": ["acceptance", "admin", "jobs", "journal", "plan", "undo"], "DEFERRED_RELEASE_OWNERS": ["acceptance"]}

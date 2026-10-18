@@ -1,6 +1,0 @@
-eaad5dd docs(review): record #206 fail-closed completeness receipts
-5cf39c1 fix(selection): guarantee complete bounded discovery or fail closed (#206)
-eadd0c9 docs(review): record #206 raw-row dedupe fix receipts
-899a115 fix(selection): deduplicate raw category rows before the discovery bound (#206)
-fb2ecd4 docs(review): record #206 validation receipts
-c8cbf6c feat(selection): include subcategories and bounded expanded count (#206)

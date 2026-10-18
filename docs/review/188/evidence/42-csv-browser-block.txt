@@ -1,4 +1,0 @@
-- heading "127.0.0.1 is blocked" [level=1]:
-  - generic: 127.0.0.1 is blocked
-- paragraph: This page has been blocked by Chrome
-- generic: ERR_BLOCKED_BY_CLIENT

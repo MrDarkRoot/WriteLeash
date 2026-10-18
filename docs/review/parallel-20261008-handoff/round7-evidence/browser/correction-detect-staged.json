@@ -1,8 +1,0 @@
-{
-  "content": [
-    {
-      "type": "text",
-      "text": "{\n  \"summary\": {\n    \"changed_count\": 0,\n    \"affected_count\": 0,\n    \"changed_files\": 1,\n    \"risk_level\": \"low\"\n  },\n  \"changed_symbols\": [],\n  \"affected_processes\": []\n}\n\n---\n**Next:** Review affected processes. Use context() on high-risk changed symbols. READ gitnexus://repo/WriteLeash/process/{name} for full execution traces."
-    }
-  ]
-}

@@ -1,6 +1,0 @@
-PHP Warning:  require_once(/tmp/wl-round7-old-plan-woiso72_/base/class-product-discovery.php): Failed to open stream: No such file or directory in /tmp/wl-round7-old-plan-woiso72_/base/class-free-admin.php on line 6
-PHP Fatal error:  Uncaught Error: Failed opening required '/tmp/wl-round7-old-plan-woiso72_/base/class-product-discovery.php' (include_path='.:/usr/share/php') in /tmp/wl-round7-old-plan-woiso72_/base/class-free-admin.php:6
-Stack trace:
-#0 /tmp/wl-round7-old-plan-woiso72_/generate.php(5): require()
-#1 {main}
-  thrown in /tmp/wl-round7-old-plan-woiso72_/base/class-free-admin.php on line 6
