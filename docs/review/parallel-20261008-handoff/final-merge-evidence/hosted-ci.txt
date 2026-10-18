@@ -1,0 +1,28 @@
+PR #219
+CI_COVERAGE	fail	6s	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732527033/job/113164727253	
+PR_FAST	fail	10s	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732527033/job/113164674139	
+acceptance	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732527033/job/113164727743	
+adapter	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732527033/job/113164727870	
+admin	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732527033/job/113164727209	
+engine	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732527033/job/113164727483	
+PR #220
+CI_COVERAGE	fail	6s	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732346146/job/113164160053	
+PR_FAST	fail	11s	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732346146/job/113164098174	
+acceptance	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732346146/job/113164160737	
+adapter	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732346146/job/113164160239	
+admin	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732346146/job/113164161115	
+engine	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37732346146/job/113164160628	
+PR #221
+CI_COVERAGE	fail	5s	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37736137796/job/113176026112	
+PR_FAST	fail	9s	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37736137796/job/113175974504	
+acceptance	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37736137796/job/113176026825	
+adapter	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37736137796/job/113176026949	
+admin	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37736137796/job/113176027014	
+engine	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37736137796/job/113176027086	
+PR #222
+acceptance	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37731723746/job/113162251013	
+adapter	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37731723746/job/113162250458	
+admin	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37731723746/job/113162250634	
+engine	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37731723746/job/113162251065	
+feasibility	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37731723746/job/113162250685	
+research	skipping	0	https://github.com/MrDarkRoot/WriteLeash/actions/runs/37731723746/job/113162250956	

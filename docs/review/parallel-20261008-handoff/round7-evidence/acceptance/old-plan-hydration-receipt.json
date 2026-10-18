@@ -1,0 +1,23 @@
+{
+  "method": "Generate main Change_Plan with deterministic query/Woo test doubles, hydrate unchanged JSON on combined production Change_Plan",
+  "pre_source_sha": "c48e307efe7750d0fb36015c39d50a34675f9579",
+  "post_source_sha": "3b4ab5e8895fb60dbcb00d26d5c597f129b9ed8f",
+  "generation_exit": 0,
+  "hydration_exit": 0,
+  "byte_identity": true,
+  "original_sha256": "4cc2a242ada123ba809c2f545bddd71de9d1156f32f6ad7eb654a09b1a349e7d",
+  "hydrated_sha256": "4cc2a242ada123ba809c2f545bddd71de9d1156f32f6ad7eb654a09b1a349e7d",
+  "started": "2026-10-08T11:58:25.373165+00:00",
+  "completed": "2026-10-08T11:58:25.462314+00:00",
+  "runtime": "host PHP 8.2.32; test doubles, NOT real Woo runtime",
+  "selection": {
+    "include_children": false,
+    "term_id": 1,
+    "type": "CATEGORY",
+    "warnings": []
+  },
+  "resolved_product_ids": [
+    10
+  ],
+  "plan_hash": "b790ed53048528728f6dbe6f84a7b04f8fa99abf99eb177f347355fe9bc8818e"
+}

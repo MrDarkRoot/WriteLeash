@@ -1,0 +1,1 @@
+#204 shipped client: PHP selector/action parity, transport, saved counters/rows/order, filter/page change, Apply/Undo, focus/stale wording, pager, text safety, hidden/terminal stop, timeout/out-of-order, session/error backoff, exhaustive order/focus reconciliation PASS (9996 enumerated cases, 69481 assertion checks, 1198 focused-removed deferrals, 0 violations)

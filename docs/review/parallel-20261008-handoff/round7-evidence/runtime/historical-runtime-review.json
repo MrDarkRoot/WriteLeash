@@ -1,0 +1,200 @@
+[
+  {
+    "historical_file": "docs/review/parallel-20261008-handoff/round6-evidence/runner-diag-1-FAIL.log",
+    "line_count": 415,
+    "relevant_receipts": [
+      {
+        "line": 71,
+        "text": "#109 pinned DB version: 8.0.44"
+      },
+      {
+        "line": 74,
+        "text": "#109 engine=mysql cache=default"
+      },
+      {
+        "line": 320,
+        "text": "#109 engine=mysql cache=persistent"
+      },
+      {
+        "line": 396,
+        "text": "Fatal error: Uncaught RuntimeException: different jobs same product: one applies, one conflicts, no deadlock: {\"actual\":[\"COMPLETED_WITH_ISSUES\",\"NEEDS_REVIEW\"],\"expected\":[\"COMPLETED\",\"COMPLETED_WITH_ISSUES\"]} in phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code:29"
+      }
+    ]
+  },
+  {
+    "historical_file": "docs/review/parallel-20261008-handoff/round6-evidence/runner-diag-1-trace.log",
+    "line_count": 33,
+    "relevant_receipts": [
+      {
+        "line": 31,
+        "text": "181927 VERIFY WriteLeash\\Price_Apply_Error /tmp/wl109-mysql/wp-content/plugins/writeleash/includes/free/class-price-cache-verifier.php:267 CACHE_VERIFICATION_FAILED #0 /tmp/wl109-mysql/wp-content/plugins/writeleash/includes/free/class-woo-price-mutator.php(170): WriteLeash\\Price_Cache_Verifier::observe() | #1 /tmp/wl109-mysql/wp-content/plugins/writeleash/includes/free/class-job-worker.php(196): WriteLeash\\Woo_Price_Mutator::apply() | #2 /tmp/wl109-mysql/wp-content/plugins/writeleash/includes/free/class-job-worker.php(166): WriteLeash\\Job_Worker::attempt_item() | #3 /tmp/wl109-mysql/wp-content/plugins/writeleash/includes/free/class-job-worker.php(92): WriteLeash\\Job_Worker::process() | #4 phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code(57): WriteLeash\\Job_Worker::run() | #5 phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85): eval() | #6 phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/eval-command/src/EvalFile_Command.php(59): EvalFile_Command::execute_eval() | #7 [internal function]: EvalFile_Command->__invoke() | #8 phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/wp-cli/php/WP_CLI/Dispatcher/CommandFactory.php(100): call_user_func() | #9 [internal function]: WP_CLI\\Dispatcher\\CommandFactory::WP_CLI\\Dispatcher\\{closure}() | #10 phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/wp-cli/php/WP_CLI/Dispatcher/Subcommand.php(497): call_user_func() | #11 phar:///tmp/opencode/wp-cli.phar/vendor"
+      },
+      {
+        "line": 32,
+        "text": "181927 MUTATOR WriteLeash\\Price_Apply_Error /tmp/wl109-mysql/wp-content/plugins/writeleash/includes/free/class-price-cache-verifier.php:267 CACHE_VERIFICATION_FAILED #0 /tmp/wl109-mysql/wp-content/plugins/writeleash/includes/free/class-woo-price-mutator.php(170): WriteLeash\\Price_Cache_Verifier::observe() | #1 /tmp/wl109-mysql/wp-content/plugins/writeleash/includes/free/class-job-worker.php(196): WriteLeash\\Woo_Price_Mutator::apply() | #2 /tmp/wl109-mysql/wp-content/plugins/writeleash/includes/free/class-job-worker.php(166): WriteLeash\\Job_Worker::attempt_item() | #3 /tmp/wl109-mysql/wp-content/plugins/writeleash/includes/free/class-job-worker.php(92): WriteLeash\\Job_Worker::process() | #4 phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85) : eval()'d code(57): WriteLeash\\Job_Worker::run() | #5 phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/eval-command/src/EvalFile_Command.php(85): eval() | #6 phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/eval-command/src/EvalFile_Command.php(59): EvalFile_Command::execute_eval() | #7 [internal function]: EvalFile_Command->__invoke() | #8 phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/wp-cli/php/WP_CLI/Dispatcher/CommandFactory.php(100): call_user_func() | #9 [internal function]: WP_CLI\\Dispatcher\\CommandFactory::WP_CLI\\Dispatcher\\{closure}() | #10 phar:///tmp/opencode/wp-cli.phar/vendor/wp-cli/wp-cli/php/WP_CLI/Dispatcher/Subcommand.php(497): call_user_func() | #11 phar:///tmp/opencode/wp-cli.phar/vendo"
+      }
+    ]
+  },
+  {
+    "historical_file": "docs/review/parallel-20261008-handoff/round6-evidence/rootcause-freshproduct-step-probes.log",
+    "line_count": 40204,
+    "relevant_receipts": []
+  },
+  {
+    "historical_file": "docs/review/parallel-20261008-handoff/round6-evidence/focused-80-PASS.log",
+    "line_count": 241,
+    "relevant_receipts": []
+  },
+  {
+    "historical_file": "docs/review/parallel-20261008-handoff/round6-evidence/fix-validated-runner-attempt1-PASS.log",
+    "line_count": 1163,
+    "relevant_receipts": [
+      {
+        "line": 71,
+        "text": "#109 pinned DB version: 8.0.44"
+      },
+      {
+        "line": 74,
+        "text": "#109 engine=mysql cache=default"
+      },
+      {
+        "line": 320,
+        "text": "#109 engine=mysql cache=persistent"
+      },
+      {
+        "line": 652,
+        "text": "#109 pinned DB version: 10.11.15-MariaDB"
+      },
+      {
+        "line": 655,
+        "text": "#109 engine=mariadb cache=default"
+      },
+      {
+        "line": 901,
+        "text": "#109 engine=mariadb cache=persistent"
+      },
+      {
+        "line": 1163,
+        "text": "#109 durable job engine two-engine/default/Redis gate: PASS"
+      }
+    ]
+  },
+  {
+    "historical_file": "docs/review/parallel-20261008-handoff/round6-evidence/fix-validated-runner-attempt2-PASS.log",
+    "line_count": 1163,
+    "relevant_receipts": [
+      {
+        "line": 71,
+        "text": "#109 pinned DB version: 8.0.44"
+      },
+      {
+        "line": 74,
+        "text": "#109 engine=mysql cache=default"
+      },
+      {
+        "line": 320,
+        "text": "#109 engine=mysql cache=persistent"
+      },
+      {
+        "line": 652,
+        "text": "#109 pinned DB version: 10.11.15-MariaDB"
+      },
+      {
+        "line": 655,
+        "text": "#109 engine=mariadb cache=default"
+      },
+      {
+        "line": 901,
+        "text": "#109 engine=mariadb cache=persistent"
+      },
+      {
+        "line": 1163,
+        "text": "#109 durable job engine two-engine/default/Redis gate: PASS"
+      }
+    ]
+  },
+  {
+    "historical_file": "docs/review/parallel-20261008-handoff/round6-evidence/combined-jobs-PASS.log",
+    "line_count": 1163,
+    "relevant_receipts": [
+      {
+        "line": 71,
+        "text": "#109 pinned DB version: 8.0.44"
+      },
+      {
+        "line": 74,
+        "text": "#109 engine=mysql cache=default"
+      },
+      {
+        "line": 320,
+        "text": "#109 engine=mysql cache=persistent"
+      },
+      {
+        "line": 652,
+        "text": "#109 pinned DB version: 10.11.15-MariaDB"
+      },
+      {
+        "line": 655,
+        "text": "#109 engine=mariadb cache=default"
+      },
+      {
+        "line": 901,
+        "text": "#109 engine=mariadb cache=persistent"
+      },
+      {
+        "line": 1163,
+        "text": "#109 durable job engine two-engine/default/Redis gate: PASS"
+      }
+    ]
+  },
+  {
+    "historical_file": "docs/review/parallel-20261008-handoff/round6-evidence/combined-durable-PASS.log",
+    "line_count": 561,
+    "relevant_receipts": [
+      {
+        "line": 71,
+        "text": "#108 pinned DB version: 8.0.44"
+      },
+      {
+        "line": 72,
+        "text": "#108 engine=mysql cache=default"
+      },
+      {
+        "line": 110,
+        "text": "#108 fresh observer Woo read hook disagrees with durable truth: CACHE_VERIFICATION_FAILED / no replay: PASS (354 assertions)"
+      },
+      {
+        "line": 225,
+        "text": "#108 engine=mysql cache=persistent"
+      },
+      {
+        "line": 264,
+        "text": "#108 fresh observer Woo read hook disagrees with durable truth: CACHE_VERIFICATION_FAILED / no replay: PASS (356 assertions)"
+      },
+      {
+        "line": 351,
+        "text": "#108 pinned DB version: 10.11.15-MariaDB"
+      },
+      {
+        "line": 352,
+        "text": "#108 engine=mariadb cache=default"
+      },
+      {
+        "line": 390,
+        "text": "#108 fresh observer Woo read hook disagrees with durable truth: CACHE_VERIFICATION_FAILED / no replay: PASS (354 assertions)"
+      },
+      {
+        "line": 505,
+        "text": "#108 engine=mariadb cache=persistent"
+      },
+      {
+        "line": 544,
+        "text": "#108 fresh observer Woo read hook disagrees with durable truth: CACHE_VERIFICATION_FAILED / no replay: PASS (356 assertions)"
+      },
+      {
+        "line": 561,
+        "text": "#108 actual Woo CRUD + durable journal two-engine/default/Redis gate: PASS"
+      }
+    ]
+  }
+]

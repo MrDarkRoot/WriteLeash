@@ -1,0 +1,8 @@
+{
+  "source_sha": "2e059cacf46977cc3ae1eba15eba628ad6e7570e",
+  "zip_sha256": "86816758f52360f59c95a01122fe14570cdc11bb5dcb4702292003f1162057bd",
+  "packaging": "git archive HEAD:wordpress writeleash; tracked plugin directory",
+  "files": 82,
+  "mismatches": [],
+  "verified_again_after_all_flows": true
+}

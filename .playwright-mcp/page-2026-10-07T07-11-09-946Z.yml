@@ -1,0 +1,31 @@
+- generic [ref=e1]:
+  - heading "Log In" [level=1] [ref=e2]
+  - generic [ref=e3]:
+    - link "Powered by WordPress" [ref=e4] [cursor=pointer]:
+      - /url: https://wordpress.org/
+    - paragraph [ref=e6]: Please log in again.
+    - generic [ref=e7]:
+      - paragraph [ref=e8]:
+        - generic [ref=e9]: Username or Email Address
+        - textbox "Username or Email Address" [ref=e10]: merchant
+      - generic [ref=e11]:
+        - generic [ref=e12]: Password
+        - generic [ref=e13]:
+          - textbox "Password" [active] [ref=e14]
+          - button "Show password" [ref=e15] [cursor=pointer]:
+            - generic [aria-hidden] [ref=e16]: 
+      - paragraph [ref=e17]:
+        - checkbox "Remember Me" [ref=e18] [cursor=pointer]
+        - generic [ref=e19]: Remember Me
+        - generic [ref=e20]:
+          - button "Help" [ref=e21] [cursor=pointer]:
+            - generic [aria-hidden] [ref=e22]: 
+          - text: 
+      - paragraph:
+        - button "Log In" [ref=e23] [cursor=pointer]
+    - paragraph [ref=e24]:
+      - link "Lost your password?" [ref=e25] [cursor=pointer]:
+        - /url: http://127.0.0.1:8188/wp-login.php?action=lostpassword
+    - paragraph [ref=e26]:
+      - link "← Go to WriteLeash Manual Review" [ref=e27] [cursor=pointer]:
+        - /url: http://127.0.0.1:8188/

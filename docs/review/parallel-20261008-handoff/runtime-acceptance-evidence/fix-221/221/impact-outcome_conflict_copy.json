@@ -1,0 +1,644 @@
+
+  GitNexus Impact (1.6.12)
+{
+  "target": {
+    "name": "outcome_conflict_copy",
+    "type": "",
+    "filePath": "wordpress/writeleash/includes/free/class-free-admin.php"
+  },
+  "direction": "upstream",
+  "impactedCount": 68,
+  "risk": "CRITICAL",
+  "riskSharedAxes": "CRITICAL",
+  "riskScale": {
+    "comparableAcrossKinds": true,
+    "unusedAxes": []
+  },
+  "epistemic": "exact",
+  "summary": {
+    "direct": 68,
+    "processes_affected": 0,
+    "modules_affected": 0
+  },
+  "byDepthCounts": {
+    "1": 68
+  },
+  "affected_processes": [],
+  "affected_modules": [],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0003ariations.php:w\u0000179_reg\u0000\u0000\u0000\u0000\u0000",
+        "name": "apply",
+        "filePath": "wordpress/writeleash/includes/free/class-woo-price-mutator.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0003n/public-lifecy\u0000le.php:\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "runtime_db",
+        "filePath": "wordpress/writeleash/includes/class-disposable-demo.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0003apter/helpers.p\u0000p:cc87_\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "schema_ok",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-worker.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000/free/v@��m�u\u0000\u0000�\u0012\u0000\u0000\u0001\u0000\u0000\u0000@\u0000\u0000\u0000\u0000\u0000",
+        "name": "purge_job_atomic",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-repository.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000ts/free/asserti�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����",
+        "name": "initiation_error",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-rest.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000tests/fভm�u\u0000\u0000�2\u0000\u0000\u0001\u0000\u0000\u0000@\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "schema",
+        "filePath": "wordpress/writeleash/includes/free/class-woo-price-mutator.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��������\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "undo_precondition",
+        "filePath": "wordpress/writeleash/includes/free/class-woo-price-mutator.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0003tests/admin/pub\u0000ic-redi\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "history_jobs",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-repository.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000/tests/@��m�u\u0000\u0000�\"\u0000\u0000\u0001\u0000\u0000\u0000@\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "acquire",
+        "filePath": "wordpress/writeleash/includes/free/class-job-transaction-fence.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0015\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000tions.php:is_wp\u0000error",
+        "name": "storage_estimate",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-repository.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0003s/tests/accepta\u0000ce/vari\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "render",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0000�5\u0005��u\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000_create@��m�u\u0000\u0000\u0018\"\u0000\u0000\u0001",
+        "name": "handle",
+        "filePath": "wordpress/writeleash/includes/free/class-job-resume-rest.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "progress_snapshot",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "render_item_outcome",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0003ress/tests/admi\u0000/select\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��",
+        "name": "runtime_attestation",
+        "filePath": "wordpress/writeleash/includes/class-update-engine.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000rdpress/tests/a\u0000apter/h\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "run",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-worker.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0003bs",
+        "name": "write_job_csv",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000:wordpress/test�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "refusal",
+        "filePath": "wordpress/writeleash/includes/free/class-woo-price-mutator.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000\u0003n:wordpress/tes\u0000s/free/\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�����",
+        "name": "assert_absent",
+        "filePath": "wordpress/writeleash/includes/class-disposable-demo-setup.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0000on:word@��m�u\u0000\u0000\b\"\u0000\u0000\u0001\u0000\u0000\u0000@\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000K\u0017\u0000\u0000\u0000\u0000",
+        "name": "queue_undo",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-worker.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000\u0000\u0003on:wordpress/te\u0000ts/admi\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����",
+        "name": "export_job",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000-\u0018\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000sts/acceptance/\u0000irty-ca\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "render_identity",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000��������\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000_assert_range",
+        "name": "render_view",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.63,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000\u0000\u0000��������\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000sts/durable/int\u0000gration\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "migrate",
+        "filePath": "wordpress/writeleash/includes/free/class-durable-charset.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000ncti\u0001\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0001\u0000\u0000/rel\u0002\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0003\u0001\u0000\u0000ordp\u0003\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0004\u0001\u0000\u0000scan",
+        "name": "is_certified_handler",
+        "filePath": "wordpress/writeleash/includes/class-redirection-bulk-disable-rest.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000ncti�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000/rel�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000ordp�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000tree",
+        "name": "plugin_version",
+        "filePath": "wordpress/writeleash/includes/class-redirection-bulk-disable-rest.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0000\u0000ncti�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000ts/m�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000et/t�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000y:ca�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000",
+        "name": "runtime",
+        "filePath": "wordpress/writeleash/includes/class-compatibility-doctor.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "\u0004\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0005\u0001\u0000\u0000dpre\u0005\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0006\u0001\u0000\u0000uild\u0006\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0007\u0001\u0000\u0000rg.p\u0007\u0001\u0000\u0000\u0000\u0000\u0000\u0000\b\u0001\u0000",
+        "name": "handle",
+        "filePath": "wordpress/writeleash/includes/class-redirection-bulk-disable-rest.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "F\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0004\u0000\u0000\u0000\u0000\u0000\u0000\u0000;\u0005��u\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000tore_routines",
+        "name": "process_approve",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "File:wordpress/release/compliance-smoke-124-reaudit.php",
+        "name": "compliance-smoke-124-reaudit.php",
+        "filePath": "wordpress/release/compliance-smoke-124-reaudit.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "File:wordpress/release/durable-lifecycle-fixture-124.php",
+        "name": "durable-lifecycle-fixture-124.php",
+        "filePath": "wordpress/release/durable-lifecycle-fixture-124.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "File:wordpress/release/nonce-smoke-124-reaudit.php",
+        "name": "nonce-smoke-124-reaudit.php",
+        "filePath": "wordpress/release/nonce-smoke-124-reaudit.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Fu\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000\u0000\u0000P*\u0005��u\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "assert_canonical_routine",
+        "filePath": "wordpress/writeleash/includes/class-update-engine.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Fu\u0000ction:w\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��������\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000per",
+        "name": "process_undo",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Funct\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��������\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "handle",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-rest.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Functio\u0000:wordpr\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000\u0000\u0000 �6��",
+        "name": "render_selector_form",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Function:wordpr�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "cleanup",
+        "filePath": "wordpress/writeleash/includes/class-disposable-demo-setup.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Function:wor�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "history_items",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-repository.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Functio�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "load_job_for_view",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Fu�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "setup",
+        "filePath": "wordpress/writeleash/includes/class-disposable-demo-setup.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Fu�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0003c83_tamper_ok",
+        "name": "process_resume",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Fu�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000imen�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000budg�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000et.p�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000rded�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000t",
+        "name": "trigger_surface",
+        "filePath": "wordpress/writeleash/includes/class-compatibility-doctor.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "F�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000pres�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000ild-�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000g.py�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000",
+        "name": "dispatch",
+        "filePath": "wordpress/writeleash/includes/class-redirection-bulk-disable-rest.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "`��m�u\u0000\u0000ho\u0000\u0000%\u0000\u0000\u0000]A\u0002\u0000\u0000\u0000\u0000\u0000-\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000y\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "name": "handle_export",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "applied_atdependency_okrunner_activepause_unleasedinitiation_errorassert_transitioncan_manual_runis_execu",
+        "name": "price_field",
+        "filePath": "wordpress/writeleash/includes/free/class-change-plan.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "easespause_stalledhistory_itemshistory_items_apply_onlyretention_expire",
+        "name": "activate",
+        "filePath": "wordpress/writeleash/includes/class-lifecycle.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "entage_displayoperator_nameidentity_namerender_identityexp",
+        "name": "compute",
+        "filePath": "wordpress/writeleash/includes/free/class-change-plan.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "ention_daysensure_schemaread_operationread_operation_by_jobread_operation_by",
+        "name": "is_executable",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-state.php",
+        "relationType": "CALLS",
+        "confidence": 0.63,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "micstorage_estimateundo_preconditionresolved_selectionexpa",
+        "name": "reconcile_stale_jobs",
+        "filePath": "wordpress/writeleash/includes/class-lifecycle.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "msdependency_okdependency_refusalauthorized_for_jobre",
+        "name": "restore",
+        "filePath": "wordpress/writeleash/includes/free/class-woo-undo-mutator.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "m�u\u0000\u0000*\"\u0000\u0000\u0001\u0000\u0000\u0000@\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000:\u0017\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000-doctor.php:cc8\u0000_query",
+        "name": "process_preview",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "ndent_buildsget_regular_priceget_sale_priceget_date_on_sale_fro",
+        "name": "snapshot",
+        "filePath": "wordpress/writeleash/includes/class-product-status.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "nner_activepause_unleasedread_by_public_idhistory_ite",
+        "name": "refusal",
+        "filePath": "wordpress/writeleash/includes/free/class-woo-undo-mutator.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "nputsprocess_selectionbuild_operationprocess_previewpr",
+        "name": "observe_undo",
+        "filePath": "wordpress/writeleash/includes/free/class-woo-undo-mutator.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "ob_for_viewrender_preview_viewproduct_observationrender_",
+        "name": "hydrate",
+        "filePath": "wordpress/writeleash/includes/free/class-change-plan.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "productcategory_labelassert_transitioncan_manual_runis_exe",
+        "name": "schema",
+        "filePath": "wordpress/writeleash/includes/free/class-woo-undo-mutator.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "raversaltest_archive_rejectionstest_archive_metadatat",
+        "name": "update",
+        "filePath": "wordpress/writeleash/includes/class-guard.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "rmjobs_installedrender_recent_jobsjob_action_linkload_j",
+        "name": "create",
+        "filePath": "wordpress/writeleash/includes/free/class-change-plan.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "rsclaim_next_itemrelease_lifecycle_claimreconcile_itemderive_term",
+        "name": "calculate",
+        "filePath": "wordpress/writeleash/includes/free/class-price-operation.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "s_at_forretention_expired_forundo_eligible_forpurge_expiredpurge_job_ato",
+        "name": "deactivate",
+        "filePath": "wordpress/writeleash/includes/class-lifecycle.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "sumerender_noticepreview_extra_countsreason_messageresult_s",
+        "name": "hydrate",
+        "filePath": "wordpress/writeleash/includes/free/class-change-plan.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000dpre�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000uild�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000rg.p\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0001",
+        "name": "is_candidate_global_disable",
+        "filePath": "wordpress/writeleash/includes/class-redirection-bulk-disable-rest.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000erim�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000x_bu�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000dget�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000owed�\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000",
+        "name": "run",
+        "filePath": "wordpress/writeleash/includes/class-compatibility-doctor.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "�\u0012\u0000\u0000\u0002\u0000\u0000\u0000�\u0015\u0000\u0000\u0000\u0000\u0000\u0000#\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000z\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000et_price_decima\u0000s",
+        "name": "purge_expired",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-repository.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "�m�u\u0000\u0000\u0019\"\u0000\u0000\u0001\u0000\u0000\u0000@\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000?\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000doctor.php:cc83\u0000tamper",
+        "name": "job_from_post",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "���\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000p:$save_guard",
+        "name": "verify",
+        "filePath": "wordpress/writeleash/includes/class-disposable-demo-setup.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000p:http_post",
+        "name": "render_history_table",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "������\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000112_nonce",
+        "name": "ensure_schema",
+        "filePath": "wordpress/writeleash/includes/free/class-undo-repository.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      }
+    ]
+  }
+}

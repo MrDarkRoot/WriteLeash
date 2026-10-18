@@ -1,0 +1,248 @@
+[
+  {
+    "sha": "b09fd5f226ea45e711352b8654e3ab3f09d0d1f3",
+    "node_id": "C_kwDOUlM2GtoAKGIwOWZkNWYyMjZlYTQ1ZTcxMTM1MmI4NjU0ZTNhYjNmMDlkMGQxZjM",
+    "commit": {
+      "author": {
+        "name": "MrDarkRoot",
+        "email": "effortsmiyuki@gmail.com",
+        "date": "2026-10-08T03:28:17Z"
+      },
+      "committer": {
+        "name": "MrDarkRoot",
+        "email": "effortsmiyuki@gmail.com",
+        "date": "2026-10-08T03:28:17Z"
+      },
+      "message": "chore(i18n): add translation inventory tooling and preparation docs (#210)",
+      "tree": {
+        "sha": "ce11248bcfd9affb9fe1fc7b7d87275f89800488",
+        "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/git/trees/ce11248bcfd9affb9fe1fc7b7d87275f89800488"
+      },
+      "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/git/commits/b09fd5f226ea45e711352b8654e3ab3f09d0d1f3",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/commits/b09fd5f226ea45e711352b8654e3ab3f09d0d1f3",
+    "html_url": "https://github.com/MrDarkRoot/WriteLeash/commit/b09fd5f226ea45e711352b8654e3ab3f09d0d1f3",
+    "comments_url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/commits/b09fd5f226ea45e711352b8654e3ab3f09d0d1f3/comments",
+    "author": {
+      "login": "MrDarkRoot",
+      "id": 119866532,
+      "node_id": "U_kgDOByUEpA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/119866532?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/MrDarkRoot",
+      "html_url": "https://github.com/MrDarkRoot",
+      "followers_url": "https://api.github.com/users/MrDarkRoot/followers",
+      "following_url": "https://api.github.com/users/MrDarkRoot/following{/other_user}",
+      "gists_url": "https://api.github.com/users/MrDarkRoot/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/MrDarkRoot/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/MrDarkRoot/subscriptions",
+      "organizations_url": "https://api.github.com/users/MrDarkRoot/orgs",
+      "repos_url": "https://api.github.com/users/MrDarkRoot/repos",
+      "events_url": "https://api.github.com/users/MrDarkRoot/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/MrDarkRoot/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "MrDarkRoot",
+      "id": 119866532,
+      "node_id": "U_kgDOByUEpA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/119866532?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/MrDarkRoot",
+      "html_url": "https://github.com/MrDarkRoot",
+      "followers_url": "https://api.github.com/users/MrDarkRoot/followers",
+      "following_url": "https://api.github.com/users/MrDarkRoot/following{/other_user}",
+      "gists_url": "https://api.github.com/users/MrDarkRoot/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/MrDarkRoot/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/MrDarkRoot/subscriptions",
+      "organizations_url": "https://api.github.com/users/MrDarkRoot/orgs",
+      "repos_url": "https://api.github.com/users/MrDarkRoot/repos",
+      "events_url": "https://api.github.com/users/MrDarkRoot/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/MrDarkRoot/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "c48e307efe7750d0fb36015c39d50a34675f9579",
+        "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/commits/c48e307efe7750d0fb36015c39d50a34675f9579",
+        "html_url": "https://github.com/MrDarkRoot/WriteLeash/commit/c48e307efe7750d0fb36015c39d50a34675f9579"
+      }
+    ]
+  },
+  {
+    "sha": "4c7f6b2fd919b0c2a84922f15dd1b9bfdaca26fd",
+    "node_id": "C_kwDOUlM2GtoAKDRjN2Y2YjJmZDkxOWIwYzJhODQ5MjJmMTVkZDFiOWJmZGFjYTI2ZmQ",
+    "commit": {
+      "author": {
+        "name": "MrDarkRoot",
+        "email": "effortsmiyuki@gmail.com",
+        "date": "2026-10-08T04:56:36Z"
+      },
+      "committer": {
+        "name": "MrDarkRoot",
+        "email": "effortsmiyuki@gmail.com",
+        "date": "2026-10-08T04:56:36Z"
+      },
+      "message": "chore(i18n): scope inventory to the public manifest and drop generated dump (#210)",
+      "tree": {
+        "sha": "6130b209f614dbf1603d6610b1ac2b98d7154a9c",
+        "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/git/trees/6130b209f614dbf1603d6610b1ac2b98d7154a9c"
+      },
+      "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/git/commits/4c7f6b2fd919b0c2a84922f15dd1b9bfdaca26fd",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/commits/4c7f6b2fd919b0c2a84922f15dd1b9bfdaca26fd",
+    "html_url": "https://github.com/MrDarkRoot/WriteLeash/commit/4c7f6b2fd919b0c2a84922f15dd1b9bfdaca26fd",
+    "comments_url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/commits/4c7f6b2fd919b0c2a84922f15dd1b9bfdaca26fd/comments",
+    "author": {
+      "login": "MrDarkRoot",
+      "id": 119866532,
+      "node_id": "U_kgDOByUEpA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/119866532?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/MrDarkRoot",
+      "html_url": "https://github.com/MrDarkRoot",
+      "followers_url": "https://api.github.com/users/MrDarkRoot/followers",
+      "following_url": "https://api.github.com/users/MrDarkRoot/following{/other_user}",
+      "gists_url": "https://api.github.com/users/MrDarkRoot/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/MrDarkRoot/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/MrDarkRoot/subscriptions",
+      "organizations_url": "https://api.github.com/users/MrDarkRoot/orgs",
+      "repos_url": "https://api.github.com/users/MrDarkRoot/repos",
+      "events_url": "https://api.github.com/users/MrDarkRoot/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/MrDarkRoot/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "MrDarkRoot",
+      "id": 119866532,
+      "node_id": "U_kgDOByUEpA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/119866532?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/MrDarkRoot",
+      "html_url": "https://github.com/MrDarkRoot",
+      "followers_url": "https://api.github.com/users/MrDarkRoot/followers",
+      "following_url": "https://api.github.com/users/MrDarkRoot/following{/other_user}",
+      "gists_url": "https://api.github.com/users/MrDarkRoot/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/MrDarkRoot/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/MrDarkRoot/subscriptions",
+      "organizations_url": "https://api.github.com/users/MrDarkRoot/orgs",
+      "repos_url": "https://api.github.com/users/MrDarkRoot/repos",
+      "events_url": "https://api.github.com/users/MrDarkRoot/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/MrDarkRoot/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "b09fd5f226ea45e711352b8654e3ab3f09d0d1f3",
+        "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/commits/b09fd5f226ea45e711352b8654e3ab3f09d0d1f3",
+        "html_url": "https://github.com/MrDarkRoot/WriteLeash/commit/b09fd5f226ea45e711352b8654e3ab3f09d0d1f3"
+      }
+    ]
+  },
+  {
+    "sha": "079f5dad148a8718586db05b4abc322047908710",
+    "node_id": "C_kwDOUlM2GtoAKDA3OWY1ZGFkMTQ4YTg3MTg1ODZkYjA1YjRhYmMzMjIwNDc5MDg3MTA",
+    "commit": {
+      "author": {
+        "name": "MrDarkRoot",
+        "email": "effortsmiyuki@gmail.com",
+        "date": "2026-10-08T05:18:25Z"
+      },
+      "committer": {
+        "name": "MrDarkRoot",
+        "email": "effortsmiyuki@gmail.com",
+        "date": "2026-10-08T05:18:25Z"
+      },
+      "message": "docs(i18n): record round-3 preparation verification (#210)",
+      "tree": {
+        "sha": "5a3c801c16a1f1e9d5b7e543aa2132ab8f98845a",
+        "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/git/trees/5a3c801c16a1f1e9d5b7e543aa2132ab8f98845a"
+      },
+      "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/git/commits/079f5dad148a8718586db05b4abc322047908710",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/commits/079f5dad148a8718586db05b4abc322047908710",
+    "html_url": "https://github.com/MrDarkRoot/WriteLeash/commit/079f5dad148a8718586db05b4abc322047908710",
+    "comments_url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/commits/079f5dad148a8718586db05b4abc322047908710/comments",
+    "author": {
+      "login": "MrDarkRoot",
+      "id": 119866532,
+      "node_id": "U_kgDOByUEpA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/119866532?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/MrDarkRoot",
+      "html_url": "https://github.com/MrDarkRoot",
+      "followers_url": "https://api.github.com/users/MrDarkRoot/followers",
+      "following_url": "https://api.github.com/users/MrDarkRoot/following{/other_user}",
+      "gists_url": "https://api.github.com/users/MrDarkRoot/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/MrDarkRoot/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/MrDarkRoot/subscriptions",
+      "organizations_url": "https://api.github.com/users/MrDarkRoot/orgs",
+      "repos_url": "https://api.github.com/users/MrDarkRoot/repos",
+      "events_url": "https://api.github.com/users/MrDarkRoot/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/MrDarkRoot/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "MrDarkRoot",
+      "id": 119866532,
+      "node_id": "U_kgDOByUEpA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/119866532?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/MrDarkRoot",
+      "html_url": "https://github.com/MrDarkRoot",
+      "followers_url": "https://api.github.com/users/MrDarkRoot/followers",
+      "following_url": "https://api.github.com/users/MrDarkRoot/following{/other_user}",
+      "gists_url": "https://api.github.com/users/MrDarkRoot/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/MrDarkRoot/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/MrDarkRoot/subscriptions",
+      "organizations_url": "https://api.github.com/users/MrDarkRoot/orgs",
+      "repos_url": "https://api.github.com/users/MrDarkRoot/repos",
+      "events_url": "https://api.github.com/users/MrDarkRoot/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/MrDarkRoot/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "4c7f6b2fd919b0c2a84922f15dd1b9bfdaca26fd",
+        "url": "https://api.github.com/repos/MrDarkRoot/WriteLeash/commits/4c7f6b2fd919b0c2a84922f15dd1b9bfdaca26fd",
+        "html_url": "https://github.com/MrDarkRoot/WriteLeash/commit/4c7f6b2fd919b0c2a84922f15dd1b9bfdaca26fd"
+      }
+    ]
+  }
+]

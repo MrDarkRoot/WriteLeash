@@ -1,0 +1,36 @@
+
+  GitNexus Detect Changes (1.6.12)
+Changes: 5 files, 73 symbols
+Affected processes: 14
+Risk level: high
+
+Changed symbols:
+  Section Issue #204: live progress preparation → docs/review/204/IMPLEMENTATION.md
+  Section 2026-10-08 review fix pass (findings A/B) → docs/review/204/IMPLEMENTATION.md
+  Const path → wordpress/tests/admin/progress-client.cjs
+  Const source → wordpress/tests/admin/progress-client.cjs
+  Const admin → wordpress/tests/admin/progress-client.cjs
+  Function phpConstant → wordpress/tests/admin/progress-client.cjs
+  Class Element → wordpress/tests/admin/progress-client.cjs
+  Method insertBefore → wordpress/tests/admin/progress-client.cjs
+  Method replaceWith → wordpress/tests/admin/progress-client.cjs
+  Function harness → wordpress/tests/admin/progress-client.cjs
+  Const nextLink → wordpress/tests/admin/progress-client.cjs
+  Const paragraph → wordpress/tests/admin/progress-client.cjs
+  Const previous → wordpress/tests/admin/progress-client.cjs
+  Function row → wordpress/tests/admin/progress-client.cjs
+  Function ids → wordpress/tests/admin/progress-client.cjs
+... and 58 more
+
+Affected execution flows:
+  • Handle_approve → Fixture204Plan (4 steps) — changed: hydrate_plan
+  • Handle_export → Read_by_public_id (4 steps) — changed: read_by_public_id
+  • Render_history_table → Authorized (3 steps) — changed: authorized
+  • Handle_export → Fixture204Plan (4 steps) — changed: hydrate_plan
+  • Progress_snapshot → Read_by_public_id (3 steps) — changed: observe, read_by_public_id
+  • Handle_resume → Fixture204Plan (4 steps) — changed: hydrate_plan
+  • Render_job_view → Read_by_public_id (3 steps) — changed: observe, read_by_public_id
+  • Handle_undo → Fixture204Plan (4 steps) — changed: hydrate_plan
+  • Attempt_item → Fixture204Plan (4 steps) — changed: hydrate_plan
+  • Progress_snapshot → Fixture204Plan (3 steps) — changed: hydrate_plan
+... and 4 more

@@ -78,16 +78,24 @@ final class Agent_Jobs_Rest {
 		if ( (int) $grant['actor_id'] !== $parsed['actor_id'] ) {
 			return self::error( 'GRANT_IDENTITY_INVALID', 403 );
 		}
-		$replay = Grant_Repository::has_idempotency( (int) $grant['id'], $parsed['idempotency_key'] );
-		if ( ! $replay ) {
-			$pre = self::pre_accept( $grant, $parsed['grant_version'] );
-			if ( null !== $pre ) {
-				return self::error( $pre['reason'], $pre['status'] );
-			}
-			$actor = get_userdata( $parsed['actor_id'] );
-			if ( ! $actor || ! user_can( $actor, 'manage_woocommerce' ) || ! user_can( $actor, 'edit_products' ) ) {
-				return self::error( 'GRANT_IDENTITY_INVALID', 403 );
-			}
+	try {
+		$replayed = self::replay_stored( $grant, $parsed );
+	} catch ( Grant_Error $error ) {
+		return self::error( $error->reason(), self::status_for( $error->reason() ) );
+	} catch ( \Throwable $error ) {
+		unset( $error );
+		return self::error( 'GRANT_STORE_UNAVAILABLE', 503 );
+	}
+	if ( null !== $replayed ) {
+		$result = $replayed;
+	} else {
+		$pre = self::pre_accept( $grant, $parsed['grant_version'] );
+		if ( null !== $pre ) {
+			return self::error( $pre['reason'], $pre['status'] );
+		}
+		$actor = get_userdata( $parsed['actor_id'] );
+		if ( ! $actor || ! user_can( $actor, 'manage_woocommerce' ) || ! user_can( $actor, 'edit_products' ) ) {
+			return self::error( 'GRANT_IDENTITY_INVALID', 403 );
 		}
 		try {
 			$plan = self::freeze_plan( $grant, $parsed, $context );
@@ -101,6 +109,7 @@ final class Agent_Jobs_Rest {
 			unset( $error );
 			return self::error( 'GRANT_STORE_UNAVAILABLE', 503 );
 		}
+	}
 		$job = $result['job'];
 		if ( Job_State::READY === ( $job['status'] ?? '' ) ) {
 			$queued = Job_Worker::queue_job( (int) $job['id'] );
@@ -219,6 +228,66 @@ final class Agent_Jobs_Rest {
 	}
 
 	/**
+	 * Replay from the stored acceptance before any live planning. The frozen
+	 * plan is the canonical payload evidence: catalog edits after acceptance
+	 * can never block an identical retry. Returns the original accept result
+	 * when the durable key exists and the request matches the frozen plan,
+	 * null when no durable key exists (first submission), and rejects with
+	 * GRANT_IDEMPOTENCY_MISMATCH on a different payload. A transient failure
+	 * to load the row returns null and falls through to accept_plan, whose
+	 * durable replay short-circuit stays authoritative.
+	 *
+	 * @param array<string,mixed> $grant
+	 * @param array<string,mixed> $parsed
+	 * @return array{job:array<string,mixed>,replayed:bool}|null
+	 */
+	private static function replay_stored( array $grant, array $parsed ): ?array {
+		$record = Grant_Repository::load_idempotency( (int) $grant['id'], $parsed['idempotency_key'] );
+		if ( null === $record ) { return null; }
+		$job = Job_Repository::read( (int) $record['job_id'] );
+		if ( ! $job ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+		try { $plan = Job_Repository::hydrate_plan( $job ); }
+		catch ( Job_Error $error ) {
+			unset( $error );
+			throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
+		}
+		if ( ! self::request_matches_frozen( $parsed, $plan ) ) {
+			throw new Grant_Error( 'GRANT_IDEMPOTENCY_MISMATCH' );
+		}
+		return Grant_Repository::accept_plan( $plan, (string) $grant['public_id'], (int) $grant['issuer_id'], $parsed['idempotency_key'] );
+	}
+
+	/**
+	 * Replay equivalence against the frozen plan only: actor, SET field, all
+	 * items CHANGING with the requested absolute target, and the exact
+	 * product ID set. No live product read, no live price math, no grant
+	 * version dependency.
+	 *
+	 * @param array<string,mixed> $parsed
+	 */
+	private static function request_matches_frozen( array $parsed, Change_Plan $plan ): bool {
+		$data = $plan->data();
+		if ( (int) ( $data['actor_id'] ?? 0 ) !== (int) $parsed['actor_id'] ) { return false; }
+		$operation = (array) ( $data['operation'] ?? array() );
+		if ( Price_Operation::SET !== ( $operation['type'] ?? '' ) ) { return false; }
+		try { $field = Price_Operation::assert_field( (string) ( $operation['field'] ?? Price_Operation::FIELD_REGULAR ) ); }
+		catch ( Price_Validation_Error $error ) {
+			unset( $error );
+			return false;
+		}
+		if ( $field !== $parsed['price_field'] ) { return false; }
+		$ids = array();
+		foreach ( (array) ( $data['items'] ?? array() ) as $item ) {
+			if ( 'CHANGING' !== ( $item['result'] ?? '' ) ) { return false; }
+			$planned = (string) ( $item['planned_regular_price'] ?? '' );
+			if ( '' === $planned || ! Price_Decimal::equal( $planned, $parsed['target'] ) ) { return false; }
+			$ids[] = (int) ( $item['product_id'] ?? 0 );
+		}
+		sort( $ids, SORT_NUMERIC );
+		return $ids === $parsed['product_ids'];
+	}
+
+	/**
 	 * Freeze concrete IDs and one absolute SET target. Rejects parent expansion.
 	 *
 	 * @param array<string,mixed> $grant
@@ -249,7 +318,10 @@ final class Agent_Jobs_Rest {
 			throw new Price_Validation_Error( 'store_context_changed_during_planning' );
 		}
 		$operation = new Price_Operation( Price_Operation::SET, $parsed['target'], $parsed['price_field'] );
-		$policy = new Safety_Policy( Free_Support_Contract::MAX_JOB_PRODUCTS, '100000000000', '100000000000', false, '100000000000' );
+		// #299 delegated submission policy (Free_Support_Contract): no human
+		// reviews these jobs before execution, so caps stay at 50% and the
+		// zero target is blocked even though a human Apply form may allow it.
+		$policy = new Safety_Policy( Free_Support_Contract::MAX_JOB_PRODUCTS, Free_Support_Contract::GRANT_MAX_INCREASE_PERCENT, Free_Support_Contract::GRANT_MAX_DECREASE_PERCENT, Free_Support_Contract::GRANT_BLOCK_ZERO, Free_Support_Contract::GRANT_WARNING_THRESHOLD_PERCENT );
 		$plan = Change_Plan::create( self::plan_id( (string) $grant['public_id'], $parsed['idempotency_key'] ), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor_id, $context, $selection, $operation, $policy, $resolved['snapshots'], $resolved['outcome'] );
 		if ( 'PREVIEW' !== ( $plan->data()['status'] ?? '' ) ) {
 			throw new Grant_Error( 'GRANT_SCOPE_DENIED' );

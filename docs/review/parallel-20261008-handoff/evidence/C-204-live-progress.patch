@@ -1,0 +1,820 @@
+diff --git a/.github/ci/path-ownership.json b/.github/ci/path-ownership.json
+index 6e07e9d..b337cb9 100644
+--- a/.github/ci/path-ownership.json
++++ b/.github/ci/path-ownership.json
+@@ -58,7 +58,7 @@
+     }
+   ],
+   "rules": [
+-    {"paths": ["wordpress/writeleash/includes/free/free-selection.js", "wordpress/writeleash/includes/free/free-selection.css"], "gates": ["admin", "acceptance"]},
++    {"paths": ["wordpress/writeleash/includes/free/free-progress.js", "wordpress/writeleash/includes/free/free-selection.js", "wordpress/writeleash/includes/free/free-selection.css"], "gates": ["admin", "acceptance"]},
+     {"paths": ["experiments/mysql_tx_budget/**"], "gates": ["feasibility", "engine", "historical"]},
+     {"paths": ["experiments/native_tx_state/**", "sql/**", "demo/**", "demo.sh", "writeleash", "tests/**", "docker-compose.yml", ".github/ci/assert-security-log.sh"], "gates": ["native"]},
+     {"paths": ["wordpress/tests/free/**"], "gates": ["plan"]},
+diff --git a/docs/review/204/IMPLEMENTATION.md b/docs/review/204/IMPLEMENTATION.md
+new file mode 100644
+index 0000000..0115748
+--- /dev/null
++++ b/docs/review/204/IMPLEMENTATION.md
+@@ -0,0 +1,85 @@
++# Issue #204: live progress preparation
++
++Status: PARTIAL implementation prepared; graph/commit BLOCKED by GitNexus child-process sandbox failure; runtime/browser acceptance NOT_TESTED; PR_FAST FAIL at preserved #170 UI evidence gate. Do not merge this branch on unit evidence.
++
++| Field | Result |
++|---|---|
++| Issue | #204 Refresh running job progress without reloading the page |
++| Base SHA | `c48e307efe7750d0fb36015c39d50a34675f9579` |
++| Branch | `work/204-live-progress` |
++| Head SHA | `c48e307efe7750d0fb36015c39d50a34675f9579` (base remains HEAD; no implementation commit because mandatory graph gate is BLOCKED). Implementation is preserved as staged diff/patch |
++| PR status | Not created; no push, merge, release dispatch, publication or deployment |
++| Support claims | Unchanged; no listing or supported ceilings changed |
++| Scope deviation | None in product scope. The approved new JS asset requires an explicit runtime allowlist/reference audit and manifest/ownership entries |
++
++The authenticated `wp_ajax_writeleash_free_progress` callback (with an explicit no-data 403 denial for expired/anonymous sessions on the nopriv hook) accepts a job-bound nonce and bounded page/filter fields, requires both existing capabilities and actor authorization, and calls only saved plan/job/item/Undo observations. It does not install tables, invoke workers, Resume, live product observation or cache eviction. Missing saved Apply evidence disables actions and polling and reports unavailable evidence. Repository failures produce an unavailable response. Existing mutation handlers remain the authority for any separately clicked action.
++
++The PHP job page retains its ordinary navigation, manual refresh and eligible forms with JavaScript disabled. The small client updates Apply/Undo counters, saved outcome rows, available actions and page availability. Existing current-price cells retain their explicit page-load meaning. A newly appearing filtered row asks for a reload to read its current price; polling never fetches current catalog prices. Focused action controls stay present but disabled until focus leaves; focused outcome details and removed filtered review links retain their node and display an explicit stale-detail message. A disappearing focused Next-page link becomes inaccessible to activation and hides after blur. The polite live status announces changing counters, never the product table. Only one request runs at a time; timeout and visibility cancellation advance a generation fence so a late response cannot overwrite newer observations. Polling stops for inactive/stalled/terminal work, pauses on hidden pages, times out at 15 seconds, backs off to 10/20/40 seconds, and stops after four failures. Session/capability refusal prompts reload/sign-in and preserves the last successful refresh time.
++
++## Acceptance accounting
++
++| Issue/user criterion | Status | Evidence and limit |
++|---|---|---|
++| Real running Apply and Undo advance without page reload with durable counts | NOT_TESTED | Shipped-client deterministic tests and PHP boundary doubles PASS. Added real-Woo worker/count fixture, but Docker access unavailable; no real browser advancement claim |
++| Conflict/failure/uncertain/pending/unchanged remain distinct; stalled is honest | PARTIAL | Endpoint uses existing saved labels and separate durable counters; PHP double tests cover stalled/terminal/missing/error; JS tests retain attention and uncertainty. Actual Woo acceptance NOT_TESTED |
++| Authenticated/capability/actor refusal; no product/job/Undo writes, worker, schema or Resume | PARTIAL | PHP boundary unit negative controls PASS. Dedicated real-Woo fixture audits every poll SQL query for DML/DDL/DCL and Woo product reads, but execution NOT_TESTED; real AJAX transport journey NOT_TESTED |
++| Out-of-order observations cannot regress; session/error display actionable | PARTIAL | Actual shipped JS executed against deterministic timeout/hidden/late-response/403/network boundaries PASS; browser/server session expiry NOT_TESTED |
++| Keyboard focus and concise accessible announcements | PARTIAL | Deterministic focused action, focused outcome, disappearing pager and repeated-announcement tests PASS. Browser keyboard and accessibility tree/axe NOT_TESTED |
++| Existing Admin/auth/no-JS/manual refresh usable | NOT_TESTED | Manual refresh and native forms preserved; Admin source audit PASS. Focused real-Woo fixture asserts terminal form absence and manual/no-JS text but execution NOT_TESTED; existing full Admin runtime NOT_TESTED |
++| No schema migration, scheduler, reapplication, mutation rewrite or broad matrix | PASS (source scope) | Only Admin view/read endpoint, isolated client, focused tests and package registration changed |
++
++## Changed files
++
++- `.github/ci/path-ownership.json`
++- `docs/review/204/IMPLEMENTATION.md`
++- `wordpress/release/PUBLIC-PAYLOAD.md`
++- `wordpress/release/writeleash-distribution-files.txt`
++- `wordpress/tests/admin/in-container.sh`
++- `wordpress/tests/admin/run.sh`
++- `wordpress/tests/admin/progress-client.cjs`
++- `wordpress/tests/admin/progress-unit.php`
++- `wordpress/tests/admin/progress-integration.php`
++- `wordpress/tests/release/public-runtime-audit.php`
++- `wordpress/writeleash/includes/free/class-free-admin.php`
++- `wordpress/writeleash/includes/free/free-progress.js`
++
++## Local verification
++
++Commands are run from this branch checkout. PASS below is restricted to the command's actual coverage.
++
++| Command | Actual outcome |
++|---|---|
++| `node wordpress/tests/admin/progress-client.cjs` | PASS; shipped client executed with deterministic DOM/fetch/timers; not a browser or Woo runtime test |
++| `php wordpress/tests/admin/progress-unit.php` | PASS; real endpoint function with repository doubles; not Woo runtime correctness |
++| `php wordpress/tests/admin/admin-audit.php wordpress/writeleash` | PASS existing Admin authority/source audit |
++| `php wordpress/tests/release/package-preflight.php wordpress/writeleash wordpress/release/writeleash-distribution-files.txt` | PASS exact explicit public closure, 43 entries |
++| `php wordpress/tests/release/inventory-audit.php wordpress/writeleash wordpress/release/PUBLIC-PAYLOAD.md wordpress/release/writeleash-distribution-files.txt` | PASS existing PHP classification; new JS documented |
++| `php wordpress/tests/release/public-audit-cases.php wordpress/writeleash wordpress/release/writeleash-distribution-files.txt` | PASS existing positive/negative closure tests |
++| `python3 wordpress/release/test-artifact.py` | PASS 10 artifact tests; no release publication |
++| `python3 .github/ci/ownership.py --audit` | PASS existing 59 PHP/13-owner policy, no weakened rules |
++| `python3 .github/ci/ownership.py <changed paths>` | PASS selected CODE_INTEGRATION `admin`; release ownership `acceptance,admin`, acceptance deferred by existing cost policy |
++| `python3 .github/ci/dependency-audit.py` | PASS |
++| `php wordpress/tests/release/readme-validate.php wordpress/writeleash` | PASS unchanged claims/listing |
++| `php wordpress/tests/release/historical-shim-cases.php wordpress/writeleash` | PASS immutable historical shim controls |
++| `php -l` changed PHP; `node --check` changed JS; `bash -n`/`sh -n` changed scripts; `git diff --check` | PASS |
++| `bash .github/ci/pr-fast.sh` | FAIL: `#122 assets: #170 UI source differs from reviewed capture` after Admin source changes. Original capture/proof hashes and rejection are preserved |
++| `docker info --format '{{.ServerVersion}}'` | BLOCKED: permission denied connecting to `/var/run/docker.sock`; no bypass attempted |
++| `bash wordpress/tests/admin/run.sh` / real-Woo `progress-integration.php` | NOT_TESTED runtime (Docker boundary); added fixture runs in existing two-engine/default/Redis Admin suite; no new matrix |
++| Real-browser keyboard, live progress, expired AJAX session and accessibility | NOT_TESTED; unit DOM does not establish browser behavior |
++| GitNexus final `detect-changes --scope all --limit 10000 --repo WriteLeash` | BLOCKED: `Error: Git diff failed: spawnSync git EPERM`; CLI exit 0 does not change the reported failure |
++| GitNexus staged graph gate | BLOCKED by the same child-process boundary; no commit permitted |
++| Exact-SHA RELEASE_FULL | NOT_TESTED; not separately authorized, not dispatched |
++
++Failing PR_FAST evidence is retained at `/tmp/writeleash-approved-20261008/evidence/C-pr-fast-first.log`; Docker evidence at `C-docker.log` in the same task-owned evidence directory. Prior passing baseline PR_FAST does not cover this changed head.
++
++## Safety and coordination
++
++Frozen selection, exact Preview/approval, absolute planned prices, supported limits and worker/journal/Resume/Undo execution paths are unchanged. History remains repository-owned. The progress endpoint performs no catalog read or cache invalidation. Poll reads are separate read-only repository observations, so a concurrent worker can advance between queries; the view is informational and does not grant mutation authority. A later clicked Resume/Undo still revalidates through existing protected handlers. Missing saved evidence never enables actions.
++
++The only shared production file is `class-free-admin.php`: this branch owns boot/assets/progress methods, job view and Undo view hooks; Agent A owns selection methods/form and Agent B owns `product_observation`. Independent clones prevent concurrent uncommitted edits. Resolve integration by preserving each narrow method hunk and rerunning the selected Admin tests; do not overwrite another agent or automatically merge.
++
++GitNexus was rebuilt for this clone after copied storage was identified as foreign. Fresh schema-4 runner status and empty incomplete reasons were verified before graph-dependent work. Initial `render_undo_section` impact was HIGH (direct `render_job_view`, then render/preview flows) and reported before edits; boot/job-view/client changes were LOW. `assets` and public-runtime audit function returned UNKNOWN, so hook/callsite text confirmation was required and recorded. Graph collection has documented process-budget omissions; absence of a process is not treated as evidence of no effect. Final graph change receipts are retained separately in the task evidence directory.
++
++Remaining blockers: restore a permitted GitNexus child-process environment and pass complete all/staged graph change analysis before committing; recapture and review legitimate #170 UI evidence through the repository's approved process without weakening its hash gate; run the owning Admin DB/cache suite including the new real-Woo poll audit; run real browser Apply/Undo/keyboard/accessibility/session journeys; obtain founder approval before the next repository-changing integration step. No issue closure or merge recommendation on present evidence.
++
++No sandbox bypass or checker patch was attempted. Final graph detector error is retained at `/tmp/writeleash-approved-20261008/evidence/C-detect-all.json` and staged receipt at `C-detect-staged.json`. The task-owned `C-204-live-progress.patch` preserves all staged implementation/test/document bytes for review. No code commit was created. Focused outcome cells intentionally retain their node and may need manual refresh after terminal polling stops; real-browser validation remains required.
+diff --git a/wordpress/release/PUBLIC-PAYLOAD.md b/wordpress/release/PUBLIC-PAYLOAD.md
+index 392dae7..c354b16 100644
+--- a/wordpress/release/PUBLIC-PAYLOAD.md
++++ b/wordpress/release/PUBLIC-PAYLOAD.md
+@@ -171,3 +171,5 @@ Metadata mismatch/full public copy belong to #121. No ZIP/SVN or publication.
+ must be retained and rerun at the same unchanged SHA.
+ 
+ The public selection assets are `includes/free/free-selection.js`, a scoped Woo selectWoo progressive enhancement, and `includes/free/free-selection.css`, confined to the WriteLeash wrapper for form grouping, spacing, table scrolling, long-name wrapping and keyboard focus. `includes/free/admin-logo.png` is the supplied WriteLeash logo displayed beside the Admin heading. Native selection works without JavaScript; no bundled libraries/build output are shipped.
++
++| includes/free/free-progress.js | Read-only saved Apply and Undo polling client (#204) | PUBLIC_FREE_REQUIRED |
+diff --git a/wordpress/release/writeleash-distribution-files.txt b/wordpress/release/writeleash-distribution-files.txt
+index d5d67b9..3f8c8ef 100644
+--- a/wordpress/release/writeleash-distribution-files.txt
++++ b/wordpress/release/writeleash-distribution-files.txt
+@@ -39,6 +39,7 @@ includes/free/class-undo-transaction-fence.php
+ includes/free/class-undo-worker.php
+ includes/free/class-woo-price-mutator.php
+ includes/free/class-woo-undo-mutator.php
++includes/free/free-progress.js
+ includes/free/free-selection.css
+ includes/free/free-selection.js
+ readme.txt
+diff --git a/wordpress/tests/admin/in-container.sh b/wordpress/tests/admin/in-container.sh
+index 5d8cef0..0ea7033 100644
+--- a/wordpress/tests/admin/in-container.sh
++++ b/wordpress/tests/admin/in-container.sh
+@@ -45,6 +45,7 @@ for host in mysql mariadb; do
+     fi
+     echo "#111 engine=$host cache=$cache"
+     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/integration.php
++    WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/progress-integration.php
+     sh /opt/tests/jobs/unicode-run.sh "$host" "$cache" /opt/wp-core /opt/woo-zips
+     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/sql-audit.php
+     WL111_CACHE="$cache" WL111_BASE_URL=http://127.0.0.1:8080 WL111_ADMIN_PASSWORD=disposable_admin_password wp --path="$site" eval-file /opt/tests/admin/browser-e2e.php
+diff --git a/wordpress/tests/admin/progress-client.cjs b/wordpress/tests/admin/progress-client.cjs
+new file mode 100644
+index 0000000..4279066
+--- /dev/null
++++ b/wordpress/tests/admin/progress-client.cjs
+@@ -0,0 +1,93 @@
++/* Executes the shipped client with deterministic DOM/transport/timer boundaries.
++ * This is client logic coverage, not a WooCommerce or accessibility browser pass. */
++'use strict';
++const assert = require('node:assert/strict');
++const vm = require('node:vm');
++const fs = require('node:fs');
++const source = fs.readFileSync(require('node:path').join(__dirname, '../../writeleash/includes/free/free-progress.js'), 'utf8');
++class Element {
++    constructor(tag = 'P') { this.tagName = tag.toUpperCase(); this.children = []; this.textContent = ''; this.attrs = {}; this.events = {}; this.hidden = false; }
++    appendChild(child) { this.children.push(child); child.parent = this; return child; }
++    setAttribute(name, value) { this.attrs[name] = value; }
++    getAttribute(name) { return this.attrs[name] ?? null; }
++    contains(child) { return this === child || this.children.some(x => x.contains(child)); }
++    addEventListener(name, cb) { (this.events[name] ||= []).push(cb); }
++    removeEventListener(name, cb) { this.events[name] = (this.events[name] || []).filter(x => x !== cb); }
++    dispatch(name, event) { (this.events[name] || []).slice().forEach(cb => cb(event)); }
++    querySelector(selector) { return selector === 'button' ? this.children.flatMap(x => x.children).find(x => x.tagName === 'BUTTON') || this.children.find(x => x.tagName === 'BUTTON') || null : null; }
++    querySelectorAll(selector) { return this.children.filter(tr => selector.includes(':not') ? !tr.attrs['data-product-id'] : tr.attrs['data-product-id']); }
++    remove() { this.parent.children = this.parent.children.filter(x => x !== this); }
++}
++function harness(withMount = true) {
++    const root = new Element('DIV'), body = new Element('TBODY');
++    const nodes = {};
++    ['connection', 'announcement', 'label', 'summary', 'notice', 'undo-label', 'undo-summary', 'undo-notice', 'resume', 'undo'].forEach(name => nodes[`[data-progress-${name}]`] = new Element());
++    root.attrs = {'data-job': 'job-204', 'data-nonce': 'nonce-204', 'data-offset': '0', 'data-filter': '', 'data-endpoint': '/ajax', 'data-action-url': '/post'};
++    root.querySelector = selector => selector === '[data-writeleash-results] tbody' ? body : nodes[selector] || null;
++    root.querySelectorAll = () => [];
++    const document = new Element(); document.hidden = false; document.activeElement = new Element('A');
++    document.querySelector = () => withMount ? root : null; document.createElement = tag => new Element(tag);
++    const requests = [], timers = new Map(); let next = 0;
++    const pager = new Element('DIV'), paragraph = new Element('P'), previous = new Element('A'), nextLink = new Element('A');
++    paragraph.appendChild(previous); paragraph.appendChild(nextLink);
++    Object.defineProperty(paragraph, 'lastElementChild', {get: () => paragraph.children.at(-1)}); pager.querySelector = () => paragraph; nodes['[data-progress-pager]'] = pager;
++    const window = new Element(); window.URLSearchParams = URLSearchParams; window.AbortController = AbortController;
++    window.setTimeout = (fn, delay) => { timers.set(++next, {fn, delay}); return next; }; window.clearTimeout = id => timers.delete(id);
++    window.fetch = (url, opts) => new Promise((resolve, reject) => requests.push({url, opts, resolve, reject}));
++    vm.runInNewContext(source, {window, document, Date, Error, Array, String, Math});
++    return {nodes, root, body, document, window, requests, timers, nextLink,
++        timer(delay) { const entry = [...timers.entries()].find(([, x]) => x.delay === delay); assert(entry, `timer ${delay}`); timers.delete(entry[0]); entry[1].fn(); }};
++}
++const flush = async () => { for (let n = 0; n < 8; n++) { await Promise.resolve(); } };
++function snapshot(overrides = {}) {
++    return {status: 'OK', label: 'In progress', summary: '1 changed · 2 remaining', notice: '', undo_label: 'Undo unavailable', undo_summary: '0 restored', undo_notice: '', next_url: '/next', resume_available: true, undo_available: false, resume_nonce: 'bound-resume', undo_nonce: null, undo_button: 'Continue Undo', poll: true, rows: [{id: 4, name: '<script>literal</script>', expected: '10 USD', planned: '20 USD', apply: 'Changed', undo: 'Not started', apply_attention: false, undo_attention: false}], ...overrides};
++}
++async function respond(h, index, data) { h.requests[index].resolve({ok: true, status: 200, json: async () => ({success: true, data})}); await flush(); }
++(async () => {
++    let h = harness(); assert.equal(h.requests.length, 1); assert.equal(h.requests[0].opts.method, 'POST');
++    assert.equal(h.requests[0].opts.body.get('action'), 'writeleash_free_progress');
++    assert.equal(h.requests[0].opts.credentials, 'same-origin'); assert.equal(h.requests[0].opts.cache, 'no-store');
++    await respond(h, 0, snapshot());
++    assert.equal(h.nodes['[data-progress-summary]'].textContent, '1 changed · 2 remaining');
++    assert.equal(h.body.children[0].children[0].textContent, '<script>literal</script>');
++    assert.equal(h.body.children[0].children[2].textContent, 'Reload to read the current price');
++    assert.match(h.nodes['[data-progress-connection]'].textContent, /Last successful refresh/);
++    const button = h.nodes['[data-progress-resume]'].querySelector('button');
++    assert(button); assert.equal(button.type, 'submit');
++    const form = h.nodes['[data-progress-resume]'].children[0]; assert.equal(form.action, '/post');
++    assert.equal(form.children[2].value, 'bound-resume');
++    h.document.activeElement = button;
++    h.timer(5000); await respond(h, 1, snapshot({label: 'Finished with products needing attention', summary: '1 changed · 1 conflict · 1 uncertain', resume_available: false, undo_available: true, undo_nonce: 'bound-undo', poll: false, rows: [{...snapshot().rows[0], apply: 'Outcome uncertain; needs checking', apply_attention: true}]}));
++    assert.equal(h.document.activeElement, button); assert.equal(button.disabled, true); assert.equal(h.nodes['[data-progress-resume]'].hidden, false);
++    h.document.activeElement = new Element('A'); h.nodes['[data-progress-resume]'].dispatch('focusout'); assert.equal(h.nodes['[data-progress-resume]'].hidden, true);
++    assert.equal(h.nodes['[data-progress-undo]'].querySelector('button').textContent, 'Continue Undo');
++    assert.equal(h.body.children[0].children[4].className, 'writeleash-attention'); assert.equal([...h.timers.values()].filter(x => x.delay === 5000).length, 0);
++    assert.match(h.nodes['[data-progress-announcement]'].textContent, /1 uncertain/);
++    h = harness(); await respond(h, 0, snapshot());
++    const cell = h.body.children[0].children[4], focusedSummary = new Element('SUMMARY'); cell.appendChild(focusedSummary); h.document.activeElement = focusedSummary;
++    h.timer(5000); await respond(h, 1, snapshot({rows: [{...snapshot().rows[0], apply: 'New saved outcome'}]}));
++    assert.equal(h.document.activeElement, focusedSummary); assert.equal(cell.textContent, 'Changed'); assert.match(h.nodes['[data-progress-connection]'].textContent, /Leave the focused outcome/);
++    h.document.activeElement = h.nextLink; h.timer(5000); await respond(h, 2, snapshot({next_url: null}));
++    assert.equal(cell.textContent, 'Changed'); assert.equal(h.document.activeElement, h.nextLink); assert.equal(h.nextLink.hidden, false); assert.equal(h.nextLink.getAttribute('aria-disabled'), 'true');
++    let blocked = false; h.nextLink.dispatch('click', {preventDefault() { blocked = true; }}); assert.equal(blocked, true);
++    h.document.activeElement = new Element('A'); h.nextLink.dispatch('blur'); assert.equal(h.nextLink.hidden, true);
++    h = harness(); let announcements = 0, announced = ''; Object.defineProperty(h.nodes['[data-progress-announcement]'], 'textContent', {get: () => announced, set: value => {announcements++; announced = value;}});
++    await respond(h, 0, snapshot()); h.timer(5000); await respond(h, 1, snapshot()); assert.equal(announcements, 1, 'unchanged counters not announced repeatedly');
++    h = harness(); const support = new Element('DETAILS'), supportFocus = new Element('SUMMARY'); support.appendChild(supportFocus); h.root.querySelectorAll = () => [support]; h.document.activeElement = supportFocus;
++    await respond(h, 0, snapshot()); assert.equal(support.hidden, false); assert.equal(h.document.activeElement, supportFocus);
++    h.document.activeElement = new Element('A'); support.dispatch('focusout'); assert.equal(support.hidden, true);
++    h = harness(); h.document.hidden = true; h.document.dispatch('visibilitychange'); assert.equal(h.requests[0].opts.signal.aborted, true);
++    await respond(h, 0, snapshot({label: 'Old hidden observation'})); assert.equal(h.nodes['[data-progress-label]'].textContent, '');
++    h.document.hidden = false; h.document.dispatch('visibilitychange'); assert.equal(h.requests.length, 2);
++    await respond(h, 1, snapshot({label: 'Undo in progress', undo_summary: '1 restored · 2 remaining'})); assert.equal(h.nodes['[data-progress-undo-summary]'].textContent, '1 restored · 2 remaining');
++    h.document.hidden = true; h.document.dispatch('visibilitychange'); assert.equal([...h.timers.values()].length, 0);
++    h = harness(); h.timer(15000); assert.equal(h.requests[0].opts.signal.aborted, true); h.timer(10000);
++    await respond(h, 1, snapshot({label: 'New observation'})); await respond(h, 0, snapshot({label: 'Old delayed observation'})); assert.equal(h.nodes['[data-progress-label]'].textContent, 'New observation');
++    h = harness(); h.requests[0].resolve({ok: false, status: 403}); await flush(); assert.match(h.nodes['[data-progress-connection]'].textContent, /expired.*Reload and sign in/); assert.equal(h.timers.size, 0);
++    h = harness();
++    for (let i = 0; i < 4; i++) { h.requests[i].reject(new Error('network failed')); await flush(); if (i < 3) { h.timer([10000, 20000, 40000][i]); } }
++    assert.match(h.nodes['[data-progress-connection]'].textContent, /stopped after repeated errors/); assert.equal(h.timers.size, 0);
++    h = harness(); h.document.activeElement = new Element('A'); h.window.dispatch('pagehide'); await respond(h, 0, snapshot()); assert.equal(h.nodes['[data-progress-label]'].textContent, '');
++    assert.equal(harness(false).requests.length, 0);
++    console.log('#204 shipped client: transport, saved counters/rows, Apply/Undo, focus, text safety, hidden/terminal stop, timeout/out-of-order, session/error backoff PASS');
++})().catch(error => { console.error(error); process.exitCode = 1; });
+diff --git a/wordpress/tests/admin/progress-integration.php b/wordpress/tests/admin/progress-integration.php
+new file mode 100644
+index 0000000..6964de6
+--- /dev/null
++++ b/wordpress/tests/admin/progress-integration.php
+@@ -0,0 +1,76 @@
++<?php
++// #204 focused real WordPress/WooCommerce fixture. Run on both existing DB/cache profiles.
++use WriteLeash\Free_Admin;
++use WriteLeash\Job_Repository;
++use WriteLeash\Job_Schema;
++use WriteLeash\Job_Worker;
++use WriteLeash\Undo_Repository;
++use WriteLeash\Undo_Worker;
++
++function wl204_assert( bool $truth, string $label ): void { if ( ! $truth ) { throw new RuntimeException( '#204 ' . $label ); } }
++function wl204_post( array $job ): array {
++	return array( 'job' => $job['public_id'], '_wpnonce' => wp_create_nonce( Free_Admin::ACTION_PROGRESS . '_' . $job['public_id'] ), 'offset' => '0', 'filter' => '' );
++}
++function wl204_read( array $post ): array {
++	$queries = array(); $reads = array();
++	$trace = static function ( $sql ) use ( &$queries ) { $queries[] = $sql; return $sql; };
++	$product = static function ( $id ) use ( &$reads ) { $reads[] = $id; };
++	add_filter( 'query', $trace ); add_action( 'woocommerce_product_read', $product );
++	try { $result = Free_Admin::progress_snapshot( $post, 'POST' ); }
++	finally { remove_filter( 'query', $trace ); remove_action( 'woocommerce_product_read', $product ); }
++	foreach ( $queries as $sql ) { wl204_assert( ! preg_match( '/^\s*(INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE)\b/i', $sql ), 'poll executes no DML/DDL/DCL: ' . $sql ); }
++	wl204_assert( array() === $reads, 'poll reads no live Woo products' );
++	return $result;
++}
++wp_set_current_user( 1 );
++$actor = wp_insert_user( array( 'user_login' => 'wl204-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );
++$other = wp_insert_user( array( 'user_login' => 'wl204-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );
++wp_set_current_user( $actor );
++$ids = array();
++foreach ( array( '10.00', '11.00', '12.00' ) as $price ) {
++	$product = new WC_Product_Simple(); $product->set_name( 'WL204 ' . $price ); $product->set_status( 'publish' ); $product->set_regular_price( $price ); $product->save(); $ids[] = $product->get_id();
++}
++$preview = Free_Admin::process_preview( array( '_wpnonce' => wp_create_nonce( Free_Admin::ACTION_PREVIEW ), 'selector' => 'ids', 'ids' => implode( ',', $ids ), 'operation' => 'SET', 'price_field' => 'regular_price', 'amount' => '15.00', 'max_products' => '100', 'max_increase' => '100', 'max_decrease' => '100', 'warning_threshold' => '100' ), 'POST' );
++wl204_assert( 'OK' === $preview['status'], 'real preview accepted' );
++$job = Job_Repository::read_by_public_id( $preview['public_id'] );
++$post = wl204_post( $job );
++wl204_assert( 'OK' === wl204_read( $post )['status'], 'owner can read saved preview without mutation' );
++wl204_assert( 'FORBIDDEN' === Free_Admin::progress_snapshot( $post, 'GET' )['status'], 'GET refused' );
++foreach ( array( array( '_wpnonce' => 'bad' ), array( 'offset' => '100001' ), array( 'offset' => '-1' ), array( 'filter' => 'anything' ) ) as $bad ) { wl204_assert( 'FORBIDDEN' === wl204_read( array_merge( $post, $bad ) )['status'], 'bad nonce or unbounded query refused' ); }
++wp_set_current_user( $other );
++wl204_assert( 'FORBIDDEN' === wl204_read( wl204_post( $job ) )['status'], 'cross-actor refused with valid own nonce' );
++wp_set_current_user( 0 ); wl204_assert( 'FORBIDDEN' === wl204_read( $post )['status'], 'anonymous refused' );
++wp_set_current_user( $actor );
++$user = wp_get_current_user(); $user->add_cap( 'manage_woocommerce', false );
++wl204_assert( 'FORBIDDEN' === wl204_read( $post )['status'], 'revoked capability refused' ); $user->remove_cap( 'manage_woocommerce' );
++wl204_assert( 'OK' === Free_Admin::process_approve( array( 'job' => $job['public_id'], '_wpnonce' => wp_create_nonce( Free_Admin::ACTION_APPROVE . '_' . $job['plan_id'] ) ), 'POST' )['status'], 'exact approval accepted' );
++$before = wl204_read( wl204_post( $job ) );
++Job_Worker::run( (int) $job['id'], array( 'max_items' => 1, 'budget_seconds' => 20 ), true );
++$partial = wl204_read( wl204_post( $job ) );
++wl204_assert( $partial['counts']['applied'] > $before['counts']['applied'] && $partial['counts']['pending'] > 0, 'Apply advances from real saved worker outcomes' );
++wl204_assert( $partial['counts'] === Job_Repository::counts( (int) $job['id'] ), 'polled Apply counters equal durable rows' );
++// A newer supported edit is never described as success.
++$product = wc_get_product( $ids[2] ); $product->set_regular_price( '99.00' ); $product->save();
++for ( $n = 0; $n < 5; ++$n ) { Job_Worker::run( (int) $job['id'], array( 'max_items' => 3, 'budget_seconds' => 20 ), true ); }
++$terminal = wl204_read( wl204_post( $job ) );
++wl204_assert( 1 === $terminal['counts']['conflict'] && ! $terminal['poll'] && ! $terminal['resume_available'], 'partial terminal conflict remains distinct and stops polling' );
++ob_start(); Free_Admin::render_view( 'job', $job['public_id'], 0 ); $html = ob_get_clean();
++wl204_assert( str_contains( $html, 'Refresh saved progress' ) && str_contains( $html, 'Automatic updates require JavaScript' ), 'manual/no-JS refresh visible' );
++wl204_assert( ! str_contains( $html, 'value="' . Free_Admin::ACTION_RESUME . '"' ), 'terminal no-JS view has no Resume form' );
++$started = Undo_Repository::initiate( (int) $job['id'], $actor );
++$operation = Undo_Repository::read_operation_by_job( (int) $job['id'] );
++$undo_before = wl204_read( wl204_post( $job ) );
++Undo_Worker::run( (int) $operation['id'], array( 'max_items' => 1, 'budget_seconds' => 20 ), true );
++$undo_partial = wl204_read( wl204_post( $job ) );
++wl204_assert( $undo_partial['undo_counts']['undone'] > $undo_before['undo_counts']['undone'], 'Undo advances from real saved outcomes' );
++wl204_assert( $undo_partial['poll'], 'unfinished Undo continues polling after terminal Apply' );
++for ( $n = 0; $n < 5; ++$n ) { Undo_Worker::run( (int) $operation['id'], array( 'max_items' => 3, 'budget_seconds' => 20 ), true ); }
++$undo_terminal = wl204_read( wl204_post( $job ) ); wl204_assert( ! $undo_terminal['poll'] && ! $undo_terminal['undo_available'], 'terminal Undo stops polling and hides action' );
++// Missing item evidence must fail visibly without certifying successful completion.
++global $wpdb;
++$table = Job_Schema::items_table( $wpdb );
++$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE job_id=%d AND product_id=%d', $table, (int) $job['id'], $ids[0] ) );
++$missing = wl204_read( wl204_post( $job ) );
++wl204_assert( 'OK' === $missing['status'] && str_contains( $missing['label'], 'unavailable' ) && ! $missing['poll'] && ! $missing['resume_available'] && ! $missing['undo_available'], 'missing saved evidence never certifies success or actions' );
++wp_set_current_user( 1 );
++echo '#204 real Woo persisted Apply/Undo, actor/capability/session/nonce bounds, read-only SQL/product-read audit, conflict/terminal, no-JS and missing evidence PASS (' . ( getenv( 'WL111_CACHE' ) ?: 'default' ) . ")\n";
+diff --git a/wordpress/tests/admin/progress-unit.php b/wordpress/tests/admin/progress-unit.php
+new file mode 100644
+index 0000000..fa210a3
+--- /dev/null
++++ b/wordpress/tests/admin/progress-unit.php
+@@ -0,0 +1,78 @@
++<?php
++// #204 boundary unit checks. Repository doubles do not establish Woo runtime correctness.
++namespace {
++	define( 'ABSPATH', __DIR__ );
++	$GLOBALS['wl204_actor'] = 7; $GLOBALS['wl204_capable'] = true;
++	function add_action( $hook, $callback, $priority = 10 ) { $GLOBALS['wl204_hooks'][$hook] = $callback; }
++	function nocache_headers() {}
++	function wp_send_json_error( $data, $status ) { $GLOBALS['wl204_http_error'] = array( $data, $status ); throw new RuntimeException( 'Unit transport exit' ); }
++	function get_current_user_id() { return $GLOBALS['wl204_actor']; }
++	function current_user_can( $cap ) { return $GLOBALS['wl204_capable']; }
++	function sanitize_text_field( $value ) { return $value; }
++	function wp_unslash( $value ) { return $value; }
++	function wp_verify_nonce( $nonce, $action ) { return $nonce === 'nonce:' . $action; }
++	function wp_create_nonce( $action ) { return 'nonce:' . $action; }
++	function admin_url( $path ) { return '/wp-admin/' . $path; }
++	function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
++	function wc_get_price_thousand_separator() { return ','; }
++	function wc_get_price_decimal_separator() { return '.'; }
++	function get_woocommerce_currency_symbol( $currency ) { return '$'; }
++	function get_woocommerce_price_format() { return '%1$s%2$s'; }
++	function user_can( $id, $cap ) { return false; }
++}
++namespace WriteLeash {
++	class Job_Schema { public static function ready( $db ) { return true; } }
++	class Fixture204Plan {
++		public function summary() { return array( 'selected' => 2 ); }
++		public function price_field() { return 'regular_price'; }
++		public function data() { return array( 'store' => array( 'currency' => 'USD', 'price_decimals' => 2 ), 'items' => array_map( static fn( $id ) => array( 'product_id' => $id, 'snapshot' => array( 'name' => '<script>literal</script>', 'regular_price' => '10.00' ) ), array( 11, 12 ) ) ); }
++	}
++	class Job_Repository {
++		public const PUBLIC_ID_REGEX = '/\Ajob204\z/D';
++		public static $counts = array( 'planned' => 2, 'pending' => 1, 'applying' => 0, 'applied' => 1, 'unchanged' => 0, 'conflict' => 0, 'failed' => 0, 'needs_review' => 0, 'unsupported' => 0 );
++		public static $state = 'RUNNING', $stalled = false, $reads = 0, $throws = false;
++		public static function read_by_public_id( $id ) { ++self::$reads; return array( 'id' => 4, 'public_id' => 'job204', 'creator_id' => 7, 'approver_id' => 7, 'status' => self::$state, 'applied' => 1 ); }
++		public static function observe( $id ) { if ( self::$throws ) { throw new \RuntimeException( 'offline' ); } return array( 'job' => self::read_by_public_id( 'job204' ), 'counts' => self::$counts, 'effective_status' => self::$stalled ? 'PAUSED' : self::$state, 'effective_reason' => 'LEASE_RECOVERY', 'stalled' => self::$stalled ); }
++		public static function hydrate_plan( $job ) { return new Fixture204Plan(); }
++	}
++	class Undo_Repository {
++		public const MAX_EVIDENCE_ROWS = 10000;
++		public static $state = null, $stalled = false;
++		public static function authorized( $job, $id ) { return 7 === $id; }
++		public static function history_job( $id ) { return array( 'undo' => array( 'operation_id' => self::$state ? 3 : null, 'operation_status' => self::$state, 'operation_reason' => null, 'undone' => 0, 'pending' => 0, 'conflict' => 0, 'failed' => 0, 'applying' => 0, 'needs_review' => 0 ), 'undo_eligible' => 'COMPLETED' === Job_Repository::$state, 'undo_expires_at' => null ); }
++		public static function observe( $id ) { return array( 'counts' => array( 'undone' => 1, 'pending' => 1, 'conflict' => 0, 'failed' => 0, 'applying' => 0, 'needs_review' => 0 ), 'effective_status' => self::$stalled ? 'UNDO_PAUSED' : self::$state, 'stalled' => self::$stalled ); }
++		public static function history_items( $id, $apply, $undo, $offset, $limit ) {
++			if ( 50 !== $limit ) { throw new \RuntimeException( 'Unbounded page' ); }
++			return array( 'items' => array( array( 'product_id' => 11, 'expected_price' => '10.00', 'planned_price' => '15.00', 'apply_state' => 'CONFLICT', 'apply_reason' => null, 'undo_state' => null, 'undo_reason' => null ) ), 'next_offset' => null );
++		}
++	}
++}
++namespace {
++	foreach ( array( 'free-support-contract', 'price-decimal', 'price-operation', 'job-state', 'undo-state', 'free-admin' ) as $file ) { require __DIR__ . '/../../writeleash/includes/free/class-' . $file . '.php'; }
++	use WriteLeash\Free_Admin as Admin;
++	use WriteLeash\Job_Repository as Jobs;
++	use WriteLeash\Undo_Repository as Undo;
++	function check204( $actual, $expected, $label ) { if ( $actual !== $expected ) { throw new RuntimeException( $label . ': ' . json_encode( $actual ) ); } }
++	Admin::boot(); check204( $GLOBALS['wl204_hooks']['wp_ajax_writeleash_free_progress'], array( Admin::class, 'handle_progress' ), 'authenticated registration' );
++	check204( $GLOBALS['wl204_hooks']['wp_ajax_nopriv_writeleash_free_progress'], array( Admin::class, 'handle_progress' ), 'expired-session denial registration' );
++	$GLOBALS['wl204_actor'] = 0; try { Admin::handle_progress(); } catch ( RuntimeException $error ) {}
++	check204( $GLOBALS['wl204_http_error'], array( array( 'reason' => 'progress_unavailable' ), 403 ), 'expired session denial exposes no job facts' ); check204( Jobs::$reads, 0, 'denial reads no repository'); $GLOBALS['wl204_actor'] = 7;
++	$post = array( 'job' => 'job204', '_wpnonce' => wp_create_nonce( Admin::ACTION_PROGRESS . '_job204' ), 'offset' => '0', 'filter' => '' );
++	foreach ( array( array( '_wpnonce' => 'wrong' ), array( 'offset' => '-1' ), array( 'offset' => '10001' ), array( 'offset' => array() ), array( 'filter' => 'bad' ), array( 'job' => 'bad' ) ) as $bad ) { check204( Admin::progress_snapshot( array_merge( $post, $bad ), 'POST' )['status'], 'FORBIDDEN', 'typed boundary' ); }
++	check204( Jobs::$reads, 0, 'invalid inputs read no repository' );
++	check204( Admin::progress_snapshot( $post, 'GET' )['status'], 'FORBIDDEN', 'POST read only' );
++	$GLOBALS['wl204_actor'] = 0; check204( Admin::progress_snapshot( $post, 'POST' )['status'], 'FORBIDDEN', 'anonymous' );
++	$GLOBALS['wl204_actor'] = 8; check204( Admin::progress_snapshot( $post, 'POST' )['status'], 'FORBIDDEN', 'cross actor' );
++	$GLOBALS['wl204_actor'] = 7; $GLOBALS['wl204_capable'] = false; check204( Admin::progress_snapshot( $post, 'POST' )['status'], 'FORBIDDEN', 'revoked capability' ); $GLOBALS['wl204_capable'] = true;
++	$result = Admin::progress_snapshot( $post, 'POST' );
++	check204( $result['status'], 'OK', 'saved running fixture' ); check204( $result['poll'], true, 'running Apply polls' ); check204( $result['rows'][0]['apply_attention'], true, 'conflict not success' );
++	check204( $result['counts'], Jobs::$counts, 'durable counters authority' );
++	Jobs::$stalled = true; $stalled = Admin::progress_snapshot( $post, 'POST' ); check204( $stalled['poll'], false, 'stalled stops' ); check204( str_contains( $stalled['notice'], 'stopped' ), true, 'stalled honest' );
++	Jobs::$stalled = false; Jobs::$state = 'COMPLETED'; Jobs::$counts['pending'] = 0; Jobs::$counts['applied'] = 2;
++	$terminal = Admin::progress_snapshot( $post, 'POST' ); check204( $terminal['poll'], false, 'terminal Apply stops' ); check204( $terminal['resume_available'], false, 'terminal cannot resume' ); check204( $terminal['resume_nonce'], null, 'terminal cannot obtain Resume nonce' ); check204( $terminal['undo_available'], true, 'eligible Undo becomes available' );
++	Undo::$state = 'UNDO_RUNNING'; $running = Admin::progress_snapshot( $post, 'POST' ); check204( $running['poll'], true, 'running Undo after Apply polls' ); check204( $running['undo_counts']['undone'], 1, 'Undo durable counts' );
++	Undo::$stalled = true; check204( Admin::progress_snapshot( $post, 'POST' )['poll'], false, 'stalled Undo stops' ); Undo::$stalled = false;
++	Jobs::$counts['planned'] = 1; $missing = Admin::progress_snapshot( $post, 'POST' ); check204( $missing['poll'], false, 'missing Apply evidence blocks Undo polling too' ); check204( $missing['undo_available'], false, 'missing blocks Undo action' ); check204( $missing['resume_nonce'], null, 'missing blocks Resume nonce' ); check204( $missing['undo_nonce'], null, 'missing blocks Undo nonce' ); check204( str_contains( $missing['summary'], 'unavailable' ), true, 'missing evidence visibly incomplete' );
++	Jobs::$throws = true; check204( Admin::progress_snapshot( $post, 'POST' )['status'], 'UNAVAILABLE', 'repository error honest' );
++	echo "#204 PHP boundary unit: capabilities/actor/nonce/types, persisted counters, stalled/terminal Apply/Undo, incomplete/error fail closed PASS (repository doubles; no Woo runtime claim)\n";
++}
+diff --git a/wordpress/tests/admin/run.sh b/wordpress/tests/admin/run.sh
+index 3ba180e..6735f0b 100755
+--- a/wordpress/tests/admin/run.sh
++++ b/wordpress/tests/admin/run.sh
+@@ -2,6 +2,8 @@
+ set -euo pipefail
+ here="$(cd "$(dirname "$0")" && pwd)"
+ ls "$here" >/dev/null
++node "$here/progress-client.cjs"
++php "$here/progress-unit.php"
+ mkdir -p "$here/cache"
+ fetch() {
+   local file="$1" sha="$2"
+diff --git a/wordpress/tests/release/public-runtime-audit.php b/wordpress/tests/release/public-runtime-audit.php
+index 3807859..5556d27 100644
+--- a/wordpress/tests/release/public-runtime-audit.php
++++ b/wordpress/tests/release/public-runtime-audit.php
+@@ -19,7 +19,7 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
+ 	foreach ( $entries as $entry ) {
+ 		// Finite release files + reviewed common classes + Woo class directory.
+ 		// The closure below further rejects even an unused PHP file here.
+-		if ( ! in_array( $entry, array( 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-selection.css', 'includes/free/admin-logo.png',
++		if ( ! in_array( $entry, array( 'LICENSE', 'readme.txt', 'writeleash.php', 'uninstall.php', 'includes/free/free-selection.js', 'includes/free/free-progress.js', 'includes/free/free-selection.css', 'includes/free/admin-logo.png',
+ 			'includes/class-environment.php', 'includes/class-lifecycle.php', 'includes/class-plugin.php' ), true ) &&
+ 			! preg_match( '#\Aincludes/free/class-[a-z-]+\.php\z#D', $entry ) ) {
+ 			$fail( 'non-public artifact in manifest: ' . $entry );
+@@ -34,8 +34,7 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
+ 		if ( ! $image || IMAGETYPE_PNG !== $image[2] || $image[0] !== $image[1] || filesize( $logo ) > 2 * 1024 * 1024 ) { $fail( 'invalid Admin logo' ); }
+ 		if ( false === strpos( (string) file_get_contents( $root . '/includes/free/class-free-admin.php' ), "plugins_url( 'includes/free/admin-logo.png', WRITELEASH_PLUGIN_FILE )" ) ) { $fail( 'unreferenced Admin logo' ); }
+ 	}
+-	foreach ( array( 'js', 'css' ) as $extension ) {
+-		$asset = 'includes/free/free-selection.' . $extension;
++	foreach ( array( 'includes/free/free-selection.js', 'includes/free/free-selection.css', 'includes/free/free-progress.js' ) as $asset ) {
+ 		if ( in_array( $asset, $entries, true ) && false === strpos( (string) file_get_contents( $root . '/includes/free/class-free-admin.php' ), "plugins_url( '" . $asset . "', WRITELEASH_PLUGIN_FILE )" ) ) { $fail( 'unreferenced public selection asset' ); }
+ 	}
+ 	$pending = array( 'writeleash.php', 'uninstall.php' );
+diff --git a/wordpress/writeleash/includes/free/class-free-admin.php b/wordpress/writeleash/includes/free/class-free-admin.php
+index b8ca678..7b20382 100644
+--- a/wordpress/writeleash/includes/free/class-free-admin.php
++++ b/wordpress/writeleash/includes/free/class-free-admin.php
+@@ -36,6 +36,7 @@ final class Free_Admin {
+ 	public const ACTION_RESUME = 'writeleash_free_resume';
+ 	public const ACTION_UNDO = 'writeleash_free_undo';
+ 	public const ACTION_EXPORT = 'writeleash_free_export';
++	public const ACTION_PROGRESS = 'writeleash_free_progress';
+ 	public const PREVIEW_PAGE_SIZE = 20;
+ 	public const HISTORY_PAGE_SIZE = 20;
+ 	public const ITEM_PAGE_SIZE = 50;
+@@ -45,6 +46,9 @@ final class Free_Admin {
+ 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+ 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ), 20 );
+ 		Product_Discovery::boot();
++		add_action( 'wp_ajax_' . self::ACTION_PROGRESS, array( __CLASS__, 'handle_progress' ) );
++		// Expired sessions receive an explicit refusal; the handler gates before every saved read.
++		add_action( 'wp_ajax_nopriv_' . self::ACTION_PROGRESS, array( __CLASS__, 'handle_progress' ) );
+ 		add_action( 'admin_post_' . self::ACTION_PREVIEW, array( __CLASS__, 'handle_preview' ) );
+ 		add_action( 'admin_post_' . self::ACTION_APPROVE, array( __CLASS__, 'handle_approve' ) );
+ 		add_action( 'admin_post_' . self::ACTION_RESUME, array( __CLASS__, 'handle_resume' ) );
+@@ -74,6 +78,7 @@ final class Free_Admin {
+ 		if ( ! in_array( $hook, array( 'product_page_' . self::SLUG, 'woocommerce_page_' . self::SLUG, 'tools_page_' . self::SLUG ), true ) ) { return; }
+ 		wp_enqueue_style( 'writeleash-free-selection', plugins_url( 'includes/free/free-selection.css', WRITELEASH_PLUGIN_FILE ), array(), WRITELEASH_VERSION );
+ 		if ( ! self::can_mutate() || ! self::dependency_ok() ) { return; }
++		wp_enqueue_script( 'writeleash-free-progress', plugins_url( 'includes/free/free-progress.js', WRITELEASH_PLUGIN_FILE ), array(), WRITELEASH_VERSION, true );
+ 		if ( ! wp_script_is( 'selectWoo', 'registered' ) ) { return; }
+ 		wp_enqueue_style( 'woocommerce_admin_styles' );
+ 		wp_enqueue_script( 'writeleash-free-selection', plugins_url( 'includes/free/free-selection.js', WRITELEASH_PLUGIN_FILE ), array( 'jquery', 'selectWoo' ), WRITELEASH_VERSION, true );
+@@ -195,6 +200,86 @@ final class Free_Admin {
+ 		return self::finish( $result, null !== $public_id ? 'job' : '', $public_id );
+ 	}
+ 
++	/** Authenticated AJAX is read-only: no schema installer, worker, product read or cache eviction. */
++	public static function handle_progress(): void {
++		$result = self::progress_snapshot( array(
++			'_wpnonce' => self::post_field( '_wpnonce' ), 'job' => self::post_field( 'job' ),
++			'offset' => self::post_field( 'offset' ), 'filter' => self::post_field( 'filter' ),
++		), self::request_method() );
++		nocache_headers();
++		if ( 'OK' === $result['status'] ) { wp_send_json_success( $result ); }
++		else { wp_send_json_error( array( 'reason' => $result['reason'] ), 'FORBIDDEN' === $result['status'] ? 403 : 503 ); }
++	}
++
++	/** A bounded observation of saved Apply/Undo records. IDs and nonces grant no actor override. */
++	public static function progress_snapshot( array $post, string $method ): array {
++		$refused = array( 'status' => 'FORBIDDEN', 'reason' => 'progress_unavailable' );
++		if ( get_current_user_id() < 1 || ! self::can_mutate() || 'POST' !== $method ) { return $refused; }
++		$public_id = $post['job'] ?? null;
++		$nonce = self::normalize_nonce( $post['_wpnonce'] ?? null );
++		if ( ! is_string( $public_id ) || ! preg_match( Job_Repository::PUBLIC_ID_REGEX, $public_id ) ||
++			! is_string( $nonce ) || ! wp_verify_nonce( $nonce, self::ACTION_PROGRESS . '_' . $public_id ) ) { return $refused; }
++		$offset = $post['offset'] ?? '0';
++		$filters = array( '' => array( null, null ), 'conflict' => array( 'CONFLICT', null ), 'attention' => array( 'FAILED', null ),
++			'review' => array( 'NEEDS_REVIEW', null ), 'undo_conflict' => array( null, 'UNDO_CONFLICT' ), 'undo_review' => array( null, 'UNDO_NEEDS_REVIEW' ) );
++		$filter = $post['filter'] ?? '';
++		if ( ! is_string( $offset ) || ! preg_match( '/\A(?:0|[1-9][0-9]{0,5})\z/D', $offset ) || (int) $offset > Undo_Repository::MAX_EVIDENCE_ROWS ||
++			! is_string( $filter ) || ! isset( $filters[$filter] ) ) { return $refused; }
++		try {
++			if ( ! self::jobs_installed() ) { return $refused; }
++			$job = self::load_job_for_view( $public_id );
++			if ( null === $job ) { return $refused; }
++			$observed = Job_Repository::observe( (int) $job['id'] );
++			$job = $observed['job'];
++			$counts = $observed['counts'];
++			$plan = Job_Repository::hydrate_plan( $job );
++			$history = Undo_Repository::history_job( (int) $job['id'] );
++			$complete = $counts['planned'] === $plan->summary()['selected'];
++			$undo_observed = null;
++			if ( ! empty( $history['undo']['operation_id'] ) ) {
++				$undo_observed = Undo_Repository::observe( (int) $history['undo']['operation_id'] );
++				$history['undo'] = array_merge( $history['undo'], $undo_observed['counts'], array( 'operation_status' => $undo_observed['effective_status'] ) );
++			}
++			$identities = array_column( $plan->data()['items'], null, 'product_id' );
++			$page = Undo_Repository::history_items( (int) $job['id'], $filters[$filter][0], $filters[$filter][1], (int) $offset, self::ITEM_PAGE_SIZE );
++			$rows = array();
++			foreach ( $page['items'] as $item ) {
++				$frozen = $identities[$item['product_id']] ?? null;
++				if ( null === $frozen ) { throw new \RuntimeException( 'Saved identity unavailable' ); }
++				$apply_reason = 'UNSUPPORTED' === $item['apply_state'] ? ( $frozen['eligibility']['reason'] ?? $item['apply_reason'] ) : $item['apply_reason'];
++				$rows[] = array(
++					'id' => (int) $item['product_id'],
++					'name' => self::identity_name( $frozen['snapshot'] ) . ' · #' . (int) $item['product_id'] . ' · as reviewed',
++					'expected' => self::money_display( self::expected_display( $frozen, $item, $plan->price_field() ), $plan->data()['store'] ),
++					'planned' => self::money_display( $item['planned_price'], $plan->data()['store'] ),
++					'apply' => self::item_label( $item['apply_state'], $job['status'] ) . ( $apply_reason ? ' · ' . self::reason_message( $apply_reason ) : '' ),
++					'undo' => null === $item['undo_state'] ? self::undo_item_label( $item, $job['status'] ) : self::item_label( $item['undo_state'], $job['status'] ) . ( $item['undo_reason'] ? ' · ' . self::reason_message( $item['undo_reason'] ) : '' ),
++					'apply_attention' => in_array( $item['apply_state'], array( 'CONFLICT', 'FAILED', 'NEEDS_REVIEW' ), true ),
++					'undo_attention' => in_array( $item['undo_state'], array( 'UNDO_CONFLICT', 'UNDO_FAILED', 'UNDO_NEEDS_REVIEW' ), true ),
++				);
++			}
++			$effective = $observed['effective_status'];
++			$undo = $history['undo'];
++			$active = $complete && ! $observed['stalled'] && in_array( $effective, array( Job_State::READY, Job_State::QUEUED, Job_State::RUNNING ), true );
++			$undo_active = $complete && null !== $undo_observed && ! $undo_observed['stalled'] && Undo_State::can_auto_run( $undo['operation_status'] );
++			$undo_summary = (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflicts · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' needing attention · ' . (int) $undo['applying'] . ' in progress · ' . (int) $undo['needs_review'] . ' uncertain';
++			return array(
++				'status' => 'OK', 'counts' => $counts, 'undo_counts' => $undo,
++				'label' => $complete ? self::job_label( $effective ) : 'Saved product outcomes unavailable; needs checking',
++				'summary' => $complete ? self::result_summary( $counts, $effective ) : 'Some saved product evidence is unavailable. Check this job before taking further action.',
++				'notice' => $observed['stalled'] ? 'Background processing stopped making progress. Resume only remaining products.' : ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ? self::reason_message( $observed['effective_reason'] ) : '' ),
++				'undo_label' => $complete ? self::undo_availability( $job, $history ) : 'Undo availability cannot be verified while product outcomes are missing.', 'undo_summary' => $undo_summary,
++				'undo_notice' => null !== $undo_observed && $undo_observed['stalled'] ? 'Undo stopped making progress. Continue Undo only for remaining products.' : '',
++				'resume_available' => $complete && Job_State::can_manual_run( $job['status'] ),
++				'undo_available' => $complete && $history['undo_eligible'] && ( empty( $undo['operation_status'] ) || Undo_State::can_manual_run( $undo['operation_status'] ) ),
++				'resume_nonce' => $complete && Job_State::can_manual_run( $job['status'] ) ? wp_create_nonce( self::ACTION_RESUME . '_' . $public_id ) : null,
++				'undo_nonce' => $complete && $history['undo_eligible'] && ( empty( $undo['operation_status'] ) || Undo_State::can_manual_run( $undo['operation_status'] ) ) ? wp_create_nonce( self::ACTION_UNDO . '_' . $public_id ) : null,
++				'undo_button' => empty( $undo['operation_status'] ) ? 'Restore eligible prices (Undo)' : 'Continue Undo',
++				'poll' => $active || $undo_active, 'rows' => $rows, 'next_url' => null === $page['next_offset'] ? null : self::page_url( 'job', $public_id, (int) $page['next_offset'], $filter ),
++			);
++		} catch ( \Throwable $error ) { return array( 'status' => 'UNAVAILABLE', 'reason' => 'saved_progress_unavailable' ); }
++	}
++
+ 	private static function notice_key( int $user_id ): string {
+ 		return 'writeleash_free_notice_' . $user_id;
+ 	}
+@@ -1516,26 +1601,30 @@ final class Free_Admin {
+ 		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html( 'Back to bulk prices' ) . '</a> ';
+ 		echo '<a class="button" href="' . esc_url( self::page_url( 'history' ) ) . '">' . esc_html( 'Open history' ) . '</a></p>';
+ 		if ( self::reviewable( $job ) ) { self::job_action_link( $job, true ); echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">Create a new preview</a></p>'; }
++		echo '<div data-writeleash-progress="1" data-endpoint="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '" data-job="' . esc_attr( $public_id ) . '" data-nonce="' . esc_attr( wp_create_nonce( self::ACTION_PROGRESS . '_' . $public_id ) ) . '" data-action-url="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-offset="' . esc_attr( (string) $offset ) . '" data-filter="' . esc_attr( $filter ) . '">';
++		echo '<p><a class="button" href="' . esc_url( self::page_url( 'job', $public_id, $offset, $filter ) ) . '">Refresh saved progress</a> <span data-progress-connection>Automatic updates require JavaScript. Refresh to read saved progress.</span></p><p class="screen-reader-text" role="status" aria-live="polite" aria-atomic="true" data-progress-announcement></p>';
+ 		echo '<h2>Progress and results</h2><div class="writeleash-summary"><p><strong>' . esc_html( self::task_description( $plan->data() ) ) . '</strong></p>';
+-		echo '<p><strong>' . esc_html( $complete_evidence ? self::job_label( $effective ) : 'Saved product outcomes unavailable; needs checking' ) . '</strong></p>';
+-		if ( $complete_evidence ) { echo '<p>' . esc_html( self::result_summary( $counts, $effective, true ) ) . '</p>'; }
+-		else { echo '<p>' . esc_html( 'Planned ' . $selected . ( 1 === $selected ? ' product.' : ' products.' ) . ' Some saved product evidence is unavailable. Check this job before taking further action.' ) . '</p>'; }
+-		if ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { echo '<p>' . esc_html( self::reason_message( $observed['effective_reason'] ) ) . '</p>'; }
+-		self::support_details( $effective . ' · ' . $observed['effective_reason'] . ' · ' . $job['public_id'] . ' · pending ' . $counts['pending'] . ' · applied ' . $counts['applied'] );
++		echo '<p><strong data-progress-label>' . esc_html( $complete_evidence ? self::job_label( $effective ) : 'Saved product outcomes unavailable; needs checking' ) . '</strong></p>';
++		if ( $complete_evidence ) { echo '<p data-progress-summary>' . esc_html( self::result_summary( $counts, $effective, true ) ) . '</p>'; }
++		else { echo '<p data-progress-summary>' . esc_html( 'Planned ' . $selected . ( 1 === $selected ? ' product.' : ' products.' ) . ' Some saved product evidence is unavailable. Check this job before taking further action.' ) . '</p>'; }
++		if ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { echo '<p data-progress-initial-notice>' . esc_html( self::reason_message( $observed['effective_reason'] ) ) . '</p>'; }
++		echo '<div data-progress-initial-notice>'; self::support_details( $effective . ' · ' . $observed['effective_reason'] . ' · ' . $job['public_id'] . ' · pending ' . $counts['pending'] . ' · applied ' . $counts['applied'] ); echo '</div>';
+ 		echo '</div>';
++		echo '<p data-progress-notice></p>';
+ 		if ( $observed['stalled'] ) {
+-			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( 'Background processing stopped making progress. Use Resume remaining products to continue; completed changes are kept.' ) . '</p></div>';
++			echo '<div data-progress-initial-notice class="notice notice-warning" role="alert"><p>' . esc_html( 'Background processing stopped making progress. Use Resume remaining products to continue; completed changes are kept.' ) . '</p></div>';
+ 		}
+ 		if ( in_array( $effective, array( Job_State::COMPLETED_WITH_ISSUES, Job_State::NEEDS_REVIEW ), true ) ) {
+-			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( Job_State::NEEDS_REVIEW === $effective ? 'An outcome needs checking. Review uncertain products before continuing remaining work; uncertain products will not be retried.' : 'The price change finished with products needing attention. Review conflicts and failed products below, then create a new preview if needed.' ) . '</p></div>';
++			echo '<div data-progress-initial-notice class="notice notice-warning" role="alert"><p>' . esc_html( Job_State::NEEDS_REVIEW === $effective ? 'An outcome needs checking. Review uncertain products before continuing remaining work; uncertain products will not be retried.' : 'The price change finished with products needing attention. Review conflicts and failed products below, then create a new preview if needed.' ) . '</p></div>';
+ 		}
+ 		if ( self::is_legacy_oversized_job( $job, $selected ) ) {
+ 			self::render_legacy_oversize_warning();
+ 		} elseif ( $selected > Free_Support_Contract::MAX_JOB_PRODUCTS ) {
+ 			echo '<div class="notice notice-error" role="alert"><p>' . esc_html( self::reason_message( 'supported_job_limit_exceeded', $selected ) ) . '</p></div>';
+ 		}
++		echo '<div data-progress-resume>';
+ 		if ( $complete_evidence && Job_State::can_manual_run( $job['status'] ) && self::can_mutate() ) {
+-			if ( in_array( $effective, array( Job_State::READY, Job_State::QUEUED ), true ) && ! $observed['stalled'] ) { echo '<p>' . esc_html( 'Waiting for background processing. Use Resume remaining products to run the next step now.' ) . '</p>'; }
++			if ( in_array( $effective, array( Job_State::READY, Job_State::QUEUED ), true ) && ! $observed['stalled'] ) { echo '<p data-progress-initial-notice>' . esc_html( 'Waiting for background processing. Use Resume remaining products to run the next step now.' ) . '</p>'; }
+ 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+ 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_RESUME ) . '">';
+ 			echo '<input type="hidden" name="job" value="' . esc_attr( $job['public_id'] ) . '">';
+@@ -1543,6 +1632,7 @@ final class Free_Admin {
+ 			echo '<p><button type="submit" class="button button-primary">' . esc_html( 'Resume remaining products' ) . '</button> ';
+ 			echo esc_html( 'Runs only the remaining products; completed changes are kept. Products changed since Preview are left alone.' ) . '</p></form>';
+ 		}
++		echo '</div>';
+ 		self::render_export_form( $job );
+ 		echo '<section class="writeleash-undo"><h2>' . esc_html( 'Undo' ) . '</h2>';
+ 		if ( $complete_evidence ) { self::render_undo_section( $job, $history, $plan->price_field() ); }
+@@ -1586,8 +1676,11 @@ final class Free_Admin {
+ 			}
+ 
+ 			echo '</tbody></table></div>';
++			echo '<div data-progress-pager>';
+ 			self::render_pager( 'job', $job['public_id'], $offset, self::ITEM_PAGE_SIZE, $items['next_offset'], $filter );
++			echo '</div>';
+ 		}
++		echo '</div>';
+ 	}
+ 
+ 	/** Post-approval states are durable authority, not a new size certification. */
+@@ -1611,17 +1704,19 @@ final class Free_Admin {
+ 	private static function render_undo_section( array $job, array $history, string $field ): void {
+ 		$field_label = strtolower( Price_Operation::label( $field ) );
+ 		echo '<p>' . esc_html( 'Undo restores eligible ' . $field_label . ' values changed by this job to their values before this job. Later price or sale-setting changes are left alone. Undo does not reverse: orders, completed sales or effects in other plugins and services.' ) . '</p>';
+-		echo '<p><strong>' . esc_html( self::undo_availability( $job, $history ) ) . '</strong></p>';
++		echo '<p><strong data-progress-undo-label>' . esc_html( self::undo_availability( $job, $history ) ) . '</strong></p>';
+ 		if ( ! empty( $history['undo_expires_at'] ) ) {
+ 			echo '<p>' . esc_html( 'Undo window ends: ' . self::site_time( $history['undo_expires_at'] ) ) . '</p>';
+ 		}
++		echo '<p data-progress-undo-summary></p><p data-progress-undo-notice></p>';
+ 		if ( ! empty( $history['undo']['operation_status'] ) ) {
+ 			$undo = $history['undo'];
+ 			$undo_review = (int) $undo['needs_review'];
+-			echo '<p>' . esc_html( (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflict' . ( 1 === (int) $undo['conflict'] ? '' : 's' ) . ' · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' needing attention · ' . (int) $undo['applying'] . ' in progress · ' . $undo_review . ( 1 === $undo_review ? ' needs checking.' : ' need checking.' ) ) . '</p>';
+-			self::support_details( $undo['operation_status'] . ' · ' . $undo['operation_reason'] );
++			echo '<p data-progress-initial-undo>' . esc_html( (int) $undo['undone'] . ' restored · ' . (int) $undo['conflict'] . ' conflict' . ( 1 === (int) $undo['conflict'] ? '' : 's' ) . ' · ' . (int) $undo['pending'] . ' remaining · ' . (int) $undo['failed'] . ' needing attention · ' . (int) $undo['applying'] . ' in progress · ' . $undo_review . ( 1 === $undo_review ? ' needs checking.' : ' need checking.' ) ) . '</p>';
++			echo '<div data-progress-initial-undo>'; self::support_details( $undo['operation_status'] . ' · ' . $undo['operation_reason'] ); echo '</div>';
+ 		}
+ 
++		echo '<div data-progress-undo>';
+ 		if ( $history['undo_eligible'] && self::can_mutate() && ( empty( $history['undo']['operation_status'] ) || Undo_State::can_manual_run( $history['undo']['operation_status'] ) ) ) {
+ 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+ 			echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION_UNDO ) . '">';
+@@ -1632,6 +1727,7 @@ final class Free_Admin {
+ 		} elseif ( $history['undo_eligible'] && ! self::can_mutate() ) {
+ 			echo '<p>You do not have permission to restore prices.</p>';
+ 		}
++		echo '</div>';
+ 	}
+ 
+ 	private static function render_history_view( int $offset ): void {
+diff --git a/wordpress/writeleash/includes/free/free-progress.js b/wordpress/writeleash/includes/free/free-progress.js
+new file mode 100644
+index 0000000..4edb4eb
+--- /dev/null
++++ b/wordpress/writeleash/includes/free/free-progress.js
+@@ -0,0 +1,168 @@
++/* Saved Apply/Undo observations only. This client never requests execution. */
++(function () {
++    'use strict';
++    var root = document.querySelector('[data-writeleash-progress]');
++    if (!root || !window.fetch || !window.AbortController) { return; }
++    var timer = null, timeout = null, controller = null, generation = 0;
++    var failures = 0, polling = true, stopped = false, lastSuccess = '', lastAnnouncement = '';
++    var connection = root.querySelector('[data-progress-connection]');
++    var announcement = root.querySelector('[data-progress-announcement]');
++    function write(selector, value) {
++        var node = root.querySelector(selector);
++        if (node && node.textContent !== value) { node.textContent = value; }
++    }
++    function connectionText(text) {
++        connection.textContent = text + (lastSuccess ? ' Last successful refresh: ' + lastSuccess + '.' : ' No successful automatic refresh yet.');
++    }
++    function action(selector, available, label, nonce, actionName) {
++        var wrapper = root.querySelector(selector);
++        if (!wrapper) { return; }
++        var button = wrapper.querySelector('button');
++        if (!button && available) {
++            var form = document.createElement('form'); form.method = 'post'; form.action = root.getAttribute('data-action-url');
++            [['action', actionName], ['job', root.getAttribute('data-job')], ['_wpnonce', nonce]].forEach(function (field) {
++                var input = document.createElement('input'); input.type = 'hidden'; input.name = field[0]; input.value = field[1]; form.appendChild(input);
++            });
++            button = document.createElement('button'); button.type = 'submit'; button.className = 'button button-primary'; button.textContent = label; form.appendChild(button); wrapper.appendChild(form);
++        }
++        if (button) {
++            button.disabled = !available;
++            if (label) { button.textContent = label; }
++        }
++        // A focused button stays in the document until focus leaves; it is disabled immediately.
++        if (!available && wrapper.contains(document.activeElement)) {
++            wrapper.addEventListener('focusout', function hide() {
++                wrapper.removeEventListener('focusout', hide);
++                if (button.disabled) { wrapper.hidden = true; }
++            });
++        } else { wrapper.hidden = !available; }
++    }
++    function updateRows(rows) {
++        var body = root.querySelector('[data-writeleash-results] tbody');
++        if (!body) { return; }
++        var wanted = rows.map(function (row) { return String(row.id); });
++        var existing = Array.prototype.slice.call(body.querySelectorAll('tr[data-product-id]'));
++        // Retain a focused review link if its filtered row has moved out of this page.
++        if (existing.some(function (tr) { return wanted.indexOf(tr.getAttribute('data-product-id')) < 0 && tr.contains(document.activeElement); })) {
++            connectionText('Saved counters updated. Refresh the product list after leaving the focused link.');
++            return;
++        }
++        existing.forEach(function (tr) { if (wanted.indexOf(tr.getAttribute('data-product-id')) < 0) { tr.remove(); } });
++        Array.prototype.slice.call(body.querySelectorAll('tr:not([data-product-id])')).forEach(function (tr) { tr.remove(); });
++        rows.forEach(function (row) {
++            var tr = existing.find(function (candidate) { return candidate.getAttribute('data-product-id') === String(row.id); });
++            if (!tr) {
++                tr = document.createElement('tr');
++                tr.setAttribute('data-product-id', String(row.id));
++                [row.name, row.expected, 'Reload to read the current price', row.planned, '', ''].forEach(function (text) {
++                    var td = document.createElement('td'); td.textContent = text; tr.appendChild(td);
++                });
++                body.appendChild(tr);
++            }
++            if (!tr.children[4].contains(document.activeElement)) { tr.children[4].textContent = row.apply; }
++            else { connectionText('Saved counters updated. Leave the focused outcome to refresh its details.'); }
++            tr.children[4].className = row.apply_attention ? 'writeleash-attention' : '';
++            if (!tr.children[5].contains(document.activeElement)) { tr.children[5].textContent = row.undo; }
++            else { connectionText('Saved counters updated. Leave the focused outcome to refresh its details.'); }
++            tr.children[5].className = row.undo_attention ? 'writeleash-attention' : '';
++        });
++        if (!rows.length) {
++            var empty = document.createElement('tr'), cell = document.createElement('td');
++            cell.colSpan = 6; cell.textContent = 'No retained products on this page match this view.'; empty.appendChild(cell); body.appendChild(empty);
++        }
++    }
++    function apply(data) {
++        write('[data-progress-label]', data.label);
++        write('[data-progress-summary]', data.summary);
++        write('[data-progress-notice]', data.notice);
++        write('[data-progress-undo-label]', data.undo_label);
++        write('[data-progress-undo-summary]', data.undo_summary);
++        write('[data-progress-undo-notice]', data.undo_notice);
++        action('[data-progress-resume]', data.resume_available, 'Resume remaining products', data.resume_nonce, 'writeleash_free_resume');
++        action('[data-progress-undo]', data.undo_available, data.undo_button, data.undo_nonce, 'writeleash_free_undo');
++        Array.prototype.slice.call(root.querySelectorAll('[data-progress-initial-notice], [data-progress-initial-undo]')).forEach(function (node) {
++            if (node.contains(document.activeElement)) {
++                node.addEventListener('focusout', function hide() { node.removeEventListener('focusout', hide); node.hidden = true; });
++                connectionText('Saved counters updated. Leave the focused support details to refresh them.');
++            } else { node.hidden = true; }
++        });
++        updateRows(data.rows);
++        var pager = root.querySelector('[data-progress-pager]');
++        if (pager) {
++            var next = pager.querySelector('p').lastElementChild;
++            // Keep focus on pager buttons/links; update availability without replacement.
++            if (next && next.tagName === 'A') {
++                if (!next.progressClickBound) {
++                    next.addEventListener('click', function (event) { if (next.getAttribute('aria-disabled') === 'true') { event.preventDefault(); } });
++                    next.progressClickBound = true;
++                }
++                next.setAttribute('aria-disabled', data.next_url ? 'false' : 'true');
++                if (!data.next_url && next === document.activeElement) {
++                    next.addEventListener('blur', function hide() { next.removeEventListener('blur', hide); if (next.getAttribute('aria-disabled') === 'true') { next.hidden = true; } });
++                } else { next.hidden = !data.next_url; }
++                if (data.next_url) { next.href = data.next_url; }
++            }
++            else if (next && data.next_url && next !== document.activeElement) {
++                var link = document.createElement('a'); link.className = 'button'; link.href = data.next_url; link.textContent = 'Next page'; next.replaceWith(link);
++            }
++        }
++        var concise = data.label + '. ' + data.summary + ' Undo: ' + data.undo_summary + '.';
++        if (concise !== lastAnnouncement) { announcement.textContent = concise; lastAnnouncement = concise; }
++        polling = data.poll === true;
++    }
++    function schedule(delay) {
++        window.clearTimeout(timer);
++        if (!stopped && polling && !document.hidden) { timer = window.setTimeout(refresh, delay); }
++    }
++    function failed(status) {
++        failures += 1;
++        if (status === 401 || status === 403 || failures >= 4) {
++            stopped = true;
++            connectionText(status === 401 || status === 403 ? 'Session or permission expired. Reload and sign in to refresh saved progress.' : 'Automatic updates stopped after repeated errors. Use Refresh saved progress to retry.');
++        } else { connectionText('Saved progress may be stale. Refresh failed; retrying shortly.'); schedule(Math.min(60000, 5000 * Math.pow(2, failures))); }
++    }
++    function refresh() {
++        if (document.hidden || stopped || controller) { return; }
++        var token = ++generation;
++        controller = new window.AbortController();
++        var requestController = controller;
++        var form = new window.URLSearchParams();
++        form.set('action', 'writeleash_free_progress'); form.set('job', root.getAttribute('data-job'));
++        form.set('_wpnonce', root.getAttribute('data-nonce')); form.set('offset', root.getAttribute('data-offset')); form.set('filter', root.getAttribute('data-filter'));
++        timeout = window.setTimeout(function () {
++            if (token !== generation) { return; }
++            generation += 1; requestController.abort(); controller = null; failed(0);
++        }, 15000);
++        window.fetch(root.getAttribute('data-endpoint'), {method: 'POST', credentials: 'same-origin', cache: 'no-store', body: form, signal: requestController.signal})
++            .then(function (response) {
++                if (!response.ok) { var error = new Error('Refresh refused'); error.status = response.status; throw error; }
++                return response.json();
++            })
++            .then(function (response) {
++                if (token !== generation || document.hidden) { return; }
++                if (!response.success || !response.data || response.data.status !== 'OK' || !Array.isArray(response.data.rows)) { throw new Error('Saved progress unavailable'); }
++                window.clearTimeout(timeout); controller = null; failures = 0;
++                lastSuccess = new Date().toLocaleTimeString();
++                connectionText(response.data.poll ? 'Saved progress refreshed. Automatic updates active.' : 'Saved progress refreshed. Automatic updates stopped; refresh manually for later activity.');
++                apply(response.data); schedule(5000);
++            })
++            .catch(function (error) {
++                if (token !== generation) { return; }
++                window.clearTimeout(timeout); controller = null; failed(error.status || 0);
++            });
++    }
++    document.addEventListener('visibilitychange', function () {
++        window.clearTimeout(timer);
++        if (document.hidden) {
++            generation += 1; window.clearTimeout(timeout);
++            if (controller) { controller.abort(); controller = null; }
++            if (!stopped && polling) { connectionText('Automatic updates paused while this page is hidden. Saved progress may be stale.'); }
++        } else if (!stopped && polling) { refresh(); }
++    });
++    window.addEventListener('pagehide', function () {
++        stopped = true; generation += 1; window.clearTimeout(timer); window.clearTimeout(timeout);
++        if (controller) { controller.abort(); controller = null; }
++    });
++    connectionText('Checking saved progress.');
++    refresh();
++}());

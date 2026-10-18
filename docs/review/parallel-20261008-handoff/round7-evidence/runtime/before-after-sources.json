@@ -1,0 +1,14 @@
+[
+  {
+    "label": "prefixed",
+    "sha": "029a08040da0fab06bfea2a8d174aeba3d72f2d4",
+    "verifier_sha256": "b79dcaf8642f6c85e403c89a5c10b41c1f3117d0d22221459acd69b43b5e05b6",
+    "tree": "956570a01457404534cf517693c03acdc9c9f695"
+  },
+  {
+    "label": "fixed",
+    "sha": "c2e3f6167879bbc5ac7ba9c798cbb43ce672608d",
+    "verifier_sha256": "96f1dc83f3b4c7e05665ee2dc07bfef2ac85a0560549ed89b84b44cabc5c764a",
+    "tree": "8ad58934bdde07ee687e6bf7e82c83a78d102f43"
+  }
+]

@@ -1,0 +1,379 @@
+- generic [active] [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - navigation "Main menu":
+      - link "Skip to main content" [ref=f6e3] [cursor=pointer]:
+        - /url: "#wpbody-content"
+      - text:             
+    - generic [ref=f6e4]:
+      - generic [ref=f6e5]:
+        - navigation "Toolbar":
+          - menu:
+            - group [ref=f6e6]:
+              - menuitem "Menu" [ref=f6e7] [cursor=pointer]:
+                - generic [aria-hidden] [ref=f6e8]: 
+            - group [ref=f6e10]:
+              - menuitem "About WordPress" [ref=f6e11] [cursor=pointer]
+            - group [ref=f6e14]:
+              - menuitem "WriteLeash Manual Review" [ref=f6e15] [cursor=pointer]
+            - group [ref=f6e16]:
+              - menuitem "Ctrl+K Open command palette" [ref=f6e17] [cursor=pointer]:
+                - generic [ref=f6e19]:
+                  - text: Ctrl+K
+                  - generic [ref=f6e20]: Open command palette
+            - group [ref=f6e21]:
+              - menuitem "0 Comments in moderation" [ref=f6e22] [cursor=pointer]:
+                - generic [aria-hidden] [ref=f6e24]: "0"
+            - group [ref=f6e26]:
+              - menuitem "New" [ref=f6e27] [cursor=pointer]
+          - menu [ref=f6e30]:
+            - group [ref=f6e31]:
+              - menuitem "Howdy, merchant" [ref=f6e32] [cursor=pointer]
+      - generic [ref=f6e34]:
+        - generic [ref=f6e35]:
+          - heading "Store Activity" [level=2] [ref=f6e36]
+          - complementary "Store Activity" [ref=f6e37]:
+            - tablist [ref=f6e38]:
+              - tab "Activity" [ref=f6e39] [cursor=pointer]:
+                - generic [ref=f6e43]: unread activity
+              - tab "Finish setup" [ref=f6e44] [cursor=pointer]
+        - button "Screen options" [ref=f6e48] [cursor=pointer]
+        - button "Help" [ref=f6e51] [cursor=pointer]
+      - main [ref=f6e55]:
+        - generic [ref=f6e56]:
+          - generic:
+            - button "Screen Options" [ref=f6e58] [cursor=pointer]
+            - button "Help" [ref=f6e60] [cursor=pointer]
+          - generic [ref=f6e63]:
+            - heading "Edit product" [level=1] [ref=f6e64]
+            - link "Add new product" [ref=f6e65] [cursor=pointer]:
+              - /url: http://127.0.0.1:8188/wp-admin/post-new.php?post_type=product
+            - generic [ref=f6e67]:
+              - generic:
+                - generic [ref=f6e68]:
+                  - generic [ref=f6e69]:
+                    - generic [ref=f6e70]:
+                      - generic: Product name
+                      - textbox "Product name" [ref=f6e71]: External edit control
+                      - link "Skip to Editor" [ref=f6e72] [cursor=pointer]:
+                        - /url: "#content"
+                    - generic [ref=f6e74]:
+                      - strong [ref=f6e75]: "Permalink:"
+                      - link "http://127.0.0.1:8188/?product=external-edit-control" [ref=f6e76] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/?product=external-edit-control
+                      - link "Change Permalink Structure" [ref=f6e78] [cursor=pointer]:
+                        - /url: options-permalink.php
+                  - generic [ref=f6e79]:
+                    - heading "Product description" [level=2] [ref=f6e80]
+                    - generic [ref=f6e82]:
+                      - generic [ref=f6e83]:
+                        - generic [ref=f6e84]:
+                          - button "Add Media" [ref=f6e85] [cursor=pointer]
+                          - generic "Describe this product. What makes it unique? What are its most important features?" [ref=f6e87]: 
+                        - generic [ref=f6e88]:
+                          - button "Visual" [pressed] [ref=f6e89] [cursor=pointer]
+                          - button "Code" [ref=f6e90] [cursor=pointer]
+                      - application [ref=f6e92]:
+                        - generic [ref=f6e93]:
+                          - group [ref=f6e96]:
+                            - toolbar [ref=f6e98]:
+                              - group [ref=f6e100]:
+                                - generic [ref=f6e101]:
+                                  - button [ref=f6e102] [cursor=pointer]:
+                                    - button "Paragraph" [ref=f6e103]
+                                  - button "Bold (Ctrl+B)" [ref=f6e106] [cursor=pointer]:
+                                    - button [ref=f6e107]
+                                  - button "Italic (Ctrl+I)" [ref=f6e109] [cursor=pointer]:
+                                    - button [ref=f6e110]
+                                  - button "Bulleted list (Shift+Alt+U)" [ref=f6e112] [cursor=pointer]:
+                                    - button [ref=f6e113]
+                                  - button "Numbered list (Shift+Alt+O)" [ref=f6e115] [cursor=pointer]:
+                                    - button [ref=f6e116]
+                                  - button "Blockquote (Shift+Alt+Q)" [ref=f6e118] [cursor=pointer]:
+                                    - button [ref=f6e119]
+                                  - button "Align left (Shift+Alt+L)" [ref=f6e121] [cursor=pointer]:
+                                    - button [ref=f6e122]
+                                  - button "Align center (Shift+Alt+C)" [ref=f6e124] [cursor=pointer]:
+                                    - button [ref=f6e125]
+                                  - button "Align right (Shift+Alt+R)" [ref=f6e127] [cursor=pointer]:
+                                    - button [ref=f6e128]
+                                  - button "Insert/edit link (Ctrl+K)" [ref=f6e130] [cursor=pointer]:
+                                    - button [ref=f6e131]
+                                  - button "Insert Read More tag (Shift+Alt+T)" [ref=f6e133] [cursor=pointer]:
+                                    - button [ref=f6e134]
+                                  - button "Extended Toolbar (Shift+Alt+Z)" [ref=f6e136] [cursor=pointer]:
+                                    - button [ref=f6e137]
+                                  - button "Distraction-free writing mode (Shift+Alt+W)" [ref=f6e139] [cursor=pointer]:
+                                    - button [ref=f6e140]
+                          - group [ref=f6e142]:
+                            - iframe [ref=f6e143]:
+                              - paragraph [ref=f7e2]
+                          - group [ref=f6e144]:
+                            - generic [ref=f6e147] [cursor=pointer]
+                    - text: "Word count: 0 Last edited by merchant on October 7, 2026 at 2:13 pm"
+                - generic [ref=f6e149]:
+                  - region "Publish" [ref=f6e150]:
+                    - generic [ref=f6e151]:
+                      - heading "Publish" [level=2] [ref=f6e152]
+                      - generic [ref=f6e153]:
+                        - button "Move up" [disabled] [ref=f6e155]
+                        - button "Move down" [ref=f6e159] [cursor=pointer]
+                        - button "Show or hide panel" [expanded] [ref=f6e163] [cursor=pointer]
+                    - generic [ref=f6e167]:
+                      - generic [ref=f6e168]:
+                        - link "Preview Changes (opens in a new tab)" [ref=f6e170] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=external-edit-control&preview=true
+                          - text: Preview Changes
+                          - generic [ref=f6e171]: (opens in a new tab)
+                        - generic [ref=f6e172]:
+                          - generic [ref=f6e173]:
+                            - text: "Status: Published"
+                            - button "Edit status" [ref=f6e174] [cursor=pointer]: Edit
+                          - generic [ref=f6e176]:
+                            - text: "Visibility: Public"
+                            - button "Edit visibility" [ref=f6e177] [cursor=pointer]: Edit
+                          - generic [ref=f6e179]:
+                            - generic [ref=f6e180]: "Published on: Oct 7, 2026 at 03:34"
+                            - button "Edit date and time" [ref=f6e181] [cursor=pointer]: Edit
+                          - generic [ref=f6e183]:
+                            - text: "Catalog visibility:"
+                            - strong [ref=f6e184]: Shop and search results
+                            - link "Edit" [ref=f6e185] [cursor=pointer]:
+                              - /url: "#catalog-visibility"
+                      - generic [ref=f6e186]:
+                        - link "Copy to a new draft" [ref=f6e188] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=26&_wpnonce=cf437bb5fd
+                        - link "Move to Trash" [ref=f6e190] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=26&action=trash&_wpnonce=e449bc6f08
+                        - button "Update" [ref=f6e192] [cursor=pointer]
+                  - region "Product image" [ref=f6e193]:
+                    - generic [ref=f6e194]:
+                      - heading "Product image" [level=2] [ref=f6e195]
+                      - generic [ref=f6e196]:
+                        - button "Move up" [ref=f6e198] [cursor=pointer]
+                        - button "Move down" [ref=f6e202] [cursor=pointer]
+                        - button "Show or hide panel" [expanded] [ref=f6e206] [cursor=pointer]
+                    - paragraph [ref=f6e210]:
+                      - button "Set product image" [ref=f6e211] [cursor=pointer]
+                      - 'generic "For best results, upload JPEG or PNG files that are 1000 by 1000 pixels or larger. Maximum upload file size: 64 MB." [ref=f6e212]': 
+                  - region "Product gallery" [ref=f6e213]:
+                    - generic [ref=f6e214]:
+                      - heading "Product gallery" [level=2] [ref=f6e215]
+                      - generic [ref=f6e216]:
+                        - button "Move up" [ref=f6e218] [cursor=pointer]
+                        - button "Move down" [ref=f6e222] [cursor=pointer]
+                        - button "Show or hide panel" [expanded] [ref=f6e226] [cursor=pointer]
+                    - generic [ref=f6e229]:
+                      - generic:
+                        - list
+                      - paragraph [ref=f6e230]:
+                        - link "Add product gallery images" [ref=f6e231] [cursor=pointer]:
+                          - /url: "#"
+                        - 'generic "For best results, upload JPEG or PNG files that are 1000 by 1000 pixels or larger. Maximum upload file size: 64 MB." [ref=f6e232]': 
+                  - region "Product categories" [ref=f6e233]:
+                    - generic [ref=f6e234]:
+                      - heading "Product categories" [level=2] [ref=f6e235]
+                      - generic [ref=f6e236]:
+                        - button "Move up" [ref=f6e238] [cursor=pointer]
+                        - button "Move down" [ref=f6e242] [cursor=pointer]
+                        - button "Show or hide panel" [expanded] [ref=f6e246] [cursor=pointer]
+                    - generic [ref=f6e250]:
+                      - tablist [ref=f6e251]:
+                        - listitem [ref=f6e252]:
+                          - tab "All categories" [selected] [ref=f6e253] [cursor=pointer]
+                        - listitem [ref=f6e254]:
+                          - tab "Most Used" [ref=f6e255] [cursor=pointer]
+                      - tabpanel [ref=f6e256]:
+                        - list [ref=f6e257]:
+                          - listitem [ref=f6e258]:
+                            - generic [ref=f6e259]:
+                              - checkbox "Agency batch" [ref=f6e260] [cursor=pointer]
+                              - text: Agency batch
+                          - listitem [ref=f6e261]:
+                            - generic [ref=f6e262]:
+                              - checkbox "Everyday accessories" [ref=f6e263] [cursor=pointer]
+                              - text: Everyday accessories
+                          - listitem [ref=f6e264]:
+                            - generic [ref=f6e265]:
+                              - checkbox "Mixed catalog" [checked] [ref=f6e266] [cursor=pointer]
+                              - text: Mixed catalog
+                          - listitem [ref=f6e267]:
+                            - generic [ref=f6e268]:
+                              - checkbox "Summer sale" [ref=f6e269] [cursor=pointer]
+                              - text: Summer sale
+                          - listitem [ref=f6e270]:
+                            - generic [ref=f6e271]:
+                              - checkbox "Uncategorized" [ref=f6e272] [cursor=pointer]
+                              - text: Uncategorized
+                      - link "+ Add new category" [ref=f6e274] [cursor=pointer]:
+                        - /url: "#product_cat-add"
+                  - region "Product tags" [ref=f6e275]:
+                    - generic [ref=f6e276]:
+                      - heading "Product tags" [level=2] [ref=f6e277]
+                      - generic [ref=f6e278]:
+                        - button "Move up" [ref=f6e280] [cursor=pointer]
+                        - button "Move down" [ref=f6e284] [cursor=pointer]
+                        - button "Show or hide panel" [expanded] [ref=f6e288] [cursor=pointer]
+                    - generic [ref=f6e291]:
+                      - generic [ref=f6e292]:
+                        - generic [ref=f6e293]:
+                          - generic [ref=f6e294]:
+                            - generic [ref=f6e295]: Add new tag
+                            - combobox "Add new tag" [ref=f6e296]
+                            - button "Add" [ref=f6e297] [cursor=pointer]
+                          - paragraph [ref=f6e298]: Separate tags with commas
+                        - list
+                      - paragraph [ref=f6e299]:
+                        - button "Choose from the most used tags" [ref=f6e300] [cursor=pointer]
+                  - region "Product brands" [ref=f6e301]:
+                    - generic [ref=f6e302]:
+                      - heading "Product brands" [level=2] [ref=f6e303]
+                      - generic [ref=f6e304]:
+                        - button "Move up" [ref=f6e306] [cursor=pointer]
+                        - button "Move down" [ref=f6e310] [cursor=pointer]
+                        - button "Show or hide panel" [expanded] [ref=f6e314] [cursor=pointer]
+                    - generic [ref=f6e318]:
+                      - tablist [ref=f6e319]:
+                        - listitem [ref=f6e320]:
+                          - tab "All Brands" [selected] [ref=f6e321] [cursor=pointer]
+                        - listitem [ref=f6e322]:
+                          - tab "Most Used" [ref=f6e323] [cursor=pointer]
+                      - tabpanel [ref=f6e324]:
+                        - list
+                      - link "+ Add New Brand" [ref=f6e326] [cursor=pointer]:
+                        - /url: "#product_brand-add"
+                - generic [ref=f6e328]:
+                  - region "Product data" [ref=f6e329]:
+                    - generic [ref=f6e330]:
+                      - heading "Product data — Simple product Simple – covers the vast majority of any products you may sell. Simple products are shipped and have no options. For example, a book. Virtual Downloadable" [level=2] [ref=f6e331]:
+                        - text: Product data
+                        - generic [ref=f6e332]:
+                          - text: —
+                          - generic [ref=f6e333]:
+                            - combobox "Simple – covers the vast majority of any products you may sell. Simple products are shipped and have no options. For example, a book." [ref=f6e334] [cursor=pointer]:
+                              - option "Simple product" [selected]
+                              - option "Grouped product"
+                              - option "External/Affiliate product"
+                              - option "Variable product"
+                            - generic "Simple – covers the vast majority of any products you may sell. Simple products are shipped and have no options. For example, a book." [ref=f6e335]: 
+                          - generic [ref=f6e336]:
+                            - checkbox "Virtual" [ref=f6e337] [cursor=pointer]
+                            - text: Virtual
+                          - generic [ref=f6e338]:
+                            - checkbox "Downloadable" [ref=f6e339] [cursor=pointer]
+                            - text: Downloadable
+                      - generic [ref=f6e340]:
+                        - button "Move up" [ref=f6e342] [cursor=pointer]
+                        - button "Move down" [ref=f6e346] [cursor=pointer]
+                        - button "Show or hide panel" [expanded] [ref=f6e350] [cursor=pointer]
+                    - generic [ref=f6e354]:
+                      - list [ref=f6e355]:
+                        - listitem [ref=f6e356]:
+                          - link " General" [ref=f6e357] [cursor=pointer]:
+                            - /url: "#general_product_data"
+                        - listitem [ref=f6e358]:
+                          - link " Inventory" [ref=f6e359] [cursor=pointer]:
+                            - /url: "#inventory_product_data"
+                        - listitem [ref=f6e360]:
+                          - link " Shipping" [ref=f6e361] [cursor=pointer]:
+                            - /url: "#shipping_product_data"
+                        - listitem [ref=f6e362]:
+                          - link " Linked Products" [ref=f6e363] [cursor=pointer]:
+                            - /url: "#linked_product_data"
+                        - listitem [ref=f6e364]:
+                          - link " Attributes" [ref=f6e365] [cursor=pointer]:
+                            - /url: "#product_attributes"
+                        - text: 
+                        - listitem [ref=f6e366]:
+                          - link " Advanced" [ref=f6e367] [cursor=pointer]:
+                            - /url: "#advanced_product_data"
+                        - listitem [ref=f6e368]:
+                          - link " Get more options" [ref=f6e369] [cursor=pointer]:
+                            - /url: "#marketplace_suggestions"
+                      - generic [ref=f6e370]:
+                        - generic [ref=f6e371]:
+                          - paragraph [ref=f6e372]:
+                            - generic [ref=f6e373]: Regular price ($)
+                            - textbox "Regular price ($)" [ref=f6e374]:
+                              - /placeholder: ""
+                              - text: "47"
+                          - paragraph [ref=f6e375]:
+                            - generic [ref=f6e376]: Sale price ($)
+                            - textbox "Sale price ($)" [ref=f6e377]:
+                              - /placeholder: ""
+                              - text: "40"
+                            - link "Schedule" [ref=f6e379] [cursor=pointer]:
+                              - /url: "#"
+                          - text: 
+                        - text:  
+                      - text:               
+                  - region "Product short description" [ref=f6e380]:
+                    - generic [ref=f6e381]:
+                      - heading "Product short description Summarize this product in 1-2 short sentences. We’ll show it at the top of the page." [level=2] [ref=f6e382]:
+                        - text: Product short description
+                        - generic "Summarize this product in 1-2 short sentences. We’ll show it at the top of the page." [ref=f6e383]: 
+                      - generic [ref=f6e384]:
+                        - button "Move up" [ref=f6e386] [cursor=pointer]
+                        - button "Move down" [ref=f6e390] [cursor=pointer]
+                        - button "Show or hide panel" [expanded] [ref=f6e394] [cursor=pointer]
+                    - generic [ref=f6e398]:
+                      - generic [ref=f6e399]:
+                        - button "Add Media" [ref=f6e401] [cursor=pointer]
+                        - generic [ref=f6e403]:
+                          - button "Visual" [pressed] [ref=f6e404] [cursor=pointer]
+                          - button "Code" [ref=f6e405] [cursor=pointer]
+                      - application [ref=f6e407]:
+                        - generic [ref=f6e408]:
+                          - group [ref=f6e411]:
+                            - toolbar [ref=f6e413]:
+                              - group [ref=f6e415]:
+                                - generic [ref=f6e416]:
+                                  - button [ref=f6e417] [cursor=pointer]:
+                                    - button "Paragraph" [ref=f6e418]
+                                  - button "Bold (Ctrl+B)" [ref=f6e421] [cursor=pointer]:
+                                    - button [ref=f6e422]
+                                  - button "Italic (Ctrl+I)" [ref=f6e424] [cursor=pointer]:
+                                    - button [ref=f6e425]
+                                  - button "Bulleted list (Shift+Alt+U)" [ref=f6e427] [cursor=pointer]:
+                                    - button [ref=f6e428]
+                                  - button "Numbered list (Shift+Alt+O)" [ref=f6e430] [cursor=pointer]:
+                                    - button [ref=f6e431]
+                                  - button "Blockquote (Shift+Alt+Q)" [ref=f6e433] [cursor=pointer]:
+                                    - button [ref=f6e434]
+                                  - button "Align left (Shift+Alt+L)" [ref=f6e436] [cursor=pointer]:
+                                    - button [ref=f6e437]
+                                  - button "Align center (Shift+Alt+C)" [ref=f6e439] [cursor=pointer]:
+                                    - button [ref=f6e440]
+                                  - button "Align right (Shift+Alt+R)" [ref=f6e442] [cursor=pointer]:
+                                    - button [ref=f6e443]
+                                  - button "Insert/edit link (Ctrl+K)" [ref=f6e445] [cursor=pointer]:
+                                    - button [ref=f6e446]
+                                  - button "Insert Read More tag (Shift+Alt+T)" [ref=f6e448] [cursor=pointer]:
+                                    - button [ref=f6e449]
+                                  - button "Fullscreen" [ref=f6e451] [cursor=pointer]:
+                                    - button [ref=f6e452]
+                                  - button "Extended Toolbar (Shift+Alt+Z)" [ref=f6e454] [cursor=pointer]:
+                                    - button [ref=f6e455]
+                          - group [ref=f6e457]:
+                            - iframe [ref=f6e458]:
+                              - paragraph [ref=f8e2]
+                          - group [ref=f6e459]:
+                            - generic [ref=f6e460]:
+                              - generic [ref=f6e462] [cursor=pointer]
+                              - generic [ref=f6e463]: 
+                  - region "Reviews" [ref=f6e465]:
+                    - generic [ref=f6e466]:
+                      - heading "Reviews" [level=2] [ref=f6e467]
+                      - generic [ref=f6e468]:
+                        - button "Move up" [ref=f6e470] [cursor=pointer]
+                        - button "Move down" [ref=f6e474] [cursor=pointer]
+                        - button "Show or hide panel" [expanded] [ref=f6e478] [cursor=pointer]
+                    - generic [ref=f6e481]:
+                      - paragraph [ref=f6e482]:
+                        - button "Add Comment" [ref=f6e483] [cursor=pointer]
+                      - paragraph [ref=f6e484]: No comments yet.
+  - status [ref=f6e487]
+  - text:          
+  - status [ref=f6e488]
+  - text:            
+  - status [ref=f6e489]
+  - text:  

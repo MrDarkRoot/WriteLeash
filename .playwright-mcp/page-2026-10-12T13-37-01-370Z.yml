@@ -1,0 +1,207 @@
+- generic [ref=f19e2]:
+  - navigation "Main menu":
+    - link "Skip to main content" [ref=f19e3] [cursor=pointer]:
+      - /url: "#wpbody-content"
+    - text:             
+  - generic [ref=f19e4]:
+    - generic [ref=f19e5]:
+      - navigation "Toolbar":
+        - menu:
+          - group [ref=f19e6]:
+            - menuitem "Menu" [ref=f19e7] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f19e8]: 
+          - group [ref=f19e10]:
+            - menuitem "About WordPress" [ref=f19e11] [cursor=pointer]
+          - group [ref=f19e14]:
+            - menuitem "Weekend Homewares B" [ref=f19e15] [cursor=pointer]
+          - group [ref=f19e16]:
+            - menuitem "2 updates available" [ref=f19e17] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f19e19]: "2"
+          - group [ref=f19e21]:
+            - menuitem "Ctrl+K Open command palette" [ref=f19e22] [cursor=pointer]:
+              - generic [ref=f19e24]:
+                - text: Ctrl+K
+                - generic [ref=f19e25]: Open command palette
+          - group [ref=f19e26]:
+            - menuitem "0 Comments in moderation" [ref=f19e27] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f19e29]: "0"
+          - group [ref=f19e31]:
+            - menuitem "New" [ref=f19e32] [cursor=pointer]
+        - menu [ref=f19e35]:
+          - group [ref=f19e36]:
+            - menuitem "Howdy, merchant" [ref=f19e37] [cursor=pointer]
+    - main [ref=f19e38]:
+      - generic [ref=f19e39]:
+        - generic [ref=f19e40]:
+          - link "WordPress 7.1.3" [ref=f19e41] [cursor=pointer]:
+            - /url: https://wordpress.org/documentation/wordpress-version/version-7-1-3/
+          - text: is available!
+          - link "Please update WordPress now" [ref=f19e42] [cursor=pointer]:
+            - /url: http://127.0.0.1:8257/wp-admin/update-core.php
+            - text: Please update now
+          - text: .
+        - generic [ref=f19e43]:
+          - heading "WriteLeash Bulk Prices" [level=1] [ref=f19e44]
+          - alert [ref=f19e46]:
+            - paragraph [ref=f19e47]: Preset loaded into the editable form. Check the selection, prepare a fresh Preview and approve independently. No prices changed.
+          - paragraph [ref=f19e48]: Preview bulk regular or sale prices before they happen. Run them safely. If the price or a checked setting changed after review, WriteLeash leaves the newer value alone. Undo changes that are still safe to restore.
+          - paragraph [ref=f19e49]: Change the stored price of published simple products and variations of published variable products in the base store currency. Variations can be selected as a whole product or individually. Sale dates, stock, orders and subscriptions are not changed.
+          - paragraph [ref=f19e50]: "Up to 1000 selected products per new job in the tested configuration. Planned prices are not guaranteed shopper prices: taxes, currency settings, dynamic pricing and later edits still apply. You can close this page at any time; saved progress appears again when you return."
+          - heading "New price change" [level=2] [ref=f19e51]
+          - heading "Saved price presets" [level=2] [ref=f19e52]
+          - paragraph [ref=f19e53]: Presets save configuration only. Load, edit, then prepare and approve a fresh Preview. Current products, permissions and limits are checked again. Up to 20 presets per store; creators and administrators can manage them.
+          - paragraph [ref=f19e54]: Presets save the editable selection and price range, not individual Preview exclusions. To exclude products, create a fresh Preview and confirm exclusions before approving it.
+          - generic [ref=f19e55]:
+            - heading "Supplier Duvet Update" [level=3] [ref=f19e56]
+            - button "Load preset" [ref=f19e58] [cursor=pointer]
+            - generic [ref=f19e59]:
+              - text: New preset name
+              - textbox "New preset name" [ref=f19e60]: Supplier Duvet Update
+              - button "Rename preset" [ref=f19e61] [cursor=pointer]
+            - button "Delete preset" [ref=f19e63] [cursor=pointer]
+          - generic [ref=f19e64]:
+            - heading "Labels a81f9a25 true 24" [level=3] [ref=f19e65]
+            - button "Load preset" [ref=f19e67] [cursor=pointer]
+            - generic [ref=f19e68]:
+              - text: New preset name
+              - textbox "New preset name" [ref=f19e69]: Labels a81f9a25 true 24
+              - button "Rename preset" [ref=f19e70] [cursor=pointer]
+            - button "Delete preset" [ref=f19e72] [cursor=pointer]
+          - generic [ref=f19e73]:
+            - heading "Labels b434fc4a true 29" [level=3] [ref=f19e74]
+            - button "Load preset" [ref=f19e76] [cursor=pointer]
+            - generic [ref=f19e77]:
+              - text: New preset name
+              - textbox "New preset name" [ref=f19e78]: Labels b434fc4a true 29
+              - button "Rename preset" [ref=f19e79] [cursor=pointer]
+            - button "Delete preset" [ref=f19e81] [cursor=pointer]
+          - generic [ref=f19e82]:
+            - group "1. Select products" [ref=f19e83]:
+              - paragraph [ref=f19e85]: Choose specific products or one category. Categories include direct members only by default; subcategories are not included unless you enable Include subcategories. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum 1000 selected products.
+              - paragraph [ref=f19e86]:
+                - generic [ref=f19e87]: Selection method
+                - combobox "Selection method" [ref=f19e88] [cursor=pointer]:
+                  - option "Choose products by name or SKU" [selected]
+                  - option "Product category"
+                  - option "One exact SKU"
+                  - 'option "Advanced: manual product IDs"'
+              - status [ref=f19e89]: Search and choose products to add them.
+              - generic [ref=f19e90]:
+                - group [ref=f19e91]:
+                  - generic "Search products without live suggestions" [ref=f19e92] [cursor=pointer]
+                - paragraph [ref=f19e93]:
+                  - generic [ref=f19e94]: Choose products
+                  - listbox [aria-hidden] [ref=f19e95] [cursor=pointer]:
+                    - option [selected] [ref=f19e96]: "Duvet & cover · SKU: UX256-b434fc4a-Single · ID: 29"
+                    - option [selected] [ref=f19e97]: "Duvet & cover · SKU: UX256-b434fc4a-Double · ID: 30"
+                  - combobox [ref=f19e100]:
+                    - list [ref=f19e101]:
+                      - 'listitem "Duvet & cover · SKU: UX256-b434fc4a-Single · ID: 29" [ref=f19e102]':
+                        - generic [aria-hidden] [ref=f19e103] [cursor=pointer]: ×
+                        - text: "Duvet & cover · SKU: UX256-b434fc4a-Single · ID: 29"
+                      - 'listitem "Duvet & cover · SKU: UX256-b434fc4a-Double · ID: 30" [ref=f19e104]':
+                        - generic [aria-hidden] [ref=f19e105] [cursor=pointer]: ×
+                        - text: "Duvet & cover · SKU: UX256-b434fc4a-Double · ID: 30"
+                      - listitem [ref=f19e106]:
+                        - textbox "Choose products" [ref=f19e107]:
+                          - /placeholder: ""
+                - paragraph [ref=f19e108]: Check the selected products below. Preview checks their eligibility before any prices change.
+                - heading "Selected products" [level=3] [ref=f19e109]
+                - list [ref=f19e110]:
+                  - listitem [ref=f19e111]:
+                    - text: "Duvet & cover · SKU: UX256-b434fc4a-Single · ID: 29"
+                    - 'button "Remove Duvet & cover · SKU: UX256-b434fc4a-Single · ID: 29" [ref=f19e112] [cursor=pointer]': Remove
+                  - listitem [ref=f19e113]:
+                    - text: "Duvet & cover · SKU: UX256-b434fc4a-Double · ID: 30"
+                    - 'button "Remove Duvet & cover · SKU: UX256-b434fc4a-Double · ID: 30" [ref=f19e114] [cursor=pointer]': Remove
+                - button "Clear selected products" [ref=f19e115] [cursor=pointer]
+              - paragraph [ref=f19e116]:
+                - button "Check selection count" [ref=f19e117] [cursor=pointer]
+              - status [ref=f19e118]: Check the number of price targets before Preview, including variations.
+              - paragraph [ref=f19e119]: Counts are informational and can change. Preview resolves the selection again and freezes the exact products for your review; no count authorizes a price change.
+              - generic [ref=f19e120]:
+                - paragraph [ref=f19e121]:
+                  - checkbox "Only change products in a price range" [checked] [ref=f19e122] [cursor=pointer]
+                  - generic [ref=f19e123]: Only change products in a price range
+                - paragraph [ref=f19e124]: "Optional. When enabled, Preview includes only products whose stored price falls within the inclusive range: the minimum and maximum both count as matches. Each variation is judged by its own price, not its parent’s. Products without a stored sale price never match a sale-price range. Use unsigned numbers with a dot for decimals; leave out currency symbols."
+                - paragraph [ref=f19e125]:
+                  - generic [ref=f19e126]: Compare prices using
+                  - combobox "Compare prices using" [ref=f19e127] [cursor=pointer]:
+                    - option "Regular price" [selected]
+                    - option "Sale price"
+                - paragraph [ref=f19e128]:
+                  - generic [ref=f19e129]: Minimum price (USD)
+                  - textbox "Minimum price (USD)" [ref=f19e130]: "90"
+                - paragraph [ref=f19e131]:
+                  - generic [ref=f19e132]: Maximum price (USD)
+                  - textbox "Maximum price (USD)" [ref=f19e133]: "150"
+            - group "2. Choose the price change" [ref=f19e134]:
+              - paragraph [ref=f19e136]:
+                - generic [ref=f19e137]: Price to change
+                - combobox "Price to change" [ref=f19e138] [cursor=pointer]:
+                  - option "Regular price" [selected]
+                  - option "Sale price"
+              - paragraph [ref=f19e139]: Regular price is the everyday price. Sale price is the discounted price during a sale. WriteLeash changes only the price you choose and keeps the other one.
+              - paragraph [ref=f19e140]:
+                - generic [ref=f19e141]: Operation
+                - combobox "Operation" [ref=f19e142] [cursor=pointer]:
+                  - option "Set an exact price"
+                  - option "Increase by fixed amount" [selected]
+                  - option "Decrease by fixed amount"
+                  - option "Increase by percent"
+                  - option "Decrease by percent"
+                  - option "Clear Sale Price"
+                  - option "Sale discount from Regular Price (%)"
+              - paragraph [ref=f19e143]:
+                - generic [ref=f19e144]: Price Ending (optional)
+                - combobox "Price Ending (optional)" [ref=f19e145] [cursor=pointer]:
+                  - option "Unchanged / Default" [selected]
+                  - option "End in .99"
+                  - option "End in .95"
+                  - option "End in .90"
+                  - option "Whole-number price"
+              - paragraph [ref=f19e146]: Nearest nonnegative matching price; exact ties go upward. Below the first ending, use 0.99, 0.95 or 0.90; whole prices may become zero. Default keeps existing calculations. .99/.95 need two decimal places; .90 needs one. Clear Sale ignores endings and stays blank. Preview checks the final rounded price against all safety limits.
+              - paragraph [ref=f19e147]:
+                - generic [ref=f19e148]: Amount to increase by
+                - textbox "Amount to increase by" [ref=f19e149]: "5"
+              - paragraph [ref=f19e150]: Enter a positive number or zero. Use a dot for decimals; leave out currency symbols and the % sign.
+              - paragraph [ref=f19e151]: Choose Sale price for Clear or Sale discount. Clear makes Sale Price blank and preserves sale schedules; safety caps check the return to Regular Price. Sale discount requires an explicit 0–100 percentage (up to six decimal places), calculated from each product’s own reviewed Regular Price. A changed Regular Price conflicts at Apply; the approved target is never recalculated. Zero or a sale at Regular Price still must pass eligibility and safety checks.
+            - group [ref=f19e152]:
+              - generic "Safety limits (optional)" [ref=f19e153] [cursor=pointer]
+            - paragraph [ref=f19e154]:
+              - generic [ref=f19e155]: Preset name
+              - textbox "Preset name" [ref=f19e156]
+              - button "Save as preset" [ref=f19e157] [cursor=pointer]
+            - paragraph [ref=f19e158]:
+              - button "Preview price changes" [ref=f19e159] [cursor=pointer]
+              - text: Preview does not change any prices.
+          - heading "Recent jobs" [level=2] [ref=f19e160]
+          - region "Job history" [ref=f19e161]:
+            - table [ref=f19e162]:
+              - rowgroup [ref=f19e163]:
+                - row [ref=f19e164]:
+                  - columnheader "Task / operator / time" [ref=f19e165]
+                  - columnheader "Outcome" [ref=f19e166]
+                  - columnheader "Undo" [ref=f19e167]
+                  - columnheader "Action" [ref=f19e168]
+              - rowgroup [ref=f19e169]:
+                - row [ref=f19e170]:
+                  - cell [ref=f19e171]:
+                    - strong [ref=f19e172]: Increase regular prices by $6.00 USD · 2 variations
+                    - text: Created by merchantApproved by merchantOctober 12, 2026 1:05 pm (+00:00)
+                    - group [ref=f19e173]:
+                      - generic "Support details" [ref=f19e174] [cursor=pointer]
+                  - cell [ref=f19e175]:
+                    - strong [ref=f19e176]: Finished
+                    - text: "Planned 2 products: 2 changed."
+                  - cell "Undo available for prices changed by this job. Until November 11, 2026 1:05 pm (+00:00)" [ref=f19e177]: Undo available for prices changed by this job.Until November 11, 2026 1:05 pm (+00:00)
+                  - cell [ref=f19e178]:
+                    - link "Open progress/results" [ref=f19e179] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8257/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=99557f37-e565-4cbc-8d39-096bf9f6b610
+                    - link "Repeat as new Preview" [ref=f19e180] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8257/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=repeat&wl_job=99557f37-e565-4cbc-8d39-096bf9f6b610
+                    - paragraph [ref=f19e182]:
+                      - button "Download job CSV" [ref=f19e183] [cursor=pointer]
+          - paragraph [ref=f19e184]:
+            - link "Open full history" [ref=f19e185] [cursor=pointer]:
+              - /url: http://127.0.0.1:8257/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=history

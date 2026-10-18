@@ -1,0 +1,19 @@
+{
+  "candidate_sha": "2e059cacf46977cc3ae1eba15eba628ad6e7570e",
+  "wordpress": "7.1.3",
+  "woocommerce_download_expected": "11.1.2",
+  "php": "8.2.32",
+  "mariadb": "10.11.14",
+  "url": "http://127.0.0.1:8188",
+  "php_memory_limit": "128M",
+  "php_max_execution_time": 30,
+  "http_workers": 4,
+  "fixture": "new disposable store, synthetic products; no source or old engineering findings used to choose complaints",
+  "evaluation": "AI persona simulation with prior-context disclosure, fresh UI observations",
+  "woocommerce": "11.1.2",
+  "hpos": "enabled, observed in WooCommerce Advanced Features UI",
+  "instrumentation_limits": [
+    "Chrome blocked job CSV export with ERR_BLOCKED_BY_CLIENT",
+    "Two screenshot attempts timed out in Page.captureScreenshot; complete rendered DOM snapshots captured instead."
+  ]
+}

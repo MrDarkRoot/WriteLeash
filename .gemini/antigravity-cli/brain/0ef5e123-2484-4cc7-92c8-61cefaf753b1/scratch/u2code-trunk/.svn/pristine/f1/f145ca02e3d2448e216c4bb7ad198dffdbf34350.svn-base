@@ -1,0 +1,114 @@
+/*
+ * "Price history" link: rendered as a fallback row, then moved inline next
+ * to WooCommerce's "Schedule" link under the sale price (see price-history.js).
+ */
+.bpe-price-history-field {
+	margin: 0 0 6px !important;
+	padding: 0 12px !important;
+}
+
+.woocommerce_variation .bpe-price-history-field {
+	padding: 0 !important;
+	clear: both;
+}
+
+.bpe-price-history-link--inline {
+	white-space: nowrap;
+}
+
+.bpe-price-history-sep {
+	margin: 0 6px;
+	color: #a7aaad;
+}
+
+/* Modal */
+.bpe-price-history-modal[hidden] {
+	display: none;
+}
+
+.bpe-price-history-modal__overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(30, 30, 30, 0.6);
+	z-index: 100000;
+}
+
+.bpe-price-history-modal__box {
+	position: fixed;
+	top: 8vh;
+	left: 50%;
+	transform: translateX(-50%);
+	width: min(860px, calc(100vw - 40px));
+	max-height: 84vh;
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	border-radius: 6px;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+	z-index: 100001;
+}
+
+.bpe-price-history-modal__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 20px;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.bpe-price-history-modal__header h2 {
+	margin: 0;
+	font-size: 16px;
+	line-height: 1.4;
+}
+
+.bpe-price-history-modal__close {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 4px;
+	color: #50575e;
+}
+
+.bpe-price-history-modal__close:hover {
+	color: #1d2327;
+}
+
+.bpe-price-history-modal__body {
+	padding: 16px 20px 20px;
+	overflow: auto;
+}
+
+/* History table */
+.bpe-price-history-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.bpe-price-history-table th,
+.bpe-price-history-table td {
+	text-align: left;
+	padding: 8px 10px;
+	border-bottom: 1px solid #f0f0f1;
+	vertical-align: top;
+}
+
+.bpe-price-history-table th {
+	color: #646970;
+	font-weight: 600;
+	background: #f6f7f7;
+}
+
+.bpe-price-history-table tr:last-child td {
+	border-bottom: none;
+}
+
+.bpe-price-history__muted,
+.bpe-price-history__footer {
+	color: #646970;
+	margin: 0 0 10px;
+}
+
+.bpe-price-history__footer {
+	margin: 10px 0 0;
+}

@@ -1,0 +1,3 @@
+includes/free/class-free-admin.php
+includes/free/free-progress.js
+includes/free/free-selection.js

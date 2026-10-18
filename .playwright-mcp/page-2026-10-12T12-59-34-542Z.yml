@@ -1,0 +1,9 @@
+- generic [ref=f2e2]:
+  - text:             
+  - generic [ref=f2e3]:
+    - text: 
+    - main [ref=f2e4]:
+      - generic [ref=f2e75]:
+        - img "loader-lightbulb" [ref=f2e76]
+        - heading "Turning on the lights" [level=1] [ref=f2e77]
+        - paragraph [ref=f2e81]: "#FunWooFact: Explore powerful extensions and themes at WooCommerce.com to enhance your store."

@@ -1,0 +1,5 @@
+exit=255
+PHP Fatal error:  Uncaught Error: Call to undefined method WriteLeash\Product_Price_Snapshot::fresh_product() in /tmp/writeleash-approved-20261008/evidence/agent-B/base-cache-test.php:58
+Stack trace:
+#0 {main}
+  thrown in /tmp/writeleash-approved-20261008/evidence/agent-B/base-cache-test.php on line 58

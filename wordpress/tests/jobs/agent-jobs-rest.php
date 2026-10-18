@@ -154,10 +154,68 @@ eq( $replay->get_data()['job']['public_id'], $job['public_id'], 'replay returns 
 eq( $replay->get_data()['job']['replayed'], true, 'replay flag set' );
 eq( saves( $product_id ), $before, 'replay writes no price' );
 
+$replay_after_edit = submit( $issuer, $grant['public_id'], payload( $actor, $version + 9, array( $product_id ), 'ok-1' ) );
+eq( $replay_after_edit->get_status(), 200, 'replay is version-independent' );
+eq( $replay_after_edit->get_data()['job']['replayed'], true, 'version drift still replays the stored job' );
+
 $mismatch = submit( $issuer, $grant['public_id'], payload( $actor, $version, array( $product_id ), 'ok-1', '70.00' ) );
 eq( $mismatch->get_status(), 409, 'same key different payload rejected' );
 eq( reason_of( $mismatch ), 'GRANT_IDEMPOTENCY_MISMATCH', 'mismatch reason' );
 eq( saves( $product_id ), $before, 'mismatch writes no price' );
+
+function reservations(): int {
+	global $wpdb;
+	return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', \WriteLeash\Grant_Schema::reservations_table( $wpdb ) ) );
+}
+
+$catalog_grant = Grants::create_grant( $issuer, $actor, 2, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
+$catalog_id = product( '60.00' );
+$catalog_before = saves( $catalog_id );
+$catalog_first = submit( $issuer, $catalog_grant['public_id'], payload( $actor, (int) $catalog_grant['version'], array( $catalog_id ), 'cat-1', '50.00' ) );
+eq( $catalog_first->get_status(), 201, 'catalog mutation first accepted' );
+$catalog_job_id = $catalog_first->get_data()['job']['public_id'];
+\WriteLeash\Job_Scheduler::unschedule_all();
+$mutated = wc_get_product( $catalog_id );
+$mutated->set_status( 'draft' );
+$mutated->set_regular_price( '99.00' );
+$mutated->save();
+Verifier::invalidate( $catalog_id );
+$reserved_before_replay = reservations();
+$catalog_replay = submit( $issuer, $catalog_grant['public_id'], payload( $actor, (int) $catalog_grant['version'], array( $catalog_id ), 'cat-1', '50.00' ) );
+eq( $catalog_replay->get_status(), 200, 'identical retry replays after catalog mutation' );
+eq( $catalog_replay->get_data()['job']['public_id'], $catalog_job_id, 'mutated catalog replay returns the original job' );
+eq( $catalog_replay->get_data()['job']['replayed'], true, 'mutated catalog replay flag set' );
+eq( reservations(), $reserved_before_replay, 'replay creates no second reservation' );
+eq( saves( $catalog_id ), $catalog_before + 1, 'replay performs no price write' );
+$catalog_changed = submit( $issuer, $catalog_grant['public_id'], payload( $actor, (int) $catalog_grant['version'], array( $catalog_id ), 'cat-1', '55.00' ) );
+eq( $catalog_changed->get_status(), 409, 'changed target after catalog mutation rejected from stored plan' );
+eq( reason_of( $catalog_changed ), 'GRANT_IDEMPOTENCY_MISMATCH', 'changed-target mismatch reason' );
+eq( reservations(), $reserved_before_replay, 'changed-target replay reserves nothing' );
+$catalog_widened = submit( $issuer, $catalog_grant['public_id'], payload( $actor, (int) $catalog_grant['version'], array( $catalog_id, $product_id ), 'cat-1', '50.00' ) );
+eq( $catalog_widened->get_status(), 409, 'widened ID set rejected from stored plan' );
+eq( reason_of( $catalog_widened ), 'GRANT_IDEMPOTENCY_MISMATCH', 'widened-set mismatch reason' );
+eq( reservations(), $reserved_before_replay, 'widened-set replay reserves nothing' );
+
+$policy_grant = Grants::create_grant( $issuer, $actor, 4, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
+$policy_ver = (int) $policy_grant['version'];
+$extreme_id = product( '100.00' );
+$extreme_before = saves( $extreme_id );
+$extreme = submit( $issuer, $policy_grant['public_id'], payload( $actor, $policy_ver, array( $extreme_id ), 'pol-extreme', '10.00' ) );
+eq( $extreme->get_status(), 409, '90 percent decrease blocked by the delegated policy' );
+eq( reason_of( $extreme ), 'GRANT_SCOPE_DENIED', 'extreme decrease reason' );
+eq( saves( $extreme_id ), $extreme_before, 'extreme denial writes nothing' );
+$zero_id = product( '30.00' );
+$zero_before = saves( $zero_id );
+$zero = submit( $issuer, $policy_grant['public_id'], payload( $actor, $policy_ver, array( $zero_id ), 'pol-zero', '0.00' ) );
+eq( $zero->get_status(), 409, 'zero target blocked for delegated submission' );
+eq( reason_of( $zero ), 'GRANT_SCOPE_DENIED', 'zero target reason' );
+eq( saves( $zero_id ), $zero_before, 'zero denial writes nothing' );
+$alert_id = product( '100.00' );
+$alert_before = saves( $alert_id );
+$alert = submit( $issuer, $policy_grant['public_id'], payload( $actor, $policy_ver, array( $alert_id ), 'pol-alert', '70.00' ) );
+eq( $alert->get_status(), 201, 'large but capped decrease accepted with the delegated policy' );
+eq( saves( $alert_id ), $alert_before, 'policy acceptance writes no price' );
+\WriteLeash\Job_Scheduler::unschedule_all();
 
 $second_id = product( '40.00' );
 $budget = Grants::create_grant( $issuer, $actor, 1, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );

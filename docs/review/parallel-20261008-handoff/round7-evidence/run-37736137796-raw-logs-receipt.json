@@ -1,0 +1,12 @@
+{
+  "command": "gh api repos/MrDarkRoot/WriteLeash/actions/runs/37736137796/logs",
+  "exit_status": 0,
+  "bytes": 11858,
+  "stderr": "",
+  "archive_paths": [
+    "0_CI_COVERAGE.txt",
+    "CI_COVERAGE/system.txt",
+    "14_PR_FAST.txt",
+    "PR_FAST/system.txt"
+  ]
+}

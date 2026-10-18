@@ -1,0 +1,667 @@
+{
+  "snapshot_utc": "2026-10-08T12:11:31.931000+00:00",
+  "reason": "User requested report NOW; running work stopped. No new tests launched.",
+  "completed_receipts": {
+    "suite-receipts.json": [
+      {
+        "suite": "durable",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-integration",
+          "sh",
+          "/tmp/writeleash-round7-runners/durable.sh"
+        ],
+        "source_commit": "3b4ab5e8895fb60dbcb00d26d5c597f129b9ed8f",
+        "started": "2026-10-08T11:51:54.750676+00:00",
+        "completed": "2026-10-08T11:54:23.877720+00:00",
+        "exit_status": 1,
+        "seconds": 149.13
+      }
+    ],
+    "version-matrix-receipts.json": [
+      {
+        "version": "10.4.4",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "environment",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1044",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/environment.php"
+        ],
+        "started": "2026-10-08T12:02:50.671947+00:00",
+        "completed": "2026-10-08T12:02:51.759601+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.4.4",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "cache-public",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1044",
+          "eval-file",
+          "/opt/tests/durable/cache-public-integration.php"
+        ],
+        "started": "2026-10-08T12:02:51.759935+00:00",
+        "completed": "2026-10-08T12:03:14.512693+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.4.4",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-transient",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1044",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:03:14.513153+00:00",
+        "completed": "2026-10-08T12:03:19.592165+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.4.4",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-persistent",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1044",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:03:19.592514+00:00",
+        "completed": "2026-10-08T12:03:22.080752+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.4.4",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "environment",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1044",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/environment.php"
+        ],
+        "started": "2026-10-08T12:03:23.010255+00:00",
+        "completed": "2026-10-08T12:03:24.197381+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.4.4",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "cache-public",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1044",
+          "eval-file",
+          "/opt/tests/durable/cache-public-integration.php"
+        ],
+        "started": "2026-10-08T12:03:24.197768+00:00",
+        "completed": "2026-10-08T12:03:53.347153+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.4.4",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-transient",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1044",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:03:53.347635+00:00",
+        "completed": "2026-10-08T12:03:54.897550+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.4.4",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-persistent",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1044",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:03:54.898126+00:00",
+        "completed": "2026-10-08T12:03:56.157872+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.5.3",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "environment",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1053",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/environment.php"
+        ],
+        "started": "2026-10-08T12:04:09.318892+00:00",
+        "completed": "2026-10-08T12:04:10.689362+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.5.3",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "cache-public",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1053",
+          "eval-file",
+          "/opt/tests/durable/cache-public-integration.php"
+        ],
+        "started": "2026-10-08T12:04:10.689894+00:00",
+        "completed": "2026-10-08T12:04:34.970191+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.5.3",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-transient",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1053",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:04:34.970699+00:00",
+        "completed": "2026-10-08T12:04:45.148970+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.5.3",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-persistent",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1053",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:04:45.149433+00:00",
+        "completed": "2026-10-08T12:04:53.846808+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.5.3",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "environment",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1053",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/environment.php"
+        ],
+        "started": "2026-10-08T12:04:55.173126+00:00",
+        "completed": "2026-10-08T12:04:57.376920+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.5.3",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "cache-public",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1053",
+          "eval-file",
+          "/opt/tests/durable/cache-public-integration.php"
+        ],
+        "started": "2026-10-08T12:04:57.377485+00:00",
+        "completed": "2026-10-08T12:05:41.769298+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.5.3",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-transient",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1053",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:05:41.770093+00:00",
+        "completed": "2026-10-08T12:05:44.113991+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "10.5.3",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-persistent",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1053",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:05:44.114825+00:00",
+        "completed": "2026-10-08T12:05:45.880532+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "11.0.1",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "environment",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1101",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/environment.php"
+        ],
+        "started": "2026-10-08T12:07:21.963341+00:00",
+        "completed": "2026-10-08T12:07:30.125206+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "11.0.1",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "cache-public",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1101",
+          "eval-file",
+          "/opt/tests/durable/cache-public-integration.php"
+        ],
+        "started": "2026-10-08T12:07:30.125774+00:00",
+        "completed": "2026-10-08T12:08:24.878471+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "11.0.1",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-transient",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1101",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:08:24.879237+00:00",
+        "completed": "2026-10-08T12:08:27.202211+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "11.0.1",
+        "cache": "default",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-persistent",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1101",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:08:27.203873+00:00",
+        "completed": "2026-10-08T12:08:29.030447+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "11.0.1",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "environment",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1101",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/environment.php"
+        ],
+        "started": "2026-10-08T12:08:30.343168+00:00",
+        "completed": "2026-10-08T12:08:31.892323+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "11.0.1",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "cache-public",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1101",
+          "eval-file",
+          "/opt/tests/durable/cache-public-integration.php"
+        ],
+        "started": "2026-10-08T12:08:31.893176+00:00",
+        "completed": "2026-10-08T12:08:52.149814+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "11.0.1",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-transient",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1101",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:08:52.150425+00:00",
+        "completed": "2026-10-08T12:09:08.922448+00:00",
+        "exit_status": 0
+      },
+      {
+        "version": "11.0.1",
+        "cache": "persistent",
+        "database": "mysql",
+        "source_commit": "b834d81ab5fb378360356ba15c54ab632df03515",
+        "source_tree": "bb3cfe4820cd72ae5f375720d93709fe0f149937",
+        "probe": "repair-persistent",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-wc-1101",
+          "eval-file",
+          "/home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/cache-repair-probe.php"
+        ],
+        "started": "2026-10-08T12:09:08.923087+00:00",
+        "completed": "2026-10-08T12:09:16.975366+00:00",
+        "exit_status": 0
+      }
+    ],
+    "admin-receipts.json": [
+      {
+        "engine": "mysql",
+        "cache": "default",
+        "probe": "environment",
+        "source_commit": "ad6377eaf6b68548221d3e4fae0b522b0e19f7d3",
+        "started": "2026-10-08T12:05:50.655234+00:00",
+        "completed": "2026-10-08T12:05:52.305397+00:00",
+        "exit_status": 0
+      }
+    ],
+    "latest-repair-receipts.json": [
+      {
+        "mode": "transient",
+        "source_commit": "ad6377eaf6b68548221d3e4fae0b522b0e19f7d3",
+        "started": "2026-10-08T12:06:11.507378+00:00",
+        "completed": "2026-10-08T12:06:29.607860+00:00",
+        "exit_status": 0
+      },
+      {
+        "mode": "persistent",
+        "source_commit": "ad6377eaf6b68548221d3e4fae0b522b0e19f7d3",
+        "started": "2026-10-08T12:06:29.608816+00:00",
+        "completed": "2026-10-08T12:07:16.703954+00:00",
+        "exit_status": 0
+      }
+    ],
+    "probe-receipts.json": [
+      {
+        "source_label": "prefixed",
+        "mode": "transient",
+        "exit_status": 255,
+        "started": "2026-10-08T11:57:08.618273+00:00",
+        "completed": "2026-10-08T11:57:42.212461+00:00"
+      },
+      {
+        "source_label": "prefixed",
+        "mode": "persistent",
+        "exit_status": 255,
+        "started": "2026-10-08T11:57:42.213325+00:00",
+        "completed": "2026-10-08T11:57:44.008608+00:00"
+      },
+      {
+        "source_label": "fixed",
+        "mode": "transient",
+        "exit_status": 0,
+        "started": "2026-10-08T11:57:46.288209+00:00",
+        "completed": "2026-10-08T11:57:48.290729+00:00"
+      },
+      {
+        "source_label": "fixed",
+        "mode": "persistent",
+        "exit_status": 0,
+        "started": "2026-10-08T11:57:48.292596+00:00",
+        "completed": "2026-10-08T11:57:50.081781+00:00"
+      },
+      {
+        "source_label": "combined",
+        "mode": "transient",
+        "exit_status": 0,
+        "started": "2026-10-08T11:57:51.879242+00:00",
+        "completed": "2026-10-08T11:57:53.363958+00:00"
+      },
+      {
+        "source_label": "combined",
+        "mode": "persistent",
+        "exit_status": 0,
+        "started": "2026-10-08T11:57:53.364350+00:00",
+        "completed": "2026-10-08T11:57:54.708051+00:00"
+      }
+    ],
+    "corrected-pr220-receipts.json": [
+      {
+        "label": "corrected-pr220-default",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-cache",
+          "eval-file",
+          "/opt/tests/durable/cache-public-integration.php"
+        ],
+        "started": "2026-10-08T11:59:55.415034+00:00",
+        "completed": "2026-10-08T12:00:54.385795+00:00",
+        "exit_status": 0
+      },
+      {
+        "label": "corrected-pr220-wrong-cache-negative",
+        "command": [
+          "/tmp/wlruntime/ns.sh",
+          "/tmp/writeleash-round7-pr220",
+          "wp",
+          "--path=/tmp/writeleash-round7-cache",
+          "eval-file",
+          "/opt/tests/durable/cache-public-integration.php"
+        ],
+        "started": "2026-10-08T12:00:54.386389+00:00",
+        "completed": "2026-10-08T12:00:55.195207+00:00",
+        "exit_status": 1
+      }
+    ],
+    "targeted-prefixed-receipt.json": {
+      "command": [
+        "/tmp/wlruntime/ns.sh",
+        "/tmp/writeleash-round7-pr220",
+        "wp",
+        "--path=/tmp/writeleash-round7-cache",
+        "eval-file",
+        "/opt/tests/durable/cache-public-integration.php"
+      ],
+      "production_source": "029a08040da0fab06bfea2a8d174aeba3d72f2d4",
+      "started": "2026-10-08T12:01:27.856638+00:00",
+      "completed": "2026-10-08T12:01:37.648258+00:00",
+      "exit_status": 1
+    }
+  },
+  "raw_log_summaries": {
+    "jobs.log": {
+      "started_profiles": [
+        {
+          "line": 78,
+          "profile": "#109 engine=mysql cache=default"
+        },
+        {
+          "line": 325,
+          "profile": "#109 engine=mysql cache=persistent"
+        },
+        {
+          "line": 661,
+          "profile": "#109 engine=mariadb cache=default"
+        }
+      ],
+      "completion_markers": [
+        {
+          "line": 75,
+          "text": "#109 pinned DB version: 8.0.44"
+        },
+        {
+          "line": 658,
+          "text": "#109 pinned DB version: 10.11.15-MariaDB"
+        }
+      ],
+      "last_lines": [
+        "Success: Updated the constant 'WP_DEBUG' in the 'wp-config.php' file with the raw value 'true'.",
+        "Success: Added the constant 'WP_DEBUG_LOG' to the 'wp-config.php' file with the raw value 'true'.",
+        "#109 pinned DB version: 10.11.15-MariaDB",
+        "#109 no-replan audit: worker/repository/schema/scheduler contain no selector, planner, arithmetic or catalog-query call; execution uses hydrated #107 material and #108 Woo_Price_Mutator::apply PASS",
+        "#110 no-replan audit: undo worker/repository/schema/scheduler contain no selector, planner, arithmetic, catalog-query or direct Woo price SQL; restore uses hydrated #107 material, Woo_Undo_Mutator::restore and the Undo fence PASS",
+        "#109 engine=mariadb cache=default"
+      ],
+      "final_status": "INCOMPLETE / NOT_TESTED for unfinished profiles"
+    },
+    "latest-durable.log": {
+      "started_profiles": [
+        {
+          "line": 76,
+          "profile": "#108 engine=mysql cache=default"
+        },
+        {
+          "line": 233,
+          "profile": "#108 engine=mysql cache=persistent"
+        }
+      ],
+      "completion_markers": [
+        {
+          "line": 75,
+          "text": "#108 pinned DB version: 8.0.44"
+        },
+        {
+          "line": 127,
+          "text": "#108 complete executable correctness matrix: PASS (394 assertions)"
+        },
+        {
+          "line": 129,
+          "text": "#209 public cache real Woo/default-or-Redis/simple/variation/concurrent/rollback/Undo-precondition: PASS (64 assertions; Woo 11.1.2)"
+        }
+      ],
+      "last_lines": [
+        "#108 external edit: expected 100 / current 90 / CONFLICT / zero WriteLeash save: PASS (250 assertions)",
+        "#108 current==target without APPLIED journal: CONFLICT / no invented application evidence: PASS (256 assertions)",
+        "#108 fresh status contract changed: CONFLICT / zero WriteLeash save: PASS (259 assertions)",
+        "#108 fresh sale contract changed: CONFLICT / zero WriteLeash save: PASS (262 assertions)",
+        "#108 fresh currency contract changed: CONFLICT / zero WriteLeash save: PASS (265 assertions)",
+        "#108 fresh decimals contract changed: CONFLICT / zero WriteLeash save: PASS (268 assertions)"
+      ],
+      "final_status": "INCOMPLETE / NOT_TESTED for unfinished profiles"
+    }
+  }
+}

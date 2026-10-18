@@ -21,7 +21,8 @@
 > `admin_post_writeleash_free_approve` (queues), `admin_post_writeleash_free_resume`,
 > `POST /wp-json/writeleash/v1/jobs/{uuid}/resume`,
 > `POST /wp-json/writeleash/v1/grants/{uuid}/jobs` (#299; freezes a plan and
-> queues `Job_Worker`; not a second writer), and the
+> queues `Job_Worker`; not a second writer; identical retries replay from the
+> stored acceptance before live re-planning), and the
 > `writeleash_process_job` scheduler hook, which supersedes the "no public
 > mutation endpoint" and "REST resume only" sentences retained below. The apply
 > journal state-conditional update (#296) is merged. The allowlist is a token

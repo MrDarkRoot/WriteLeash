@@ -254,17 +254,22 @@ final class Grant_Repository {
 		return $grant;
 	}
 
-	/** True when this grant already has a durable idempotency row for the key. */
-	public static function has_idempotency( int $grant_db_id, string $key ): bool {
-		if ( $grant_db_id < 1 || 1 !== preg_match( self::IDEMPOTENCY_REGEX, $key ) ) { return false; }
-		try { $db = self::db(); } catch ( \Throwable $error ) { return false; }
+	/**
+	 * The durable idempotency row for a grant+key, or null when absent.
+	 * Transient store failures also return null: the REST replay pre-check
+	 * then falls through, and accept_plan's locked replay short-circuit in
+	 * the same transaction stays the authoritative dedupe.
+	 */
+	public static function load_idempotency( int $grant_db_id, string $key ): ?array {
+		if ( $grant_db_id < 1 || 1 !== preg_match( self::IDEMPOTENCY_REGEX, $key ) ) { return null; }
+		try { $db = self::db(); } catch ( \Throwable $error ) { return null; }
 		try {
-			if ( ! Grant_Schema::ready( $db ) ) { return false; }
+			if ( ! Grant_Schema::ready( $db ) ) { return null; }
 			$table = Grant_Schema::idempotency_table( $db );
-		} catch ( \Throwable $error ) { return false; }
+		} catch ( \Throwable $error ) { return null; }
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotency existence read; values are prepared.
-		$found = $db->get_var( $db->prepare( 'SELECT id FROM %i WHERE grant_db_id=%d AND idempotency_key=%s', $table, $grant_db_id, $key ) );
-		return null !== $found && '' !== (string) $found;
+		$row = $db->get_row( $db->prepare( 'SELECT * FROM %i WHERE grant_db_id=%d AND idempotency_key=%s', $table, $grant_db_id, $key ), ARRAY_A );
+		return $row ?: null;
 	}
 
 	public static function read_by_public_id( string $public_id ): ?array {

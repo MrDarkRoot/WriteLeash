@@ -1,0 +1,70 @@
+
+  GitNexus Impact (1.6.12)
+{
+  "target": {
+    "name": "progress_snapshot",
+    "type": "",
+    "filePath": "wordpress/writeleash/includes/free/class-free-admin.php"
+  },
+  "direction": "upstream",
+  "impactedCount": 3,
+  "risk": "LOW",
+  "riskSharedAxes": "LOW",
+  "riskScale": {
+    "comparableAcrossKinds": true,
+    "unusedAxes": []
+  },
+  "epistemic": "exact",
+  "summary": {
+    "direct": 3,
+    "processes_affected": 0,
+    "modules_affected": 2
+  },
+  "byDepthCounts": {
+    "1": 3
+  },
+  "affected_processes": [],
+  "affected_modules": [
+    {
+      "name": "Includes",
+      "hits": 3,
+      "impact": "indirect"
+    },
+    {
+      "name": "Free",
+      "hits": 1,
+      "impact": "indirect"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "File:wordpress/release/compliance-smoke-124-reaudit.php",
+        "name": "compliance-smoke-124-reaudit.php",
+        "filePath": "wordpress/release/compliance-smoke-124-reaudit.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "File:wordpress/release/durable-lifecycle-fixture-124.php",
+        "name": "durable-lifecycle-fixture-124.php",
+        "filePath": "wordpress/release/durable-lifecycle-fixture-124.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "File:wordpress/release/nonce-smoke-124-reaudit.php",
+        "name": "nonce-smoke-124-reaudit.php",
+        "filePath": "wordpress/release/nonce-smoke-124-reaudit.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      }
+    ]
+  }
+}

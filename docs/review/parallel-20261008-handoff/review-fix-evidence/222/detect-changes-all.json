@@ -1,0 +1,23 @@
+
+  GitNexus Detect Changes (1.6.12)
+Changes: 6 files, 27 symbols
+Affected processes: 0
+Risk level: low
+
+Changed symbols:
+  Section #210 — Merchant-facing UI translation readiness (preparation) → docs/i18n/PREPARATION.md
+  Section 1. Inventory assets and determinism → docs/i18n/PREPARATION.md
+  Section 1.1 Artifact policy (review fix P2) → docs/i18n/PREPARATION.md
+  Section 2. Baseline composition and classification → docs/i18n/PREPARATION.md
+  Section 8. Follow-up after #204–#208 settle → docs/i18n/PREPARATION.md
+  Section 9. Evidence commands and observed results (2026-10-08) → docs/i18n/PREPARATION.md
+  Section 10. Known gaps in the baseline inventory → docs/i18n/PREPARATION.md
+  Section Issue #210 preparation handoff → docs/review/210/IMPLEMENTATION.md
+  Section Review fix P2 (2026-10-08) → docs/review/210/IMPLEMENTATION.md
+  Section What was prepared → docs/review/210/IMPLEMENTATION.md
+  Section Acceptance criteria → docs/review/210/IMPLEMENTATION.md
+  Section Executed validation → docs/review/210/IMPLEMENTATION.md
+  Section Graph, localization and integration notes → docs/review/210/IMPLEMENTATION.md
+  Section Unrun validation and blockers → docs/review/210/IMPLEMENTATION.md
+  Section Founder attention → docs/review/210/IMPLEMENTATION.md
+... and 12 more

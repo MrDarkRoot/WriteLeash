@@ -6,9 +6,13 @@ Plan, the #108 Woo CRUD + price journal primitive, the #109 job engine and
 `POST /wp-json/writeleash/v1/grants/{uuid}/jobs`, which authenticates the
 WordPress user and calls `Grant_Repository::accept_plan` then
 `Job_Worker::queue_job`. That route is not an MCP adapter, not a second price
-writer, and not a firewall. No inventory or other asset family, no v0.3.0
-change, no version bump and no public "agent-safe" claim. Research #270/#271
-remain research-only. Closed #290-#293 stay closed.
+writer, and not a firewall. An identical retry replays from the stored
+acceptance before live re-planning (catalog edits cannot block replay; a
+different payload rejects without planning). Submission planning uses the
+delegated safety policy in `Free_Support_Contract` (≲50% either direction,
+zero target blocked), not a permissive override. No inventory or other asset
+family, no v0.3.0 change, no version bump and no public "agent-safe" claim.
+Research #270/#271 remain research-only. Closed #290-#293 stay closed.
 
 ## Supported boundary
 
@@ -62,7 +66,17 @@ restoration.
    Canonical payload = `plan_hash + actor + grant + field + sorted targets`;
    same key + same hash replays the original job (no second plan/reservation);
    same key + different hash rejects (`GRANT_IDEMPOTENCY_MISMATCH`); one
-   winner concurrently via the unique key + transaction rollback.
+   winner concurrently via the unique key + transaction rollback. #299 adds a
+   pre-planning replay step: the route validates the request against the
+   stored frozen plan (actor, SET field, sorted product IDs, absolute target)
+   before any live selector/plan run, so a catalog edit after acceptance can
+   never block an identical retry and only the stored plan decides replay.
+   The frozen plan stays the only canonical evidence; the durable accept_plan
+   short-circuit stays authoritative when the pre-check row cannot be read.
+   Grant-submission framing safety additionally uses the #299 delegated
+   policy: ≲50% increase/decrease, 20% warning threshold, zero target
+   blocked (stricter than a human Apply form because no human reviews these
+   jobs before execution; `Free_Support_Contract` constants).
 8. **Audit:** append-only `grant_audit` (no UPDATE/DELETE): actor, issuer,
    approver/mode, grant ID/version, key, frozen targets, before/after,
    reservation/budget events, item outcomes. Job pins

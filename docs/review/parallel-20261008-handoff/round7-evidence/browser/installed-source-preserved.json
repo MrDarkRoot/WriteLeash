@@ -1,0 +1,517 @@
+{
+  "sha": "3b4ab5e8895fb60dbcb00d26d5c597f129b9ed8f",
+  "files": 85,
+  "mismatches": [],
+  "entries": [
+    {
+      "path": "ADMIN-CLI.md",
+      "sha256": "54e527f29f12214fd79862917c919e97d99e04bfc8064f030fbab14d815c2bb1",
+      "installed_sha256": "54e527f29f12214fd79862917c919e97d99e04bfc8064f030fbab14d815c2bb1",
+      "match": true
+    },
+    {
+      "path": "CANDIDATES.md",
+      "sha256": "959d163ae856b3f117837df9c7918a9ff3d43fa34d63427ef3b80b6df0146b35",
+      "installed_sha256": "959d163ae856b3f117837df9c7918a9ff3d43fa34d63427ef3b80b6df0146b35",
+      "match": true
+    },
+    {
+      "path": "DEMO.md",
+      "sha256": "00060e61977472c8622094d95ccd7affc4256e3bc4080c2150d59a4f12d123c7",
+      "installed_sha256": "00060e61977472c8622094d95ccd7affc4256e3bc4080c2150d59a4f12d123c7",
+      "match": true
+    },
+    {
+      "path": "DOCTOR.md",
+      "sha256": "d44c39c51a66936915fa2ac5ad04e2c715b61ff16776779c6b06c10fe707f956",
+      "installed_sha256": "d44c39c51a66936915fa2ac5ad04e2c715b61ff16776779c6b06c10fe707f956",
+      "match": true
+    },
+    {
+      "path": "DURABLE-ENCODING.md",
+      "sha256": "30f98fd5e26003f7e853a1da83bbb43273405fa04c6fdb2e51133532ac2a6c98",
+      "installed_sha256": "30f98fd5e26003f7e853a1da83bbb43273405fa04c6fdb2e51133532ac2a6c98",
+      "match": true
+    },
+    {
+      "path": "ENGINE.md",
+      "sha256": "47f5489220933714a5e3a0b1198cce2e708151f012bad7d760980f2eb7215cae",
+      "installed_sha256": "47f5489220933714a5e3a0b1198cce2e708151f012bad7d760980f2eb7215cae",
+      "match": true
+    },
+    {
+      "path": "FREE-JOB-ENGINE-CONTRACT.md",
+      "sha256": "e3bc8c38e570f2be2c3eddb36907f6e5986016b1af544f054664a754b76a15b8",
+      "installed_sha256": "e3bc8c38e570f2be2c3eddb36907f6e5986016b1af544f054664a754b76a15b8",
+      "match": true
+    },
+    {
+      "path": "FREE-PRICE-APPLY-CONTRACT.md",
+      "sha256": "6c01196371fd647e58ebb22f5e5169750b897dfe8bda4e25e5cafae5cc2de2f4",
+      "installed_sha256": "6c01196371fd647e58ebb22f5e5169750b897dfe8bda4e25e5cafae5cc2de2f4",
+      "match": true
+    },
+    {
+      "path": "FREE-PRICE-CONTRACT.md",
+      "sha256": "8960e83b67f36164090675d8445f944e0e8e2aaa4b50f1bb3fbfc0cc9b94372d",
+      "installed_sha256": "8960e83b67f36164090675d8445f944e0e8e2aaa4b50f1bb3fbfc0cc9b94372d",
+      "match": true
+    },
+    {
+      "path": "FREE-UNDO-HISTORY-CONTRACT.md",
+      "sha256": "ac9428e90af05e78f8e50c679d12cad07969b8255fc827cdc03835d8983559d3",
+      "installed_sha256": "ac9428e90af05e78f8e50c679d12cad07969b8255fc827cdc03835d8983559d3",
+      "match": true
+    },
+    {
+      "path": "GUARD.md",
+      "sha256": "7ff0ea9654d860bbb49fd457f75d6b84838454b1ebc030ad1f6cdcd69fbf0de6",
+      "installed_sha256": "7ff0ea9654d860bbb49fd457f75d6b84838454b1ebc030ad1f6cdcd69fbf0de6",
+      "match": true
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "installed_sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "match": true
+    },
+    {
+      "path": "LICENSE-AUDIT.md",
+      "sha256": "a9eacf69207af2bd32dfbc3a3a408e99e1384f5368a0bf7a4e9f1ba7e5890adf",
+      "installed_sha256": "a9eacf69207af2bd32dfbc3a3a408e99e1384f5368a0bf7a4e9f1ba7e5890adf",
+      "match": true
+    },
+    {
+      "path": "OPERATION.md",
+      "sha256": "824609409e1e22c524e6d443faf391ed53dca721e1987eca46445d4268e6de0c",
+      "installed_sha256": "824609409e1e22c524e6d443faf391ed53dca721e1987eca46445d4268e6de0c",
+      "match": true
+    },
+    {
+      "path": "PROVISIONING.md",
+      "sha256": "d5ec29eb7464178dc4c7f99355ee3a3cd9823f46cc6cdd24242a9c7d73700443",
+      "installed_sha256": "d5ec29eb7464178dc4c7f99355ee3a3cd9823f46cc6cdd24242a9c7d73700443",
+      "match": true
+    },
+    {
+      "path": "README.md",
+      "sha256": "a9f2e8a7468933f83743f997550545828a3271c35672942f4607a36acd035659",
+      "installed_sha256": "a9f2e8a7468933f83743f997550545828a3271c35672942f4607a36acd035659",
+      "match": true
+    },
+    {
+      "path": "REDIRECTION.md",
+      "sha256": "7c690e4e8c19bed58c17f12e75b0e871aad9752e193539d7888d7d3270696f66",
+      "installed_sha256": "7c690e4e8c19bed58c17f12e75b0e871aad9752e193539d7888d7d3270696f66",
+      "match": true
+    },
+    {
+      "path": "RELEASE-MATRIX.md",
+      "sha256": "36291338ce5451e47a32c0a7c105ba842341efa3e4f3bc1abd1f4bf05cfcf9a7",
+      "installed_sha256": "36291338ce5451e47a32c0a7c105ba842341efa3e4f3bc1abd1f4bf05cfcf9a7",
+      "match": true
+    },
+    {
+      "path": "RESEARCH.md",
+      "sha256": "b4256ddf0d0718c2c0d83aaf19df0650fee98c42d4f39429738d8c1da6b97818",
+      "installed_sha256": "b4256ddf0d0718c2c0d83aaf19df0650fee98c42d4f39429738d8c1da6b97818",
+      "match": true
+    },
+    {
+      "path": "THREAT-MODEL.md",
+      "sha256": "cc9b97e6122691300fef54742b40accc5c7f3bc7c572c5150d843c14385c9f28",
+      "installed_sha256": "cc9b97e6122691300fef54742b40accc5c7f3bc7c572c5150d843c14385c9f28",
+      "match": true
+    },
+    {
+      "path": "includes/class-admin-page.php",
+      "sha256": "2bd3b224bf6adb83743e36050ba79451a14a273f077f0087a102099ba28c469b",
+      "installed_sha256": "2bd3b224bf6adb83743e36050ba79451a14a273f077f0087a102099ba28c469b",
+      "match": true
+    },
+    {
+      "path": "includes/class-budget-denied.php",
+      "sha256": "14e1a5e98a33df6b35df1c68274e9987b1dbfb567f465eb56b1f9bb9f70306e2",
+      "installed_sha256": "14e1a5e98a33df6b35df1c68274e9987b1dbfb567f465eb56b1f9bb9f70306e2",
+      "match": true
+    },
+    {
+      "path": "includes/class-certified-operation-status.php",
+      "sha256": "7cadc9722219c9b7b72a3c4ea4934943948925f209b5e8f4c543c280cfeecc15",
+      "installed_sha256": "7cadc9722219c9b7b72a3c4ea4934943948925f209b5e8f4c543c280cfeecc15",
+      "match": true
+    },
+    {
+      "path": "includes/class-certified-operation.php",
+      "sha256": "a5d3bafc5f8a29b259caa1341870fa7cad6124135ab35d3eef2d5f811eeebd57",
+      "installed_sha256": "a5d3bafc5f8a29b259caa1341870fa7cad6124135ab35d3eef2d5f811eeebd57",
+      "match": true
+    },
+    {
+      "path": "includes/class-compatibility-doctor.php",
+      "sha256": "ddfb1c38252b7834549aa7f85b2917f84e90633dac072caab585e859bf257bcc",
+      "installed_sha256": "ddfb1c38252b7834549aa7f85b2917f84e90633dac072caab585e859bf257bcc",
+      "match": true
+    },
+    {
+      "path": "includes/class-compatibility-grants.php",
+      "sha256": "791a3b9f9e844b5ab520c6200c02dec15f184b7b5e62f7f0ecc325871d157e97",
+      "installed_sha256": "791a3b9f9e844b5ab520c6200c02dec15f184b7b5e62f7f0ecc325871d157e97",
+      "match": true
+    },
+    {
+      "path": "includes/class-disposable-demo-setup.php",
+      "sha256": "1cc0383a1bd06f58dc1a67dd08529e87e2a8caa98f92207dd905265365761248",
+      "installed_sha256": "1cc0383a1bd06f58dc1a67dd08529e87e2a8caa98f92207dd905265365761248",
+      "match": true
+    },
+    {
+      "path": "includes/class-disposable-demo.php",
+      "sha256": "a59fd95f406a6b17e571aafbd3420d5dbf21d3f9c05d277787263862a0642f1d",
+      "installed_sha256": "a59fd95f406a6b17e571aafbd3420d5dbf21d3f9c05d277787263862a0642f1d",
+      "match": true
+    },
+    {
+      "path": "includes/class-environment.php",
+      "sha256": "91d0cf91fa588e098b17cac294f8a254d1dde68ff55119c212536c90f29ea9c4",
+      "installed_sha256": "91d0cf91fa588e098b17cac294f8a254d1dde68ff55119c212536c90f29ea9c4",
+      "match": true
+    },
+    {
+      "path": "includes/class-guard-error.php",
+      "sha256": "15c9d9624b527f74c661da138f8d22a9c5eb9f3287b0fd3006395f0d849e2edc",
+      "installed_sha256": "15c9d9624b527f74c661da138f8d22a9c5eb9f3287b0fd3006395f0d849e2edc",
+      "match": true
+    },
+    {
+      "path": "includes/class-guard-monitor.php",
+      "sha256": "45fa30c3d2674cc8cda3b85d91576a3624429771417b6a25b4bb13beb2532b54",
+      "installed_sha256": "45fa30c3d2674cc8cda3b85d91576a3624429771417b6a25b4bb13beb2532b54",
+      "match": true
+    },
+    {
+      "path": "includes/class-guard-sql.php",
+      "sha256": "1343b360beaba83d3ce1737172283953a0157f57a347c60531edf979bb01789d",
+      "installed_sha256": "1343b360beaba83d3ce1737172283953a0157f57a347c60531edf979bb01789d",
+      "match": true
+    },
+    {
+      "path": "includes/class-guard-transaction.php",
+      "sha256": "661ab086296b231537abec36124ac5693239bed9ef784f46d5232074a3736802",
+      "installed_sha256": "661ab086296b231537abec36124ac5693239bed9ef784f46d5232074a3736802",
+      "match": true
+    },
+    {
+      "path": "includes/class-guard.php",
+      "sha256": "014177521fc9b0440754b7ade499190a78c5b7a33c65c48e602244895b01a980",
+      "installed_sha256": "014177521fc9b0440754b7ade499190a78c5b7a33c65c48e602244895b01a980",
+      "match": true
+    },
+    {
+      "path": "includes/class-last-outcome.php",
+      "sha256": "c1db85f0ec236a6776fdc2576c606215b705fec78fd23f60c823b72ea9fdfa41",
+      "installed_sha256": "c1db85f0ec236a6776fdc2576c606215b705fec78fd23f60c823b72ea9fdfa41",
+      "match": true
+    },
+    {
+      "path": "includes/class-lifecycle.php",
+      "sha256": "01a6879c2364217af9e5b5034a994ae4ec11ef29c12f9d29ade497b5a1892f79",
+      "installed_sha256": "01a6879c2364217af9e5b5034a994ae4ec11ef29c12f9d29ade497b5a1892f79",
+      "match": true
+    },
+    {
+      "path": "includes/class-operation-config.php",
+      "sha256": "89bbf8fdb5096fcef8d2621dbc1483543ac8bda875fcd4046f530d32ff5cc4c7",
+      "installed_sha256": "89bbf8fdb5096fcef8d2621dbc1483543ac8bda875fcd4046f530d32ff5cc4c7",
+      "match": true
+    },
+    {
+      "path": "includes/class-plugin.php",
+      "sha256": "db8934a4ff5d52e39a31fa644939094da8b4f2488d6f19f8c4ff689cc2671720",
+      "installed_sha256": "db8934a4ff5d52e39a31fa644939094da8b4f2488d6f19f8c4ff689cc2671720",
+      "match": true
+    },
+    {
+      "path": "includes/class-product-cli.php",
+      "sha256": "16f6bc26fdd01d06443ed4a2d2d52a2223062989afc7766d042fe07c306ba212",
+      "installed_sha256": "16f6bc26fdd01d06443ed4a2d2d52a2223062989afc7766d042fe07c306ba212",
+      "match": true
+    },
+    {
+      "path": "includes/class-product-status.php",
+      "sha256": "27b31a3aafdaa47cdf96e443f26575a22b42ba85ce9140036a3ca806a4be8b8c",
+      "installed_sha256": "27b31a3aafdaa47cdf96e443f26575a22b42ba85ce9140036a3ca806a4be8b8c",
+      "match": true
+    },
+    {
+      "path": "includes/class-provisioning-plan.php",
+      "sha256": "6fd5e5c30b4aa532ce19156b5a47b245effec0ebb5b19cdf2c6d7ca5ab2b5a1c",
+      "installed_sha256": "6fd5e5c30b4aa532ce19156b5a47b245effec0ebb5b19cdf2c6d7ca5ab2b5a1c",
+      "match": true
+    },
+    {
+      "path": "includes/class-redirection-bulk-disable-rest.php",
+      "sha256": "4675c1df87027b93146aba47807f4afdff102846758e7e8189f57e948ab21b1a",
+      "installed_sha256": "4675c1df87027b93146aba47807f4afdff102846758e7e8189f57e948ab21b1a",
+      "match": true
+    },
+    {
+      "path": "includes/class-redirection-bulk-disable.php",
+      "sha256": "dfed8959aae2957376b227811003ce84c4f8462d9cfff8971ec4d4990bd6e227",
+      "installed_sha256": "dfed8959aae2957376b227811003ce84c4f8462d9cfff8971ec4d4990bd6e227",
+      "match": true
+    },
+    {
+      "path": "includes/class-unsupported-transaction-state.php",
+      "sha256": "849c26b2899739ec26643573ba3f9741f73ee32d41ddbaf7b7ff02fb2e3bcbba",
+      "installed_sha256": "849c26b2899739ec26643573ba3f9741f73ee32d41ddbaf7b7ff02fb2e3bcbba",
+      "match": true
+    },
+    {
+      "path": "includes/class-update-engine.php",
+      "sha256": "6378cf5e8f2251604a67dd569be7e9589b51eeedd1a580cb1a64354a6ab761f5",
+      "installed_sha256": "6378cf5e8f2251604a67dd569be7e9589b51eeedd1a580cb1a64354a6ab761f5",
+      "match": true
+    },
+    {
+      "path": "includes/free/admin-logo.png",
+      "sha256": "5c49b9947ab2aef033d658bd0197fe3eccaf8337f7674eddf42d5b7210b360bc",
+      "installed_sha256": "5c49b9947ab2aef033d658bd0197fe3eccaf8337f7674eddf42d5b7210b360bc",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-change-plan.php",
+      "sha256": "1991e8d7fe17742ef186da5f8824bb85a554a5d3489e74b9d3e689c0187cc587",
+      "installed_sha256": "1991e8d7fe17742ef186da5f8824bb85a554a5d3489e74b9d3e689c0187cc587",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-durable-charset.php",
+      "sha256": "24ddb875147e12ba0753c0c57169593fbc4a0d4a3eb5703fc5e91efb576d910d",
+      "installed_sha256": "24ddb875147e12ba0753c0c57169593fbc4a0d4a3eb5703fc5e91efb576d910d",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-free-admin.php",
+      "sha256": "2023b0e6b1f6f9ef81297c8c2af24b996665d0428347505985d450e550b6ce62",
+      "installed_sha256": "2023b0e6b1f6f9ef81297c8c2af24b996665d0428347505985d450e550b6ce62",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-free-support-contract.php",
+      "sha256": "9723c2ff94514f61eed9b558b0e9e74b18f7bb887e8a48e0f8160cc8e7c9be73",
+      "installed_sha256": "9723c2ff94514f61eed9b558b0e9e74b18f7bb887e8a48e0f8160cc8e7c9be73",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-job-repository.php",
+      "sha256": "d15d55209a93532812b55abe0cfbd36496d2e4cb1a66ba7fcc825d41e756db39",
+      "installed_sha256": "d15d55209a93532812b55abe0cfbd36496d2e4cb1a66ba7fcc825d41e756db39",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-job-resume-rest.php",
+      "sha256": "f613cbe5970307c1e4834e9325c5442c21f4c257ba51518be6b7c29131cf2b97",
+      "installed_sha256": "f613cbe5970307c1e4834e9325c5442c21f4c257ba51518be6b7c29131cf2b97",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-job-scheduler.php",
+      "sha256": "3d5583ab17c342593f7bf32c5b9f6aee63d24be5ea9df6a2d17be9c26dd751d4",
+      "installed_sha256": "3d5583ab17c342593f7bf32c5b9f6aee63d24be5ea9df6a2d17be9c26dd751d4",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-job-schema.php",
+      "sha256": "02367a8fd9cceb91bf5f0a825fd67614f961f8a613b96162ac6cb2a4fffa0f96",
+      "installed_sha256": "02367a8fd9cceb91bf5f0a825fd67614f961f8a613b96162ac6cb2a4fffa0f96",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-job-state.php",
+      "sha256": "6f850b3e3046425015c202736a8b652145b92caf5ab960c76aff913dcb086d15",
+      "installed_sha256": "6f850b3e3046425015c202736a8b652145b92caf5ab960c76aff913dcb086d15",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-job-transaction-fence.php",
+      "sha256": "e5d6cc1239b0dff26256d7ab7e6a298df87fddc92199bab809f0d1bffabee063",
+      "installed_sha256": "e5d6cc1239b0dff26256d7ab7e6a298df87fddc92199bab809f0d1bffabee063",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-job-worker.php",
+      "sha256": "6aac4fba75fc8810747cd71bacd7d5f1c3d2fa8ad808e7b99cb9d71d79ff960a",
+      "installed_sha256": "6aac4fba75fc8810747cd71bacd7d5f1c3d2fa8ad808e7b99cb9d71d79ff960a",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-price-apply-connection.php",
+      "sha256": "e08215ebf0811303036142def86d19fdca430b663bc29b79328e9eb08b117fda",
+      "installed_sha256": "e08215ebf0811303036142def86d19fdca430b663bc29b79328e9eb08b117fda",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-price-apply-journal.php",
+      "sha256": "c3d5812b8376c15ef854d79e9bcc5bdc3f7493e4b84bee9260cf310dcea63c95",
+      "installed_sha256": "c3d5812b8376c15ef854d79e9bcc5bdc3f7493e4b84bee9260cf310dcea63c95",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-price-apply-transaction-guard.php",
+      "sha256": "38c8faf10863f2bf9f076a22458973c7903dfaa8d9dd41d539be0db1832b6dff",
+      "installed_sha256": "38c8faf10863f2bf9f076a22458973c7903dfaa8d9dd41d539be0db1832b6dff",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-price-cache-verifier.php",
+      "sha256": "96f1dc83f3b4c7e05665ee2dc07bfef2ac85a0560549ed89b84b44cabc5c764a",
+      "installed_sha256": "96f1dc83f3b4c7e05665ee2dc07bfef2ac85a0560549ed89b84b44cabc5c764a",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-price-decimal.php",
+      "sha256": "1f102c0e6ceda3e984fc5df79fe11eeb2bbdc69f8d9b2454698e09577e4cb48b",
+      "installed_sha256": "1f102c0e6ceda3e984fc5df79fe11eeb2bbdc69f8d9b2454698e09577e4cb48b",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-price-operation.php",
+      "sha256": "670587d6498fc360c8b130a164d4b6297b3b9c8ac5d8aec1556edb776bf7a063",
+      "installed_sha256": "670587d6498fc360c8b130a164d4b6297b3b9c8ac5d8aec1556edb776bf7a063",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-product-discovery.php",
+      "sha256": "945c4e0208bb13003a9a070a02c4d8fe766c08539c08612c0d8b5dd0c149eb80",
+      "installed_sha256": "945c4e0208bb13003a9a070a02c4d8fe766c08539c08612c0d8b5dd0c149eb80",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-product-selector.php",
+      "sha256": "9736e632a72a7783e0b168cee873128c8fb0901f7db0838a29e05977d89cefa9",
+      "installed_sha256": "9736e632a72a7783e0b168cee873128c8fb0901f7db0838a29e05977d89cefa9",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-product-snapshot.php",
+      "sha256": "250e5d693f00306a1441e867a6a878356ca09b3ad497d82ce01336f7cefa695a",
+      "installed_sha256": "250e5d693f00306a1441e867a6a878356ca09b3ad497d82ce01336f7cefa695a",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-runner-authority.php",
+      "sha256": "8ac5352e7e26915a0b7ff0b46aeffad483910e03c4b720cb32c0bb8ec0b5099b",
+      "installed_sha256": "8ac5352e7e26915a0b7ff0b46aeffad483910e03c4b720cb32c0bb8ec0b5099b",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-safety-policy.php",
+      "sha256": "72c62f74ddfb2b1b0a88d17a2dc065a223f158a0a821c6c30ff187bbdb962f5b",
+      "installed_sha256": "72c62f74ddfb2b1b0a88d17a2dc065a223f158a0a821c6c30ff187bbdb962f5b",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-undo-fingerprint.php",
+      "sha256": "594fb444d58eb163b2c58b0d48a28b92ff6c8aa28500cabac73812da176b4726",
+      "installed_sha256": "594fb444d58eb163b2c58b0d48a28b92ff6c8aa28500cabac73812da176b4726",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-undo-repository.php",
+      "sha256": "28247156070930b2656502fac95f90d02f1d48d71b2c70404b8260bcc96f0d27",
+      "installed_sha256": "28247156070930b2656502fac95f90d02f1d48d71b2c70404b8260bcc96f0d27",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-undo-rest.php",
+      "sha256": "2602b8c42802d58add6f1471c5de04adeb6491e92150e9b77f0c2876cb11225c",
+      "installed_sha256": "2602b8c42802d58add6f1471c5de04adeb6491e92150e9b77f0c2876cb11225c",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-undo-scheduler.php",
+      "sha256": "1a6decb09745afd0054dd615afe2f5b963fdfaeb218d19166b1a31820c171f6a",
+      "installed_sha256": "1a6decb09745afd0054dd615afe2f5b963fdfaeb218d19166b1a31820c171f6a",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-undo-schema.php",
+      "sha256": "f92c4bb77d733bcfcc28028e22e2f5745014f467b401aa5f0fe96104bbbf661f",
+      "installed_sha256": "f92c4bb77d733bcfcc28028e22e2f5745014f467b401aa5f0fe96104bbbf661f",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-undo-state.php",
+      "sha256": "83aef2118c9beb492faf5feef76b719e406a5350ea91a91da6b979e9049f63b3",
+      "installed_sha256": "83aef2118c9beb492faf5feef76b719e406a5350ea91a91da6b979e9049f63b3",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-undo-transaction-fence.php",
+      "sha256": "157ec9d990a705fd8d90b278cdf0262ea4b338c0a3864528c404bb71aafb52ba",
+      "installed_sha256": "157ec9d990a705fd8d90b278cdf0262ea4b338c0a3864528c404bb71aafb52ba",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-undo-worker.php",
+      "sha256": "76685a3ecbef8f3c4c1a32be88d43a1cd8492bba998a4e20191c62ac709186e2",
+      "installed_sha256": "76685a3ecbef8f3c4c1a32be88d43a1cd8492bba998a4e20191c62ac709186e2",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-woo-price-mutator.php",
+      "sha256": "ae4aea8c2d362cfcc0653eec302f232e552e494518d99bd222dc34431bff4c6d",
+      "installed_sha256": "ae4aea8c2d362cfcc0653eec302f232e552e494518d99bd222dc34431bff4c6d",
+      "match": true
+    },
+    {
+      "path": "includes/free/class-woo-undo-mutator.php",
+      "sha256": "ca2ce331394e7fdf555ea98242ff335cdbb61cbf9f1b84a3cc3fb835dd08b86a",
+      "installed_sha256": "ca2ce331394e7fdf555ea98242ff335cdbb61cbf9f1b84a3cc3fb835dd08b86a",
+      "match": true
+    },
+    {
+      "path": "includes/free/free-progress.js",
+      "sha256": "7f97f727519efa17aec596d83f203ba601c6872b46c25b721592f3baf9a65ff8",
+      "installed_sha256": "7f97f727519efa17aec596d83f203ba601c6872b46c25b721592f3baf9a65ff8",
+      "match": true
+    },
+    {
+      "path": "includes/free/free-selection.css",
+      "sha256": "1b57bf6b002995be559615af213ec51098c2d46081308c72145ddd42d5eb0668",
+      "installed_sha256": "1b57bf6b002995be559615af213ec51098c2d46081308c72145ddd42d5eb0668",
+      "match": true
+    },
+    {
+      "path": "includes/free/free-selection.js",
+      "sha256": "5752b2445acb3a1589e809376d3cbceddce1348fdf26330070ba297dbff9b59c",
+      "installed_sha256": "5752b2445acb3a1589e809376d3cbceddce1348fdf26330070ba297dbff9b59c",
+      "match": true
+    },
+    {
+      "path": "operator-setup.txt",
+      "sha256": "7f82fd5797cbb107d4af66d8be5c8208bed742ab12e9424069e3b81bee11d8ba",
+      "installed_sha256": "7f82fd5797cbb107d4af66d8be5c8208bed742ab12e9424069e3b81bee11d8ba",
+      "match": true
+    },
+    {
+      "path": "readme.txt",
+      "sha256": "1e9e456eefa29c70cdc2b2187e49e5deb47c288a0bb9b102be90f1b77452e176",
+      "installed_sha256": "1e9e456eefa29c70cdc2b2187e49e5deb47c288a0bb9b102be90f1b77452e176",
+      "match": true
+    },
+    {
+      "path": "uninstall.php",
+      "sha256": "d826c6ef5ea01875349a5bc4a9b2b52ecfb7a75e122322f2de216ad9be041670",
+      "installed_sha256": "d826c6ef5ea01875349a5bc4a9b2b52ecfb7a75e122322f2de216ad9be041670",
+      "match": true
+    },
+    {
+      "path": "writeleash.php",
+      "sha256": "9eb9027749f09c846bf87188012252efebf2675d48658ea735820f113ff54f77",
+      "installed_sha256": "9eb9027749f09c846bf87188012252efebf2675d48658ea735820f113ff54f77",
+      "match": true
+    }
+  ]
+}

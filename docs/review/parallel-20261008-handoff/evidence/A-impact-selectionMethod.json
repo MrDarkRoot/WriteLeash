@@ -1,0 +1,40 @@
+{
+  "target": {
+    "id": "Function:wordpress/writeleash/includes/free/free-selection.js:fn@1:1.fn@3:6.selectionMethod@7:8",
+    "name": "selectionMethod",
+    "type": "Function",
+    "filePath": "wordpress/writeleash/includes/free/free-selection.js"
+  },
+  "direction": "upstream",
+  "impactedCount": 1,
+  "risk": "LOW",
+  "riskSharedAxes": "LOW",
+  "riskScale": {
+    "comparableAcrossKinds": true,
+    "unusedAxes": []
+  },
+  "epistemic": "exact",
+  "summary": {
+    "direct": 1,
+    "processes_affected": 0,
+    "modules_affected": 0
+  },
+  "byDepthCounts": {
+    "1": 1
+  },
+  "affected_processes": [],
+  "affected_modules": [],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "File:wordpress/writeleash/includes/free/free-selection.js",
+        "name": "free-selection.js",
+        "filePath": "wordpress/writeleash/includes/free/free-selection.js",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      }
+    ]
+  }
+}

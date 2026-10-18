@@ -1,0 +1,22 @@
+{
+  "A": {
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "B": {
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "C": {
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "D": {
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+}

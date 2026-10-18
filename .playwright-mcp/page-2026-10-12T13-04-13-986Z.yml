@@ -1,0 +1,30 @@
+- generic [active] [ref=f13e1]:
+  - heading "Log In" [level=1] [ref=f13e2]
+  - generic [ref=f13e3]:
+    - link "Powered by WordPress" [ref=f13e4] [cursor=pointer]:
+      - /url: https://wordpress.org/
+    - generic [ref=f13e5]:
+      - paragraph [ref=f13e6]:
+        - generic [ref=f13e7]: Username or Email Address
+        - textbox "Username or Email Address" [ref=f13e8]
+      - generic [ref=f13e9]:
+        - generic [ref=f13e10]: Password
+        - generic [ref=f13e11]:
+          - textbox "Password" [ref=f13e12]
+          - button "Show password" [ref=f13e13] [cursor=pointer]:
+            - generic [aria-hidden] [ref=f13e14]: 
+      - paragraph [ref=f13e15]:
+        - checkbox "Remember Me" [ref=f13e16] [cursor=pointer]
+        - generic [ref=f13e17]: Remember Me
+        - generic [ref=f13e18]:
+          - button "Help" [ref=f13e19] [cursor=pointer]:
+            - generic [aria-hidden] [ref=f13e20]: 
+          - text: 
+      - paragraph:
+        - button "Log In" [ref=f13e21] [cursor=pointer]
+    - paragraph [ref=f13e22]:
+      - link "Lost your password?" [ref=f13e23] [cursor=pointer]:
+        - /url: http://127.0.0.1:8257/wp-login.php?action=lostpassword
+    - paragraph [ref=f13e24]:
+      - link "← Go to Weekend Homewares B" [ref=f13e25] [cursor=pointer]:
+        - /url: http://127.0.0.1:8257/

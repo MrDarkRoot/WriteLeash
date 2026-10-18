@@ -1,0 +1,135 @@
+{
+  "report": "FINAL-REPORT.md",
+  "snapshot_utc": "2026-10-08T11:05:00Z",
+  "verified_base": "c48e307efe7750d0fb36015c39d50a34675f9579",
+  "main_advanced": false,
+  "live_recheck": {
+    "issues": {"206": "OPEN", "209": "OPEN", "204": "OPEN", "210": "OPEN"},
+    "main_sha": "c48e307efe7750d0fb36015c39d50a34675f9579",
+    "remote_work_branches": [],
+    "open_prs": [165, 163, 139, 46, 22],
+    "matching_implementation_prs": []
+  },
+  "environment": {
+    "gitnexus_eperm": "resolved; all detect-changes receipts complete (no partial/truncated)",
+    "docker": "BLOCKED - /var/run/docker.sock absent, daemon inactive/disabled, sudo requires password; no bypass attempted",
+    "network_gh": "available read-only (MrDarkRoot)"
+  },
+  "lanes": {
+    "A": {
+      "issue": 206,
+      "clone": "/tmp/writeleash-approved-20261008/agent-A",
+      "branch": "work/206-selection",
+      "base": "c48e307efe7750d0fb36015c39d50a34675f9579",
+      "implementation_commit": "c8cbf6c283545658add407745b3c2d605fcd8b14",
+      "docs_commit": "fb2ecd4dd852cc4b394c25f3af316ced38092462",
+      "frozen_impl_patch_sha256": "31589065032ce35df2df7ed72b2263c9f6b331434986a0cbb117ab2e7ff4891d",
+      "lane_patch_sha256": "685fdac0bae2c1b803f7926190f26ea020bc00fe9a0cecf4b5b718316a7e97f6",
+      "frozen_bytes_preserved": true,
+      "tests": {"selection_count": 32, "unit": 2607, "sale_price": 105, "variations": 73},
+      "pr_fast": "FAIL only at unchanged #170 UI source/capture evidence gate",
+      "runtime": "NOT_TESTED (Docker absent)",
+      "deviations": []
+    },
+    "B": {
+      "issue": 209,
+      "clone": "/tmp/writeleash-approved-20261008/agent-B",
+      "branch": "work/209-public-cache",
+      "base": "c48e307efe7750d0fb36015c39d50a34675f9579",
+      "implementation_commit": "56847070d90c84e180cf81cf60eb7a659fd5277a",
+      "docs_commit": "7df7baf0f61f9226d99c622345de656381f207fe",
+      "implementation_patch_sha256": "3af490ae1f7fd9013099a4cfc008097f8e8518b7ecea1fa6a96cf907f52e5bca",
+      "lane_patch_sha256": "9c17d5f5cde5c348b1852913f2a36468d6b004a1dca72a09b91d10f5703bed8b",
+      "tests": {"cache_public": 72, "unit": 2607, "sale_price": 105, "variations": 75},
+      "internal_references_shipped_runtime": "none",
+      "pr_fast": "FAIL only at unchanged #170 UI source/capture evidence gate",
+      "runtime": "NOT_TESTED (Docker absent)",
+      "deviations": [
+        "extension/non-core resolved classes refused as unreadable_product_data; Apply/Undo classify as FAILED/PENDING instead of unsupported_product_type/UNSUPPORTED_PRODUCT_STATE (conservative, no write, no eligibility)",
+        "doc-comment-only edits outside frozen manifest: wordpress/writeleash/FREE-PRICE-APPLY-CONTRACT.md, wordpress/writeleash/includes/free/class-free-support-contract.php (no constants changed)"
+      ]
+    },
+    "C": {
+      "issue": 204,
+      "clone": "/tmp/writeleash-approved-20261008/agent-C",
+      "branch": "work/204-live-progress",
+      "base": "c48e307efe7750d0fb36015c39d50a34675f9579",
+      "implementation_commit": "6a6a9ac91550c928101bebd2085874580a1c416a",
+      "docs_commit": "a1b7f3a317abefe92cd1fce88775579e585df312",
+      "lane_patch_sha256": "73ed29699202adf0f1924c0495f09e244fe5d359a23714ebf2b6d6d4b47ae35c",
+      "frozen_bytes_preserved": true,
+      "pr_fast": "FAIL only at unchanged #170 UI source/capture evidence gate",
+      "runtime_browser": "NOT_TESTED (Docker/browser absent)",
+      "guard_change": "finite allowlist addition only; dynamic-instantiation/unknown-artifact rejections intact with negative controls",
+      "deviations": []
+    },
+    "D": {
+      "issue": 210,
+      "clone": "/tmp/writeleash-approved-20261008/agent-D",
+      "branch": "work/210-i18n-preparation",
+      "base": "c48e307efe7750d0fb36015c39d50a34675f9579",
+      "commit": "b09fd5f226ea45e711352b8654e3ab3f09d0d1f3",
+      "patch_sha256": "328d8f6b7232348c2c896585ee5ec5548b5d42e0b4e3aceae16dd56e0ec5becf",
+      "status": "PARTIAL - PREPARATION COMPLETE",
+      "production_edits": "none",
+      "pr_fast": "PASS on lane",
+      "runtime": "NOT_TESTED",
+      "deviations": []
+    }
+  },
+  "combined_candidate": {
+    "clone": "/tmp/writeleash-approved-20261008/combined-review",
+    "branch": "review/approved-four",
+    "base": "c48e307efe7750d0fb36015c39d50a34675f9579",
+    "head": "7f47309740b4572fdf30dee8f333046b01b5a956",
+    "order": ["B", "A", "C", "D"],
+    "commits": [
+      "f03d703 fix(cache): remove Woo Internal cache dependencies from runtime paths (#209)",
+      "6b3cca5 docs(review): record #209 validation receipts",
+      "c261646 feat(selection): include subcategories and bounded expanded count (#206)",
+      "7d2acee docs(review): record #206 validation receipts",
+      "574526b feat(admin): refresh running job progress without reloading (#204)",
+      "31d832c docs(review): record #204 validation receipts",
+      "70a5b66 chore(i18n): add translation inventory tooling and preparation docs (#210)",
+      "7f47309 test(combined): add WC_Cache_Helper stub for #206/#209 contract integration"
+    ],
+    "conflicts_resolved": ["wordpress/tests/free/in-container.sh (additive: keep both A and B test entries)"],
+    "integration_fix": "test-only WC_Cache_Helper stub in wordpress/tests/free/selection-count.php; all 32 assertions unchanged",
+    "patch_sha256": "a6a2f95726c82235349c3070943fd2bd1ab182d2387adad775b8f64d13c09717",
+    "validation": {
+      "free_suites": "PASS (unit 2607, sale 105, variations 75, selection-count 32, cache-public 72)",
+      "admin_js": "PASS (progress-client, progress-unit, admin-audit, no-replan)",
+      "release_audits": "PASS (package-preflight 43 files, inventory, public-audit, readme, historical-shim, claim-matrix, i18n tooling, test-artifact 10)",
+      "ownership": "PASS; selection admin,jobs,journal,plan,undo; acceptance deferred",
+      "lint": "PASS (sh -n run.sh fails identically at baseline; bash -n PASS)",
+      "pr_fast": "FAIL only at unchanged #170 UI source/capture evidence gate",
+      "gitnexus_compare": "complete: 39 files, 302 symbols, 55 processes, risk critical; no partial/truncated"
+    },
+    "merged_to_main": false,
+    "disposable": true
+  },
+  "deliverables": {
+    "lane_reports": "lane-reports/",
+    "combined_evidence": "combined-evidence/",
+    "state_snapshot": "STATE.json (unchanged frozen handoff state)",
+    "final_state": "FINAL-STATE.json"
+  },
+  "founder_decisions_pending": [
+    "GO/NO-GO on any subsequent integration step",
+    "Accept/reject B extension refusal-classification deviation",
+    "Authorize fresh #170 UI evidence capture process",
+    "Authorize bounded Docker/Woo runtime acceptance matrix",
+    "Confirm inclusion of B doc-comment files and combined test stub in eventual merge",
+    "Approve A category raw-window distinction"
+  ],
+  "prohibited_actions_not_taken": {
+    "push": false,
+    "pr_created": false,
+    "merge": false,
+    "deploy": false,
+    "publish": false,
+    "issue_closure_or_comment": false,
+    "release_full_dispatch": false,
+    "main_checkout_modified": false
+  }
+}

@@ -137,12 +137,12 @@ foreach ( $data as $item ) {
 		$reviewed[] = "$code ($path:$line) fixed job v2 approval-mode backfill with validated table identifier";
 		continue;
 	}
-	// #299 replay short-circuit reads the durable idempotency row before any
+	// #299 replay pre-check reads the durable idempotency row before any
 	// product access. Prepared %i/%d/%s only; not a price write and not cached.
 	$grant_idempotency_read = 'includes/free/class-grant-repository.php' === $path && is_string( $source ) &&
-		str_contains( $source, 'function has_idempotency' );
+		str_contains( $source, 'function load_idempotency' );
 	if ( $grant_idempotency_read && isset( $lines[ $line - 1 ] ) &&
-		str_contains( $lines[ $line - 1 ], 'SELECT id FROM %i WHERE grant_db_id=%d AND idempotency_key=%s' ) &&
+		str_contains( $lines[ $line - 1 ], 'SELECT * FROM %i WHERE grant_db_id=%d AND idempotency_key=%s' ) &&
 		in_array( $code, array( 'WordPress.DB.DirectDatabaseQuery.DirectQuery', 'WordPress.DB.DirectDatabaseQuery.NoCaching' ), true ) ) {
 		$reviewed[] = "$code ($path:$line) prepared idempotency existence read";
 		continue;

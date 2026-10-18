@@ -1,0 +1,22 @@
+[
+  {
+    "line": 200,
+    "text": "2026-10-08T06:10:23.3522175Z     assert needs['fast']['result'] == 'success', 'PR_FAST failed or was cancelled'"
+  },
+  {
+    "line": 202,
+    "text": "2026-10-08T06:10:23.3522627Z AssertionError: PR_FAST failed or was cancelled"
+  },
+  {
+    "line": 203,
+    "text": "2026-10-08T06:10:23.3671545Z ##[error]Process completed with exit code 1."
+  },
+  {
+    "line": 485,
+    "text": "2026-10-08T06:10:16.8508451Z PHP Fatal error:  Uncaught RuntimeException: #122 assets: #170 UI source differs from reviewed capture in /home/runner/work/WriteLeash/WriteLeash/.github/ci/asset-audit.php:6"
+  },
+  {
+    "line": 490,
+    "text": "2026-10-08T06:10:16.8567553Z ##[error]Process completed with exit code 255."
+  }
+]

@@ -1,0 +1,2 @@
+wordpress/tests/durable/cache-public-integration.php:19:$assert209( wp_using_ext_object_cache(), 'persistent' === getenv( 'WL209_CACHE' ), 'actual cache profile' );
+wordpress/tests/durable/in-container.sh:38:    WL209_CACHE="$cache" wp --path="$site" eval-file /opt/tests/durable/cache-public-integration.php

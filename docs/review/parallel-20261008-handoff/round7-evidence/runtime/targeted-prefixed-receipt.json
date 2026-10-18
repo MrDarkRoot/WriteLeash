@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/tmp/wlruntime/ns.sh",
+    "/tmp/writeleash-round7-pr220",
+    "wp",
+    "--path=/tmp/writeleash-round7-cache",
+    "eval-file",
+    "/opt/tests/durable/cache-public-integration.php"
+  ],
+  "production_source": "029a08040da0fab06bfea2a8d174aeba3d72f2d4",
+  "started": "2026-10-08T12:01:27.856638+00:00",
+  "completed": "2026-10-08T12:01:37.648258+00:00",
+  "exit_status": 1
+}

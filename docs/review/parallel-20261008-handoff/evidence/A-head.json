@@ -1,0 +1,25 @@
+{
+  "issue": 206,
+  "scope": "Include subcategories / Selection",
+  "base": "c48e307efe7750d0fb36015c39d50a34675f9579",
+  "head": "c48e307efe7750d0fb36015c39d50a34675f9579",
+  "implementation_commit": null,
+  "branch": "work/206-selection",
+  "files_changed": [
+    "docs/review/206/IMPLEMENTATION.md",
+    "wordpress/tests/admin/selection-http.php",
+    "wordpress/tests/admin/selection-integration.php",
+    "wordpress/tests/admin/subcategory-integration.php",
+    "wordpress/tests/free/in-container.sh",
+    "wordpress/tests/free/selection-count.php",
+    "wordpress/writeleash/includes/free/class-free-admin.php",
+    "wordpress/writeleash/includes/free/class-product-discovery.php",
+    "wordpress/writeleash/includes/free/class-product-selector.php",
+    "wordpress/writeleash/includes/free/free-selection.js"
+  ],
+  "patch_sha256": "31589065032ce35df2df7ed72b2263c9f6b331434986a0cbb117ab2e7ff4891d",
+  "graph_commit_gate": "BLOCKED: Git diff failed: spawnSync git EPERM",
+  "runtime_acceptance": "NOT_TESTED / BLOCKED: Docker access denied",
+  "PR_FAST": "FAIL: reviewed UI capture fingerprint differs",
+  "pr_status": "not created"
+}

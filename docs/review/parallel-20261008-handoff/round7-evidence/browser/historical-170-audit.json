@@ -1,0 +1,124 @@
+{
+  "sha": "3b4ab5e8895fb60dbcb00d26d5c597f129b9ed8f",
+  "tree": "4bbfc135378836009f1096b59b70b5d7ac46447e",
+  "captured_at_commit": "330859ffb92477afe52266948fdf9ec216c7ce45",
+  "captured_tree": "59a28872f22937d1466482a7d829f52244186d8e",
+  "fingerprints": [
+    {
+      "path": "/tmp/writeleash-round7-integration/wordpress/writeleash/includes/free/class-free-admin.php",
+      "expected": "2023b0e6b1f6f9ef81297c8c2af24b996665d0428347505985d450e550b6ce62",
+      "actual": "2023b0e6b1f6f9ef81297c8c2af24b996665d0428347505985d450e550b6ce62",
+      "match": true
+    },
+    {
+      "path": "/tmp/writeleash-round7-integration/wordpress/writeleash/includes/free/free-selection.js",
+      "expected": "5752b2445acb3a1589e809376d3cbceddce1348fdf26330070ba297dbff9b59c",
+      "actual": "5752b2445acb3a1589e809376d3cbceddce1348fdf26330070ba297dbff9b59c",
+      "match": true
+    },
+    {
+      "path": "/tmp/writeleash-round7-integration/wordpress/writeleash/includes/free/free-selection.css",
+      "expected": "1b57bf6b002995be559615af213ec51098c2d46081308c72145ddd42d5eb0668",
+      "actual": "1b57bf6b002995be559615af213ec51098c2d46081308c72145ddd42d5eb0668",
+      "match": true
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "170-chromium-apply-conflict.png",
+      "sha256": "0727c780ce40702c57d7e7777f8e2cdd2c6d46eacf272e67fc471e6bdaf5798c",
+      "dimensions": [
+        1440,
+        3905
+      ],
+      "match": true
+    },
+    {
+      "name": "170-firefox-apply-conflict.png",
+      "sha256": "f10f7f20c0a2ba261d4463044b5cc0252e247ef599a104859c1af70fb4b59830",
+      "dimensions": [
+        1440,
+        3906
+      ],
+      "match": true
+    }
+  ],
+  "results": [
+    {
+      "engine": "chromium",
+      "checks_reported": 253,
+      "checks_individual_records": false,
+      "serious_or_critical_violations": [],
+      "all_violations": [],
+      "keyboard": "PASS",
+      "safety": {
+        "apply": {
+          "expected": "100.00",
+          "current": "120.00",
+          "planned": "80.00",
+          "state": "CONFLICT",
+          "html": "<tr data-product-id=\"35\"><td><strong>Gate de004fd4 product 0 Caf\u00e9 \u65e5\u672c long name long name long name long name long name long name long name long name</strong><br><span class=\"description\">SKU: G170-de004fd4-00 \u00b7 Product #35 \u00b7 as reviewed</span><br><a href=\"http://127.0.0.1:8080/wp-admin/post.php?post=35&amp;action=edit\">Review product</a></td><td>$100.00 USD</td><td>$120.00 USD</td><td>$80.00 USD</td><td class=\"writeleash-attention\">Not changed \u00b7 This product\u2019s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.</td><td class=\"\">Unavailable: no confirmed WriteLeash change to restore</td></tr>",
+          "product_id": 35
+        },
+        "undo": {
+          "preserved": "93.00",
+          "restored": 20,
+          "conflict": 1
+        },
+        "negatives": {
+          "no_mutation": true,
+          "reads": {
+            "search": 11,
+            "unbounded": false,
+            "oversized": false,
+            "selected": 22
+          }
+        }
+      },
+      "identical_to_retained_web170": true,
+      "embedded_source_sha": null,
+      "embedded_exit_status": null
+    },
+    {
+      "engine": "firefox",
+      "checks_reported": 253,
+      "checks_individual_records": false,
+      "serious_or_critical_violations": [],
+      "all_violations": [],
+      "keyboard": "PASS",
+      "safety": {
+        "apply": {
+          "expected": "100.00",
+          "current": "120.00",
+          "planned": "80.00",
+          "state": "CONFLICT",
+          "html": "<tr data-product-id=\"59\"><td><strong>Gate 313fb920 product 0 Caf\u00e9 \u65e5\u672c long name long name long name long name long name long name long name long name</strong><br><span class=\"description\">SKU: G170-313fb920-00 \u00b7 Product #59 \u00b7 as reviewed</span><br><a href=\"http://127.0.0.1:8080/wp-admin/post.php?post=59&amp;action=edit\">Review product</a></td><td>$100.00 USD</td><td>$120.00 USD</td><td>$80.00 USD</td><td class=\"writeleash-attention\">Not changed \u00b7 This product\u2019s price or other conditions changed after you reviewed the preview. WriteLeash left the newer value unchanged.</td><td class=\"\">Unavailable: no confirmed WriteLeash change to restore</td></tr>",
+          "product_id": 59
+        },
+        "undo": {
+          "preserved": "93.00",
+          "restored": 20,
+          "conflict": 1
+        },
+        "negatives": {
+          "no_mutation": true,
+          "reads": {
+            "search": 11,
+            "unbounded": false,
+            "oversized": false,
+            "selected": 22
+          }
+        }
+      },
+      "identical_to_retained_web170": true,
+      "embedded_source_sha": null,
+      "embedded_exit_status": null
+    }
+  ],
+  "changes_after_capture": [
+    "M\tdocs/review/209/IMPLEMENTATION.md",
+    "M\twordpress/tests/durable/cache-public-integration.php",
+    "M\twordpress/writeleash/includes/free/class-price-cache-verifier.php"
+  ],
+  "historical_validation_status": "FINGERPRINTS_AND_ARTIFACTS_CONSISTENT; FULL_CURRENT_SOURCE_CAPTURE_REQUIRES_FRESH_EXECUTION"
+}

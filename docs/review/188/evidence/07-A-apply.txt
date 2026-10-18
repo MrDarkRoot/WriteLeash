@@ -1,0 +1,443 @@
+- navigation "Main menu":
+  - link "Skip to main content":
+    - /url: "#wpbody-content"
+  - link "Skip to toolbar":
+    - /url: "#wp-toolbar"
+  - list:
+    - link "Dashboard":
+      - /url: index.php
+      - generic: 
+      - generic: Dashboard
+    - list:
+      - link "Home":
+        - /url: index.php
+      - link "Updates":
+        - /url: update-core.php
+    - link "Posts":
+      - /url: edit.php
+      - generic: 
+      - generic: Posts
+    - list:
+      - link "All Posts":
+        - /url: edit.php
+      - link "Add Post":
+        - /url: post-new.php
+      - link "Categories":
+        - /url: edit-tags.php?taxonomy=category
+      - link "Tags":
+        - /url: edit-tags.php?taxonomy=post_tag
+    - link "Media":
+      - /url: upload.php
+      - generic: 
+      - generic: Media
+    - list:
+      - link "Library":
+        - /url: upload.php
+      - link "Add Media File":
+        - /url: media-new.php
+    - link "Pages":
+      - /url: edit.php?post_type=page
+      - generic: 
+      - generic: Pages
+    - list:
+      - link "All Pages":
+        - /url: edit.php?post_type=page
+      - link "Add Page":
+        - /url: post-new.php?post_type=page
+    - link "Comments":
+      - /url: edit-comments.php
+      - generic: 
+      - generic: Comments
+    - link "WooCommerce":
+      - /url: admin.php?page=wc-admin
+      - generic: WooCommerce
+    - list:
+      - link "Home 5":
+        - /url: admin.php?page=wc-admin
+        - text: Home
+        - generic: "5"
+      - link "Orders":
+        - /url: admin.php?page=wc-orders
+      - link "Customers":
+        - /url: admin.php?page=wc-admin&path=/customers
+      - link "Coupons":
+        - /url: admin.php?page=coupons-moved
+      - link "Reports":
+        - /url: admin.php?page=wc-reports
+      - link "Settings":
+        - /url: admin.php?page=wc-settings
+      - link "Status":
+        - /url: admin.php?page=wc-status
+      - link "Extensions":
+        - /url: admin.php?page=wc-admin&path=/extensions
+    - link "Products":
+      - /url: edit.php?post_type=product
+      - generic: 
+      - generic: Products
+    - list:
+      - link "All Products":
+        - /url: edit.php?post_type=product
+      - link "Add new product":
+        - /url: post-new.php?post_type=product
+      - link "Brands":
+        - /url: edit-tags.php?taxonomy=product_brand&post_type=product
+      - link "Categories":
+        - /url: edit-tags.php?taxonomy=product_cat&post_type=product
+      - link "Tags":
+        - /url: edit-tags.php?taxonomy=product_tag&post_type=product
+      - link "Attributes":
+        - /url: edit.php?post_type=product&page=product_attributes
+      - link "Bulk Prices":
+        - /url: edit.php?post_type=product&page=writeleash-bulk-prices
+      - link "Reviews":
+        - /url: edit.php?post_type=product&page=product-reviews
+    - link "Payments 1":
+      - /url: admin.php?page=wc-settings&tab=checkout&from=PAYMENTS_MENU_ITEM
+      - text: Payments
+      - generic: "1"
+    - link "Analytics":
+      - /url: admin.php?page=wc-admin&path=/analytics/overview
+      - generic: 
+      - generic: Analytics
+    - list:
+      - link "Overview":
+        - /url: admin.php?page=wc-admin&path=/analytics/overview
+      - link "Products":
+        - /url: admin.php?page=wc-admin&path=/analytics/products
+      - link "Revenue":
+        - /url: admin.php?page=wc-admin&path=/analytics/revenue
+      - link "Orders":
+        - /url: admin.php?page=wc-admin&path=/analytics/orders
+      - link "Variations":
+        - /url: admin.php?page=wc-admin&path=/analytics/variations
+      - link "Categories":
+        - /url: admin.php?page=wc-admin&path=/analytics/categories
+      - link "Coupons":
+        - /url: admin.php?page=wc-admin&path=/analytics/coupons
+      - link "Taxes":
+        - /url: admin.php?page=wc-admin&path=/analytics/taxes
+      - link "Downloads":
+        - /url: admin.php?page=wc-admin&path=/analytics/downloads
+      - link "Stock":
+        - /url: admin.php?page=wc-admin&path=/analytics/stock
+      - link "Settings":
+        - /url: admin.php?page=wc-admin&path=/analytics/settings
+    - link "Marketing":
+      - /url: admin.php?page=wc-admin&path=/marketing
+      - generic: 
+      - generic: Marketing
+    - list:
+      - link "Overview":
+        - /url: admin.php?page=wc-admin&path=/marketing
+      - link "Coupons":
+        - /url: edit.php?post_type=shop_coupon
+    - link "Appearance":
+      - /url: themes.php
+      - generic: 
+      - generic: Appearance
+    - list:
+      - link "Themes":
+        - /url: themes.php
+      - link "Editor":
+        - /url: site-editor.php
+      - link "Fonts":
+        - /url: font-library.php
+    - link "Plugins":
+      - /url: plugins.php
+      - generic: 
+      - generic: Plugins
+    - list:
+      - link "Installed Plugins":
+        - /url: plugins.php
+      - link "Add Plugin":
+        - /url: plugin-install.php
+    - link "Users":
+      - /url: users.php
+      - generic: 
+      - generic: Users
+    - list:
+      - link "All Users":
+        - /url: users.php
+      - link "Add User":
+        - /url: user-new.php
+      - link "Profile":
+        - /url: profile.php
+    - link "Tools":
+      - /url: tools.php
+      - generic: 
+      - generic: Tools
+    - list:
+      - link "Available Tools":
+        - /url: tools.php
+      - link "Import":
+        - /url: import.php
+      - link "Export":
+        - /url: export.php
+      - link "Site Health":
+        - /url: site-health.php
+      - link "Export Personal Data":
+        - /url: export-personal-data.php
+      - link "Erase Personal Data":
+        - /url: erase-personal-data.php
+      - link "Scheduled Actions":
+        - /url: tools.php?page=action-scheduler
+      - link "Theme File Editor":
+        - /url: theme-editor.php
+      - link "Plugin File Editor":
+        - /url: plugin-editor.php
+    - link "Settings":
+      - /url: options-general.php
+      - generic: 
+      - generic: Settings
+    - list:
+      - link "General":
+        - /url: options-general.php
+      - link "Connectors":
+        - /url: options-connectors.php
+      - link "Writing":
+        - /url: options-writing.php
+      - link "Reading":
+        - /url: options-reading.php
+      - link "Discussion":
+        - /url: options-discussion.php
+      - link "Media":
+        - /url: options-media.php
+      - link "Permalinks":
+        - /url: options-permalink.php
+      - link "Privacy":
+        - /url: options-privacy.php
+    - button "Collapse Main menu" [expanded]:
+      - generic: Collapse Menu
+- navigation "Toolbar":
+  - menu:
+    - menuitem "About WordPress":
+      - generic: About WordPress
+    - menuitem "WriteLeash Customer Test Store"
+    - menuitem "Store coming soon"
+    - menuitem "Ctrl+K Open command palette":
+      - text: Ctrl+K
+      - generic: Open command palette
+    - menuitem "0 Comments in moderation":
+      - generic: "0"
+      - generic: 0 Comments in moderation
+    - menuitem "New":
+      - generic: New
+  - menu:
+    - menuitem "Howdy, merchant"
+- main:
+  - heading "WriteLeash Bulk Prices" [level=1]
+  - alert:
+    - paragraph: Approved. WriteLeash will apply the reviewed prices in the background. Reload this page to check progress.
+  - paragraph:
+    - link "Back to bulk prices":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices
+    - link "Open history":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=history
+  - heading "Progress and results" [level=2]
+  - paragraph:
+    - strong: Increase regular prices by 10% · 12 products
+  - paragraph:
+    - strong: In progress
+  - paragraph: "Planned 12 products: 11 changed · 1 remaining."
+  - generic "Support details"
+  - paragraph:
+    - button "Download job CSV"
+  - paragraph:
+    - button "Resume remaining products"
+    - text: Continues remaining products in a small step. Conflicted products will not be retried. Reload this page to check progress.
+  - heading "Undo" [level=2]
+  - paragraph: "Undo restores eligible regular price values changed by WriteLeash. Undo does not reverse: orders, completed sales, emails, webhooks, remote requests or other plugins’ effects."
+  - paragraph:
+    - strong: "Undo unavailable: Apply has not safely finished. Check or finish the remaining work first."
+  - paragraph: "Undo window ends: November 6, 2026 2:45 am (+00:00)"
+  - heading "Products" [level=2]
+  - paragraph:
+    - strong: All products
+    - link "Conflicts":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=0d225ec4-7987-498c-a6cd-53c653df96ba&wl_filter=conflict
+    - link "Changes needing attention":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=0d225ec4-7987-498c-a6cd-53c653df96ba&wl_filter=attention
+    - link "Uncertain changes":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=0d225ec4-7987-498c-a6cd-53c653df96ba&wl_filter=review
+    - link "Undo conflicts":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=0d225ec4-7987-498c-a6cd-53c653df96ba&wl_filter=undo_conflict
+    - link "Uncertain restorations":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=0d225ec4-7987-498c-a6cd-53c653df96ba&wl_filter=undo_review
+  - paragraph: Expected and planned are regular price values. Now shows the stored regular price at page load, not the shopper price. Unavailable means the product or price could not be read.
+  - region "Product prices and outcomes":
+    - table:
+      - rowgroup:
+        - row "Product Regular price expected Regular price now Regular price planned Apply Undo":
+          - columnheader "Product"
+          - columnheader "Regular price expected"
+          - columnheader "Regular price now"
+          - columnheader "Regular price planned"
+          - columnheader "Apply"
+          - columnheader "Undo"
+      - rowgroup:
+        - 'row "Canvas tote SKU: ACC-001 · Product #13 · as reviewed Review product $20.00 USD $22.00 USD $22.00 USD Changed Not started"':
+          - 'cell "Canvas tote SKU: ACC-001 · Product #13 · as reviewed Review product"':
+            - strong: Canvas tote
+            - text: "SKU: ACC-001 · Product #13 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=13&action=edit
+          - cell "$20.00 USD"
+          - cell "$22.00 USD"
+          - cell "$22.00 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Travel pouch SKU: ACC-002 · Product #14 · as reviewed Review product $21.00 USD $23.10 USD $23.10 USD Changed Not started"':
+          - 'cell "Travel pouch SKU: ACC-002 · Product #14 · as reviewed Review product"':
+            - strong: Travel pouch
+            - text: "SKU: ACC-002 · Product #14 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=14&action=edit
+          - cell "$21.00 USD"
+          - cell "$23.10 USD"
+          - cell "$23.10 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Cotton cap SKU: ACC-003 · Product #15 · as reviewed Review product $22.00 USD $24.20 USD $24.20 USD Changed Not started"':
+          - 'cell "Cotton cap SKU: ACC-003 · Product #15 · as reviewed Review product"':
+            - strong: Cotton cap
+            - text: "SKU: ACC-003 · Product #15 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=15&action=edit
+          - cell "$22.00 USD"
+          - cell "$24.20 USD"
+          - cell "$24.20 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Water bottle SKU: ACC-004 · Product #16 · as reviewed Review product $23.00 USD $25.30 USD $25.30 USD Changed Not started"':
+          - 'cell "Water bottle SKU: ACC-004 · Product #16 · as reviewed Review product"':
+            - strong: Water bottle
+            - text: "SKU: ACC-004 · Product #16 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=16&action=edit
+          - cell "$23.00 USD"
+          - cell "$25.30 USD"
+          - cell "$25.30 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Key ring SKU: ACC-005 · Product #17 · as reviewed Review product $24.00 USD $26.40 USD $26.40 USD Changed Not started"':
+          - 'cell "Key ring SKU: ACC-005 · Product #17 · as reviewed Review product"':
+            - strong: Key ring
+            - text: "SKU: ACC-005 · Product #17 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=17&action=edit
+          - cell "$24.00 USD"
+          - cell "$26.40 USD"
+          - cell "$26.40 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Wool scarf SKU: ACC-006 · Product #18 · as reviewed Review product $25.00 USD $27.50 USD $27.50 USD Changed Not started"':
+          - 'cell "Wool scarf SKU: ACC-006 · Product #18 · as reviewed Review product"':
+            - strong: Wool scarf
+            - text: "SKU: ACC-006 · Product #18 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=18&action=edit
+          - cell "$25.00 USD"
+          - cell "$27.50 USD"
+          - cell "$27.50 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Leather belt SKU: ACC-007 · Product #19 · as reviewed Review product $26.00 USD $28.60 USD $28.60 USD Changed Not started"':
+          - 'cell "Leather belt SKU: ACC-007 · Product #19 · as reviewed Review product"':
+            - strong: Leather belt
+            - text: "SKU: ACC-007 · Product #19 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=19&action=edit
+          - cell "$26.00 USD"
+          - cell "$28.60 USD"
+          - cell "$28.60 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Canvas wallet SKU: ACC-008 · Product #20 · as reviewed Review product $27.00 USD $29.70 USD $29.70 USD Changed Not started"':
+          - 'cell "Canvas wallet SKU: ACC-008 · Product #20 · as reviewed Review product"':
+            - strong: Canvas wallet
+            - text: "SKU: ACC-008 · Product #20 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=20&action=edit
+          - cell "$27.00 USD"
+          - cell "$29.70 USD"
+          - cell "$29.70 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Phone sleeve SKU: ACC-009 · Product #21 · as reviewed Review product $28.00 USD $30.80 USD $30.80 USD Changed Not started"':
+          - 'cell "Phone sleeve SKU: ACC-009 · Product #21 · as reviewed Review product"':
+            - strong: Phone sleeve
+            - text: "SKU: ACC-009 · Product #21 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=21&action=edit
+          - cell "$28.00 USD"
+          - cell "$30.80 USD"
+          - cell "$30.80 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Notebook SKU: ACC-010 · Product #22 · as reviewed Review product $29.00 USD $31.90 USD $31.90 USD Changed Not started"':
+          - 'cell "Notebook SKU: ACC-010 · Product #22 · as reviewed Review product"':
+            - strong: Notebook
+            - text: "SKU: ACC-010 · Product #22 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=22&action=edit
+          - cell "$29.00 USD"
+          - cell "$31.90 USD"
+          - cell "$31.90 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Umbrella SKU: ACC-011 · Product #23 · as reviewed Review product $30.00 USD $33.00 USD $33.00 USD Changed Not started"':
+          - 'cell "Umbrella SKU: ACC-011 · Product #23 · as reviewed Review product"':
+            - strong: Umbrella
+            - text: "SKU: ACC-011 · Product #23 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=23&action=edit
+          - cell "$30.00 USD"
+          - cell "$33.00 USD"
+          - cell "$33.00 USD"
+          - cell "Changed":
+            - strong: Changed
+            - generic "Support details"
+          - cell "Not started"
+        - 'row "Lunch bag SKU: ACC-012 · Product #24 · as reviewed Review product $31.00 USD $31.00 USD $34.10 USD Remaining Unavailable: no confirmed WriteLeash change to restore"':
+          - 'cell "Lunch bag SKU: ACC-012 · Product #24 · as reviewed Review product"':
+            - strong: Lunch bag
+            - text: "SKU: ACC-012 · Product #24 · as reviewed"
+            - link "Review product":
+              - /url: http://127.0.0.1:8188/wp-admin/post.php?post=24&action=edit
+          - cell "$31.00 USD"
+          - cell "$31.00 USD"
+          - cell "$34.10 USD"
+          - cell "Remaining":
+            - strong: Remaining
+            - generic "Support details"
+          - 'cell "Unavailable: no confirmed WriteLeash change to restore"'
+  - paragraph:
+    - button "Previous page" [disabled]
+    - button "Next page" [disabled]
+- contentinfo:
+  - paragraph:
+    - text: Thank you for creating with
+    - link "WordPress":
+      - /url: https://wordpress.org/
+    - text: .
+  - paragraph: Version 7.1.3

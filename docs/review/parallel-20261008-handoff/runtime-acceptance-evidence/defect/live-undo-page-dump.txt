@@ -1,0 +1,35 @@
+=== includes preserved message: false
+=== includes reworded: false
+=== UNDO SECTION ===
+Undo
+
+Undo restores eligible regular price values changed by this job to their values before this job. Later price or sale-setting changes are left alone. Undo does not reverse: orders, completed sales or effects in other plugins and services.
+
+Undo finished with conflicts or failed restorations. Review the affected products.
+
+Undo window ends: November 7, 2026 6:00 am (+00:00)
+
+20 restored · 1 conflicts · 0 remaining · 0 needing attention · 0 in progress · 0 uncertain
+=== ROWS ===
+{"id":"33","cells":["Gate 0b52dca4 product 0 Café 日本 long name long name long name long name long name long name long name long nameSKU: G170-0b52dca4-00 · Product #33 · as reviewedReview product","$100.00 USD","$120.00 USD","$80.00 USD","Not changed · The product changed after review; the newer stored price was not overwritten.","Unavailable: no confirmed WriteLeash change to restore"]}
+{"id":"34","cells":["Gate 0b52dca4 product 1SKU: G170-0b52dca4-01 · Product #34 · as reviewedReview product","$100.00 USD","$93.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Not restored · The product changed after WriteLeash applied its price; the stored price was not overwritten."]}
+{"id":"35","cells":["Gate 0b52dca4 product 2SKU: G170-0b52dca4-02 · Product #35 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"36","cells":["Gate 0b52dca4 product 3SKU: G170-0b52dca4-03 · Product #36 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"37","cells":["Gate 0b52dca4 product 4SKU: G170-0b52dca4-04 · Product #37 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"38","cells":["Gate 0b52dca4 product 5SKU: G170-0b52dca4-05 · Product #38 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"39","cells":["Gate 0b52dca4 product 6SKU: G170-0b52dca4-06 · Product #39 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"40","cells":["Gate 0b52dca4 product 7SKU: G170-0b52dca4-07 · Product #40 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"41","cells":["Gate 0b52dca4 product 8SKU: G170-0b52dca4-08 · Product #41 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"42","cells":["Gate 0b52dca4 product 9SKU: G170-0b52dca4-09 · Product #42 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"43","cells":["Gate 0b52dca4 product 10SKU: G170-0b52dca4-10 · Product #43 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"44","cells":["Gate 0b52dca4 product 11SKU: G170-0b52dca4-11 · Product #44 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"45","cells":["Gate 0b52dca4 product 12SKU: G170-0b52dca4-12 · Product #45 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"46","cells":["Gate 0b52dca4 product 13SKU: G170-0b52dca4-13 · Product #46 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"47","cells":["Gate 0b52dca4 product 14SKU: G170-0b52dca4-14 · Product #47 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"48","cells":["Gate 0b52dca4 product 15SKU: G170-0b52dca4-15 · Product #48 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"49","cells":["Gate 0b52dca4 product 16SKU: G170-0b52dca4-16 · Product #49 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"50","cells":["Gate 0b52dca4 product 17SKU: G170-0b52dca4-17 · Product #50 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"51","cells":["Gate 0b52dca4 product 18SKU: G170-0b52dca4-18 · Product #51 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"52","cells":["Gate 0b52dca4 product 19SKU: G170-0b52dca4-19 · Product #52 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"53","cells":["Gate 0b52dca4 product 20SKU: G170-0b52dca4-20 · Product #53 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}
+{"id":"54","cells":["Gate 0b52dca4 product 21SKU: G170-0b52dca4-21 · Product #54 · as reviewedReview product","$100.00 USD","$100.00 USD","$80.00 USD","Changed · WooCommerce saved and verified the planned price.","Restored · WooCommerce saved and verified the restored price."]}

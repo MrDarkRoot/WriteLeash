@@ -1,0 +1,35 @@
+{
+  "wordpress/writeleash": {
+    "old": "0a2584cbf3572f509b7ec19a438b7b059b7cb071",
+    "latest": "0a2584cbf3572f509b7ec19a438b7b059b7cb071",
+    "byte_identical": true
+  },
+  "wordpress/release": {
+    "old": "a2deea09bc3bc3bb3d1dc2e40cd4f8b84009e47a",
+    "latest": "a2deea09bc3bc3bb3d1dc2e40cd4f8b84009e47a",
+    "byte_identical": true
+  },
+  "wordpress/tests/jobs": {
+    "old": "7f2b6fda444ce020fcdfc22bcd506964f65cdacf",
+    "latest": "7f2b6fda444ce020fcdfc22bcd506964f65cdacf",
+    "byte_identical": true
+  },
+  "wordpress/tests/undo": {
+    "old": "d07edd2dff9266ff287127af6449cdd52f8d4099",
+    "latest": "d07edd2dff9266ff287127af6449cdd52f8d4099",
+    "byte_identical": true
+  },
+  "wordpress/tests/release": {
+    "old": "000b9d7fdd85a5aeae4217a9923e07dfe0bf11fa",
+    "latest": "000b9d7fdd85a5aeae4217a9923e07dfe0bf11fa",
+    "byte_identical": true
+  },
+  "wordpress/tests/stage-plugin.sh": {
+    "old": "dc23f74a3c6d76ddf0d1a71f32c0d6de1739423a",
+    "latest": "dc23f74a3c6d76ddf0d1a71f32c0d6de1739423a",
+    "byte_identical": true
+  },
+  "all_changed_files": [
+    "M\twordpress/tests/durable/cache-public-integration.php"
+  ]
+}

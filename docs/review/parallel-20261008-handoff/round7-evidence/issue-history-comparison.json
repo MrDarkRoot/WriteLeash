@@ -1,0 +1,26 @@
+{
+  "204": {
+    "historical_path": "docs/review/parallel-20261008-handoff/evidence/issue-204.json",
+    "body_identical": true,
+    "historical_state": "OPEN",
+    "current_state": "open"
+  },
+  "206": {
+    "historical_path": "docs/review/parallel-20261008-handoff/evidence/issue-206.json",
+    "body_identical": true,
+    "historical_state": "OPEN",
+    "current_state": "open"
+  },
+  "209": {
+    "historical_path": "docs/review/parallel-20261008-handoff/evidence/issue-209.json",
+    "body_identical": true,
+    "historical_state": "OPEN",
+    "current_state": "open"
+  },
+  "210": {
+    "historical_path": "docs/review/parallel-20261008-handoff/evidence/issue-210.json",
+    "body_identical": true,
+    "historical_state": "OPEN",
+    "current_state": "open"
+  }
+}

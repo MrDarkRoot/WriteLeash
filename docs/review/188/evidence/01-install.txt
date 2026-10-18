@@ -1,0 +1,157 @@
+- navigation "Main menu":
+  - link "Skip to main content":
+    - /url: "#wpbody-content"
+  - link "Skip to toolbar":
+    - /url: "#wp-toolbar"
+  - list:
+    - link "Dashboard":
+      - /url: index.php
+      - generic: 
+      - generic: Dashboard
+    - list:
+      - link "Home":
+        - /url: index.php
+      - link "Updates":
+        - /url: update-core.php
+    - link "Posts":
+      - /url: edit.php
+      - generic: 
+      - generic: Posts
+    - list:
+      - link "All Posts":
+        - /url: edit.php
+      - link "Add Post":
+        - /url: post-new.php
+      - link "Categories":
+        - /url: edit-tags.php?taxonomy=category
+      - link "Tags":
+        - /url: edit-tags.php?taxonomy=post_tag
+    - link "Media":
+      - /url: upload.php
+      - generic: 
+      - generic: Media
+    - list:
+      - link "Library":
+        - /url: upload.php
+      - link "Add Media File":
+        - /url: media-new.php
+    - link "Pages":
+      - /url: edit.php?post_type=page
+      - generic: 
+      - generic: Pages
+    - list:
+      - link "All Pages":
+        - /url: edit.php?post_type=page
+      - link "Add Page":
+        - /url: post-new.php?post_type=page
+    - link "Comments":
+      - /url: edit-comments.php
+      - generic: 
+      - generic: Comments
+    - link "Appearance":
+      - /url: themes.php
+      - generic: 
+      - generic: Appearance
+    - list:
+      - link "Themes":
+        - /url: themes.php
+      - link "Editor":
+        - /url: site-editor.php
+      - link "Fonts":
+        - /url: font-library.php
+    - link "Plugins":
+      - /url: plugins.php
+      - generic: 
+      - generic: Plugins
+    - list:
+      - link "Installed Plugins":
+        - /url: plugins.php
+      - link "Add Plugin":
+        - /url: plugin-install.php
+    - link "Users":
+      - /url: users.php
+      - generic: 
+      - generic: Users
+    - list:
+      - link "All Users":
+        - /url: users.php
+      - link "Add User":
+        - /url: user-new.php
+      - link "Profile":
+        - /url: profile.php
+    - link "Tools":
+      - /url: tools.php
+      - generic: 
+      - generic: Tools
+    - list:
+      - link "Available Tools":
+        - /url: tools.php
+      - link "Import":
+        - /url: import.php
+      - link "Export":
+        - /url: export.php
+      - link "Site Health":
+        - /url: site-health.php
+      - link "Export Personal Data":
+        - /url: export-personal-data.php
+      - link "Erase Personal Data":
+        - /url: erase-personal-data.php
+      - link "Theme File Editor":
+        - /url: theme-editor.php
+      - link "Plugin File Editor":
+        - /url: plugin-editor.php
+    - link "Settings":
+      - /url: options-general.php
+      - generic: 
+      - generic: Settings
+    - list:
+      - link "General":
+        - /url: options-general.php
+      - link "Connectors":
+        - /url: options-connectors.php
+      - link "Writing":
+        - /url: options-writing.php
+      - link "Reading":
+        - /url: options-reading.php
+      - link "Discussion":
+        - /url: options-discussion.php
+      - link "Media":
+        - /url: options-media.php
+      - link "Permalinks":
+        - /url: options-permalink.php
+      - link "Privacy":
+        - /url: options-privacy.php
+    - button "Collapse Main menu" [expanded]:
+      - generic: Collapse Menu
+- navigation "Toolbar":
+  - menu:
+    - menuitem "About WordPress":
+      - generic: About WordPress
+    - menuitem "WriteLeash Customer Test Store"
+    - menuitem "Ctrl+K Open command palette":
+      - text: Ctrl+K
+      - generic: Open command palette
+    - menuitem "0 Comments in moderation":
+      - generic: "0"
+      - generic: 0 Comments in moderation
+    - menuitem "New":
+      - generic: New
+  - menu:
+    - menuitem "Howdy, merchant"
+- main:
+  - 'heading "Installing plugin from uploaded file: writeleash-main-2e059ca.zip" [level=1]'
+  - paragraph: Unpacking the package…
+  - paragraph: Installing the plugin…
+  - paragraph: Plugin installed successfully.
+  - paragraph:
+    - link "Activate Plugin":
+      - /url: plugins.php?action=activate&plugin=writeleash%2Fwriteleash.php&_wpnonce=78abdf4c8f
+    - link "Go to Plugin Installer":
+      - /url: http://127.0.0.1:8188/wp-admin/plugin-install.php
+- contentinfo:
+  - paragraph:
+    - text: Thank you for creating with
+    - link "WordPress":
+      - /url: https://wordpress.org/
+    - text: .
+  - paragraph: Version 7.1.3

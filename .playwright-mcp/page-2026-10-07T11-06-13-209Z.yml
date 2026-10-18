@@ -1,0 +1,572 @@
+- generic [ref=f14e2]:
+  - navigation "Main menu":
+    - link "Skip to main content" [ref=f14e3] [cursor=pointer]:
+      - /url: "#wpbody-content"
+    - link "Skip to toolbar" [ref=f14e4] [cursor=pointer]:
+      - /url: "#wp-toolbar"
+    - list [ref=f14e7]:
+      - listitem [ref=f14e8]:
+        - link "Dashboard" [ref=f14e9] [cursor=pointer]:
+          - /url: index.php
+          - generic [aria-hidden] [ref=f14e10]: 
+        - list [ref=f14e12]:
+          - listitem [ref=f14e13]:
+            - link "Home" [ref=f14e14] [cursor=pointer]:
+              - /url: index.php
+          - listitem [ref=f14e15]:
+            - link "Updates 1" [ref=f14e16] [cursor=pointer]:
+              - /url: update-core.php
+              - text: Updates
+              - generic [ref=f14e17]: "1"
+      - listitem [aria-hidden] [ref=f14e18]
+      - listitem [ref=f14e20]:
+        - link "Posts" [ref=f14e21] [cursor=pointer]:
+          - /url: edit.php
+          - generic [aria-hidden] [ref=f14e22]: 
+        - list [ref=f14e24]:
+          - listitem [ref=f14e25]:
+            - link "All Posts" [ref=f14e26] [cursor=pointer]:
+              - /url: edit.php
+          - listitem [ref=f14e27]:
+            - link "Add Post" [ref=f14e28] [cursor=pointer]:
+              - /url: post-new.php
+          - listitem [ref=f14e29]:
+            - link "Categories" [ref=f14e30] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=category
+          - listitem [ref=f14e31]:
+            - link "Tags" [ref=f14e32] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=post_tag
+      - listitem [ref=f14e33]:
+        - link "Media" [ref=f14e34] [cursor=pointer]:
+          - /url: upload.php
+          - generic [aria-hidden] [ref=f14e35]: 
+        - list [ref=f14e37]:
+          - listitem [ref=f14e38]:
+            - link "Library" [ref=f14e39] [cursor=pointer]:
+              - /url: upload.php
+          - listitem [ref=f14e40]:
+            - link "Add Media File" [ref=f14e41] [cursor=pointer]:
+              - /url: media-new.php
+      - listitem [ref=f14e42]:
+        - link "Pages" [ref=f14e43] [cursor=pointer]:
+          - /url: edit.php?post_type=page
+          - generic [aria-hidden] [ref=f14e44]: 
+        - list [ref=f14e46]:
+          - listitem [ref=f14e47]:
+            - link "All Pages" [ref=f14e48] [cursor=pointer]:
+              - /url: edit.php?post_type=page
+          - listitem [ref=f14e49]:
+            - link "Add Page" [ref=f14e50] [cursor=pointer]:
+              - /url: post-new.php?post_type=page
+      - listitem [ref=f14e51]:
+        - link "Comments" [ref=f14e52] [cursor=pointer]:
+          - /url: edit-comments.php
+          - generic [aria-hidden] [ref=f14e53]: 
+      - listitem [aria-hidden] [ref=f14e55]
+      - listitem [ref=f14e57]:
+        - link "WooCommerce" [ref=f14e58] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin
+        - list [ref=f14e61]:
+          - listitem [ref=f14e62]:
+            - link "Home 5" [ref=f14e63] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin
+              - text: Home
+              - generic [ref=f14e64]: "5"
+          - listitem [ref=f14e65]:
+            - link "Orders" [ref=f14e66] [cursor=pointer]:
+              - /url: admin.php?page=wc-orders
+          - listitem [ref=f14e67]:
+            - link "Customers" [ref=f14e68] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/customers
+          - listitem [ref=f14e69]:
+            - link "Coupons" [ref=f14e70] [cursor=pointer]:
+              - /url: admin.php?page=coupons-moved
+          - listitem [ref=f14e71]:
+            - link "Reports" [ref=f14e72] [cursor=pointer]:
+              - /url: admin.php?page=wc-reports
+          - listitem [ref=f14e73]:
+            - link "Settings" [ref=f14e74] [cursor=pointer]:
+              - /url: admin.php?page=wc-settings
+          - listitem [ref=f14e75]:
+            - link "Status" [ref=f14e76] [cursor=pointer]:
+              - /url: admin.php?page=wc-status
+          - listitem [ref=f14e77]:
+            - link "Extensions" [ref=f14e78] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/extensions
+      - listitem [ref=f14e79]:
+        - link "Products" [ref=f14e80] [cursor=pointer]:
+          - /url: edit.php?post_type=product
+          - generic [aria-hidden] [ref=f14e81]: 
+        - list [ref=f14e83]:
+          - listitem [ref=f14e84]:
+            - link "All Products" [ref=f14e85] [cursor=pointer]:
+              - /url: edit.php?post_type=product
+          - listitem [ref=f14e86]:
+            - link "Add new product" [ref=f14e87] [cursor=pointer]:
+              - /url: post-new.php?post_type=product
+          - listitem [ref=f14e88]:
+            - link "Brands" [ref=f14e89] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_brand&post_type=product
+          - listitem [ref=f14e90]:
+            - link "Categories" [ref=f14e91] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_cat&post_type=product
+          - listitem [ref=f14e92]:
+            - link "Tags" [ref=f14e93] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_tag&post_type=product
+          - listitem [ref=f14e94]:
+            - link "Attributes" [ref=f14e95] [cursor=pointer]:
+              - /url: edit.php?post_type=product&page=product_attributes
+          - listitem [ref=f14e96]:
+            - link "Bulk Prices" [ref=f14e97] [cursor=pointer]:
+              - /url: edit.php?post_type=product&page=writeleash-bulk-prices
+          - listitem [ref=f14e98]:
+            - link "Reviews" [ref=f14e99] [cursor=pointer]:
+              - /url: edit.php?post_type=product&page=product-reviews
+      - listitem [ref=f14e100]:
+        - link "Payments 1" [ref=f14e101] [cursor=pointer]:
+          - /url: admin.php?page=wc-settings&tab=checkout&from=PAYMENTS_MENU_ITEM
+          - generic [ref=f14e103]:
+            - text: Payments
+            - generic [ref=f14e104]: "1"
+      - listitem [ref=f14e105]:
+        - link "Analytics" [ref=f14e106] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin&path=/analytics/overview
+          - generic [aria-hidden] [ref=f14e107]: 
+        - list [ref=f14e109]:
+          - listitem [ref=f14e110]:
+            - link "Overview" [ref=f14e111] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/overview
+          - listitem [ref=f14e112]:
+            - link "Products" [ref=f14e113] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/products
+          - listitem [ref=f14e114]:
+            - link "Revenue" [ref=f14e115] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/revenue
+          - listitem [ref=f14e116]:
+            - link "Orders" [ref=f14e117] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/orders
+          - listitem [ref=f14e118]:
+            - link "Variations" [ref=f14e119] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/variations
+          - listitem [ref=f14e120]:
+            - link "Categories" [ref=f14e121] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/categories
+          - listitem [ref=f14e122]:
+            - link "Coupons" [ref=f14e123] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/coupons
+          - listitem [ref=f14e124]:
+            - link "Taxes" [ref=f14e125] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/taxes
+          - listitem [ref=f14e126]:
+            - link "Downloads" [ref=f14e127] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/downloads
+          - listitem [ref=f14e128]:
+            - link "Stock" [ref=f14e129] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/stock
+          - listitem [ref=f14e130]:
+            - link "Settings" [ref=f14e131] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/settings
+      - listitem [ref=f14e132]:
+        - link "Marketing" [ref=f14e133] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin&path=/marketing
+          - generic [aria-hidden] [ref=f14e134]: 
+        - list [ref=f14e136]:
+          - listitem [ref=f14e137]:
+            - link "Overview" [ref=f14e138] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/marketing
+          - listitem [ref=f14e139]:
+            - link "Coupons" [ref=f14e140] [cursor=pointer]:
+              - /url: edit.php?post_type=shop_coupon
+      - listitem [aria-hidden] [ref=f14e141]
+      - listitem [ref=f14e143]:
+        - link "Appearance" [ref=f14e144] [cursor=pointer]:
+          - /url: themes.php
+          - generic [aria-hidden] [ref=f14e145]: 
+        - list [ref=f14e147]:
+          - listitem [ref=f14e148]:
+            - link "Themes" [ref=f14e149] [cursor=pointer]:
+              - /url: themes.php
+          - listitem [ref=f14e150]:
+            - link "Editor" [ref=f14e151] [cursor=pointer]:
+              - /url: site-editor.php
+          - listitem [ref=f14e152]:
+            - link "Fonts" [ref=f14e153] [cursor=pointer]:
+              - /url: font-library.php
+      - listitem [ref=f14e154]:
+        - link "Plugins" [ref=f14e155] [cursor=pointer]:
+          - /url: plugins.php
+          - generic [aria-hidden] [ref=f14e156]: 
+        - list [ref=f14e158]:
+          - listitem [ref=f14e159]:
+            - link "Installed Plugins" [ref=f14e160] [cursor=pointer]:
+              - /url: plugins.php
+          - listitem [ref=f14e161]:
+            - link "Add Plugin" [ref=f14e162] [cursor=pointer]:
+              - /url: plugin-install.php
+      - listitem [ref=f14e163]:
+        - link "Users" [ref=f14e164] [cursor=pointer]:
+          - /url: users.php
+          - generic [aria-hidden] [ref=f14e165]: 
+        - list [ref=f14e167]:
+          - listitem [ref=f14e168]:
+            - link "All Users" [ref=f14e169] [cursor=pointer]:
+              - /url: users.php
+          - listitem [ref=f14e170]:
+            - link "Add User" [ref=f14e171] [cursor=pointer]:
+              - /url: user-new.php
+          - listitem [ref=f14e172]:
+            - link "Profile" [ref=f14e173] [cursor=pointer]:
+              - /url: profile.php
+      - listitem [ref=f14e174]:
+        - link "Tools" [ref=f14e175] [cursor=pointer]:
+          - /url: tools.php
+          - generic [aria-hidden] [ref=f14e176]: 
+        - list [ref=f14e178]:
+          - listitem [ref=f14e179]:
+            - link "Available Tools" [ref=f14e180] [cursor=pointer]:
+              - /url: tools.php
+          - listitem [ref=f14e181]:
+            - link "Import" [ref=f14e182] [cursor=pointer]:
+              - /url: import.php
+          - listitem [ref=f14e183]:
+            - link "Export" [ref=f14e184] [cursor=pointer]:
+              - /url: export.php
+          - listitem [ref=f14e185]:
+            - link "Site Health" [ref=f14e186] [cursor=pointer]:
+              - /url: site-health.php
+          - listitem [ref=f14e187]:
+            - link "Export Personal Data" [ref=f14e188] [cursor=pointer]:
+              - /url: export-personal-data.php
+          - listitem [ref=f14e189]:
+            - link "Erase Personal Data" [ref=f14e190] [cursor=pointer]:
+              - /url: erase-personal-data.php
+          - listitem [ref=f14e191]:
+            - link "Plugin Check" [ref=f14e192] [cursor=pointer]:
+              - /url: tools.php?page=plugin-check
+          - listitem [ref=f14e193]:
+            - link "Plugin Check Namer" [ref=f14e194] [cursor=pointer]:
+              - /url: tools.php?page=plugin-check-namer
+          - listitem [ref=f14e195]:
+            - link "Plugin Check SVN" [ref=f14e196] [cursor=pointer]:
+              - /url: tools.php?page=plugin-check-svn-checker
+          - listitem [ref=f14e197]:
+            - link "Scheduled Actions" [ref=f14e198] [cursor=pointer]:
+              - /url: tools.php?page=action-scheduler
+          - listitem [ref=f14e199]:
+            - link "Theme File Editor" [ref=f14e200] [cursor=pointer]:
+              - /url: theme-editor.php
+          - listitem [ref=f14e201]:
+            - link "Plugin File Editor" [ref=f14e202] [cursor=pointer]:
+              - /url: plugin-editor.php
+      - listitem [ref=f14e203]:
+        - link "Settings" [ref=f14e204] [cursor=pointer]:
+          - /url: options-general.php
+          - generic [aria-hidden] [ref=f14e205]: 
+        - list [ref=f14e207]:
+          - listitem [ref=f14e208]:
+            - link "General" [ref=f14e209] [cursor=pointer]:
+              - /url: options-general.php
+          - listitem [ref=f14e210]:
+            - link "Connectors" [ref=f14e211] [cursor=pointer]:
+              - /url: options-connectors.php
+          - listitem [ref=f14e212]:
+            - link "Writing" [ref=f14e213] [cursor=pointer]:
+              - /url: options-writing.php
+          - listitem [ref=f14e214]:
+            - link "Reading" [ref=f14e215] [cursor=pointer]:
+              - /url: options-reading.php
+          - listitem [ref=f14e216]:
+            - link "Discussion" [ref=f14e217] [cursor=pointer]:
+              - /url: options-discussion.php
+          - listitem [ref=f14e218]:
+            - link "Media" [ref=f14e219] [cursor=pointer]:
+              - /url: options-media.php
+          - listitem [ref=f14e220]:
+            - link "Permalinks" [ref=f14e221] [cursor=pointer]:
+              - /url: options-permalink.php
+          - listitem [ref=f14e222]:
+            - link "Privacy" [ref=f14e223] [cursor=pointer]:
+              - /url: options-privacy.php
+          - listitem [ref=f14e224]:
+            - link "Plugin Check" [ref=f14e225] [cursor=pointer]:
+              - /url: options-general.php?page=plugin-check-settings
+      - listitem [ref=f14e226]:
+        - button "Collapse Main menu" [expanded] [ref=f14e227] [cursor=pointer]:
+          - generic [ref=f14e229]: Collapse Menu
+  - generic [ref=f14e230]:
+    - generic [ref=f14e231]:
+      - navigation "Toolbar":
+        - menu:
+          - group [ref=f14e232]:
+            - menuitem "About WordPress" [ref=f14e233] [cursor=pointer]
+          - group [ref=f14e236]:
+            - menuitem "WriteLeash submission smoke" [ref=f14e237] [cursor=pointer]
+          - group [ref=f14e238]:
+            - menuitem "Store coming soon" [ref=f14e239] [cursor=pointer]
+          - group [ref=f14e240]:
+            - menuitem "1 update available" [ref=f14e241] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f14e243]: "1"
+          - group [ref=f14e245]:
+            - menuitem "Ctrl+K Open command palette" [ref=f14e246] [cursor=pointer]:
+              - generic [ref=f14e248]:
+                - text: Ctrl+K
+                - generic [ref=f14e249]: Open command palette
+          - group [ref=f14e250]:
+            - menuitem "0 Comments in moderation" [ref=f14e251] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f14e253]: "0"
+          - group [ref=f14e255]:
+            - menuitem "New" [ref=f14e256] [cursor=pointer]
+        - menu [ref=f14e259]:
+          - group [ref=f14e260]:
+            - menuitem "Howdy, merchant194" [ref=f14e261] [cursor=pointer]
+    - main [ref=f14e262]:
+      - generic [ref=f14e263]:
+        - generic [ref=f14e264]:
+          - button "Screen Options" [ref=f14e266] [cursor=pointer]
+          - button "Help" [ref=f14e268] [cursor=pointer]
+        - generic [ref=f14e269]:
+          - link "WordPress 7.1.3" [ref=f14e270] [cursor=pointer]:
+            - /url: https://wordpress.org/documentation/wordpress-version/version-7-1-3/
+          - text: is available!
+          - link "Please update WordPress now" [ref=f14e271] [cursor=pointer]:
+            - /url: http://127.0.0.1:8194/wp-admin/update-core.php
+            - text: Please update now
+          - text: .
+        - generic [ref=f14e272]:
+          - heading "Plugins" [level=1] [ref=f14e273]
+          - link "Add Plugin" [ref=f14e274] [cursor=pointer]:
+            - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php
+          - generic [ref=f14e275]:
+            - paragraph [ref=f14e276]: Plugin activated.
+            - button "Dismiss this notice." [ref=f14e277] [cursor=pointer]
+          - heading "Filter plugins list" [level=2] [ref=f14e279]
+          - list [ref=f14e280]:
+            - listitem [ref=f14e281]:
+              - link "All (5)" [ref=f14e282] [cursor=pointer]:
+                - /url: plugins.php?plugin_status=all
+              - text: "|"
+            - listitem [ref=f14e283]:
+              - link "Active (3)" [ref=f14e284] [cursor=pointer]:
+                - /url: plugins.php?plugin_status=active
+              - text: "|"
+            - listitem [ref=f14e285]:
+              - link "Inactive (2)" [ref=f14e286] [cursor=pointer]:
+                - /url: plugins.php?plugin_status=inactive
+              - text: "|"
+            - listitem [ref=f14e287]:
+              - link "Auto-updates Disabled (5)" [ref=f14e288] [cursor=pointer]:
+                - /url: plugins.php?plugin_status=auto-update-disabled
+          - paragraph [ref=f14e289]:
+            - generic [ref=f14e290]: Search installed plugins
+            - searchbox "Search installed plugins" [ref=f14e291]
+          - generic [ref=f14e292]:
+            - generic [ref=f14e293]:
+              - generic [ref=f14e294]:
+                - generic [ref=f14e295]: Select bulk action
+                - combobox "Select bulk action" [ref=f14e296] [cursor=pointer]:
+                  - option "Bulk actions" [selected]
+                  - option "Activate"
+                  - option "Deactivate"
+                  - option "Update"
+                  - option "Delete"
+                  - option "Enable Auto-updates"
+                  - option "Disable Auto-updates"
+                - button "Apply" [ref=f14e297] [cursor=pointer]
+              - generic [ref=f14e298]: 5 items
+            - heading "Plugins list" [level=2] [ref=f14e300]
+            - table [ref=f14e301]:
+              - rowgroup [ref=f14e302]:
+                - row [ref=f14e303]:
+                  - cell "Select All" [ref=f14e304]:
+                    - checkbox "Select All" [ref=f14e305] [cursor=pointer]
+                  - columnheader "Plugin" [ref=f14e308]
+                  - columnheader "Description" [ref=f14e309]
+                  - columnheader "Automatic Updates" [ref=f14e310]
+              - rowgroup [ref=f14e311]:
+                - row [ref=f14e312]:
+                  - cell [ref=f14e313]:
+                    - 'checkbox "Select Akismet Anti-spam: Spam Protection" [ref=f14e316] [cursor=pointer]'
+                  - 'rowheader "Akismet Anti-spam: Spam Protection" [ref=f14e317]':
+                    - strong [ref=f14e318]: "Akismet Anti-spam: Spam Protection"
+                    - generic [ref=f14e319]:
+                      - generic [ref=f14e320]:
+                        - 'link "Activate Akismet Anti-spam: Spam Protection" [ref=f14e321] [cursor=pointer]':
+                          - /url: plugins.php?action=activate&plugin=akismet%2Fakismet.php&plugin_status=all&paged=1&s&_wpnonce=92b3bd27f7
+                          - text: Activate
+                        - text: "|"
+                      - generic [ref=f14e322]:
+                        - 'link "Delete Akismet Anti-spam: Spam Protection" [ref=f14e323] [cursor=pointer]':
+                          - /url: plugins.php?action=delete-selected&checked%5B0%5D=akismet%2Fakismet.php&plugin_status=all&paged=1&s&_wpnonce=bd0f3ceb7a
+                          - text: Delete
+                        - text: "|"
+                      - link "Check this plugin" [ref=f14e325] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/tools.php?page=plugin-check&plugin=akismet/akismet.php
+                  - cell [ref=f14e326]:
+                    - paragraph [ref=f14e328]:
+                      - text: Used by millions, Akismet is quite possibly the best way in the world to
+                      - strong [ref=f14e329]: protect your blog from spam
+                      - text: ". Akismet Anti-spam keeps your site protected even while you sleep. To get started: activate the Akismet plugin and then go to your Akismet Settings page to set up your API key."
+                    - generic [ref=f14e330]:
+                      - text: Version 5.7.2 | By
+                      - link "Automattic - Anti-spam Team" [ref=f14e331] [cursor=pointer]:
+                        - /url: https://automattic.com/wordpress-plugins/
+                      - text: "|"
+                      - 'link "More information about Akismet Anti-spam: Spam Protection" [ref=f14e332] [cursor=pointer]':
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=akismet&TB_iframe=true&width=600&height=550
+                        - text: View details
+                  - cell [ref=f14e333]:
+                    - button "Enable auto-updates" [ref=f14e334] [cursor=pointer]:  Enable auto-updates
+                - row [ref=f14e335]:
+                  - cell [ref=f14e336]:
+                    - checkbox "Select Hello Dolly" [ref=f14e339] [cursor=pointer]
+                  - rowheader "Hello Dolly" [ref=f14e340]:
+                    - strong [ref=f14e341]: Hello Dolly
+                    - generic [ref=f14e342]:
+                      - generic [ref=f14e343]:
+                        - link "Activate Hello Dolly" [ref=f14e344] [cursor=pointer]:
+                          - /url: plugins.php?action=activate&plugin=hello.php&plugin_status=all&paged=1&s&_wpnonce=9c5002f517
+                          - text: Activate
+                        - text: "|"
+                      - generic [ref=f14e345]:
+                        - link "Delete Hello Dolly" [ref=f14e346] [cursor=pointer]:
+                          - /url: plugins.php?action=delete-selected&checked%5B0%5D=hello.php&plugin_status=all&paged=1&s&_wpnonce=bd0f3ceb7a
+                          - text: Delete
+                        - text: "|"
+                      - link "Check this plugin" [ref=f14e348] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/tools.php?page=plugin-check&plugin=hello.php
+                  - cell [ref=f14e349]:
+                    - paragraph [ref=f14e351]: "This is not just a plugin, it symbolizes the hope and enthusiasm of an entire generation summed up in two words sung most famously by Louis Armstrong: Hello, Dolly. When activated you will randomly see a lyric from Hello, Dolly in the upper right of your admin screen on every page."
+                    - generic [ref=f14e352]:
+                      - text: Version 1.7.2 | By
+                      - link "Matt Mullenweg" [ref=f14e353] [cursor=pointer]:
+                        - /url: http://ma.tt/
+                      - text: "|"
+                      - link "More information about Hello Dolly" [ref=f14e354] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=hello-dolly&TB_iframe=true&width=600&height=550
+                        - text: View details
+                  - cell [ref=f14e355]:
+                    - button "Enable auto-updates" [ref=f14e356] [cursor=pointer]:  Enable auto-updates
+                - row [ref=f14e357]:
+                  - cell [ref=f14e358]:
+                    - checkbox "Select Plugin Check (PCP)" [ref=f14e361] [cursor=pointer]
+                  - rowheader "Plugin Check (PCP)" [ref=f14e362]:
+                    - strong [ref=f14e363]: Plugin Check (PCP)
+                    - generic [ref=f14e364]:
+                      - generic [ref=f14e365]:
+                        - link "Deactivate Plugin Check (PCP)" [ref=f14e366] [cursor=pointer]:
+                          - /url: plugins.php?action=deactivate&plugin=plugin-check%2Fplugin.php&plugin_status=all&paged=1&s&_wpnonce=97a702ab06
+                          - text: Deactivate
+                        - text: "|"
+                      - link "Check a plugin" [ref=f14e368] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/tools.php?page=plugin-check
+                  - cell [ref=f14e369]:
+                    - paragraph [ref=f14e371]: Plugin Check is a WordPress.org tool which provides checks to help plugins meet the directory requirements and follow various best practices.
+                    - generic [ref=f14e372]:
+                      - text: Version 2.1.0 | By WordPress Performance Team and Plugins Team |
+                      - link "More information about Plugin Check (PCP)" [ref=f14e373] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=plugin-check&TB_iframe=true&width=600&height=550
+                        - text: View details
+                  - cell [ref=f14e374]:
+                    - button "Enable auto-updates" [ref=f14e375] [cursor=pointer]:  Enable auto-updates
+                - row [ref=f14e376]:
+                  - cell [ref=f14e377]:
+                    - checkbox "Select WooCommerce" [disabled] [ref=f14e380]
+                  - rowheader "WooCommerce" [ref=f14e381]:
+                    - strong [ref=f14e382]: WooCommerce
+                    - generic [ref=f14e383]:
+                      - generic [ref=f14e384]:
+                        - link "View WooCommerce settings" [ref=f14e385] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8194/wp-admin/admin.php?page=wc-settings
+                          - text: Settings
+                        - text: "|"
+                      - generic [ref=f14e386]:
+                        - text: Deactivate
+                        - generic [ref=f14e387]: You cannot deactivate this plugin as other plugins depend on it.
+                        - text: "|"
+                      - link "Check this plugin" [ref=f14e389] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/tools.php?page=plugin-check&plugin=woocommerce/woocommerce.php
+                  - cell [ref=f14e390]:
+                    - paragraph [ref=f14e392]: An ecommerce toolkit that helps you sell anything. Beautifully.
+                    - generic [ref=f14e393]:
+                      - text: Version 11.1.2 | By
+                      - link "Automattic" [ref=f14e394] [cursor=pointer]:
+                        - /url: https://woocommerce.com
+                      - text: "|"
+                      - link "More information about WooCommerce" [ref=f14e395] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=woocommerce&TB_iframe=true&width=600&height=550
+                        - text: View details
+                      - text: "|"
+                      - link "View WooCommerce documentation" [ref=f14e396] [cursor=pointer]:
+                        - /url: https://woocommerce.com/documentation/plugins/woocommerce/
+                        - text: Docs
+                      - text: "|"
+                      - link "View WooCommerce API docs" [ref=f14e397] [cursor=pointer]:
+                        - /url: https://woocommerce.com/wc-apidocs/
+                        - text: API docs
+                      - text: "|"
+                      - link "Visit community forums" [ref=f14e398] [cursor=pointer]:
+                        - /url: https://wordpress.org/support/plugin/woocommerce/
+                        - text: Community support
+                    - generic [ref=f14e399]:
+                      - paragraph [ref=f14e400]:
+                        - strong [ref=f14e401]: "Required by:"
+                        - text: WriteLeash
+                      - paragraph [ref=f14e402]: "Note: This plugin cannot be deactivated or deleted until the plugins that require it are deactivated or deleted."
+                  - cell [ref=f14e403]:
+                    - button "Enable auto-updates" [ref=f14e404] [cursor=pointer]:  Enable auto-updates
+                - row [ref=f14e405]:
+                  - cell [ref=f14e406]:
+                    - checkbox "Select WriteLeash" [ref=f14e409] [cursor=pointer]
+                  - rowheader "WriteLeash" [ref=f14e410]:
+                    - strong [ref=f14e411]: WriteLeash
+                    - generic [ref=f14e412]:
+                      - generic [ref=f14e413]:
+                        - link "Deactivate WriteLeash" [ref=f14e414] [cursor=pointer]:
+                          - /url: plugins.php?action=deactivate&plugin=writeleash%2Fwriteleash.php&plugin_status=all&paged=1&s&_wpnonce=8e38e0c6f5
+                          - text: Deactivate
+                        - text: "|"
+                      - link "Check this plugin" [ref=f14e416] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/tools.php?page=plugin-check&plugin=writeleash/writeleash.php
+                  - cell [ref=f14e417]:
+                    - paragraph [ref=f14e419]: Preview WooCommerce bulk price changes, preserve newer edits, resume interrupted jobs, and undo eligible changes.
+                    - generic [ref=f14e420]:
+                      - text: Version 0.1.0 | By
+                      - link "Duy Tran" [ref=f14e421] [cursor=pointer]:
+                        - /url: https://profiles.wordpress.org/duyytrann
+                    - paragraph [ref=f14e423]:
+                      - strong [ref=f14e424]: "Requires:"
+                      - link "More information about WooCommerce" [ref=f14e425] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=woocommerce&TB_iframe=true&width=600&height=550
+                        - text: WooCommerce
+                  - cell [ref=f14e426]
+              - rowgroup [ref=f14e427]:
+                - row [ref=f14e428]:
+                  - cell "Select All" [ref=f14e429]:
+                    - checkbox "Select All" [ref=f14e430] [cursor=pointer]
+                  - columnheader "Plugin" [ref=f14e433]
+                  - columnheader "Description" [ref=f14e434]
+                  - columnheader "Automatic Updates" [ref=f14e435]
+            - generic [ref=f14e436]:
+              - generic [ref=f14e437]:
+                - generic [ref=f14e438]: Select bulk action
+                - combobox "Select bulk action" [ref=f14e439] [cursor=pointer]:
+                  - option "Bulk actions" [selected]
+                  - option "Activate"
+                  - option "Deactivate"
+                  - option "Update"
+                  - option "Delete"
+                  - option "Enable Auto-updates"
+                  - option "Disable Auto-updates"
+                - button "Apply" [ref=f14e440] [cursor=pointer]
+              - generic [ref=f14e441]: 5 items
+  - contentinfo [ref=f14e443]:
+    - paragraph [ref=f14e444]:
+      - generic [ref=f14e446]:
+        - text: Thank you for creating with
+        - link "WordPress" [ref=f14e447] [cursor=pointer]:
+          - /url: https://wordpress.org/
+        - text: .
+    - paragraph [ref=f14e448]:
+      - strong [ref=f14e449]:
+        - link "Get Version 7.1.3" [ref=f14e450] [cursor=pointer]:
+          - /url: http://127.0.0.1:8194/wp-admin/update-core.php

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="WriteLeash: a controlled line and clasp">
+  <rect width="256" height="256" rx="56" fill="#142c43"/>
+  <path d="M72 119V88c0-24 19-43 43-43s43 19 43 43v14" fill="none" stroke="#83d6d1" stroke-width="18" stroke-linecap="round"/>
+  <path d="M72 115v55c0 22 17 40 39 40s40-18 40-40v-12c0-18 14-32 32-32" fill="none" stroke="#f6f3e9" stroke-width="18" stroke-linecap="round"/>
+  <rect x="168" y="90" width="28" height="63" rx="12" fill="#efad62"/>
+  <path d="M176 114h12" stroke="#142c43" stroke-width="7" stroke-linecap="round"/>
+</svg>

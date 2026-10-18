@@ -1,0 +1,56 @@
+{
+  "verified_main_sha": "c48e307efe7750d0fb36015c39d50a34675f9579",
+  "verified_before_permission_change": true,
+  "starting_main_checkout_preserved": true,
+  "issue_evidence": [
+    "issue-206.json",
+    "issue-209.json",
+    "issue-204.json",
+    "issue-210.json"
+  ],
+  "open_prs": [
+    165,
+    163,
+    139,
+    46,
+    22
+  ],
+  "matching_implementation_prs": [],
+  "matching_implementation_branches": [],
+  "source_evidence": {
+    "206": "Price_Selection_Spec.category and resolver force include_children=false; no descendant option/count exists.",
+    "209": "Price_Cache_Verifier.invalidate has string-based ProductCache dependency; Free_Admin.product_observation has direct Internal ProductCache reference.",
+    "204": "render_job_view renders saved progress at page load; shipped free-selection.js implements discovery only.",
+    "210": "Raw merchant-facing PHP/JS English literals remain; no complete catalog translation workflow found."
+  },
+  "ownership": {
+    "A": [
+      "class-product-selector.php",
+      "selection Admin methods",
+      "selection tests"
+    ],
+    "B": [
+      "class-price-cache-verifier.php",
+      "public freshness boundary",
+      "Free_Admin.product_observation",
+      "cache tests"
+    ],
+    "C": [
+      "Free_Admin.boot/assets/render_job_view/progress methods",
+      "free-progress.js",
+      "progress tests",
+      "minimal asset manifest and CI ownership additions"
+    ],
+    "D": [
+      "i18n inventory/tooling/docs/tests only"
+    ]
+  },
+  "anticipated_collision": "class-free-admin.php in separate clones, method-level ownership; no common uncommitted tree",
+  "environment_limits": [
+    "original .git read-only after permission update",
+    "Docker socket access denied",
+    "GitHub network unavailable after permission update",
+    "GitNexus copied indexes rejected as foreign; agents rebuilding own indexes"
+  ],
+  "execution_boundary": "local implementation, commits, evidence and disposable combined validation only; no remote push, PR, merge, release, deploy, publish or unrelated issue edits"
+}

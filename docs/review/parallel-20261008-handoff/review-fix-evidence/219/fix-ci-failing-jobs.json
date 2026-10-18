@@ -1,0 +1,2 @@
+{"name":"PR_FAST","steps":["Public package and CI ownership gate"]}
+{"name":"CI_COVERAGE","steps":["Propagate all path-owned results (no runtime work for docs)"]}

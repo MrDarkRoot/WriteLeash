@@ -1,0 +1,62 @@
+{
+  "reason": "User requested immediate final report due quota; no more validation",
+  "stopped_at": "2026-10-08T12:11:31.931000+00:00",
+  "task_owned_processes_signaled": [
+    {
+      "pid": 234590,
+      "command": "php /tmp/opencode/wp-cli.phar --path=/tmp/wl109-mariadb eval-file /opt/tests/jobs/integration.php",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 234208,
+      "command": "php /tmp/opencode/wp-cli.phar --path=/tmp/writeleash-round7-wc-1112 plugin install /opt/woo-zips/woocommerce.11.1.2.zip --activate",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 233486,
+      "command": "sh /home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/version-11.1.2-setup.sh",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 232571,
+      "command": "php /tmp/opencode/wp-cli.phar --path=/tmp/wlround7-108-mysql eval-file /opt/tests/durable/integration.php",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 229276,
+      "command": "php /tmp/opencode/wp-cli.phar --path=/tmp/writeleash-round7-admin-mysql eval-file /opt/tests/admin/integration.php",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 227988,
+      "command": "python3 docs/review/parallel-20261008-handoff/round7-evidence/runtime/run-focused-admin.py",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 225940,
+      "command": "sh /home/vanta/Projects/WriteLeash/docs/review/parallel-20261008-handoff/round7-evidence/runtime/latest-durable-runner.sh",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 225913,
+      "command": "python3 docs/review/parallel-20261008-handoff/round7-evidence/runtime/run-latest-durable.py",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 224637,
+      "command": "python3 docs/review/parallel-20261008-handoff/round7-evidence/runtime/run-version-matrix.py /tmp/writeleash-round7-pr220 10.4.4 10.5.3 11.0.1 11.1.2",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 217189,
+      "command": "sh /tmp/writeleash-round7-runners/jobs.sh",
+      "signal": "SIGTERM"
+    },
+    {
+      "pid": 213196,
+      "command": "python3 docs/review/parallel-20261008-handoff/round7-evidence/runtime/run-suites.py",
+      "signal": "SIGTERM"
+    }
+  ],
+  "unrelated_native_database_redis_services": "left running"
+}

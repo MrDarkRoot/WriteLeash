@@ -1,0 +1,771 @@
+- generic [ref=e2]:
+  - navigation "Main menu":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#wpbody-content"
+    - text:             
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - navigation "Toolbar":
+        - menu:
+          - group [ref=e6]:
+            - menuitem "Menu" [ref=e7] [cursor=pointer]:
+              - generic [aria-hidden] [ref=e8]: 
+          - group [ref=e10]:
+            - menuitem "About WordPress" [ref=e11] [cursor=pointer]
+          - group [ref=e14]:
+            - menuitem "WriteLeash Manual Review" [ref=e15] [cursor=pointer]
+          - group [ref=e16]:
+            - menuitem "Ctrl+K Open command palette" [ref=e17] [cursor=pointer]:
+              - generic [ref=e19]:
+                - text: Ctrl+K
+                - generic [ref=e20]: Open command palette
+          - group [ref=e21]:
+            - menuitem "0 Comments in moderation" [ref=e22] [cursor=pointer]:
+              - generic [aria-hidden] [ref=e24]: "0"
+          - group [ref=e26]:
+            - menuitem "New" [ref=e27] [cursor=pointer]
+        - menu [ref=e30]:
+          - group [ref=e31]:
+            - menuitem "Howdy, merchant" [ref=e32] [cursor=pointer]
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - heading "Store Activity" [level=2] [ref=e36]
+        - complementary "Store Activity" [ref=e37]:
+          - tablist [ref=e38]:
+            - tab "Activity" [ref=e39] [cursor=pointer]:
+              - generic [ref=e43]: unread activity
+            - tab "Finish setup" [ref=e44] [cursor=pointer]
+      - button "Screen options" [ref=e48] [cursor=pointer]
+      - button "Help" [ref=e51] [cursor=pointer]
+    - main [ref=e55]:
+      - generic [ref=e56]:
+        - generic:
+          - button "Screen Options" [ref=e58] [cursor=pointer]
+          - button "Help" [ref=e60] [cursor=pointer]
+        - generic [ref=e63]:
+          - heading "Products" [level=1] [ref=e64]
+          - link "Add new product" [ref=e65] [cursor=pointer]:
+            - /url: http://127.0.0.1:8188/wp-admin/post-new.php?post_type=product
+          - link "Import" [ref=e66] [cursor=pointer]:
+            - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&page=product_importer
+          - link "Export" [ref=e67] [cursor=pointer]:
+            - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&page=product_exporter
+          - heading "Filter products" [level=2] [ref=e68]
+          - list [ref=e69]:
+            - listitem [ref=e70]:
+              - link "All (1,019)" [ref=e71] [cursor=pointer]:
+                - /url: edit.php?post_type=product
+              - text: "|"
+            - listitem [ref=e72]:
+              - link "Published (1,019)" [ref=e73] [cursor=pointer]:
+                - /url: edit.php?post_status=publish&post_type=product
+              - text: "|"
+            - listitem [ref=e74]:
+              - link "Sorting" [ref=e75] [cursor=pointer]:
+                - /url: /wp-admin/edit.php?post_type=product&orderby=menu_order+title&order=ASC
+          - generic [ref=e76]:
+            - paragraph [ref=e77]:
+              - generic [ref=e78]: "Search products:"
+              - searchbox "Search products:" [ref=e79]
+              - button "Search products" [ref=e80] [cursor=pointer]
+            - generic [ref=e81]:
+              - heading "Products navigation" [level=2] [ref=e82]
+              - generic [ref=e84]:
+                - generic [aria-hidden] [ref=e85]: «
+                - generic [aria-hidden] [ref=e86]: ‹
+                - generic [ref=e87]:
+                  - generic [ref=e88]: Current Page
+                  - textbox "Current Page" [ref=e89]: "1"
+                  - generic [ref=e90]: of 51
+                - link "Next page" [ref=e91] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&paged=2
+                  - text: ›
+                - link "Last page" [ref=e93] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&paged=51
+                  - text: »
+            - heading "Products list" [level=2] [ref=e95]
+            - table [ref=e96]:
+              - rowgroup [ref=e97]:
+                - row [ref=e98]:
+                  - cell "Select All" [ref=e99]:
+                    - checkbox "Select All" [ref=e100] [cursor=pointer]
+                  - text: 
+                  - columnheader [ref=e103]:
+                    - link "Name Sort ascending." [ref=e104] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&orderby=title&order=asc
+                      - generic [ref=e105]: Name
+                      - generic [ref=e109]: Sort ascending.
+                  - text: 
+              - rowgroup [ref=e110]:
+                - row [ref=e111]:
+                  - cell "Select Agency item 0987" [ref=e112]:
+                    - checkbox "Select Agency item 0987" [ref=e113] [cursor=pointer]
+                  - rowheader "Agency item 0987" [ref=e116]:
+                    - strong [ref=e117]:
+                      - link "Agency item 0987" [ref=e118] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1017&action=edit
+                    - generic [ref=e119]:
+                      - generic: "ID: 1017 |"
+                      - generic [ref=e120]:
+                        - link "Edit “Agency item 0987”" [ref=e121] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1017&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e122]:
+                        - button "Quick edit “Agency item 0987” inline" [ref=e123] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e124]:
+                        - link "Move “Agency item 0987” to the Trash" [ref=e125] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1017&action=trash&_wpnonce=75cbc74a9a
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e126]:
+                        - link "View “Agency item 0987”" [ref=e127] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0987
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e129] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1017&_wpnonce=dd6da071a6
+                        - text: Duplicate
+                    - button "Show more details" [ref=e130]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e132]:
+                  - cell "Select Agency item 0988" [ref=e133]:
+                    - checkbox "Select Agency item 0988" [ref=e134] [cursor=pointer]
+                  - rowheader "Agency item 0988" [ref=e137]:
+                    - strong [ref=e138]:
+                      - link "Agency item 0988" [ref=e139] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1018&action=edit
+                    - generic [ref=e140]:
+                      - generic: "ID: 1018 |"
+                      - generic [ref=e141]:
+                        - link "Edit “Agency item 0988”" [ref=e142] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1018&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e143]:
+                        - button "Quick edit “Agency item 0988” inline" [ref=e144] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e145]:
+                        - link "Move “Agency item 0988” to the Trash" [ref=e146] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1018&action=trash&_wpnonce=ea7ba7914f
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e147]:
+                        - link "View “Agency item 0988”" [ref=e148] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0988
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e150] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1018&_wpnonce=54e42c8e69
+                        - text: Duplicate
+                    - button "Show more details" [ref=e151]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e153]:
+                  - cell "Select Agency item 0989" [ref=e154]:
+                    - checkbox "Select Agency item 0989" [ref=e155] [cursor=pointer]
+                  - rowheader "Agency item 0989" [ref=e158]:
+                    - strong [ref=e159]:
+                      - link "Agency item 0989" [ref=e160] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1019&action=edit
+                    - generic [ref=e161]:
+                      - generic: "ID: 1019 |"
+                      - generic [ref=e162]:
+                        - link "Edit “Agency item 0989”" [ref=e163] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1019&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e164]:
+                        - button "Quick edit “Agency item 0989” inline" [ref=e165] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e166]:
+                        - link "Move “Agency item 0989” to the Trash" [ref=e167] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1019&action=trash&_wpnonce=76bf9efb28
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e168]:
+                        - link "View “Agency item 0989”" [ref=e169] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0989
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e171] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1019&_wpnonce=4217e79b37
+                        - text: Duplicate
+                    - button "Show more details" [ref=e172]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e174]:
+                  - cell "Select Agency item 0990" [ref=e175]:
+                    - checkbox "Select Agency item 0990" [ref=e176] [cursor=pointer]
+                  - rowheader "Agency item 0990" [ref=e179]:
+                    - strong [ref=e180]:
+                      - link "Agency item 0990" [ref=e181] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1020&action=edit
+                    - generic [ref=e182]:
+                      - generic: "ID: 1020 |"
+                      - generic [ref=e183]:
+                        - link "Edit “Agency item 0990”" [ref=e184] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1020&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e185]:
+                        - button "Quick edit “Agency item 0990” inline" [ref=e186] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e187]:
+                        - link "Move “Agency item 0990” to the Trash" [ref=e188] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1020&action=trash&_wpnonce=4622d5838d
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e189]:
+                        - link "View “Agency item 0990”" [ref=e190] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0990
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e192] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1020&_wpnonce=227e44c906
+                        - text: Duplicate
+                    - button "Show more details" [ref=e193]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e195]:
+                  - cell "Select Agency item 0991" [ref=e196]:
+                    - checkbox "Select Agency item 0991" [ref=e197] [cursor=pointer]
+                  - rowheader "Agency item 0991" [ref=e200]:
+                    - strong [ref=e201]:
+                      - link "Agency item 0991" [ref=e202] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1021&action=edit
+                    - generic [ref=e203]:
+                      - generic: "ID: 1021 |"
+                      - generic [ref=e204]:
+                        - link "Edit “Agency item 0991”" [ref=e205] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1021&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e206]:
+                        - button "Quick edit “Agency item 0991” inline" [ref=e207] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e208]:
+                        - link "Move “Agency item 0991” to the Trash" [ref=e209] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1021&action=trash&_wpnonce=60c6327844
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e210]:
+                        - link "View “Agency item 0991”" [ref=e211] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0991
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e213] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1021&_wpnonce=1fa33d23be
+                        - text: Duplicate
+                    - button "Show more details" [ref=e214]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e216]:
+                  - cell "Select Agency item 0992" [ref=e217]:
+                    - checkbox "Select Agency item 0992" [ref=e218] [cursor=pointer]
+                  - rowheader "Agency item 0992" [ref=e221]:
+                    - strong [ref=e222]:
+                      - link "Agency item 0992" [ref=e223] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1022&action=edit
+                    - generic [ref=e224]:
+                      - generic: "ID: 1022 |"
+                      - generic [ref=e225]:
+                        - link "Edit “Agency item 0992”" [ref=e226] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1022&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e227]:
+                        - button "Quick edit “Agency item 0992” inline" [ref=e228] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e229]:
+                        - link "Move “Agency item 0992” to the Trash" [ref=e230] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1022&action=trash&_wpnonce=55d616a35c
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e231]:
+                        - link "View “Agency item 0992”" [ref=e232] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0992
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e234] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1022&_wpnonce=c74da7099b
+                        - text: Duplicate
+                    - button "Show more details" [ref=e235]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e237]:
+                  - cell "Select Agency item 0993" [ref=e238]:
+                    - checkbox "Select Agency item 0993" [ref=e239] [cursor=pointer]
+                  - rowheader "Agency item 0993" [ref=e242]:
+                    - strong [ref=e243]:
+                      - link "Agency item 0993" [ref=e244] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1023&action=edit
+                    - generic [ref=e245]:
+                      - generic: "ID: 1023 |"
+                      - generic [ref=e246]:
+                        - link "Edit “Agency item 0993”" [ref=e247] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1023&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e248]:
+                        - button "Quick edit “Agency item 0993” inline" [ref=e249] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e250]:
+                        - link "Move “Agency item 0993” to the Trash" [ref=e251] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1023&action=trash&_wpnonce=652d2c9155
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e252]:
+                        - link "View “Agency item 0993”" [ref=e253] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0993
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e255] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1023&_wpnonce=2e789897bf
+                        - text: Duplicate
+                    - button "Show more details" [ref=e256]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e258]:
+                  - cell "Select Agency item 0994" [ref=e259]:
+                    - checkbox "Select Agency item 0994" [ref=e260] [cursor=pointer]
+                  - rowheader "Agency item 0994" [ref=e263]:
+                    - strong [ref=e264]:
+                      - link "Agency item 0994" [ref=e265] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1024&action=edit
+                    - generic [ref=e266]:
+                      - generic: "ID: 1024 |"
+                      - generic [ref=e267]:
+                        - link "Edit “Agency item 0994”" [ref=e268] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1024&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e269]:
+                        - button "Quick edit “Agency item 0994” inline" [ref=e270] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e271]:
+                        - link "Move “Agency item 0994” to the Trash" [ref=e272] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1024&action=trash&_wpnonce=750fe5b397
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e273]:
+                        - link "View “Agency item 0994”" [ref=e274] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0994
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e276] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1024&_wpnonce=28ce6163ed
+                        - text: Duplicate
+                    - button "Show more details" [ref=e277]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e279]:
+                  - cell "Select Agency item 0995" [ref=e280]:
+                    - checkbox "Select Agency item 0995" [ref=e281] [cursor=pointer]
+                  - rowheader "Agency item 0995" [ref=e284]:
+                    - strong [ref=e285]:
+                      - link "Agency item 0995" [ref=e286] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1025&action=edit
+                    - generic [ref=e287]:
+                      - generic: "ID: 1025 |"
+                      - generic [ref=e288]:
+                        - link "Edit “Agency item 0995”" [ref=e289] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1025&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e290]:
+                        - button "Quick edit “Agency item 0995” inline" [ref=e291] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e292]:
+                        - link "Move “Agency item 0995” to the Trash" [ref=e293] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1025&action=trash&_wpnonce=5cd7cbf53b
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e294]:
+                        - link "View “Agency item 0995”" [ref=e295] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0995
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e297] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1025&_wpnonce=0d3b0bd5de
+                        - text: Duplicate
+                    - button "Show more details" [ref=e298]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e300]:
+                  - cell "Select Agency item 0996" [ref=e301]:
+                    - checkbox "Select Agency item 0996" [ref=e302] [cursor=pointer]
+                  - rowheader "Agency item 0996" [ref=e305]:
+                    - strong [ref=e306]:
+                      - link "Agency item 0996" [ref=e307] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1026&action=edit
+                    - generic [ref=e308]:
+                      - generic: "ID: 1026 |"
+                      - generic [ref=e309]:
+                        - link "Edit “Agency item 0996”" [ref=e310] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1026&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e311]:
+                        - button "Quick edit “Agency item 0996” inline" [ref=e312] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e313]:
+                        - link "Move “Agency item 0996” to the Trash" [ref=e314] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1026&action=trash&_wpnonce=8ffa1ce6f5
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e315]:
+                        - link "View “Agency item 0996”" [ref=e316] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0996
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e318] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1026&_wpnonce=d7844ea618
+                        - text: Duplicate
+                    - button "Show more details" [ref=e319]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e321]:
+                  - cell "Select Agency item 0997" [ref=e322]:
+                    - checkbox "Select Agency item 0997" [ref=e323] [cursor=pointer]
+                  - rowheader "Agency item 0997" [ref=e326]:
+                    - strong [ref=e327]:
+                      - link "Agency item 0997" [ref=e328] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1027&action=edit
+                    - generic [ref=e329]:
+                      - generic: "ID: 1027 |"
+                      - generic [ref=e330]:
+                        - link "Edit “Agency item 0997”" [ref=e331] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1027&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e332]:
+                        - button "Quick edit “Agency item 0997” inline" [ref=e333] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e334]:
+                        - link "Move “Agency item 0997” to the Trash" [ref=e335] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1027&action=trash&_wpnonce=768ef63ef4
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e336]:
+                        - link "View “Agency item 0997”" [ref=e337] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0997
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e339] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1027&_wpnonce=289b79ff29
+                        - text: Duplicate
+                    - button "Show more details" [ref=e340]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e342]:
+                  - cell "Select Agency item 0998" [ref=e343]:
+                    - checkbox "Select Agency item 0998" [ref=e344] [cursor=pointer]
+                  - rowheader "Agency item 0998" [ref=e347]:
+                    - strong [ref=e348]:
+                      - link "Agency item 0998" [ref=e349] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1028&action=edit
+                    - generic [ref=e350]:
+                      - generic: "ID: 1028 |"
+                      - generic [ref=e351]:
+                        - link "Edit “Agency item 0998”" [ref=e352] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1028&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e353]:
+                        - button "Quick edit “Agency item 0998” inline" [ref=e354] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e355]:
+                        - link "Move “Agency item 0998” to the Trash" [ref=e356] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1028&action=trash&_wpnonce=fae61a0841
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e357]:
+                        - link "View “Agency item 0998”" [ref=e358] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0998
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e360] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1028&_wpnonce=80bb51d467
+                        - text: Duplicate
+                    - button "Show more details" [ref=e361]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e363]:
+                  - cell "Select Agency item 0999" [ref=e364]:
+                    - checkbox "Select Agency item 0999" [ref=e365] [cursor=pointer]
+                  - rowheader "Agency item 0999" [ref=e368]:
+                    - strong [ref=e369]:
+                      - link "Agency item 0999" [ref=e370] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1029&action=edit
+                    - generic [ref=e371]:
+                      - generic: "ID: 1029 |"
+                      - generic [ref=e372]:
+                        - link "Edit “Agency item 0999”" [ref=e373] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1029&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e374]:
+                        - button "Quick edit “Agency item 0999” inline" [ref=e375] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e376]:
+                        - link "Move “Agency item 0999” to the Trash" [ref=e377] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1029&action=trash&_wpnonce=2d974ff675
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e378]:
+                        - link "View “Agency item 0999”" [ref=e379] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0999
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e381] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1029&_wpnonce=e1a0144c4d
+                        - text: Duplicate
+                    - button "Show more details" [ref=e382]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e384]:
+                  - cell "Select Agency item 1000" [ref=e385]:
+                    - checkbox "Select Agency item 1000" [ref=e386] [cursor=pointer]
+                  - rowheader "Agency item 1000" [ref=e389]:
+                    - strong [ref=e390]:
+                      - link "Agency item 1000" [ref=e391] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1030&action=edit
+                    - generic [ref=e392]:
+                      - generic: "ID: 1030 |"
+                      - generic [ref=e393]:
+                        - link "Edit “Agency item 1000”" [ref=e394] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1030&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e395]:
+                        - button "Quick edit “Agency item 1000” inline" [ref=e396] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e397]:
+                        - link "Move “Agency item 1000” to the Trash" [ref=e398] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1030&action=trash&_wpnonce=86e6bae310
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e399]:
+                        - link "View “Agency item 1000”" [ref=e400] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-1000
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e402] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1030&_wpnonce=3bf70f2cd3
+                        - text: Duplicate
+                    - button "Show more details" [ref=e403]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e405]:
+                  - cell "Select Agency item 0968" [ref=e406]:
+                    - checkbox "Select Agency item 0968" [ref=e407] [cursor=pointer]
+                  - rowheader "Agency item 0968" [ref=e410]:
+                    - strong [ref=e411]:
+                      - link "Agency item 0968" [ref=e412] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=998&action=edit
+                    - generic [ref=e413]:
+                      - generic: "ID: 998 |"
+                      - generic [ref=e414]:
+                        - link "Edit “Agency item 0968”" [ref=e415] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=998&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e416]:
+                        - button "Quick edit “Agency item 0968” inline" [ref=e417] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e418]:
+                        - link "Move “Agency item 0968” to the Trash" [ref=e419] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=998&action=trash&_wpnonce=18acb7516d
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e420]:
+                        - link "View “Agency item 0968”" [ref=e421] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0968
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e423] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=998&_wpnonce=5c02ca60ad
+                        - text: Duplicate
+                    - button "Show more details" [ref=e424]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e426]:
+                  - cell "Select Agency item 0969" [ref=e427]:
+                    - checkbox "Select Agency item 0969" [ref=e428] [cursor=pointer]
+                  - rowheader "Agency item 0969" [ref=e431]:
+                    - strong [ref=e432]:
+                      - link "Agency item 0969" [ref=e433] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=999&action=edit
+                    - generic [ref=e434]:
+                      - generic: "ID: 999 |"
+                      - generic [ref=e435]:
+                        - link "Edit “Agency item 0969”" [ref=e436] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=999&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e437]:
+                        - button "Quick edit “Agency item 0969” inline" [ref=e438] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e439]:
+                        - link "Move “Agency item 0969” to the Trash" [ref=e440] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=999&action=trash&_wpnonce=dcb9875ee5
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e441]:
+                        - link "View “Agency item 0969”" [ref=e442] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0969
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e444] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=999&_wpnonce=f4b8f8fb22
+                        - text: Duplicate
+                    - button "Show more details" [ref=e445]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e447]:
+                  - cell "Select Agency item 0970" [ref=e448]:
+                    - checkbox "Select Agency item 0970" [ref=e449] [cursor=pointer]
+                  - rowheader "Agency item 0970" [ref=e452]:
+                    - strong [ref=e453]:
+                      - link "Agency item 0970" [ref=e454] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1000&action=edit
+                    - generic [ref=e455]:
+                      - generic: "ID: 1000 |"
+                      - generic [ref=e456]:
+                        - link "Edit “Agency item 0970”" [ref=e457] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1000&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e458]:
+                        - button "Quick edit “Agency item 0970” inline" [ref=e459] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e460]:
+                        - link "Move “Agency item 0970” to the Trash" [ref=e461] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1000&action=trash&_wpnonce=64eb142a6d
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e462]:
+                        - link "View “Agency item 0970”" [ref=e463] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0970
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e465] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1000&_wpnonce=94cfa080dc
+                        - text: Duplicate
+                    - button "Show more details" [ref=e466]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e468]:
+                  - cell "Select Agency item 0971" [ref=e469]:
+                    - checkbox "Select Agency item 0971" [ref=e470] [cursor=pointer]
+                  - rowheader "Agency item 0971" [ref=e473]:
+                    - strong [ref=e474]:
+                      - link "Agency item 0971" [ref=e475] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1001&action=edit
+                    - generic [ref=e476]:
+                      - generic: "ID: 1001 |"
+                      - generic [ref=e477]:
+                        - link "Edit “Agency item 0971”" [ref=e478] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1001&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e479]:
+                        - button "Quick edit “Agency item 0971” inline" [ref=e480] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e481]:
+                        - link "Move “Agency item 0971” to the Trash" [ref=e482] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1001&action=trash&_wpnonce=40aff8ad83
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e483]:
+                        - link "View “Agency item 0971”" [ref=e484] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0971
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e486] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1001&_wpnonce=09eecfc01f
+                        - text: Duplicate
+                    - button "Show more details" [ref=e487]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e489]:
+                  - cell "Select Agency item 0972" [ref=e490]:
+                    - checkbox "Select Agency item 0972" [ref=e491] [cursor=pointer]
+                  - rowheader "Agency item 0972" [ref=e494]:
+                    - strong [ref=e495]:
+                      - link "Agency item 0972" [ref=e496] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1002&action=edit
+                    - generic [ref=e497]:
+                      - generic: "ID: 1002 |"
+                      - generic [ref=e498]:
+                        - link "Edit “Agency item 0972”" [ref=e499] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1002&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e500]:
+                        - button "Quick edit “Agency item 0972” inline" [ref=e501] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e502]:
+                        - link "Move “Agency item 0972” to the Trash" [ref=e503] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1002&action=trash&_wpnonce=91d52aab7e
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e504]:
+                        - link "View “Agency item 0972”" [ref=e505] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0972
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e507] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1002&_wpnonce=54e1fc282a
+                        - text: Duplicate
+                    - button "Show more details" [ref=e508]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+                - row [ref=e510]:
+                  - cell "Select Agency item 0973" [ref=e511]:
+                    - checkbox "Select Agency item 0973" [ref=e512] [cursor=pointer]
+                  - rowheader "Agency item 0973" [ref=e515]:
+                    - strong [ref=e516]:
+                      - link "Agency item 0973" [ref=e517] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1003&action=edit
+                    - generic [ref=e518]:
+                      - generic: "ID: 1003 |"
+                      - generic [ref=e519]:
+                        - link "Edit “Agency item 0973”" [ref=e520] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1003&action=edit
+                          - text: Edit
+                        - text: "|"
+                      - generic [ref=e521]:
+                        - button "Quick edit “Agency item 0973” inline" [ref=e522] [cursor=pointer]: Quick Edit
+                        - text: "|"
+                      - generic [ref=e523]:
+                        - link "Move “Agency item 0973” to the Trash" [ref=e524] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/wp-admin/post.php?post=1003&action=trash&_wpnonce=5ec6ab7089
+                          - text: Trash
+                        - text: "|"
+                      - generic [ref=e525]:
+                        - link "View “Agency item 0973”" [ref=e526] [cursor=pointer]:
+                          - /url: http://127.0.0.1:8188/?product=agency-item-0973
+                          - text: View
+                        - text: "|"
+                      - link "Make a duplicate from this product" [ref=e528] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&action=duplicate_product&post=1003&_wpnonce=e39ae0a165
+                        - text: Duplicate
+                    - button "Show more details" [ref=e529]
+                  - text: SKU GTIN, UPC, EAN, or ISBN Stock Price Categories Tags Product brands Featured  Date
+              - rowgroup [ref=e531]:
+                - row [ref=e532]:
+                  - cell "Select All" [ref=e533]:
+                    - checkbox "Select All" [ref=e534] [cursor=pointer]
+                  - text: 
+                  - columnheader [ref=e537]:
+                    - link "Name Sort ascending." [ref=e538] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&orderby=title&order=asc
+                      - generic [ref=e539]: Name
+                      - generic [ref=e543]: Sort ascending.
+                  - text: 
+            - generic [ref=e544]:
+              - generic [ref=e545]:
+                - generic [ref=e546]: Select bulk action
+                - combobox "Select bulk action" [ref=e547] [cursor=pointer]:
+                  - option "Bulk actions" [selected]
+                  - option "Bulk edit"
+                  - option "Move to Trash"
+                - button "Apply" [ref=e548] [cursor=pointer]
+              - generic [ref=e549]:
+                - generic [ref=e550]: 1,019 items
+                - generic [ref=e551]:
+                  - generic [aria-hidden] [ref=e552]: «
+                  - generic [aria-hidden] [ref=e553]: ‹
+                  - generic [ref=e554]: Current Page
+                  - generic [ref=e555]: 1 of 51
+                  - link "Next page" [ref=e557] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&paged=2
+                    - text: ›
+                  - link "Last page" [ref=e559] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8188/wp-admin/edit.php?post_type=product&paged=51
+                    - text: »

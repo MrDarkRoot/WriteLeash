@@ -1,0 +1,11 @@
+--- /tmp/writeleash-round7-integration/wordpress/tests/durable/in-container.sh
++++ /tmp/writeleash-round7-runners/durable.sh
+@@ -19,7 +19,7 @@
+   wp --path="$site" config set WP_DEBUG_LOG true --raw
+   server_version=$(wp --path="$site" eval 'global $wpdb; echo $wpdb->get_var( "SELECT VERSION()" );')
+   case "$host:$server_version" in
+-    mysql:8.0.44|mariadb:10.11.15-MariaDB-ubu2204) ;;
++    mysql:8.0.44|mariadb:10.11.15-MariaDB) ;;
+     *) echo "Wrong #108 DB fixture: $host:$server_version" >&2; exit 1 ;;
+   esac
+   echo "#108 pinned DB version: $server_version"

@@ -7,6 +7,16 @@ defined( 'ABSPATH' ) || exit;
 final class Free_Support_Contract {
 	public const MAX_JOB_PRODUCTS = 1000;
 	/**
+	 * #299 delegated submission safety (#298 “Approver: grant authority alone
+	 * does not imply human approval”). Stricter than any human Apply form
+	 * because no human sees the job before execution: 50% increase/decrease
+	 * caps, 20% warning threshold, and zero-target blocking.
+	 */
+	public const GRANT_MAX_INCREASE_PERCENT = '50';
+	public const GRANT_MAX_DECREASE_PERCENT = '50';
+	public const GRANT_BLOCK_ZERO = true;
+	public const GRANT_WARNING_THRESHOLD_PERCENT = '20';
+	/**
 	 * Supported WooCommerce range. Every storage/API assumption WriteLeash
 	 * relies on is stable across this span: CPT data-store CRUD price
 	 * setters, the wc_product_meta_lookup min/max/onsale shape, the

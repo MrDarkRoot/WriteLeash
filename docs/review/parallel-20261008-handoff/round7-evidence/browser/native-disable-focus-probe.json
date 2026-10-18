@@ -1,0 +1,20 @@
+[
+  {
+    "engine": "chromium",
+    "version": "148.0.7778.178",
+    "nativeDOM": {
+      "before": "BUTTON",
+      "after": "BODY",
+      "wrapperStillContainsActive": false
+    }
+  },
+  {
+    "engine": "firefox",
+    "version": "151.0",
+    "nativeDOM": {
+      "before": "BUTTON",
+      "after": "BUTTON",
+      "wrapperStillContainsActive": true
+    }
+  }
+]

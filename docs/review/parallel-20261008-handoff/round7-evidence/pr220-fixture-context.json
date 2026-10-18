@@ -1,0 +1,23 @@
+{
+  "status": "ambiguous",
+  "message": "Found 2 symbols matching '$assert209'. Use uid, file_path, or kind to disambiguate.",
+  "totalCandidates": 2,
+  "candidates": [
+    {
+      "uid": "Function:wordpress/tests/free/cache-public.php:$assert209",
+      "name": "$assert209",
+      "kind": "Function",
+      "filePath": "wordpress/tests/free/cache-public.php",
+      "line": 55,
+      "score": 0.56
+    },
+    {
+      "uid": "Function:wordpress/tests/durable/cache-public-integration.php:$assert209",
+      "name": "$assert209",
+      "kind": "Function",
+      "filePath": "wordpress/tests/durable/cache-public-integration.php",
+      "line": 14,
+      "score": 0.56
+    }
+  ]
+}

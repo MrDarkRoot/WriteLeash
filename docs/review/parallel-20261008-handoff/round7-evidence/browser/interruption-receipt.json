@@ -1,0 +1,26 @@
+{
+  "reason": "User requested immediate report because quota exhausted",
+  "terminated_owned_process_ids": [
+    224991,
+    227178,
+    227192,
+    227196,
+    227197,
+    227206,
+    227207,
+    227234,
+    227237,
+    227248,
+    230994,
+    231982,
+    232694,
+    234557,
+    234566
+  ],
+  "new_chromium_journey": "NOT_TESTED_INTERRUPTED_BEFORE_RESULT_JSON",
+  "new_firefox_journey": "NOT_TESTED_NOT_STARTED",
+  "live_apply_undo": "NOT_TESTED_INTERRUPTED",
+  "product_focus_defect": "NOT_CONFIRMED; native browser lead only",
+  "source_sha": "ad6377eaf6b68548221d3e4fae0b522b0e19f7d3",
+  "tree": "9278c28cdb961c0fc404202ec1ea551882b4620a"
+}

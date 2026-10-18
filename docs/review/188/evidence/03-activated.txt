@@ -1,0 +1,407 @@
+- navigation "Main menu":
+  - link "Skip to main content":
+    - /url: "#wpbody-content"
+  - link "Skip to toolbar":
+    - /url: "#wp-toolbar"
+  - list:
+    - link "Dashboard":
+      - /url: index.php
+      - generic: 
+      - generic: Dashboard
+    - list:
+      - link "Home":
+        - /url: index.php
+      - link "Updates":
+        - /url: update-core.php
+    - link "Posts":
+      - /url: edit.php
+      - generic: 
+      - generic: Posts
+    - list:
+      - link "All Posts":
+        - /url: edit.php
+      - link "Add Post":
+        - /url: post-new.php
+      - link "Categories":
+        - /url: edit-tags.php?taxonomy=category
+      - link "Tags":
+        - /url: edit-tags.php?taxonomy=post_tag
+    - link "Media":
+      - /url: upload.php
+      - generic: 
+      - generic: Media
+    - list:
+      - link "Library":
+        - /url: upload.php
+      - link "Add Media File":
+        - /url: media-new.php
+    - link "Pages":
+      - /url: edit.php?post_type=page
+      - generic: 
+      - generic: Pages
+    - list:
+      - link "All Pages":
+        - /url: edit.php?post_type=page
+      - link "Add Page":
+        - /url: post-new.php?post_type=page
+    - link "Comments":
+      - /url: edit-comments.php
+      - generic: 
+      - generic: Comments
+    - link "WooCommerce":
+      - /url: admin.php?page=wc-admin
+      - generic: WooCommerce
+    - list:
+      - link "Home 5":
+        - /url: admin.php?page=wc-admin
+        - text: Home
+        - generic: "5"
+      - link "Orders":
+        - /url: admin.php?page=wc-orders
+      - link "Customers":
+        - /url: admin.php?page=wc-admin&path=/customers
+      - link "Coupons":
+        - /url: admin.php?page=coupons-moved
+      - link "Reports":
+        - /url: admin.php?page=wc-reports
+      - link "Settings":
+        - /url: admin.php?page=wc-settings
+      - link "Status":
+        - /url: admin.php?page=wc-status
+      - link "Extensions":
+        - /url: admin.php?page=wc-admin&path=/extensions
+    - link "Products":
+      - /url: edit.php?post_type=product
+      - generic: 
+      - generic: Products
+    - list:
+      - link "All Products":
+        - /url: edit.php?post_type=product
+      - link "Add new product":
+        - /url: post-new.php?post_type=product
+      - link "Brands":
+        - /url: edit-tags.php?taxonomy=product_brand&post_type=product
+      - link "Categories":
+        - /url: edit-tags.php?taxonomy=product_cat&post_type=product
+      - link "Tags":
+        - /url: edit-tags.php?taxonomy=product_tag&post_type=product
+      - link "Attributes":
+        - /url: edit.php?post_type=product&page=product_attributes
+      - link "Bulk Prices":
+        - /url: edit.php?post_type=product&page=writeleash-bulk-prices
+      - link "Reviews":
+        - /url: edit.php?post_type=product&page=product-reviews
+    - link "Payments 1":
+      - /url: admin.php?page=wc-settings&tab=checkout&from=PAYMENTS_MENU_ITEM
+      - text: Payments
+      - generic: "1"
+    - link "Analytics":
+      - /url: admin.php?page=wc-admin&path=/analytics/overview
+      - generic: 
+      - generic: Analytics
+    - list:
+      - link "Overview":
+        - /url: admin.php?page=wc-admin&path=/analytics/overview
+      - link "Products":
+        - /url: admin.php?page=wc-admin&path=/analytics/products
+      - link "Revenue":
+        - /url: admin.php?page=wc-admin&path=/analytics/revenue
+      - link "Orders":
+        - /url: admin.php?page=wc-admin&path=/analytics/orders
+      - link "Variations":
+        - /url: admin.php?page=wc-admin&path=/analytics/variations
+      - link "Categories":
+        - /url: admin.php?page=wc-admin&path=/analytics/categories
+      - link "Coupons":
+        - /url: admin.php?page=wc-admin&path=/analytics/coupons
+      - link "Taxes":
+        - /url: admin.php?page=wc-admin&path=/analytics/taxes
+      - link "Downloads":
+        - /url: admin.php?page=wc-admin&path=/analytics/downloads
+      - link "Stock":
+        - /url: admin.php?page=wc-admin&path=/analytics/stock
+      - link "Settings":
+        - /url: admin.php?page=wc-admin&path=/analytics/settings
+    - link "Marketing":
+      - /url: admin.php?page=wc-admin&path=/marketing
+      - generic: 
+      - generic: Marketing
+    - list:
+      - link "Overview":
+        - /url: admin.php?page=wc-admin&path=/marketing
+      - link "Coupons":
+        - /url: edit.php?post_type=shop_coupon
+    - link "Appearance":
+      - /url: themes.php
+      - generic: 
+      - generic: Appearance
+    - list:
+      - link "Themes":
+        - /url: themes.php
+      - link "Editor":
+        - /url: site-editor.php
+      - link "Fonts":
+        - /url: font-library.php
+    - link "Plugins":
+      - /url: plugins.php
+      - generic: 
+      - generic: Plugins
+    - list:
+      - link "Installed Plugins":
+        - /url: plugins.php
+      - link "Add Plugin":
+        - /url: plugin-install.php
+    - link "Users":
+      - /url: users.php
+      - generic: 
+      - generic: Users
+    - list:
+      - link "All Users":
+        - /url: users.php
+      - link "Add User":
+        - /url: user-new.php
+      - link "Profile":
+        - /url: profile.php
+    - link "Tools":
+      - /url: tools.php
+      - generic: 
+      - generic: Tools
+    - list:
+      - link "Available Tools":
+        - /url: tools.php
+      - link "Import":
+        - /url: import.php
+      - link "Export":
+        - /url: export.php
+      - link "Site Health":
+        - /url: site-health.php
+      - link "Export Personal Data":
+        - /url: export-personal-data.php
+      - link "Erase Personal Data":
+        - /url: erase-personal-data.php
+      - link "Scheduled Actions":
+        - /url: tools.php?page=action-scheduler
+      - link "Theme File Editor":
+        - /url: theme-editor.php
+      - link "Plugin File Editor":
+        - /url: plugin-editor.php
+    - link "Settings":
+      - /url: options-general.php
+      - generic: 
+      - generic: Settings
+    - list:
+      - link "General":
+        - /url: options-general.php
+      - link "Connectors":
+        - /url: options-connectors.php
+      - link "Writing":
+        - /url: options-writing.php
+      - link "Reading":
+        - /url: options-reading.php
+      - link "Discussion":
+        - /url: options-discussion.php
+      - link "Media":
+        - /url: options-media.php
+      - link "Permalinks":
+        - /url: options-permalink.php
+      - link "Privacy":
+        - /url: options-privacy.php
+    - button "Collapse Main menu" [expanded]:
+      - generic: Collapse Menu
+- navigation "Toolbar":
+  - menu:
+    - menuitem "About WordPress":
+      - generic: About WordPress
+    - menuitem "WriteLeash Customer Test Store"
+    - menuitem "Store coming soon"
+    - menuitem "Ctrl+K Open command palette":
+      - text: Ctrl+K
+      - generic: Open command palette
+    - menuitem "0 Comments in moderation":
+      - generic: "0"
+      - generic: 0 Comments in moderation
+    - menuitem "New":
+      - generic: New
+  - menu:
+    - menuitem "Howdy, merchant"
+- main:
+  - button "Screen Options"
+  - button "Help"
+  - heading "Plugins" [level=1]
+  - link "Add Plugin":
+    - /url: http://127.0.0.1:8188/wp-admin/plugin-install.php
+  - paragraph: Plugin activated.
+  - button "Dismiss this notice.":
+    - generic: Dismiss this notice.
+  - heading "Filter plugins list" [level=2]
+  - list:
+    - link "All (4)":
+      - /url: plugins.php?plugin_status=all
+    - text: "|"
+    - link "Active (2)":
+      - /url: plugins.php?plugin_status=active
+    - text: "|"
+    - link "Inactive (2)":
+      - /url: plugins.php?plugin_status=inactive
+    - text: "|"
+    - link "Auto-updates Disabled (4)":
+      - /url: plugins.php?plugin_status=auto-update-disabled
+  - paragraph:
+    - generic: Search installed plugins
+    - searchbox "Search installed plugins"
+  - generic: Select bulk action
+  - combobox "Select bulk action":
+    - option "Bulk actions" [selected]
+    - option "Activate"
+    - option "Deactivate"
+    - option "Update"
+    - option "Delete"
+    - option "Enable Auto-updates"
+    - option "Disable Auto-updates"
+  - button "Apply"
+  - generic: 4 items
+  - heading "Plugins list" [level=2]
+  - table:
+    - rowgroup:
+      - row "Select All Plugin Description Automatic Updates":
+        - cell "Select All":
+          - checkbox "Select All"
+          - generic: Select All
+        - columnheader "Plugin"
+        - columnheader "Description"
+        - columnheader "Automatic Updates"
+    - rowgroup:
+      - 'row "Select Akismet Anti-spam: Spam Protection Akismet Anti-spam: Spam Protection Used by millions, Akismet is quite possibly the best way in the world to protect your blog from spam. Akismet Anti-spam keeps your site protected even while you sleep. To get started: activate the Akismet plugin and then go to your Akismet Settings page to set up your API key. Version 5.7.2 | By Automattic - Anti-spam Team | More information about Akismet Anti-spam: Spam Protection Enable auto-updates"':
+        - 'cell "Select Akismet Anti-spam: Spam Protection"':
+          - generic: "Select Akismet Anti-spam: Spam Protection"
+          - 'checkbox "Select Akismet Anti-spam: Spam Protection"'
+        - 'rowheader "Akismet Anti-spam: Spam Protection"':
+          - strong: "Akismet Anti-spam: Spam Protection"
+          - 'link "Activate Akismet Anti-spam: Spam Protection"':
+            - /url: plugins.php?action=activate&plugin=akismet%2Fakismet.php&plugin_status=all&paged=1&s&_wpnonce=7134928028
+            - text: Activate
+          - text: "|"
+          - 'link "Delete Akismet Anti-spam: Spam Protection"':
+            - /url: plugins.php?action=delete-selected&checked%5B0%5D=akismet%2Fakismet.php&plugin_status=all&paged=1&s&_wpnonce=2f84fe4e43
+            - text: Delete
+        - 'cell "Used by millions, Akismet is quite possibly the best way in the world to protect your blog from spam. Akismet Anti-spam keeps your site protected even while you sleep. To get started: activate the Akismet plugin and then go to your Akismet Settings page to set up your API key. Version 5.7.2 | By Automattic - Anti-spam Team | More information about Akismet Anti-spam: Spam Protection"':
+          - paragraph:
+            - text: Used by millions, Akismet is quite possibly the best way in the world to
+            - strong: protect your blog from spam
+            - text: ". Akismet Anti-spam keeps your site protected even while you sleep. To get started: activate the Akismet plugin and then go to your Akismet Settings page to set up your API key."
+          - text: Version 5.7.2 | By
+          - link "Automattic - Anti-spam Team":
+            - /url: https://automattic.com/wordpress-plugins/
+          - text: "|"
+          - 'link "More information about Akismet Anti-spam: Spam Protection"':
+            - /url: http://127.0.0.1:8188/wp-admin/plugin-install.php?tab=plugin-information&plugin=akismet&TB_iframe=true&width=600&height=550
+            - text: View details
+        - cell "Enable auto-updates":
+          - button "Enable auto-updates":  Enable auto-updates
+      - 'row "Select Hello Dolly Hello Dolly This is not just a plugin, it symbolizes the hope and enthusiasm of an entire generation summed up in two words sung most famously by Louis Armstrong: Hello, Dolly. When activated you will randomly see a lyric from Hello, Dolly in the upper right of your admin screen on every page. Version 1.7.2 | By Matt Mullenweg | More information about Hello Dolly Enable auto-updates"':
+        - cell "Select Hello Dolly":
+          - generic: Select Hello Dolly
+          - checkbox "Select Hello Dolly"
+        - rowheader "Hello Dolly":
+          - strong: Hello Dolly
+          - link "Activate Hello Dolly":
+            - /url: plugins.php?action=activate&plugin=hello.php&plugin_status=all&paged=1&s&_wpnonce=b331654331
+            - text: Activate
+          - text: "|"
+          - link "Delete Hello Dolly":
+            - /url: plugins.php?action=delete-selected&checked%5B0%5D=hello.php&plugin_status=all&paged=1&s&_wpnonce=2f84fe4e43
+            - text: Delete
+        - 'cell "This is not just a plugin, it symbolizes the hope and enthusiasm of an entire generation summed up in two words sung most famously by Louis Armstrong: Hello, Dolly. When activated you will randomly see a lyric from Hello, Dolly in the upper right of your admin screen on every page. Version 1.7.2 | By Matt Mullenweg | More information about Hello Dolly"':
+          - paragraph: "This is not just a plugin, it symbolizes the hope and enthusiasm of an entire generation summed up in two words sung most famously by Louis Armstrong: Hello, Dolly. When activated you will randomly see a lyric from Hello, Dolly in the upper right of your admin screen on every page."
+          - text: Version 1.7.2 | By
+          - link "Matt Mullenweg":
+            - /url: http://ma.tt/
+          - text: "|"
+          - link "More information about Hello Dolly":
+            - /url: http://127.0.0.1:8188/wp-admin/plugin-install.php?tab=plugin-information&plugin=hello-dolly&TB_iframe=true&width=600&height=550
+            - text: View details
+        - cell "Enable auto-updates":
+          - button "Enable auto-updates":  Enable auto-updates
+      - 'row "Select WooCommerce WooCommerce An ecommerce toolkit that helps you sell anything. Beautifully. Version 11.1.2 | By Automattic | More information about WooCommerce | View WooCommerce documentation | View WooCommerce API docs | Visit community forums Required by: WriteLeash Note: This plugin cannot be deactivated or deleted until the plugins that require it are deactivated or deleted. Enable auto-updates"':
+        - cell "Select WooCommerce":
+          - generic: Select WooCommerce
+          - checkbox "Select WooCommerce" [disabled]
+        - rowheader "WooCommerce":
+          - strong: WooCommerce
+          - link "View WooCommerce settings":
+            - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings
+            - text: Settings
+          - text: "|"
+          - text: Deactivate
+          - generic: You cannot deactivate this plugin as other plugins depend on it.
+        - 'cell "An ecommerce toolkit that helps you sell anything. Beautifully. Version 11.1.2 | By Automattic | More information about WooCommerce | View WooCommerce documentation | View WooCommerce API docs | Visit community forums Required by: WriteLeash Note: This plugin cannot be deactivated or deleted until the plugins that require it are deactivated or deleted."':
+          - paragraph: An ecommerce toolkit that helps you sell anything. Beautifully.
+          - text: Version 11.1.2 | By
+          - link "Automattic":
+            - /url: https://woocommerce.com
+          - text: "|"
+          - link "More information about WooCommerce":
+            - /url: http://127.0.0.1:8188/wp-admin/plugin-install.php?tab=plugin-information&plugin=woocommerce&TB_iframe=true&width=600&height=550
+            - text: View details
+          - text: "|"
+          - link "View WooCommerce documentation":
+            - /url: https://woocommerce.com/documentation/plugins/woocommerce/
+            - text: Docs
+          - text: "|"
+          - link "View WooCommerce API docs":
+            - /url: https://woocommerce.com/wc-apidocs/
+            - text: API docs
+          - text: "|"
+          - link "Visit community forums":
+            - /url: https://wordpress.org/support/plugin/woocommerce/
+            - text: Community support
+          - paragraph:
+            - strong: "Required by:"
+            - text: WriteLeash
+          - paragraph: "Note: This plugin cannot be deactivated or deleted until the plugins that require it are deactivated or deleted."
+        - cell "Enable auto-updates":
+          - button "Enable auto-updates":  Enable auto-updates
+      - 'row "Select WriteLeash WriteLeash WooCommerce bulk regular-price changes with frozen previews, safety limits and Undo. Version 0.1.0 Requires: More information about WooCommerce"':
+        - cell "Select WriteLeash":
+          - generic: Select WriteLeash
+          - checkbox "Select WriteLeash"
+        - rowheader "WriteLeash":
+          - strong: WriteLeash
+          - link "Deactivate WriteLeash":
+            - /url: plugins.php?action=deactivate&plugin=writeleash%2Fwriteleash.php&plugin_status=all&paged=1&s&_wpnonce=77c0157ceb
+            - text: Deactivate
+        - 'cell "WooCommerce bulk regular-price changes with frozen previews, safety limits and Undo. Version 0.1.0 Requires: More information about WooCommerce"':
+          - paragraph: WooCommerce bulk regular-price changes with frozen previews, safety limits and Undo.
+          - generic: Version 0.1.0
+          - paragraph:
+            - strong: "Requires:"
+            - link "More information about WooCommerce":
+              - /url: http://127.0.0.1:8188/wp-admin/plugin-install.php?tab=plugin-information&plugin=woocommerce&TB_iframe=true&width=600&height=550
+              - text: WooCommerce
+        - cell
+    - rowgroup:
+      - row "Select All Plugin Description Automatic Updates":
+        - cell "Select All":
+          - checkbox "Select All"
+          - generic: Select All
+        - columnheader "Plugin"
+        - columnheader "Description"
+        - columnheader "Automatic Updates"
+  - generic: Select bulk action
+  - combobox "Select bulk action":
+    - option "Bulk actions" [selected]
+    - option "Activate"
+    - option "Deactivate"
+    - option "Update"
+    - option "Delete"
+    - option "Enable Auto-updates"
+    - option "Disable Auto-updates"
+  - button "Apply"
+  - generic: 4 items
+- contentinfo:
+  - paragraph:
+    - text: Thank you for creating with
+    - link "WordPress":
+      - /url: https://wordpress.org/
+    - text: .
+  - paragraph: Version 7.1.3

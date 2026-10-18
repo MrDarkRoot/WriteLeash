@@ -1,0 +1,186 @@
+{
+  "target": {
+    "id": "Method:wordpress/writeleash/includes/free/class-free-admin.php:Free_Admin.build_selection#1",
+    "name": "build_selection",
+    "type": "Method",
+    "filePath": "wordpress/writeleash/includes/free/class-free-admin.php"
+  },
+  "direction": "upstream",
+  "impactedCount": 5,
+  "risk": "LOW",
+  "riskSharedAxes": "LOW",
+  "riskScale": {
+    "comparableAcrossKinds": true,
+    "unusedAxes": []
+  },
+  "epistemic": "exact",
+  "summary": {
+    "direct": 1,
+    "processes_affected": 1,
+    "modules_affected": 1
+  },
+  "byDepthCounts": {
+    "1": 1,
+    "2": 4
+  },
+  "affected_processes": [
+    {
+      "name": "handle_preview",
+      "type": "Function",
+      "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+      "affected_process_count": 8,
+      "total_hits": 15,
+      "earliest_broken_step": 1
+    }
+  ],
+  "affected_modules": [
+    {
+      "name": "Free",
+      "hits": 2,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Method:wordpress/writeleash/includes/free/class-free-admin.php:Free_Admin.process_preview#2",
+        "name": "process_preview",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": [
+          {
+            "id": "proc_10_handle_preview",
+            "label": "Handle_preview → Get_date_on_sale_from",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_13_handle_preview",
+            "label": "Handle_preview → Missing_values",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_11_handle_preview",
+            "label": "Handle_preview → Get_date_on_sale_to",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_12_handle_preview",
+            "label": "Handle_preview → Get_id",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_9_handle_preview",
+            "label": "Handle_preview → Get_category_ids",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_24_handle_preview",
+            "label": "Handle_preview → Data",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_175_handle_preview",
+            "label": "Handle_preview → Price_Validation_Error",
+            "processType": "cross_community",
+            "step": 2
+          }
+        ]
+      }
+    ],
+    "2": [
+      {
+        "depth": 2,
+        "id": "File:wordpress/release/compliance-smoke-124-reaudit.php",
+        "name": "compliance-smoke-124-reaudit.php",
+        "filePath": "wordpress/release/compliance-smoke-124-reaudit.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 2,
+        "id": "File:wordpress/release/durable-lifecycle-fixture-124.php",
+        "name": "durable-lifecycle-fixture-124.php",
+        "filePath": "wordpress/release/durable-lifecycle-fixture-124.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 2,
+        "id": "File:wordpress/release/nonce-smoke-124-reaudit.php",
+        "name": "nonce-smoke-124-reaudit.php",
+        "filePath": "wordpress/release/nonce-smoke-124-reaudit.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 2,
+        "id": "Method:wordpress/writeleash/includes/free/class-free-admin.php:Free_Admin.handle_preview#0",
+        "name": "handle_preview",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": [
+          {
+            "id": "proc_24_handle_preview",
+            "label": "Handle_preview → Data",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_9_handle_preview",
+            "label": "Handle_preview → Get_category_ids",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_13_handle_preview",
+            "label": "Handle_preview → Missing_values",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_175_handle_preview",
+            "label": "Handle_preview → Price_Validation_Error",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_10_handle_preview",
+            "label": "Handle_preview → Get_date_on_sale_from",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_63_handle_preview",
+            "label": "Handle_preview → Post_field",
+            "processType": "intra_community",
+            "step": 1
+          },
+          {
+            "id": "proc_11_handle_preview",
+            "label": "Handle_preview → Get_date_on_sale_to",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_12_handle_preview",
+            "label": "Handle_preview → Get_id",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      }
+    ]
+  }
+}

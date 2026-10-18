@@ -1,0 +1,5 @@
+{
+  "command": "gh run view 37767696741 --log",
+  "exit_status": 0,
+  "stderr": ""
+}

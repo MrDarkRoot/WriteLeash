@@ -1,0 +1,36 @@
+
+  GitNexus Detect Changes (1.6.12)
+Changes: 8 files, 22 symbols
+Affected processes: 35
+Risk level: critical
+
+Changed symbols:
+  Class WC_Product → wordpress/tests/free/cache-public.php
+  Method get_id → wordpress/tests/free/cache-public.php
+  Class WC_Product_WrongId209 → wordpress/tests/free/cache-public.php
+  Method get_id → wordpress/tests/free/cache-public.php
+  Class WC_Product_Factory → wordpress/tests/free/cache-public.php
+  Method get_product_type → wordpress/tests/free/cache-public.php
+  Class Price_Cache_Verifier → wordpress/writeleash/includes/free/class-price-cache-verifier.php
+  Method sync_variable_parent → wordpress/writeleash/includes/free/class-price-cache-verifier.php
+  Method storage → wordpress/writeleash/includes/free/class-price-cache-verifier.php
+  Class Product_Price_Selector → wordpress/writeleash/includes/free/class-product-selector.php
+  Method resolve → wordpress/writeleash/includes/free/class-product-selector.php
+  Method expandable_parent → wordpress/writeleash/includes/free/class-product-selector.php
+  Method expand_variable_parents → wordpress/writeleash/includes/free/class-product-selector.php
+  Class Product_Price_Snapshot → wordpress/writeleash/includes/free/class-product-snapshot.php
+  Method fresh_product → wordpress/writeleash/includes/free/class-product-snapshot.php
+... and 7 more
+
+Affected execution flows:
+  • Handle_preview → WC_Product_Simple (6 steps) — changed: fresh_product, resolve
+  • Handle_preview → WC_Product_Variation (6 steps) — changed: fresh_product, resolve
+  • Handle_preview → Get_id (6 steps) — changed: fresh_product, resolve
+  • Handle_preview → Missing_values (6 steps) — changed: resolve
+  • Render → Get_category_ids (6 steps) — changed: read
+  • Render → Get_date_on_sale_from (6 steps) — changed: read
+  • Render → Get_date_on_sale_to (6 steps) — changed: read
+  • Render → Get_id (6 steps) — changed: read
+  • Handle_preview → Data (5 steps) — changed: resolve
+  • Product_observation → WC_Product_Simple (3 steps) — changed: fresh_product
+... and 25 more

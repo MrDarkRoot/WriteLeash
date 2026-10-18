@@ -1,0 +1,22 @@
+branch: work/204-live-progress
+round-3 test commit: 21ca6d449f6301947c99252d650c81740dd4e6d7
+round-3 head: 19e2c6892c5887bb53a4a470979a44d3822e3480
+previous head: 1e218cb8cab63d796dd4440aa17e6eeff59b5abd
+origin/main: c48e307efe7750d0fb36015c39d50a34675f9579
+pr: https://github.com/MrDarkRoot/WriteLeash/pull/221 (draft)
+commits ahead of origin/main:
+19e2c68 docs(review): complete round-3 evidence wording (#204)
+21ca6d4 test(admin): exhaustively verify progress row/focus reconciliation (#204)
+1e218cb fix(admin): tighten live progress page/filter sync and boundary tests (#204)
+a1b7f3a docs(review): record #204 validation receipts
+6a6a9ac feat(admin): refresh running job progress without reloading (#204)
+round-3 files (test commit):
+21ca6d4 test(admin): exhaustively verify progress row/focus reconciliation (#204)
+ docs/review/204/IMPLEMENTATION.md         | 66 +++++++++++++++++++++++
+ wordpress/tests/admin/progress-client.cjs | 79 +++++++++++++++++++++++++--
+ wordpress/tests/admin/progress-unit.php   | 90 ++++++++++++++++++++++++++++++-
+ 3 files changed, 231 insertions(+), 4 deletions(-)
+follow-up:
+19e2c68 docs(review): complete round-3 evidence wording (#204)
+ docs/review/204/IMPLEMENTATION.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)

@@ -1,0 +1,34 @@
+
+  GitNexus Detect Changes (1.6.12)
+Changes: 3 files, 14 symbols
+Affected processes: 17
+Risk level: critical
+
+Changed symbols:
+  Section Issue #204: live progress preparation → docs/review/204/IMPLEMENTATION.md
+  Section Safety and coordination → docs/review/204/IMPLEMENTATION.md
+  Const admin → wordpress/tests/admin/progress-client.cjs
+  Function harness → wordpress/tests/admin/progress-client.cjs
+  Function row → wordpress/tests/admin/progress-client.cjs
+  Function ids → wordpress/tests/admin/progress-client.cjs
+  Namespace WriteLeash → wordpress/tests/admin/progress-unit.php
+  Class Job_Schema → wordpress/tests/admin/progress-unit.php
+  Method ready → wordpress/tests/admin/progress-unit.php
+  Class Fixture204Plan → wordpress/tests/admin/progress-unit.php
+  Method summary → wordpress/tests/admin/progress-unit.php
+  Class Job_Repository → wordpress/tests/admin/progress-unit.php
+  Const PUBLIC_ID_REGEX → wordpress/tests/admin/progress-unit.php
+  Method read_by_public_id → wordpress/tests/admin/progress-unit.php
+
+Affected execution flows:
+  • Handle_approve → Fixture204Plan (4 steps) — changed: Fixture204Plan
+  • Handle_export → Read_by_public_id (4 steps) — changed: read_by_public_id
+  • Handle_export → Ready (4 steps) — changed: ready
+  • Handle_export → Fixture204Plan (4 steps) — changed: Fixture204Plan
+  • Progress_snapshot → Read_by_public_id (3 steps) — changed: read_by_public_id
+  • History_items → Ready (3 steps) — changed: ready
+  • Handle_resume → Fixture204Plan (4 steps) — changed: Fixture204Plan
+  • Render_job_view → Read_by_public_id (3 steps) — changed: read_by_public_id
+  • History_job → Ready (3 steps) — changed: ready
+  • Handle_undo → Fixture204Plan (4 steps) — changed: Fixture204Plan
+... and 7 more

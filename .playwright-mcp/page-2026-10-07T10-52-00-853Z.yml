@@ -1,0 +1,30 @@
+- generic [active] [ref=f2e1]:
+  - heading "Log In" [level=1] [ref=f2e2]
+  - generic [ref=f2e3]:
+    - link "Powered by WordPress" [ref=f2e4] [cursor=pointer]:
+      - /url: https://wordpress.org/
+    - generic [ref=f2e5]:
+      - paragraph [ref=f2e6]:
+        - generic [ref=f2e7]: Username or Email Address
+        - textbox "Username or Email Address" [ref=f2e8]
+      - generic [ref=f2e9]:
+        - generic [ref=f2e10]: Password
+        - generic [ref=f2e11]:
+          - textbox "Password" [ref=f2e12]
+          - button "Show password" [ref=f2e13] [cursor=pointer]:
+            - generic [aria-hidden] [ref=f2e14]: 
+      - paragraph [ref=f2e15]:
+        - checkbox "Remember Me" [ref=f2e16] [cursor=pointer]
+        - generic [ref=f2e17]: Remember Me
+        - generic [ref=f2e18]:
+          - button "Help" [ref=f2e19] [cursor=pointer]:
+            - generic [aria-hidden] [ref=f2e20]: 
+          - text: 
+      - paragraph:
+        - button "Log In" [ref=f2e21] [cursor=pointer]
+    - paragraph [ref=f2e22]:
+      - link "Lost your password?" [ref=f2e23] [cursor=pointer]:
+        - /url: http://127.0.0.1:8194/wp-login.php?action=lostpassword
+    - paragraph [ref=f2e24]:
+      - link "← Go to WriteLeash submission smoke" [ref=f2e25] [cursor=pointer]:
+        - /url: http://127.0.0.1:8194/

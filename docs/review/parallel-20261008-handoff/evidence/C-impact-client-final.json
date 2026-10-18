@@ -1,0 +1,69 @@
+{
+  "target": {
+    "id": "Function:wordpress/writeleash/includes/free/free-progress.js:fn@1:1.apply@73:4",
+    "name": "apply",
+    "type": "Function",
+    "filePath": "wordpress/writeleash/includes/free/free-progress.js"
+  },
+  "direction": "upstream",
+  "impactedCount": 2,
+  "risk": "LOW",
+  "riskSharedAxes": "LOW",
+  "riskScale": {
+    "comparableAcrossKinds": true,
+    "unusedAxes": []
+  },
+  "epistemic": "lower-bound",
+  "boundaries": [
+    "53 call sites invoking `apply` were dropped at index time because the receiver's type could not be established (e.g. an unresolved constructor, factory or chained expression). Those callers are absent from this result — actual impact may be higher."
+  ],
+  "causes": {
+    "scopeExtractionFiles": 0,
+    "receiverTyping": 53,
+    "dispatchBoundary": 0,
+    "externalBoundary": 0,
+    "undecidedSatisfaction": 0,
+    "callableValueReferences": 0
+  },
+  "summary": {
+    "direct": 1,
+    "processes_affected": 0,
+    "modules_affected": 1
+  },
+  "byDepthCounts": {
+    "1": 1,
+    "2": 1
+  },
+  "affected_processes": [],
+  "affected_modules": [
+    {
+      "name": "Free",
+      "hits": 1,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Function:wordpress/writeleash/includes/free/free-progress.js:fn@1:1.refresh@118:4",
+        "name": "refresh",
+        "filePath": "wordpress/writeleash/includes/free/free-progress.js",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      }
+    ],
+    "2": [
+      {
+        "depth": 2,
+        "id": "File:wordpress/writeleash/includes/free/free-progress.js",
+        "name": "free-progress.js",
+        "filePath": "wordpress/writeleash/includes/free/free-progress.js",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      }
+    ]
+  }
+}

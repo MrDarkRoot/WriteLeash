@@ -1,0 +1,757 @@
+# Copyright (C) 2026 U2Code
+# This file is distributed under the GNU General Public License v3.0.
+msgid ""
+msgstr ""
+"Project-Id-Version: Bulk Price Editor for WooCommerce 2.1.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bulk-price-editor-for-woocommerce\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-01T14:25:23+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: bulk-price-editor\n"
+
+#. Plugin Name of the plugin
+#: bulk-price-editor.php
+msgid "Bulk Price Editor for WooCommerce"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: bulk-price-editor.php
+msgid "https://woocommerce.com/products/bulk-price-editor"
+msgstr ""
+
+#. Description of the plugin
+#: bulk-price-editor.php
+msgid "Edit product prices in bulk with ease. Change prices by a fixed amount, percentage or replace with new prices."
+msgstr ""
+
+#. Author of the plugin
+#: bulk-price-editor.php
+msgid "U2Code"
+msgstr ""
+
+#. Author URI of the plugin
+#: bulk-price-editor.php
+msgid "https://woocommerce.com/vendor/u2code-kolya-lukin/"
+msgstr ""
+
+#: src/Actions/SchedulePriceUpdatesAction.php:53
+msgid "Prices updating has been stopped."
+msgstr ""
+
+#: src/Actions/SchedulePriceUpdatesAction.php:76
+msgid "A price update is already in progress. Please wait for it to finish."
+msgstr ""
+
+#: src/Actions/SchedulePriceUpdatesAction.php:106
+msgid "No products match the selected filters."
+msgstr ""
+
+#: src/Actions/SchedulePriceUpdatesAction.php:158
+#: src/Actions/SchedulePriceUpdatesAction.php:165
+msgid "Prices updating has been started."
+msgstr ""
+
+#. Translators: %d - number of products
+#: src/Actions/SchedulePriceUpdatesAction.php:217
+#, php-format
+msgid "Prices for %d products have been updated successfully."
+msgstr ""
+
+#. translators: %s: required plugin
+#: src/BulkPriceEditorPlugin.php:60
+#, php-format
+msgid "<b>Bulk Price Editor</b> plugin requires %s to be installed and activated."
+msgstr ""
+
+#: src/BulkPriceEditorPlugin.php:99
+#: src/PriceEditorPage/PriceEditorPage.php:151
+msgid "Documentation"
+msgstr ""
+
+#: src/BulkPriceEditorPlugin.php:131
+msgid "Simple product"
+msgstr ""
+
+#: src/BulkPriceEditorPlugin.php:132
+msgid "Variable product"
+msgstr ""
+
+#: src/BulkPriceEditorPlugin.php:133
+msgid "Product variation"
+msgstr ""
+
+#: src/BulkPriceEditorPlugin.php:134
+msgid "External product"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingIntegration.php:19
+msgid "Integrates with Tiered Pricing Table plugin"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:21
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:304
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:349
+msgid "Tiered Pricing"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:148
+msgid "Modification Mode"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:153
+msgid "Set New Tiers"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:157
+msgid "Update Existing by %"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:166
+msgid "This will update all existing tiered prices for selected products by the specified percentage. Positive values increase prices, negative values decrease them."
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:170
+msgid "Percentage Change"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:172
+msgid "e.g., 10 for +10% or -10 for -10%"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:184
+msgid "Leave empty to remove tiered pricing for selected products."
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:283
+msgid "Tiered Pricing Type"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:290
+#: src/Integrations/TieredPricing/TieredPricingTableColumn.php:67
+msgid "Fixed"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:293
+#: src/Integrations/TieredPricing/TieredPricingTableColumn.php:67
+msgid "Percentage"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:313
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:359
+#: src/Integrations/TieredPricing/TieredPricingTableColumn.php:73
+msgid "Quantity"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:319
+#: src/Integrations/TieredPricing/TieredPricingTableColumn.php:78
+msgid "Discount"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:335
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:381
+msgid "Add new tier"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingModifier.php:365
+#: src/Integrations/TieredPricing/TieredPricingTableColumn.php:82
+msgid "Price"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingTableColumn.php:56
+msgid "No tiered pricing rules"
+msgstr ""
+
+#: src/Integrations/TieredPricing/TieredPricingTableColumn.php:65
+#: src/ProductsTable/Columns/ProductTypeColumn.php:13
+msgid "Type"
+msgstr ""
+
+#: src/PriceEditorPage/Modals/ConfirmUpdate.php:15
+msgid "Confirm update"
+msgstr ""
+
+#: src/PriceEditorPage/Modals/ConfirmUpdate.php:26
+msgid "Please confirm that you want to update prices for selected products."
+msgstr ""
+
+#: src/PriceEditorPage/Modals/ConfirmUpdate.php:37
+msgid "Confirm"
+msgstr ""
+
+#: src/PriceEditorPage/Modals/ConfirmUpdate.php:41
+#: src/PriceEditorPage/Modals/SaveTemplate.php:57
+#: src/PriceEditorPage/Modals/SelectTemplate.php:102
+msgid "Cancel"
+msgstr ""
+
+#: src/PriceEditorPage/Modals/SaveTemplate.php:24
+msgid "Save template"
+msgstr ""
+
+#: src/PriceEditorPage/Modals/SaveTemplate.php:37
+msgid "Template name"
+msgstr ""
+
+#: src/PriceEditorPage/Modals/SaveTemplate.php:53
+msgid "Save"
+msgstr ""
+
+#: src/PriceEditorPage/Modals/SelectTemplate.php:17
+#: src/PriceEditorPage/Widgets/ProductFilters/ProductFiltersWidget.php:113
+msgid "Select template"
+msgstr ""
+
+#: src/PriceEditorPage/Modals/SelectTemplate.php:58
+#: src/ProductFilters/Filters/FilterByAttributes.php:65
+msgid "Select"
+msgstr ""
+
+#: src/PriceEditorPage/Modals/SelectTemplate.php:65
+#: src/PriceEditorPage/Modals/SelectTemplate.php:74
+msgid "Remove"
+msgstr ""
+
+#: src/PriceEditorPage/Modals/SelectTemplate.php:85
+msgid "No templates found."
+msgstr ""
+
+#: src/PriceEditorPage/Modals/SelectTemplate.php:89
+msgid "You can save current filters as a template and use them later."
+msgstr ""
+
+#: src/PriceEditorPage/PriceEditorPage.php:73
+#: src/PriceEditorPage/PriceEditorPage.php:74
+msgid "Bulk Price Editor"
+msgstr ""
+
+#: src/PriceEditorPage/PriceEditorPage.php:210
+msgid "Prices are being updated"
+msgstr ""
+
+#: src/PriceEditorPage/PriceEditorPage.php:240
+msgid "This may take a while depending on the number of products being updated."
+msgstr ""
+
+#: src/PriceEditorPage/PriceEditorPage.php:245
+msgid "The page will refresh automatically when the process is complete."
+msgstr ""
+
+#: src/PriceEditorPage/PriceEditorPage.php:266
+msgid "Are you sure you want to stop updating prices?"
+msgstr ""
+
+#: src/PriceEditorPage/PriceEditorPage.php:276
+msgid "View queue"
+msgstr ""
+
+#: src/PriceEditorPage/PriceEditorPage.php:282
+msgid "Stop updating"
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/PriceModifiers/PriceModifiersWidget.php:18
+msgid "Edit Prices"
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/PriceModifiers/PriceModifiersWidget.php:22
+msgid "Select how you want to adjust prices for selected products."
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/PriceModifiers/PriceModifiersWidget.php:76
+msgid "Advanced Options"
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/ProductFilters/ProductFiltersWidget.php:52
+msgid "Filter Products"
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/ProductFilters/ProductFiltersWidget.php:56
+msgid "Filter products you want to apply price changes."
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/ProductFilters/ProductFiltersWidget.php:104
+msgid "Manage templates"
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/ProductFilters/ProductFiltersWidget.php:109
+msgid "Save as template"
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/ProductFilters/ProductFiltersWidget.php:144
+msgid "Template:"
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/ProductFilters/ProductFiltersWidget.php:154
+msgid "Update template"
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/ProductsList/ProductsListWidget.php:14
+msgid "Preview and Apply changes"
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/ProductsList/ProductsListWidget.php:18
+msgid "Review updates and confirm changes."
+msgstr ""
+
+#: src/PriceEditorPage/Widgets/ProductsList/ProductsListWidget.php:61
+msgid "Apply changes"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/AddFlatValue.php:23
+msgid "Add flat amount"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/AddFlatValue.php:69
+msgid "Add value to regular price"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/AddFlatValue.php:78
+msgid "Add value to sale price"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/DecreaseByPercent.php:19
+msgid "Decrease by percent"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/DecreaseByPercent.php:60
+msgid "Enter a percent by which to decrease the prices of the selected products."
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/DecreaseByPercent.php:66
+msgid "Decrease regular price by percent"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/DecreaseByPercent.php:77
+msgid "Decrease sale price by percent"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/IncreaseByPercent.php:19
+msgid "Increase by percent"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/IncreaseByPercent.php:61
+msgid "Enter a percent by which to increase the prices of the selected products."
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/IncreaseByPercent.php:66
+msgid "Increase regular price by percent"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/IncreaseByPercent.php:74
+msgid "Increase sale price by percent"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/NewPrices.php:23
+msgid "Enter new prices"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/NewPrices.php:48
+msgid "Enter new prices for selected products."
+msgstr ""
+
+#. translators: %s: Currency symbol
+#: src/PriceModifiers/Modifiers/NewPrices.php:54
+#, php-format
+msgid "New Regular Price (%s)"
+msgstr ""
+
+#. translators: %s: Currency symbol
+#: src/PriceModifiers/Modifiers/NewPrices.php:65
+#, php-format
+msgid "New Sale Price (%s)"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/PriceModifier.php:92
+msgid "Rounding"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/PriceModifier.php:93
+msgid "Round the resulting prices to a number of decimals or to the nearest price with the selected ending, e.g. 63.74 becomes 63.99."
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/PriceModifier.php:97
+msgid "No rounding"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/PriceModifier.php:98
+msgid "2 decimals"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/PriceModifier.php:99
+msgid "1 decimal"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/PriceModifier.php:100
+msgid "Whole number (.00)"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/PriceModifier.php:101
+msgid "Price ending .90"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/PriceModifier.php:102
+msgid "Price ending .95"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/PriceModifier.php:103
+msgid "Price ending .99"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/RemovePrice.php:11
+msgid "Remove prices"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/RemovePrice.php:41
+msgid "Select what prices you want to remove (regular, sale, or both) from the selected products."
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/RemovePrice.php:46
+msgid "Remove price"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/RemovePrice.php:48
+msgid "Both regular and sale prices"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/RemovePrice.php:49
+#: src/ProductFilters/Filters/PriceRange.php:127
+msgid "Regular price"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/RemovePrice.php:50
+#: src/ProductFilters/Filters/PriceRange.php:128
+msgid "Sale price"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/SubtractFlatValue.php:23
+msgid "Subtract flat amount"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/SubtractFlatValue.php:64
+msgid "Input a flat value to subtract from the regular and sale prices of selected products."
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/SubtractFlatValue.php:70
+msgid "Subtract value from regular price"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/SubtractFlatValue.php:79
+msgid "Subtract value from sale price"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/UpdateByFormula.php:24
+msgid "Update by formula"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/UpdateByFormula.php:97
+msgid "Calculate new prices from each product's current values. Use min() and max() for price floors and caps."
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/UpdateByFormula.php:103
+msgid "Variables"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/UpdateByFormula.php:110
+msgid "Click to insert into a formula field"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/UpdateByFormula.php:121
+msgid "New Regular Price"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/UpdateByFormula.php:122
+msgid "e.g. {regular_price} * 1.1"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/UpdateByFormula.php:123
+msgid "Leave empty to keep the regular price unchanged."
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/UpdateByFormula.php:131
+msgid "New Sale Price"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/UpdateByFormula.php:132
+msgid "e.g. max({regular_price} * 0.7, 9.99)"
+msgstr ""
+
+#: src/PriceModifiers/Modifiers/UpdateByFormula.php:133
+msgid "Example: max({regular_price} * 0.7, 9.99) gives 30% off, but never below 9.99."
+msgstr ""
+
+#: src/ProductFilters/Filters/DateRange.php:9
+msgid "Date Range"
+msgstr ""
+
+#: src/ProductFilters/Filters/DateRange.php:68
+#: src/ProductFilters/Filters/PriceRange.php:125
+msgid "Filter by"
+msgstr ""
+
+#: src/ProductFilters/Filters/DateRange.php:70
+msgid "Date added"
+msgstr ""
+
+#: src/ProductFilters/Filters/DateRange.php:71
+msgid "Date modified"
+msgstr ""
+
+#: src/ProductFilters/Filters/DateRange.php:82
+msgid "From"
+msgstr ""
+
+#: src/ProductFilters/Filters/DateRange.php:92
+msgid "To"
+msgstr ""
+
+#: src/ProductFilters/Filters/ExcludedProducts.php:12
+msgid "Excluded Products"
+msgstr ""
+
+#: src/ProductFilters/Filters/ExcludedProducts.php:132
+msgid "Exclude product categories"
+msgstr ""
+
+#: src/ProductFilters/Filters/ExcludedProducts.php:133
+#: src/ProductFilters/Filters/IncludedProducts.php:149
+msgid "Select product categories"
+msgstr ""
+
+#: src/ProductFilters/Filters/ExcludedProducts.php:143
+msgid "Exclude products"
+msgstr ""
+
+#: src/ProductFilters/Filters/ExcludedProducts.php:144
+#: src/ProductFilters/Filters/IncludedProducts.php:160
+msgid "Select products"
+msgstr ""
+
+#: src/ProductFilters/Filters/FeaturedStatus.php:9
+msgid "Featured Products"
+msgstr ""
+
+#: src/ProductFilters/Filters/FeaturedStatus.php:64
+msgid "Featured"
+msgstr ""
+
+#: src/ProductFilters/Filters/FeaturedStatus.php:66
+#: src/ProductFilters/Filters/OnSaleStatus.php:62
+msgid "Any"
+msgstr ""
+
+#: src/ProductFilters/Filters/FeaturedStatus.php:67
+msgid "Featured only"
+msgstr ""
+
+#: src/ProductFilters/Filters/FeaturedStatus.php:68
+msgid "Not featured"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByAttributes.php:9
+msgid "Product Attributes"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByBrands.php:30
+msgid "Filter by Brands"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByBrands.php:38
+msgid "Include brands"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByBrands.php:39
+#: src/ProductFilters/Filters/FilterByBrands.php:54
+msgid "Select brands"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByBrands.php:53
+msgid "Exclude brands"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByShippingClass.php:23
+msgid "Filter by Shipping Class"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByShippingClass.php:31
+msgid "Include shipping classes"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByShippingClass.php:32
+#: src/ProductFilters/Filters/FilterByShippingClass.php:47
+msgid "Select shipping classes"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByShippingClass.php:46
+msgid "Exclude shipping classes"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByTags.php:23
+msgid "Filter by Tags"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByTags.php:31
+msgid "Include tags"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByTags.php:32
+#: src/ProductFilters/Filters/FilterByTags.php:47
+msgid "Select tags"
+msgstr ""
+
+#: src/ProductFilters/Filters/FilterByTags.php:46
+msgid "Exclude tags"
+msgstr ""
+
+#: src/ProductFilters/Filters/IncludedProducts.php:12
+msgid "Included Products"
+msgstr ""
+
+#: src/ProductFilters/Filters/IncludedProducts.php:148
+msgid "Include product categories"
+msgstr ""
+
+#: src/ProductFilters/Filters/IncludedProducts.php:159
+msgid "Include products"
+msgstr ""
+
+#: src/ProductFilters/Filters/OnSaleStatus.php:9
+msgid "Sale Status"
+msgstr ""
+
+#: src/ProductFilters/Filters/OnSaleStatus.php:60
+msgid "Sale status"
+msgstr ""
+
+#: src/ProductFilters/Filters/OnSaleStatus.php:63
+msgid "On sale"
+msgstr ""
+
+#: src/ProductFilters/Filters/OnSaleStatus.php:64
+msgid "Not on sale"
+msgstr ""
+
+#: src/ProductFilters/Filters/PriceRange.php:13
+msgid "Price Range"
+msgstr ""
+
+#. translators: %s: Currency symbol
+#: src/ProductFilters/Filters/PriceRange.php:140
+#, php-format
+msgid "Min price (%s)"
+msgstr ""
+
+#: src/ProductFilters/Filters/PriceRange.php:142
+msgid "No minimum"
+msgstr ""
+
+#. translators: %s: Currency symbol
+#: src/ProductFilters/Filters/PriceRange.php:155
+#, php-format
+msgid "Max price (%s)"
+msgstr ""
+
+#: src/ProductFilters/Filters/PriceRange.php:157
+msgid "No maximum"
+msgstr ""
+
+#: src/ProductFilters/Filters/ProductStatus.php:14
+msgid "Product Status"
+msgstr ""
+
+#: src/ProductFilters/Filters/ProductType.php:26
+msgid "Product type"
+msgstr ""
+
+#: src/ProductFilters/Filters/ProductType.php:42
+msgid "Product Type"
+msgstr ""
+
+#: src/ProductFilters/Filters/SKUAndName.php:9
+msgid "SKU and Name"
+msgstr ""
+
+#: src/ProductFilters/Filters/SKUAndName.php:43
+msgid "SKU contains"
+msgstr ""
+
+#: src/ProductFilters/Filters/SKUAndName.php:44
+msgid "You can input full SKU to match exact product."
+msgstr ""
+
+#: src/ProductFilters/Filters/SKUAndName.php:53
+msgid "Product name contains"
+msgstr ""
+
+#: src/ProductFilters/Filters/StockStatus.php:35
+msgid "Stock status"
+msgstr ""
+
+#: src/ProductFilters/Filters/StockStatus.php:37
+msgid "Any stock status"
+msgstr ""
+
+#: src/ProductFilters/Filters/StockStatus.php:38
+#: src/ProductsTable/Columns/StockStatusColumn.php:20
+msgid "In stock"
+msgstr ""
+
+#: src/ProductFilters/Filters/StockStatus.php:39
+#: src/ProductsTable/Columns/StockStatusColumn.php:22
+msgid "Out of stock"
+msgstr ""
+
+#: src/ProductFilters/Filters/StockStatus.php:40
+#: src/ProductsTable/Columns/StockStatusColumn.php:18
+msgid "On backorder"
+msgstr ""
+
+#: src/ProductFilters/Filters/StockStatus.php:50
+#: src/ProductsTable/Columns/StockStatusColumn.php:13
+msgid "Stock Status"
+msgstr ""
+
+#: src/ProductsTable/Columns/CategoriesColumn.php:13
+msgid "Categories"
+msgstr ""
+
+#: src/ProductsTable/Columns/DateColumn.php:13
+msgid "Date"
+msgstr ""
+
+#. translators: %1$s: date, %2$s: time
+#: src/ProductsTable/Columns/DateColumn.php:21
+#, php-format
+msgid "%1$s at %2$s"
+msgstr ""
+
+#: src/ProductsTable/Columns/RegularPriceColumn.php:14
+msgid "Regular Price"
+msgstr ""
+
+#: src/ProductsTable/Columns/SalePriceColumn.php:15
+msgid "Sale Price"
+msgstr ""
+
+#: src/ProductsTable/Columns/TitleColumn.php:13
+msgid "Name"
+msgstr ""
+
+#: src/ProductsTable/Services/AjaxHandler.php:21
+msgid "Permission Denied"
+msgstr ""
+
+#: src/ProductsTable/WPListProductsTable.php:29
+msgid "Product"
+msgstr ""
+
+#: src/ProductsTable/WPListProductsTable.php:30
+msgid "Products"
+msgstr ""
+
+#: src/ProductsTable/WPListProductsTable.php:119
+msgid "No products found."
+msgstr ""

@@ -1,0 +1,16 @@
+# Captured from the B4 failed run's wp_test DB immediately after the failure
+# (transcribed verbatim from the SELECT output; DB was reset before later diag runs).
+wp_writeleash_jobs (latest two):
+ id  status
+ 45  NEEDS_REVIEW
+ 44  COMPLETED_WITH_ISSUES
+wp_writeleash_job_items:
+ job_id  product_id  state          reason                       attempt_count
+ 44      295         CONFLICT       ITEM_CONFLICT                1
+ 45      295         NEEDS_REVIEW   CACHE_VERIFICATION_FAILED    1
+wp_writeleash_price_items (journal):
+ row 115: product 295, target 90.00, state APPLIED, reason WOO_CRUD_VERIFIED
+ row 114: product 295, target 80.00, state CONFLICT, reason CONFLICT
+Interpretation: the job that APPLIED (target 90) committed and verified at commit,
+then its post-commit observe() threw CACHE_VERIFICATION_FAILED -> durable item
+NEEDS_REVIEW; the other job recorded the expected CONFLICT; exactly one write.

@@ -1,0 +1,17 @@
+
+  GitNexus Detect Changes (1.6.12)
+Changes: 4 files, 10 symbols
+Affected processes: 0
+Risk level: low
+
+Changed symbols:
+  Section Issue #209 implementation handoff — Remove WooCommerce Internal cache dependencies → docs/review/209/IMPLEMENTATION.md
+  Section Founder attention → docs/review/209/IMPLEMENTATION.md
+  Section Round-3 recovery-semantics evidence (PR #220, issue #209) → docs/review/209/IMPLEMENTATION.md
+  Section A. Recovery-semantics matrix → docs/review/209/IMPLEMENTATION.md
+  Section B. Required proofs (branch HEAD citations) → docs/review/209/IMPLEMENTATION.md
+  Section C. Re-verification receipts (branch HEAD) → docs/review/209/IMPLEMENTATION.md
+  Section D. Divergence and founder approval → docs/review/209/IMPLEMENTATION.md
+  Section E. Round-3 test deltas and NOT_TESTED → docs/review/209/IMPLEMENTATION.md
+  Function $count_save209 → wordpress/tests/durable/cache-public-integration.php
+  Function $broken_once209 → wordpress/tests/durable/cache-public-integration.php

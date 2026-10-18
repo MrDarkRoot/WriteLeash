@@ -1,0 +1,3 @@
+9cf090ecb01483cc1034854ce19d3dff45e30bab334b6229400d965a510256a5  docs/i18n/inventory-summary.json
+0e62bb58dc9512267809c486c30d4db6caf74ec5a914ae31a3e338b8fdb5a46c  /tmp/regen-full-a.json
+06223803d739357149b876fc87f63ed44ade9908e70b4d38845d1b2dcf5168ed  /tmp/regen-raw-a.json

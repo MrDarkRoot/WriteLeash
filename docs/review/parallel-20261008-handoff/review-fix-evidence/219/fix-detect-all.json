@@ -1,0 +1,26 @@
+
+  GitNexus Detect Changes (1.6.12)
+Changes: 3 files, 10 symbols
+Affected processes: 7
+Risk level: high
+
+Changed symbols:
+  Function $overflow_query → wordpress/tests/free/integration.php
+  Class WP_Query → wordpress/tests/free/selection-count.php
+  Property posts → wordpress/tests/free/selection-count.php
+  Method __construct → wordpress/tests/free/selection-count.php
+  Function error206 → wordpress/tests/free/selection-count.php
+  Class Product_Price_Selector → wordpress/writeleash/includes/free/class-product-selector.php
+  Method resolve → wordpress/writeleash/includes/free/class-product-selector.php
+  Method resolved_selection → wordpress/writeleash/includes/free/class-product-selector.php
+  Method expandable_parent → wordpress/writeleash/includes/free/class-product-selector.php
+  Method parent_of → wordpress/writeleash/includes/free/class-product-selector.php
+
+Affected execution flows:
+  • Handle_preview → Get_category_ids (6 steps) — changed: resolve
+  • Handle_preview → Get_date_on_sale_from (6 steps) — changed: resolve
+  • Handle_preview → Get_date_on_sale_to (6 steps) — changed: resolve
+  • Handle_preview → Get_id (6 steps) — changed: resolve
+  • Handle_preview → Missing_values (6 steps) — changed: resolve
+  • Handle_preview → Data (5 steps) — changed: resolve
+  • Handle_preview → Price_Validation_Error (7 steps) — changed: resolved_selection

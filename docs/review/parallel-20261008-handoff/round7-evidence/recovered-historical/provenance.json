@@ -1,0 +1,50 @@
+[
+  {
+    "source_path": "/tmp/wlruntime/logs/runner-soak-driver.log",
+    "copied_path": "docs/review/parallel-20261008-handoff/round7-evidence/recovered-historical/runner-soak-driver.log",
+    "source_mtime_utc": "2026-10-08T09:46:00.616153+00:00",
+    "sha256": "afac5000da6ae8056799978c87cb7fc2007522ee910b26beeaa029c12c19c814",
+    "provenance": "Recovered historical artifact copied during Round 7, not new execution and not in original632 manifest",
+    "contents": "RUNNER ATTEMPT 1 FAILED (reproduced)\n"
+  },
+  {
+    "source_path": "/tmp/wlruntime/logs/runner-soak-driver2.log",
+    "copied_path": "docs/review/parallel-20261008-handoff/round7-evidence/recovered-historical/runner-soak-driver2.log",
+    "source_mtime_utc": "2026-10-08T09:56:35.140666+00:00",
+    "sha256": "afac5000da6ae8056799978c87cb7fc2007522ee910b26beeaa029c12c19c814",
+    "provenance": "Recovered historical artifact copied during Round 7, not new execution and not in original632 manifest",
+    "contents": "RUNNER ATTEMPT 1 FAILED (reproduced)\n"
+  },
+  {
+    "source_path": "/tmp/wlruntime/logs/runner-soak-driver3.log",
+    "copied_path": "docs/review/parallel-20261008-handoff/round7-evidence/recovered-historical/runner-soak-driver3.log",
+    "source_mtime_utc": "2026-10-08T10:05:28.618330+00:00",
+    "sha256": "afac5000da6ae8056799978c87cb7fc2007522ee910b26beeaa029c12c19c814",
+    "provenance": "Recovered historical artifact copied during Round 7, not new execution and not in original632 manifest",
+    "contents": "RUNNER ATTEMPT 1 FAILED (reproduced)\n"
+  },
+  {
+    "source_path": "/tmp/wlruntime/logs/runner-soak-driver4.log",
+    "copied_path": "docs/review/parallel-20261008-handoff/round7-evidence/recovered-historical/runner-soak-driver4.log",
+    "source_mtime_utc": "2026-10-08T10:15:58.240687+00:00",
+    "sha256": "afac5000da6ae8056799978c87cb7fc2007522ee910b26beeaa029c12c19c814",
+    "provenance": "Recovered historical artifact copied during Round 7, not new execution and not in original632 manifest",
+    "contents": "RUNNER ATTEMPT 1 FAILED (reproduced)\n"
+  },
+  {
+    "source_path": "/tmp/wlruntime/logs/runner-soak-driver5.log",
+    "copied_path": "docs/review/parallel-20261008-handoff/round7-evidence/recovered-historical/runner-soak-driver5.log",
+    "source_mtime_utc": "2026-10-08T10:24:41.473114+00:00",
+    "sha256": "afac5000da6ae8056799978c87cb7fc2007522ee910b26beeaa029c12c19c814",
+    "provenance": "Recovered historical artifact copied during Round 7, not new execution and not in original632 manifest",
+    "contents": "RUNNER ATTEMPT 1 FAILED (reproduced)\n"
+  },
+  {
+    "source_path": "/tmp/wlruntime/logs/runner-soak-driver6.log",
+    "copied_path": "docs/review/parallel-20261008-handoff/round7-evidence/recovered-historical/runner-soak-driver6.log",
+    "source_mtime_utc": "2026-10-08T10:34:49.150038+00:00",
+    "sha256": "afac5000da6ae8056799978c87cb7fc2007522ee910b26beeaa029c12c19c814",
+    "provenance": "Recovered historical artifact copied during Round 7, not new execution and not in original632 manifest",
+    "contents": "RUNNER ATTEMPT 1 FAILED (reproduced)\n"
+  }
+]

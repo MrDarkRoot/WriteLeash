@@ -1,0 +1,450 @@
+- generic [ref=f8e2]:
+  - navigation "Main menu":
+    - link "Skip to main content" [ref=f8e3] [cursor=pointer]:
+      - /url: "#wpbody-content"
+    - link "Skip to toolbar" [ref=f8e4] [cursor=pointer]:
+      - /url: "#wp-toolbar"
+    - list [ref=f8e7]:
+      - listitem [ref=f8e8]:
+        - link "Dashboard" [ref=f8e9] [cursor=pointer]:
+          - /url: index.php
+          - generic [aria-hidden] [ref=f8e10]: 
+        - list [ref=f8e12]:
+          - listitem [ref=f8e13]:
+            - link "Home" [ref=f8e14] [cursor=pointer]:
+              - /url: index.php
+          - listitem [ref=f8e15]:
+            - link "Updates" [ref=f8e16] [cursor=pointer]:
+              - /url: update-core.php
+      - listitem [aria-hidden] [ref=f8e17]
+      - listitem [ref=f8e19]:
+        - link "Posts" [ref=f8e20] [cursor=pointer]:
+          - /url: edit.php
+          - generic [aria-hidden] [ref=f8e21]: 
+        - list [ref=f8e23]:
+          - listitem [ref=f8e24]:
+            - link "All Posts" [ref=f8e25] [cursor=pointer]:
+              - /url: edit.php
+          - listitem [ref=f8e26]:
+            - link "Add Post" [ref=f8e27] [cursor=pointer]:
+              - /url: post-new.php
+          - listitem [ref=f8e28]:
+            - link "Categories" [ref=f8e29] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=category
+          - listitem [ref=f8e30]:
+            - link "Tags" [ref=f8e31] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=post_tag
+      - listitem [ref=f8e32]:
+        - link "Media" [ref=f8e33] [cursor=pointer]:
+          - /url: upload.php
+          - generic [aria-hidden] [ref=f8e34]: 
+        - list [ref=f8e36]:
+          - listitem [ref=f8e37]:
+            - link "Library" [ref=f8e38] [cursor=pointer]:
+              - /url: upload.php
+          - listitem [ref=f8e39]:
+            - link "Add Media File" [ref=f8e40] [cursor=pointer]:
+              - /url: media-new.php
+      - listitem [ref=f8e41]:
+        - link "Pages" [ref=f8e42] [cursor=pointer]:
+          - /url: edit.php?post_type=page
+          - generic [aria-hidden] [ref=f8e43]: 
+        - list [ref=f8e45]:
+          - listitem [ref=f8e46]:
+            - link "All Pages" [ref=f8e47] [cursor=pointer]:
+              - /url: edit.php?post_type=page
+          - listitem [ref=f8e48]:
+            - link "Add Page" [ref=f8e49] [cursor=pointer]:
+              - /url: post-new.php?post_type=page
+      - listitem [ref=f8e50]:
+        - link "Comments" [ref=f8e51] [cursor=pointer]:
+          - /url: edit-comments.php
+          - generic [aria-hidden] [ref=f8e52]: 
+      - listitem [aria-hidden] [ref=f8e54]
+      - listitem [ref=f8e56]:
+        - link "WooCommerce" [ref=f8e57] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin
+        - list [ref=f8e60]:
+          - listitem [ref=f8e61]:
+            - link "Home 5" [ref=f8e62] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin
+              - text: Home
+              - generic [ref=f8e63]: "5"
+          - listitem [ref=f8e64]:
+            - link "Orders" [ref=f8e65] [cursor=pointer]:
+              - /url: admin.php?page=wc-orders
+          - listitem [ref=f8e66]:
+            - link "Customers" [ref=f8e67] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/customers
+          - listitem [ref=f8e68]:
+            - link "Coupons" [ref=f8e69] [cursor=pointer]:
+              - /url: admin.php?page=coupons-moved
+          - listitem [ref=f8e70]:
+            - link "Reports" [ref=f8e71] [cursor=pointer]:
+              - /url: admin.php?page=wc-reports
+          - listitem [ref=f8e72]:
+            - link "Settings" [ref=f8e73] [cursor=pointer]:
+              - /url: admin.php?page=wc-settings
+          - listitem [ref=f8e74]:
+            - link "Status" [ref=f8e75] [cursor=pointer]:
+              - /url: admin.php?page=wc-status
+          - listitem [ref=f8e76]:
+            - link "Extensions" [ref=f8e77] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/extensions
+      - listitem [ref=f8e78]:
+        - link "Products" [ref=f8e79] [cursor=pointer]:
+          - /url: edit.php?post_type=product
+          - generic [aria-hidden] [ref=f8e80]: 
+        - list [ref=f8e82]:
+          - listitem [ref=f8e83]:
+            - link "All Products" [ref=f8e84] [cursor=pointer]:
+              - /url: edit.php?post_type=product
+          - listitem [ref=f8e85]:
+            - link "Add new product" [ref=f8e86] [cursor=pointer]:
+              - /url: post-new.php?post_type=product
+          - listitem [ref=f8e87]:
+            - link "Brands" [ref=f8e88] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_brand&post_type=product
+          - listitem [ref=f8e89]:
+            - link "Categories" [ref=f8e90] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_cat&post_type=product
+          - listitem [ref=f8e91]:
+            - link "Tags" [ref=f8e92] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_tag&post_type=product
+          - listitem [ref=f8e93]:
+            - link "Attributes" [ref=f8e94] [cursor=pointer]:
+              - /url: edit.php?post_type=product&page=product_attributes
+          - listitem [ref=f8e95]:
+            - link "Bulk Prices" [ref=f8e96] [cursor=pointer]:
+              - /url: edit.php?post_type=product&page=writeleash-bulk-prices
+          - listitem [ref=f8e97]:
+            - link "Reviews" [ref=f8e98] [cursor=pointer]:
+              - /url: edit.php?post_type=product&page=product-reviews
+      - listitem [ref=f8e99]:
+        - link "Payments 1" [ref=f8e100] [cursor=pointer]:
+          - /url: admin.php?page=wc-settings&tab=checkout&from=PAYMENTS_MENU_ITEM
+          - generic [ref=f8e102]:
+            - text: Payments
+            - generic [ref=f8e103]: "1"
+      - listitem [ref=f8e104]:
+        - link "Analytics" [ref=f8e105] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin&path=/analytics/overview
+          - generic [aria-hidden] [ref=f8e106]: 
+        - list [ref=f8e108]:
+          - listitem [ref=f8e109]:
+            - link "Overview" [ref=f8e110] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/overview
+          - listitem [ref=f8e111]:
+            - link "Products" [ref=f8e112] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/products
+          - listitem [ref=f8e113]:
+            - link "Revenue" [ref=f8e114] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/revenue
+          - listitem [ref=f8e115]:
+            - link "Orders" [ref=f8e116] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/orders
+          - listitem [ref=f8e117]:
+            - link "Variations" [ref=f8e118] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/variations
+          - listitem [ref=f8e119]:
+            - link "Categories" [ref=f8e120] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/categories
+          - listitem [ref=f8e121]:
+            - link "Coupons" [ref=f8e122] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/coupons
+          - listitem [ref=f8e123]:
+            - link "Taxes" [ref=f8e124] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/taxes
+          - listitem [ref=f8e125]:
+            - link "Downloads" [ref=f8e126] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/downloads
+          - listitem [ref=f8e127]:
+            - link "Stock" [ref=f8e128] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/stock
+          - listitem [ref=f8e129]:
+            - link "Settings" [ref=f8e130] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/settings
+      - listitem [ref=f8e131]:
+        - link "Marketing" [ref=f8e132] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin&path=/marketing
+          - generic [aria-hidden] [ref=f8e133]: 
+        - list [ref=f8e135]:
+          - listitem [ref=f8e136]:
+            - link "Overview" [ref=f8e137] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/marketing
+          - listitem [ref=f8e138]:
+            - link "Coupons" [ref=f8e139] [cursor=pointer]:
+              - /url: edit.php?post_type=shop_coupon
+      - listitem [aria-hidden] [ref=f8e140]
+      - listitem [ref=f8e142]:
+        - link "Appearance" [ref=f8e143] [cursor=pointer]:
+          - /url: themes.php
+          - generic [aria-hidden] [ref=f8e144]: 
+        - list [ref=f8e146]:
+          - listitem [ref=f8e147]:
+            - link "Themes" [ref=f8e148] [cursor=pointer]:
+              - /url: themes.php
+          - listitem [ref=f8e149]:
+            - link "Editor" [ref=f8e150] [cursor=pointer]:
+              - /url: site-editor.php
+          - listitem [ref=f8e151]:
+            - link "Fonts" [ref=f8e152] [cursor=pointer]:
+              - /url: font-library.php
+      - listitem [ref=f8e153]:
+        - link "Plugins" [ref=f8e154] [cursor=pointer]:
+          - /url: plugins.php
+          - generic [aria-hidden] [ref=f8e155]: 
+        - list [ref=f8e157]:
+          - listitem [ref=f8e158]:
+            - link "Installed Plugins" [ref=f8e159] [cursor=pointer]:
+              - /url: plugins.php
+          - listitem [ref=f8e160]:
+            - link "Add Plugin" [ref=f8e161] [cursor=pointer]:
+              - /url: plugin-install.php
+      - listitem [ref=f8e162]:
+        - link "Users" [ref=f8e163] [cursor=pointer]:
+          - /url: users.php
+          - generic [aria-hidden] [ref=f8e164]: 
+        - list [ref=f8e166]:
+          - listitem [ref=f8e167]:
+            - link "All Users" [ref=f8e168] [cursor=pointer]:
+              - /url: users.php
+          - listitem [ref=f8e169]:
+            - link "Add User" [ref=f8e170] [cursor=pointer]:
+              - /url: user-new.php
+          - listitem [ref=f8e171]:
+            - link "Profile" [ref=f8e172] [cursor=pointer]:
+              - /url: profile.php
+      - listitem [ref=f8e173]:
+        - link "Tools" [ref=f8e174] [cursor=pointer]:
+          - /url: tools.php
+          - generic [aria-hidden] [ref=f8e175]: 
+        - list [ref=f8e177]:
+          - listitem [ref=f8e178]:
+            - link "Available Tools" [ref=f8e179] [cursor=pointer]:
+              - /url: tools.php
+          - listitem [ref=f8e180]:
+            - link "Import" [ref=f8e181] [cursor=pointer]:
+              - /url: import.php
+          - listitem [ref=f8e182]:
+            - link "Export" [ref=f8e183] [cursor=pointer]:
+              - /url: export.php
+          - listitem [ref=f8e184]:
+            - link "Site Health" [ref=f8e185] [cursor=pointer]:
+              - /url: site-health.php
+          - listitem [ref=f8e186]:
+            - link "Export Personal Data" [ref=f8e187] [cursor=pointer]:
+              - /url: export-personal-data.php
+          - listitem [ref=f8e188]:
+            - link "Erase Personal Data" [ref=f8e189] [cursor=pointer]:
+              - /url: erase-personal-data.php
+          - listitem [ref=f8e190]:
+            - link "Scheduled Actions" [ref=f8e191] [cursor=pointer]:
+              - /url: tools.php?page=action-scheduler
+          - listitem [ref=f8e192]:
+            - link "Theme File Editor" [ref=f8e193] [cursor=pointer]:
+              - /url: theme-editor.php
+          - listitem [ref=f8e194]:
+            - link "Plugin File Editor" [ref=f8e195] [cursor=pointer]:
+              - /url: plugin-editor.php
+      - listitem [ref=f8e196]:
+        - link "Settings" [ref=f8e197] [cursor=pointer]:
+          - /url: options-general.php
+          - generic [aria-hidden] [ref=f8e198]: 
+        - list [ref=f8e200]:
+          - listitem [ref=f8e201]:
+            - link "General" [ref=f8e202] [cursor=pointer]:
+              - /url: options-general.php
+          - listitem [ref=f8e203]:
+            - link "Connectors" [ref=f8e204] [cursor=pointer]:
+              - /url: options-connectors.php
+          - listitem [ref=f8e205]:
+            - link "Writing" [ref=f8e206] [cursor=pointer]:
+              - /url: options-writing.php
+          - listitem [ref=f8e207]:
+            - link "Reading" [ref=f8e208] [cursor=pointer]:
+              - /url: options-reading.php
+          - listitem [ref=f8e209]:
+            - link "Discussion" [ref=f8e210] [cursor=pointer]:
+              - /url: options-discussion.php
+          - listitem [ref=f8e211]:
+            - link "Media" [ref=f8e212] [cursor=pointer]:
+              - /url: options-media.php
+          - listitem [ref=f8e213]:
+            - link "Permalinks" [ref=f8e214] [cursor=pointer]:
+              - /url: options-permalink.php
+          - listitem [ref=f8e215]:
+            - link "Privacy" [ref=f8e216] [cursor=pointer]:
+              - /url: options-privacy.php
+      - listitem [ref=f8e217]:
+        - button "Collapse Main menu" [expanded] [ref=f8e218] [cursor=pointer]:
+          - generic [ref=f8e220]: Collapse Menu
+  - generic [ref=f8e221]:
+    - generic [ref=f8e222]:
+      - navigation "Toolbar":
+        - menu:
+          - group [ref=f8e223]:
+            - menuitem "About WordPress" [ref=f8e224] [cursor=pointer]
+          - group [ref=f8e227]:
+            - menuitem "WriteLeash Manual Review" [ref=f8e228] [cursor=pointer]
+          - group [ref=f8e229]:
+            - menuitem "Store coming soon" [ref=f8e230] [cursor=pointer]
+          - group [ref=f8e231]:
+            - menuitem "Ctrl+K Open command palette" [ref=f8e232] [cursor=pointer]:
+              - generic [ref=f8e234]:
+                - text: Ctrl+K
+                - generic [ref=f8e235]: Open command palette
+          - group [ref=f8e236]:
+            - menuitem "0 Comments in moderation" [ref=f8e237] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f8e239]: "0"
+          - group [ref=f8e241]:
+            - menuitem "New" [ref=f8e242] [cursor=pointer]
+        - menu [ref=f8e245]:
+          - group [ref=f8e246]:
+            - menuitem "Howdy, merchant" [ref=f8e247] [cursor=pointer]
+    - main [ref=f8e248]:
+      - generic [ref=f8e250]:
+        - heading "WriteLeash Bulk Prices" [level=1] [ref=f8e251]
+        - paragraph [ref=f8e252]: Preview bulk regular or sale prices before they happen. Run them safely. If the price or a checked setting changed after review, WriteLeash leaves the newer value alone. Undo changes that are still safe to restore.
+        - paragraph [ref=f8e253]: Change the stored price of published simple products and variations of published variable products in the base store currency. Variations can be selected as a whole product or individually. Sale dates, stock, orders and subscriptions are not changed.
+        - paragraph [ref=f8e254]: "Up to 1000 selected products per new job in the tested configuration. Planned prices are not guaranteed shopper prices: taxes, currency settings, dynamic pricing and later edits still apply. You can close this page at any time; saved progress appears again when you return."
+        - heading "New price change" [level=2] [ref=f8e255]
+        - generic [ref=f8e256]:
+          - group "1. Select products" [ref=f8e257]:
+            - paragraph [ref=f8e259]: Choose specific products or one category. Categories include direct members only; subcategories are not included. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum 1000 selected products.
+            - paragraph [ref=f8e260]:
+              - generic [ref=f8e261]: Selection method
+              - combobox "Selection method" [ref=f8e262] [cursor=pointer]:
+                - option "Choose products by name or SKU" [selected]
+                - option "Named product category"
+                - 'option "Advanced: one exact SKU"'
+                - 'option "Advanced: manual product IDs"'
+            - status [ref=f8e263]: Search and choose products. If live suggestions are unavailable, use the search without live suggestions.
+            - group [ref=f8e264]:
+              - generic "Search products without live suggestions" [ref=f8e265] [cursor=pointer]
+            - paragraph [ref=f8e266]:
+              - generic [ref=f8e267]: Choose products
+              - listbox [aria-hidden] [ref=f8e268] [cursor=pointer]
+              - combobox [ref=f8e271]:
+                - list [ref=f8e272]:
+                  - listitem [ref=f8e273]:
+                    - textbox "Choose products" [ref=f8e274]:
+                      - /placeholder: Search product name or SKU
+            - paragraph [ref=f8e275]: Check the selected products below. Preview checks their eligibility before any prices change.
+            - heading "Selected products" [level=3] [ref=f8e276]
+            - list [ref=f8e277]:
+              - listitem [ref=f8e278]: No products selected. Search and choose products to add them.
+            - button "Clear selected products" [ref=f8e279] [cursor=pointer]
+            - group [ref=f8e280]:
+              - generic "Search categories without live suggestions" [ref=f8e281] [cursor=pointer]
+            - paragraph [ref=f8e282]:
+              - generic [ref=f8e283]: Product category (direct members only)
+              - combobox [aria-hidden] [ref=f8e284] [cursor=pointer]
+              - combobox [ref=f8e287] [cursor=pointer]:
+                - textbox "Product category (direct members only)" [ref=f8e288]
+            - group [ref=f8e289]:
+              - 'generic "Advanced selection: exact SKU or manual IDs" [ref=f8e290] [cursor=pointer]'
+          - group "2. Choose the price change" [ref=f8e291]:
+            - paragraph [ref=f8e293]:
+              - generic [ref=f8e294]: Price to change
+              - combobox "Price to change" [ref=f8e295] [cursor=pointer]:
+                - option "Regular price" [selected]
+                - option "Sale price"
+            - paragraph [ref=f8e296]: Regular price is the everyday price. Sale price is the discounted price during a sale. WriteLeash changes only the price you choose and keeps the other one.
+            - paragraph [ref=f8e297]:
+              - generic [ref=f8e298]: Operation
+              - combobox "Operation" [ref=f8e299] [cursor=pointer]:
+                - option "Set an exact price" [selected]
+                - option "Increase by fixed amount"
+                - option "Decrease by fixed amount"
+                - option "Increase by percent"
+                - option "Decrease by percent"
+            - paragraph [ref=f8e300]:
+              - generic [ref=f8e301]: Unsigned amount or percent, e.g. 80.00 or 20 (no % sign)
+              - textbox "Unsigned amount or percent, e.g. 80.00 or 20 (no % sign)" [ref=f8e302]
+          - group "3. Safety limits" [ref=f8e303]:
+            - paragraph [ref=f8e305]: A breach blocks the whole preview.
+            - paragraph [ref=f8e306]:
+              - generic [ref=f8e307]: Maximum changing products (0-1000)
+              - spinbutton "Maximum changing products (0-1000)" [ref=f8e308]: "1000"
+            - paragraph [ref=f8e309]:
+              - generic [ref=f8e310]: Maximum increase percent
+              - textbox "Maximum increase percent" [ref=f8e311]: "50"
+            - paragraph [ref=f8e312]:
+              - generic [ref=f8e313]: Maximum decrease percent
+              - textbox "Maximum decrease percent" [ref=f8e314]: "50"
+            - paragraph [ref=f8e315]:
+              - generic [ref=f8e316]: Warning threshold percent
+              - textbox "Warning threshold percent" [ref=f8e317]: "20"
+            - paragraph [ref=f8e318]:
+              - checkbox "Block a preview that sets any changing price to zero" [ref=f8e319] [cursor=pointer]
+              - generic [ref=f8e320]: Block a preview that sets any changing price to zero
+          - paragraph [ref=f8e321]:
+            - button "Preview price changes" [ref=f8e322] [cursor=pointer]
+            - text: Nothing is saved until you approve the preview.
+        - heading "Recent jobs" [level=2] [ref=f8e323]
+        - region "Job history" [ref=f8e324]:
+          - table [ref=f8e325]:
+            - rowgroup [ref=f8e326]:
+              - row [ref=f8e327]:
+                - columnheader "Task / operator / time" [ref=f8e328]
+                - columnheader "Outcome" [ref=f8e329]
+                - columnheader "Undo" [ref=f8e330]
+                - columnheader "Action" [ref=f8e331]
+            - rowgroup [ref=f8e332]:
+              - row [ref=f8e333]:
+                - cell [ref=f8e334]:
+                  - strong [ref=f8e335]: Increase regular prices by 8% · 5 products (2 variations)
+                  - text: Created by merchantApproved by merchantOctober 7, 2026 2:04 pm (Asia/Ho_Chi_Minh)
+                  - group [ref=f8e336]:
+                    - generic "Support details" [ref=f8e337] [cursor=pointer]
+                - cell [ref=f8e338]:
+                  - strong [ref=f8e339]: Finished with products needing attention
+                  - text: "Planned 5 products: 3 changed · 1 skipped · 1 conflict."
+                - cell "Undo available for prices changed by this job. Until November 6, 2026 2:05 pm (Asia/Ho_Chi_Minh)" [ref=f8e340]: Undo available for prices changed by this job.Until November 6, 2026 2:05 pm (Asia/Ho_Chi_Minh)
+                - cell [ref=f8e341]:
+                  - link "Open progress/results" [ref=f8e342] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=28dcd274-42ef-4ff6-b954-ac2c69f16964
+                  - paragraph [ref=f8e344]:
+                    - button "Download job CSV" [ref=f8e345] [cursor=pointer]
+              - row [ref=f8e346]:
+                - cell [ref=f8e347]:
+                  - strong [ref=f8e348]: Set sale prices to $20.00 USD · 5 products (2 variations)
+                  - text: Created by merchantOctober 7, 2026 11:28 am (Asia/Ho_Chi_Minh)
+                  - group [ref=f8e349]:
+                    - generic "Support details" [ref=f8e350] [cursor=pointer]
+                - cell [ref=f8e351]:
+                  - strong [ref=f8e352]: Awaiting review
+                  - text: "Planned 5 products: 1 skipped · 4 awaiting approval."
+                - 'cell "Undo unavailable: this plan is awaiting review and has not run." [ref=f8e353]'
+                - cell [ref=f8e354]:
+                  - link "Continue review" [ref=f8e355] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=preview&wl_job=5b36537d-13d8-40ca-993f-2f2e428e7918
+                  - paragraph [ref=f8e357]:
+                    - button "Download job CSV" [ref=f8e358] [cursor=pointer]
+              - row [ref=f8e359]:
+                - cell [ref=f8e360]:
+                  - strong [ref=f8e361]: Decrease regular prices by 10% · 5 products (2 variations)
+                  - text: Created by merchantApproved by merchantOctober 7, 2026 11:27 am (Asia/Ho_Chi_Minh)
+                  - group [ref=f8e362]:
+                    - generic "Support details" [ref=f8e363] [cursor=pointer]
+                - cell [ref=f8e364]:
+                  - strong [ref=f8e365]: Finished
+                  - text: "Planned 5 products: 4 changed · 1 skipped."
+                - cell "Undo available for prices changed by this job. Until November 6, 2026 11:27 am (Asia/Ho_Chi_Minh)" [ref=f8e366]: Undo available for prices changed by this job.Until November 6, 2026 11:27 am (Asia/Ho_Chi_Minh)
+                - cell [ref=f8e367]:
+                  - link "Open progress/results" [ref=f8e368] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=8368c469-9bbd-4974-a160-5b7d28550306
+                  - paragraph [ref=f8e370]:
+                    - button "Download job CSV" [ref=f8e371] [cursor=pointer]
+        - paragraph [ref=f8e372]:
+          - link "Open full history" [ref=f8e373] [cursor=pointer]:
+            - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=history
+  - contentinfo [ref=f8e374]:
+    - paragraph [ref=f8e375]:
+      - generic [ref=f8e377]:
+        - text: Thank you for creating with
+        - link "WordPress" [ref=f8e378] [cursor=pointer]:
+          - /url: https://wordpress.org/
+        - text: .
+    - paragraph [ref=f8e379]: Version 7.1.3

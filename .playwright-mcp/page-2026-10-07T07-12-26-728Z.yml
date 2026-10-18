@@ -1,0 +1,152 @@
+- generic [ref=f5e2]:
+  - navigation "Main menu":
+    - link "Skip to main content" [ref=f5e3] [cursor=pointer]:
+      - /url: "#wpbody-content"
+    - text:             
+  - generic [ref=f5e4]:
+    - generic [ref=f5e5]:
+      - navigation "Toolbar":
+        - menu:
+          - group [ref=f5e6]:
+            - menuitem "Menu" [ref=f5e7] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f5e8]: 
+          - group [ref=f5e10]:
+            - menuitem "About WordPress" [ref=f5e11] [cursor=pointer]
+          - group [ref=f5e14]:
+            - menuitem "WriteLeash Manual Review" [ref=f5e15] [cursor=pointer]
+          - group [ref=f5e16]:
+            - menuitem "Ctrl+K Open command palette" [ref=f5e17] [cursor=pointer]:
+              - generic [ref=f5e19]:
+                - text: Ctrl+K
+                - generic [ref=f5e20]: Open command palette
+          - group [ref=f5e21]:
+            - menuitem "0 Comments in moderation" [ref=f5e22] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f5e24]: "0"
+          - group [ref=f5e26]:
+            - menuitem "New" [ref=f5e27] [cursor=pointer]
+        - menu [ref=f5e30]:
+          - group [ref=f5e31]:
+            - menuitem "Howdy, merchant" [ref=f5e32] [cursor=pointer]
+    - main [ref=f5e33]:
+      - generic [ref=f5e35]:
+        - heading "WriteLeash Bulk Prices" [level=1] [ref=f5e36]
+        - paragraph [ref=f5e37]: Preview bulk regular or sale prices before they happen. Run them safely. If the price or a checked setting changed after review, WriteLeash leaves the newer value alone. Undo changes that are still safe to restore.
+        - paragraph [ref=f5e38]: Change the stored price of published simple products and variations of published variable products in the base store currency. Variations can be selected as a whole product or individually. Sale dates, stock, orders and subscriptions are not changed.
+        - paragraph [ref=f5e39]: "Up to 1000 selected products per new job in the tested configuration. Planned prices are not guaranteed shopper prices: taxes, currency settings, dynamic pricing and later edits still apply. You can close this page at any time; saved progress appears again when you return."
+        - heading "New price change" [level=2] [ref=f5e40]
+        - generic [ref=f5e41]:
+          - group "1. Select products" [ref=f5e42]:
+            - paragraph [ref=f5e44]: Choose specific products or one category. Categories include direct members only; subcategories are not included. Search matches are not automatically selected and do not guarantee eligibility. Preview checks every selected product. Maximum 1000 selected products.
+            - paragraph [ref=f5e45]:
+              - generic [ref=f5e46]: Selection method
+              - combobox "Selection method" [ref=f5e47] [cursor=pointer]:
+                - option "Choose products by name or SKU"
+                - option "Product category" [selected]
+                - option "One exact SKU"
+                - 'option "Advanced: manual product IDs"'
+            - status [ref=f5e48]: All direct members of this category will be checked in Preview, including variations. Subcategories are not included.
+            - generic [ref=f5e49]:
+              - group [ref=f5e50]:
+                - generic "Search categories without live suggestions" [ref=f5e51] [cursor=pointer]
+              - paragraph [ref=f5e52]:
+                - generic [ref=f5e53]: Product category (direct members only)
+                - combobox [aria-hidden] [ref=f5e54] [cursor=pointer]
+                - combobox [ref=f5e57] [cursor=pointer]:
+                  - textbox "Product category (direct members only)" [ref=f5e58]
+          - group "2. Choose the price change" [ref=f5e59]:
+            - paragraph [ref=f5e61]:
+              - generic [ref=f5e62]: Price to change
+              - combobox "Price to change" [ref=f5e63] [cursor=pointer]:
+                - option "Regular price" [selected]
+                - option "Sale price"
+            - paragraph [ref=f5e64]: Regular price is the everyday price. Sale price is the discounted price during a sale. WriteLeash changes only the price you choose and keeps the other one.
+            - paragraph [ref=f5e65]:
+              - generic [ref=f5e66]: Operation
+              - combobox "Operation" [ref=f5e67] [cursor=pointer]:
+                - option "Set an exact price"
+                - option "Increase by fixed amount"
+                - option "Decrease by fixed amount"
+                - option "Increase by percent" [selected]
+                - option "Decrease by percent"
+            - paragraph [ref=f5e68]:
+              - generic [ref=f5e69]: Percentage (e.g. 8 for 8%)
+              - textbox "Percentage (e.g. 8 for 8%)" [ref=f5e142]
+            - paragraph [ref=f5e71]: Enter a positive number or zero. Use a dot for decimals; leave out currency symbols and the % sign.
+          - group [ref=f5e72]:
+            - generic "Safety limits (optional)" [ref=f5e73] [cursor=pointer]
+          - paragraph [ref=f5e74]:
+            - button "Preview price changes" [ref=f5e75] [cursor=pointer]
+            - text: Preview does not change any prices.
+        - heading "Recent jobs" [level=2] [ref=f5e76]
+        - region "Job history" [ref=f5e77]:
+          - table [ref=f5e78]:
+            - rowgroup [ref=f5e79]:
+              - row [ref=f5e80]:
+                - columnheader "Task / operator / time" [ref=f5e81]
+                - columnheader "Outcome" [ref=f5e82]
+                - columnheader "Undo" [ref=f5e83]
+                - columnheader "Action" [ref=f5e84]
+            - rowgroup [ref=f5e85]:
+              - row [ref=f5e86]:
+                - cell [ref=f5e87]:
+                  - strong [ref=f5e88]: Set sale prices to $20.00 USD · 1 product
+                  - text: Created by merchantApproved by merchantOctober 7, 2026 2:05 pm (Asia/Ho_Chi_Minh)
+                  - group [ref=f5e89]:
+                    - generic "Support details" [ref=f5e90] [cursor=pointer]
+                - cell [ref=f5e91]:
+                  - strong [ref=f5e92]: Finished
+                  - text: "Planned 1 product: 1 changed."
+                - 'cell "Undo finished: eligible prices restored." [ref=f5e93]'
+                - cell [ref=f5e94]:
+                  - link "Open progress/results" [ref=f5e95] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=08af1756-7879-47e5-b452-252848f26e9a
+                  - paragraph [ref=f5e97]:
+                    - button "Download job CSV" [ref=f5e98] [cursor=pointer]
+              - row [ref=f5e99]:
+                - cell [ref=f5e100]:
+                  - strong [ref=f5e101]: Increase regular prices by 8% · 5 products (2 variations)
+                  - text: Created by merchantApproved by merchantOctober 7, 2026 2:04 pm (Asia/Ho_Chi_Minh)
+                  - group [ref=f5e102]:
+                    - generic "Support details" [ref=f5e103] [cursor=pointer]
+                - cell [ref=f5e104]:
+                  - strong [ref=f5e105]: Finished with products needing attention
+                  - text: "Planned 5 products: 3 changed · 1 skipped · 1 conflict."
+                - 'cell "Undo finished: eligible prices restored." [ref=f5e106]'
+                - cell [ref=f5e107]:
+                  - link "Open progress/results" [ref=f5e108] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=28dcd274-42ef-4ff6-b954-ac2c69f16964
+                  - paragraph [ref=f5e110]:
+                    - button "Download job CSV" [ref=f5e111] [cursor=pointer]
+              - row [ref=f5e112]:
+                - cell [ref=f5e113]:
+                  - strong [ref=f5e114]: Set sale prices to $20.00 USD · 5 products (2 variations)
+                  - text: Created by merchantOctober 7, 2026 11:28 am (Asia/Ho_Chi_Minh)
+                  - group [ref=f5e115]:
+                    - generic "Support details" [ref=f5e116] [cursor=pointer]
+                - cell [ref=f5e117]:
+                  - strong [ref=f5e118]: Awaiting review
+                  - text: "Planned 5 products: 1 skipped · 4 awaiting approval."
+                - 'cell "Undo unavailable: this plan is awaiting review and has not run." [ref=f5e119]'
+                - cell [ref=f5e120]:
+                  - link "Continue review" [ref=f5e121] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=preview&wl_job=5b36537d-13d8-40ca-993f-2f2e428e7918
+                  - paragraph [ref=f5e123]:
+                    - button "Download job CSV" [ref=f5e124] [cursor=pointer]
+              - row [ref=f5e125]:
+                - cell [ref=f5e126]:
+                  - strong [ref=f5e127]: Decrease regular prices by 10% · 5 products (2 variations)
+                  - text: Created by merchantApproved by merchantOctober 7, 2026 11:27 am (Asia/Ho_Chi_Minh)
+                  - group [ref=f5e128]:
+                    - generic "Support details" [ref=f5e129] [cursor=pointer]
+                - cell [ref=f5e130]:
+                  - strong [ref=f5e131]: Finished
+                  - text: "Planned 5 products: 4 changed · 1 skipped."
+                - cell "Undo available for prices changed by this job. Until November 6, 2026 11:27 am (Asia/Ho_Chi_Minh)" [ref=f5e132]: Undo available for prices changed by this job.Until November 6, 2026 11:27 am (Asia/Ho_Chi_Minh)
+                - cell [ref=f5e133]:
+                  - link "Open progress/results" [ref=f5e134] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=job&wl_job=8368c469-9bbd-4974-a160-5b7d28550306
+                  - paragraph [ref=f5e136]:
+                    - button "Download job CSV" [ref=f5e137] [cursor=pointer]
+        - paragraph [ref=f5e138]:
+          - link "Open full history" [ref=f5e139] [cursor=pointer]:
+            - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=writeleash-bulk-prices&wl_view=history

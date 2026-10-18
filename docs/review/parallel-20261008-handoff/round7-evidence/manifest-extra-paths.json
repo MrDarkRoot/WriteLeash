@@ -1,0 +1,250 @@
+[
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-change-plan.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-change-plan.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-change-plan.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-durable-charset.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-durable-charset.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-durable-charset.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-free-support-contract.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-free-support-contract.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-free-support-contract.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-job-repository.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-repository.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-repository.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-job-resume-rest.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-resume-rest.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-resume-rest.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-job-scheduler.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-scheduler.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-scheduler.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-job-schema.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-schema.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-schema.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-job-state.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-state.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-state.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-job-transaction-fence.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-transaction-fence.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-transaction-fence.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-job-worker.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-worker.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-job-worker.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-price-apply-connection.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-apply-connection.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-apply-connection.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-price-apply-journal.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-apply-journal.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-apply-journal.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-price-apply-transaction-guard.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-apply-transaction-guard.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-apply-transaction-guard.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-price-cache-verifier.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-cache-verifier.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-cache-verifier.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-price-decimal.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-decimal.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-decimal.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-price-operation.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-operation.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-price-operation.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-product-discovery.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-product-discovery.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-product-discovery.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-product-selector.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-product-selector.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-product-selector.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-product-snapshot.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-product-snapshot.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-product-snapshot.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-runner-authority.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-runner-authority.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-runner-authority.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-safety-policy.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-safety-policy.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-safety-policy.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-undo-fingerprint.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-fingerprint.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-fingerprint.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-undo-repository.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-repository.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-repository.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-undo-rest.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-rest.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-rest.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-undo-scheduler.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-scheduler.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-scheduler.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-undo-schema.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-schema.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-schema.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-undo-state.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-state.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-state.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-undo-transaction-fence.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-transaction-fence.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-transaction-fence.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-undo-worker.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-worker.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-undo-worker.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-woo-price-mutator.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-woo-price-mutator.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-woo-price-mutator.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  },
+  {
+    "path": "runtime-acceptance-evidence/fix-221/221/prefix-harness/writeleash/includes/free/class-woo-undo-mutator.php",
+    "symlink": true,
+    "target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-woo-undo-mutator.php",
+    "resolved_target": "/tmp/writeleash-approved-20261008/agent-C/wordpress/writeleash/includes/free/class-woo-undo-mutator.php",
+    "resolved_inside_handoff": false,
+    "exists": true
+  }
+]

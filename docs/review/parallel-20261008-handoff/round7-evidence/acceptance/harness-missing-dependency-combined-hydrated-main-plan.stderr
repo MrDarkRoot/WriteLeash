@@ -1,0 +1,5 @@
+PHP Fatal error:  Uncaught JsonException: Syntax error in /tmp/wl-round7-old-plan-woiso72_/hydrate.php:139
+Stack trace:
+#0 /tmp/wl-round7-old-plan-woiso72_/hydrate.php(139): json_decode()
+#1 {main}
+  thrown in /tmp/wl-round7-old-plan-woiso72_/hydrate.php on line 139

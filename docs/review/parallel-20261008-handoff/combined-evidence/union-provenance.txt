@@ -1,0 +1,41 @@
+Per-file provenance: exact lane hash match, or UNION where lanes overlapped.
+
+.github/ci/path-ownership.json                                           C
+docs/i18n/PREPARATION.md                                                 D
+docs/i18n/baseline-literals.json                                         D
+docs/review/204/IMPLEMENTATION.md                                        C
+docs/review/206/IMPLEMENTATION.md                                        A
+docs/review/209/IMPLEMENTATION.md                                        B
+docs/review/210/IMPLEMENTATION.md                                        D
+wordpress/release/PUBLIC-PAYLOAD.md                                      C
+wordpress/release/i18n-inventory.php                                     D
+wordpress/release/writeleash-distribution-files.txt                      C
+wordpress/tests/admin/in-container.sh                                    C
+wordpress/tests/admin/progress-client.cjs                                C
+wordpress/tests/admin/progress-integration.php                           C
+wordpress/tests/admin/progress-unit.php                                  C
+wordpress/tests/admin/run.sh                                             C
+wordpress/tests/admin/selection-http.php                                 A
+wordpress/tests/admin/selection-integration.php                          A
+wordpress/tests/admin/subcategory-integration.php                        A
+wordpress/tests/durable/cache-public-integration.php                     B
+wordpress/tests/durable/in-container.sh                                  B
+wordpress/tests/durable/integration.php                                  B
+wordpress/tests/free/cache-public.php                                    B
+wordpress/tests/free/dirty-catalog-stubs.php                             B
+wordpress/tests/free/in-container.sh                                     UNION (A+B+C / A+B / A+integration)
+wordpress/tests/free/selection-count.php                                 UNION (A+B+C / A+B / A+integration)
+wordpress/tests/free/variations.php                                      B
+wordpress/tests/release/i18n-inventory-cases.php                         D
+wordpress/tests/release/public-runtime-audit.php                         C
+wordpress/writeleash/FREE-PRICE-APPLY-CONTRACT.md                        B
+wordpress/writeleash/includes/free/class-free-admin.php                  UNION (A+B+C / A+B / A+integration)
+wordpress/writeleash/includes/free/class-free-support-contract.php       B
+wordpress/writeleash/includes/free/class-price-cache-verifier.php        B
+wordpress/writeleash/includes/free/class-product-discovery.php           A
+wordpress/writeleash/includes/free/class-product-selector.php            UNION (A+B+C / A+B / A+integration)
+wordpress/writeleash/includes/free/class-product-snapshot.php            B
+wordpress/writeleash/includes/free/class-woo-price-mutator.php           B
+wordpress/writeleash/includes/free/class-woo-undo-mutator.php            B
+wordpress/writeleash/includes/free/free-progress.js                      C
+wordpress/writeleash/includes/free/free-selection.js                     A

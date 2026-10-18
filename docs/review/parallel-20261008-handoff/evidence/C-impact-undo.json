@@ -1,0 +1,200 @@
+{
+  "target": {
+    "id": "Method:wordpress/writeleash/includes/free/class-free-admin.php:Free_Admin.render_undo_section#3",
+    "name": "render_undo_section",
+    "type": "Method",
+    "filePath": "wordpress/writeleash/includes/free/class-free-admin.php"
+  },
+  "direction": "upstream",
+  "impactedCount": 5,
+  "risk": "HIGH",
+  "riskSharedAxes": "LOW",
+  "riskScale": {
+    "comparableAcrossKinds": true,
+    "unusedAxes": []
+  },
+  "epistemic": "exact",
+  "summary": {
+    "direct": 1,
+    "processes_affected": 3,
+    "modules_affected": 1
+  },
+  "byDepthCounts": {
+    "1": 1,
+    "2": 2,
+    "3": 2
+  },
+  "affected_processes": [
+    {
+      "name": "render",
+      "type": "Function",
+      "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+      "affected_process_count": 8,
+      "total_hits": 8,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "render_job_view",
+      "type": "Function",
+      "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+      "affected_process_count": 4,
+      "total_hits": 4,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "render_preview_view",
+      "type": "Function",
+      "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+      "affected_process_count": 2,
+      "total_hits": 2,
+      "earliest_broken_step": 1
+    }
+  ],
+  "affected_modules": [
+    {
+      "name": "Free",
+      "hits": 4,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Method:wordpress/writeleash/includes/free/class-free-admin.php:Free_Admin.render_job_view#3",
+        "name": "render_job_view",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": [
+          {
+            "id": "proc_4_render_job_view",
+            "label": "Render_job_view → Owned",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_134_render_job_view",
+            "label": "Render_job_view → Db",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_2_render_job_view",
+            "label": "Render_job_view → Job_Error",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_3_render_job_view",
+            "label": "Render_job_view → Columns",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      }
+    ],
+    "2": [
+      {
+        "depth": 2,
+        "id": "Method:wordpress/writeleash/includes/free/class-free-admin.php:Free_Admin.render_preview_view#2",
+        "name": "render_preview_view",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.6,
+        "processes": [
+          {
+            "id": "proc_166_render_preview_view",
+            "label": "Render_preview_view → Natural",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_196_render_preview_view",
+            "label": "Render_preview_view → Price_Validation_Error",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      },
+      {
+        "depth": 2,
+        "id": "Method:wordpress/writeleash/includes/free/class-free-admin.php:Free_Admin.render_view#5",
+        "name": "render_view",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.63,
+        "processes": []
+      }
+    ],
+    "3": [
+      {
+        "depth": 3,
+        "id": "File:wordpress/release/compliance-smoke-124-reaudit.php",
+        "name": "compliance-smoke-124-reaudit.php",
+        "filePath": "wordpress/release/compliance-smoke-124-reaudit.php",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 3,
+        "id": "Method:wordpress/writeleash/includes/free/class-free-admin.php:Free_Admin.render#0",
+        "name": "render",
+        "filePath": "wordpress/writeleash/includes/free/class-free-admin.php",
+        "relationType": "CALLS",
+        "confidence": 0.63,
+        "processes": [
+          {
+            "id": "proc_15_render",
+            "label": "Render → Data",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_80_render",
+            "label": "Render → Get_id",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_154_render",
+            "label": "Render → Natural",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_14_render",
+            "label": "Render → Data",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_79_render",
+            "label": "Render → Get_date_on_sale_to",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_184_render",
+            "label": "Render → Price_Validation_Error",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_78_render",
+            "label": "Render → Get_date_on_sale_from",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_77_render",
+            "label": "Render → Get_category_ids",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      }
+    ]
+  }
+}

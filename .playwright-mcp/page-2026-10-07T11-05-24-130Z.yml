@@ -1,0 +1,350 @@
+- generic [ref=f12e2]:
+  - navigation "Main menu":
+    - link "Skip to main content" [ref=f12e3] [cursor=pointer]:
+      - /url: "#wpbody-content"
+    - link "Skip to toolbar" [ref=f12e4] [cursor=pointer]:
+      - /url: "#wp-toolbar"
+    - list [ref=f12e7]:
+      - listitem [ref=f12e8]:
+        - link "Dashboard" [ref=f12e9] [cursor=pointer]:
+          - /url: index.php
+          - generic [aria-hidden] [ref=f12e10]: 
+        - list [ref=f12e12]:
+          - listitem [ref=f12e13]:
+            - link "Home" [ref=f12e14] [cursor=pointer]:
+              - /url: index.php
+          - listitem [ref=f12e15]:
+            - link "Updates 1" [ref=f12e16] [cursor=pointer]:
+              - /url: update-core.php
+              - text: Updates
+              - generic [ref=f12e17]: "1"
+      - listitem [aria-hidden] [ref=f12e18]
+      - listitem [ref=f12e20]:
+        - link "Posts" [ref=f12e21] [cursor=pointer]:
+          - /url: edit.php
+          - generic [aria-hidden] [ref=f12e22]: 
+        - list [ref=f12e24]:
+          - listitem [ref=f12e25]:
+            - link "All Posts" [ref=f12e26] [cursor=pointer]:
+              - /url: edit.php
+          - listitem [ref=f12e27]:
+            - link "Add Post" [ref=f12e28] [cursor=pointer]:
+              - /url: post-new.php
+          - listitem [ref=f12e29]:
+            - link "Categories" [ref=f12e30] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=category
+          - listitem [ref=f12e31]:
+            - link "Tags" [ref=f12e32] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=post_tag
+      - listitem [ref=f12e33]:
+        - link "Media" [ref=f12e34] [cursor=pointer]:
+          - /url: upload.php
+          - generic [aria-hidden] [ref=f12e35]: 
+        - list [ref=f12e37]:
+          - listitem [ref=f12e38]:
+            - link "Library" [ref=f12e39] [cursor=pointer]:
+              - /url: upload.php
+          - listitem [ref=f12e40]:
+            - link "Add Media File" [ref=f12e41] [cursor=pointer]:
+              - /url: media-new.php
+      - listitem [ref=f12e42]:
+        - link "Pages" [ref=f12e43] [cursor=pointer]:
+          - /url: edit.php?post_type=page
+          - generic [aria-hidden] [ref=f12e44]: 
+        - list [ref=f12e46]:
+          - listitem [ref=f12e47]:
+            - link "All Pages" [ref=f12e48] [cursor=pointer]:
+              - /url: edit.php?post_type=page
+          - listitem [ref=f12e49]:
+            - link "Add Page" [ref=f12e50] [cursor=pointer]:
+              - /url: post-new.php?post_type=page
+      - listitem [ref=f12e51]:
+        - link "Comments" [ref=f12e52] [cursor=pointer]:
+          - /url: edit-comments.php
+          - generic [aria-hidden] [ref=f12e53]: 
+      - listitem [aria-hidden] [ref=f12e55]
+      - listitem [ref=f12e57]:
+        - link "WooCommerce" [ref=f12e58] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin
+        - list [ref=f12e61]:
+          - listitem [ref=f12e62]:
+            - link "Home 5" [ref=f12e63] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin
+              - text: Home
+              - generic [ref=f12e64]: "5"
+          - listitem [ref=f12e65]:
+            - link "Orders" [ref=f12e66] [cursor=pointer]:
+              - /url: admin.php?page=wc-orders
+          - listitem [ref=f12e67]:
+            - link "Customers" [ref=f12e68] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/customers
+          - listitem [ref=f12e69]:
+            - link "Coupons" [ref=f12e70] [cursor=pointer]:
+              - /url: admin.php?page=coupons-moved
+          - listitem [ref=f12e71]:
+            - link "Reports" [ref=f12e72] [cursor=pointer]:
+              - /url: admin.php?page=wc-reports
+          - listitem [ref=f12e73]:
+            - link "Settings" [ref=f12e74] [cursor=pointer]:
+              - /url: admin.php?page=wc-settings
+          - listitem [ref=f12e75]:
+            - link "Status" [ref=f12e76] [cursor=pointer]:
+              - /url: admin.php?page=wc-status
+          - listitem [ref=f12e77]:
+            - link "Extensions" [ref=f12e78] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/extensions
+      - listitem [ref=f12e79]:
+        - link "Products" [ref=f12e80] [cursor=pointer]:
+          - /url: edit.php?post_type=product
+          - generic [aria-hidden] [ref=f12e81]: 
+        - list [ref=f12e83]:
+          - listitem [ref=f12e84]:
+            - link "All Products" [ref=f12e85] [cursor=pointer]:
+              - /url: edit.php?post_type=product
+          - listitem [ref=f12e86]:
+            - link "Add new product" [ref=f12e87] [cursor=pointer]:
+              - /url: post-new.php?post_type=product
+          - listitem [ref=f12e88]:
+            - link "Brands" [ref=f12e89] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_brand&post_type=product
+          - listitem [ref=f12e90]:
+            - link "Categories" [ref=f12e91] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_cat&post_type=product
+          - listitem [ref=f12e92]:
+            - link "Tags" [ref=f12e93] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_tag&post_type=product
+          - listitem [ref=f12e94]:
+            - link "Attributes" [ref=f12e95] [cursor=pointer]:
+              - /url: edit.php?post_type=product&page=product_attributes
+          - listitem [ref=f12e96]:
+            - link "Reviews" [ref=f12e97] [cursor=pointer]:
+              - /url: edit.php?post_type=product&page=product-reviews
+      - listitem [ref=f12e98]:
+        - link "Payments 1" [ref=f12e99] [cursor=pointer]:
+          - /url: admin.php?page=wc-settings&tab=checkout&from=PAYMENTS_MENU_ITEM
+          - generic [ref=f12e101]:
+            - text: Payments
+            - generic [ref=f12e102]: "1"
+      - listitem [ref=f12e103]:
+        - link "Analytics" [ref=f12e104] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin&path=/analytics/overview
+          - generic [aria-hidden] [ref=f12e105]: 
+        - list [ref=f12e107]:
+          - listitem [ref=f12e108]:
+            - link "Overview" [ref=f12e109] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/overview
+          - listitem [ref=f12e110]:
+            - link "Products" [ref=f12e111] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/products
+          - listitem [ref=f12e112]:
+            - link "Revenue" [ref=f12e113] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/revenue
+          - listitem [ref=f12e114]:
+            - link "Orders" [ref=f12e115] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/orders
+          - listitem [ref=f12e116]:
+            - link "Variations" [ref=f12e117] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/variations
+          - listitem [ref=f12e118]:
+            - link "Categories" [ref=f12e119] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/categories
+          - listitem [ref=f12e120]:
+            - link "Coupons" [ref=f12e121] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/coupons
+          - listitem [ref=f12e122]:
+            - link "Taxes" [ref=f12e123] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/taxes
+          - listitem [ref=f12e124]:
+            - link "Downloads" [ref=f12e125] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/downloads
+          - listitem [ref=f12e126]:
+            - link "Stock" [ref=f12e127] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/stock
+          - listitem [ref=f12e128]:
+            - link "Settings" [ref=f12e129] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/settings
+      - listitem [ref=f12e130]:
+        - link "Marketing" [ref=f12e131] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin&path=/marketing
+          - generic [aria-hidden] [ref=f12e132]: 
+        - list [ref=f12e134]:
+          - listitem [ref=f12e135]:
+            - link "Overview" [ref=f12e136] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/marketing
+          - listitem [ref=f12e137]:
+            - link "Coupons" [ref=f12e138] [cursor=pointer]:
+              - /url: edit.php?post_type=shop_coupon
+      - listitem [aria-hidden] [ref=f12e139]
+      - listitem [ref=f12e141]:
+        - link "Appearance" [ref=f12e142] [cursor=pointer]:
+          - /url: themes.php
+          - generic [aria-hidden] [ref=f12e143]: 
+        - list [ref=f12e145]:
+          - listitem [ref=f12e146]:
+            - link "Themes" [ref=f12e147] [cursor=pointer]:
+              - /url: themes.php
+          - listitem [ref=f12e148]:
+            - link "Editor" [ref=f12e149] [cursor=pointer]:
+              - /url: site-editor.php
+          - listitem [ref=f12e150]:
+            - link "Fonts" [ref=f12e151] [cursor=pointer]:
+              - /url: font-library.php
+      - listitem [ref=f12e152]:
+        - link "Plugins" [ref=f12e153] [cursor=pointer]:
+          - /url: plugins.php
+          - generic [aria-hidden] [ref=f12e154]: 
+        - list [ref=f12e156]:
+          - listitem [ref=f12e157]:
+            - link "Installed Plugins" [ref=f12e158] [cursor=pointer]:
+              - /url: plugins.php
+          - listitem [ref=f12e159]:
+            - link "Add Plugin" [ref=f12e160] [cursor=pointer]:
+              - /url: plugin-install.php
+      - listitem [ref=f12e161]:
+        - link "Users" [ref=f12e162] [cursor=pointer]:
+          - /url: users.php
+          - generic [aria-hidden] [ref=f12e163]: 
+        - list [ref=f12e165]:
+          - listitem [ref=f12e166]:
+            - link "All Users" [ref=f12e167] [cursor=pointer]:
+              - /url: users.php
+          - listitem [ref=f12e168]:
+            - link "Add User" [ref=f12e169] [cursor=pointer]:
+              - /url: user-new.php
+          - listitem [ref=f12e170]:
+            - link "Profile" [ref=f12e171] [cursor=pointer]:
+              - /url: profile.php
+      - listitem [ref=f12e172]:
+        - link "Tools" [ref=f12e173] [cursor=pointer]:
+          - /url: tools.php
+          - generic [aria-hidden] [ref=f12e174]: 
+        - list [ref=f12e176]:
+          - listitem [ref=f12e177]:
+            - link "Available Tools" [ref=f12e178] [cursor=pointer]:
+              - /url: tools.php
+          - listitem [ref=f12e179]:
+            - link "Import" [ref=f12e180] [cursor=pointer]:
+              - /url: import.php
+          - listitem [ref=f12e181]:
+            - link "Export" [ref=f12e182] [cursor=pointer]:
+              - /url: export.php
+          - listitem [ref=f12e183]:
+            - link "Site Health" [ref=f12e184] [cursor=pointer]:
+              - /url: site-health.php
+          - listitem [ref=f12e185]:
+            - link "Export Personal Data" [ref=f12e186] [cursor=pointer]:
+              - /url: export-personal-data.php
+          - listitem [ref=f12e187]:
+            - link "Erase Personal Data" [ref=f12e188] [cursor=pointer]:
+              - /url: erase-personal-data.php
+          - listitem [ref=f12e189]:
+            - link "Plugin Check" [ref=f12e190] [cursor=pointer]:
+              - /url: tools.php?page=plugin-check
+          - listitem [ref=f12e191]:
+            - link "Plugin Check Namer" [ref=f12e192] [cursor=pointer]:
+              - /url: tools.php?page=plugin-check-namer
+          - listitem [ref=f12e193]:
+            - link "Plugin Check SVN" [ref=f12e194] [cursor=pointer]:
+              - /url: tools.php?page=plugin-check-svn-checker
+          - listitem [ref=f12e195]:
+            - link "Scheduled Actions" [ref=f12e196] [cursor=pointer]:
+              - /url: tools.php?page=action-scheduler
+          - listitem [ref=f12e197]:
+            - link "Theme File Editor" [ref=f12e198] [cursor=pointer]:
+              - /url: theme-editor.php
+          - listitem [ref=f12e199]:
+            - link "Plugin File Editor" [ref=f12e200] [cursor=pointer]:
+              - /url: plugin-editor.php
+      - listitem [ref=f12e201]:
+        - link "Settings" [ref=f12e202] [cursor=pointer]:
+          - /url: options-general.php
+          - generic [aria-hidden] [ref=f12e203]: 
+        - list [ref=f12e205]:
+          - listitem [ref=f12e206]:
+            - link "General" [ref=f12e207] [cursor=pointer]:
+              - /url: options-general.php
+          - listitem [ref=f12e208]:
+            - link "Connectors" [ref=f12e209] [cursor=pointer]:
+              - /url: options-connectors.php
+          - listitem [ref=f12e210]:
+            - link "Writing" [ref=f12e211] [cursor=pointer]:
+              - /url: options-writing.php
+          - listitem [ref=f12e212]:
+            - link "Reading" [ref=f12e213] [cursor=pointer]:
+              - /url: options-reading.php
+          - listitem [ref=f12e214]:
+            - link "Discussion" [ref=f12e215] [cursor=pointer]:
+              - /url: options-discussion.php
+          - listitem [ref=f12e216]:
+            - link "Media" [ref=f12e217] [cursor=pointer]:
+              - /url: options-media.php
+          - listitem [ref=f12e218]:
+            - link "Permalinks" [ref=f12e219] [cursor=pointer]:
+              - /url: options-permalink.php
+          - listitem [ref=f12e220]:
+            - link "Privacy" [ref=f12e221] [cursor=pointer]:
+              - /url: options-privacy.php
+          - listitem [ref=f12e222]:
+            - link "Plugin Check" [ref=f12e223] [cursor=pointer]:
+              - /url: options-general.php?page=plugin-check-settings
+      - listitem [ref=f12e224]:
+        - button "Collapse Main menu" [expanded] [ref=f12e225] [cursor=pointer]:
+          - generic [ref=f12e227]: Collapse Menu
+  - generic [ref=f12e228]:
+    - generic [ref=f12e229]:
+      - navigation "Toolbar":
+        - menu:
+          - group [ref=f12e230]:
+            - menuitem "About WordPress" [ref=f12e231] [cursor=pointer]
+          - group [ref=f12e234]:
+            - menuitem "WriteLeash submission smoke" [ref=f12e235] [cursor=pointer]
+          - group [ref=f12e236]:
+            - menuitem "Store coming soon" [ref=f12e237] [cursor=pointer]
+          - group [ref=f12e238]:
+            - menuitem "1 update available" [ref=f12e239] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f12e241]: "1"
+          - group [ref=f12e243]:
+            - menuitem "Ctrl+K Open command palette" [ref=f12e244] [cursor=pointer]:
+              - generic [ref=f12e246]:
+                - text: Ctrl+K
+                - generic [ref=f12e247]: Open command palette
+          - group [ref=f12e248]:
+            - menuitem "0 Comments in moderation" [ref=f12e249] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f12e251]: "0"
+          - group [ref=f12e253]:
+            - menuitem "New" [ref=f12e254] [cursor=pointer]
+        - menu [ref=f12e257]:
+          - group [ref=f12e258]:
+            - menuitem "Howdy, merchant194" [ref=f12e259] [cursor=pointer]
+    - main [ref=f12e260]:
+      - generic [ref=f12e261]:
+        - button "Help" [ref=f12e264] [cursor=pointer]
+        - generic [ref=f12e265]:
+          - link "WordPress 7.1.3" [ref=f12e266] [cursor=pointer]:
+            - /url: https://wordpress.org/documentation/wordpress-version/version-7-1-3/
+          - text: is available!
+          - link "Please update WordPress now" [ref=f12e267] [cursor=pointer]:
+            - /url: http://127.0.0.1:8194/wp-admin/update-core.php
+            - text: Please update now
+          - text: .
+        - generic [ref=f12e268]:
+          - heading "Add Plugins" [level=1] [ref=f12e269]
+          - link "Browse Plugins" [ref=f12e270] [cursor=pointer]:
+            - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php
+          - generic [ref=f12e271]:
+            - paragraph [ref=f12e272]: If you have a plugin in a .zip format, you may install or update it by uploading it here.
+            - generic [ref=f12e273]:
+              - generic [ref=f12e274]: Plugin zip file
+              - button "Plugin zip file" [active] [ref=f12e275] [cursor=pointer]
+              - button "Install Now" [ref=f12e276] [cursor=pointer]
+  - contentinfo [ref=f12e277]:
+    - paragraph [ref=f12e278]:
+      - generic [ref=f12e280]:
+        - text: Thank you for creating with
+        - link "WordPress" [ref=f12e281] [cursor=pointer]:
+          - /url: https://wordpress.org/
+        - text: .
+    - paragraph [ref=f12e282]:
+      - strong [ref=f12e283]:
+        - link "Get Version 7.1.3" [ref=f12e284] [cursor=pointer]:
+          - /url: http://127.0.0.1:8194/wp-admin/update-core.php

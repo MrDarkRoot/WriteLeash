@@ -1,0 +1,16 @@
+[
+  {
+    "suite": "durable",
+    "command": [
+      "/tmp/wlruntime/ns.sh",
+      "/tmp/writeleash-round7-integration",
+      "sh",
+      "/tmp/writeleash-round7-runners/durable.sh"
+    ],
+    "source_commit": "3b4ab5e8895fb60dbcb00d26d5c597f129b9ed8f",
+    "started": "2026-10-08T11:51:54.750676+00:00",
+    "completed": "2026-10-08T11:54:23.877720+00:00",
+    "exit_status": 1,
+    "seconds": 149.13
+  }
+]

@@ -1,0 +1,488 @@
+- navigation "Main menu":
+  - link "Skip to main content":
+    - /url: "#wpbody-content"
+  - link "Skip to toolbar":
+    - /url: "#wp-toolbar"
+  - list:
+    - link "Dashboard":
+      - /url: index.php
+      - generic: 
+      - generic: Dashboard
+    - list:
+      - link "Home":
+        - /url: index.php
+      - link "Updates":
+        - /url: update-core.php
+    - link "Posts":
+      - /url: edit.php
+      - generic: 
+      - generic: Posts
+    - list:
+      - link "All Posts":
+        - /url: edit.php
+      - link "Add Post":
+        - /url: post-new.php
+      - link "Categories":
+        - /url: edit-tags.php?taxonomy=category
+      - link "Tags":
+        - /url: edit-tags.php?taxonomy=post_tag
+    - link "Media":
+      - /url: upload.php
+      - generic: 
+      - generic: Media
+    - list:
+      - link "Library":
+        - /url: upload.php
+      - link "Add Media File":
+        - /url: media-new.php
+    - link "Pages":
+      - /url: edit.php?post_type=page
+      - generic: 
+      - generic: Pages
+    - list:
+      - link "All Pages":
+        - /url: edit.php?post_type=page
+      - link "Add Page":
+        - /url: post-new.php?post_type=page
+    - link "Comments":
+      - /url: edit-comments.php
+      - generic: 
+      - generic: Comments
+    - link "WooCommerce":
+      - /url: admin.php?page=wc-admin
+      - generic: WooCommerce
+    - list:
+      - link "Home 5":
+        - /url: admin.php?page=wc-admin
+        - text: Home
+        - generic: "5"
+      - link "Orders":
+        - /url: admin.php?page=wc-orders
+      - link "Customers":
+        - /url: admin.php?page=wc-admin&path=/customers
+      - link "Coupons":
+        - /url: admin.php?page=coupons-moved
+      - link "Reports":
+        - /url: admin.php?page=wc-reports
+      - link "Settings":
+        - /url: admin.php?page=wc-settings
+      - link "Status":
+        - /url: admin.php?page=wc-status
+      - link "Extensions":
+        - /url: admin.php?page=wc-admin&path=/extensions
+    - link "Products":
+      - /url: edit.php?post_type=product
+      - generic: 
+      - generic: Products
+    - list:
+      - link "All Products":
+        - /url: edit.php?post_type=product
+      - link "Add new product":
+        - /url: post-new.php?post_type=product
+      - link "Brands":
+        - /url: edit-tags.php?taxonomy=product_brand&post_type=product
+      - link "Categories":
+        - /url: edit-tags.php?taxonomy=product_cat&post_type=product
+      - link "Tags":
+        - /url: edit-tags.php?taxonomy=product_tag&post_type=product
+      - link "Attributes":
+        - /url: edit.php?post_type=product&page=product_attributes
+      - link "Bulk Prices":
+        - /url: edit.php?post_type=product&page=writeleash-bulk-prices
+      - link "Reviews":
+        - /url: edit.php?post_type=product&page=product-reviews
+    - link "Payments 1":
+      - /url: admin.php?page=wc-settings&tab=checkout&from=PAYMENTS_MENU_ITEM
+      - text: Payments
+      - generic: "1"
+    - link "Analytics":
+      - /url: admin.php?page=wc-admin&path=/analytics/overview
+      - generic: 
+      - generic: Analytics
+    - list:
+      - link "Overview":
+        - /url: admin.php?page=wc-admin&path=/analytics/overview
+      - link "Products":
+        - /url: admin.php?page=wc-admin&path=/analytics/products
+      - link "Revenue":
+        - /url: admin.php?page=wc-admin&path=/analytics/revenue
+      - link "Orders":
+        - /url: admin.php?page=wc-admin&path=/analytics/orders
+      - link "Variations":
+        - /url: admin.php?page=wc-admin&path=/analytics/variations
+      - link "Categories":
+        - /url: admin.php?page=wc-admin&path=/analytics/categories
+      - link "Coupons":
+        - /url: admin.php?page=wc-admin&path=/analytics/coupons
+      - link "Taxes":
+        - /url: admin.php?page=wc-admin&path=/analytics/taxes
+      - link "Downloads":
+        - /url: admin.php?page=wc-admin&path=/analytics/downloads
+      - link "Stock":
+        - /url: admin.php?page=wc-admin&path=/analytics/stock
+      - link "Settings":
+        - /url: admin.php?page=wc-admin&path=/analytics/settings
+    - link "Marketing":
+      - /url: admin.php?page=wc-admin&path=/marketing
+      - generic: 
+      - generic: Marketing
+    - list:
+      - link "Overview":
+        - /url: admin.php?page=wc-admin&path=/marketing
+      - link "Coupons":
+        - /url: edit.php?post_type=shop_coupon
+    - link "Appearance":
+      - /url: themes.php
+      - generic: 
+      - generic: Appearance
+    - list:
+      - link "Themes":
+        - /url: themes.php
+      - link "Editor":
+        - /url: site-editor.php
+      - link "Fonts":
+        - /url: font-library.php
+    - link "Plugins":
+      - /url: plugins.php
+      - generic: 
+      - generic: Plugins
+    - list:
+      - link "Installed Plugins":
+        - /url: plugins.php
+      - link "Add Plugin":
+        - /url: plugin-install.php
+    - link "Users":
+      - /url: users.php
+      - generic: 
+      - generic: Users
+    - list:
+      - link "All Users":
+        - /url: users.php
+      - link "Add User":
+        - /url: user-new.php
+      - link "Profile":
+        - /url: profile.php
+    - link "Tools":
+      - /url: tools.php
+      - generic: 
+      - generic: Tools
+    - list:
+      - link "Available Tools":
+        - /url: tools.php
+      - link "Import":
+        - /url: import.php
+      - link "Export":
+        - /url: export.php
+      - link "Site Health":
+        - /url: site-health.php
+      - link "Export Personal Data":
+        - /url: export-personal-data.php
+      - link "Erase Personal Data":
+        - /url: erase-personal-data.php
+      - link "Scheduled Actions":
+        - /url: tools.php?page=action-scheduler
+      - link "Theme File Editor":
+        - /url: theme-editor.php
+      - link "Plugin File Editor":
+        - /url: plugin-editor.php
+    - link "Settings":
+      - /url: options-general.php
+      - generic: 
+      - generic: Settings
+    - list:
+      - link "General":
+        - /url: options-general.php
+      - link "Connectors":
+        - /url: options-connectors.php
+      - link "Writing":
+        - /url: options-writing.php
+      - link "Reading":
+        - /url: options-reading.php
+      - link "Discussion":
+        - /url: options-discussion.php
+      - link "Media":
+        - /url: options-media.php
+      - link "Permalinks":
+        - /url: options-permalink.php
+      - link "Privacy":
+        - /url: options-privacy.php
+    - button "Collapse Main menu" [expanded]:
+      - generic: Collapse Menu
+- navigation "Toolbar":
+  - menu:
+    - menuitem "About WordPress":
+      - generic: About WordPress
+    - menuitem "WriteLeash Customer Test Store"
+    - menuitem "Store coming soon"
+    - menuitem "Ctrl+K Open command palette":
+      - text: Ctrl+K
+      - generic: Open command palette
+    - menuitem "0 Comments in moderation":
+      - generic: "0"
+      - generic: 0 Comments in moderation
+    - menuitem "New":
+      - generic: New
+  - menu:
+    - menuitem "Howdy, merchant"
+- heading "Settings" [level=1]
+- main:
+  - navigation:
+    - link "General":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=general
+    - link "Products":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=products
+    - link "Shipping":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=shipping
+    - link "Payments":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=checkout
+    - link "Accounts & Privacy":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=account
+    - link "Emails":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=email
+    - link "Integration":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=integration
+    - link "Site visibility":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=site-visibility
+    - link "Point of Sale":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=point-of-sale
+    - link "Advanced":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=advanced
+  - heading "Advanced" [level=1]
+  - list:
+    - link "Page setup":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=advanced&section=
+    - text: "|"
+    - link "REST API keys":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=advanced&section=keys
+    - text: "|"
+    - link "Webhooks":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=advanced&section=webhooks
+    - text: "|"
+    - link "WooCommerce.com":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=advanced&section=woocommerce_com
+    - text: "|"
+    - link "Blueprint (beta)":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=advanced&section=blueprint
+    - text: "|"
+    - link "Features":
+      - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=advanced&section=features
+  - heading "Features" [level=2]
+  - paragraph: Start using new features that are being progressively rolled out to improve the store management experience.
+  - table:
+    - rowgroup:
+      - row "Order data storage":
+        - rowheader "Order data storage":
+          - generic: Order data storage
+        - cell "Order data storage":
+          - group "Order data storage":
+            - list:
+              - radio "WordPress posts storage (legacy)"
+              - text: WordPress posts storage (legacy)
+              - radio "High-performance order storage (recommended)" [checked]
+              - text: High-performance order storage (recommended)
+              - paragraph
+      - row:
+        - rowheader
+        - cell:
+          - checkbox "Enable compatibility mode (Synchronize orders between High-performance order storage and WordPress posts storage)."
+          - text: Enable compatibility mode (Synchronize orders between High-performance order storage and WordPress posts storage).
+      - row "WooCommerce Analytics WooCommerce Analytics":
+        - rowheader "WooCommerce Analytics"
+        - cell "WooCommerce Analytics":
+          - group "WooCommerce Analytics":
+            - generic: WooCommerce Analytics
+            - checkbox "Enable WooCommerce Analytics to track your store's key metrics and view them in a detailed dashboard. All data stays within your store." [checked]
+            - text: Enable WooCommerce Analytics to track your store's key metrics and view them in a detailed dashboard. All data stays within your store.
+      - row "Rate limit Checkout Rate limit Checkout":
+        - rowheader "Rate limit Checkout"
+        - cell "Rate limit Checkout":
+          - group "Rate limit Checkout":
+            - generic: Rate limit Checkout
+            - checkbox "Enables rate limiting for Checkout place order and Store API /checkout endpoint. To further control this, refer to rate limiting documentation."
+            - text: Enables rate limiting for Checkout place order and Store API /checkout endpoint. To further control this, refer to
+            - link "rate limiting documentation":
+              - /url: https://developer.woocommerce.com/docs/apis/store-api/rate-limiting/
+            - text: .
+      - row "Order withdrawal Order withdrawal":
+        - rowheader "Order withdrawal"
+        - cell "Order withdrawal":
+          - group "Order withdrawal":
+            - generic: Order withdrawal
+            - checkbox "Enable the public order withdrawal feature for customer requests.Learn more"
+            - text: Enable the public order withdrawal feature for customer requests.
+            - text: 
+            - link "Learn more":
+              - /url: https://woocommerce.com/document/customer-order-withdrawal/
+      - row "Order Attribution Order Attribution":
+        - rowheader "Order Attribution"
+        - cell "Order Attribution":
+          - group "Order Attribution":
+            - generic: Order Attribution
+            - checkbox "Enable this feature to track and credit channels and campaigns that contribute to orders on your site" [checked]
+            - text: Enable this feature to track and credit channels and campaigns that contribute to orders on your site
+      - row "HPOS Data Caching HPOS Data Caching":
+        - rowheader "HPOS Data Caching"
+        - cell "HPOS Data Caching":
+          - group "HPOS Data Caching":
+            - generic: HPOS Data Caching
+            - checkbox "Enable order data caching in the datastore. This feature only works with high-performance order storage and is recommended for stores using object caching."
+            - text: Enable order data caching in the datastore. This feature only works with high-performance order storage and is recommended for stores using object caching.
+      - row "Remote Logging Remote Logging":
+        - rowheader "Remote Logging"
+        - cell "Remote Logging":
+          - group "Remote Logging":
+            - generic: Remote Logging
+            - checkbox "Allow WooCommerce to send error logs and non-sensitive diagnostic data to help improve WooCommerce. This feature requires usage tracking to be enabled." [disabled]
+            - text: Allow WooCommerce to send error logs and non-sensitive diagnostic data to help improve WooCommerce. This feature requires
+            - link "usage tracking":
+              - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=advanced&section=woocommerce_com
+            - text: to be enabled.
+            - paragraph: ⚠ Usage tracking must be enabled to use remote logging.
+      - row "Deferred emails Deferred emails":
+        - rowheader "Deferred emails"
+        - cell "Deferred emails":
+          - group "Deferred emails":
+            - generic: Deferred emails
+            - checkbox "Send transactional emails asynchronously via Action Scheduler instead of during the current request."
+            - text: Send transactional emails asynchronously via Action Scheduler instead of during the current request.
+      - row "Customer review request (beta) Customer review request (beta)":
+        - rowheader "Customer review request (beta)"
+        - cell "Customer review request (beta)":
+          - group "Customer review request (beta)":
+            - generic: Customer review request (beta)
+            - checkbox "Send customers a transactional email after order completion inviting them to review the products they bought, and host the per-order Review Order landing page."
+            - text: Send customers a transactional email after order completion inviting them to review the products they bought, and host the per-order Review Order landing page.
+      - row "Email improvements Email improvements":
+        - rowheader "Email improvements"
+        - cell "Email improvements":
+          - group "Email improvements":
+            - generic: Email improvements
+            - checkbox "Enable modern email design for transactional emails" [checked]
+            - text: Enable modern email design for transactional emails
+      - row "Blueprint (beta) Blueprint (beta)":
+        - rowheader "Blueprint (beta)"
+        - cell "Blueprint (beta)":
+          - group "Blueprint (beta)":
+            - generic: Blueprint (beta)
+            - checkbox "Enable blueprint to import and export settings in bulk" [checked]
+            - text: Enable blueprint to import and export settings in bulk
+      - row "Cost of Goods Sold Cost of Goods Sold":
+        - rowheader "Cost of Goods Sold"
+        - cell "Cost of Goods Sold":
+          - group "Cost of Goods Sold":
+            - generic: Cost of Goods Sold
+            - checkbox "Allows entering cost of goods sold information for products."
+            - text: Allows entering cost of goods sold information for products.
+  - heading "Experimental features" [level=2]
+  - paragraph: These features are either experimental or incomplete, enable them at your own risk!
+  - table:
+    - rowgroup:
+      - row "Product gallery videos Product gallery videos":
+        - rowheader "Product gallery videos"
+        - cell "Product gallery videos":
+          - group "Product gallery videos":
+            - generic: Product gallery videos
+            - checkbox "Enable videos in product galleries."
+            - text: Enable videos in product galleries.
+      - row "HPOS Full text search indexes HPOS Full text search indexes":
+        - rowheader "HPOS Full text search indexes"
+        - cell "HPOS Full text search indexes":
+          - group "HPOS Full text search indexes":
+            - generic: HPOS Full text search indexes
+            - checkbox "Create and use full text search indexes for orders. This feature only works with high-performance order storage."
+            - text: Create and use full text search indexes for orders. This feature only works with high-performance order storage.
+      - row "Abandoned cart recovery Abandoned cart recovery":
+        - rowheader "Abandoned cart recovery"
+        - cell "Abandoned cart recovery":
+          - group "Abandoned cart recovery":
+            - generic: Abandoned cart recovery
+            - checkbox "Send a reminder email to shoppers who didn't finish checking out."
+            - text: Send a reminder email to shoppers who didn't finish checking out.
+      - row "Block Email Editor (alpha) Block Email Editor (alpha)":
+        - rowheader "Block Email Editor (alpha)"
+        - cell "Block Email Editor (alpha)":
+          - group "Block Email Editor (alpha)":
+            - generic: Block Email Editor (alpha)
+            - checkbox "Enable the block-based email editor for transactional emails.Learn more"
+            - text: Enable the block-based email editor for transactional emails.
+            - text: 
+            - link "Learn more":
+              - /url: https://github.com/woocommerce/woocommerce/discussions/52897#discussioncomment-11630256
+      - row "Color swatches for attributes Color swatches for attributes":
+        - rowheader "Color swatches for attributes"
+        - cell "Color swatches for attributes":
+          - group "Color swatches for attributes":
+            - generic: Color swatches for attributes
+            - checkbox "Add color swatches to product attribute values."
+            - text: Add color swatches to product attribute values.
+      - row "WooCommerce MCP WooCommerce MCP":
+        - rowheader "WooCommerce MCP"
+        - cell "WooCommerce MCP":
+          - group "WooCommerce MCP":
+            - generic: WooCommerce MCP
+            - 'checkbox "Enable WooCommerce MCP (Model Context Protocol) for AI-powered store operations. AI-generated results and actions can be unpredictable - please review before executing in your store. Configuration Required: WordPress permalinks must be set to anything other than \"Plain\" for MCP to work. Configure Permalinks Learn more"'
+            - text: Enable WooCommerce MCP (Model Context Protocol) for AI-powered store operations. AI-generated results and actions can be unpredictable - please review before executing in your store.
+            - strong: "Configuration Required:"
+            - text: WordPress permalinks must be set to anything other than "Plain" for MCP to work.
+            - link "Configure Permalinks":
+              - /url: http://127.0.0.1:8188/wp-admin/options-permalink.php
+            - link "Learn more":
+              - /url: https://github.com/woocommerce/woocommerce/blob/trunk/docs/features/mcp/README.md
+      - row "Clear Customer Sessions When Empty Clear Customer Sessions When Empty":
+        - rowheader "Clear Customer Sessions When Empty"
+        - cell "Clear Customer Sessions When Empty":
+          - group "Clear Customer Sessions When Empty":
+            - generic: Clear Customer Sessions When Empty
+            - checkbox "[Performance] Removes session cookies for non-logged in customers when session data is empty, improving page caching performance. May cause compatibility issues with extensions that depend on the session cookie without using session data."
+            - text: "[Performance] Removes session cookies for non-logged in customers when session data is empty, improving page caching performance. May cause compatibility issues with extensions that depend on the session cookie without using session data."
+      - row "REST API Caching REST API Caching":
+        - rowheader "REST API Caching"
+        - cell "REST API Caching":
+          - group "REST API Caching":
+            - generic: REST API Caching
+            - checkbox "Enable backend caching and cache control headers for REST API responses via the RestApiCache trait. ⚙️ Configuration"
+            - text: Enable backend caching and cache control headers for REST API responses via the
+            - code: RestApiCache
+            - text: trait. ⚙️
+            - link "Configuration":
+              - /url: http://127.0.0.1:8188/wp-admin/admin.php?page=wc-settings&tab=advanced&section=rest_api_caching
+      - row "Save for Later in Cart Save for Later in Cart":
+        - rowheader "Save for Later in Cart"
+        - cell "Save for Later in Cart":
+          - group "Save for Later in Cart":
+            - generic: Save for Later in Cart
+            - checkbox "Let shoppers save cart items to a list to purchase later."
+            - text: Let shoppers save cart items to a list to purchase later.
+      - row "Wishlists Wishlists":
+        - rowheader "Wishlists"
+        - cell "Wishlists":
+          - group "Wishlists":
+            - generic: Wishlists
+            - checkbox "Let shoppers save products to a wishlist from product pages. Requires the Add to Cart + Options block on the single-product template."
+            - text: Let shoppers save products to a wishlist from product pages. Requires the Add to Cart + Options block on the single-product template.
+      - row "Cache Product Objects Cache Product Objects":
+        - rowheader "Cache Product Objects"
+        - cell "Cache Product Objects":
+          - group "Cache Product Objects":
+            - generic: Cache Product Objects
+            - checkbox "[Performance] Speeds up your store by caching product objects during each request, preventing duplicate product loads. Can improve page load times on product-heavy pages." [checked]
+            - text: "[Performance] Speeds up your store by caching product objects during each request, preventing duplicate product loads. Can improve page load times on product-heavy pages."
+      - row "Unified block editor assets Unified block editor assets":
+        - rowheader "Unified block editor assets"
+        - cell "Unified block editor assets":
+          - group "Unified block editor assets":
+            - generic: Unified block editor assets
+            - checkbox "Load WooCommerce block editor scripts and styles from shared bundles to improve editor performance."
+            - text: Load WooCommerce block editor scripts and styles from shared bundles to improve editor performance.
+  - paragraph:
+    - button "Save changes" [disabled]
+- contentinfo:
+  - paragraph:
+    - text: If you like
+    - strong: WooCommerce
+    - text: please leave us a
+    - link "five star":
+      - /url: https://wordpress.org/support/plugin/woocommerce/reviews?rate=5#new-post
+      - text: ★★★★★
+    - text: rating. A huge thanks in advance!
+  - paragraph: Version 11.1.2

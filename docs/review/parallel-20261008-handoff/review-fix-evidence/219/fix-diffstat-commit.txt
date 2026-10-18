@@ -1,0 +1,5 @@
+ docs/review/206/IMPLEMENTATION.md                  | 28 +++++--
+ wordpress/tests/free/integration.php               | 12 ++-
+ wordpress/tests/free/selection-count.php           | 92 ++++++++++++++++++++--
+ .../includes/free/class-product-selector.php       | 39 ++++++++-
+ 4 files changed, 155 insertions(+), 16 deletions(-)

@@ -1,0 +1,8 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\n  \"target\": {\n    \"id\": \"Method:wordpress/writeleash/includes/free/class-free-admin.php:Free_Admin.handle_progress#0\",\n    \"name\": \"handle_progress\",\n    \"type\": \"Method\",\n    \"filePath\": \"wordpress/writeleash/includes/free/class-free-admin.php\"\n  },\n  \"direction\": \"upstream\",\n  \"impactedCount\": 1,\n  \"risk\": \"LOW\",\n  \"riskSharedAxes\": \"LOW\",\n  \"riskScale\": {\n    \"comparableAcrossKinds\": true,\n    \"unusedAxes\": []\n  },\n  \"epistemic\": \"exact\",\n  \"summary\": {\n    \"direct\": 1,\n    \"processes_affected\": 0,\n    \"modules_affected\": 0\n  },\n  \"byDepthCounts\": {\n    \"1\": 1\n  },\n  \"affected_processes\": [],\n  \"affected_modules\": [],\n  \"byDepth\": {\n    \"1\": [\n      {\n        \"depth\": 1,\n        \"id\": \"File:wordpress/tests/admin/progress-unit.php\",\n        \"name\": \"progress-unit.php\",\n        \"filePath\": \"wordpress/tests/admin/progress-unit.php\",\n        \"relationType\": \"CALLS\",\n        \"confidence\": 0.6,\n        \"processes\": []\n      }\n    ]\n  }\n}\n\n---\n**Next:** Review d=1 items first (WILL BREAK). To check affected execution flows, READ gitnexus://repo//tmp/writeleash-round7-browser-rebuild/processes."
+    }
+  ]
+}

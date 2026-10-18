@@ -1,0 +1,494 @@
+[
+  {
+    "path": ".github/ci/path-ownership.json",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "22afafb64716e4d36e6fa8b6d44485811f35a799b68a24b4a7b0bd2ce984244c",
+    "integration_only": false
+  },
+  {
+    "path": "docs/i18n/PREPARATION.md",
+    "owning_prs": [
+      "222"
+    ],
+    "matching_pr_heads": [
+      "222"
+    ],
+    "candidate_sha256": "838f3dfda66b58d0264a71df049bb445bbf4a709946d728c740dd858a8fc6586",
+    "integration_only": false
+  },
+  {
+    "path": "docs/i18n/inventory-summary.json",
+    "owning_prs": [
+      "222"
+    ],
+    "matching_pr_heads": [
+      "222"
+    ],
+    "candidate_sha256": "9cf090ecb01483cc1034854ce19d3dff45e30bab334b6229400d965a510256a5",
+    "integration_only": false
+  },
+  {
+    "path": "docs/review/170/170-chromium-apply-conflict.png",
+    "owning_prs": [],
+    "matching_pr_heads": [],
+    "candidate_sha256": "0727c780ce40702c57d7e7777f8e2cdd2c6d46eacf272e67fc471e6bdaf5798c",
+    "integration_only": true
+  },
+  {
+    "path": "docs/review/170/170-chromium-result.json",
+    "owning_prs": [],
+    "matching_pr_heads": [],
+    "candidate_sha256": "8531980349ae688892f5291cc829731194210267c6e42a0d1dd1a0187b4bba72",
+    "integration_only": true
+  },
+  {
+    "path": "docs/review/170/170-firefox-apply-conflict.png",
+    "owning_prs": [],
+    "matching_pr_heads": [],
+    "candidate_sha256": "f10f7f20c0a2ba261d4463044b5cc0252e247ef599a104859c1af70fb4b59830",
+    "integration_only": true
+  },
+  {
+    "path": "docs/review/170/170-firefox-result.json",
+    "owning_prs": [],
+    "matching_pr_heads": [],
+    "candidate_sha256": "3744fd22f2250df94d497350308327712afd52713b71267b3dd52b9fe9e00da0",
+    "integration_only": true
+  },
+  {
+    "path": "docs/review/170/proof.json",
+    "owning_prs": [],
+    "matching_pr_heads": [],
+    "candidate_sha256": "6cf367e29f10aec46064b17be9e12cfcf12fe71d4b0b9a015cf8ab4424996390",
+    "integration_only": true
+  },
+  {
+    "path": "docs/review/204/IMPLEMENTATION.md",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "b4f1d1d24a2d424d84e3f2d46688e2151878b78b03b41033877745dccc355c5d",
+    "integration_only": false
+  },
+  {
+    "path": "docs/review/206/IMPLEMENTATION.md",
+    "owning_prs": [
+      "219"
+    ],
+    "matching_pr_heads": [
+      "219"
+    ],
+    "candidate_sha256": "9d57364d1b7d4474dbfe3b0910cb88d5967373c21843b0c621bf6165ee442daf",
+    "integration_only": false
+  },
+  {
+    "path": "docs/review/209/IMPLEMENTATION.md",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "a11c8f97586778be8a724024808e24bf6b9e7fd9fa7bf042ee5039b097096d2b",
+    "integration_only": false
+  },
+  {
+    "path": "docs/review/210/IMPLEMENTATION.md",
+    "owning_prs": [
+      "222"
+    ],
+    "matching_pr_heads": [
+      "222"
+    ],
+    "candidate_sha256": "91078ad26ee1a6926d1452385f4cdf1b33db587915ffc28690a15d276cbf9c3b",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/release/PUBLIC-PAYLOAD.md",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "b6297a00478a684054f4eca56536e41258f277ec08cd40471ae1cb169805c75a",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/release/i18n-inventory.php",
+    "owning_prs": [
+      "222"
+    ],
+    "matching_pr_heads": [
+      "222"
+    ],
+    "candidate_sha256": "bb5d0411a888529c229a501b3bae7cc96d23853daef2fd5c97a081e9e3b5fe01",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/release/writeleash-distribution-files.txt",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "65b31d4be1e717d6e5ca184f4683498d98b1af0015da7f3589c922ad6206c527",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/admin/in-container.sh",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "c94e2197d5155ee6107a82f37b5508441e40ed80d3248de230c216504868118d",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/admin/progress-client.cjs",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "58ca625b9a53e0d722ab8c216a9271d444ef714aa53394e77f755daf3cffff83",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/admin/progress-integration.php",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "52b18bf7c1ef42cee0cef708294670b2bbb7c095f77a9882d7e7405c9a23e08f",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/admin/progress-unit.php",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "d8b5bc2dbb01d07dc0f30a58d222a36e207d4e7a4c58b8e3de0df3d3eb1d501a",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/admin/run.sh",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "3248a9c55a961d2a1d35ada7894268890bb88eea252dcf319cb7a4c5a7598e79",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/admin/selection-http.php",
+    "owning_prs": [
+      "219"
+    ],
+    "matching_pr_heads": [
+      "219"
+    ],
+    "candidate_sha256": "e7c916822ef018a7e757be685d9dfb0ce7b83ad9fb44b4a433b0a5077490de19",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/admin/selection-integration.php",
+    "owning_prs": [
+      "219"
+    ],
+    "matching_pr_heads": [
+      "219"
+    ],
+    "candidate_sha256": "afcc443ee5762f128847a37e7e7a1d2d2a83b739ccb74a68b2d0152ef8df9cad",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/admin/subcategory-integration.php",
+    "owning_prs": [
+      "219"
+    ],
+    "matching_pr_heads": [
+      "219"
+    ],
+    "candidate_sha256": "f5a8b626c53183de87097fb6ed68d6b51d33c1dca14dae3648d1a4395b2269e2",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/durable/cache-public-integration.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "90ae4ab9f52321d0a0e274b251a0264b6ede17d7bd75c5f59749d96c4ae155dd",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/durable/in-container.sh",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "eb1b9ebca3852722bdaf868dc3ecab60abec82e42cf73a410bf7603d821fbe99",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/durable/integration.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "6b8b40ce97e19663f01b70ace761613b8de8e616ab36767ad0d4fd5af05db087",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/free/cache-public.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "8b481494184249150b0e46380eb365e6014780e5df0399044bed11268fa0f155",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/free/dirty-catalog-stubs.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "9eee3c0e91e78db9c5df3b8cda6767dacd28917353abfd6afb68ba8bd14bb86e",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/free/in-container.sh",
+    "owning_prs": [
+      "219",
+      "220"
+    ],
+    "matching_pr_heads": [],
+    "candidate_sha256": "c96551410de89ca7477b89ef2b413a845baaaf0abd9ac71657ac83f426da22c7",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/free/integration.php",
+    "owning_prs": [
+      "219"
+    ],
+    "matching_pr_heads": [
+      "219"
+    ],
+    "candidate_sha256": "9464ef4a109c4c6b853f40628c5a7b56ed3609e18cf389cfe716d33f647863be",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/free/selection-count.php",
+    "owning_prs": [
+      "219"
+    ],
+    "matching_pr_heads": [],
+    "candidate_sha256": "6be7a2cdd90c3f945ed81c35b9328bafdc9e9b01613a4db0844bd1c871e66b64",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/free/variations.php",
+    "owning_prs": [
+      "219",
+      "220"
+    ],
+    "matching_pr_heads": [],
+    "candidate_sha256": "9d6ad96ac3c919b6c87a1dcb7279d52c6dfea1192aec91c834d546ff53b0d2fa",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/jobs/integration.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "cddb3fd4bc100f20e9aa81ff2494dbec166d5b221432c30aeb9548994b611d55",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/jobs/worker.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "6c2cdeab9bc3d2843049cb9ebc271abe9899e8d30b8294b312d7ddcc073be06d",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/release/i18n-inventory-cases.php",
+    "owning_prs": [
+      "222"
+    ],
+    "matching_pr_heads": [
+      "222"
+    ],
+    "candidate_sha256": "3a6a1600e19322fb4f68a3c4dd3ae5d2eeac0b404fb1791a8672424a5f6bbb4b",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/tests/release/public-runtime-audit.php",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "a89bf8d46ffd53bf4985cb51b0963c5039c8a704ba5f5f779a07b65a8a6dde6b",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/FREE-PRICE-APPLY-CONTRACT.md",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "6c01196371fd647e58ebb22f5e5169750b897dfe8bda4e25e5cafae5cc2de2f4",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/includes/free/class-free-admin.php",
+    "owning_prs": [
+      "219",
+      "220",
+      "221"
+    ],
+    "matching_pr_heads": [],
+    "candidate_sha256": "2023b0e6b1f6f9ef81297c8c2af24b996665d0428347505985d450e550b6ce62",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/includes/free/class-free-support-contract.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "9723c2ff94514f61eed9b558b0e9e74b18f7bb887e8a48e0f8160cc8e7c9be73",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/includes/free/class-price-cache-verifier.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "96f1dc83f3b4c7e05665ee2dc07bfef2ac85a0560549ed89b84b44cabc5c764a",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/includes/free/class-product-discovery.php",
+    "owning_prs": [
+      "219"
+    ],
+    "matching_pr_heads": [
+      "219"
+    ],
+    "candidate_sha256": "945c4e0208bb13003a9a070a02c4d8fe766c08539c08612c0d8b5dd0c149eb80",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/includes/free/class-product-selector.php",
+    "owning_prs": [
+      "219",
+      "220"
+    ],
+    "matching_pr_heads": [],
+    "candidate_sha256": "9736e632a72a7783e0b168cee873128c8fb0901f7db0838a29e05977d89cefa9",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/includes/free/class-product-snapshot.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "250e5d693f00306a1441e867a6a878356ca09b3ad497d82ce01336f7cefa695a",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/includes/free/class-woo-price-mutator.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "ae4aea8c2d362cfcc0653eec302f232e552e494518d99bd222dc34431bff4c6d",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/includes/free/class-woo-undo-mutator.php",
+    "owning_prs": [
+      "220"
+    ],
+    "matching_pr_heads": [
+      "220"
+    ],
+    "candidate_sha256": "ca2ce331394e7fdf555ea98242ff335cdbb61cbf9f1b84a3cc3fb835dd08b86a",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/includes/free/free-progress.js",
+    "owning_prs": [
+      "221"
+    ],
+    "matching_pr_heads": [
+      "221"
+    ],
+    "candidate_sha256": "7f97f727519efa17aec596d83f203ba601c6872b46c25b721592f3baf9a65ff8",
+    "integration_only": false
+  },
+  {
+    "path": "wordpress/writeleash/includes/free/free-selection.js",
+    "owning_prs": [
+      "219"
+    ],
+    "matching_pr_heads": [
+      "219"
+    ],
+    "candidate_sha256": "5752b2445acb3a1589e809376d3cbceddce1348fdf26330070ba297dbff9b59c",
+    "integration_only": false
+  }
+]

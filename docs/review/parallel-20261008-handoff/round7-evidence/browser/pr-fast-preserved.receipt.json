@@ -1,0 +1,6 @@
+{
+  "command": "bash .github/ci/pr-fast.sh",
+  "exit_status": 0,
+  "source_sha": "3b4ab5e8895fb60dbcb00d26d5c597f129b9ed8f",
+  "tree": "4bbfc135378836009f1096b59b70b5d7ac46447e"
+}

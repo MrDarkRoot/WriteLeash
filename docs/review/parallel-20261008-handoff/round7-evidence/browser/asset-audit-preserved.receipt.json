@@ -1,0 +1,5 @@
+{
+  "command": "git ls-files -z 'wordpress/assets/*' 'wordpress/icon/*' | php .github/ci/asset-audit.php",
+  "sha": "3b4ab5e8895fb60dbcb00d26d5c597f129b9ed8f",
+  "exit_status": 0
+}

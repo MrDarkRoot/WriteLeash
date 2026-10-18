@@ -1,0 +1,909 @@
+- generic [ref=f5e2]:
+  - navigation "Main menu":
+    - link "Skip to main content" [ref=f5e3] [cursor=pointer]:
+      - /url: "#wpbody-content"
+    - link "Skip to toolbar" [ref=f5e4] [cursor=pointer]:
+      - /url: "#wp-toolbar"
+    - list [ref=f5e7]:
+      - listitem [ref=f5e8]:
+        - link "Dashboard" [ref=f5e9] [cursor=pointer]:
+          - /url: index.php
+          - generic [aria-hidden] [ref=f5e10]: 
+        - list [ref=f5e12]:
+          - listitem [ref=f5e13]:
+            - link "Home" [ref=f5e14] [cursor=pointer]:
+              - /url: index.php
+          - listitem [ref=f5e15]:
+            - link "Updates 1" [ref=f5e16] [cursor=pointer]:
+              - /url: update-core.php
+              - text: Updates
+              - generic [ref=f5e17]: "1"
+      - listitem [aria-hidden] [ref=f5e18]
+      - listitem [ref=f5e20]:
+        - link "Posts" [ref=f5e21] [cursor=pointer]:
+          - /url: edit.php
+          - generic [aria-hidden] [ref=f5e22]: 
+        - list [ref=f5e24]:
+          - listitem [ref=f5e25]:
+            - link "All Posts" [ref=f5e26] [cursor=pointer]:
+              - /url: edit.php
+          - listitem [ref=f5e27]:
+            - link "Add Post" [ref=f5e28] [cursor=pointer]:
+              - /url: post-new.php
+          - listitem [ref=f5e29]:
+            - link "Categories" [ref=f5e30] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=category
+          - listitem [ref=f5e31]:
+            - link "Tags" [ref=f5e32] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=post_tag
+      - listitem [ref=f5e33]:
+        - link "Media" [ref=f5e34] [cursor=pointer]:
+          - /url: upload.php
+          - generic [aria-hidden] [ref=f5e35]: 
+        - list [ref=f5e37]:
+          - listitem [ref=f5e38]:
+            - link "Library" [ref=f5e39] [cursor=pointer]:
+              - /url: upload.php
+          - listitem [ref=f5e40]:
+            - link "Add Media File" [ref=f5e41] [cursor=pointer]:
+              - /url: media-new.php
+      - listitem [ref=f5e42]:
+        - link "Pages" [ref=f5e43] [cursor=pointer]:
+          - /url: edit.php?post_type=page
+          - generic [aria-hidden] [ref=f5e44]: 
+        - list [ref=f5e46]:
+          - listitem [ref=f5e47]:
+            - link "All Pages" [ref=f5e48] [cursor=pointer]:
+              - /url: edit.php?post_type=page
+          - listitem [ref=f5e49]:
+            - link "Add Page" [ref=f5e50] [cursor=pointer]:
+              - /url: post-new.php?post_type=page
+      - listitem [ref=f5e51]:
+        - link "Comments" [ref=f5e52] [cursor=pointer]:
+          - /url: edit-comments.php
+          - generic [aria-hidden] [ref=f5e53]: 
+      - listitem [aria-hidden] [ref=f5e55]
+      - listitem [ref=f5e57]:
+        - link "WooCommerce" [ref=f5e58] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin
+        - list [ref=f5e61]:
+          - listitem [ref=f5e62]:
+            - link "Home 6" [ref=f5e63] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin
+              - text: Home
+              - generic [ref=f5e64]: "6"
+          - listitem [ref=f5e65]:
+            - link "Orders" [ref=f5e66] [cursor=pointer]:
+              - /url: admin.php?page=wc-orders
+          - listitem [ref=f5e67]:
+            - link "Customers" [ref=f5e68] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/customers
+          - listitem [ref=f5e69]:
+            - link "Coupons" [ref=f5e70] [cursor=pointer]:
+              - /url: admin.php?page=coupons-moved
+          - listitem [ref=f5e71]:
+            - link "Reports" [ref=f5e72] [cursor=pointer]:
+              - /url: admin.php?page=wc-reports
+          - listitem [ref=f5e73]:
+            - link "Settings" [ref=f5e74] [cursor=pointer]:
+              - /url: admin.php?page=wc-settings
+          - listitem [ref=f5e75]:
+            - link "Status" [ref=f5e76] [cursor=pointer]:
+              - /url: admin.php?page=wc-status
+          - listitem [ref=f5e77]:
+            - link "Extensions" [ref=f5e78] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/extensions
+      - listitem [ref=f5e79]:
+        - link "Products" [ref=f5e80] [cursor=pointer]:
+          - /url: edit.php?post_type=product
+          - generic [aria-hidden] [ref=f5e81]: 
+        - list [ref=f5e83]:
+          - listitem [ref=f5e84]:
+            - link "All Products" [ref=f5e85] [cursor=pointer]:
+              - /url: edit.php?post_type=product
+          - listitem [ref=f5e86]:
+            - link "Add new product" [ref=f5e87] [cursor=pointer]:
+              - /url: post-new.php?post_type=product
+          - listitem [ref=f5e88]:
+            - link "Brands" [ref=f5e89] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_brand&post_type=product
+          - listitem [ref=f5e90]:
+            - link "Categories" [ref=f5e91] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_cat&post_type=product
+          - listitem [ref=f5e92]:
+            - link "Tags" [ref=f5e93] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=product_tag&post_type=product
+          - listitem [ref=f5e94]:
+            - link "Attributes" [ref=f5e95] [cursor=pointer]:
+              - /url: edit.php?post_type=product&page=product_attributes
+          - listitem [ref=f5e96]:
+            - link "Reviews" [ref=f5e97] [cursor=pointer]:
+              - /url: edit.php?post_type=product&page=product-reviews
+      - listitem [ref=f5e98]:
+        - link "Payments 1" [ref=f5e99] [cursor=pointer]:
+          - /url: admin.php?page=wc-settings&tab=checkout&from=PAYMENTS_MENU_ITEM
+          - generic [ref=f5e101]:
+            - text: Payments
+            - generic [ref=f5e102]: "1"
+      - listitem [ref=f5e103]:
+        - link "Analytics" [ref=f5e104] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin&path=/analytics/overview
+          - generic [aria-hidden] [ref=f5e105]: 
+        - list [ref=f5e107]:
+          - listitem [ref=f5e108]:
+            - link "Overview" [ref=f5e109] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/overview
+          - listitem [ref=f5e110]:
+            - link "Products" [ref=f5e111] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/products
+          - listitem [ref=f5e112]:
+            - link "Revenue" [ref=f5e113] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/revenue
+          - listitem [ref=f5e114]:
+            - link "Orders" [ref=f5e115] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/orders
+          - listitem [ref=f5e116]:
+            - link "Variations" [ref=f5e117] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/variations
+          - listitem [ref=f5e118]:
+            - link "Categories" [ref=f5e119] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/categories
+          - listitem [ref=f5e120]:
+            - link "Coupons" [ref=f5e121] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/coupons
+          - listitem [ref=f5e122]:
+            - link "Taxes" [ref=f5e123] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/taxes
+          - listitem [ref=f5e124]:
+            - link "Downloads" [ref=f5e125] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/downloads
+          - listitem [ref=f5e126]:
+            - link "Stock" [ref=f5e127] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/stock
+          - listitem [ref=f5e128]:
+            - link "Settings" [ref=f5e129] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/analytics/settings
+      - listitem [ref=f5e130]:
+        - link "Marketing" [ref=f5e131] [cursor=pointer]:
+          - /url: admin.php?page=wc-admin&path=/marketing
+          - generic [aria-hidden] [ref=f5e132]: 
+        - list [ref=f5e134]:
+          - listitem [ref=f5e135]:
+            - link "Overview" [ref=f5e136] [cursor=pointer]:
+              - /url: admin.php?page=wc-admin&path=/marketing
+          - listitem [ref=f5e137]:
+            - link "Coupons" [ref=f5e138] [cursor=pointer]:
+              - /url: edit.php?post_type=shop_coupon
+      - listitem [aria-hidden] [ref=f5e139]
+      - listitem [ref=f5e141]:
+        - link "Appearance" [ref=f5e142] [cursor=pointer]:
+          - /url: themes.php
+          - generic [aria-hidden] [ref=f5e143]: 
+        - list [ref=f5e145]:
+          - listitem [ref=f5e146]:
+            - link "Themes" [ref=f5e147] [cursor=pointer]:
+              - /url: themes.php
+          - listitem [ref=f5e148]:
+            - link "Editor" [ref=f5e149] [cursor=pointer]:
+              - /url: site-editor.php
+          - listitem [ref=f5e150]:
+            - link "Fonts" [ref=f5e151] [cursor=pointer]:
+              - /url: font-library.php
+      - listitem [ref=f5e152]:
+        - link "Plugins" [ref=f5e153] [cursor=pointer]:
+          - /url: plugins.php
+          - generic [aria-hidden] [ref=f5e154]: 
+        - list [ref=f5e156]:
+          - listitem [ref=f5e157]:
+            - link "Installed Plugins" [ref=f5e158] [cursor=pointer]:
+              - /url: plugins.php
+          - listitem [ref=f5e159]:
+            - link "Add Plugin" [ref=f5e160] [cursor=pointer]:
+              - /url: plugin-install.php
+      - listitem [ref=f5e161]:
+        - link "Users" [ref=f5e162] [cursor=pointer]:
+          - /url: users.php
+          - generic [aria-hidden] [ref=f5e163]: 
+        - list [ref=f5e165]:
+          - listitem [ref=f5e166]:
+            - link "All Users" [ref=f5e167] [cursor=pointer]:
+              - /url: users.php
+          - listitem [ref=f5e168]:
+            - link "Add User" [ref=f5e169] [cursor=pointer]:
+              - /url: user-new.php
+          - listitem [ref=f5e170]:
+            - link "Profile" [ref=f5e171] [cursor=pointer]:
+              - /url: profile.php
+      - listitem [ref=f5e172]:
+        - link "Tools" [ref=f5e173] [cursor=pointer]:
+          - /url: tools.php
+          - generic [aria-hidden] [ref=f5e174]: 
+        - list [ref=f5e176]:
+          - listitem [ref=f5e177]:
+            - link "Available Tools" [ref=f5e178] [cursor=pointer]:
+              - /url: tools.php
+          - listitem [ref=f5e179]:
+            - link "Import" [ref=f5e180] [cursor=pointer]:
+              - /url: import.php
+          - listitem [ref=f5e181]:
+            - link "Export" [ref=f5e182] [cursor=pointer]:
+              - /url: export.php
+          - listitem [ref=f5e183]:
+            - link "Site Health" [ref=f5e184] [cursor=pointer]:
+              - /url: site-health.php
+          - listitem [ref=f5e185]:
+            - link "Export Personal Data" [ref=f5e186] [cursor=pointer]:
+              - /url: export-personal-data.php
+          - listitem [ref=f5e187]:
+            - link "Erase Personal Data" [ref=f5e188] [cursor=pointer]:
+              - /url: erase-personal-data.php
+          - listitem [ref=f5e189]:
+            - link "Scheduled Actions" [ref=f5e190] [cursor=pointer]:
+              - /url: tools.php?page=action-scheduler
+          - listitem [ref=f5e191]:
+            - link "Theme File Editor" [ref=f5e192] [cursor=pointer]:
+              - /url: theme-editor.php
+          - listitem [ref=f5e193]:
+            - link "Plugin File Editor" [ref=f5e194] [cursor=pointer]:
+              - /url: plugin-editor.php
+      - listitem [ref=f5e195]:
+        - link "Settings" [ref=f5e196] [cursor=pointer]:
+          - /url: options-general.php
+          - generic [aria-hidden] [ref=f5e197]: 
+        - list [ref=f5e199]:
+          - listitem [ref=f5e200]:
+            - link "General" [ref=f5e201] [cursor=pointer]:
+              - /url: options-general.php
+          - listitem [ref=f5e202]:
+            - link "Connectors" [ref=f5e203] [cursor=pointer]:
+              - /url: options-connectors.php
+          - listitem [ref=f5e204]:
+            - link "Writing" [ref=f5e205] [cursor=pointer]:
+              - /url: options-writing.php
+          - listitem [ref=f5e206]:
+            - link "Reading" [ref=f5e207] [cursor=pointer]:
+              - /url: options-reading.php
+          - listitem [ref=f5e208]:
+            - link "Discussion" [ref=f5e209] [cursor=pointer]:
+              - /url: options-discussion.php
+          - listitem [ref=f5e210]:
+            - link "Media" [ref=f5e211] [cursor=pointer]:
+              - /url: options-media.php
+          - listitem [ref=f5e212]:
+            - link "Permalinks" [ref=f5e213] [cursor=pointer]:
+              - /url: options-permalink.php
+          - listitem [ref=f5e214]:
+            - link "Privacy" [ref=f5e215] [cursor=pointer]:
+              - /url: options-privacy.php
+      - listitem [ref=f5e216]:
+        - button "Collapse Main menu" [expanded] [ref=f5e217] [cursor=pointer]:
+          - generic [ref=f5e219]: Collapse Menu
+  - generic [ref=f5e220]:
+    - generic [ref=f5e221]:
+      - navigation "Toolbar":
+        - menu:
+          - group [ref=f5e222]:
+            - menuitem "About WordPress" [ref=f5e223] [cursor=pointer]
+          - group [ref=f5e226]:
+            - menuitem "WriteLeash submission smoke" [ref=f5e227] [cursor=pointer]
+          - group [ref=f5e228]:
+            - menuitem "Store coming soon" [ref=f5e229] [cursor=pointer]
+          - group [ref=f5e230]:
+            - menuitem "1 update available" [ref=f5e231] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f5e233]: "1"
+          - group [ref=f5e235]:
+            - menuitem "Ctrl+K Open command palette" [ref=f5e236] [cursor=pointer]:
+              - generic [ref=f5e238]:
+                - text: Ctrl+K
+                - generic [ref=f5e239]: Open command palette
+          - group [ref=f5e240]:
+            - menuitem "0 Comments in moderation" [ref=f5e241] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f5e243]: "0"
+          - group [ref=f5e245]:
+            - menuitem "New" [ref=f5e246] [cursor=pointer]
+        - menu [ref=f5e249]:
+          - group [ref=f5e250]:
+            - menuitem "Howdy, merchant194" [ref=f5e251] [cursor=pointer]
+    - main [ref=f5e252]:
+      - generic [ref=f5e253]:
+        - button "Help" [ref=f5e256] [cursor=pointer]
+        - generic [ref=f5e257]:
+          - link "WordPress 7.1.3" [ref=f5e258] [cursor=pointer]:
+            - /url: https://wordpress.org/documentation/wordpress-version/version-7-1-3/
+          - text: is available!
+          - link "Please update WordPress now" [ref=f5e259] [cursor=pointer]:
+            - /url: http://127.0.0.1:8194/wp-admin/update-core.php
+            - text: Please update now
+          - text: .
+        - generic [ref=f5e260]:
+          - heading "Add Plugins" [level=1] [ref=f5e261]
+          - button "Upload Plugin" [ref=f5e262] [cursor=pointer]
+          - heading "Filter plugins list" [level=2] [ref=f5e263]
+          - paragraph [ref=f5e264]:
+            - text: Plugins extend and expand the functionality of WordPress. You may install plugins from the
+            - link "WordPress Plugin Directory" [ref=f5e265] [cursor=pointer]:
+              - /url: https://wordpress.org/plugins/
+            - text: right on this page, or upload a plugin in .zip format by clicking the button above.
+          - generic [ref=f5e266]:
+            - list [ref=f5e267]:
+              - listitem [ref=f5e268]:
+                - link "Featured" [ref=f5e269] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=featured
+              - listitem [ref=f5e270]:
+                - link "Popular" [ref=f5e271] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=popular
+              - listitem [ref=f5e272]:
+                - link "Recommended" [ref=f5e273] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=recommended
+              - listitem [ref=f5e274]:
+                - link "Favorites" [ref=f5e275] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=favorites
+              - listitem [ref=f5e276]:
+                - link "WooCommerce Marketplace" [ref=f5e277] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=woo
+            - generic [ref=f5e278]:
+              - generic [ref=f5e279]: Search Plugins
+              - searchbox "Search Plugins" [ref=f5e280]
+              - generic [ref=f5e281]: "Search plugins by:"
+              - combobox "Search plugins by:" [ref=f5e282] [cursor=pointer]:
+                - option "Keyword" [selected]
+                - option "Author"
+                - option "Tag"
+          - generic [ref=f5e284]:
+            - heading "Plugins list" [level=2] [ref=f5e285]
+            - generic [ref=f5e286]:
+              - generic [ref=f5e287]:
+                - generic [ref=f5e288]:
+                  - heading [level=3] [ref=f5e290]:
+                    - link "Quizably – Quiz Maker, Personality Quiz & Survey Builder" [ref=f5e291] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=quizably&TB_iframe=true&width=600&height=550
+                  - list [ref=f5e293]:
+                    - listitem [ref=f5e294]:
+                      - button "Install Quizably – Quiz Maker, Personality Quiz & Survey Builder 1.2.3 now" [ref=f5e295] [cursor=pointer]: Install Now
+                    - listitem [ref=f5e296]:
+                      - link "More information about Quizably – Quiz Maker, Personality Quiz & Survey Builder 1.2.3" [ref=f5e297] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=quizably&TB_iframe=true&width=600&height=550
+                        - text: More Details
+                  - generic [ref=f5e298]:
+                    - paragraph [ref=f5e299]: "Quiz maker for WordPress: build personality quizzes, trivia, surveys & polls that capture leads — drag-and-drop builder, 4 modern templates."
+                    - paragraph [ref=f5e300]:
+                      - generic [ref=f5e301]:
+                        - text: By
+                        - link "WP Grow Kit" [ref=f5e302] [cursor=pointer]:
+                          - /url: https://profiles.wordpress.org/advancewpbuilder/
+                - generic [ref=f5e303]:
+                  - generic [ref=f5e304]:
+                    - generic [ref=f5e305]: 5.0 rating based on 2 ratings
+                    - text: (2)
+                  - generic [ref=f5e312]:
+                    - strong [ref=f5e313]: "Last Updated:"
+                    - text: 19 hours ago
+                  - generic [ref=f5e314]: Less Than 10 Active Installations
+                  - generic [ref=f5e316]:
+                    - strong [ref=f5e317]: Compatible
+                    - text: with your version of WordPress
+              - generic [ref=f5e318]:
+                - generic [ref=f5e319]:
+                  - heading [level=3] [ref=f5e321]:
+                    - link "NiroRoadmap – Public Product Roadmap & Kanban Board" [ref=f5e322] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=niroroadmap&TB_iframe=true&width=600&height=550
+                  - list [ref=f5e324]:
+                    - listitem [ref=f5e325]:
+                      - button "Install NiroRoadmap – Public Product Roadmap & Kanban Board 1.1.0.1 now" [ref=f5e326] [cursor=pointer]: Install Now
+                    - listitem [ref=f5e327]:
+                      - link "More information about NiroRoadmap – Public Product Roadmap & Kanban Board 1.1.0.1" [ref=f5e328] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=niroroadmap&TB_iframe=true&width=600&height=550
+                        - text: More Details
+                  - generic [ref=f5e329]:
+                    - paragraph [ref=f5e330]: Share a public product roadmap as a Kanban board, a list or a timeline. Visitors see what's planned and shipped, vote, comment and suggest ideas.
+                    - paragraph [ref=f5e331]:
+                      - generic [ref=f5e332]:
+                        - text: By
+                        - link "NiroSuite" [ref=f5e333] [cursor=pointer]:
+                          - /url: https://profiles.wordpress.org/nirosuite/
+                - generic [ref=f5e334]:
+                  - generic [ref=f5e335]:
+                    - generic [ref=f5e336]: 0.0 rating
+                    - text: (0)
+                  - generic [ref=f5e343]:
+                    - strong [ref=f5e344]: "Last Updated:"
+                    - text: 7 hours ago
+                  - generic [ref=f5e345]: 10+ Active Installations
+                  - generic [ref=f5e347]:
+                    - strong [ref=f5e348]: Compatible
+                    - text: with your version of WordPress
+              - generic [ref=f5e349]:
+                - generic [ref=f5e350]:
+                  - heading [level=3] [ref=f5e352]:
+                    - link "FotoGrids – Photo & Video Galleries, Lightboxes, Sliders & More" [ref=f5e353] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=fotogrids&TB_iframe=true&width=600&height=550
+                  - list [ref=f5e355]:
+                    - listitem [ref=f5e356]:
+                      - button "Install FotoGrids – Photo & Video Galleries, Lightboxes, Sliders & More 1.1.4 now" [ref=f5e357] [cursor=pointer]: Install Now
+                    - listitem [ref=f5e358]:
+                      - link "More information about FotoGrids – Photo & Video Galleries, Lightboxes, Sliders & More 1.1.4" [ref=f5e359] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=fotogrids&TB_iframe=true&width=600&height=550
+                        - text: More Details
+                  - generic [ref=f5e360]:
+                    - paragraph [ref=f5e361]: Build stunning WordPress galleries in minutes. Eight fully-responsive layouts, video, immersive lightbox, albums, templates, SEO, analytics & more.
+                    - paragraph [ref=f5e362]:
+                      - generic [ref=f5e363]:
+                        - text: By
+                        - link "fotogrids" [ref=f5e364] [cursor=pointer]:
+                          - /url: https://profiles.wordpress.org/fotogrids/
+                - generic [ref=f5e365]:
+                  - generic [ref=f5e366]:
+                    - generic [ref=f5e367]: 0.0 rating
+                    - text: (0)
+                  - generic [ref=f5e374]:
+                    - strong [ref=f5e375]: "Last Updated:"
+                    - text: 1 week ago
+                  - generic [ref=f5e376]: 50+ Active Installations
+                  - generic [ref=f5e378]:
+                    - strong [ref=f5e379]: Compatible
+                    - text: with your version of WordPress
+              - generic [ref=f5e380]:
+                - generic [ref=f5e381]:
+                  - heading [level=3] [ref=f5e383]:
+                    - link "Lloyd Gallery – Photo Gallery & Albums" [ref=f5e384] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=lloyd-gallery&TB_iframe=true&width=600&height=550
+                  - list [ref=f5e386]:
+                    - listitem [ref=f5e387]:
+                      - button "Install Lloyd Gallery – Photo Gallery & Albums 1.1.3 now" [ref=f5e388] [cursor=pointer]: Install Now
+                    - listitem [ref=f5e389]:
+                      - link "More information about Lloyd Gallery – Photo Gallery & Albums 1.1.3" [ref=f5e390] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=lloyd-gallery&TB_iframe=true&width=600&height=550
+                        - text: More Details
+                  - generic [ref=f5e391]:
+                    - paragraph [ref=f5e392]: The simple photo gallery with albums. Drop in photos, a folder or a zip and get a beautiful gallery with a lightbox, with nothing to set up.
+                    - paragraph [ref=f5e393]:
+                      - generic [ref=f5e394]:
+                        - text: By
+                        - link "Lloyd Communications" [ref=f5e395] [cursor=pointer]:
+                          - /url: https://profiles.wordpress.org/tobylloyd/
+                - generic [ref=f5e396]:
+                  - generic [ref=f5e397]:
+                    - generic [ref=f5e398]: 0.0 rating
+                    - text: (0)
+                  - generic [ref=f5e405]:
+                    - strong [ref=f5e406]: "Last Updated:"
+                    - text: 1 week ago
+                  - generic [ref=f5e407]: 30+ Active Installations
+                  - generic [ref=f5e409]:
+                    - strong [ref=f5e410]: Compatible
+                    - text: with your version of WordPress
+              - generic [ref=f5e411]:
+                - generic [ref=f5e412]:
+                  - heading [level=3] [ref=f5e414]:
+                    - link "Scrumptious – Recipe Cards" [ref=f5e415] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=scrumptious&TB_iframe=true&width=600&height=550
+                  - list [ref=f5e417]:
+                    - listitem [ref=f5e418]:
+                      - button "Install Scrumptious – Recipe Cards 1.0.2 now" [ref=f5e419] [cursor=pointer]: Install Now
+                    - listitem [ref=f5e420]:
+                      - link "More information about Scrumptious – Recipe Cards 1.0.2" [ref=f5e421] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=scrumptious&TB_iframe=true&width=600&height=550
+                        - text: More Details
+                  - generic [ref=f5e422]:
+                    - paragraph [ref=f5e423]: "Paste a recipe and get a finished recipe card: ingredients, steps, times and Google recipe data, in blocks that match your theme."
+                    - paragraph [ref=f5e424]:
+                      - generic [ref=f5e425]:
+                        - text: By
+                        - link "natebald" [ref=f5e426] [cursor=pointer]:
+                          - /url: https://profiles.wordpress.org/natebald/
+                - generic [ref=f5e427]:
+                  - generic [ref=f5e428]:
+                    - generic [ref=f5e429]: 5.0 rating based on 1 rating
+                    - text: (1)
+                  - generic [ref=f5e436]:
+                    - strong [ref=f5e437]: "Last Updated:"
+                    - text: 1 day ago
+                  - generic [ref=f5e438]: 200+ Active Installations
+                  - generic [ref=f5e440]:
+                    - strong [ref=f5e441]: Compatible
+                    - text: with your version of WordPress
+              - generic [ref=f5e442]:
+                - generic [ref=f5e443]:
+                  - heading [level=3] [ref=f5e445]:
+                    - link "Eventward" [ref=f5e446] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=eventward&TB_iframe=true&width=600&height=550
+                  - list [ref=f5e448]:
+                    - listitem [ref=f5e449]:
+                      - button "Install Eventward 0.5.7 now" [ref=f5e450] [cursor=pointer]: Install Now
+                    - listitem [ref=f5e451]:
+                      - link "More information about Eventward 0.5.7" [ref=f5e452] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=eventward&TB_iframe=true&width=600&height=550
+                        - text: More Details
+                  - generic [ref=f5e453]:
+                    - paragraph [ref=f5e454]: "The complete events calendar, free: recurring events, six views, maps, tickets and RSVP with no platform fee. No Pro version, nothing locked."
+                    - paragraph [ref=f5e455]:
+                      - generic [ref=f5e456]:
+                        - text: By
+                        - link "Siteward" [ref=f5e457] [cursor=pointer]:
+                          - /url: https://profiles.wordpress.org/omniswp/
+                - generic [ref=f5e458]:
+                  - generic [ref=f5e459]:
+                    - generic [ref=f5e460]: 0.0 rating
+                    - text: (0)
+                  - generic [ref=f5e467]:
+                    - strong [ref=f5e468]: "Last Updated:"
+                    - text: 14 hours ago
+                  - generic [ref=f5e469]: 60+ Active Installations
+                  - generic [ref=f5e471]:
+                    - strong [ref=f5e472]: Compatible
+                    - text: with your version of WordPress
+              - generic [ref=f5e473]:
+                - generic [ref=f5e474]:
+                  - heading [level=3] [ref=f5e476]:
+                    - link "Gratora – Donation and Fundraising Platform" [ref=f5e477] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=gratora-donation-platform&TB_iframe=true&width=600&height=550
+                  - list [ref=f5e479]:
+                    - listitem [ref=f5e480]:
+                      - button "Install Gratora – Donation and Fundraising Platform 1.1.3 now" [ref=f5e481] [cursor=pointer]: Install Now
+                    - listitem [ref=f5e482]:
+                      - link "More information about Gratora – Donation and Fundraising Platform 1.1.3" [ref=f5e483] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=gratora-donation-platform&TB_iframe=true&width=600&height=550
+                        - text: More Details
+                  - generic [ref=f5e484]:
+                    - paragraph [ref=f5e485]: Free donation plugin for nonprofits and charities. Donation forms, recurring donations, fundraising campaigns, donor management and receipts.
+                    - paragraph [ref=f5e486]:
+                      - generic [ref=f5e487]:
+                        - text: By
+                        - link "Gratora" [ref=f5e488] [cursor=pointer]:
+                          - /url: https://profiles.wordpress.org/donodp/
+                - generic [ref=f5e489]:
+                  - generic [ref=f5e490]:
+                    - generic [ref=f5e491]: 5.0 rating based on 1 rating
+                    - text: (1)
+                  - generic [ref=f5e498]:
+                    - strong [ref=f5e499]: "Last Updated:"
+                    - text: 1 day ago
+                  - generic [ref=f5e500]: Less Than 10 Active Installations
+                  - generic [ref=f5e502]:
+                    - strong [ref=f5e503]: Compatible
+                    - text: with your version of WordPress
+              - generic [ref=f5e504]:
+                - generic [ref=f5e505]:
+                  - heading [level=3] [ref=f5e507]:
+                    - link "AlitaYoko Conversations" [ref=f5e508] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=alitayoko-conversations&TB_iframe=true&width=600&height=550
+                  - list [ref=f5e510]:
+                    - listitem [ref=f5e511]:
+                      - button "Install AlitaYoko Conversations 1.3.0 now" [ref=f5e512] [cursor=pointer]: Install Now
+                    - listitem [ref=f5e513]:
+                      - link "More information about AlitaYoko Conversations 1.3.0" [ref=f5e514] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=plugin-information&plugin=alitayoko-conversations&TB_iframe=true&width=600&height=550
+                        - text: More Details
+                  - generic [ref=f5e515]:
+                    - paragraph [ref=f5e516]: Build visual conversations and dialogue stories with participants, narration, multiple styles, Gutenberg support, and progressive reveals.
+                    - paragraph [ref=f5e517]:
+                      - generic [ref=f5e518]:
+                        - text: By
+                        - link "alitayoko" [ref=f5e519] [cursor=pointer]:
+                          - /url: https://profiles.wordpress.org/alitayoko/
+                - generic [ref=f5e520]:
+                  - generic [ref=f5e521]:
+                    - generic [ref=f5e522]: 0.0 rating
+                    - text: (0)
+                  - generic [ref=f5e529]:
+                    - strong [ref=f5e530]: "Last Updated:"
+                    - text: 2 weeks ago
+                  - generic [ref=f5e531]: Less Than 10 Active Installations
+                  - generic [ref=f5e533]:
+                    - strong [ref=f5e534]: Compatible
+                    - text: with your version of WordPress
+          - generic [ref=f5e535]:
+            - heading "Popular tags" [level=2] [ref=f5e536]
+            - paragraph [ref=f5e537]: "You may also browse based on the most popular tags in the Plugin Directory:"
+            - paragraph [ref=f5e538]:
+              - link "accessibility (690 plugins)" [ref=f5e539] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=accessibility
+                - text: accessibility
+              - link "admin (3,012 plugins)" [ref=f5e540] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=admin
+                - text: admin
+              - link "ads (635 plugins)" [ref=f5e541] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=ads
+                - text: ads
+              - link "affiliate (748 plugins)" [ref=f5e542] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=affiliate
+                - text: affiliate
+              - link "AI (2,400 plugins)" [ref=f5e543] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=AI
+                - text: AI
+              - link "ajax (740 plugins)" [ref=f5e544] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=ajax
+                - text: ajax
+              - link "analytics (1,583 plugins)" [ref=f5e545] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=analytics
+                - text: analytics
+              - link "api (799 plugins)" [ref=f5e546] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=api
+                - text: api
+              - link "automation (773 plugins)" [ref=f5e547] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=automation
+                - text: automation
+              - link "block (1,234 plugins)" [ref=f5e548] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=block
+                - text: block
+              - link "blocks (763 plugins)" [ref=f5e549] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=blocks
+                - text: blocks
+              - link "booking (746 plugins)" [ref=f5e550] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=booking
+                - text: booking
+              - link "buddypress (791 plugins)" [ref=f5e551] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=buddypress
+                - text: buddypress
+              - link "button (585 plugins)" [ref=f5e552] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=button
+                - text: button
+              - link "cache (600 plugins)" [ref=f5e553] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=cache
+                - text: cache
+              - link "calendar (803 plugins)" [ref=f5e554] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=calendar
+                - text: calendar
+              - link "categories (600 plugins)" [ref=f5e555] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=categories
+                - text: categories
+              - link "category (717 plugins)" [ref=f5e556] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=category
+                - text: category
+              - link "chat (955 plugins)" [ref=f5e557] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=chat
+                - text: chat
+              - link "chatbot (1,040 plugins)" [ref=f5e558] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=chatbot
+                - text: chatbot
+              - link "checkout (938 plugins)" [ref=f5e559] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=checkout
+                - text: checkout
+              - link "comment (570 plugins)" [ref=f5e560] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=comment
+                - text: comment
+              - link "comments (2,066 plugins)" [ref=f5e561] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=comments
+                - text: comments
+              - link "contact (662 plugins)" [ref=f5e562] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=contact
+                - text: contact
+              - link "contact form (1,073 plugins)" [ref=f5e563] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=contact+form
+                - text: contact form
+              - link "contact form 7 (906 plugins)" [ref=f5e564] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=contact+form+7
+                - text: contact form 7
+              - link "content (1,287 plugins)" [ref=f5e565] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=content
+                - text: content
+              - link "css (661 plugins)" [ref=f5e566] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=css
+                - text: css
+              - link "custom (576 plugins)" [ref=f5e567] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=custom
+                - text: custom
+              - link "customer support (606 plugins)" [ref=f5e568] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=customer+support
+                - text: customer support
+              - link "dashboard (815 plugins)" [ref=f5e569] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=dashboard
+                - text: dashboard
+              - link "e-commerce (1,051 plugins)" [ref=f5e570] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=e-commerce
+                - text: e-commerce
+              - link "ecommerce (2,006 plugins)" [ref=f5e571] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=ecommerce
+                - text: ecommerce
+              - link "editor (913 plugins)" [ref=f5e572] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=editor
+                - text: editor
+              - link "elementor (1,555 plugins)" [ref=f5e573] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=elementor
+                - text: elementor
+              - link "email (1,784 plugins)" [ref=f5e574] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=email
+                - text: email
+              - link "embed (883 plugins)" [ref=f5e575] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=embed
+                - text: embed
+              - link "events (759 plugins)" [ref=f5e576] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=events
+                - text: events
+              - link "facebook (1,532 plugins)" [ref=f5e577] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=facebook
+                - text: facebook
+              - link "feed (761 plugins)" [ref=f5e578] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=feed
+                - text: feed
+              - link "form (948 plugins)" [ref=f5e579] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=form
+                - text: form
+              - link "forms (881 plugins)" [ref=f5e580] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=forms
+                - text: forms
+              - link "gallery (1,509 plugins)" [ref=f5e581] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=gallery
+                - text: gallery
+              - link "GDPR (677 plugins)" [ref=f5e582] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=GDPR
+                - text: GDPR
+              - link "google (1,573 plugins)" [ref=f5e583] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=google
+                - text: google
+              - link "gutenberg (1,549 plugins)" [ref=f5e584] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=gutenberg
+                - text: gutenberg
+              - link "image (1,659 plugins)" [ref=f5e585] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=image
+                - text: image
+              - link "images (1,827 plugins)" [ref=f5e586] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=images
+                - text: images
+              - link "import (607 plugins)" [ref=f5e587] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=import
+                - text: import
+              - link "javascript (620 plugins)" [ref=f5e588] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=javascript
+                - text: javascript
+              - link "jquery (664 plugins)" [ref=f5e589] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=jquery
+                - text: jquery
+              - link "link (623 plugins)" [ref=f5e590] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=link
+                - text: link
+              - link "links (980 plugins)" [ref=f5e591] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=links
+                - text: links
+              - link "live chat (786 plugins)" [ref=f5e592] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=live+chat
+                - text: live chat
+              - link "login (1,479 plugins)" [ref=f5e593] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=login
+                - text: login
+              - link "marketing (785 plugins)" [ref=f5e594] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=marketing
+                - text: marketing
+              - link "media (1,136 plugins)" [ref=f5e595] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=media
+                - text: media
+              - link "menu (845 plugins)" [ref=f5e596] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=menu
+                - text: menu
+              - link "mobile (545 plugins)" [ref=f5e597] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=mobile
+                - text: mobile
+              - link "navigation (598 plugins)" [ref=f5e598] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=navigation
+                - text: navigation
+              - link "newsletter (646 plugins)" [ref=f5e599] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=newsletter
+                - text: newsletter
+              - link "page (1,153 plugins)" [ref=f5e600] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=page
+                - text: page
+              - link "pages (773 plugins)" [ref=f5e601] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=pages
+                - text: pages
+              - link "payment (1,182 plugins)" [ref=f5e602] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=payment
+                - text: payment
+              - link "payment gateway (1,274 plugins)" [ref=f5e603] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=payment+gateway
+                - text: payment gateway
+              - link "payments (793 plugins)" [ref=f5e604] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=payments
+                - text: payments
+              - link "performance (1,241 plugins)" [ref=f5e605] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=performance
+                - text: performance
+              - link "popup (738 plugins)" [ref=f5e606] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=popup
+                - text: popup
+              - link "post (2,791 plugins)" [ref=f5e607] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=post
+                - text: post
+              - link "posts (2,241 plugins)" [ref=f5e608] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=posts
+                - text: posts
+              - link "privacy (607 plugins)" [ref=f5e609] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=privacy
+                - text: privacy
+              - link "redirect (590 plugins)" [ref=f5e610] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=redirect
+                - text: redirect
+              - link "responsive (719 plugins)" [ref=f5e611] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=responsive
+                - text: responsive
+              - link "reviews (543 plugins)" [ref=f5e612] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=reviews
+                - text: reviews
+              - link "rss (819 plugins)" [ref=f5e613] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=rss
+                - text: rss
+              - link "schema (547 plugins)" [ref=f5e614] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=schema
+                - text: schema
+              - link "search (1,002 plugins)" [ref=f5e615] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=search
+                - text: search
+              - link "security (2,138 plugins)" [ref=f5e616] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=security
+                - text: security
+              - link "seo (3,532 plugins)" [ref=f5e617] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=seo
+                - text: seo
+              - link "share (630 plugins)" [ref=f5e618] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=share
+                - text: share
+              - link "shipping (926 plugins)" [ref=f5e619] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=shipping
+                - text: shipping
+              - link "shortcode (2,473 plugins)" [ref=f5e620] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=shortcode
+                - text: shortcode
+              - link "sidebar (1,340 plugins)" [ref=f5e621] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=sidebar
+                - text: sidebar
+              - link "slider (1,057 plugins)" [ref=f5e622] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=slider
+                - text: slider
+              - link "social (1,218 plugins)" [ref=f5e623] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=social
+                - text: social
+              - link "social media (609 plugins)" [ref=f5e624] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=social+media
+                - text: social media
+              - link "spam (1,047 plugins)" [ref=f5e625] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=spam
+                - text: spam
+              - link "statistics (568 plugins)" [ref=f5e626] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=statistics
+                - text: statistics
+              - link "tags (557 plugins)" [ref=f5e627] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=tags
+                - text: tags
+              - link "theme (586 plugins)" [ref=f5e628] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=theme
+                - text: theme
+              - link "tracking (676 plugins)" [ref=f5e629] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=tracking
+                - text: tracking
+              - link "twitter (1,515 plugins)" [ref=f5e630] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=twitter
+                - text: twitter
+              - link "user (540 plugins)" [ref=f5e631] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=user
+                - text: user
+              - link "users (567 plugins)" [ref=f5e632] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=users
+                - text: users
+              - link "video (1,181 plugins)" [ref=f5e633] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=video
+                - text: video
+              - link "whatsapp (555 plugins)" [ref=f5e634] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=whatsapp
+                - text: whatsapp
+              - link "widget (5,146 plugins)" [ref=f5e635] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=widget
+                - text: widget
+              - link "widgets (1,077 plugins)" [ref=f5e636] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=widgets
+                - text: widgets
+              - link "woocommerce (12,204 plugins)" [ref=f5e637] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=woocommerce
+                - text: woocommerce
+              - link "youtube (740 plugins)" [ref=f5e638] [cursor=pointer]:
+                - /url: http://127.0.0.1:8194/wp-admin/plugin-install.php?tab=search&type=tag&s=youtube
+                - text: youtube
+  - contentinfo [ref=f5e639]:
+    - paragraph [ref=f5e640]:
+      - generic [ref=f5e642]:
+        - text: Thank you for creating with
+        - link "WordPress" [ref=f5e643] [cursor=pointer]:
+          - /url: https://wordpress.org/
+        - text: .
+    - paragraph [ref=f5e644]:
+      - strong [ref=f5e645]:
+        - link "Get Version 7.1.3" [ref=f5e646] [cursor=pointer]:
+          - /url: http://127.0.0.1:8194/wp-admin/update-core.php

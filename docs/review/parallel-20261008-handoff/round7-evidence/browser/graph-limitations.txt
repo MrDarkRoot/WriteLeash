@@ -1,0 +1,1 @@
+Graph is the root registered baseline index; it does not align with the exact new rebuild head. detect_changes supports worktree diff, but symbol mapping has this stale-index limitation. Initial replay commits were made before a graph receipt; later union commit was preceded by detect_changes(all). No PR/source commit/push was made. Root independently audits exact aligned graph.
