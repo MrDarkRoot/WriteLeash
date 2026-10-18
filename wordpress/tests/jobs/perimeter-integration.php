@@ -32,7 +32,7 @@ $GLOBALS['wl108_log'] = $hook_log;
 $GLOBALS['wl307_denials'] = array();
 add_action( 'writeleash_perimeter_denied', function ( $code, $where, $actor, $object_id, $kind, $detail ) {
 	$GLOBALS['wl307_denials'][] = array( 'code' => $code, 'where' => $where, 'actor' => (int) $actor, 'object_id' => (int) $object_id, 'kind' => $kind, 'detail' => $detail );
-} );
+}, 10, 6 );
 @unlink( WP_CONTENT_DIR . '/debug.log' );
 
 function eq( $actual, $expected, string $label ): void {
@@ -46,12 +46,33 @@ function marker( string $label ): void {
 	echo "#307 $label: PASS ($assertions assertions)\n";
 }
 function create_product( string $price, string $status = 'publish' ): int {
+	// #307: seed the catalogue as an operator. The fixture itself must never
+	// perform an unframed catalogue write as the restricted principal.
+	$previous = get_current_user_id();
+	wp_set_current_user( 1 );
 	$p = new WC_Product_Simple();
 	$p->set_name( 'WL307-' . wp_generate_uuid4() );
 	$p->set_status( $status );
 	$p->set_regular_price( $price );
 	$p->save();
-	return $p->get_id();
+	$id = $p->get_id();
+	wp_set_current_user( $previous );
+	return $id;
+}
+/** Operator-seeded product that manages stock, so stock helpers really write. */
+function create_stock_product( string $price, int $quantity ): int {
+	$previous = get_current_user_id();
+	wp_set_current_user( 1 );
+	$p = new WC_Product_Simple();
+	$p->set_name( 'WL307-stock-' . wp_generate_uuid4() );
+	$p->set_status( 'publish' );
+	$p->set_regular_price( $price );
+	$p->set_manage_stock( true );
+	$p->set_stock_quantity( $quantity );
+	$p->save();
+	$id = $p->get_id();
+	wp_set_current_user( $previous );
+	return $id;
 }
 function saves( int $id ): int {
 	global $hook_log;
@@ -111,15 +132,35 @@ function finish_worker( array $worker ): array {
 }
 function run_worker( array $spec, string $script = 'worker.php' ): array { return finish_worker( start_worker( $spec, $script ) ); }
 function rest_dispatch( string $method, string $route, array $body = array() ) {
-	$server = rest_get_server();
+	// rest_do_request runs the same rest_pre_dispatch filter chain the plugin
+	// hooks, with the current user as the authenticated principal.
 	$request = new \WP_REST_Request( $method, $route );
 	if ( $body ) { $request->set_body_params( $body ); }
-	return $server->dispatch( $request );
+	return rest_do_request( $request );
 }
 function deny_code(): string { return 'writeleash_perimeter_denied'; }
 function exc_code( \Throwable $e ): string {
 	if ( method_exists( $e, 'getErrorCode' ) ) { return $e->getErrorCode(); }
 	return (string) $e->getCode();
+}
+/** WP_Error or WP_REST_Response -> refusal status (0 when neither carries one). */
+function resp_status( $response ): int {
+	if ( is_wp_error( $response ) ) { $data = $response->get_error_data(); return (int) ( is_array( $data ) ? ( $data['status'] ?? 0 ) : 0 ); }
+	return (int) $response->get_status();
+}
+/** WP_Error or WP_REST_Response -> machine error code. */
+function resp_code( $response ): string {
+	if ( is_wp_error( $response ) ) { return (string) $response->get_error_code(); }
+	if ( method_exists( $response, 'get_error_code' ) ) { return (string) ( $response->get_error_code() ?? '' ); }
+	$data = $response->get_data();
+	if ( is_array( $data ) && isset( $data['code'] ) ) { return (string) $data['code']; }
+	if ( is_array( $data ) && is_array( $data['data'] ?? null ) && isset( $data['data']['code'] ) ) { return (string) $data['data']['code']; }
+	return '';
+}
+function resp_is_error( $response ): bool {
+	if ( is_wp_error( $response ) ) { return true; }
+	if ( method_exists( $response, 'is_error' ) ) { return (bool) $response->is_error(); }
+	return resp_status( $response ) >= 400;
 }
 function ensure_users(): array {
 	$ids = array();
@@ -132,19 +173,18 @@ function ensure_users(): array {
 		$ids[ $login ] = (int) $id;
 	}
 	ok( count( array_unique( array_values( $ids ) ) ) === 3, 'three distinct identities' );
-	return $ids;
+	return array( 'issuer' => $ids['wl307-issuer'], 'actor' => $ids['wl307-actor'], 'manager' => $ids['wl307-manager'] );
 }
 function job_fixture( array $ids, string $price, string $target, int $actor ): array {
-	$snapshots = array();
-	foreach ( $ids as $id ) {
-		$p = wc_get_product( $id );
-		$snapshots[] = array( 'product_id' => $id, 'expected_regular_price' => $price, 'planned_regular_price' => $target, 'result' => 'CHANGING', 'snapshot' => array( 'type' => 'simple', 'core_simple' => true, 'status' => 'publish', 'regular_price' => $price ) );
-	}
+	// The plan freezes its actor from whoever is current at preview time, so the
+	// restricted principal must be current here for the job to run as them.
+	unset( $price );
+	$previous = get_current_user_id();
+	wp_set_current_user( $actor );
 	$plan = Planner::preview( Selection::ids( $ids ), new Operation( Operation::SET, $target ), new Policy( 1000, '100', '100', false, '100' ) );
-	// Repoint the frozen actor so the job runs as the restricted principal.
-	$data = $plan->data();
-	$data['actor_id'] = $actor;
-	return array( 'plan' => $plan, 'data' => $data );
+	wp_set_current_user( $previous );
+	eq( (int) $plan->data()['actor_id'], $actor, 'frozen actor is the restricted principal' );
+	return array( 'plan' => $plan );
 }
 
 wp_set_current_user( 1 );
@@ -181,21 +221,21 @@ $probe_before = hash_rows( array( $probe_id ) );
 wp_set_current_user( $actor );
 
 // 1. WC REST single product create/update/delete.
-$create = rest_dispatch( 'POST', '/wp-json/wc/v3/products', array( 'name' => 'WL307-rest', 'regular_price' => '50.00', 'status' => 'publish' ) );
-ok( $create->is_error(), 'REST product create is an error response' );
-eq( $create->get_status(), 403, 'REST product create status 403' );
-eq( $create->get_error_code(), deny_code(), 'REST product create denial code' );
-$update = rest_dispatch( 'PUT', '/wp-json/wc/v3/products/' . $probe_id, array( 'regular_price' => '50.00' ) );
-ok( $update->is_error(), 'REST product update is an error response' );
-eq( $update->get_status(), 403, 'REST product update status 403' );
-$del = rest_dispatch( 'DELETE', '/wp-json/wc/v3/products/' . $probe_id );
-ok( $del->is_error(), 'REST product delete is an error response' );
-eq( $del->get_status(), 403, 'REST product delete status 403' );
+$create = rest_dispatch( 'POST', '/wc/v3/products', array( 'name' => 'WL307-rest', 'regular_price' => '50.00', 'status' => 'publish' ) );
+ok( resp_is_error( $create ), 'REST product create is an error response' );
+eq( resp_status( $create ), 403, 'REST product create status 403' );
+eq( resp_code( $create ), deny_code(), 'REST product create denial code' );
+$update = rest_dispatch( 'PUT', '/wc/v3/products/' . $probe_id, array( 'regular_price' => '50.00' ) );
+ok( resp_is_error( $update ), 'REST product update is an error response' );
+eq( resp_status( $update ), 403, 'REST product update status 403' );
+$del = rest_dispatch( 'DELETE', '/wc/v3/products/' . $probe_id );
+ok( resp_is_error( $del ), 'REST product delete is an error response' );
+eq( resp_status( $del ), 403, 'REST product delete status 403' );
 
 // 2. WC REST batch create/update/delete.
-$batch = rest_dispatch( 'POST', '/wp-json/wc/v3/products/batch', array( 'create' => array( array( 'name' => 'WL307-batch', 'regular_price' => '50.00' ) ) ) );
-ok( $batch->is_error(), 'REST product batch is an error response' );
-eq( $batch->get_status(), 403, 'REST product batch status 403' );
+$batch = rest_dispatch( 'POST', '/wc/v3/products/batch', array( 'create' => array( array( 'name' => 'WL307-batch', 'regular_price' => '50.00' ) ) ) );
+ok( resp_is_error( $batch ), 'REST product batch is an error response' );
+eq( resp_status( $batch ), 403, 'REST product batch status 403' );
 
 // 3. $product->save() directly on a restricted product.
 $p = wc_get_product( $probe_id );
@@ -209,30 +249,53 @@ try {
 	throw new RuntimeException( 'direct save must throw WC_Data_Exception, got ' . $e->getMessage() );
 }
 
-// 4. wc_update_product_stock() directly.
+// 4. wc_update_product_stock() directly (product must manage stock to write).
+$stock_probe        = create_stock_product( '100.00', 10 );
+$stock_probe_before = hash_rows( array( $stock_probe ) );
 try {
-	wc_update_product_stock( $probe_id, 5, 'decrease' );
+	wc_update_product_stock( $stock_probe, 2, 'decrease' );
 	throw new RuntimeException( 'expected stock update to be denied' );
 } catch ( \WC_Data_Exception $e ) {
-	eq( $e->getErrorCode() ?? $e->getCode(), deny_code(), 'stock update denial code' );
+	eq( exc_code( $e ), deny_code(), 'stock update denial code' );
 } catch ( \RuntimeException $e ) {
 	throw new RuntimeException( 'stock update must throw WC_Data_Exception, got ' . $e->getMessage() );
 }
+assert_zero_changes( array( $stock_probe ), $stock_probe_before, 'stock probe zero change' );
 
 // 5. Protected postmeta add/update/delete on price/stock keys.
-ok( update_post_metadata( $probe_id, '_regular_price', '60.00' ) === false, 'update_post_metadata _regular_price denied' );
-ok( add_post_metadata( $probe_id, '_sale_price', '60.00' ) === false, 'add_post_metadata _sale_price denied' );
-ok( delete_post_metadata( $probe_id, '_stock' ) === false, 'delete_post_metadata _stock denied' );
-ok( update_post_metadata( $probe_id, '_stock_status', 'outofstock' ) === false, 'update_post_metadata _stock_status denied' );
-ok( add_post_metadata( $probe_id, '_price', '60.00' ) === false, 'add_post_metadata _price denied' );
+ok( update_post_meta( $probe_id, '_regular_price', '60.00' ) === false, 'update_post_meta _regular_price denied' );
+ok( update_post_meta( $probe_id, '_price', '60.00' ) === false, 'update_post_meta _price denied' );
+ok( update_post_meta( $probe_id, '_sale_price', '60.00' ) === false, 'update_post_meta _sale_price denied' );
+ok( add_post_meta( $probe_id, '_sale_price', '60.00', true ) === false, 'add_post_meta _sale_price denied' );
+ok( update_post_meta( $stock_probe, '_stock', '999' ) === false, 'update_post_meta _stock denied' );
+ok( update_post_meta( $stock_probe, '_stock_status', 'outofstock' ) === false, 'update_post_meta _stock_status denied' );
+ok( delete_post_meta( $stock_probe, '_stock' ) === false, 'delete_post_meta _stock denied' );
+assert_zero_changes( array( $stock_probe ), $stock_probe_before, 'stock meta probes' );
 
-// 6. Trash / delete of a product.
-ok( wp_trash_post( $probe_id ) instanceof \WP_Error, 'trash post denied' );
+// 6. Trash / delete of a product (wp_trash_post, wp_delete_post, WC_Product::delete).
+try {
+	wp_trash_post( $probe_id );
+	throw new RuntimeException( 'expected trash to be denied' );
+} catch ( \WC_Data_Exception $e ) {
+	eq( exc_code( $e ), deny_code(), 'trash post denial code' );
+} catch ( \RuntimeException $e ) {
+	throw new RuntimeException( 'trash must throw WC_Data_Exception, got ' . $e->getMessage() );
+}
 try {
 	wp_delete_post( $probe_id, true );
 	throw new RuntimeException( 'expected delete to be denied' );
 } catch ( \WC_Data_Exception $e ) {
 	eq( exc_code( $e ), deny_code(), 'direct delete denial code' );
+} catch ( \RuntimeException $e ) {
+	throw new RuntimeException( 'delete must throw WC_Data_Exception, got ' . $e->getMessage() );
+}
+try {
+	wc_get_product( $probe_id )->delete();
+	throw new RuntimeException( 'expected WC_Product::delete to be denied' );
+} catch ( \WC_Data_Exception $e ) {
+	eq( exc_code( $e ), deny_code(), 'WC_Product::delete denial code' );
+} catch ( \RuntimeException $e ) {
+	throw new RuntimeException( 'WC_Product::delete must throw WC_Data_Exception, got ' . $e->getMessage() );
 }
 
 assert_zero_changes( array( $probe_id ), $probe_before, 'all bypass probes' );
@@ -241,9 +304,9 @@ eq( fresh_price( $probe_id ), '100.00', 'bypass target price untouched' );
 marker( 'bypass probes: REST single+batch, save, stock, meta, trash/delete all denied before persistence' );
 
 // GET reads remain allowed for a restricted principal.
-$get = rest_dispatch( 'GET', '/wp-json/wc/v3/products/' . $probe_id );
-ok( ! $get->is_error(), 'REST product read allowed for restricted principal' );
-eq( $get->get_status(), 200, 'REST product read status 200' );
+$get = rest_dispatch( 'GET', '/wc/v3/products/' . $probe_id );
+ok( ! resp_is_error( $get ), 'REST product read allowed for restricted principal' );
+eq( resp_status( $get ), 200, 'REST product read status 200' );
 
 // ---------------------------------------------------------------------------
 // Inside the Execution Frame: the controlled path works.
@@ -263,27 +326,27 @@ for ( $i = 0; $i < 5 && ! JState::is_terminal( Repo::read( (int) $job['id'] )['s
 	run_worker( array( 'job_id' => (int) $job['id'], 'mode' => 'run', 'limits' => limits( 5 ) ) );
 }
 eq( Repo::read( (int) $job['id'] )['status'], JState::COMPLETED, 'grant job completes inside frame' );
-eq( fresh_price( $item_ids[0] ), '80.00', 'controlled price write inside frame applied' );
+foreach ( $item_ids as $iid ) { eq( fresh_price( $iid ), '80.00', 'controlled price write inside frame applied ' . $iid ); }
 eq( saves( $item_ids[0] ), 1, 'exactly one Woo save for the framed product' );
 $grant_row = Grants::read_by_public_id( $grant['public_id'] );
-eq( (int) $grant_row['budget_consumed'], 1, 'one budget unit consumed, no extra for sync' );
-marker( 'inside frame: controlled price write applies, one save, one budget unit' );
+eq( (int) $grant_row['budget_consumed'], count( $item_ids ), 'one budget unit per applied item' );
+marker( 'inside frame: controlled price writes apply, one save each, one budget unit per item' );
 
 // ---------------------------------------------------------------------------
 // Non-interference: other principals and paths unchanged.
 // ---------------------------------------------------------------------------
 $manager_id = create_product( '100.00' );
-$manager_before = hash_rows( array( $manager_id ) );
+$denials_before_manager = count( $GLOBALS['wl307_denials'] );
 wp_set_current_user( $manager );
 $mp = wc_get_product( $manager_id );
 $mp->set_regular_price( '90.00' );
 $mp->save(); // shop manager (not restricted) edits freely
 eq( fresh_price( $manager_id ), '90.00', 'shop manager edit unaffected' );
-assert_zero_changes( array( $manager_id ), $manager_before, 'shop manager edit' );
+eq( count( $GLOBALS['wl307_denials'] ), $denials_before_manager, 'no refusal logged for a non-restricted manager' );
 marker( 'non-interference: human shop manager edit unaffected' );
 
 // Guest checkout stock reduction (user_id = 0) and cron (user_id = 0).
-$stock_id = create_product( '10.00' );
+$stock_id = create_stock_product( '10.00', 10 );
 wp_set_current_user( 0 );
 $stock_before = wc_get_product( $stock_id )->get_stock_quantity( 'edit' );
 wc_update_product_stock( $stock_id, 2, 'decrease' );
@@ -291,6 +354,7 @@ eq( wc_get_product( $stock_id )->get_stock_quantity( 'edit' ), $stock_before - 2
 marker( 'non-interference: guest/cron user_id=0 stock reduction unaffected' );
 
 // Variable parent sync inside the frame: authorized only as an explicit extra product id.
+wp_set_current_user( 1 ); // seed the variable fixtures as an operator
 $parent = new \WC_Product_Variable();
 $parent->set_name( 'WL307-parent-' . wp_generate_uuid4() );
 $parent->set_status( 'publish' );
@@ -300,7 +364,10 @@ $variation->set_parent_id( $parent_id );
 $variation->set_status( 'publish' );
 $variation->set_regular_price( '100.00' );
 $variation_id = $variation->save();
-$variation_before = hash_rows( array( $variation_id, $parent_id ) );
+// The fixture's variation save queued its parent for WooCommerce's deferred
+// sync at shutdown; flush it here while an operator is current so the test
+// process does not leave a restricted principal as the shutdown writer.
+\WC_Post_Data::do_deferred_product_sync();
 wp_set_current_user( $issuer );
 $var_fixture = job_fixture( array( $variation_id ), '100.00', '70.00', $actor );
 $var_accepted = Grants::accept_plan( $var_fixture['plan'], $grant['public_id'], $issuer, 'id-307-sync' );
@@ -312,8 +379,23 @@ for ( $i = 0; $i < 5 && ! JState::is_terminal( Repo::read( (int) $var_job['id'] 
 }
 eq( Repo::read( (int) $var_job['id'] )['status'], JState::COMPLETED, 'variation grant job completes inside frame' );
 eq( fresh_price( $variation_id ), '70.00', 'variation price inside frame applied' );
-assert_zero_changes( array( $variation_id, $parent_id ), $variation_before, 'variation + parent sync inside frame' );
+$var_denials = array_values( array_filter( $GLOBALS['wl307_denials'], function ( $d ) use ( $variation_id, $parent_id ) { return in_array( (int) $d['object_id'], array( (int) $variation_id, (int) $parent_id ), true ); } ) );
+eq( $var_denials, array(), 'no refusal for variation or parent sync inside the frame' );
 marker( 'non-interference: variable parent sync inside frame succeeds with no extra budget unit' );
+
+// `WC_Product_Variable::sync()` outside a frame is refused (direct PHP row).
+wp_set_current_user( $actor );
+$parent_before_sync = hash_rows( array( $parent_id ) );
+try {
+	\WC_Product_Variable::sync( wc_get_product( $parent_id ) );
+	throw new RuntimeException( 'expected direct variable sync to be denied' );
+} catch ( \WC_Data_Exception $e ) {
+	eq( exc_code( $e ), deny_code(), 'out-of-frame variable sync denial code' );
+} catch ( \RuntimeException $e ) {
+	throw new RuntimeException( 'variable sync must throw WC_Data_Exception, got ' . $e->getMessage() );
+}
+assert_zero_changes( array( $parent_id ), $parent_before_sync, 'out-of-frame variable sync' );
+marker( 'bypass probes: out-of-frame WC_Product_Variable::sync denied with zero rows' );
 
 // ---------------------------------------------------------------------------
 // Concurrency: revoke racing the item transaction denies items.
@@ -328,6 +410,7 @@ $race_accepted = Grants::accept_plan( $race_fixture['plan'], $race_grant['public
 $race_job = $race_accepted['job'];
 // Revoke before execution.
 Grants::revoke( $race_grant['public_id'], $issuer );
+$race_before = hash_rows( $race_ids );
 wp_set_current_user( $actor );
 $actor_user->set_role( 'administrator' );
 Worker::queue_job( (int) $race_job['id'] );
@@ -335,7 +418,7 @@ for ( $i = 0; $i < 3 && ! JState::is_terminal( Repo::read( (int) $race_job['id']
 	run_worker( array( 'job_id' => (int) $race_job['id'], 'mode' => 'run', 'limits' => limits( 5 ) ) );
 }
 eq( fresh_price( $race_ids[0] ), '100.00', 'revoked grant item not applied' );
-assert_zero_changes( $race_ids, hash_rows( $race_ids ), 'revoke race zero price change' );
+assert_zero_changes( $race_ids, $race_before, 'revoke race zero price change' );
 marker( 'concurrency: revoke racing the item transaction denies with zero saves' );
 
 // ---------------------------------------------------------------------------
@@ -348,6 +431,7 @@ wp_set_current_user( $issuer );
 $fault_grant = Grants::create_grant( $issuer, $actor, 10, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
 wp_set_current_user( $actor );
 $fault_fixture = job_fixture( array( $fault_id ), '100.00', '50.00', $actor );
+wp_set_current_user( $issuer );
 $fault_accepted = Grants::accept_plan( $fault_fixture['plan'], $fault_grant['public_id'], $issuer, 'id-307-fault' );
 $fault_job = $fault_accepted['job'];
 // Force a mutation-boundary failure: change the product to draft mid-flight so
@@ -356,13 +440,14 @@ wp_set_current_user( 1 );
 $fp = wc_get_product( $fault_id );
 $fp->set_status( 'draft' );
 $fp->save();
+$fault_before = hash_rows( array( $fault_id ) );
 wp_set_current_user( $actor );
 $actor_user->set_role( 'administrator' );
 Worker::queue_job( (int) $fault_job['id'] );
 run_worker( array( 'job_id' => (int) $fault_job['id'], 'mode' => 'run', 'limits' => limits( 5 ) ) );
 ok( Guard::current_frame() === null, 'no frame survives a rolled-back item' );
 eq( fresh_price( $fault_id ), '100.00', 'failed item price untouched' );
-assert_zero_changes( array( $fault_id ), hash_rows( array( $fault_id ) ), 'forced error zero change' );
+assert_zero_changes( array( $fault_id ), $fault_before, 'forced error zero change' );
 marker( 'concurrency: frame-leak check after forced errors' );
 
 // ---------------------------------------------------------------------------
@@ -379,6 +464,7 @@ $kill_fixture = job_fixture( $kill_ids, '100.00', '40.00', $actor );
 wp_set_current_user( $issuer );
 $kill_accepted = Grants::accept_plan( $kill_fixture['plan'], $kill_grant['public_id'], $issuer, 'id-307-kill' );
 $kill_job = $kill_accepted['job'];
+$kill_before = hash_rows( $kill_ids );
 wp_set_current_user( $actor );
 $actor_user->set_role( 'administrator' );
 Worker::queue_job( (int) $kill_job['id'] );
@@ -386,7 +472,7 @@ for ( $i = 0; $i < 3 && ! JState::is_terminal( Repo::read( (int) $kill_job['id']
 	run_worker( array( 'job_id' => (int) $kill_job['id'], 'mode' => 'run', 'limits' => limits( 5 ) ) );
 }
 eq( fresh_price( $kill_ids[0] ), '100.00', 'kill switch denies item with zero saves' );
-assert_zero_changes( $kill_ids, hash_rows( $kill_ids ), 'kill switch zero change' );
+assert_zero_changes( $kill_ids, $kill_before, 'kill switch zero change' );
 // Missing option fails closed.
 delete_option( GSchema::DISABLE_OPTION );
 ok( Grants::is_disabled() === true, 'missing kill-switch option fails closed' );

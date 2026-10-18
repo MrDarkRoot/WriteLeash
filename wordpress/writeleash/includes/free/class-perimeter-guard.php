@@ -115,7 +115,7 @@ final class Perimeter_Guard {
 		add_filter( 'add_post_metadata', array( __CLASS__, 'add_post_metadata' ), 10, 5 );
 		add_filter( 'delete_post_metadata', array( __CLASS__, 'delete_post_metadata' ), 10, 5 );
 		add_filter( 'pre_trash_post', array( __CLASS__, 'pre_trash_post' ), 10, 2 );
-		add_action( 'pre_delete_post', array( __CLASS__, 'pre_delete_post' ), 10, 2 );
+		add_filter( 'pre_delete_post', array( __CLASS__, 'pre_delete_post' ), 10, 3 );
 	}
 
 	// ------------------------------------------------------------------
@@ -266,24 +266,33 @@ final class Perimeter_Guard {
 	// ------------------------------------------------------------------
 
 	public static function pre_trash_post( $check, $post ) {
-		if ( false !== $check ) {
+		// WP applies `pre_trash_post` as a filter with a null sentinel; any
+		// non-null return short-circuits `wp_trash_post()`. Pass through when
+		// the principal is not restricted or a matching frame is active.
+		if ( null !== $check ) {
 			return $check;
 		}
 		$post_id = self::post_id_from( $post );
 		if ( $post_id < 1 || ! self::is_product_post_type( $post_id ) || ! self::should_enforce_id( $post_id, 'trash' ) ) {
-			return false;
+			return null;
 		}
-		self::deny( 'pre_trash_post', $post_id, 'trash' );
-		return new \WP_Error( self::DENY_CODE, 'WriteLeash restricted actors cannot trash products outside a matching Execution Frame.', array( 'status' => 403, 'writeleash' => self::DENY_CODE ) );
+		// Throwing (not returning a WP_Error) keeps `WC_Product::delete()`
+		// honest: its data store ignores a returned value and would still
+		// report the product as deleted.
+		self::throw_denied( 'pre_trash_post', $post_id, 'trash' );
+		return null;
 	}
 
-	public static function pre_delete_post( $postid, $data = null ) {
-		$postid = (int) $postid;
-		if ( $postid < 1 || ! self::is_product_post_type( $postid ) || ! self::should_enforce_id( $postid, 'delete' ) ) {
-			return;
+	public static function pre_delete_post( $check, $post = null, $force_delete = null ) {
+		// Current WP applies `pre_delete_post` as a filter with a null
+		// sentinel: ( $check, $post, $force_delete ). Tolerate the legacy
+		// action form where the first argument is the post object.
+		$post_id = self::post_id_from( $check instanceof \WP_Post ? $check : $post );
+		if ( $post_id < 1 || ! self::is_product_post_type( $post_id ) || ! self::should_enforce_id( $post_id, 'delete' ) ) {
+			return $check;
 		}
-		self::deny( 'pre_delete_post', $postid, 'delete' );
-		self::throw_denied( 'post_delete', $postid, 'delete' );
+		self::throw_denied( 'pre_delete_post', $post_id, 'delete' );
+		return $check;
 	}
 
 	// ------------------------------------------------------------------
