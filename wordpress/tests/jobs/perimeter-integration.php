@@ -162,6 +162,18 @@ function resp_is_error( $response ): bool {
 	if ( method_exists( $response, 'is_error' ) ) { return (bool) $response->is_error(); }
 	return resp_status( $response ) >= 400;
 }
+/** JSON denial audit lines in the WP debug log (missing file/logs => empty). */
+function audit_lines(): array {
+	$file = WP_CONTENT_DIR . '/debug.log';
+	$lines = is_file( $file ) ? file( $file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES ) : null;
+	if ( ! is_array( $lines ) ) { return array(); }
+	$hits = array();
+	foreach ( $lines as $line ) {
+		$entry = json_decode( (string) $line, true );
+		if ( is_array( $entry ) && 'writeleash_perimeter_denied' === ( $entry['code'] ?? '' ) ) { $hits[] = $entry; }
+	}
+	return $hits;
+}
 function ensure_users(): array {
 	$ids = array();
 	foreach ( array( 'wl307-issuer', 'wl307-actor', 'wl307-manager' ) as $login ) {
@@ -251,6 +263,15 @@ $attribute = rest_dispatch( 'PUT', '/wc/v3/products/attributes/1', array( 'name'
 ok( resp_is_error( $attribute ), 'REST product attribute update is an error response' );
 eq( resp_status( $attribute ), 403, 'REST product attribute update status 403' );
 
+// 2c. Future namespace: the multi-digit tail (v[1-9][0-9]*) must refuse a
+// wider WooCommerce REST namespace exactly like v1-v3, so wc/v4+ cannot
+// silently reopen the write surface. rest_pre_dispatch fires before route
+// matching, so the register-less future route takes the same short-circuit.
+$future = rest_dispatch( 'POST', '/wc/v10/products', array( 'name' => 'WL307-future', 'regular_price' => '50.00' ) );
+ok( resp_is_error( $future ), 'REST wc/v10 product create is an error response' );
+eq( resp_status( $future ), 403, 'REST wc/v10 product create status 403' );
+eq( resp_code( $future ), deny_code(), 'REST wc/v10 denial code' );
+
 // 3. $product->save() directly on a restricted product.
 $p = wc_get_product( $probe_id );
 $p->set_regular_price( '55.00' );
@@ -288,6 +309,29 @@ ok( update_post_meta( $stock_probe, '_stock', '999' ) === false, 'update_post_me
 ok( update_post_meta( $stock_probe, '_stock_status', 'outofstock' ) === false, 'update_post_meta _stock_status denied' );
 ok( delete_post_meta( $stock_probe, '_stock' ) === false, 'delete_post_meta _stock denied' );
 assert_zero_changes( array( $stock_probe ), $stock_probe_before, 'stock meta probes' );
+
+// 7. Structured denial audit (#307 follow-up): every refusal leaves one
+// machine-parseable JSON line in the debug log. WP_DEBUG_LOG is enabled by
+// the #109 fixture, and debug.log was unlinked at fixture start, so these
+// lines are attributable to this run alone. Removing
+// Perimeter_Audit_Log::record() (or its boot) empties these findings.
+$audit_hits = audit_lines();
+ok( count( $audit_hits ) >= 2, 'audit log records multiple refusals' );
+$rest_hit = null;
+$meta_hit = null;
+foreach ( $audit_hits as $hit ) {
+	if ( 'rest' === ( $hit['where'] ?? '' ) && ( $hit['route'] ?? '' ) === '/wc/v3/products/reviews' ) { $rest_hit = $hit; }
+	if ( 'update_post_metadata' === ( $hit['where'] ?? '' ) && (int) ( $hit['object_id'] ?? 0 ) === $probe_id && ( $hit['detail'] ?? '' ) === '_sale_price_dates_from' ) { $meta_hit = $hit; }
+}
+ok( is_array( $rest_hit ), 'REST refusal audit line present' );
+eq( (string) ( $rest_hit['route'] ?? '' ), '/wc/v3/products/reviews', 'REST refusal audit route field' );
+eq( (int) ( $rest_hit['actor'] ?? 0 ), $actor, 'REST refusal audit actor' );
+ok( is_array( $meta_hit ), 'sale-date meta refusal audit line present' );
+eq( (string) ( $meta_hit['actor'] ?? '' ), (string) $actor, 'sale-date meta refusal audit actor' );
+eq( (int) ( $meta_hit['object_id'] ?? 0 ), $probe_id, 'sale-date meta refusal audit object_id' );
+eq( (string) ( $meta_hit['kind'] ?? '' ), 'price', 'sale-date meta refusal audit kind' );
+ok( is_string( $rest_hit['timestamp'] ?? null ) && '' !== $rest_hit['timestamp'], 'audit line carries a timestamp' );
+marker( 'denial audit: REST (with route) and meta refusals each logged as one JSON line' );
 
 // 6. Trash / delete of a product (wp_trash_post, wp_delete_post, WC_Product::delete).
 try {
