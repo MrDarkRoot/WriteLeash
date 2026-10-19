@@ -49,9 +49,10 @@ $reviewed_guard_hooks = array( 'add_post_metadata', 'delete_post_metadata', 'pre
 sort( $reviewed_guard_hooks );
 wl120_assert( $reviewed_guard_hooks === $guard_hooks, 'Perimeter Guard intercepts only the reviewed hooks: ' . implode( ', ', $guard_hooks ) );
 // #307 follow-up: the audit logger listens only to the denial event; the
-// kill-switch notice only to the standard admin_notices hook.
-wl120_assert( false !== has_action( 'writeleash_perimeter_denied' ), 'audit logger listens on the denial event' );
-wl120_assert( false !== has_action( 'admin_notices' ), 'kill-switch notice booted' );
+// kill-switch notice only to the standard admin_notices hook. Exact
+// callbacks, so an unrelated listener or a class-only boot cannot pass.
+wl120_assert( false !== has_action( 'writeleash_perimeter_denied', array( 'WriteLeash\\Perimeter_Audit_Log', 'record' ) ), 'audit logger registered its record callback' );
+wl120_assert( false !== has_action( 'admin_notices', array( 'WriteLeash\\Grant_Notice', 'render' ) ), 'kill-switch notice registered its render callback' );
 wl120_assert( false === has_action( 'admin_post_writeleash_action' ), 'legacy provisioning/Admin action absent' );
 foreach ( array( 'preview', 'approve', 'resume', 'undo' ) as $action ) {
 	wl120_assert( false !== has_action( 'admin_post_writeleash_free_' . $action ), 'Free Admin ' . $action . ' booted' );
