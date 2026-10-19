@@ -111,8 +111,9 @@ require_once __DIR__ . '/includes/free/class-grant-repository.php';
 
 // #307 fail-closed perimeter for restricted (standing-grant) principals.
 require_once __DIR__ . '/includes/free/class-perimeter-guard.php';
-// #307 follow-up: structured denial logging.
+// #307 follow-ups: structured denial logging and the kill-switch admin notice.
 require_once __DIR__ . '/includes/free/class-perimeter-audit-log.php';
+require_once __DIR__ . '/includes/free/class-grant-notice.php';
 
 // #110 conflict-aware Undo, bounded history and retention. No Admin UX.
 require_once __DIR__ . '/includes/free/class-undo-state.php';
