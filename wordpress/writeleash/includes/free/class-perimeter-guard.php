@@ -217,8 +217,6 @@ final class Perimeter_Guard {
 			return $sql;
 		}
 		self::throw_denied( 'update_product_stock_query', $product_id, 'stock' );
-		// Unreachable: throw_denied always throws.
-		return $sql;
 	}
 
 	// ------------------------------------------------------------------
@@ -280,7 +278,6 @@ final class Perimeter_Guard {
 		// honest: its data store ignores a returned value and would still
 		// report the product as deleted.
 		self::throw_denied( 'pre_trash_post', $post_id, 'trash' );
-		return null;
 	}
 
 	public static function pre_delete_post( $check, $post = null, $force_delete = null ) {
@@ -292,7 +289,6 @@ final class Perimeter_Guard {
 			return $check;
 		}
 		self::throw_denied( 'pre_delete_post', $post_id, 'delete' );
-		return $check;
 	}
 
 	// ------------------------------------------------------------------
