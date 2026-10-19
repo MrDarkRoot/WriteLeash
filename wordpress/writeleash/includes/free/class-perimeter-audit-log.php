@@ -47,14 +47,20 @@ final class Perimeter_Audit_Log {
 				'object_id' => (int) $object_id,
 				'kind'      => (string) $kind,
 				'detail'    => (string) $detail,
-			);
-			// REST refusals carry the route in the guard's detail argument;
-		 // surface it as its own field when available.
+			);				// REST refusals carry the route in the guard's detail argument;
+			// surface it as its own field when available.
 			if ( 'rest' === $entry['where'] && '' !== $entry['detail'] ) {
 				$entry['route'] = $entry['detail'];
 			}
 			$json = wp_json_encode( $entry );
 			if ( ! is_string( $json ) ) {
+				return;
+			}
+			// Cheap disk-fill cap: once the log passes the ceiling, refusals
+			// are dropped (operators rotate the file) rather than appending
+			// forever. No tables, no rotation machinery.
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- A stat failure must never surface PHP warnings into the denial flow.
+			if ( @filesize( $target ) > self::DEFAULT_MAX_BYTES ) {
 				return;
 			}
 			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Audit must never surface PHP warnings into the denial flow.
@@ -64,17 +70,21 @@ final class Perimeter_Audit_Log {
 		}
 	}
 
+	/** Audit trail ceiling (5 MB) before refusals are dropped, not appended. */
+	private const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
+
 	/**
-	 * Resolve the debug-log path the way WordPress does: an explicit
-	 * WP_DEBUG_LOG string wins; fail silent when WP_DEBUG_LOG is neither
-	 * truthy nor a path and error logging is disabled.
+	 * Resolve the debug-log path exactly as WordPress does: only a truthy or
+	 * non-empty-string WP_DEBUG_LOG enables writing (WordPress core writes
+	 * the same file under the same condition); log_errors alone does not
+	 * imply debug.log is the intended target, so it must not opt in.
 	 */
 	private static function target(): string {
 		$wp_debug_log = defined( 'WP_DEBUG_LOG' ) ? WP_DEBUG_LOG : false;
 		if ( is_string( $wp_debug_log ) && '' !== $wp_debug_log ) {
 			return $wp_debug_log;
 		}
-		if ( true !== $wp_debug_log && '1' !== (string) ini_get( 'log_errors' ) ) {
+		if ( true !== $wp_debug_log ) {
 			return '';
 		}
 		return WP_CONTENT_DIR . '/debug.log';
