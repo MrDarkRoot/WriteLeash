@@ -78,6 +78,7 @@ final class Woo_Price_Mutator {
 		$tx = null;
 		$attempt = wp_generate_uuid4();
 		$committed = false;
+		$frame_opened = false;
 		$code = 'FAILED';
 		$reason = 'FAILED';
 		try {
@@ -196,6 +197,21 @@ final class Woo_Price_Mutator {
 			self::authorize( $plan, $id, $tx );
 			self::checkpoint( 'BEFORE_WOO_SAVE', $id, $attempt );
 			$tx->assert_owned();
+			// #307: open the perimeter frame for this controlled product write
+			// only after the item transaction holds its locks, so the Woo CRUD
+			// save below is authorized for the restricted actor. Closes in the
+			// outer finally, even on forced errors (no frame survives a
+			// rolled-back item).
+			$frame_product_ids = $is_variation ? array( $id, $parent_id ) : array( $id );
+			Perimeter_Guard::open_frame(
+				$actor,
+				$grant_job ? (int) $grant_job['id'] : 0,
+				$plan->data()['plan_id'],
+				$frame_product_ids,
+				'price',
+				$field
+			);
+			$frame_opened = true;
 			self::set_field( $product, $field, $item['planned_regular_price'] );
 			$product->save();
 			self::checkpoint( 'AFTER_WOO_SAVE_BEFORE_JOURNAL', $id, $attempt );
@@ -268,7 +284,12 @@ final class Woo_Price_Mutator {
 				$reason = ( $cleanup instanceof Price_Apply_Error && in_array( $cleanup->getMessage(), array( 'GRANT_STORE_UNAVAILABLE', 'AMBIGUOUS_COMMIT' ), true ) ) ? $cleanup->getMessage() : 'CACHE_VERIFICATION_FAILED';
 			}
 			return array( 'code' => $code, 'reason' => $reason, 'attempt_id' => $attempt );
-		} finally { $wpdb = $original; }
+		} finally {
+			if ( $frame_opened ) {
+				Perimeter_Guard::close_frame();
+			}
+			$wpdb = $original;
+		}
 	}
 	/** #110 prototype: eligibility observation only; never restores a price. */
 	public static function undo_precondition( Change_Plan $plan, int $id ): string {

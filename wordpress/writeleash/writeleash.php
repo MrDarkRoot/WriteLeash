@@ -109,6 +109,9 @@ require_once __DIR__ . '/includes/free/class-agent-jobs-rest.php';
 require_once __DIR__ . '/includes/free/class-grant-schema.php';
 require_once __DIR__ . '/includes/free/class-grant-repository.php';
 
+// #307 fail-closed perimeter for restricted (standing-grant) principals.
+require_once __DIR__ . '/includes/free/class-perimeter-guard.php';
+
 // #110 conflict-aware Undo, bounded history and retention. No Admin UX.
 require_once __DIR__ . '/includes/free/class-undo-state.php';
 require_once __DIR__ . '/includes/free/class-undo-schema.php';

@@ -55,12 +55,20 @@ function marker( string $label ): void {
 	echo "#298 $label: PASS ($assertions assertions)\n";
 }
 function create_product( string $price, string $status = 'publish' ): int {
+	// #307: the perimeter guard denies a grant-restricted principal every
+	// catalogue write outside an Execution Frame, so fixtures seed products as
+	// an operator. The grant actor is made current only for planning and job
+	// submission, never for a raw `$product->save()`.
+	$previous = get_current_user_id();
+	wp_set_current_user( 1 );
 	$p = new WC_Product_Simple();
 	$p->set_name( 'WL298-' . wp_generate_uuid4() );
 	$p->set_status( $status );
 	$p->set_regular_price( $price );
 	$p->save();
-	return $p->get_id();
+	$id = $p->get_id();
+	wp_set_current_user( $previous );
+	return $id;
 }
 function saves( int $id ): int {
 	global $hook_log;
@@ -253,7 +261,9 @@ marker( 'identity: actor/issuer/approver distinct, actor re-checked, pin frozen'
 // ---------------------------------------------------------------------------
 // Scope: allow simple + variation; deny each boundary; no selector rerun.
 // ---------------------------------------------------------------------------
-wp_set_current_user( $actor );
+// #307: seed the catalogue (parent + variation) as an operator; the restricted
+// actor is made current further down only to plan the job.
+wp_set_current_user( 1 );
 // Eligible variation in scope.
 $parent = new WC_Product_Variable();
 $parent->set_name( 'WL298-parent-' . wp_generate_uuid4() );

@@ -82,6 +82,7 @@ final class Woo_Undo_Mutator {
 		$reason = 'FAILED';
 		$job = null;
 		$plan = null;
+		$frame_opened = false;
 		try {
 			self::schema( $original );
 			$job = Job_Repository::read( $job_id );
@@ -189,6 +190,17 @@ final class Woo_Undo_Mutator {
 			self::authorize( $product_id );
 			self::checkpoint( 'UNDO_BEFORE_WOO_SAVE', $product_id, $attempt );
 			$tx->assert_owned();
+			// #307: open the perimeter frame for this controlled undo write.
+			$frame_product_ids = $is_variation ? array( $product_id, $parent_id ) : array( $product_id );
+			Perimeter_Guard::open_frame(
+				$executor,
+				$job_id,
+				(string) ( $provenance['plan_id'] ?? '' ),
+				$frame_product_ids,
+				'price',
+				$field
+			);
+			$frame_opened = true;
 			if ( Price_Operation::FIELD_SALE === $field ) {
 				$product->set_sale_price( $provenance['expected_price'] );
 			} else {
@@ -266,7 +278,12 @@ final class Woo_Undo_Mutator {
 				}
 			} catch ( \Throwable $cleanup ) { $code = 'NEEDS_REVIEW'; $reason = 'CACHE_VERIFICATION_FAILED'; }
 			return array( 'code' => $code, 'reason' => $reason, 'attempt_id' => $attempt );
-		} finally { $wpdb = $original; }
+		} finally {
+			if ( $frame_opened ) {
+				Perimeter_Guard::close_frame();
+			}
+			$wpdb = $original;
+		}
 	}
 
 	/** Map fingerprint mismatch reasons to one stable typed code. */

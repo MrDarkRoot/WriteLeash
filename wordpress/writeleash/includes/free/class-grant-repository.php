@@ -64,6 +64,40 @@ final class Grant_Repository {
 	}
 
 	/**
+	 * #307: true when $user_id is the actor on any row in the standing-grant
+	 * store, regardless of grant status.
+	 *
+	 * Revoked, expired, exhausted and globally-disabled grants all stay
+	 * restricted; removal is an explicit operator action, never a side effect
+	 * of grant lifecycle or of the global kill-switch. A restricted principal
+	 * may only write prices through WriteLeash's controlled item transaction;
+	 * Perimeter_Guard refuses every other path before persistence.
+	 *
+	 * Fail-open on an absent/unreadable store: a principal that cannot be
+	 * proven restricted is not labeled restricted here. The controlled mutator
+	 * fails closed separately on grant-state uncertainty, so an unreadable
+	 * store still cannot produce an unrestricted write.
+	 */
+	public static function is_restricted_actor( int $user_id = 0 ): bool {
+		if ( $user_id < 1 ) { $user_id = (int) get_current_user_id(); }
+		if ( $user_id < 1 ) { return false; }
+		static $cache = array();
+		if ( array_key_exists( $user_id, $cache ) ) { return $cache[ $user_id ]; }
+		$result = false;
+		try {
+			$db = self::db();
+			if ( Grant_Schema::ready( $db ) ) {
+				$table  = Grant_Schema::grants_table( $db );
+				$result = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) FROM %i WHERE actor_id=%d', $table, $user_id ) ) > 0;
+			}
+		} catch ( \Throwable $error ) {
+			$result = false;
+		}
+		$cache[ $user_id ] = $result;
+		return $result;
+	}
+
+	/**
 	 * Resolve the authenticated human principal for a human-only grant operation
 	 * (issue/accept/revoke/update/disable/enable). Refuses anonymous, zero,
 	 * deleted, invalid and mismatched principals, then requires the existing

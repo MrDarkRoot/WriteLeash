@@ -20,8 +20,9 @@ foreach ( $legacy as $class ) {
 global $wp_filter, $menu, $submenu, $wpdb;
 $allowed_callbacks = array( 'WriteLeash\\Lifecycle', 'WriteLeash\\Free_Admin', 'WriteLeash\\Product_Discovery',
 	'WriteLeash\\Job_Resume_Rest', 'WriteLeash\\Agent_Jobs_Rest', 'WriteLeash\\Undo_Rest', 'WriteLeash\\Job_Worker',
-	'WriteLeash\\Undo_Worker', 'WriteLeash\\Undo_Scheduler' );
+	'WriteLeash\\Undo_Worker', 'WriteLeash\\Undo_Scheduler', 'WriteLeash\\Perimeter_Guard' );
 $observed = array();
+$guard_hooks = array();
 foreach ( $wp_filter as $hook => $registered ) {
 	foreach ( $registered->callbacks as $callbacks ) {
 		foreach ( $callbacks as $callback ) {
@@ -33,10 +34,19 @@ foreach ( $wp_filter as $hook => $registered ) {
 				wl120_assert( ! in_array( $hook, array( 'query', 'rest_dispatch_request', 'admin_post_writeleash_action' ), true ), 'legacy interception absent' );
 				wl120_assert( 'WriteLeash\\Product_Discovery' !== $class || ( 'wp_ajax_writeleash_free_discovery' === $hook && 'ajax' === $function[1] ), 'discovery registers only the reviewed authenticated read callback' );
 				$observed[] = $hook . ':' . $class;
+				if ( 'WriteLeash\\Perimeter_Guard' === $class ) { $guard_hooks[ $hook ] = true; }
 			}
 		}
 	}
 }
+$guard_hooks = array_keys( $guard_hooks );
+sort( $guard_hooks );
+$reviewed_guard_hooks = array( 'add_post_metadata', 'delete_post_metadata', 'pre_delete_post', 'pre_trash_post',
+	'rest_pre_dispatch', 'update_post_metadata', 'woocommerce_before_product_object_save',
+	'woocommerce_before_product_variation_object_save', 'woocommerce_product_before_set_stock',
+	'woocommerce_update_product_stock_query', 'woocommerce_variation_before_set_stock' );
+sort( $reviewed_guard_hooks );
+wl120_assert( $reviewed_guard_hooks === $guard_hooks, 'Perimeter Guard intercepts only the reviewed hooks: ' . implode( ', ', $guard_hooks ) );
 wl120_assert( false === has_action( 'admin_post_writeleash_action' ), 'legacy provisioning/Admin action absent' );
 foreach ( array( 'preview', 'approve', 'resume', 'undo' ) as $action ) {
 	wl120_assert( false !== has_action( 'admin_post_writeleash_free_' . $action ), 'Free Admin ' . $action . ' booted' );
