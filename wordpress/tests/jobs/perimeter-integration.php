@@ -454,16 +454,20 @@ marker( 'concurrency: frame-leak check after forced errors' );
 // Kill-switch: missing/malformed option fails closed with zero saves.
 // ---------------------------------------------------------------------------
 wp_set_current_user( $issuer );
-$kill_ids = array( create_product( '100.00' ) );
-$kill_grant = Grants::create_grant( $issuer, $actor, 10, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
-wp_set_current_user( $issuer );
-update_option( GSchema::DISABLE_OPTION, '1', false );
-ok( Grants::is_disabled() === true, 'kill switch engaged' );
+$kill_ids       = array( create_product( '100.00' ) );
+$kill_grant     = Grants::create_grant( $issuer, $actor, 10, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
+$kill_ids_two   = array( create_product( '100.00' ) );
+$kill_grant_two = Grants::create_grant( $issuer, $actor, 10, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
 wp_set_current_user( $actor );
-$kill_fixture = job_fixture( $kill_ids, '100.00', '40.00', $actor );
+$kill_fixture     = job_fixture( $kill_ids, '100.00', '40.00', $actor );
+$kill_fixture_two = job_fixture( $kill_ids_two, '100.00', '30.00', $actor );
 wp_set_current_user( $issuer );
+// Lead job is accepted while grants are enabled, then the switch is engaged:
+// execution must still refuse the already-accepted item.
 $kill_accepted = Grants::accept_plan( $kill_fixture['plan'], $kill_grant['public_id'], $issuer, 'id-307-kill' );
 $kill_job = $kill_accepted['job'];
+update_option( GSchema::DISABLE_OPTION, '1', false );
+ok( Grants::is_disabled() === true, 'kill switch engaged' );
 $kill_before = hash_rows( $kill_ids );
 wp_set_current_user( $actor );
 $actor_user->set_role( 'administrator' );
@@ -473,11 +477,21 @@ for ( $i = 0; $i < 3 && ! JState::is_terminal( Repo::read( (int) $kill_job['id']
 }
 eq( fresh_price( $kill_ids[0] ), '100.00', 'kill switch denies item with zero saves' );
 assert_zero_changes( $kill_ids, $kill_before, 'kill switch zero change' );
+// A new acceptance is refused outright while the switch is on.
+wp_set_current_user( $issuer );
+try {
+	Grants::accept_plan( $kill_fixture_two['plan'], $kill_grant_two['public_id'], $issuer, 'id-307-kill-accept' );
+	throw new RuntimeException( 'expected acceptance to be refused while grants are disabled' );
+} catch ( \WriteLeash\Grant_Error $e ) {
+	eq( $e->getMessage(), 'GRANT_DISABLED', 'disabled grants refuse new acceptance' );
+}
 // Missing option fails closed.
+$missing_before = hash_rows( $kill_ids_two );
 delete_option( GSchema::DISABLE_OPTION );
 ok( Grants::is_disabled() === true, 'missing kill-switch option fails closed' );
+assert_zero_changes( $kill_ids_two, $missing_before, 'missing kill-switch option' );
 update_option( GSchema::DISABLE_OPTION, '0', false );
 ok( Grants::is_disabled() === false, 'explicit 0 re-enables' );
-marker( 'kill-switch: missing/malformed option fails closed, explicit 0 enables' );
+marker( 'kill-switch: execution denied, new acceptance refused, missing option fails closed, explicit 0 enables' );
 
 marker( '#307 perimeter guard complete' );
