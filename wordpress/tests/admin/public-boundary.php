@@ -20,7 +20,8 @@ foreach ( $legacy as $class ) {
 global $wp_filter, $menu, $submenu, $wpdb;
 $allowed_callbacks = array( 'WriteLeash\\Lifecycle', 'WriteLeash\\Free_Admin', 'WriteLeash\\Product_Discovery',
 	'WriteLeash\\Job_Resume_Rest', 'WriteLeash\\Agent_Jobs_Rest', 'WriteLeash\\Undo_Rest', 'WriteLeash\\Job_Worker',
-	'WriteLeash\\Undo_Worker', 'WriteLeash\\Undo_Scheduler', 'WriteLeash\\Perimeter_Guard' );
+	'WriteLeash\\Undo_Worker', 'WriteLeash\\Undo_Scheduler', 'WriteLeash\\Perimeter_Guard',
+	'WriteLeash\\Perimeter_Audit_Log' );
 $observed = array();
 $guard_hooks = array();
 foreach ( $wp_filter as $hook => $registered ) {
@@ -47,6 +48,8 @@ $reviewed_guard_hooks = array( 'add_post_metadata', 'delete_post_metadata', 'pre
 	'woocommerce_update_product_stock_query', 'woocommerce_variation_before_set_stock' );
 sort( $reviewed_guard_hooks );
 wl120_assert( $reviewed_guard_hooks === $guard_hooks, 'Perimeter Guard intercepts only the reviewed hooks: ' . implode( ', ', $guard_hooks ) );
+// #307 follow-up: the audit logger listens only to the denial event.
+wl120_assert( false !== has_action( 'writeleash_perimeter_denied' ), 'audit logger listens on the denial event' );
 wl120_assert( false === has_action( 'admin_post_writeleash_action' ), 'legacy provisioning/Admin action absent' );
 foreach ( array( 'preview', 'approve', 'resume', 'undo' ) as $action ) {
 	wl120_assert( false !== has_action( 'admin_post_writeleash_free_' . $action ), 'Free Admin ' . $action . ' booted' );
