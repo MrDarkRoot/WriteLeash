@@ -69,8 +69,13 @@ final class Execution_Frame {
  */
 final class Perimeter_Guard {
 	private const DENY_CODE = 'writeleash_perimeter_denied';
-	/** Meta keys WriteLeash's controlled path never writes outside a frame. */
-	private const PRICE_META_KEYS = array( '_regular_price', '_sale_price', '_price' );
+	/**
+	 * Meta keys WriteLeash's controlled path never writes outside a frame.
+	 * Sale-price schedule dates are included: the #298 grant scope freezes
+	 * absolute regular/sale targets without an out-of-scope schedule change,
+	 * so a restricted principal cannot move sale windows directly.
+	 */
+	private const PRICE_META_KEYS = array( '_regular_price', '_sale_price', '_price', '_sale_price_dates_from', '_sale_price_dates_to' );
 	private const STOCK_META_KEYS = array( '_stock', '_stock_status' );
 	/** Product post types in scope. */
 	private const PRODUCT_POST_TYPES = array( 'product', 'product_variation' );
@@ -119,20 +124,31 @@ final class Perimeter_Guard {
 	}
 
 	// ------------------------------------------------------------------
-	// REST: wc/v1-v3 products writes blocked for restricted principals.
+	// REST: wc/v1+ products/catalog write surfaces blocked for restricted
+	// principals (products, per-id CRUD, batch, variations, categories,
+	// attributes, reviews, shipping classes, tags).
 	// ------------------------------------------------------------------
 
 	/**
 	 * True when the request targets a WooCommerce products write surface
-	 * (wc/v1-v3 products, including batch and per-product routes). REST routes
-	 * carry a leading slash; normalize before matching.
+	 * (wc/v1-v3 products and every catalog surface under its prefix). REST
+	 * routes carry a leading slash; normalize before matching.
+	 *
+	 * The products prefix and everything below it is denied in one pattern:
+	 * single create/get/update/delete per id, /batch, per-id /variations,
+	 * /categories, /attributes (+ attribute terms), /reviews,
+	 * /shipping_classes and /tags. Additional write surfaces keep matching
+	 * under the broad prefix; the multi-digit tail accepts namespaced minor
+	 * versions beyond v3 so a new namespace cannot silently open a path.
+	 * Intentionally fail-closed: enumerating routes would deny less on every
+	 * future WooCommerce route addition.
 	 */
 	private static function is_restricted_product_route( $request ): bool {
 		if ( ! $request instanceof \WP_REST_Request ) {
 			return false;
 		}
 		$route = '/' . ltrim( (string) $request->get_route(), '/' );
-		return (bool) preg_match( '#\A/wc/v[123]/products(?:/.*)?\z#D', $route );
+		return (bool) preg_match( '#\A/wc/v[1-9][0-9]*/products(?:/.*)?\z#D', $route );
 	}
 
 	/**

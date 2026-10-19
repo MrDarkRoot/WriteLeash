@@ -237,6 +237,20 @@ $batch = rest_dispatch( 'POST', '/wc/v3/products/batch', array( 'create' => arra
 ok( resp_is_error( $batch ), 'REST product batch is an error response' );
 eq( resp_status( $batch ), 403, 'REST product batch status 403' );
 
+// 2b. Additional catalog write surfaces under the products prefix: reviews
+// and attributes (+ their batch routes). Same fail-closed refusal.
+$reviews = rest_dispatch( 'POST', '/wc/v3/products/reviews', array( 'product_id' => $probe_id, 'review' => 'WL307-review', 'rating' => 5 ) );
+ok( resp_is_error( $reviews ), 'REST product review create is an error response' );
+eq( resp_status( $reviews ), 403, 'REST product reviews status 403' );
+eq( resp_code( $reviews ), deny_code(), 'REST product reviews denial code' );
+$attributes = rest_dispatch( 'POST', '/wc/v3/products/attributes/batch', array( 'create' => array( array( 'name' => 'WL307-attr' ) ) ) );
+ok( resp_is_error( $attributes ), 'REST product attributes batch is an error response' );
+eq( resp_status( $attributes ), 403, 'REST product attributes batch status 403' );
+eq( resp_code( $attributes ), deny_code(), 'REST product attributes batch denial code' );
+$attribute = rest_dispatch( 'PUT', '/wc/v3/products/attributes/1', array( 'name' => 'WL307-attr-put' ) );
+ok( resp_is_error( $attribute ), 'REST product attribute update is an error response' );
+eq( resp_status( $attribute ), 403, 'REST product attribute update status 403' );
+
 // 3. $product->save() directly on a restricted product.
 $p = wc_get_product( $probe_id );
 $p->set_regular_price( '55.00' );
@@ -267,6 +281,9 @@ ok( update_post_meta( $probe_id, '_regular_price', '60.00' ) === false, 'update_
 ok( update_post_meta( $probe_id, '_price', '60.00' ) === false, 'update_post_meta _price denied' );
 ok( update_post_meta( $probe_id, '_sale_price', '60.00' ) === false, 'update_post_meta _sale_price denied' );
 ok( add_post_meta( $probe_id, '_sale_price', '60.00', true ) === false, 'add_post_meta _sale_price denied' );
+ok( update_post_meta( $probe_id, '_sale_price_dates_from', '2026-01-01' ) === false, 'update_post_meta _sale_price_dates_from denied' );
+ok( add_post_meta( $probe_id, '_sale_price_dates_to', '2026-12-31', true ) === false, 'add_post_meta _sale_price_dates_to denied' );
+ok( delete_post_meta( $probe_id, '_sale_price_dates_from' ) === false, 'delete_post_meta _sale_price_dates_from denied' );
 ok( update_post_meta( $stock_probe, '_stock', '999' ) === false, 'update_post_meta _stock denied' );
 ok( update_post_meta( $stock_probe, '_stock_status', 'outofstock' ) === false, 'update_post_meta _stock_status denied' );
 ok( delete_post_meta( $stock_probe, '_stock' ) === false, 'delete_post_meta _stock denied' );
@@ -301,7 +318,7 @@ try {
 assert_zero_changes( array( $probe_id ), $probe_before, 'all bypass probes' );
 ok( count( $GLOBALS['wl307_denials'] ) >= 1, 'at least one refusal logged' );
 eq( fresh_price( $probe_id ), '100.00', 'bypass target price untouched' );
-marker( 'bypass probes: REST single+batch, save, stock, meta, trash/delete all denied before persistence' );
+marker( 'bypass probes: REST single+batch+reviews+attributes, save, stock, meta, trash/delete all denied before persistence' );
 
 // GET reads remain allowed for a restricted principal.
 $get = rest_dispatch( 'GET', '/wc/v3/products/' . $probe_id );
