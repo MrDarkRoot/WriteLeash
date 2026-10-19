@@ -494,4 +494,4 @@ update_option( GSchema::DISABLE_OPTION, '0', false );
 ok( Grants::is_disabled() === false, 'explicit 0 re-enables' );
 marker( 'kill-switch: execution denied, new acceptance refused, missing option fails closed, explicit 0 enables' );
 
-marker( '#307 perimeter guard complete' );
+marker( 'perimeter guard complete' );
