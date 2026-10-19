@@ -12,6 +12,7 @@ includes/free/class-change-plan.php
 includes/free/class-durable-charset.php
 includes/free/class-free-admin.php
 includes/free/class-free-support-contract.php
+includes/free/class-grant-notice.php
 includes/free/class-grant-repository.php
 includes/free/class-grant-schema.php
 includes/free/class-job-repository.php
@@ -21,6 +22,7 @@ includes/free/class-job-schema.php
 includes/free/class-job-state.php
 includes/free/class-job-transaction-fence.php
 includes/free/class-job-worker.php
+includes/free/class-perimeter-audit-log.php
 includes/free/class-perimeter-guard.php
 includes/free/class-price-apply-connection.php
 includes/free/class-price-apply-journal.php
