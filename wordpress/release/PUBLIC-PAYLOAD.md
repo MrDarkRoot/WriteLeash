@@ -69,7 +69,7 @@ they are omitted from the public allowlist and loaded only by repository tests.
 | LICENSE | Reviewed GPLv2 text | PUBLIC_FREE_REQUIRED |
 | readme.txt | Minimum Woo-only user instructions; full copy belongs to #121 | PUBLIC_FREE_REQUIRED |
 
-All 38 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
+All 40 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
 inventory (multi-class files included):
 
 | File stem (`includes/free/class-<stem>.php`) | Classes / interfaces / traits | Classification |
@@ -77,7 +77,9 @@ inventory (multi-class files included):
 | price-presets | Price_Preset_Configuration, Price_Preset_Repository | PUBLIC_FREE_REQUIRED |
 | free-support-contract | Free_Support_Contract, Free_Job_Limit_Error | PUBLIC_FREE_REQUIRED |
 | grant-schema | Grant_Schema, Grant_Error | PUBLIC_FREE_REQUIRED |
+| grant-notice | Grant_Notice; passive admin_notices surface for the fail-closed grant kill-switch, no state flip | PUBLIC_FREE_REQUIRED |
 | grant-repository | Grant_Repository | PUBLIC_FREE_REQUIRED |
+| perimeter-audit-log | Perimeter_Audit_Log; JSON denial audit listener on writeleash_perimeter_denied, never alters a denial | PUBLIC_FREE_REQUIRED |
 | perimeter-guard | Execution_Frame, Perimeter_Guard; restricted-principal perimeter and execution frame | PUBLIC_FREE_REQUIRED |
 | price-decimal | Price_Validation_Error, Immutable_Price_Value, Price_Decimal | PUBLIC_FREE_REQUIRED |
 | price-operation | Price_Operation, Price_Calculator | PUBLIC_FREE_REQUIRED |
