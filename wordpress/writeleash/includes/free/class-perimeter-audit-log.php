@@ -47,7 +47,8 @@ final class Perimeter_Audit_Log {
 				'object_id' => (int) $object_id,
 				'kind'      => (string) $kind,
 				'detail'    => (string) $detail,
-			);				// REST refusals carry the route in the guard's detail argument;
+			);
+			// REST refusals carry the route in the guard's detail argument;
 			// surface it as its own field when available.
 			if ( 'rest' === $entry['where'] && '' !== $entry['detail'] ) {
 				$entry['route'] = $entry['detail'];
