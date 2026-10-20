@@ -204,4 +204,41 @@ if ( ! $exact ) {
 	}
 }
 
-echo '#211 woo candidate ' . $version . ' @' . substr( $sha, 0, 12 ) . ': ' . count( $expected_headers ) . " headers, version coherence, $entry_count changelog entries with $typed_bullets typed changes, " . count( $entries ) . " allowlisted files, no Woo identifier, no product URL PASS\n";
+// E. Runtime require closure: every file the entry loader pulls in with
+// `require_once __DIR__ . '/…'` must be published by BOTH distribution
+// manifests. A require omitted from the Woo candidate manifest would fatal
+// on activation while the WordPress.org artifact and the production
+// inventory gate stay green; pin the reverse direction here.
+$required_paths = array();
+if ( preg_match_all( "/require_once\s+__DIR__\s*\.\s*'([^']+)'/", $main, $require_matches ) ) {
+	foreach ( $require_matches[1] as $require_path ) {
+		$required_paths[] = ltrim( $require_path, '/' );
+	}
+}
+if ( array() === $required_paths ) {
+	$fail( 'no require_once __DIR__ includes parsed from the entry file' );
+}
+$org_manifest_path = dirname( __DIR__, 2 ) . '/release/writeleash-distribution-files.txt';
+if ( ! is_file( $org_manifest_path ) ) {
+	$fail( 'missing WordPress.org distribution manifest: ' . $org_manifest_path );
+}
+$org_entries = array();
+foreach ( file( $org_manifest_path, FILE_IGNORE_NEW_LINES ) as $org_line ) {
+	if ( '' === $org_line || 0 === strpos( $org_line, '#' ) ) {
+		continue;
+	}
+	$org_entries[] = $org_line;
+}
+if ( array() === $org_entries ) {
+	$fail( 'WordPress.org distribution manifest unreadable: ' . $org_manifest_path );
+}
+foreach ( $required_paths as $required_path ) {
+	if ( ! in_array( $required_path, $entries, true ) ) {
+		$fail( 'runtime require omitted from the Woo candidate manifest: ' . $required_path );
+	}
+	if ( ! in_array( $required_path, $org_entries, true ) ) {
+		$fail( 'runtime require omitted from the WordPress.org manifest: ' . $required_path );
+	}
+}
+
+echo '#211 woo candidate ' . $version . ' @' . substr( $sha, 0, 12 ) . ': ' . count( $expected_headers ) . " headers, version coherence, $entry_count changelog entries with $typed_bullets typed changes, " . count( $entries ) . ' allowlisted files, ' . count( $required_paths ) . " entry requires in both manifests, no Woo identifier, no product URL PASS\n";
