@@ -121,7 +121,7 @@ async function typeSearch(page, field, term) {
    if (js) { eq((await page.locator('#writeleash-free-discovery-status').innerText()).startsWith('[Ü] Direct members'), true, 'JS descendant discovery feedback translated'); }
    await page.locator('#writeleash-free-amount').fill('invalid');
    await clickSubmit(page, page.getByRole('button', {name: longPreview, exact: true}));
-   eq((await page.locator('.notice').first().innerText()).includes('[Ü] Use an unsigned decimal amount string'), true, 'real validation failure translated');
+   eq((await page.locator('.notice[role="alert"]', {hasText: '[Ü] Use an unsigned decimal amount string'}).count()) > 0, true, 'real validation failure translated');
    await page.locator('#writeleash-free-amount').fill('80');
    await clickSubmit(page, page.getByRole('button', {name: longPreview, exact: true}));
    eq((await page.locator('.writeleash-summary').innerText()).includes('[Ü] Selected 2 products:'), true, 'Preview translated plural');
