@@ -2838,3 +2838,163 @@ msgstr ""
 #: includes/free/free-selection.js:100
 msgid "Search is unavailable. Try again, reload if your session expired, or use the native search below."
 msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "WriteLeash Grants"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Grants"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Standing grants leash an agent user to WriteLeash-controlled price writes only. Revoking a grant stops future work but keeps the principal restricted; removing the restriction is a separate action below."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Grant"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Actor"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Issuer"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Status"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Budget (consumed / reserved / max)"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Expires (UTC)"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Version"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Restriction"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Actions"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "No standing grants exist."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Removed"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Restricted"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Revoke"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Issue a standing grant"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Actor user ID"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Budget maximum (1–10000 items)"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Expires (UTC, YYYY-MM-DD HH:MM:SS)"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Must be a future UTC datetime; expired grants stay restricted."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Create grant"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Remove restriction"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Warning: removing the restriction returns this user to ordinary WooCommerce capability rules immediately. The user will be able to edit products, stock and prices like any other editor of their role. Existing grant evidence is retained; this action is audited with the target user ID."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Restricted user ID"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "You are not allowed to manage product grants."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Standing grant created. The actor is now restricted to WriteLeash-controlled price writes."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Grant revoked. The principal stays restricted until the restriction is removed."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Restriction removed. The user returned to ordinary WooCommerce capability rules."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "The restriction was already removed for this user."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "The form session expired. Reload the page and try again."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "The actor must be an existing user other than you."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "The budget must be between 1 and 10000 items."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "The expiry must be a future UTC datetime in YYYY-MM-DD HH:MM:SS format."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "No matching grant or restricted principal was found."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Only the issuing operator or an administrator may manage this grant."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "The grant store is unavailable. Nothing was changed."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "The submitted values are invalid. Nothing was changed."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Grant reference: %s"
+msgstr ""
+
+#: includes/free/class-grant-cli.php
+msgid "Manage WriteLeash standing grants."
+msgstr ""

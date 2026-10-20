@@ -18,6 +18,8 @@ includes/free/class-change-plan.php
 includes/free/class-durable-charset.php
 includes/free/class-free-admin.php
 includes/free/class-free-support-contract.php
+includes/free/class-grant-admin.php
+includes/free/class-grant-cli.php
 includes/free/class-grant-notice.php
 includes/free/class-grant-repository.php
 includes/free/class-grant-schema.php

@@ -38,7 +38,7 @@
     },
     {
       "prefix": "wordpress/writeleash/includes/free/class-",
-      "files": ["job-repository.php", "job-resume-rest.php", "job-scheduler.php", "job-schema.php", "job-state.php", "job-transaction-fence.php", "job-worker.php", "grant-schema.php", "grant-repository.php", "agent-jobs-rest.php"],
+      "files": ["job-repository.php", "job-resume-rest.php", "job-scheduler.php", "job-schema.php", "job-state.php", "job-transaction-fence.php", "job-worker.php", "grant-schema.php", "grant-repository.php", "grant-cli.php", "agent-jobs-rest.php"],
       "gates": ["jobs", "undo", "admin", "acceptance"]
     },
     {
@@ -48,7 +48,7 @@
     },
     {
       "prefix": "wordpress/writeleash/includes/free/class-",
-      "files": ["free-admin.php", "grant-notice.php", "product-discovery.php"],
+      "files": ["free-admin.php", "grant-admin.php", "grant-notice.php", "product-discovery.php"],
       "gates": ["admin", "acceptance"]
     },
     {
