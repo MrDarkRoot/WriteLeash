@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		Perimeter_Guard::boot();
 		Perimeter_Audit_Log::boot();
 		Grant_Notice::boot();
+		Grant_Admin::boot();
+		Grant_CLI::boot();
 		// Action Scheduler 4.0.0 executes WriteLeash-owned wake-ups only.
 		add_action( Job_Scheduler::HOOK, array( Job_Worker::class, 'callback' ), 10, 1 );
 		add_action( Undo_Scheduler::HOOK, array( Undo_Worker::class, 'callback' ), 10, 1 );
