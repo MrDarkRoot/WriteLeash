@@ -28,7 +28,7 @@ from pathlib import Path
 
 CANDIDATE_VERSION = '0.2.0'
 MANIFEST = 'wordpress/release/writeleash-woo-distribution-files.txt'
-EXPECTED_COUNT = 45
+EXPECTED_COUNT = 53
 
 _HERE = Path(__file__).resolve().parent
 _SPEC = importlib.util.spec_from_file_location(
