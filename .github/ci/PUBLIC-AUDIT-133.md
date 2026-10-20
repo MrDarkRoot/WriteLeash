@@ -37,7 +37,7 @@ were created 2026-10-02 at 12:25 UTC. Matrix sums count every runner separately.
 | wordpress-woo-journal.yml | PR + push main; wordpress/**, own workflow | 1 × 1 | 35 | 329 / 37006546598 | journal transcript / 7d | #108 durable journal/crash/cache/concurrency | CODE_INTEGRATION + RELEASE_FULL |
 | wordpress-woo-jobs.yml | PR + push main; wordpress/**, own workflow | 1 × 1 | 75 | 432 / 37006546660 | jobs transcript / 7d | #109 leases/scheduling/crash/recovery | CODE_INTEGRATION + RELEASE_FULL |
 | wordpress-woo-undo.yml | PR + push main; wordpress/**, own workflow | 1 × 1 | 75 | 687 / 37006546593 | Undo transcript / 7d | #110 eligibility/conflicts/races/retention | CODE_INTEGRATION + RELEASE_FULL |
-| wordpress-woo-admin.yml | PR + push main; wordpress/**, own workflow | 1 × 1 | 75 | 196 / 37006546541 | Admin transcript / 7d | #111 authenticated actual Admin journey | CODE_INTEGRATION + RELEASE_FULL |
+| wordpress-woo-admin.yml | PR + push main; wordpress/**, own workflow | 1 × 1 | 120 | 196 / 37006546541 | Admin transcript / 7d | #111 authenticated actual Admin journey | CODE_INTEGRATION + RELEASE_FULL |
 | wordpress-woo-acceptance.yml | PR + push main; wordpress/**, own workflow | 1 × 7 profiles | 75 | 972,1688,548,593,110,568,652 = **5131** / 37006546628 | per-profile SHA-stamped JSON, measurements, diagnostics/transcript / 30d | #112 seven-profile/two-engine acceptance, Redis, limits/recovery | RELEASE_FULL + approved direct #112 changes |
 
 Baseline: **13 workflow definitions, 13 logical jobs, 20 expanded jobs**.
