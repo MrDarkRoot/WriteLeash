@@ -34,7 +34,7 @@ final class Grant_Notice {
 			if ( ! class_exists( Grant_Repository::class, false ) || ! Grant_Repository::is_disabled() ) {
 				return;
 			}
-			echo '<div class="notice notice-warning"><p>' . esc_html__( 'WriteLeash: restricted price writes are currently disabled by the kill-switch.', 'writeleash' ) . '</p></div>';
+			echo '<div class="notice notice-warning" role="alert"><p>' . esc_html__( 'WriteLeash: restricted price writes are currently disabled by the kill-switch.', 'writeleash' ) . '</p></div>';
 		} catch ( \Throwable $ignored ) {
 			// A broken notice must never break the admin screen.
 		}
