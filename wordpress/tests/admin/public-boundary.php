@@ -21,7 +21,7 @@ global $wp_filter, $menu, $submenu, $wpdb;
 $allowed_callbacks = array( 'WriteLeash\\Lifecycle', 'WriteLeash\\Free_Admin', 'WriteLeash\\Product_Discovery',
 	'WriteLeash\\Job_Resume_Rest', 'WriteLeash\\Agent_Jobs_Rest', 'WriteLeash\\Undo_Rest', 'WriteLeash\\Job_Worker',
 	'WriteLeash\\Undo_Worker', 'WriteLeash\\Undo_Scheduler', 'WriteLeash\\Perimeter_Guard',
-	'WriteLeash\\Perimeter_Audit_Log', 'WriteLeash\\Grant_Notice' );
+	'WriteLeash\\Perimeter_Audit_Log', 'WriteLeash\\Grant_Notice', 'WriteLeash\\Grant_Admin' );
 $observed = array();
 $guard_hooks = array();
 foreach ( $wp_filter as $hook => $registered ) {
@@ -57,6 +57,12 @@ wl120_assert( false === has_action( 'admin_post_writeleash_action' ), 'legacy pr
 foreach ( array( 'preview', 'approve', 'resume', 'undo' ) as $action ) {
 	wl120_assert( false !== has_action( 'admin_post_writeleash_free_' . $action ), 'Free Admin ' . $action . ' booted' );
 }
+// #309: the grant surface registers exactly the three mutation actions;
+// listing is a page render, never an admin_post action.
+foreach ( array( 'create', 'revoke', 'remove' ) as $action ) {
+	wl120_assert( false !== has_action( 'admin_post_writeleash_grant_' . $action ), 'Grant Admin ' . $action . ' booted' );
+}
+wl120_assert( false === has_action( 'admin_post_writeleash_grant_list' ), 'grant listing is a page render, not an admin_post action' );
 foreach ( array( 'writeleash_process_job', 'writeleash_process_undo', 'writeleash_retention_purge' ) as $hook ) {
 	wl120_assert( false !== has_action( $hook ), 'owned scheduler callback ' . $hook );
 }
@@ -68,6 +74,7 @@ $menu = is_array( $menu ) ? $menu : array();
 $submenu = is_array( $submenu ) ? $submenu : array();
 do_action( 'admin_menu' );
 $bulk_prices = false;
+$grant_admin_page = false;
 foreach ( (array) $submenu as $parent => $pages ) {
 	foreach ( $pages as $page ) {
 		wl120_assert( 'writeleash' !== $page[2] && false === strpos( (string) $page[0], 'WriteLeash Advanced' ), 'Tools Advanced absent' );
@@ -75,9 +82,14 @@ foreach ( (array) $submenu as $parent => $pages ) {
 			wl120_assert( 'edit.php?post_type=product' === $parent && 'Bulk Prices' === $page[0], 'Woo Products placement' );
 			$bulk_prices = true;
 		}
+		if ( 'writeleash-grants' === $page[2] ) {
+			wl120_assert( 'edit.php?post_type=product' === $parent && 'Grants' === $page[0], 'Products → Grants placement' );
+			$grant_admin_page = true;
+		}
 	}
 }
 wl120_assert( $bulk_prices, 'Products → Bulk Prices exists' );
+wl120_assert( $grant_admin_page, 'Products → Grants exists' );
 $routes = rest_get_server()->get_routes();
 $public_routes = array();
 foreach ( $routes as $route => $handlers ) {
@@ -86,7 +98,15 @@ foreach ( $routes as $route => $handlers ) {
 	$public_routes[] = $route;
 }
 wl120_assert( 3 === count( $public_routes ), 'resume, Undo, and grant submission routes registered' );
-wl120_assert( ! isset( WP_CLI::get_root_command()->get_subcommands()['writeleash'] ), 'legacy CLI namespace absent' );
+// #309: the grant CLI namespace is registered in the runtime boot; the
+// legacy Product_CLI subcommands stay absent from it.
+$writeleash_cli = WP_CLI::get_root_command()->get_subcommands()['writeleash'] ?? null;
+wl120_assert( $writeleash_cli instanceof \WP_CLI\Dispatcher\CompositeCommand, 'grant CLI namespace registered' );
+$writeleash_cli_subcommands = $writeleash_cli->get_subcommands();
+wl120_assert( isset( $writeleash_cli_subcommands['grant'] ), 'grant subcommand group registered' );
+foreach ( array( 'status', 'doctor', 'demo' ) as $legacy_cli ) {
+	wl120_assert( ! isset( $writeleash_cli_subcommands[ $legacy_cli ] ), 'legacy CLI subcommand absent: ' . $legacy_cli );
+}
 wl120_assert( ! is_file( WP_PLUGIN_DIR . '/writeleash/operator-setup.txt' ), 'operator guide absent' );
 wl120_assert( 0 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE()' ), 'no trigger setup' );
 wl120_assert( 0 === (int) $wpdb->get_var( 'SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA=DATABASE()' ), 'no routine setup' );

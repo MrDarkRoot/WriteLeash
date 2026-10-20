@@ -51,6 +51,7 @@ for host in mysql mariadb; do
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/recovery-integration.php
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/repeat-integration.php
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/presets-repeat-integration.php
+    WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/grant-admin-integration.php
     sh /opt/tests/jobs/unicode-run.sh "$host" "$cache" /opt/wp-core /opt/woo-zips
     WL111_CACHE="$cache" wp --path="$site" eval-file /opt/tests/admin/sql-audit.php
     WL111_CACHE="$cache" WL111_BASE_URL=http://127.0.0.1:8080 WL111_ADMIN_PASSWORD=disposable_admin_password wp --path="$site" eval-file /opt/tests/admin/browser-e2e.php
@@ -64,6 +65,7 @@ for host in mysql mariadb; do
       nonce_run=$((nonce_run + 1))
     done
   done
+  bash /opt/tests/admin/grant-cli.sh "$site"
   kill "$web_pid"
   php /opt/tests/release/source-audit.php "$site/wp-content/plugins/writeleash"
   php /opt/tests/release/debug-audit.php "$site/wp-content/debug.log" "$host"
