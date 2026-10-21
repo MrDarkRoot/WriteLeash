@@ -405,6 +405,9 @@ final class Grant_Repository {
 			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
 			throw $error instanceof Grant_Error ? $error : new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
 		} finally { if ( $tx ) { $tx->rollback(); } }
+		// A new unstamped row re-imposes the restriction; the per-request
+		// predicate cache must never serve a pre-grant verdict afterwards.
+		self::$restricted_cache = array();
 		$grant = self::read_by_public_id( $public_id );
 		if ( ! $grant ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 		return $grant;
