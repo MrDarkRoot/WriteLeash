@@ -444,6 +444,10 @@ file_put_contents( $pause_worker['spec']['release'], 'go' );
 finish_worker( $pause_worker );
 $pause_disable = finish_worker( $pause_proc );
 eq( $pause_disable['disabled'], true, 'pause committed after the in-flight item' );
+// The default object cache is per-process and the pause ran in a separate
+// process; refresh this process's option cache before reading the kill-switch.
+wp_cache_delete( GSchema::DISABLE_OPTION, 'options' );
+wp_cache_delete( 'alloptions', 'options' );
 eq( Grants::is_disabled(), true, 'pause durable after serialization' );
 eq( saves( $pause_ids[0] ), 1, 'in-flight item finished exactly once under pause' );
 eq( fresh_price( $pause_ids[0] ), '80.00', 'in-flight item reached its frozen target' );
