@@ -45,12 +45,26 @@ function ensure_users(): array {
 }
 
 eq( get_bloginfo( 'version' ), '7.1.2', 'pinned WordPress' );
-ok( GSchema::ready( $wpdb ), 'grant schema ready (marker column present)' );
 $users = ensure_users();
 $remover = $users['remover'];
 $agent = $users['agent'];
 $bystander = $users['bystander'];
 $bare = $users['bare'];
+
+// ---------------------------------------------------------------------------
+// Simulated v1 store: the marker column is dropped and the stored version
+// pinned back. The first grant operation must upgrade the store in place.
+// ---------------------------------------------------------------------------
+$grants_table = GSchema::grants_table( $wpdb );
+$wpdb->query( "ALTER TABLE {$grants_table} DROP COLUMN restriction_removed_at" );
+update_option( GSchema::OPTION, 1 );
+ok( GSchema::ready( $wpdb ) === false, 'v1 store is not ready for the v2 predicate' );
+wp_set_current_user( $remover );
+$grant_upgrade = Grants::create_grant( $remover, $agent, 5, future_expiry() );
+ok( GSchema::ready( $wpdb ), 'first grant operation upgraded the v1 store in place' );
+eq( (int) get_option( GSchema::OPTION ), GSchema::SCHEMA_VERSION, 'stored schema version upgraded' );
+ok( Grants::is_restricted_actor( $agent ), 'grant issued through the upgrade restricts the actor' );
+marker( 'v1 to v2 in-place migration' );
 
 // A standing grant makes the agent a restricted principal.
 wp_set_current_user( $remover );
