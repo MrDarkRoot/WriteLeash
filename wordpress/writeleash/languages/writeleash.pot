@@ -2994,7 +2994,3 @@ msgstr ""
 #: includes/free/class-grant-admin.php
 msgid "Grant reference: %s"
 msgstr ""
-
-#: includes/free/class-grant-cli.php
-msgid "Manage WriteLeash standing grants."
-msgstr ""

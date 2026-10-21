@@ -6,7 +6,9 @@
 set -euo pipefail
 site=$1
 wp() { command wp --path="$site" "$@"; }
-future() { date -u -d '+1 day' '+%Y-%m-%d %H:%M:%S'; }
+# busybox date (Alpine tester image) rejects GNU relative dates; PHP is the
+# portable UTC clock here.
+future() { php -r 'echo gmdate("Y-m-d H:i:s", time() + 86400);'; }
 expect_fail() {
   local label=$1
   shift

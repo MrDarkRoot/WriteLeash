@@ -15,11 +15,11 @@ final class Grant_CLI_Namespace {
 
 /**
  * #309 operator grant management over WP-CLI: `wp writeleash grant
- * list|create|revoke`. Every subcommand requires --user=<operator id> and
- * never bypasses Grant_Repository::is_authenticated_self: without --user, or
- * with a user WP-CLI could not authenticate, the current principal stays
- * anonymous and every command refuses. No new capability; the repository
- * re-checks manage_woocommerce + edit_products on every mutation.
+ * list|create|revoke`. Every subcommand requires an authenticated --user
+ * operator and never bypasses Grant_Repository::is_authenticated_self:
+ * without --user the current principal stays anonymous and every command
+ * refuses. No new capability; the repository re-checks
+ * manage_woocommerce + edit_products on every mutation.
  *
  * Registered in the runtime boot (CLI contexts only), never by test loaders.
  *
@@ -34,26 +34,29 @@ final class Grant_CLI {
 		// command does not exist, which would silently unregister the surface.
 		\WP_CLI::add_command( 'writeleash', Grant_CLI_Namespace::class );
 		// The shortdesc forces eager registration so the reviewed boundary can
-		// inspect the registered namespace in the same process.
-		\WP_CLI::add_command( 'writeleash grant', Grant_CLI::class, array( 'shortdesc' => __( 'Manage WriteLeash standing grants.', 'writeleash' ) ) );
+		// inspect the registered namespace in the same process. It stays
+		// untranslated on purpose: a boot-time __() call would trigger
+		// just-in-time translation loading before init on every wp/wp-admin
+		// request.
+		\WP_CLI::add_command( 'writeleash grant', Grant_CLI::class, array( 'shortdesc' => 'Manage WriteLeash standing grants.' ) );
 	}
 
 	/**
-	 * Resolve the authenticated operator from the explicit --user argument.
-	 * Possession of an id proves nothing: an absent flag, a zero/negative id,
-	 * an unknown id and a mismatch with the WP-CLI-applied principal all
+	 * Resolve the authenticated operator for the running command. --user is a
+	 * global WP-CLI parameter: it is applied to the process principal during
+	 * bootstrap and is not reliably mirrored into the command arguments, so
+	 * the applied principal is the authority and an explicit --user value in
+	 * the arguments must match it. Possession of an id proves nothing: an
+	 * absent flag, a zero/negative id, an unknown id and a mismatch all
 	 * refuse before any capability is considered; the product-management
 	 * capability pair is re-checked exactly like the admin surface.
 	 */
 	private static function operator( array $assoc_args ): int {
 		$raw = $assoc_args['user'] ?? null;
-		if ( ( ! is_string( $raw ) && ! is_int( $raw ) ) || '' === trim( (string) $raw ) ) {
+		$claimed = is_numeric( (string) $raw ) ? (int) $raw : (int) get_current_user_id();
+		if ( $claimed < 1 ) {
 			\WP_CLI::error( 'writeleash grant requires --user=<operator id>; refusing to act without an authenticated operator.' );
 		}
-		if ( ! is_numeric( (string) $raw ) || (int) $raw < 1 ) {
-			\WP_CLI::error( 'writeleash grant --user must be a positive operator user id.' );
-		}
-		$claimed = (int) $raw;
 		if ( ! Grant_Repository::is_authenticated_self( $claimed ) ) {
 			\WP_CLI::error( 'PERMISSION_DENIED: --user must be the authenticated WP-CLI principal.' );
 		}
