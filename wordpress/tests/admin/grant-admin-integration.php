@@ -69,7 +69,9 @@ wp_set_current_user( $operator );
 eq( Admin::process_create( $post, 'GET' ), array( 'status' => 'INVALID', 'reason' => 'post_required' ), 'GET create is refused' );
 eq( Admin::process_create( array( '_wpnonce' => 'tampered' ) + $post, 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' ), 'forged nonce is refused' );
 eq( Admin::process_create( array_diff_key( $post, array( '_wpnonce' => '' ) ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' ), 'missing nonce is refused' );
+wp_set_current_user( 1 );
 eq( Admin::process_remove( array( '_wpnonce' => nonce( Admin::ACTION_CREATE ), 'actor' => (string) $agent ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' ), 'action-crossed nonce is refused' );
+wp_set_current_user( $operator );
 ok( Grants::is_restricted_actor( $agent ) === false, 'gate matrix issued no grant' );
 marker( 'capability+nonce gate matrix' );
 
