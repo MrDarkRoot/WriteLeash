@@ -79,7 +79,7 @@ inventory (multi-class files included):
 | grant-schema | Grant_Schema, Grant_Error | PUBLIC_FREE_REQUIRED |
 | grant-notice | Grant_Notice; passive admin_notices surface for the fail-closed grant kill-switch, no state flip | PUBLIC_FREE_REQUIRED |
 | grant-admin | Grant_Admin; #309 nonce-gated operator grant listing/create/revoke and the separate remove-restriction action, no new capability | PUBLIC_FREE_REQUIRED |
-| grant-cli | Grant_CLI; #309 `wp writeleash grant list/create/revoke`, fail-closed without the authenticated --user operator | PUBLIC_FREE_REQUIRED |
+| grant-cli | Grant_CLI_Namespace (writeleash WP-CLI container), Grant_CLI; #309 `wp writeleash grant list/create/revoke`, fail-closed without the authenticated --user operator | PUBLIC_FREE_REQUIRED |
 | grant-repository | Grant_Repository | PUBLIC_FREE_REQUIRED |
 | perimeter-audit-log | Perimeter_Audit_Log; JSON denial audit listener on writeleash_perimeter_denied, never alters a denial | PUBLIC_FREE_REQUIRED |
 | perimeter-guard | Execution_Frame, Perimeter_Guard; restricted-principal perimeter and execution frame | PUBLIC_FREE_REQUIRED |

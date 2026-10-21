@@ -4,6 +4,16 @@ namespace WriteLeash;
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * #309 WP-CLI container for the `writeleash` command namespace. Registered
+ * before the grant leaf so the nested `writeleash grant` registration has a
+ * material parent; it intentionally declares no subcommands of its own.
+ *
+ * @package WriteLeash
+ */
+final class Grant_CLI_Namespace {
+}
+
+/**
  * #309 operator grant management over WP-CLI: `wp writeleash grant
  * list|create|revoke`. Every subcommand requires --user=<operator id> and
  * never bypasses Grant_Repository::is_authenticated_self: without --user, or
@@ -19,6 +29,10 @@ final class Grant_CLI {
 
 	public static function boot(): void {
 		if ( ! defined( 'WP_CLI' ) || ! WP_CLI || ! class_exists( 'WP_CLI' ) ) { return; }
+		// The namespace container must be material before the nested leaf:
+		// WP-CLI defers a nested registration indefinitely when the parent
+		// command does not exist, which would silently unregister the surface.
+		\WP_CLI::add_command( 'writeleash', Grant_CLI_Namespace::class );
 		// The shortdesc forces eager registration so the reviewed boundary can
 		// inspect the registered namespace in the same process.
 		\WP_CLI::add_command( 'writeleash grant', Grant_CLI::class, array( 'shortdesc' => __( 'Manage WriteLeash standing grants.', 'writeleash' ) ) );
