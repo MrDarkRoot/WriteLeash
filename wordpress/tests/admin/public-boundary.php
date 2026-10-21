@@ -57,9 +57,9 @@ wl120_assert( false === has_action( 'admin_post_writeleash_action' ), 'legacy pr
 foreach ( array( 'preview', 'approve', 'resume', 'undo' ) as $action ) {
 	wl120_assert( false !== has_action( 'admin_post_writeleash_free_' . $action ), 'Free Admin ' . $action . ' booted' );
 }
-// #309: the grant surface registers exactly the three mutation actions;
+// #309/#308: the grant surface registers exactly the six mutation actions;
 // listing is a page render, never an admin_post action.
-foreach ( array( 'create', 'revoke', 'remove' ) as $action ) {
+foreach ( array( 'create', 'revoke', 'remove', 'disable', 'enable', 'revoke_all' ) as $action ) {
 	wl120_assert( false !== has_action( 'admin_post_writeleash_grant_' . $action ), 'Grant Admin ' . $action . ' booted' );
 }
 wl120_assert( false === has_action( 'admin_post_writeleash_grant_list' ), 'grant listing is a page render, not an admin_post action' );
@@ -104,6 +104,13 @@ $writeleash_cli = WP_CLI::get_root_command()->get_subcommands()['writeleash'] ??
 wl120_assert( $writeleash_cli instanceof \WP_CLI\Dispatcher\CompositeCommand, 'grant CLI namespace registered' );
 $writeleash_cli_subcommands = $writeleash_cli->get_subcommands();
 wl120_assert( isset( $writeleash_cli_subcommands['grant'] ), 'grant subcommand group registered' );
+$grant_cli = $writeleash_cli_subcommands['grant'];
+wl120_assert( $grant_cli instanceof \WP_CLI\Dispatcher\CompositeCommand, 'grant leaf is a composite command' );
+$grant_cli_subcommands = $grant_cli->get_subcommands();
+foreach ( array( 'list', 'create', 'revoke', 'disable', 'enable' ) as $grant_cli_command ) {
+	wl120_assert( isset( $grant_cli_subcommands[ $grant_cli_command ] ), 'grant CLI subcommand registered: ' . $grant_cli_command );
+}
+wl120_assert( ! isset( $grant_cli_subcommands['remove'] ), 'remove restriction is not a CLI subcommand' );
 foreach ( array( 'status', 'doctor', 'demo' ) as $legacy_cli ) {
 	wl120_assert( ! isset( $writeleash_cli_subcommands[ $legacy_cli ] ), 'legacy CLI subcommand absent: ' . $legacy_cli );
 }

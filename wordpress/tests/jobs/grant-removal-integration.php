@@ -12,6 +12,12 @@ use WriteLeash\Grant_Schema as GSchema;
 
 global $wpdb, $assertions;
 $assertions = 0;
+// #308 audit-store fault injection: the production seam may throw for the
+// named event so revoke-all's whole-batch rollback is provable.
+$GLOBALS['wl308_audit_fault'] = null;
+add_action( 'writeleash_grant_audit_before_insert', function ( $event ) {
+	if ( ( $GLOBALS['wl308_audit_fault'] ?? null ) === $event ) { throw new RuntimeException( 'controlled-audit-fault' ); }
+} );
 
 function eq( $actual, $expected, string $label ): void {
 	global $assertions;
@@ -29,6 +35,22 @@ function audit_rows( int $actor_id ): array {
 	$table = GSchema::audit_table( $wpdb );
 	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE event='GRANT_RESTRICTION_REMOVED' AND actor_id=%d ORDER BY id ASC", $actor_id ), ARRAY_A );
 	return is_array( $rows ) ? $rows : array();
+}
+function grant_audit_rows( string $public_id ): array {
+	global $wpdb;
+	$grant = Grants::read_by_public_id( $public_id );
+	if ( ! $grant ) { return array(); }
+	$table = GSchema::audit_table( $wpdb );
+	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE grant_db_id=%d ORDER BY id ASC", (int) $grant['id'] ), ARRAY_A );
+	return is_array( $rows ) ? $rows : array();
+}
+function active_grant_count(): int {
+	global $wpdb;
+	return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE status=%s', GSchema::grants_table( $wpdb ), 'active' ) );
+}
+function audit_count(): int {
+	global $wpdb;
+	return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', GSchema::audit_table( $wpdb ) ) );
 }
 function ensure_users(): array {
 	$ids = array();
@@ -153,4 +175,100 @@ eq( (string) $revoked['status'], 'revoked', 'revoke persisted' );
 ok( Grants::is_restricted_actor( $agent ) === true, 'revoked grant keeps the principal restricted' );
 marker( 'later grant re-imposes; revocation is not removal' );
 
-echo "#309 grant removal marker gate: PASS ($assertions assertions)\n";
+// ---------------------------------------------------------------------------
+// #308 emergency revoke-all: one transaction, per-grant CAS, one audit row
+// per grant, idempotent on zero active, and never an un-leash.
+// ---------------------------------------------------------------------------
+wp_set_current_user( $remover );
+$bulk_a = Grants::create_grant( $remover, $agent, 5, future_expiry() );
+$bulk_b = Grants::create_grant( $remover, $bystander, 5, future_expiry() );
+$bulk_a_before = Grants::read_by_public_id( (string) $bulk_a['public_id'] );
+$bulk_b_before = Grants::read_by_public_id( (string) $bulk_b['public_id'] );
+$bulk_a_audit = count( grant_audit_rows( (string) $bulk_a['public_id'] ) );
+$bulk_b_audit = count( grant_audit_rows( (string) $bulk_b['public_id'] ) );
+$active_before = active_grant_count();
+$audit_before = audit_count();
+$revoked_count = Grants::revoke_all( $remover );
+eq( $revoked_count, $active_before, 'revoke-all returns exactly the active set size' );
+ok( $revoked_count >= 2, 'revoke-all covers multiple active grants' );
+eq( active_grant_count(), 0, 'revoke-all leaves zero active grants' );
+eq( audit_count(), $audit_before + $revoked_count, 'one audit row per revoked grant in the batch' );
+foreach ( array( array( $bulk_a, $bulk_a_before, $bulk_a_audit ), array( $bulk_b, $bulk_b_before, $bulk_b_audit ) ) as $fixture ) {
+	list( $created, $before_row, $before_audit ) = $fixture;
+	$row = Grants::read_by_public_id( (string) $created['public_id'] );
+	eq( (string) $row['status'], 'revoked', 'bulk grant is revoked' );
+	eq( (string) $row['revoke_reason'], Grants::EMERGENCY_REVOKE_REASON, 'bulk grant records EMERGENCY_REVOKE_ALL' );
+	ok( null !== $row['revoked_at'], 'bulk grant records revoked_at' );
+	eq( (int) $row['version'], (int) $before_row['version'] + 1, 'bulk grant version bumped exactly once' );
+	$rows = grant_audit_rows( (string) $created['public_id'] );
+	eq( count( $rows ), $before_audit + 1, 'exactly one audit row appended for the grant' );
+	$last = $rows[ count( $rows ) - 1 ];
+	eq( (string) $last['event'], 'GRANT_REVOKED', 'bulk audit event is a revocation' );
+	$details = json_decode( (string) $last['details'], true );
+	eq( (string) ( $details['reason'] ?? '' ), Grants::EMERGENCY_REVOKE_REASON, 'bulk audit carries the emergency reason' );
+	eq( (int) ( $details['revoker_id'] ?? 0 ), $remover, 'bulk audit carries the operator id' );
+	ok( ! empty( $details['bulk'] ), 'bulk audit marks the batch' );
+}
+ok( Grants::is_restricted_actor( $agent ), 'revoke-all leaves the agent restricted' );
+ok( Grants::is_restricted_actor( $bystander ), 'revoke-all leaves the bystander restricted' );
+ok( Grants::restriction_removed( $agent ) === false, 'revoke-all never stamps the removal marker' );
+$total_after = audit_count();
+$repeat = Grants::revoke_all( $remover );
+eq( $repeat, 0, 'zero-active revoke-all is a no-op' );
+eq( audit_count(), $total_after, 'zero-active revoke-all writes no audit' );
+eq( (int) Grants::read_by_public_id( (string) $bulk_a['public_id'] )['version'], (int) $bulk_a_before['version'] + 1, 'zero-active revoke-all does not bump versions' );
+marker( 'revoke-all CAS/audit/no un-leash and idempotence' );
+
+// Capability gate: anonymous and capability-less operators mutate nothing.
+wp_set_current_user( 0 );
+try { Grants::revoke_all( 0 ); ok( false, 'anonymous revoke-all refused' ); }
+catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'PERMISSION_DENIED', 'anonymous revoke-all refused with PERMISSION_DENIED' ); }
+wp_set_current_user( $bare );
+try { Grants::revoke_all( $bare ); ok( false, 'capability-less revoke-all refused' ); }
+catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'PERMISSION_DENIED', 'capability-less revoke-all refused' ); }
+wp_set_current_user( $remover );
+eq( active_grant_count(), 0, 'refused revoke-all calls mutated nothing' );
+marker( 'revoke-all capability gate' );
+
+// Audit failure rolls back every grant transition in the batch.
+$fail_a = Grants::create_grant( $remover, $agent, 5, future_expiry() );
+$fail_b = Grants::create_grant( $remover, $bystander, 5, future_expiry() );
+$fail_a_before = Grants::read_by_public_id( (string) $fail_a['public_id'] );
+$fail_b_before = Grants::read_by_public_id( (string) $fail_b['public_id'] );
+$audit_before = audit_count();
+$GLOBALS['wl308_audit_fault'] = 'GRANT_REVOKED';
+try { Grants::revoke_all( $remover ); ok( false, 'audit failure must roll the batch back' ); }
+catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'GRANT_STORE_UNAVAILABLE', 'audit failure fails closed' ); }
+$GLOBALS['wl308_audit_fault'] = null;
+eq( active_grant_count(), 2, 'audit failure left both fixture grants active' );
+eq( (int) Grants::read_by_public_id( (string) $fail_a['public_id'] )['version'], (int) $fail_a_before['version'], 'audit failure did not bump the first version' );
+eq( (int) Grants::read_by_public_id( (string) $fail_b['public_id'] )['version'], (int) $fail_b_before['version'], 'audit failure did not bump the second version' );
+eq( (string) Grants::read_by_public_id( (string) $fail_a['public_id'] )['status'], 'active', 'audit failure kept the first grant active' );
+eq( audit_count(), $audit_before, 'audit failure appended no evidence' );
+$cleanup = Grants::revoke_all( $remover );
+ok( $cleanup >= 2, 'cleanup revoke-all covers the fixtures' );
+eq( active_grant_count(), 0, 'cleanup leaves zero active grants' );
+marker( 'revoke-all audit-in-transaction rollback' );
+
+// Cache discipline: revoke-all must not clear the restricted-principal cache.
+// Simulate an external removal stamping every row while the request cache is
+// primed, then revoke the still-active grant. The cached restricted verdict
+// must survive; only remove_restriction() clears it.
+wp_set_current_user( $remover );
+$cache_grant = Grants::create_grant( $remover, $manager, 5, future_expiry() );
+ok( Grants::is_restricted_actor( $manager ), 'cache probe primed as restricted' );
+$wpdb->query( $wpdb->prepare( 'UPDATE %i SET restriction_removed_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE actor_id=%d', GSchema::grants_table( $wpdb ), $manager ) );
+ok( Grants::restriction_removed( $manager ) === true, 'cache probe simulated an external removal' );
+$cache_revoked = Grants::revoke_all( $remover );
+ok( $cache_revoked >= 1, 'cache probe revoked the active grant' );
+ok( Grants::is_restricted_actor( $manager ) === true, 'revoke-all did not clear the restricted cache' );
+// Test-only cleanup: clear the request memo so this process does not carry
+// the simulated stale verdict into any later assertion. The durable marker
+// (not this cleanup) is the store truth.
+$cache_prop = new ReflectionProperty( Grants::class, 'restricted_cache' );
+$cache_prop->setAccessible( true );
+$cache_prop->setValue( null, array() );
+ok( Grants::is_restricted_actor( $manager ) === false, 'the simulated removal is durable in the store' );
+marker( 'revoke-all preserves the restricted-principal cache' );
+
+echo "#309/#308 grant removal marker gate: PASS ($assertions assertions)\n";

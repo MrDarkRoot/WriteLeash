@@ -14,12 +14,13 @@ final class Grant_CLI_Namespace {
 }
 
 /**
- * #309 operator grant management over WP-CLI: `wp writeleash grant
- * list|create|revoke`. Every subcommand requires an authenticated --user
- * operator and never bypasses Grant_Repository::is_authenticated_self:
- * without --user the current principal stays anonymous and every command
- * refuses. No new capability; the repository re-checks
- * manage_woocommerce + edit_products on every mutation.
+ * #309/#308 operator grant management over WP-CLI: `wp writeleash grant
+ * list|create|revoke|disable|enable`, including `revoke --all`. Every
+ * subcommand requires an authenticated --user operator and never bypasses
+ * Grant_Repository::is_authenticated_self: without --user the current
+ * principal stays anonymous and every command refuses. No new capability;
+ * the repository re-checks manage_woocommerce + edit_products on every
+ * mutation.
  *
  * Registered in the runtime boot (CLI contexts only), never by test loaders.
  *
@@ -111,9 +112,48 @@ final class Grant_CLI {
 		\WP_CLI::success( 'grant ' . (string) $grant['public_id'] . ' created for actor #' . $actor_id . ' (budget ' . (int) $grant['budget_max'] . ', expires ' . (string) $grant['expires_at'] . ' UTC).' );
 	}
 
-	/** Revoke one standing grant by public id; the principal stays restricted. */
+	/** #308 pause restricted (grant-bound) execution. */
+	public function disable( array $args, array $assoc_args ): void {
+		unset( $args );
+		$operator_id = self::operator( $assoc_args );
+		try {
+			Grant_Repository::disable( $operator_id );
+		} catch ( \Throwable $error ) {
+			\WP_CLI::error( $error instanceof Grant_Error ? $error->reason() : 'GRANT_STORE_UNAVAILABLE' );
+		}
+		\WP_CLI::success( 'restricted execution paused; grant-bound writes are denied and principals stay restricted.' );
+	}
+
+	/** #308 resume restricted execution (explicit '0'). */
+	public function enable( array $args, array $assoc_args ): void {
+		unset( $args );
+		$operator_id = self::operator( $assoc_args );
+		try {
+			Grant_Repository::enable( $operator_id );
+		} catch ( \Throwable $error ) {
+			\WP_CLI::error( $error instanceof Grant_Error ? $error->reason() : 'GRANT_STORE_UNAVAILABLE' );
+		}
+		\WP_CLI::success( 'restricted execution resumed; grant-bound writes are allowed.' );
+	}
+
+	/**
+	 * Revoke one standing grant by public id, or every active grant with
+	 * --all. The principal stays restricted in both cases.
+	 */
 	public function revoke( array $args, array $assoc_args ): void {
 		$operator_id = self::operator( $assoc_args );
+		if ( ! empty( $assoc_args['all'] ) ) {
+			if ( isset( $args[0] ) && '' !== trim( (string) $args[0] ) ) {
+				\WP_CLI::error( 'Use either a grant public id or --all, not both.' );
+			}
+			try {
+				$revoked = Grant_Repository::revoke_all( $operator_id );
+			} catch ( \Throwable $error ) {
+				\WP_CLI::error( $error instanceof Grant_Error ? $error->reason() : 'GRANT_STORE_UNAVAILABLE' );
+			}
+			\WP_CLI::success( 0 === $revoked ? 'no active grants; nothing revoked.' : $revoked . ' active grant(s) revoked; principals stay restricted.' );
+			return;
+		}
 		$public_id = isset( $args[0] ) && is_string( $args[0] ) ? trim( $args[0] ) : '';
 		try {
 			$grant = Grant_Repository::revoke( $public_id, $operator_id );

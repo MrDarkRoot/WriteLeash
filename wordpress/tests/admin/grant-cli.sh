@@ -37,6 +37,12 @@ expect_fail 'nonexistent actor create' writeleash grant create "--user=$operator
 expect_fail 'zero budget create' writeleash grant create "--user=$operator_id" "--actor=$agent_id" --budget=0 "--expires=$(future)"
 expect_fail 'past expiry create' writeleash grant create "--user=$operator_id" "--actor=$agent_id" --budget=1 '--expires=2000-01-01 00:00:00'
 expect_fail 'revoke without --user' writeleash grant revoke 00000000-0000-0000-0000-000000000000
+expect_fail 'disable without --user' writeleash grant disable
+expect_fail 'enable without --user' writeleash grant enable
+expect_fail 'revoke --all without --user' writeleash grant revoke --all
+expect_fail 'disable with unknown --user' writeleash grant disable --user=99999999
+expect_fail 'enable with capability-less --user' writeleash grant enable "--user=$spectator_id"
+expect_fail 'revoke --all with capability-less --user' writeleash grant revoke --all "--user=$spectator_id"
 
 # Happy path: create, list, revoke — with the authenticated operator.
 created=$(wp writeleash grant create "--user=$operator_id" "--actor=$agent_id" --budget=3 "--expires=$(future)")
@@ -48,4 +54,29 @@ wp writeleash grant list "--user=$operator_id" --format=csv | grep -q "^$public_
 wp writeleash grant revoke "$public_id" "--user=$operator_id" >/tmp/wl309-cli-revoke.out
 grep -q 'revoked' /tmp/wl309-cli-revoke.out
 wp writeleash grant list "--user=$operator_id" --format=csv | grep -q "^$public_id,$agent_id,$operator_id,revoked,"
-echo '#309 CLI gate: list/create/revoke authenticated, every refusal fail-closed: PASS'
+
+# #308 emergency controls through the same authenticated operator gate.
+wp writeleash grant disable "--user=$operator_id" >/tmp/wl308-cli-disable.out
+grep -q 'paused' /tmp/wl308-cli-disable.out
+test "$(wp option get writeleash_grants_disabled)" = "1"
+test "$(wp eval 'echo WriteLeash\Grant_Repository::is_disabled() ? "1" : "0";')" = "1"
+wp writeleash grant enable "--user=$operator_id" >/tmp/wl308-cli-enable.out
+grep -q 'resumed' /tmp/wl308-cli-enable.out
+test "$(wp option get writeleash_grants_disabled)" = "0"
+test "$(wp eval 'echo WriteLeash\Grant_Repository::is_disabled() ? "1" : "0";')" = "0"
+
+bulk_a=$(wp writeleash grant create "--user=$operator_id" "--actor=$agent_id" --budget=1 "--expires=$(future)")
+bulk_b=$(wp writeleash grant create "--user=$operator_id" "--actor=$spectator_id" --budget=1 "--expires=$(future)")
+bulk_a_id=$(printf '%s' "$bulk_a" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+bulk_b_id=$(printf '%s' "$bulk_b" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+test -n "$bulk_a_id"
+test -n "$bulk_b_id"
+revoke_all_out=$(wp writeleash grant revoke --all "--user=$operator_id")
+printf '%s' "$revoke_all_out" | grep -qE '[0-9]+ active grant\(s\) revoked'
+wp writeleash grant list "--user=$operator_id" --format=csv | grep -q "^$bulk_a_id,$agent_id,$operator_id,revoked,"
+wp writeleash grant list "--user=$operator_id" --format=csv | grep -q "^$bulk_b_id,$spectator_id,$operator_id,revoked,"
+test "$(wp eval "echo WriteLeash\\Grant_Repository::is_restricted_actor($agent_id) ? '1' : '0';")" = "1"
+test "$(wp eval "echo WriteLeash\\Grant_Repository::is_restricted_actor($spectator_id) ? '1' : '0';")" = "1"
+wp writeleash grant revoke --all "--user=$operator_id" >/tmp/wl308-cli-revoke-all-repeat.out
+grep -q 'nothing revoked' /tmp/wl308-cli-revoke-all-repeat.out
+echo '#309/#308 CLI gate: list/create/revoke/pause/resume/revoke-all authenticated, every refusal fail-closed: PASS'

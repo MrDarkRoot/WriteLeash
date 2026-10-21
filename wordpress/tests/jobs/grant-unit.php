@@ -46,6 +46,10 @@ function wp_generate_uuid4() {
 	return sprintf( '%04x%04x-%04x-%04x-%04x-%04x%04x%04x', mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0x0fff ) | 0x4000, mt_rand( 0, 0x3fff ) | 0x8000, mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ) );
 }
 function __( $text, $domain = null ) { return $text; }
+$GLOBALS['wl_option_values'] = array();
+function get_option( $name, $default = false ) {
+	return array_key_exists( $name, $GLOBALS['wl_option_values'] ) ? $GLOBALS['wl_option_values'][ $name ] : $default;
+}
 
 require_once dirname( __DIR__, 2 ) . '/writeleash/includes/free/class-price-decimal.php';
 require_once dirname( __DIR__, 2 ) . '/writeleash/includes/free/class-price-operation.php';
@@ -119,6 +123,7 @@ require_once dirname( __DIR__, 2 ) . '/writeleash/includes/free/class-grant-sche
 require_once dirname( __DIR__, 2 ) . '/writeleash/includes/free/class-grant-repository.php';
 
 use WriteLeash\Grant_Repository as Grants;
+use WriteLeash\Grant_Schema as GSchema;
 
 // ---------------------------------------------------------------------------
 // 1. Identity and approval.
@@ -279,11 +284,17 @@ marker( 'budget reserve/consume/release/retain + idempotency winner' );
 $required_audit = array( 'actor_id', 'issuer_id', 'approver_id', 'approval_mode', 'grant', 'version', 'key', 'targets', 'before', 'after', 'reservation', 'outcome' );
 $sample = array( 'actor_id' => 22, 'issuer_id' => 11, 'approver_id' => 0, 'approval_mode' => 'grant', 'grant' => $grant_id, 'version' => 3, 'key' => 'k1', 'targets' => array( 101 ), 'before' => '100.00', 'after' => '80.00', 'reservation' => 'RESERVED', 'outcome' => 'APPLIED' );
 foreach ( $required_audit as $key ) { ok( array_key_exists( $key, $sample ), 'audit carries ' . $key ); }
-// Global disable fails closed: only explicit '0' enables.
-foreach ( array( array( '0', false ), array( '1', true ), array( '', true ), array( null, true ), array( '0 ', true ) ) as $case ) {
+// Global disable posture fails closed: only explicit '0' enables. Exercise
+// the real repository predicate (not a copied expression) for absent,
+// malformed, '0' and '1' stored values.
+foreach ( array( array( '0', false ), array( '1', true ), array( '', true ), array( 'malformed', true ), array( null, true ), array( '0 ', true ) ) as $case ) {
 	list( $value, $disabled ) = $case;
-	// Mirrors Grant_Repository::is_disabled(): only '0' enables.
-	eq( '0' !== (string) $value, $disabled, 'disable fails closed for ' . json_encode( $value ) );
+	if ( null === $value ) {
+		unset( $GLOBALS['wl_option_values'][ GSchema::DISABLE_OPTION ] );
+	} else {
+		$GLOBALS['wl_option_values'][ GSchema::DISABLE_OPTION ] = $value;
+	}
+	eq( Grants::is_disabled(), $disabled, 'disable fails closed for ' . json_encode( $value ) );
 }
 // Price-write boundary: grant files add no new writers.
 $root = dirname( __DIR__, 2 ) . '/writeleash';

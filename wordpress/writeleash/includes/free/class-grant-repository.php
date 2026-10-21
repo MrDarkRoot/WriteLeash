@@ -41,6 +41,8 @@ final class Grant_Repository {
 	public const IDEMPOTENCY_REGEX = '/\A[a-zA-Z0-9_-]{1,64}\z/';
 	public const PUBLIC_ID_REGEX = Job_Repository::PUBLIC_ID_REGEX;
 	public const MAX_BUDGET = 10000;
+	/** #308 emergency revoke-all reason recorded on every revoked grant row. */
+	public const EMERGENCY_REVOKE_REASON = 'EMERGENCY_REVOKE_ALL';
 
 	private static function db(): \wpdb {
 		global $wpdb;
@@ -503,6 +505,70 @@ final class Grant_Repository {
 		$grant = self::read_by_public_id( $public_id );
 		if ( ! $grant || 'revoked' !== $grant['status'] ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 		return $grant;
+	}
+
+	/**
+	 * #308 emergency revoke-all. Revokes every currently active grant in one
+	 * transaction: the active rows are locked FOR UPDATE, each row is
+	 * transitioned with its own status CAS (version bump, emergency reason,
+	 * revoked_at), and one audit row per revoked grant is appended in the
+	 * same transaction. Any CAS or audit failure rolls the whole batch back.
+	 *
+	 * Revoke-all never un-leashes: the grant evidence remains, so
+	 * is_restricted_actor() stays true for every principal that had a grant.
+	 * Only remove_restriction() lifts the restriction. Zero active grants is
+	 * an audited-silent no-op returning 0. Lock discipline: this method takes
+	 * no option, job, journal or reservation lock; it only locks grant rows
+	 * FOR UPDATE, so the documented order stays cycle-free and a batch can
+	 * wait behind an in-flight acceptance/item exactly like a single revoke.
+	 *
+	 * @return int number of grant rows transitioned to revoked
+	 * @throws Grant_Error
+	 */
+	public static function revoke_all( int $operator_id ): int {
+		self::ensure_schema();
+		self::require_human_self( $operator_id );
+		$original = self::db();
+		$tx = null;
+		$committed = false;
+		$revoked = 0;
+		try {
+			$tx = new Price_Apply_Connection( $original );
+			$tx->begin();
+			$grants = Grant_Schema::grants_table( $tx );
+			// Lock only active grant rows; no option/job/journal lock is taken.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable revoke-all lock; values are prepared.
+			$rows = $tx->get_results( $tx->prepare( "SELECT * FROM %i WHERE status=%s FOR UPDATE", $grants, 'active' ), ARRAY_A );
+			if ( ! is_array( $rows ) ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+			if ( array() === $rows ) {
+				// A zero-active no-op must still release its locks cleanly; an
+				// uncertain rollback is a store failure, not a safe zero.
+				if ( ! $tx->rollback() ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+				return 0;
+			}
+			foreach ( $rows as $row ) {
+				// Per-grant CAS keeps a concurrent single revoke/update from
+				// being overwritten and fails closed if the row moved.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable revoke-all CAS; values are prepared.
+				$moved = $tx->query( $tx->prepare(
+					"UPDATE %i SET status='revoked',revoke_reason=%s,revoked_at=UTC_TIMESTAMP(),version=version+1,updated_at=UTC_TIMESTAMP() WHERE id=%d AND status=%s",
+					$grants, self::EMERGENCY_REVOKE_REASON, (int) $row['id'], 'active'
+				) );
+				if ( 1 !== $moved ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+				// One audit row per grant, mandatory evidence in the same
+				// transaction; a failed append rolls the whole batch back.
+				self::audit_in_tx( $tx, (int) $row['id'], (int) $row['version'] + 1, 0, 0, '', (int) $row['actor_id'], (int) $row['issuer_id'], 0, self::APPROVAL_NONE, '', 'GRANT_REVOKED', array( 'reason' => self::EMERGENCY_REVOKE_REASON, 'revoker_id' => $operator_id, 'bulk' => true ) );
+				++$revoked;
+			}
+			$tx->commit();
+			$committed = true;
+		} catch ( \Throwable $error ) {
+			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
+			throw $error instanceof Grant_Error ? $error : new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
+		} finally { if ( $tx ) { $tx->rollback(); } }
+		// Intentionally do not clear the restricted-principal cache: revoking
+		// every grant must never un-leash a principal.
+		return $revoked;
 	}
 
 	/**
