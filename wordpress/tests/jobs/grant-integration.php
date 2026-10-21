@@ -508,10 +508,23 @@ run_worker( array( 'job_id' => $bulk_job, 'mode' => 'run', 'limits' => limits( 5
 eq( saves( $bulk_race_ids[0] ) + saves( $bulk_race_ids[1] ), 0, 'revoke-all racing acceptance grants no write authority' );
 $bulk_items = array();
 foreach ( Repo::items( $bulk_job, null, 0, 100 ) as $row ) { $bulk_items[ (int) $row['product_id'] ] = $row; }
+$bulk_failed = 0;
+$bulk_pending = 0;
 foreach ( $bulk_race_ids as $bulk_id ) {
-	eq( $bulk_items[ $bulk_id ]['state'], IState::FAILED, 'revoke-all racing acceptance leaves every item FAILED' );
-	ok( str_contains( (string) $bulk_items[ $bulk_id ]['reason'], 'GRANT_REVOKED' ), 'revoke-all racing acceptance denies with GRANT_REVOKED' );
+	$bulk_state = $bulk_items[ $bulk_id ]['state'];
+	if ( IState::FAILED === $bulk_state ) {
+		++$bulk_failed;
+		ok( str_contains( (string) $bulk_items[ $bulk_id ]['reason'], 'GRANT_REVOKED' ), 'revoke-all racing acceptance denies with GRANT_REVOKED' );
+	} elseif ( IState::PENDING === $bulk_state ) {
+		++$bulk_pending;
+	} else {
+		eq( $bulk_state, IState::PENDING, 'no item gains authority after revoke-all' );
+	}
 }
+eq( $bulk_failed, 1, 'the claimed item is terminal FAILED after revoke-all' );
+eq( $bulk_pending, 1, 'the sibling stays PENDING because the job pauses on the grant denial' );
+eq( Repo::read( $bulk_job )['status'], JState::PAUSED, 'revoke-all racing acceptance pauses the job' );
+eq( (string) Repo::read( $bulk_job )['status_reason'], 'GRANT_REVOKED', 'the job pause reason is the grant revocation' );
 ok( Grants::is_restricted_actor( $actor ), 'revoke-all racing acceptance leaves the principal restricted' );
 marker( 'revoke-all racing acceptance' );
 

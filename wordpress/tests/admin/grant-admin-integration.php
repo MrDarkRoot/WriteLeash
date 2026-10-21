@@ -249,12 +249,14 @@ eq( Grants::is_disabled(), true, 'pause reflected by is_disabled' );
 eq( (string) get_option( GSchema::DISABLE_OPTION ), '1', 'pause stores 1' );
 update_option( GSchema::DISABLE_OPTION, 'malformed', false );
 eq( Grants::is_disabled(), true, 'malformed option fails closed' );
-update_option( GSchema::DISABLE_OPTION, '', false );
-eq( Grants::is_disabled(), true, 'empty option fails closed' );
 $resumed = Admin::process_enable( array( '_wpnonce' => nonce( Admin::ACTION_ENABLE ) ), 'POST' );
 eq( $resumed, array( 'status' => 'OK', 'reason' => 'grants_resumed', 'disabled' => false ), 'resume accepted' );
 eq( Grants::is_disabled(), false, 'resume reflected by is_disabled' );
 eq( (string) get_option( GSchema::DISABLE_OPTION ), '0', 'resume stores explicit 0' );
+update_option( GSchema::DISABLE_OPTION, '', false );
+eq( Grants::is_disabled(), true, 'empty option fails closed' );
+update_option( GSchema::DISABLE_OPTION, '0', false );
+eq( Grants::is_disabled(), false, 'explicit 0 restores enabled' );
 marker( 'pause/resume option posture' );
 
 // Render: one toggle reflecting the durable state, and a revoke-all form with
