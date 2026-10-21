@@ -32,16 +32,17 @@ function audit_rows( int $actor_id ): array {
 }
 function ensure_users(): array {
 	$ids = array();
-	foreach ( array( 'wl309-remover', 'wl309-agent', 'wl309-bystander', 'wl309-bare' ) as $login ) {
+	$roles = array( 'wl309-remover' => 'administrator', 'wl309-leashed-manager' => 'shop_manager' );
+	foreach ( array( 'wl309-remover', 'wl309-agent', 'wl309-bystander', 'wl309-bare', 'wl309-leashed-manager' ) as $login ) {
 		$existing = get_user_by( 'login', $login );
 		if ( $existing ) { $ids[ $login ] = (int) $existing->ID; continue; }
-		$role = 'wl309-remover' === $login ? 'administrator' : 'subscriber';
+		$role = $roles[ $login ] ?? 'subscriber';
 		$id = wp_insert_user( array( 'user_login' => $login, 'user_pass' => wp_generate_password( 20 ), 'role' => $role, 'user_email' => $login . '@example.test' ) );
 		if ( is_wp_error( $id ) ) { throw new RuntimeException( 'user creation failed: ' . $login ); }
 		$ids[ $login ] = (int) $id;
 	}
-	ok( 4 === count( array_unique( $ids ) ), 'four distinct identities' );
-	return array( 'remover' => $ids['wl309-remover'], 'agent' => $ids['wl309-agent'], 'bystander' => $ids['wl309-bystander'], 'bare' => $ids['wl309-bare'] );
+	ok( 5 === count( array_unique( $ids ) ), 'five distinct identities' );
+	return array( 'remover' => $ids['wl309-remover'], 'agent' => $ids['wl309-agent'], 'bystander' => $ids['wl309-bystander'], 'bare' => $ids['wl309-bare'], 'manager' => $ids['wl309-leashed-manager'] );
 }
 
 eq( get_bloginfo( 'version' ), '7.1.2', 'pinned WordPress' );
@@ -50,6 +51,7 @@ $remover = $users['remover'];
 $agent = $users['agent'];
 $bystander = $users['bystander'];
 $bare = $users['bare'];
+$manager = $users['manager'];
 
 // ---------------------------------------------------------------------------
 // Simulated v1 store: the marker column is dropped and the stored version
@@ -76,19 +78,36 @@ ok( Grants::restriction_removed( $agent ) === false, 'removal marker absent befo
 marker( 'restricted-principal baseline' );
 
 // Capability gate: anonymous and non-product-manager operators refuse.
-$previous = get_current_user_id();
 wp_set_current_user( 0 );
 try { Grants::remove_restriction( $agent, 0 ); ok( false, 'anonymous operator refused' ); }
 catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'PERMISSION_DENIED', 'anonymous operator refused with PERMISSION_DENIED' ); }
-$subscriber = get_user_by( 'login', 'wl309-agent' );
-wp_set_current_user( (int) $subscriber->ID );
-try { Grants::remove_restriction( $agent, (int) $subscriber->ID ); ok( false, 'non-product-manager operator refused' ); }
+wp_set_current_user( $bare );
+try { Grants::remove_restriction( $agent, $bare ); ok( false, 'non-product-manager operator refused' ); }
 catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'PERMISSION_DENIED', 'capability-less operator refused' ); }
 try { Grants::remove_restriction( 0, $remover ); ok( false, 'zero target refused' ); }
 catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'GRANT_IDENTITY_INVALID', 'zero target refused' ); }
 wp_set_current_user( $remover );
 ok( Grants::is_restricted_actor( $agent ), 'refusals left the predicate intact' );
 marker( 'capability gate' );
+
+// ---------------------------------------------------------------------------
+// Self-un-leash is never allowed. The leashed shop manager holds
+// edit_products + manage_woocommerce (the #307 restricted-principal profile)
+// and must not be able to lift its own leash; un-leashing anyone now also
+// requires manage_options on top of the product-management pair.
+// ---------------------------------------------------------------------------
+wp_set_current_user( $remover );
+$manager_grant = Grants::create_grant( $remover, $manager, 5, future_expiry() );
+ok( Grants::is_restricted_actor( $manager ), 'leashed shop manager is restricted' );
+wp_set_current_user( $manager );
+try { Grants::remove_restriction( $manager, $manager ); ok( false, 'self-un-leash refused' ); }
+catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'PERMISSION_DENIED', 'self-un-leash refused with PERMISSION_DENIED' ); }
+ok( Grants::is_restricted_actor( $manager ), 'self attempt left the manager predicate intact' );
+try { Grants::remove_restriction( $bystander, $manager ); ok( false, 'shop manager cannot un-leash another principal' ); }
+catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'PERMISSION_DENIED', 'un-leash without manage_options refused' ); }
+ok( Grants::is_restricted_actor( $bystander ), 'manager attempt left the bystander predicate intact' );
+wp_set_current_user( $remover );
+marker( 'self-un-leash and manage_options policy' );
 
 // A principal with zero grant rows has nothing to remove.
 try { Grants::remove_restriction( $bare, $remover ); ok( false, 'bare principal refused' ); }

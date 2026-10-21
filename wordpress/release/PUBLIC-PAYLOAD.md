@@ -78,7 +78,7 @@ inventory (multi-class files included):
 | free-support-contract | Free_Support_Contract, Free_Job_Limit_Error | PUBLIC_FREE_REQUIRED |
 | grant-schema | Grant_Schema, Grant_Error | PUBLIC_FREE_REQUIRED |
 | grant-notice | Grant_Notice; passive admin_notices surface for the fail-closed grant kill-switch, no state flip | PUBLIC_FREE_REQUIRED |
-| grant-admin | Grant_Admin; #309 nonce-gated operator grant listing/create/revoke and the separate remove-restriction action, no new capability | PUBLIC_FREE_REQUIRED |
+| grant-admin | Grant_Admin; #309 nonce-gated operator grant listing/create/revoke and the separate administrator-only remove-restriction action that never unbinds the acting principal, no new capability | PUBLIC_FREE_REQUIRED |
 | grant-cli | Grant_CLI_Namespace (writeleash WP-CLI container), Grant_CLI; #309 `wp writeleash grant list/create/revoke`, fail-closed without the authenticated --user operator | PUBLIC_FREE_REQUIRED |
 | grant-repository | Grant_Repository | PUBLIC_FREE_REQUIRED |
 | perimeter-audit-log | Perimeter_Audit_Log; JSON denial audit listener on writeleash_perimeter_denied, never alters a denial | PUBLIC_FREE_REQUIRED |
@@ -125,7 +125,7 @@ inventory (multi-class files included):
 | admin_menu → Free_Admin::menu | Products → Bulk Prices (dependency notice fallback only) | PUBLIC_FREE_REQUIRED |
 | admin_menu → Grant_Admin::menu | Products → Grants; #309 operator grant listing/create/revoke and the separate remove-restriction action with its standing warning | PUBLIC_FREE_REQUIRED |
 | admin_post_writeleash_free_preview/approve/resume/undo | Free_Admin authenticated action-bound handlers | PUBLIC_FREE_REQUIRED |
-| admin_post_writeleash_grant_create/revoke/remove | Grant_Admin capability+nonce-gated handlers; repository re-verifies the authenticated operator | PUBLIC_FREE_REQUIRED |
+| admin_post_writeleash_grant_create/revoke/remove | Grant_Admin capability+nonce-gated handlers; remove additionally requires manage_options and refuses the acting principal; repository re-verifies the authenticated operator | PUBLIC_FREE_REQUIRED |
 | wp writeleash grant list/create/revoke (--user required) | Grant_CLI runtime subcommand group; fail-closed without the authenticated operator | PUBLIC_FREE_REQUIRED |
 | rest_api_init → Job_Resume_Rest / Undo_Rest | POST writeleash/v1/jobs/{UUID}/resume, undo/{UUID}/start | PUBLIC_FREE_REQUIRED |
 | writeleash_process_job, writeleash_process_undo, writeleash_retention_purge | Job/Undo workers and bounded retention; owned AS groups | PUBLIC_FREE_REQUIRED |

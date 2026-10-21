@@ -8,10 +8,13 @@ defined( 'ABSPATH' ) || exit;
  * restricted-principal flag. No new capability: every screen and action
  * requires the reviewed product-management pair (manage_woocommerce +
  * edit_products) and the repository re-verifies the authenticated principal
- * on every mutation. All mutations are nonce-checked admin_post_ handlers
- * with a transient-notice + safe-redirect PRG flow; listing is a read-only
- * page render. `remove restriction` is a separate action with an explicit
- * standing warning — it is never bundled with a single-grant revoke.
+ * on every mutation. Un-leashing is stronger than revoking, so the separate
+ * remove-restriction action additionally requires manage_options and can
+ * never be applied by the restricted principal to itself. All mutations are
+ * nonce-checked admin_post_ handlers with a transient-notice + safe-redirect
+ * PRG flow; listing is a read-only page render. `remove restriction` is a
+ * separate action with an explicit standing warning — it is never bundled
+ * with a single-grant revoke.
  *
  * @package WriteLeash
  */
@@ -49,6 +52,16 @@ final class Grant_Admin {
 	/** Whether both mutation capabilities are present for the current actor. */
 	public static function can_mutate(): bool {
 		return current_user_can( 'manage_woocommerce' ) && current_user_can( 'edit_products' );
+	}
+
+	/**
+	 * UI visibility for the remove section: site administration on top of the
+	 * product-management pair, and never for a restricted principal (even an
+	 * administrator). The server-side action re-checks the capabilities and
+	 * additionally refuses self-removal outright.
+	 */
+	public static function can_remove(): bool {
+		return self::can_mutate() && current_user_can( 'manage_options' ) && ! Grant_Repository::is_restricted_actor();
 	}
 
 	// ------------------------------------------------------------------
@@ -175,15 +188,18 @@ final class Grant_Admin {
 
 	/**
 	 * Remove the restricted-principal flag for one target user. Privileged,
-	 * separate from revoke, audited with the target user id by the
-	 * repository. The operator capability is re-checked here and inside the
-	 * repository transaction.
+	 * separate from revoke, administrator-only and audited with the target
+	 * user id by the repository. The acting principal can never un-leash
+	 * itself; the repository enforces the same rule transactionally.
 	 */
 	public static function process_remove( array $post, string $method ): array {
+		if ( ! self::can_mutate() ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'capability_required' ); }
+		if ( ! current_user_can( 'manage_options' ) ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'manage_options_required' ); }
 		$gate = self::gate( self::ACTION_REMOVE, $post, $method );
 		if ( null !== $gate ) { return $gate; }
 		$actor_id = self::int_field( $post['actor'] ?? null );
 		$operator_id = (int) get_current_user_id();
+		if ( $actor_id > 0 && $actor_id === $operator_id ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'self_removal_denied' ); }
 		try {
 			$outcome = Grant_Repository::remove_restriction( $actor_id, $operator_id );
 		} catch ( \Throwable $error ) { return self::refused( $error ); }
@@ -210,9 +226,12 @@ final class Grant_Admin {
 		foreach ( $grants as $grant ) { $actor_ids[] = (int) $grant['actor_id']; }
 		$removed = Grant_Repository::removed_actors( $actor_ids );
 		$manage = self::can_mutate();
+		$is_admin = current_user_can( 'manage_options' );
+		$can_remove = self::can_remove();
+		$current_id = (int) get_current_user_id();
 		$create_nonce = $manage ? wp_create_nonce( self::ACTION_CREATE ) : '';
 		$revoke_nonce = $manage ? wp_create_nonce( self::ACTION_REVOKE ) : '';
-		$remove_nonce = $manage ? wp_create_nonce( self::ACTION_REMOVE ) : '';
+		$remove_nonce = $can_remove ? wp_create_nonce( self::ACTION_REMOVE ) : '';
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'WriteLeash Grants', 'writeleash' ); ?></h1>
@@ -233,7 +252,7 @@ final class Grant_Admin {
 				</thead>
 				<tbody>
 				<?php if ( array() === $grants ) { ?>
-					<tr><td colspan="9"><?php esc_html_e( 'No standing grants exist.', 'writeleash' ); ?></td></tr>
+					<tr><td colspan="<?php echo $manage ? 9 : 8; ?>"><?php esc_html_e( 'No standing grants exist.', 'writeleash' ); ?></td></tr>
 				<?php } else { ?>
 					<?php foreach ( $grants as $grant ) { ?>
 					<tr>
@@ -247,12 +266,16 @@ final class Grant_Admin {
 						<td><?php echo esc_html( in_array( (int) $grant['actor_id'], $removed, true ) ? __( 'Removed', 'writeleash' ) : __( 'Restricted', 'writeleash' ) ); ?></td>
 						<?php if ( $manage ) { ?>
 						<td>
+							<?php if ( $current_id === (int) $grant['issuer_id'] || $is_admin ) { ?>
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 								<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_REVOKE ); ?>" />
 								<input type="hidden" name="grant" value="<?php echo esc_attr( (string) $grant['public_id'] ); ?>" />
 								<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( $revoke_nonce ); ?>" />
 								<button type="submit" class="button"><?php esc_html_e( 'Revoke', 'writeleash' ); ?></button>
 							</form>
+							<?php } else { ?>
+							<span class="description"><?php esc_html_e( 'Issuer only', 'writeleash' ); ?></span>
+							<?php } ?>
 						</td>
 						<?php } ?>
 					</tr>
@@ -282,6 +305,8 @@ final class Grant_Admin {
 				</table>
 				<?php submit_button( __( 'Create grant', 'writeleash' ) ); ?>
 			</form>
+			<?php } ?>
+			<?php if ( $can_remove ) { ?>
 			<h2><?php esc_html_e( 'Remove restriction', 'writeleash' ); ?></h2>
 			<div class="notice notice-warning" role="alert"><p><?php esc_html_e( 'Warning: removing the restriction returns this user to ordinary WooCommerce capability rules immediately. The user will be able to edit products, stock and prices like any other editor of their role. Existing grant evidence is retained; this action is audited with the target user ID.', 'writeleash' ); ?></p></div>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -332,6 +357,8 @@ final class Grant_Admin {
 			'GRANT_EXPIRY_INVALID' => __( 'The expiry must be a future UTC datetime in YYYY-MM-DD HH:MM:SS format.', 'writeleash' ),
 			'GRANT_NOT_FOUND' => __( 'No matching grant or restricted principal was found.', 'writeleash' ),
 			'PERMISSION_DENIED' => __( 'Only the issuing operator or an administrator may manage this grant.', 'writeleash' ),
+			'manage_options_required' => __( 'Only a site administrator can remove a restriction.', 'writeleash' ),
+			'self_removal_denied' => __( 'The restricted user cannot remove their own restriction; another administrator must do it.', 'writeleash' ),
 			'GRANT_STORE_UNAVAILABLE' => __( 'The grant store is unavailable. Nothing was changed.', 'writeleash' ),
 			'SCHEMA_UNAVAILABLE' => __( 'The grant store is unavailable. Nothing was changed.', 'writeleash' ),
 			'invalid_input' => __( 'The submitted values are invalid. Nothing was changed.', 'writeleash' ),

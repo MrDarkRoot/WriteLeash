@@ -100,7 +100,12 @@ final class Grant_Repository {
 		return $result;
 	}
 
-	/** Per-request truth of the restricted-principal predicate; cleared by remove_restriction(). */
+	/**
+	 * Per-request truth of the restricted-principal predicate; cleared by
+	 * create_grant() and remove_restriction(). Memoization is request-scoped
+	 * by design: a change made by another process (WP-CLI, Action Scheduler)
+	 * is observed by the next request, not mid-request.
+	 */
 	private static array $restricted_cache = array();
 
 	/**
@@ -169,9 +174,14 @@ final class Grant_Repository {
 	 * #309: durable restriction removal for one principal. Stamps every
 	 * unstamped grant row of the actor with `restriction_removed_at` in one
 	 * transaction and appends one audit row per stamped grant (evidence is
-	 * never deleted). The operator must be the authenticated product manager.
-	 * A principal with zero grant rows is not restricted, so there is nothing
-	 * to remove. Grant rows are marked, never rewritten beyond the marker.
+	 * never deleted). Un-leashing is stronger than revoking — it returns a
+	 * principal to ordinary WooCommerce capability rules — so it requires
+	 * site administration (manage_options) on top of the product-management
+	 * pair, and the acting principal may never lift its own restriction: a
+	 * leashed shop manager holding edit_products/manage_woocommerce must not
+	 * be able to free itself. A principal with zero grant rows is not
+	 * restricted, so there is nothing to remove. Grant rows are marked, never
+	 * rewritten beyond the marker.
 	 *
 	 * @return array{actor_id: int, removed_rows: int, already_removed: bool}
 	 * @throws Grant_Error
@@ -179,7 +189,11 @@ final class Grant_Repository {
 	public static function remove_restriction( int $actor_id, int $operator_id ): array {
 		self::ensure_schema();
 		if ( $actor_id < 1 ) { throw new Grant_Error( 'GRANT_IDENTITY_INVALID' ); }
-		self::require_human_self( $operator_id );
+		// Self-un-leash is never allowed, even for an administrator: the
+		// restricted principal must be freed by a different principal.
+		if ( $operator_id < 1 || $operator_id === $actor_id ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
+		$operator = self::require_human_self( $operator_id );
+		if ( ! user_can( $operator, 'manage_options' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
 		$original = self::db();
 		$tx = null;
 		$committed = false;

@@ -2994,3 +2994,15 @@ msgstr ""
 #: includes/free/class-grant-admin.php
 msgid "Grant reference: %s"
 msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Issuer only"
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "Only a site administrator can remove a restriction."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
+msgid "The restricted user cannot remove their own restriction; another administrator must do it."
+msgstr ""
