@@ -69,7 +69,7 @@ they are omitted from the public allowlist and loaded only by repository tests.
 | LICENSE | Reviewed GPLv2 text | PUBLIC_FREE_REQUIRED |
 | readme.txt | Minimum Woo-only user instructions; full copy belongs to #121 | PUBLIC_FREE_REQUIRED |
 
-All 40 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
+All 42 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
 inventory (multi-class files included):
 
 | File stem (`includes/free/class-<stem>.php`) | Classes / interfaces / traits | Classification |
@@ -78,6 +78,8 @@ inventory (multi-class files included):
 | free-support-contract | Free_Support_Contract, Free_Job_Limit_Error | PUBLIC_FREE_REQUIRED |
 | grant-schema | Grant_Schema, Grant_Error | PUBLIC_FREE_REQUIRED |
 | grant-notice | Grant_Notice; passive admin_notices surface for the fail-closed grant kill-switch, no state flip | PUBLIC_FREE_REQUIRED |
+| grant-admin | Grant_Admin; #309 nonce-gated operator grant listing/create/revoke and the separate administrator-only remove-restriction action that never unbinds the acting principal, no new capability | PUBLIC_FREE_REQUIRED |
+| grant-cli | Grant_CLI_Namespace (writeleash WP-CLI container), Grant_CLI; #309 `wp writeleash grant list/create/revoke`, fail-closed without the authenticated --user operator | PUBLIC_FREE_REQUIRED |
 | grant-repository | Grant_Repository | PUBLIC_FREE_REQUIRED |
 | perimeter-audit-log | Perimeter_Audit_Log; JSON denial audit listener on writeleash_perimeter_denied, never alters a denial | PUBLIC_FREE_REQUIRED |
 | perimeter-guard | Execution_Frame, Perimeter_Guard; restricted-principal perimeter and execution frame | PUBLIC_FREE_REQUIRED |
@@ -121,7 +123,10 @@ inventory (multi-class files included):
 |---|---|---|
 | activation/deactivation callbacks | Plugin → Lifecycle; runner/reconcile only | PUBLIC_FREE_REQUIRED |
 | admin_menu → Free_Admin::menu | Products → Bulk Prices (dependency notice fallback only) | PUBLIC_FREE_REQUIRED |
+| admin_menu → Grant_Admin::menu | Products → Grants; #309 operator grant listing/create/revoke and the separate remove-restriction action with its standing warning | PUBLIC_FREE_REQUIRED |
 | admin_post_writeleash_free_preview/approve/resume/undo | Free_Admin authenticated action-bound handlers | PUBLIC_FREE_REQUIRED |
+| admin_post_writeleash_grant_create/revoke/remove | Grant_Admin capability+nonce-gated handlers; remove additionally requires manage_options and refuses the acting principal; repository re-verifies the authenticated operator | PUBLIC_FREE_REQUIRED |
+| wp writeleash grant list/create/revoke (--user required) | Grant_CLI runtime subcommand group; fail-closed without the authenticated operator | PUBLIC_FREE_REQUIRED |
 | rest_api_init → Job_Resume_Rest / Undo_Rest | POST writeleash/v1/jobs/{UUID}/resume, undo/{UUID}/start | PUBLIC_FREE_REQUIRED |
 | writeleash_process_job, writeleash_process_undo, writeleash_retention_purge | Job/Undo workers and bounded retention; owned AS groups | PUBLIC_FREE_REQUIRED |
 | writeleash_job_limits, writeleash_undo_limits, writeleash_history_retention_days | Free bounded worker/retention filters, not legacy interception | PUBLIC_FREE_REQUIRED |
@@ -130,7 +135,7 @@ inventory (multi-class files included):
 | query → Guard_Monitor::observe | Registered temporarily by Guard; no general Free interception | REPOSITORY_ONLY_HISTORICAL |
 | admin_menu → Admin_Page::menu | Tools → WriteLeash Advanced, slug writeleash | REPOSITORY_ONLY_HISTORICAL |
 | admin_post_writeleash_action | Admin_Page budget/enable/disable/demo handler; not just menu visibility | REPOSITORY_ONLY_HISTORICAL |
-| wp writeleash status/doctor/demo | Plugin base registered Product_CLI; absent entirely in public boot | REPOSITORY_ONLY_HISTORICAL |
+| wp writeleash status/doctor/demo | Plugin base registered Product_CLI; legacy subcommands absent from the public boot (the #309 writeleash grant group is the only runtime CLI) | REPOSITORY_ONLY_HISTORICAL |
 | writeleash_certified_operation_state | Operation_Config enable and logical budget; never read in Free | REPOSITORY_ONLY_HISTORICAL |
 | writeleash_last_certified_outcome | Last_Outcome information only; never read in Free | REPOSITORY_ONLY_HISTORICAL |
 | writeleash_operation_budget_redirection_5_5_2_bulk_disable | Stale budget, no authority since #78 | REPOSITORY_ONLY_HISTORICAL |
@@ -139,6 +144,7 @@ inventory (multi-class files included):
 | writeleash_job_schema/setup, writeleash_undo_schema/setup, writeleash_grant_schema/setup | Free owned schema/setup metadata | PUBLIC_FREE_REQUIRED |
 | writeleash_grants_disabled | Free standing-grant global disable; only explicit `0` enables grant writes | PUBLIC_FREE_REQUIRED |
 | Free preview/action notice transients | Free_Admin bounded ephemeral UI, not mutation truth | PUBLIC_FREE_REQUIRED |
+| writeleash_grant_notice_* transients | Grant_Admin bounded ephemeral UI feedback, not mutation truth | PUBLIC_FREE_REQUIRED |
 | WRITELEASH_VERSION, WRITELEASH_PLUGIN_FILE | Public bootstrap identity/lifecycle hooks | PUBLIC_FREE_REQUIRED |
 | WRITELEASH_DB_USER/PASSWORD/NAME/HOST | Historical config snippet / restricted account; HOST is account host, runtime uses normal DB_HOST connection host | REPOSITORY_ONLY_HISTORICAL |
 | WRITELEASH_PROVISION_MODE, WRITELEASH_INSTALLER_DB_USER/PASSWORD/CONNECT_HOST, WRITELEASH_RUNTIME_DB_USER/ACCOUNT_HOST/PASSWORD | Operator script environment, not public configuration | REPOSITORY_ONLY_HISTORICAL |

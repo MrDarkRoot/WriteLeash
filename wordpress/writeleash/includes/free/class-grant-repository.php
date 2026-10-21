@@ -64,14 +64,18 @@ final class Grant_Repository {
 	}
 
 	/**
-	 * #307: true when $user_id is the actor on any row in the standing-grant
-	 * store, regardless of grant status.
+	 * #307: true when $user_id is the actor on any unstamped row in the
+	 * standing-grant store, regardless of grant status.
 	 *
 	 * Revoked, expired, exhausted and globally-disabled grants all stay
-	 * restricted; removal is an explicit operator action, never a side effect
-	 * of grant lifecycle or of the global kill-switch. A restricted principal
-	 * may only write prices through WriteLeash's controlled item transaction;
-	 * Perimeter_Guard refuses every other path before persistence.
+	 * restricted; removal is an explicit operator action (#309), never a side
+	 * effect of grant lifecycle or of the global kill-switch. The durable
+	 * restriction-removal marker (`restriction_removed_at` on every grant row
+	 * of the principal) excludes a removed principal; a grant created later
+	 * for the same principal re-imposes the restriction. A restricted
+	 * principal may only write prices through WriteLeash's controlled item
+	 * transaction; Perimeter_Guard refuses every other path before
+	 * persistence.
 	 *
 	 * Fail-open on an absent/unreadable store: a principal that cannot be
 	 * proven restricted is not labeled restricted here. The controlled mutator
@@ -81,20 +85,152 @@ final class Grant_Repository {
 	public static function is_restricted_actor( int $user_id = 0 ): bool {
 		if ( $user_id < 1 ) { $user_id = (int) get_current_user_id(); }
 		if ( $user_id < 1 ) { return false; }
-		static $cache = array();
-		if ( array_key_exists( $user_id, $cache ) ) { return $cache[ $user_id ]; }
+		if ( array_key_exists( $user_id, self::$restricted_cache ) ) { return self::$restricted_cache[ $user_id ]; }
 		$result = false;
 		try {
 			$db = self::db();
 			if ( Grant_Schema::ready( $db ) ) {
 				$table  = Grant_Schema::grants_table( $db );
-				$result = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) FROM %i WHERE actor_id=%d', $table, $user_id ) ) > 0;
+				$result = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) FROM %i WHERE actor_id=%d AND restriction_removed_at IS NULL', $table, $user_id ) ) > 0;
 			}
 		} catch ( \Throwable $error ) {
 			$result = false;
 		}
-		$cache[ $user_id ] = $result;
+		self::$restricted_cache[ $user_id ] = $result;
 		return $result;
+	}
+
+	/**
+	 * Per-request truth of the restricted-principal predicate; cleared by
+	 * create_grant() and remove_restriction(). Memoization is request-scoped
+	 * by design: a change made by another process (WP-CLI, Action Scheduler)
+	 * is observed by the next request, not mid-request.
+	 */
+	private static array $restricted_cache = array();
+
+	/**
+	 * #309: true only when the principal carries at least one grant row and
+	 * every row is stamped with the removal marker — i.e. the operator action
+	 * flipped the predicate off for this principal and no later grant
+	 * re-imposed it.
+	 */
+	public static function restriction_removed( int $user_id ): bool {
+		if ( $user_id < 1 ) { return false; }
+		try {
+			$db = self::db();
+			if ( ! Grant_Schema::ready( $db ) ) { return false; }
+			$table = Grant_Schema::grants_table( $db );
+		} catch ( \Throwable $error ) { return false; }
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Marker read; values are prepared.
+		$row = $db->get_row( $db->prepare( 'SELECT COUNT(*) AS total, SUM(restriction_removed_at IS NULL) AS unstamped FROM %i WHERE actor_id=%d', $table, $user_id ), ARRAY_A );
+		if ( ! is_array( $row ) ) { return false; }
+		return (int) $row['total'] > 0 && (int) $row['unstamped'] === 0;
+	}
+
+	/**
+	 * #309: which of the given principals have every grant row stamped with
+	 * the removal marker (single grouped read for the operator listing).
+	 *
+	 * @param int[] $user_ids
+	 * @return int[] subset of $user_ids that are fully removed
+	 */
+	public static function removed_actors( array $user_ids ): array {
+		$user_ids = array_values( array_unique( array_filter( array_map( 'intval', $user_ids ), static fn( $id ) => $id > 0 ) ) );
+		if ( array() === $user_ids ) { return array(); }
+		try {
+			$db = self::db();
+			if ( ! Grant_Schema::ready( $db ) ) { return array(); }
+			$table = Grant_Schema::grants_table( $db );
+		} catch ( \Throwable $error ) { return array(); }
+		$placeholders = implode( ',', array_fill( 0, count( $user_ids ), '%d' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Marker map read; ids are pre-cast integers.
+		$rows = $db->get_results( $db->prepare( "SELECT actor_id, SUM(restriction_removed_at IS NULL) AS unstamped FROM %i WHERE actor_id IN ( $placeholders ) GROUP BY actor_id", array_merge( array( $table ), $user_ids ) ), ARRAY_A );
+		if ( ! is_array( $rows ) ) { return array(); }
+		$removed = array();
+		foreach ( $rows as $row ) {
+			if ( (int) $row['unstamped'] === 0 ) { $removed[] = (int) $row['actor_id']; }
+		}
+		return $removed;
+	}
+
+	/**
+	 * #309 operator listing: newest grant rows first, bounded. Read-only and
+	 * fail-open (an unreadable store lists nothing; mutations still fail
+	 * closed through ensure_schema()).
+	 */
+	public static function list_grants( int $limit = 200 ): array {
+		if ( $limit < 1 || $limit > 200 ) { $limit = 200; }
+		try {
+			$db = self::db();
+			if ( ! Grant_Schema::ready( $db ) ) { return array(); }
+			$table = Grant_Schema::grants_table( $db );
+		} catch ( \Throwable $error ) { return array(); }
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded operator listing; values are prepared.
+		$rows = $db->get_results( $db->prepare( 'SELECT * FROM %i ORDER BY id DESC LIMIT %d', $table, $limit ), ARRAY_A );
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * #309: durable restriction removal for one principal. Stamps every
+	 * unstamped grant row of the actor with `restriction_removed_at` in one
+	 * transaction and appends one audit row per stamped grant (evidence is
+	 * never deleted). Un-leashing is stronger than revoking — it returns a
+	 * principal to ordinary WooCommerce capability rules — so it requires
+	 * site administration (manage_options) on top of the product-management
+	 * pair, and the acting principal may never lift its own restriction: a
+	 * leashed shop manager holding edit_products/manage_woocommerce must not
+	 * be able to free itself. A principal with zero grant rows is not
+	 * restricted, so there is nothing to remove. Grant rows are marked, never
+	 * rewritten beyond the marker.
+	 *
+	 * @return array{actor_id: int, removed_rows: int, already_removed: bool}
+	 * @throws Grant_Error
+	 */
+	public static function remove_restriction( int $actor_id, int $operator_id ): array {
+		self::ensure_schema();
+		if ( $actor_id < 1 ) { throw new Grant_Error( 'GRANT_IDENTITY_INVALID' ); }
+		// Self-un-leash is never allowed, even for an administrator: the
+		// restricted principal must be freed by a different principal.
+		if ( $operator_id < 1 || $operator_id === $actor_id ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
+		$operator = self::require_human_self( $operator_id );
+		if ( ! user_can( $operator, 'manage_options' ) ) { throw new Grant_Error( 'PERMISSION_DENIED' ); }
+		$original = self::db();
+		$tx = null;
+		$committed = false;
+		try {
+			$tx = new Price_Apply_Connection( $original );
+			$tx->begin();
+			$grants = Grant_Schema::grants_table( $tx );
+			// Lock the actor's unstamped rows to COMMIT so a concurrent create
+			// for the same actor cannot interleave inside the stamp window.
+			$rows = $tx->get_results( $tx->prepare( 'SELECT * FROM %i WHERE actor_id=%d AND restriction_removed_at IS NULL FOR UPDATE', $grants, $actor_id ), ARRAY_A );
+			if ( ! is_array( $rows ) ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+			if ( array() === $rows ) {
+				$any = $tx->get_var( $tx->prepare( 'SELECT COUNT(*) FROM %i WHERE actor_id=%d', $grants, $actor_id ) );
+				$tx->rollback();
+				if ( (int) $any < 1 ) { throw new Grant_Error( 'GRANT_NOT_FOUND' ); }
+				return array( 'actor_id' => $actor_id, 'removed_rows' => 0, 'already_removed' => true );
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Restriction removal stamp; values are prepared.
+			$moved = $tx->query( $tx->prepare( 'UPDATE %i SET restriction_removed_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE actor_id=%d AND restriction_removed_at IS NULL', $grants, $actor_id ) );
+			if ( count( $rows ) !== $moved ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+			foreach ( $rows as $row ) {
+				// One audit row per stamped grant; the target actor id is the
+				// event's actor, the operator is in the details. Append-only.
+				self::audit_in_tx( $tx, (int) $row['id'], (int) $row['version'], 0, 0, '', $actor_id, (int) $row['issuer_id'], 0, self::APPROVAL_NONE, '', 'GRANT_RESTRICTION_REMOVED', array( 'operator_id' => $operator_id, 'actor_id' => $actor_id ) );
+			}
+			$tx->commit();
+			$committed = true;
+		} catch ( \Throwable $error ) {
+			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
+			throw $error instanceof Grant_Error ? $error : new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
+		} finally {
+			if ( $tx ) { $tx->rollback(); }
+		}
+		// The predicate is cached per request; a removal must be observable
+		// immediately in the same request (guard checks follow the action).
+		self::$restricted_cache = array();
+		return array( 'actor_id' => $actor_id, 'removed_rows' => count( $rows ), 'already_removed' => false );
 	}
 
 	/**
@@ -283,6 +419,9 @@ final class Grant_Repository {
 			if ( ! $committed && $tx && $tx->owns_attempt() ) { $tx->rollback(); }
 			throw $error instanceof Grant_Error ? $error : new Grant_Error( 'GRANT_STORE_UNAVAILABLE' );
 		} finally { if ( $tx ) { $tx->rollback(); } }
+		// A new unstamped row re-imposes the restriction; the per-request
+		// predicate cache must never serve a pre-grant verdict afterwards.
+		self::$restricted_cache = array();
 		$grant = self::read_by_public_id( $public_id );
 		if ( ! $grant ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 		return $grant;

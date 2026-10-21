@@ -20,12 +20,15 @@ final class Grant_Error extends \RuntimeException {
  * uses the normal WordPress connection and existing plugin-level table rights
  * only: no secondary user, triggers, routines or manual SQL.
  *
- * Schema version 1. Unknown/partial state fails closed: grant acceptance and
- * grant-bound item execution mutate zero products and persist a typed denial.
+ * Schema version 2. Version 1 installs upgrade in place: dbDelta adds the
+ * per-principal #309 restriction-removal marker to the grants table without
+ * dropping or rewriting existing grant evidence. Unknown/partial state fails
+ * closed: grant acceptance and grant-bound item execution mutate zero
+ * products and persist a typed denial.
  *
  * Tables (per site, InnoDB):
  * - `<prefix>writeleash_grants`: one row per standing grant (budget, expiry,
- *   revocation, actor/issuer binding, version).
+ *   revocation, actor/issuer binding, version, restriction-removal marker).
  * - `<prefix>writeleash_grant_reservations`: one row per (grant, job, product)
  *   with RESERVED/CONSUMED/RELEASED lifecycle.
  * - `<prefix>writeleash_grant_idempotency`: durable (grant, key) -> accepted
@@ -33,7 +36,7 @@ final class Grant_Error extends \RuntimeException {
  * - `<prefix>writeleash_grant_audit`: append-only event log (no updates).
  */
 final class Grant_Schema {
-	public const SCHEMA_VERSION = 1;
+	public const SCHEMA_VERSION = 2;
 	public const OPTION = 'writeleash_grant_schema';
 	public const SETUP_OPTION = 'writeleash_grant_setup';
 	/** Durable global kill-switch option. `1` means restricted writes are disabled. */
@@ -56,13 +59,19 @@ final class Grant_Schema {
 		return $name;
 	}
 
-	/** Replayable v1 install. Never drops or rewrites existing grant evidence. */
+	/**
+	 * Replayable install. Version 1 stores upgrade in place; the install never
+	 * drops or rewrites existing grant evidence, and a stored version newer
+	 * than this code fails closed instead of guessing.
+	 */
 	public static function install(): void {
 		global $wpdb;
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		$stored = get_option( self::OPTION, null );
-		if ( null !== $stored && (int) $stored !== self::SCHEMA_VERSION ) { throw new Grant_Error( 'SCHEMA_UNAVAILABLE' ); }
-		if ( null === $stored ) {
+		if ( null !== $stored ) {
+			$stored_version = (int) $stored;
+			if ( $stored_version < 1 || $stored_version > self::SCHEMA_VERSION ) { throw new Grant_Error( 'SCHEMA_UNAVAILABLE' ); }
+		} else {
 			$present = 0;
 			foreach ( array( self::grants_table( $wpdb ), self::reservations_table( $wpdb ), self::idempotency_table( $wpdb ), self::audit_table( $wpdb ) ) as $table ) {
 				if ( self::table_exists( $wpdb, $table ) ) { ++$present; }
@@ -94,6 +103,7 @@ final class Grant_Schema {
  created_at datetime NOT NULL,
  updated_at datetime NOT NULL,
  revoked_at datetime NULL,
+ restriction_removed_at datetime NULL,
  PRIMARY KEY  (id),
  UNIQUE KEY grant_public (public_id),
  KEY grant_actor (actor_id),
@@ -186,6 +196,10 @@ final class Grant_Schema {
 			if ( 'InnoDB' !== $engine ) { throw new Grant_Error( 'SCHEMA_UNAVAILABLE' ); }
 		}
 		self::assert_columns( $db, $grants, array( 'id', 'schema_version', 'public_id', 'version', 'issuer_id', 'actor_id', 'budget_max', 'budget_consumed', 'budget_reserved', 'expires_at', 'status', 'created_at', 'updated_at' ) );
+		// #309: the restriction-removal marker must physically exist before the
+		// restricted-principal predicate is trusted; an unstamped read would
+		// otherwise fail open for every principal.
+		self::assert_present_columns( $db, $grants, array( 'restriction_removed_at' ) );
 		self::assert_columns( $db, $reservations, array( 'id', 'schema_version', 'grant_db_id', 'job_id', 'plan_id', 'product_id', 'state', 'created_at', 'updated_at' ) );
 		self::assert_columns( $db, $idempotency, array( 'id', 'schema_version', 'grant_db_id', 'idempotency_key', 'issuer_id', 'canonical_hash', 'job_id', 'plan_id', 'created_at' ) );
 		self::assert_columns( $db, $audit, array( 'id', 'schema_version', 'grant_db_id', 'grant_version', 'event', 'details', 'created_at' ) );
@@ -203,6 +217,15 @@ final class Grant_Schema {
 		foreach ( $rows as $row ) { $found[ $row['COLUMN_NAME'] ] = $row['IS_NULLABLE']; }
 		foreach ( $required as $column ) {
 			if ( ! isset( $found[$column] ) || 'NO' !== $found[$column] ) { throw new Grant_Error( 'SCHEMA_UNAVAILABLE' ); }
+		}
+	}
+	/** Presence check for nullable columns (marker/evidence columns may be NULL). */
+	private static function assert_present_columns( \wpdb $db, string $table, array $required ): void {
+		$rows = $db->get_results( $db->prepare( 'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ), ARRAY_A );
+		$found = array();
+		foreach ( $rows as $row ) { $found[ $row['COLUMN_NAME'] ] = true; }
+		foreach ( $required as $column ) {
+			if ( ! isset( $found[$column] ) ) { throw new Grant_Error( 'SCHEMA_UNAVAILABLE' ); }
 		}
 	}
 	/** @param array<string, array{0: string[], 1: bool}> $expected */

@@ -115,6 +115,10 @@ require_once __DIR__ . '/includes/free/class-perimeter-guard.php';
 require_once __DIR__ . '/includes/free/class-perimeter-audit-log.php';
 require_once __DIR__ . '/includes/free/class-grant-notice.php';
 
+// #309 operator grant management: authenticated admin surface and WP-CLI.
+require_once __DIR__ . '/includes/free/class-grant-admin.php';
+require_once __DIR__ . '/includes/free/class-grant-cli.php';
+
 // #110 conflict-aware Undo, bounded history and retention. No Admin UX.
 require_once __DIR__ . '/includes/free/class-undo-state.php';
 require_once __DIR__ . '/includes/free/class-undo-schema.php';
