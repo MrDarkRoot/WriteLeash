@@ -11,9 +11,14 @@ defined( 'ABSPATH' ) || exit;
  * edit_products) and the repository re-verifies the authenticated principal
  * on every mutation. Un-leashing is stronger than revoking, so the separate
  * remove-restriction action additionally requires manage_options and can
- * never be applied by the restricted principal to itself. All mutations are
- * nonce-checked admin_post_ handlers with a transient-notice + safe-redirect
- * PRG flow; listing is a read-only page render. `remove restriction` is a
+ * never be applied by the restricted principal to itself. The #308 emergency
+ * controls (pause, resume, revoke-all) are incident-response controls over
+ * every principal, so they too require manage_options and refuse a restricted
+ * operator: the #307 restricted profile is exactly a shop manager holding the
+ * product-management pair, and it must not be able to resume an operator's
+ * pause or flush every grant. All mutations are nonce-checked admin_post_
+ * handlers with a transient-notice + safe-redirect PRG flow; listing is a
+ * read-only page render. `remove restriction` is a
  * separate action with an explicit standing warning — it is never bundled
  * with a single-grant revoke, a pause or a revoke-all. Revoke-all requires a
  * server-checked confirmation field and never un-leashes.
@@ -69,6 +74,16 @@ final class Grant_Admin {
 	 * additionally refuses self-removal outright.
 	 */
 	public static function can_remove(): bool {
+		return self::can_mutate() && current_user_can( 'manage_options' ) && ! Grant_Repository::is_restricted_actor();
+	}
+
+	/**
+	 * UI visibility for the #308 emergency controls: site administration on top
+	 * of the product-management pair, and never for a restricted principal. The
+	 * server-side handlers and the repository re-check the same policy, so
+	 * hiding the controls is presentation only, never the enforcement.
+	 */
+	public static function can_operate_emergency(): bool {
 		return self::can_mutate() && current_user_can( 'manage_options' ) && ! Grant_Repository::is_restricted_actor();
 	}
 
@@ -237,6 +252,8 @@ final class Grant_Admin {
 
 	/** #308 pause: reuse the durable kill-switch transaction, never a copy. */
 	public static function process_disable( array $post, string $method ): array {
+		if ( ! self::can_mutate() ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'capability_required' ); }
+		if ( ! self::can_operate_emergency() ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'emergency_operator_required' ); }
 		$gate = self::gate( self::ACTION_DISABLE, $post, $method );
 		if ( null !== $gate ) { return $gate; }
 		$operator_id = (int) get_current_user_id();
@@ -246,8 +263,10 @@ final class Grant_Admin {
 		return array( 'status' => 'OK', 'reason' => 'grants_paused', 'disabled' => true );
 	}
 
-	/** #308 resume: explicit '0', same repository gate as disable. */
+	/** #308 resume: explicit '0', same emergency gate as disable. */
 	public static function process_enable( array $post, string $method ): array {
+		if ( ! self::can_mutate() ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'capability_required' ); }
+		if ( ! self::can_operate_emergency() ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'emergency_operator_required' ); }
 		$gate = self::gate( self::ACTION_ENABLE, $post, $method );
 		if ( null !== $gate ) { return $gate; }
 		$operator_id = (int) get_current_user_id();
@@ -259,10 +278,14 @@ final class Grant_Admin {
 
 	/**
 	 * #308 revoke-all with a server-side confirmation contract: `confirm=1`
-	 * is required after the capability/method/nonce gate. Principals stay
-	 * restricted; this action never removes a restriction.
+	 * is required after the capability/method/nonce gate. It is an emergency
+	 * control, so it additionally requires manage_options and refuses a
+	 * restricted operator. Principals stay restricted; this action never
+	 * removes a restriction.
 	 */
 	public static function process_revoke_all( array $post, string $method ): array {
+		if ( ! self::can_mutate() ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'capability_required' ); }
+		if ( ! self::can_operate_emergency() ) { return array( 'status' => 'FORBIDDEN', 'reason' => 'emergency_operator_required' ); }
 		$gate = self::gate( self::ACTION_REVOKE_ALL, $post, $method );
 		if ( null !== $gate ) { return $gate; }
 		$confirm = $post['confirm'] ?? null;
@@ -293,19 +316,20 @@ final class Grant_Admin {
 		$manage = self::can_mutate();
 		$is_admin = current_user_can( 'manage_options' );
 		$can_remove = self::can_remove();
+		$emergency = self::can_operate_emergency();
 		$current_id = (int) get_current_user_id();
-		$disabled = $manage ? Grant_Repository::is_disabled() : false;
+		$disabled = $emergency ? Grant_Repository::is_disabled() : false;
 		$toggle_action = $disabled ? self::ACTION_ENABLE : self::ACTION_DISABLE;
 		$create_nonce = $manage ? wp_create_nonce( self::ACTION_CREATE ) : '';
 		$revoke_nonce = $manage ? wp_create_nonce( self::ACTION_REVOKE ) : '';
 		$remove_nonce = $can_remove ? wp_create_nonce( self::ACTION_REMOVE ) : '';
-		$toggle_nonce = $manage ? wp_create_nonce( $toggle_action ) : '';
-		$revoke_all_nonce = $manage ? wp_create_nonce( self::ACTION_REVOKE_ALL ) : '';
+		$toggle_nonce = $emergency ? wp_create_nonce( $toggle_action ) : '';
+		$revoke_all_nonce = $emergency ? wp_create_nonce( self::ACTION_REVOKE_ALL ) : '';
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'WriteLeash Grants', 'writeleash' ); ?></h1>
 			<p><?php esc_html_e( 'Standing grants leash an agent user to WriteLeash-controlled price writes only. Revoking a grant stops future work but keeps the principal restricted; removing the restriction is a separate action below.', 'writeleash' ); ?></p>
-			<?php if ( $manage ) { ?>
+			<?php if ( $emergency ) { ?>
 			<h2><?php esc_html_e( 'Restricted execution', 'writeleash' ); ?></h2>
 			<p><?php echo esc_html( $disabled ? __( 'Restricted execution is paused. Grant-bound writes are denied; principals stay restricted.', 'writeleash' ) : __( 'Restricted execution is active. Grant-bound writes are allowed.', 'writeleash' ) ); ?></p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -361,7 +385,7 @@ final class Grant_Admin {
 				<?php } ?>
 				</tbody>
 			</table>
-			<?php if ( $manage ) { ?>
+			<?php if ( $emergency ) { ?>
 			<h2><?php esc_html_e( 'Emergency revoke all grants', 'writeleash' ); ?></h2>
 			<div class="notice notice-warning" role="alert"><p><?php esc_html_e( 'Warning: this revokes every active grant in one transaction. Principals stay restricted; removing a restriction is a separate administrator action.', 'writeleash' ); ?></p></div>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -370,6 +394,8 @@ final class Grant_Admin {
 				<p><label><input type="checkbox" name="confirm" value="1" required /> <?php esc_html_e( 'I understand that every active grant will be revoked.', 'writeleash' ); ?></label></p>
 				<?php submit_button( __( 'Revoke all grants', 'writeleash' ), 'delete', 'submit', false ); ?>
 			</form>
+			<?php } ?>
+			<?php if ( $manage ) { ?>
 			<h2><?php esc_html_e( 'Issue a standing grant', 'writeleash' ); ?></h2>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_CREATE ); ?>" />
@@ -443,6 +469,7 @@ final class Grant_Admin {
 			'restriction_removed' => __( 'Restriction removed. The user returned to ordinary WooCommerce capability rules.', 'writeleash' ),
 			'restriction_already_removed' => __( 'The restriction was already removed for this user.', 'writeleash' ),
 			'capability_required' => __( 'You are not allowed to manage product grants.', 'writeleash' ),
+			'emergency_operator_required' => __( 'Only a site administrator who is not currently restricted can operate the emergency controls.', 'writeleash' ),
 			'post_required' => __( 'The request must be a form submission.', 'writeleash' ),
 			'invalid_nonce' => __( 'The form session expired. Reload the page and try again.', 'writeleash' ),
 			'GRANT_IDENTITY_INVALID' => __( 'The actor must be an existing user other than you.', 'writeleash' ),

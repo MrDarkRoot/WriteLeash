@@ -20,7 +20,8 @@ final class Grant_CLI_Namespace {
  * Grant_Repository::is_authenticated_self: without --user the current
  * principal stays anonymous and every command refuses. No new capability;
  * the repository re-checks manage_woocommerce + edit_products on every
- * mutation.
+ * mutation. The #308 emergency controls (disable, enable, revoke --all)
+ * additionally require manage_options and refuse a restricted operator.
  *
  * Registered in the runtime boot (CLI contexts only), never by test loaders.
  *
@@ -68,6 +69,27 @@ final class Grant_CLI {
 		return $claimed;
 	}
 
+	/**
+	 * #308 emergency-control gate for disable, enable and revoke --all. Those
+	 * actions are incident-response controls over every principal, so they need
+	 * site administration (manage_options) on top of the shared operator pair,
+	 * and a restricted principal can never operate them: the #307 restricted
+	 * profile is exactly a shop manager holding manage_woocommerce +
+	 * edit_products, and it must not be able to resume an operator's pause or
+	 * flush every grant. The repository re-checks the same policy on every
+	 * mutation; this refusal only keeps the CLI honest and explicit.
+	 */
+	private static function emergency_operator( int $operator_id ): int {
+		$operator = new \WP_User( $operator_id );
+		if ( ! $operator->exists() || ! user_can( $operator, 'manage_options' ) ) {
+			\WP_CLI::error( 'PERMISSION_DENIED: the emergency controls require a site administrator (manage_options).' );
+		}
+		if ( Grant_Repository::is_restricted_actor( $operator_id ) ) {
+			\WP_CLI::error( 'PERMISSION_DENIED: a restricted principal cannot operate the emergency controls.' );
+		}
+		return $operator_id;
+	}
+
 	/** List standing grants: actor, issuer, status, budget, expiry, version. */
 	public function list( array $args, array $assoc_args ): void {
 		unset( $args );
@@ -112,10 +134,10 @@ final class Grant_CLI {
 		\WP_CLI::success( 'grant ' . (string) $grant['public_id'] . ' created for actor #' . $actor_id . ' (budget ' . (int) $grant['budget_max'] . ', expires ' . (string) $grant['expires_at'] . ' UTC).' );
 	}
 
-	/** #308 pause restricted (grant-bound) execution. */
+	/** #308 pause restricted (grant-bound) execution. Administrator-only. */
 	public function disable( array $args, array $assoc_args ): void {
 		unset( $args );
-		$operator_id = self::operator( $assoc_args );
+		$operator_id = self::emergency_operator( self::operator( $assoc_args ) );
 		try {
 			Grant_Repository::disable( $operator_id );
 		} catch ( \Throwable $error ) {
@@ -124,10 +146,10 @@ final class Grant_CLI {
 		\WP_CLI::success( 'restricted execution paused; grant-bound writes are denied and principals stay restricted.' );
 	}
 
-	/** #308 resume restricted execution (explicit '0'). */
+	/** #308 resume restricted execution (explicit '0'). Administrator-only. */
 	public function enable( array $args, array $assoc_args ): void {
 		unset( $args );
-		$operator_id = self::operator( $assoc_args );
+		$operator_id = self::emergency_operator( self::operator( $assoc_args ) );
 		try {
 			Grant_Repository::enable( $operator_id );
 		} catch ( \Throwable $error ) {
@@ -138,7 +160,9 @@ final class Grant_CLI {
 
 	/**
 	 * Revoke one standing grant by public id, or every active grant with
-	 * --all. The principal stays restricted in both cases.
+	 * --all. The principal stays restricted in both cases. A single revoke
+	 * keeps the shared operator pair; --all is an emergency control and
+	 * therefore needs the administrator gate.
 	 */
 	public function revoke( array $args, array $assoc_args ): void {
 		$operator_id = self::operator( $assoc_args );
@@ -146,6 +170,7 @@ final class Grant_CLI {
 			if ( isset( $args[0] ) && '' !== trim( (string) $args[0] ) ) {
 				\WP_CLI::error( 'Use either a grant public id or --all, not both.' );
 			}
+			$operator_id = self::emergency_operator( $operator_id );
 			try {
 				$revoked = Grant_Repository::revoke_all( $operator_id );
 			} catch ( \Throwable $error ) {

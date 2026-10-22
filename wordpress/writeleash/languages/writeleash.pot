@@ -2944,6 +2944,10 @@ msgid "You are not allowed to manage product grants."
 msgstr ""
 
 #: includes/free/class-grant-admin.php
+msgid "Only a site administrator who is not currently restricted can operate the emergency controls."
+msgstr ""
+
+#: includes/free/class-grant-admin.php
 msgid "Standing grant created. The actor is now restricted to WriteLeash-controlled price writes."
 msgstr ""
 
