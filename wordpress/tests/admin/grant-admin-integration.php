@@ -332,4 +332,16 @@ eq( count( grant_audit_rows( (string) $bulk_a['public_id'] ) ), $bulk_a_audit + 
 eq( (int) Grants::read_by_public_id( (string) $bulk_a['public_id'] )['version'], (int) $bulk_a_before['version'] + 1, 'repeat did not bump the version' );
 marker( 'revoke-all CAS + audit + no un-leash' );
 
+// Restore the pre-test restriction baseline so this file is idempotent across
+// the default and persistent cache profiles. Revoke-all itself never
+// un-leashes; this cleanup uses the separate administrator-only path.
+wp_set_current_user( 1 );
+$agent_cleanup = Admin::process_remove( array( '_wpnonce' => nonce( Admin::ACTION_REMOVE ), 'actor' => (string) $agent ), 'POST' );
+eq( $agent_cleanup['status'], 'OK', 'cleanup remove accepted for the agent' );
+$second_cleanup = Admin::process_remove( array( '_wpnonce' => nonce( Admin::ACTION_REMOVE ), 'actor' => (string) $second ), 'POST' );
+eq( $second_cleanup['status'], 'OK', 'cleanup remove accepted for the second principal' );
+ok( Grants::is_restricted_actor( $agent ) === false, 'cleanup leaves the agent unrestricted' );
+ok( Grants::is_restricted_actor( $second ) === false, 'cleanup leaves the second principal unrestricted' );
+marker( 'emergency control fixture cleanup' );
+
 echo "#309/#308 grant admin surface gate: PASS ($assertions assertions)\n";
