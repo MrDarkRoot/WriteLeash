@@ -555,4 +555,29 @@ update_option( GSchema::DISABLE_OPTION, '0', false );
 ok( Grants::is_disabled() === false, 'explicit 0 re-enables' );
 marker( 'kill-switch: execution denied, new acceptance refused, missing option fails closed, explicit 0 enables' );
 
+// ---------------------------------------------------------------------------
+// #308 revoke-all is not an un-leash: after every active grant is revoked, the
+// principal still trips Perimeter Guard on an unframed catalogue write.
+// ---------------------------------------------------------------------------
+wp_set_current_user( $issuer );
+$revoke_all_grant = Grants::create_grant( $issuer, $actor, 10, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
+$revoke_all_count = Grants::revoke_all( $issuer );
+ok( $revoke_all_count >= 1, 'revoke-all revoked at least the fresh grant' );
+ok( Grants::is_restricted_actor( $actor ) === true, 'revoke-all keeps the principal restricted' );
+$revoked_probe_id = create_product( '100.00' );
+$revoked_probe_before = hash_rows( array( $revoked_probe_id ) );
+wp_set_current_user( $actor );
+$revoked_product = wc_get_product( $revoked_probe_id );
+$revoked_product->set_regular_price( '55.00' );
+try {
+	$revoked_product->save();
+	throw new RuntimeException( 'expected revoke-all principal save to be denied' );
+} catch ( \WC_Data_Exception $e ) {
+	eq( $e->getErrorCode() ?? $e->getCode(), deny_code(), 'revoke-all principal direct save denial code' );
+} catch ( \RuntimeException $e ) {
+	throw new RuntimeException( 'revoke-all principal save must throw WC_Data_Exception, got ' . $e->getMessage() );
+}
+assert_zero_changes( array( $revoked_probe_id ), $revoked_probe_before, 'revoke-all principal zero change' );
+marker( 'revoke-all keeps the principal behind Perimeter Guard' );
+
 marker( 'perimeter guard complete' );

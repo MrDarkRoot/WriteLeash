@@ -109,6 +109,21 @@ function await_file( string $file, float $timeout = 25 ): void {
 		clearstatcache( true, $file );
 	}
 }
+/**
+ * Wait until a worker connection is visibly running a blocking query. The
+ * item transaction still holds its lock when this returns, so observing the
+ * worker's SELECT is proof it is waiting rather than racing the release.
+ */
+function await_worker_query( int $thread_id, string $needle, float $timeout = 25 ): void {
+	global $wpdb;
+	$deadline = microtime( true ) + $timeout;
+	while ( true ) {
+		$info = $wpdb->get_var( $wpdb->prepare( 'SELECT INFO FROM information_schema.PROCESSLIST WHERE ID=%d', $thread_id ) );
+		if ( is_string( $info ) && str_contains( $info, $needle ) ) { return; }
+		if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'worker query not observed for thread ' . $thread_id . ': ' . $needle ); }
+		usleep( 10000 );
+	}
+}
 function finish_worker( array $worker, bool $killed = false ): array {
 	$exit = proc_close( $worker['proc'] );
 	if ( $killed ) {
@@ -402,6 +417,116 @@ eq( saves( $dis_ids[0] ), 0, 'disabled denial zero saves, no unrestricted fallba
 Grants::enable( $issuer );
 eq( Grants::is_disabled(), false, 'operator recovery re-enables' );
 marker( 'expiry, revocation races with documented boundary, global disable' );
+
+// ---------------------------------------------------------------------------
+// #308 emergency controls: pause (disable) racing an open item, revoke-all
+// racing acceptance, and no-un-leash semantics.
+// ---------------------------------------------------------------------------
+wp_set_current_user( $issuer );
+$pause_grant = Grants::create_grant( $issuer, $actor, 10, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
+wp_set_current_user( $actor );
+$pause_ids = array( create_product( '100.00' ), create_product( '100.00' ) );
+sort( $pause_ids, SORT_NUMERIC );
+$pause_plan = Planner::preview( Selection::ids( $pause_ids ), new Operation( Operation::SET, '80.00' ), new Policy( 1000, '100', '100', false, '100' ) );
+wp_set_current_user( $issuer );
+$pause_accepted = Grants::accept_plan( $pause_plan, $pause_grant['public_id'], $issuer, 'id-pause-race' );
+$pause_job = (int) $pause_accepted['job']['id'];
+Worker::queue_job( $pause_job );
+// Hold the first item after the Woo save (the item transaction also holds the
+// kill-switch SHARE lock). Pause then blocks on the option row; releasing the
+// item lets it commit, pause becomes durable, and the next item is denied.
+$pause_worker = start_worker( array( 'job_id' => $pause_job, 'mode' => 'run', 'limits' => limits( 2 ), 'mutator_checkpoint' => 'AFTER_WOO_SAVE_BEFORE_JOURNAL', 'mutator_fault' => 'wait' ) );
+await_file( $pause_worker['spec']['barrier'] );
+$pause_proc = start_worker( array( 'operator' => $issuer ), 'grant-disable-worker.php' );
+await_file( $pause_proc['spec']['barrier'] );
+await_worker_query( (int) file_get_contents( $pause_proc['spec']['barrier'] ), 'writeleash_grants_disabled' );
+file_put_contents( $pause_worker['spec']['release'], 'go' );
+finish_worker( $pause_worker );
+$pause_disable = finish_worker( $pause_proc );
+eq( $pause_disable['disabled'], true, 'pause committed after the in-flight item' );
+// The default object cache is per-process and the pause ran in a separate
+// process; refresh this process's option cache before reading the kill-switch.
+wp_cache_delete( GSchema::DISABLE_OPTION, 'options' );
+wp_cache_delete( 'alloptions', 'options' );
+eq( Grants::is_disabled(), true, 'pause durable after serialization' );
+eq( saves( $pause_ids[0] ), 1, 'in-flight item finished exactly once under pause' );
+eq( fresh_price( $pause_ids[0] ), '80.00', 'in-flight item reached its frozen target' );
+eq( saves( $pause_ids[1] ), 0, 'next item denied with zero unguarded saves' );
+$pause_items = array();
+foreach ( Repo::items( $pause_job, null, 0, 100 ) as $row ) { $pause_items[ (int) $row['product_id'] ] = $row; }
+eq( $pause_items[ $pause_ids[0] ]['state'], IState::APPLIED, 'in-flight item is APPLIED' );
+eq( $pause_items[ $pause_ids[1] ]['state'], IState::FAILED, 'next item is terminal FAILED' );
+ok( str_contains( (string) $pause_items[ $pause_ids[1] ]['reason'], 'GRANT_DISABLED' ), 'next item denial uses GRANT_DISABLED' );
+Grants::enable( $issuer );
+eq( Grants::is_disabled(), false, 'operator recovery after the pause race' );
+marker( 'pause racing an open item' );
+
+// Revoke-all before acceptance denies with no write authority.
+wp_set_current_user( $issuer );
+$bulk_pre_grant = Grants::create_grant( $issuer, $actor, 10, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
+wp_set_current_user( $actor );
+$bulk_pre_ids = array( create_product( '100.00' ) );
+$bulk_pre_plan = Planner::preview( Selection::ids( $bulk_pre_ids ), new Operation( Operation::SET, '80.00' ), new Policy( 1000, '100', '100', false, '100' ) );
+wp_set_current_user( $issuer );
+Grants::revoke_all( $issuer );
+try { Grants::accept_plan( $bulk_pre_plan, $bulk_pre_grant['public_id'], $issuer, 'id-bulk-pre' ); throw new RuntimeException( 'revoke-all before acceptance must deny' ); }
+catch ( WriteLeash\Grant_Error $e ) { eq( $e->reason(), 'GRANT_REVOKED', 'revoke-all denies a later acceptance' ); }
+eq( saves( $bulk_pre_ids[0] ), 0, 'revoke-all denial zero saves' );
+
+// Revoke-all races acceptance: acceptance serializes first, revoke-all then
+// revokes the grant, and the already-accepted job gains no write authority.
+wp_set_current_user( $issuer );
+$bulk_race_grant = Grants::create_grant( $issuer, $actor, 10, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
+wp_set_current_user( $actor );
+$bulk_race_ids = array( create_product( '100.00' ), create_product( '100.00' ) );
+sort( $bulk_race_ids, SORT_NUMERIC );
+$bulk_race_plan = Planner::preview( Selection::ids( $bulk_race_ids ), new Operation( Operation::SET, '80.00' ), new Policy( 1000, '100', '100', false, '100' ) );
+wp_set_current_user( $issuer );
+$bulk_accept = start_worker( array(
+	'plan_json' => $bulk_race_plan->json(),
+	'grant' => (string) $bulk_race_grant['public_id'],
+	'issuer' => $issuer,
+	'key' => 'id-bulk-race',
+	'checkpoint' => 'AFTER_RESERVE',
+	'fault' => 'wait',
+), 'grant-accept-worker.php' );
+await_file( $bulk_accept['spec']['barrier'] );
+$bulk_proc = start_worker( array( 'operator' => $issuer ), 'grant-revoke-all-worker.php' );
+await_file( $bulk_proc['spec']['barrier'] );
+await_worker_query( (int) file_get_contents( $bulk_proc['spec']['barrier'] ), "status='active'" );
+file_put_contents( $bulk_accept['spec']['release'], 'go' );
+$bulk_accept_result = finish_worker( $bulk_accept );
+$bulk_revoke_result = finish_worker( $bulk_proc );
+eq( $bulk_accept_result['ok'], true, 'acceptance committed before revoke-all serialized' );
+ok( (int) $bulk_revoke_result['revoked'] >= 1, 'revoke-all observed the accepted active grant' );
+$bulk_row = grant_row( (string) $bulk_race_grant['public_id'] );
+eq( (string) $bulk_row['status'], 'revoked', 'racing revoke-all revoked the accepted grant' );
+eq( (string) $bulk_row['revoke_reason'], Grants::EMERGENCY_REVOKE_REASON, 'racing revoke-all records the emergency reason' );
+$bulk_job = (int) $bulk_accept_result['job_id'];
+Worker::queue_job( $bulk_job );
+run_worker( array( 'job_id' => $bulk_job, 'mode' => 'run', 'limits' => limits( 5 ) ) );
+eq( saves( $bulk_race_ids[0] ) + saves( $bulk_race_ids[1] ), 0, 'revoke-all racing acceptance grants no write authority' );
+$bulk_items = array();
+foreach ( Repo::items( $bulk_job, null, 0, 100 ) as $row ) { $bulk_items[ (int) $row['product_id'] ] = $row; }
+$bulk_failed = 0;
+$bulk_pending = 0;
+foreach ( $bulk_race_ids as $bulk_id ) {
+	$bulk_state = $bulk_items[ $bulk_id ]['state'];
+	if ( IState::FAILED === $bulk_state ) {
+		++$bulk_failed;
+		ok( str_contains( (string) $bulk_items[ $bulk_id ]['reason'], 'GRANT_REVOKED' ), 'revoke-all racing acceptance denies with GRANT_REVOKED' );
+	} elseif ( IState::PENDING === $bulk_state ) {
+		++$bulk_pending;
+	} else {
+		eq( $bulk_state, IState::PENDING, 'no item gains authority after revoke-all' );
+	}
+}
+eq( $bulk_failed, 1, 'the claimed item is terminal FAILED after revoke-all' );
+eq( $bulk_pending, 1, 'the sibling stays PENDING because the job pauses on the grant denial' );
+eq( Repo::read( $bulk_job )['status'], JState::PAUSED, 'revoke-all racing acceptance pauses the job' );
+eq( (string) Repo::read( $bulk_job )['status_reason'], 'GRANT_REVOKED', 'the job pause reason is the grant revocation' );
+ok( Grants::is_restricted_actor( $actor ), 'revoke-all racing acceptance leaves the principal restricted' );
+marker( 'revoke-all racing acceptance' );
 
 // ---------------------------------------------------------------------------
 // Cumulative budget and recovery.
