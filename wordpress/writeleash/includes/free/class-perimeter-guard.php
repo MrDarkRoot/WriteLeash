@@ -187,18 +187,18 @@ final class Perimeter_Guard {
 	}
 
 	// ------------------------------------------------------------------
-	// Woo CRUD product saves (price mutation path).
+	// Woo CRUD product saves (price/stock mutation paths).
 	// ------------------------------------------------------------------
 
 	public static function before_product_save( \WC_Product $product ): void {
-		if ( ! self::should_enforce( $product, 'price' ) ) {
+		if ( ! self::should_enforce_save( (int) $product->get_id() ) ) {
 			return;
 		}
 		self::throw_denied( 'product_save', $product->get_id(), 'price' );
 	}
 
 	public static function before_variation_save( \WC_Product $product ): void {
-		if ( ! self::should_enforce( $product, 'price' ) ) {
+		if ( ! self::should_enforce_save( (int) $product->get_id() ) ) {
 			return;
 		}
 		self::throw_denied( 'variation_save', $product->get_id(), 'price' );
@@ -313,6 +313,29 @@ final class Perimeter_Guard {
 
 	private static function should_enforce( \WC_Product $product, string $kind ): bool {
 		return self::should_enforce_id( (int) $product->get_id(), $kind );
+	}
+
+	/**
+	 * The object-save event is asset-agnostic (one event fires for any
+	 * product save, before the data store decides which props changed), so
+	 * the save-level gate accepts an Execution Frame matching the product for
+	 * either catalog asset kind ('price' or 'stock'). The exact per-kind
+	 * authority stays with the meta-key hooks below and the stock-specific
+	 * hooks: a stock frame never authorizes a price meta write and a price
+	 * frame never authorizes a stock meta write — those remain denied like no
+	 * frame. #310.
+	 */
+	private static function should_enforce_save( int $object_id ): bool {
+		if ( $object_id < 1 || ! Grant_Repository::is_restricted_actor() ) {
+			return false;
+		}
+		$actor = (int) get_current_user_id();
+		foreach ( self::$stack as $frame ) {
+			if ( $frame->matches( $actor, $object_id, 'price' ) || $frame->matches( $actor, $object_id, 'stock' ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static function should_enforce_id( int $object_id, string $kind ): bool {

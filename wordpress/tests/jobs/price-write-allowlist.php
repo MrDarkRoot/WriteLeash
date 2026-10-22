@@ -14,6 +14,9 @@ $allowed = array(
 	'includes/free/class-woo-price-mutator.php'    => array( 'set_regular_price', 'set_sale_price' ),
 	'includes/free/class-woo-undo-mutator.php'     => array( 'set_regular_price', 'set_sale_price' ),
 	'includes/free/class-price-cache-verifier.php' => array( 'WC_Product_Variable::sync' ),
+	// #310 parent stock-status sync is the public Woo API, not a price write.
+	// The token scanner matches the `sync` prefix of `sync_stock_status`.
+	'includes/free/class-woo-stock-mutator.php'    => array( 'WC_Product_Variable::sync' ),
 );
 $watched = array( 'set_regular_price', 'set_sale_price', 'WC_Product_Variable::sync', 'update_post_meta(', 'update_metadata(' );
 

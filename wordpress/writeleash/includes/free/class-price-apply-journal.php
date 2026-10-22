@@ -7,7 +7,8 @@ require_once __DIR__ . '/class-durable-charset.php';
 
 /** Disposable item journal for #108; no scheduler, approval endpoint or job lifecycle. */
 final class Price_Apply_Journal {
-	public const SCHEMA_VERSION = 3;
+	/** #310: v4 adds the asset discriminator; all pre-#310 rows are price rows. */
+	public const SCHEMA_VERSION = 4;
 	public static function table( \wpdb $db ): string {
 		$name = $db->prefix . 'writeleash_price_items';
 		if ( ! preg_match( '/\A[a-zA-Z0-9_]+\z/D', $name ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
@@ -23,9 +24,11 @@ final class Price_Apply_Journal {
 		try { Durable_Charset::assert_table( $db, $table, array( 'plan_id' ), true ); }
 		catch ( \Throwable $error ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 		if ( 3 !== (int) $required || ! in_array( $collation, array( 'ascii_bin', 'utf8mb4_bin' ), true ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
-		$compact = (int) $db->get_var( $db->prepare( "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME IN ('plan_fingerprint','price_field') AND IS_NULLABLE='NO'", $table ) );
+		$compact = (int) $db->get_var( $db->prepare( "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME IN ('plan_fingerprint','price_field','asset') AND IS_NULLABLE='NO'", $table ) );
 		$legacy_json = $db->get_var( $db->prepare( "SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s AND COLUMN_NAME='plan_json'", $table ) );
-		if ( 2 === $compact && 'YES' === $legacy_json ) { return; }
+		// 2 = pre-#310 v2/v3 compact shape (stays readable until setup upgrades
+		// it, exactly like the v2 tolerance below); 3 = the #310 v4 shape.
+		if ( in_array( $compact, array( 2, 3 ), true ) && 'YES' === $legacy_json ) { return; }
 		// Already-approved v2 work remains readable before explicit setup upgrades it.
 		if ( $allow_legacy && 0 === $compact && 'NO' === $legacy_json ) { return; }
 		throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' );
@@ -69,7 +72,7 @@ final class Price_Apply_Journal {
 		$table = self::table( $db );
 		$engine = $db->get_var( $db->prepare( 'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) );
 		if ( 'InnoDB' !== $engine ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
-		if ( (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) FROM %i WHERE schema_version NOT IN (2,3)', $table ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+		if ( (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) FROM %i WHERE schema_version NOT IN (2,3,4)', $table ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 		if ( $db->get_var( $db->prepare( "SELECT id FROM %i WHERE schema_version=2 AND plan_id='' LIMIT 1", $table ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 		$jobs = Job_Schema::jobs_table( $db );
 		$has_jobs = (int) $db->get_var( $db->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $jobs ) );
@@ -95,7 +98,7 @@ final class Price_Apply_Journal {
 					self::assert_material( $row, $plan, (int) $row['product_id'], $json, $fingerprint );
 					if ( 'BLOCKED' === $plan->data()['status'] || 'CHANGING' !== $plan->item( (int) $row['product_id'] )->data()['result'] ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 					self::assert_legacy_evidence( $row, $plan );
-					if ( $job && 1 !== $tx->update( $table, array( 'schema_version' => self::SCHEMA_VERSION, 'plan_fingerprint' => $fingerprint, 'price_field' => $plan->price_field(), 'plan_json' => null ), array( 'id' => $row['id'], 'schema_version' => 2 ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+					if ( $job && 1 !== $tx->update( $table, array( 'schema_version' => self::SCHEMA_VERSION, 'plan_fingerprint' => $fingerprint, 'price_field' => 'price' === $plan->asset() ? $plan->price_field() : '', 'asset' => $plan->asset(), 'plan_json' => null ), array( 'id' => $row['id'], 'schema_version' => 2 ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 					$after_id = (int) $row['id'];
 				}
 				$after_plan = $plan_id;
@@ -130,10 +133,16 @@ final class Price_Apply_Journal {
 				if ( 'NO' === $columns['plan_json']['Null'] && false === $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i MODIFY plan_json longtext NULL', $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 				if ( ! isset( $columns['plan_fingerprint'] ) && false === $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD plan_fingerprint char(64) NOT NULL DEFAULT ''", $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 				if ( ! isset( $columns['price_field'] ) && false === $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD price_field varchar(16) NOT NULL DEFAULT ''", $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+				// #310 asset discriminator. Every pre-#310 row is a price row, so
+				// the backfill is exactly the legacy population; a row seeded
+				// concurrently by a stock plan already carries its own asset and
+				// never matches the empty backfill predicate.
+				if ( ! isset( $columns['asset'] ) && false === $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD asset varchar(16) NOT NULL DEFAULT ''", $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
+				if ( false === $wpdb->query( $wpdb->prepare( "UPDATE %i SET asset='price' WHERE asset=''", $table ) ) ) { throw new Price_Apply_Error( 'TRANSACTION_UNAVAILABLE' ); }
 			} finally { Price_Apply_Connection::forget_table_metadata( $wpdb, $table ); }
 			self::compact_legacy( $wpdb );
 		}
-		dbDelta( "CREATE TABLE $table (
+			dbDelta( "CREATE TABLE $table (
  id bigint unsigned NOT NULL AUTO_INCREMENT,
  schema_version int unsigned NOT NULL,
  plan_id varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
@@ -143,6 +152,7 @@ final class Price_Apply_Journal {
  product_id bigint unsigned NOT NULL,
  plan_fingerprint char(64) NOT NULL,
  price_field varchar(16) NOT NULL,
+ asset varchar(16) NOT NULL DEFAULT '',
  plan_json longtext NULL,
  expected_price varchar(32) NOT NULL,
  target_price varchar(32) NOT NULL,
@@ -169,7 +179,11 @@ final class Price_Apply_Journal {
 		$data = $plan->data();
 		$item = $plan->item( $id )->data();
 		$schema = (int) $row['schema_version'];
-		$material_matches = 2 === $schema ? ( $row['plan_json'] ?? null ) === $json : ( self::SCHEMA_VERSION === $schema && ( $row['plan_json'] ?? null ) === null && ( $row['plan_fingerprint'] ?? null ) === $fingerprint && ( $row['price_field'] ?? null ) === $plan->price_field() );
+		$asset = 'price' === $plan->asset() ? $plan->price_field() : '';
+		// #310: the compact contract is the price field for price plans and
+		// the empty string for stock plans; the asset column is authoritative
+		// on v4 rows and backfilled 'price' on migrated v3 rows.
+		$material_matches = 2 === $schema ? ( $row['plan_json'] ?? null ) === $json : ( in_array( $schema, array( 3, 4 ), true ) && ( $row['plan_json'] ?? null ) === null && ( $row['plan_fingerprint'] ?? null ) === $fingerprint && ( $row['price_field'] ?? null ) === $asset && ( ! array_key_exists( 'asset', $row ) || in_array( $schema, array( 3 ), true ) || ( $row['asset'] ?? null ) === $plan->asset() ) );
 		if ( ! $material_matches || $row['plan_id'] !== $data['plan_id'] || (int) $row['product_id'] !== $id || (int) $row['plan_schema_version'] !== Change_Plan::SCHEMA_VERSION || (int) $row['plan_schema_version'] !== $data['schema_version'] || $row['plan_hash_version'] !== Change_Plan::HASH_VERSION || $row['plan_hash_version'] !== $data['hash_version'] || $row['plan_hash'] !== $plan->hash() || $row['expected_price'] !== $item['expected_regular_price'] || $row['target_price'] !== $item['planned_regular_price'] ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 	}
 	/** Trusted frozen-plan fixture only. Approval persistence belongs to #109/#111. */
@@ -181,11 +195,11 @@ final class Price_Apply_Journal {
 		$data = $plan->data();
 		$json = $plan->json();
 		$fingerprint = hash( 'sha256', $json );
-		$field = $plan->price_field();
+		$field = 'price' === $plan->asset() ? $plan->price_field() : '';
 		foreach ( $data['items'] as $item ) {
 			if ( 'CHANGING' !== $item['result'] ) { continue; }
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom journal INSERT requires durable DB authority. The duplicate is verified below; identifiers and values are prepared.
-			if ( false === $wpdb->query( $wpdb->prepare( "INSERT INTO %i (schema_version,plan_id,plan_schema_version,plan_hash_version,plan_hash,product_id,plan_fingerprint,price_field,expected_price,target_price,state,evidence,created_at,updated_at) VALUES (%d,%s,%d,%s,%s,%d,%s,%s,%s,%s,'PENDING','',UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id", $table, self::SCHEMA_VERSION, $data['plan_id'], Change_Plan::SCHEMA_VERSION, Change_Plan::HASH_VERSION, $plan->hash(), $item['product_id'], $fingerprint, $field, $item['expected_regular_price'], $item['planned_regular_price'] ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
+			if ( false === $wpdb->query( $wpdb->prepare( "INSERT INTO %i (schema_version,plan_id,plan_schema_version,plan_hash_version,plan_hash,product_id,plan_fingerprint,price_field,asset,expected_price,target_price,state,evidence,created_at,updated_at) VALUES (%d,%s,%d,%s,%s,%d,%s,%s,%s,%s,%s,'PENDING','',UTC_TIMESTAMP(),UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id", $table, self::SCHEMA_VERSION, $data['plan_id'], Change_Plan::SCHEMA_VERSION, Change_Plan::HASH_VERSION, $plan->hash(), $item['product_id'], $fingerprint, $field, $plan->asset(), $item['expected_regular_price'], $item['planned_regular_price'] ) ) ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 			$row = self::read( $wpdb, $data['plan_id'], $item['product_id'] );
 			if ( ! $row ) { throw new Price_Apply_Error( 'JOURNAL_MISMATCH' ); }
 			// No immutable field or execution state is overwritten by a duplicate seed.
