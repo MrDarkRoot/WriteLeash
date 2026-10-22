@@ -42,7 +42,12 @@ final class Agent_Jobs_Rest {
 	}
 
 	public static function handle( \WP_REST_Request $request ) {
-		$parsed = self::parse_submission( self::json_object( $request ) );
+		try {
+			$parsed = self::parse_submission( self::json_object( $request ) );
+		} catch ( \Throwable $parse_error ) {
+			unset( $parse_error );
+			return self::error( 'MALFORMED', 400 );
+		}
 		if ( isset( $parsed['error'] ) ) {
 			return self::error( $parsed['error'], 400 );
 		}
@@ -61,7 +66,7 @@ final class Agent_Jobs_Rest {
 			unset( $error );
 			return self::error( 'SUPPORT_UNAVAILABLE', 503 );
 		}
-		if ( self::fraction_too_long( $parsed['target'], (int) $context->data()['price_decimals'] ) ) {
+		if ( 'price' === ( $parsed['asset'] ?? 'price' ) && self::fraction_too_long( $parsed['target'], (int) $context->data()['price_decimals'] ) ) {
 			return self::error( 'MALFORMED', 400 );
 		}
 		$issuer = (int) get_current_user_id();
@@ -129,6 +134,12 @@ final class Agent_Jobs_Rest {
 	/**
 	 * Strict object schema. No selectors, callbacks, meta keys, or percent ops.
 	 *
+	 * The price request shape is unchanged: an absent `asset` key is a price
+	 * job and must not carry stock vocabulary. A `product_stock` asset (the
+	 * only explicit asset) switches to the stock schema: `stock_field` plus
+	 * SET / INCREASE_INT / DECREASE_INT (quantity) or SET (status) and a
+	 * frozen absolute `target` (canonical integer quantity or core status).
+	 *
 	 * @param mixed $body
 	 * @return array<string,mixed>
 	 */
@@ -136,13 +147,19 @@ final class Agent_Jobs_Rest {
 		if ( ! is_array( $body ) || array() === $body || self::is_list( $body ) ) {
 			return array( 'error' => 'MALFORMED' );
 		}
-		$allowed = array( 'idempotency_key', 'actor_id', 'grant_version', 'price_field', 'operation', 'target', 'product_ids' );
+		$allowed = array( 'idempotency_key', 'actor_id', 'grant_version', 'price_field', 'operation', 'target', 'product_ids', 'asset', 'stock_field' );
 		foreach ( array_keys( $body ) as $key ) {
 			if ( ! in_array( $key, $allowed, true ) ) {
 				return array( 'error' => 'MALFORMED' );
 			}
 		}
-		foreach ( $allowed as $key ) {
+		$required = array( 'idempotency_key', 'actor_id', 'grant_version', 'operation', 'target', 'product_ids' );
+		if ( array_key_exists( 'asset', $body ) ) {
+			$required[] = 'stock_field';
+		} else {
+			$required[] = 'price_field';
+		}
+		foreach ( $required as $key ) {
 			if ( ! array_key_exists( $key, $body ) ) {
 				return array( 'error' => 'MALFORMED' );
 			}
@@ -152,6 +169,18 @@ final class Agent_Jobs_Rest {
 			return array( 'error' => 'GRANT_IDEMPOTENCY_INVALID' );
 		}
 		if ( ! is_int( $body['actor_id'] ) || $body['actor_id'] < 1 || ! is_int( $body['grant_version'] ) || $body['grant_version'] < 1 ) {
+			return array( 'error' => 'MALFORMED' );
+		}
+		if ( array_key_exists( 'asset', $body ) ) {
+			if ( Stock_Operation::ASSET !== $body['asset'] ) {
+				return array( 'error' => 'MALFORMED' );
+			}
+			if ( array_key_exists( 'price_field', $body ) || ! array_key_exists( 'stock_field', $body ) ) {
+				return array( 'error' => 'MALFORMED' );
+			}
+			return self::parse_stock_submission( $body, $key );
+		}
+		if ( array_key_exists( 'stock_field', $body ) ) {
 			return array( 'error' => 'MALFORMED' );
 		}
 		if ( Price_Operation::FIELD_REGULAR !== $body['price_field'] && Price_Operation::FIELD_SALE !== $body['price_field'] ) {
@@ -169,11 +198,67 @@ final class Agent_Jobs_Rest {
 			unset( $error );
 			return array( 'error' => 'MALFORMED' );
 		}
-		if ( ! is_array( $body['product_ids'] ) || array() === $body['product_ids'] || ! self::is_list( $body['product_ids'] ) || count( $body['product_ids'] ) > Product_Price_Selector::MAX_SELECTED ) {
+		$ids = self::parse_product_ids( $body['product_ids'] );
+		if ( isset( $ids['error'] ) ) {
+			return $ids;
+		}
+		return array(
+			'idempotency_key' => $key,
+			'actor_id' => $body['actor_id'],
+			'grant_version' => $body['grant_version'],
+			'price_field' => $body['price_field'],
+			'operation' => Price_Operation::SET,
+			'target' => $body['target'],
+			'product_ids' => $ids['ids'],
+		);
+	}
+
+	/** Stock schema: frozen absolute quantity/status target, bounded vocabulary only. */
+	private static function parse_stock_submission( array $body, string $key ): array {
+		$field = $body['stock_field'];
+		if ( ! is_string( $field ) || ! in_array( $field, Stock_Operation::FIELDS, true ) ) {
+			return array( 'error' => 'MALFORMED' );
+		}
+		if ( ! is_string( $body['operation'] ) || ! is_string( $body['target'] ) || '' === $body['target'] ) {
+			return array( 'error' => 'MALFORMED' );
+		}
+		$operation = $body['operation'];
+		$target = $body['target'];
+		if ( Stock_Operation::FIELD_STATUS === $field ) {
+			if ( Stock_Operation::SET !== $operation || ! in_array( $target, Stock_Operation::STATUSES, true ) ) {
+				return array( 'error' => 'UNSUPPORTED_OPERATION' );
+			}
+		} else {
+			if ( ! in_array( $operation, array( Stock_Operation::SET, Stock_Operation::INCREASE_INT, Stock_Operation::DECREASE_INT ), true ) ) {
+				return array( 'error' => 'UNSUPPORTED_OPERATION' );
+			}
+			if ( ! preg_match( '/\A(?:0|[1-9][0-9]*)\z/D', $target ) || Price_Decimal::compare( $target, Stock_Operation::QUANTITY_LIMIT ) > 0 ) {
+				return array( 'error' => 'MALFORMED' );
+			}
+		}
+		$ids = self::parse_product_ids( $body['product_ids'] );
+		if ( isset( $ids['error'] ) ) {
+			return $ids;
+		}
+		return array(
+			'idempotency_key' => $key,
+			'actor_id' => $body['actor_id'],
+			'grant_version' => $body['grant_version'],
+			'asset' => Stock_Operation::ASSET,
+			'stock_field' => $field,
+			'operation' => $operation,
+			'target' => $target,
+			'product_ids' => $ids['ids'],
+		);
+	}
+
+	/** @return array{error:string}|array{ids:int[]} */
+	private static function parse_product_ids( $raw ): array {
+		if ( ! is_array( $raw ) || array() === $raw || ! self::is_list( $raw ) || count( $raw ) > Product_Price_Selector::MAX_SELECTED ) {
 			return array( 'error' => 'MALFORMED' );
 		}
 		$ids = array();
-		foreach ( $body['product_ids'] as $id ) {
+		foreach ( $raw as $id ) {
 			if ( ! is_int( $id ) || $id < 1 ) {
 				return array( 'error' => 'MALFORMED' );
 			}
@@ -184,15 +269,7 @@ final class Agent_Jobs_Rest {
 			return array( 'error' => 'MALFORMED' );
 		}
 		sort( $unique, SORT_NUMERIC );
-		return array(
-			'idempotency_key' => $key,
-			'actor_id' => $body['actor_id'],
-			'grant_version' => $body['grant_version'],
-			'price_field' => $body['price_field'],
-			'operation' => Price_Operation::SET,
-			'target' => $body['target'],
-			'product_ids' => $unique,
-		);
+		return array( 'ids' => $unique );
 	}
 
 	/** @param mixed $body */
@@ -268,6 +345,25 @@ final class Agent_Jobs_Rest {
 	private static function request_matches_frozen( array $parsed, Change_Plan $plan ): bool {
 		$data = $plan->data();
 		if ( (int) ( $data['actor_id'] ?? 0 ) !== (int) $parsed['actor_id'] ) { return false; }
+		if ( 'product_stock' === ( $parsed['asset'] ?? 'price' ) ) {
+			if ( 'product_stock' !== $plan->asset() ) { return false; }
+			$operation = (array) ( $data['operation'] ?? array() );
+			if ( (string) ( $operation['field'] ?? '' ) !== (string) $parsed['stock_field'] || (string) ( $operation['type'] ?? '' ) !== (string) $parsed['operation'] ) { return false; }
+			$ids = array();
+			foreach ( (array) ( $data['items'] ?? array() ) as $item ) {
+				if ( 'CHANGING' !== ( $item['result'] ?? '' ) ) { return false; }
+				$stock = (array) ( $item['stock'] ?? array() );
+				if ( Stock_Operation::FIELD_STATUS === (string) $parsed['stock_field'] ) {
+					if ( (string) ( $stock['planned_status'] ?? '' ) !== (string) $parsed['target'] || '' !== (string) ( $item['planned_regular_price'] ?? '' ) ) { return false; }
+				} elseif ( ! self::stock_target_replay( (string) $parsed['operation'], (string) $item['expected_regular_price'], (string) $item['planned_regular_price'], (string) $parsed['target'] ) ) {
+					return false;
+				}
+				$ids[] = (int) ( $item['product_id'] ?? 0 );
+			}
+			sort( $ids, SORT_NUMERIC );
+			return $ids === $parsed['product_ids'];
+		}
+		if ( 'product_stock' === $plan->asset() ) { return false; }
 		$operation = (array) ( $data['operation'] ?? array() );
 		if ( Price_Operation::SET !== ( $operation['type'] ?? '' ) ) { return false; }
 		try { $field = Price_Operation::assert_field( (string) ( $operation['field'] ?? Price_Operation::FIELD_REGULAR ) ); }
@@ -285,6 +381,20 @@ final class Agent_Jobs_Rest {
 		}
 		sort( $ids, SORT_NUMERIC );
 		return $ids === $parsed['product_ids'];
+	}
+
+	/** Exact replay arithmetic for a frozen stock quantity target: the request input must recompute the frozen planned value from the frozen expected value. */
+	private static function stock_target_replay( string $operation, string $expected, string $planned, string $input ): bool {
+		try {
+			switch ( $operation ) {
+				case Stock_Operation::SET: return Price_Decimal::equal( $planned, $input );
+				case Stock_Operation::INCREASE_INT: return '' !== $expected && Price_Decimal::equal( $planned, Price_Decimal::add( Price_Decimal::parse( $expected ), $input ) );
+				case Stock_Operation::DECREASE_INT: return '' !== $expected && Price_Decimal::compare( Price_Decimal::parse( $expected ), $input ) >= 0 && Price_Decimal::equal( $planned, Price_Decimal::subtract( Price_Decimal::parse( $expected ), $input ) );
+			}
+		} catch ( Price_Validation_Error $error ) {
+			unset( $error );
+		}
+		return false;
 	}
 
 	/**
@@ -317,12 +427,45 @@ final class Agent_Jobs_Rest {
 		if ( $context->data() !== Price_Store_Context::current()->data() ) {
 			throw new Price_Validation_Error( 'store_context_changed_during_planning' );
 		}
+		if ( 'product_stock' === ( $parsed['asset'] ?? 'price' ) ) {
+			return self::freeze_stock_plan( $grant, $parsed, $context, $selection, $resolved, $actor_id );
+		}
 		$operation = new Price_Operation( Price_Operation::SET, $parsed['target'], $parsed['price_field'] );
 		// #299 delegated submission policy (Free_Support_Contract): no human
 		// reviews these jobs before execution, so caps stay at 50% and the
 		// zero target is blocked even though a human Apply form may allow it.
 		$policy = new Safety_Policy( Free_Support_Contract::MAX_JOB_PRODUCTS, Free_Support_Contract::GRANT_MAX_INCREASE_PERCENT, Free_Support_Contract::GRANT_MAX_DECREASE_PERCENT, Free_Support_Contract::GRANT_BLOCK_ZERO, Free_Support_Contract::GRANT_WARNING_THRESHOLD_PERCENT );
 		$plan = Change_Plan::create( self::plan_id( (string) $grant['public_id'], $parsed['idempotency_key'] ), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor_id, $context, $selection, $operation, $policy, $resolved['snapshots'], $resolved['outcome'] );
+		if ( 'PREVIEW' !== ( $plan->data()['status'] ?? '' ) ) {
+			throw new Grant_Error( 'GRANT_SCOPE_DENIED' );
+		}
+		$changing = array();
+		foreach ( $plan->data()['items'] as $item ) {
+			if ( 'CHANGING' !== ( $item['result'] ?? '' ) ) {
+				throw new Grant_Error( 'GRANT_SCOPE_DENIED' );
+			}
+			$changing[] = (int) $item['product_id'];
+		}
+		sort( $changing, SORT_NUMERIC );
+		if ( $changing !== $ids ) {
+			throw new Grant_Error( 'GRANT_SCOPE_DENIED' );
+		}
+		Grant_Repository::assert_scope( $plan );
+		return $plan;
+	}
+
+	/**
+	 * Freeze a product_stock plan: concrete IDs, one frozen absolute target,
+	 * delegated bounds from the support contract. Every item must be CHANGING.
+	 *
+	 * @param array<string,mixed> $grant
+	 * @param array<string,mixed> $parsed
+	 * @param array<string,mixed> $resolved
+	 */
+	private static function freeze_stock_plan( array $grant, array $parsed, Price_Store_Context $context, Price_Selection_Spec $selection, array $resolved, int $actor_id ): Change_Plan {
+		$ids = $parsed['product_ids'];
+		$operation = new Stock_Operation( $parsed['operation'], $parsed['stock_field'], $parsed['target'], Free_Support_Contract::MAX_STOCK_ABS_DELTA, Free_Support_Contract::MIN_STOCK_FLOOR );
+		$plan = Change_Plan::create_stock( self::plan_id( (string) $grant['public_id'], $parsed['idempotency_key'] ), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor_id, $context, $selection, $operation, $resolved['snapshots'] );
 		if ( 'PREVIEW' !== ( $plan->data()['status'] ?? '' ) ) {
 			throw new Grant_Error( 'GRANT_SCOPE_DENIED' );
 		}
