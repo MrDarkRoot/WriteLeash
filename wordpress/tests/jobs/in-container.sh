@@ -37,6 +37,7 @@ for host in mysql mariadb; do
     WL109_ROOT_USER=root WL109_ROOT_PASSWORD=disposable_root_password WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/perimeter-integration.php
     WL109_ROOT_USER=root WL109_ROOT_PASSWORD=disposable_root_password WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/grant-removal-integration.php
     WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/agent-jobs-rest.php
+    WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/stock-integration.php
     WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/foreign-path-regression.php
     sh /opt/tests/jobs/unicode-run.sh "$host" "$cache" /opt/wp-core /opt/woo-zips
   done
