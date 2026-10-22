@@ -91,6 +91,7 @@ require_once __DIR__ . '/includes/free/class-price-apply-journal.php';
 require_once __DIR__ . '/includes/free/class-price-cache-verifier.php';
 require_once __DIR__ . '/includes/free/class-price-apply-transaction-guard.php';
 require_once __DIR__ . '/includes/free/class-woo-price-mutator.php';
+require_once __DIR__ . '/includes/free/class-woo-stock-mutator.php';
 
 // #109 durable job engine. Action Scheduler is only the wake-up mechanism.
 require_once __DIR__ . '/includes/free/class-job-state.php';
