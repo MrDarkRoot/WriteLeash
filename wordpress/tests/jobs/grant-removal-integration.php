@@ -52,10 +52,14 @@ function audit_count(): int {
 	global $wpdb;
 	return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', GSchema::audit_table( $wpdb ) ) );
 }
+function audit_event_count( string $event ): int {
+	global $wpdb;
+	return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE event=%s', GSchema::audit_table( $wpdb ), $event ) );
+}
 function ensure_users(): array {
 	$ids = array();
-	$roles = array( 'wl309-remover' => 'administrator', 'wl309-leashed-manager' => 'shop_manager' );
-	foreach ( array( 'wl309-remover', 'wl309-agent', 'wl309-bystander', 'wl309-bare', 'wl309-leashed-manager' ) as $login ) {
+	$roles = array( 'wl309-remover' => 'administrator', 'wl309-leashed-manager' => 'shop_manager', 'wl309-plain-manager' => 'shop_manager', 'wl309-leashed-admin' => 'administrator' );
+	foreach ( array( 'wl309-remover', 'wl309-agent', 'wl309-bystander', 'wl309-bare', 'wl309-leashed-manager', 'wl309-plain-manager', 'wl309-leashed-admin' ) as $login ) {
 		$existing = get_user_by( 'login', $login );
 		if ( $existing ) { $ids[ $login ] = (int) $existing->ID; continue; }
 		$role = $roles[ $login ] ?? 'subscriber';
@@ -63,8 +67,8 @@ function ensure_users(): array {
 		if ( is_wp_error( $id ) ) { throw new RuntimeException( 'user creation failed: ' . $login ); }
 		$ids[ $login ] = (int) $id;
 	}
-	ok( 5 === count( array_unique( $ids ) ), 'five distinct identities' );
-	return array( 'remover' => $ids['wl309-remover'], 'agent' => $ids['wl309-agent'], 'bystander' => $ids['wl309-bystander'], 'bare' => $ids['wl309-bare'], 'manager' => $ids['wl309-leashed-manager'] );
+	ok( 7 === count( array_unique( $ids ) ), 'seven distinct identities' );
+	return array( 'remover' => $ids['wl309-remover'], 'agent' => $ids['wl309-agent'], 'bystander' => $ids['wl309-bystander'], 'bare' => $ids['wl309-bare'], 'manager' => $ids['wl309-leashed-manager'], 'plain_manager' => $ids['wl309-plain-manager'], 'leashed_admin' => $ids['wl309-leashed-admin'] );
 }
 
 eq( get_bloginfo( 'version' ), '7.1.2', 'pinned WordPress' );
@@ -74,6 +78,8 @@ $agent = $users['agent'];
 $bystander = $users['bystander'];
 $bare = $users['bare'];
 $manager = $users['manager'];
+$plain_manager = $users['plain_manager'];
+$leashed_admin = $users['leashed_admin'];
 
 // ---------------------------------------------------------------------------
 // Simulated v1 store: the marker column is dropped and the stored version
@@ -229,6 +235,63 @@ catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'PERMISSION_DEN
 wp_set_current_user( $remover );
 eq( active_grant_count(), 0, 'refused revoke-all calls mutated nothing' );
 marker( 'revoke-all capability gate' );
+
+// ---------------------------------------------------------------------------
+// #308 emergency-control operator policy: disable, enable and revoke_all also
+// require manage_options and refuse a restricted principal. That closes the
+// containment bypass where the #307 restricted profile — exactly a shop
+// manager holding manage_woocommerce + edit_products — could resume an
+// operator's emergency pause or flush every principal's grant.
+// ---------------------------------------------------------------------------
+wp_set_current_user( $remover );
+$emergency_fixture = Grants::create_grant( $remover, $agent, 5, future_expiry() );
+$leashed_admin_grant = Grants::create_grant( $remover, $leashed_admin, 5, future_expiry() );
+ok( Grants::is_restricted_actor( $manager ), 'the leashed shop manager is restricted' );
+ok( Grants::is_restricted_actor( $plain_manager ) === false, 'the plain shop manager is not restricted' );
+ok( Grants::is_restricted_actor( $leashed_admin ), 'the leashed administrator is restricted' );
+$policy_active = active_grant_count();
+$policy_disabled = Grants::is_disabled();
+$policy_version = (int) Grants::read_by_public_id( (string) $emergency_fixture['public_id'] )['version'];
+$policy_audit = audit_count();
+ok( $policy_active >= 2, 'emergency policy fixtures are active' );
+foreach ( array(
+	'leashed shop manager' => $manager,
+	'non-restricted shop manager' => $plain_manager,
+	'restricted administrator' => $leashed_admin,
+) as $policy_label => $policy_caller ) {
+	wp_set_current_user( $policy_caller );
+	try { Grants::disable( $policy_caller ); ok( false, $policy_label . ' pause refused' ); }
+	catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'PERMISSION_DENIED', $policy_label . ' pause refused with PERMISSION_DENIED' ); }
+	try { Grants::enable( $policy_caller ); ok( false, $policy_label . ' resume refused' ); }
+	catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'PERMISSION_DENIED', $policy_label . ' resume refused with PERMISSION_DENIED' ); }
+	try { Grants::revoke_all( $policy_caller ); ok( false, $policy_label . ' revoke-all refused' ); }
+	catch ( \WriteLeash\Grant_Error $error ) { eq( $error->reason(), 'PERMISSION_DENIED', $policy_label . ' revoke-all refused with PERMISSION_DENIED' ); }
+	eq( active_grant_count(), $policy_active, $policy_label . ' attempts left the grant states unchanged' );
+	eq( Grants::is_disabled(), $policy_disabled, $policy_label . ' attempts left the kill-switch unchanged' );
+	eq( (int) Grants::read_by_public_id( (string) $emergency_fixture['public_id'] )['version'], $policy_version, $policy_label . ' attempts left the grant version unchanged' );
+	eq( audit_count(), $policy_audit, $policy_label . ' attempts appended no audit evidence' );
+}
+marker( 'emergency control operator refusals (leashed and plain shop manager, restricted administrator)' );
+
+// The same three actions succeed for a non-restricted administrator, with the
+// audit and version behaviour unchanged.
+wp_set_current_user( $remover );
+ok( Grants::is_restricted_actor( $remover ) === false, 'the acting administrator is not restricted' );
+$disabled_events = audit_event_count( 'GRANT_DISABLED' );
+$enabled_events = audit_event_count( 'GRANT_ENABLED' );
+Grants::disable( $remover );
+eq( Grants::is_disabled(), true, 'non-restricted administrator pause succeeds' );
+eq( audit_event_count( 'GRANT_DISABLED' ), $disabled_events + 1, 'administrator pause appends its audit event' );
+Grants::enable( $remover );
+eq( Grants::is_disabled(), false, 'non-restricted administrator resume succeeds' );
+eq( audit_event_count( 'GRANT_ENABLED' ), $enabled_events + 1, 'administrator resume appends its audit event' );
+$policy_revoked = Grants::revoke_all( $remover );
+eq( $policy_revoked, $policy_active, 'non-restricted administrator revoke-all revokes the active set' );
+eq( active_grant_count(), 0, 'administrator revoke-all leaves zero active grants' );
+eq( (int) Grants::read_by_public_id( (string) $emergency_fixture['public_id'] )['version'], $policy_version + 1, 'administrator revoke-all bumps the version exactly once' );
+eq( (string) Grants::read_by_public_id( (string) $emergency_fixture['public_id'] )['revoke_reason'], Grants::EMERGENCY_REVOKE_REASON, 'administrator revoke-all records the emergency reason' );
+eq( (int) Grants::read_by_public_id( (string) $leashed_admin_grant['public_id'] )['version'], 2, 'the leashed administrator grant is revoked once' );
+marker( 'emergency control administrator path' );
 
 // Audit failure rolls back every grant transition in the batch.
 $fail_a = Grants::create_grant( $remover, $agent, 5, future_expiry() );

@@ -27,7 +27,7 @@ function marker( string $label ): void {
 function future_expiry(): string { return gmdate( 'Y-m-d H:i:s', time() + 86400 ); }
 function ensure_users(): array {
 	$ids = array();
-	$roles = array( 'wl309-operator' => 'shop_manager', 'wl309-spectator' => 'subscriber', 'wl309-agent' => 'subscriber', 'wl309-second' => 'shop_manager', 'wl309-admin2' => 'administrator' );
+	$roles = array( 'wl309-operator' => 'shop_manager', 'wl309-spectator' => 'subscriber', 'wl309-agent' => 'subscriber', 'wl309-second' => 'shop_manager', 'wl309-admin2' => 'administrator', 'wl309-leashed-manager' => 'shop_manager' );
 	foreach ( array_keys( $roles ) as $login ) {
 		$existing = get_user_by( 'login', $login );
 		if ( $existing ) { $ids[ $login ] = (int) $existing->ID; continue; }
@@ -35,8 +35,8 @@ function ensure_users(): array {
 		if ( is_wp_error( $id ) ) { throw new RuntimeException( 'user creation failed: ' . $login ); }
 		$ids[ $login ] = (int) $id;
 	}
-	ok( 5 === count( array_unique( $ids ) ), 'five distinct identities' );
-	return array( 'operator' => $ids['wl309-operator'], 'spectator' => $ids['wl309-spectator'], 'agent' => $ids['wl309-agent'], 'second' => $ids['wl309-second'], 'admin2' => $ids['wl309-admin2'] );
+	ok( 6 === count( array_unique( $ids ) ), 'six distinct identities' );
+	return array( 'operator' => $ids['wl309-operator'], 'spectator' => $ids['wl309-spectator'], 'agent' => $ids['wl309-agent'], 'second' => $ids['wl309-second'], 'admin2' => $ids['wl309-admin2'], 'leashed_manager' => $ids['wl309-leashed-manager'] );
 }
 function nonce( string $action ): string { return wp_create_nonce( $action ); }
 function audit_rows( int $actor_id ): array {
@@ -65,6 +65,7 @@ $spectator = $users['spectator'];
 $agent = $users['agent'];
 $second = $users['second'];
 $admin2 = $users['admin2'];
+$leashed_manager = $users['leashed_manager'];
 
 // ---------------------------------------------------------------------------
 // Gate matrix: capability, method and nonce on every mutation.
@@ -223,6 +224,26 @@ wp_set_current_user( $operator );
 $pause_grant = Admin::process_create( array( '_wpnonce' => nonce( Admin::ACTION_CREATE ), 'actor' => (string) $agent, 'budget' => '5', 'expires' => future_expiry() ), 'POST' );
 eq( $pause_grant['status'], 'OK', 'fixture grant for emergency controls created' );
 
+// #308 emergency operator policy: the controls are administrator-only and a
+// restricted principal may never operate them, so a shop manager (which is
+// exactly the #307 restricted profile) cannot resume an operator's pause or
+// revoke every grant. One leashed shop manager fixture proves both halves.
+wp_set_current_user( 1 );
+$leash_fixture = Admin::process_create( array( '_wpnonce' => nonce( Admin::ACTION_CREATE ), 'actor' => (string) $leashed_manager, 'budget' => '5', 'expires' => future_expiry() ), 'POST' );
+eq( $leash_fixture['status'], 'OK', 'fixture: shop manager leashed for the emergency policy' );
+ok( Grants::is_restricted_actor( $leashed_manager ), 'fixture: the leashed shop manager is restricted' );
+$emergency_active = active_grant_count();
+$emergency_disabled = Grants::is_disabled();
+foreach ( array( 'non-restricted shop manager' => $operator, 'leashed shop manager' => $leashed_manager ) as $emergency_label => $emergency_caller ) {
+	wp_set_current_user( $emergency_caller );
+	eq( Admin::process_disable( array( '_wpnonce' => nonce( Admin::ACTION_DISABLE ) ), 'POST' ), array( 'status' => 'FORBIDDEN', 'reason' => 'emergency_operator_required' ), $emergency_label . ' pause refused' );
+	eq( Admin::process_enable( array( '_wpnonce' => nonce( Admin::ACTION_ENABLE ) ), 'POST' ), array( 'status' => 'FORBIDDEN', 'reason' => 'emergency_operator_required' ), $emergency_label . ' resume refused' );
+	eq( Admin::process_revoke_all( array( '_wpnonce' => nonce( Admin::ACTION_REVOKE_ALL ), 'confirm' => '1' ), 'POST' ), array( 'status' => 'FORBIDDEN', 'reason' => 'emergency_operator_required' ), $emergency_label . ' revoke-all refused' );
+	eq( active_grant_count(), $emergency_active, $emergency_label . ' attempts left the grant states unchanged' );
+	eq( Grants::is_disabled(), $emergency_disabled, $emergency_label . ' attempts left the kill-switch unchanged' );
+}
+marker( 'emergency control operator policy (shop manager, leashed shop manager)' );
+
 // Gate matrix: unauthorized callers are refused before any mutation.
 $active_before = active_grant_count();
 wp_set_current_user( 0 );
@@ -232,7 +253,9 @@ eq( Admin::process_revoke_all( array( '_wpnonce' => nonce( Admin::ACTION_REVOKE_
 wp_set_current_user( $spectator );
 eq( Admin::process_revoke_all( array( '_wpnonce' => nonce( Admin::ACTION_REVOKE_ALL ), 'confirm' => '1' ), 'POST' ), array( 'status' => 'FORBIDDEN', 'reason' => 'capability_required' ), 'capability-less revoke-all refused' );
 eq( active_grant_count(), $active_before, 'refusals left the grant store untouched' );
-wp_set_current_user( $operator );
+// Method and nonce contract, exercised as an authorized non-restricted
+// administrator: the shop manager never reaches these checks.
+wp_set_current_user( 1 );
 eq( Admin::process_disable( array( '_wpnonce' => nonce( Admin::ACTION_DISABLE ) ), 'GET' ), array( 'status' => 'INVALID', 'reason' => 'post_required' ), 'GET pause refused' );
 eq( Admin::process_revoke_all( array( '_wpnonce' => nonce( Admin::ACTION_REVOKE_ALL ), 'confirm' => '1' ), 'GET' ), array( 'status' => 'INVALID', 'reason' => 'post_required' ), 'GET revoke-all refused' );
 eq( Admin::process_disable( array( '_wpnonce' => 'tampered' ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' ), 'forged pause nonce refused' );
@@ -242,7 +265,8 @@ eq( active_grant_count(), $active_before, 'gate matrix left the grant store unto
 marker( 'emergency control capability+method+nonce matrix' );
 
 // Pause/resume option posture: the repository predicate is authoritative and
-// only an explicit '0' enables.
+// only an explicit '0' enables. Exercised as a non-restricted administrator.
+wp_set_current_user( 1 );
 $paused = Admin::process_disable( array( '_wpnonce' => nonce( Admin::ACTION_DISABLE ) ), 'POST' );
 eq( $paused, array( 'status' => 'OK', 'reason' => 'grants_paused', 'disabled' => true ), 'pause accepted' );
 eq( Grants::is_disabled(), true, 'pause reflected by is_disabled' );
@@ -261,6 +285,7 @@ marker( 'pause/resume option posture' );
 
 // Render: one toggle reflecting the durable state, and a revoke-all form with
 // a server-side confirmation field. The remove-restriction path stays separate.
+wp_set_current_user( 1 );
 update_option( GSchema::DISABLE_OPTION, '1', false );
 ob_start();
 Admin::render();
@@ -271,13 +296,26 @@ ok( ! str_contains( $paused_page, 'value="' . Admin::ACTION_DISABLE . '"' ), 'pa
 ok( str_contains( $paused_page, 'name="confirm" value="1"' ), 'revoke-all form carries the server confirmation field' );
 ok( substr_count( $paused_page, 'value="' . Admin::ACTION_REVOKE_ALL . '"' ) === 1, 'exactly one revoke-all form' );
 ok( str_contains( $paused_page, 'Principals stay restricted' ), 'revoke-all warning names the un-leash boundary' );
-Grants::enable( $operator );
+Grants::enable( 1 );
 ob_start();
 Admin::render();
 $active_page = (string) ob_get_clean();
 ok( str_contains( $active_page, 'Restricted execution is active.' ), 'active toggle copy reflects is_disabled' );
 ok( str_contains( $active_page, 'value="' . Admin::ACTION_DISABLE . '"' ), 'active toggle posts disable' );
 ok( ! str_contains( $active_page, 'value="' . Admin::ACTION_ENABLE . '"' ), 'active toggle does not post enable' );
+// The emergency surface is hidden from a shop manager and from a restricted
+// principal: no toggle (or its nonce) and no revoke-all form at all.
+foreach ( array( 'non-restricted shop manager' => $operator, 'leashed shop manager' => $leashed_manager ) as $render_label => $render_caller ) {
+	wp_set_current_user( $render_caller );
+	ob_start();
+	Admin::render();
+	$render_page = (string) ob_get_clean();
+	ok( ! str_contains( $render_page, 'value="' . Admin::ACTION_DISABLE . '"' ), $render_label . ' sees no pause control' );
+	ok( ! str_contains( $render_page, 'value="' . Admin::ACTION_ENABLE . '"' ), $render_label . ' sees no resume control' );
+	ok( ! str_contains( $render_page, 'value="' . Admin::ACTION_REVOKE_ALL . '"' ), $render_label . ' sees no revoke-all form' );
+	ok( ! str_contains( $render_page, 'name="confirm" value="1"' ), $render_label . ' sees no revoke-all confirmation field' );
+	ok( str_contains( $render_page, 'value="' . Admin::ACTION_CREATE . '"' ), $render_label . ' still sees the create form' );
+}
 wp_set_current_user( $spectator );
 ob_start();
 Admin::render();
@@ -297,6 +335,10 @@ $bulk_b_before = Grants::read_by_public_id( (string) $bulk_b['public_id'] );
 $bulk_a_audit = count( grant_audit_rows( (string) $bulk_a['public_id'] ) );
 $bulk_b_audit = count( grant_audit_rows( (string) $bulk_b['public_id'] ) );
 $active_before = active_grant_count();
+// Revoke-all is an emergency control: confirmed only by a non-restricted
+// administrator, so the fixture operator changes here (create stays on the
+// product-management pair).
+wp_set_current_user( 1 );
 eq( Admin::process_revoke_all( array( '_wpnonce' => nonce( Admin::ACTION_REVOKE_ALL ) ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'confirmation_required' ), 'missing confirm refused server-side' );
 eq( Admin::process_revoke_all( array( '_wpnonce' => nonce( Admin::ACTION_REVOKE_ALL ), 'confirm' => '0' ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'confirmation_required' ), 'confirm=0 refused server-side' );
 eq( active_grant_count(), $active_before, 'unconfirmed revoke-all left every active grant in place' );
@@ -320,7 +362,7 @@ foreach ( array( array( $bulk_a, $bulk_a_before, $bulk_a_audit ), array( $bulk_b
 	eq( (string) $last['event'], 'GRANT_REVOKED', 'bulk audit event is a revocation' );
 	$details = json_decode( (string) $last['details'], true );
 	eq( (string) ( $details['reason'] ?? '' ), Grants::EMERGENCY_REVOKE_REASON, 'bulk audit carries the emergency reason' );
-	eq( (int) ( $details['revoker_id'] ?? 0 ), $operator, 'bulk audit carries the operator id' );
+	eq( (int) ( $details['revoker_id'] ?? 0 ), 1, 'bulk audit carries the operator id' );
 	ok( ! empty( $details['bulk'] ), 'bulk audit marks the batch' );
 }
 ok( Grants::is_restricted_actor( $agent ), 'revoke-all leaves the agent restricted' );
@@ -340,8 +382,11 @@ $agent_cleanup = Admin::process_remove( array( '_wpnonce' => nonce( Admin::ACTIO
 eq( $agent_cleanup['status'], 'OK', 'cleanup remove accepted for the agent' );
 $second_cleanup = Admin::process_remove( array( '_wpnonce' => nonce( Admin::ACTION_REMOVE ), 'actor' => (string) $second ), 'POST' );
 eq( $second_cleanup['status'], 'OK', 'cleanup remove accepted for the second principal' );
+$leashed_cleanup = Admin::process_remove( array( '_wpnonce' => nonce( Admin::ACTION_REMOVE ), 'actor' => (string) $leashed_manager ), 'POST' );
+eq( $leashed_cleanup['status'], 'OK', 'cleanup remove accepted for the leashed shop manager' );
 ok( Grants::is_restricted_actor( $agent ) === false, 'cleanup leaves the agent unrestricted' );
 ok( Grants::is_restricted_actor( $second ) === false, 'cleanup leaves the second principal unrestricted' );
+ok( Grants::is_restricted_actor( $leashed_manager ) === false, 'cleanup leaves the leashed shop manager unrestricted' );
 marker( 'emergency control fixture cleanup' );
 
 echo "#309/#308 grant admin surface gate: PASS ($assertions assertions)\n";
