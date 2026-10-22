@@ -305,6 +305,63 @@ run_job( (int) $rest_job['id'] );
 eq( qty_of( $rest_id ), '9', 'REST stock job applied the frozen target' );
 marker( 'idempotency replay and mismatch' );
 
+// REST scope-denial matrix for the new asset: every refusal is typed and writes nothing.
+wp_set_current_user( $issuer );
+$deny_id = stock_product( 4 );
+$deny_before = hash_rows( array( $deny_id ) );
+$deny = static function ( array $overrides, string $key ) use ( $grant, $issuer, $deny_id ): \WP_REST_Response {
+	wp_set_current_user( $issuer );
+	$body = array_merge( array(
+		'idempotency_key' => $key,
+		'actor_id' => (int) $grant['actor_id'],
+		'grant_version' => (int) $grant['version'],
+		'asset' => 'product_stock',
+		'stock_field' => 'stock_quantity',
+		'operation' => 'SET',
+		'target' => '9',
+		'product_ids' => array( $deny_id ),
+	), $overrides );
+	$request = new WP_REST_Request( 'POST', '/writeleash/v1/grants/' . $grant['public_id'] . '/jobs' );
+	$request->set_header( 'Content-Type', 'application/json' );
+	$request->set_body( wp_json_encode( $body ) );
+	return rest_do_request( $request );
+};
+$deny_reason = static function ( \WP_REST_Response $response ): string {
+	$data = $response->get_data();
+	return is_array( $data ) ? (string) ( $data['data']['reason'] ?? $data['reason'] ?? '' ) : '';
+};
+$managed_status = $deny( array( 'stock_field' => 'stock_status', 'target' => 'outofstock' ), 'wl310-deny-managed-status' );
+eq( $managed_status->get_status(), 409, 'status SET on managed stock refused' );
+eq( $deny_reason( $managed_status ), 'GRANT_SCOPE_DENIED', 'managed status refusal reason' );
+$unchanged = $deny( array( 'target' => '4' ), 'wl310-deny-unchanged' );
+eq( $unchanged->get_status(), 409, 'non-changing stock target refused' );
+eq( $deny_reason( $unchanged ), 'GRANT_SCOPE_DENIED', 'non-changing stock refusal reason' );
+$identity = $deny( array( 'actor_id' => $issuer ), 'wl310-deny-identity' );
+eq( $identity->get_status(), 403, 'wrong actor refused' );
+eq( $deny_reason( $identity ), 'GRANT_IDENTITY_INVALID', 'wrong actor refusal reason' );
+$version = $deny( array( 'grant_version' => (int) $grant['version'] + 1 ), 'wl310-deny-version' );
+eq( $version->get_status(), 409, 'wrong grant version refused' );
+eq( $deny_reason( $version ), 'GRANT_VERSION_MISMATCH', 'wrong grant version reason' );
+$bad_field = $deny( array( 'stock_field' => 'manage_stock' ), 'wl310-deny-field' );
+eq( $bad_field->get_status(), 400, 'unknown stock field refused' );
+eq( $deny_reason( $bad_field ), 'MALFORMED', 'unknown stock field reason' );
+$bad_operation = $deny( array( 'operation' => 'INCREASE_PERCENT' ), 'wl310-deny-operation' );
+eq( $bad_operation->get_status(), 400, 'percentage stock operation refused' );
+eq( $deny_reason( $bad_operation ), 'UNSUPPORTED_OPERATION', 'percentage stock operation reason' );
+$bad_target = $deny( array( 'target' => '-1' ), 'wl310-deny-target' );
+eq( $bad_target->get_status(), 400, 'signed stock target refused' );
+eq( $deny_reason( $bad_target ), 'MALFORMED', 'signed stock target reason' );
+$price_vocabulary = $deny( array( 'price_field' => 'regular_price' ), 'wl310-deny-mixed' );
+eq( $price_vocabulary->get_status(), 400, 'mixed price/stock vocabulary refused' );
+wp_set_current_user( $issuer );
+update_option( GSchema::DISABLE_OPTION, '1', false );
+$disabled = $deny( array(), 'wl310-deny-disabled' );
+eq( $disabled->get_status(), 403, 'stock acceptance refused while disabled' );
+eq( $deny_reason( $disabled ), 'GRANT_DISABLED', 'disabled grant reason' );
+update_option( GSchema::DISABLE_OPTION, '0', false );
+eq( hash_rows( array( $deny_id ) ), $deny_before, 'REST scope denials wrote nothing' );
+marker( 'REST scope-denial matrix' );
+
 // Crash matrix: kill before commit rolls back; kill after commit reconciles once.
 $crash_id = stock_product( 12 );
 $crash = accept_stock( $grant, $issuer, $actor, array( $crash_id ), StockOp::SET, StockOp::FIELD_QUANTITY, '30', 'wl310-crash-before' );
