@@ -87,9 +87,8 @@ final class Change_Plan_Item {
 			throw new Price_Validation_Error( 'invalid_plan_item' );
 		}
 		if ( null !== $stock['planned_status'] && ! in_array( $stock['planned_status'], Stock_Operation::STATUSES, true ) ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
-		foreach ( array( 'max_abs_delta' => 'invalid_stock_delta_bound', 'min_stock_floor' => 'invalid_stock_floor' ) as $key => $reason ) {
-			if ( ! preg_match( '/\A(?:0|[1-9][0-9]*)\z/D', $stock[ $key ] ) || Price_Decimal::compare( $stock[ $key ], Stock_Operation::QUANTITY_LIMIT ) > 0 ) { throw new Price_Validation_Error( $reason ); }
-		}
+		if ( ! preg_match( '/\A(?:0|[1-9][0-9]*)\z/D', $stock['max_abs_delta'] ) || Price_Decimal::compare( $stock['max_abs_delta'], Stock_Operation::QUANTITY_LIMIT ) > 0 ) { throw new Price_Validation_Error( 'invalid_stock_delta_bound' ); }
+		if ( ! preg_match( '/\A(?:0|[1-9][0-9]*)\z/D', $stock['min_stock_floor'] ) || Price_Decimal::compare( $stock['min_stock_floor'], Stock_Operation::QUANTITY_LIMIT ) > 0 ) { throw new Price_Validation_Error( 'invalid_stock_floor' ); }
 		if ( ! in_array( $values['result'], self::RESULTS, true ) || ! is_array( $values['eligibility'] ) ||
 			! in_array( $values['eligibility']['state'] ?? null, array( Eligibility_Result::ELIGIBLE, Eligibility_Result::UNSUPPORTED ), true ) ||
 			! self::reason_list( $values['blockers'] ) || ! self::reason_list( $values['warnings'] ) ||

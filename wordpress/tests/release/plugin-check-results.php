@@ -90,6 +90,11 @@ foreach ( $data as $item ) {
 		"\$wpdb->prepare( 'ALTER TABLE %i MODIFY plan_json longtext NULL', \$table )",
 		"\$wpdb->prepare( \"ALTER TABLE %i ADD plan_fingerprint char(64) NOT NULL DEFAULT ''\", \$table )",
 		"\$wpdb->prepare( \"ALTER TABLE %i ADD price_field varchar(16) NOT NULL DEFAULT ''\", \$table )",
+		// #310 asset discriminator: the same fixed ALTER plus the idempotent
+		// legacy backfill (every pre-#310 row is a price row); the table name
+		// is %i-bound after table() validates its identifier.
+		"\$wpdb->prepare( \"ALTER TABLE %i ADD asset varchar(16) NOT NULL DEFAULT ''\", \$table )",
+		"\$wpdb->prepare( \"UPDATE %i SET asset='price' WHERE asset=''\", \$table )",
 	);
 	$journal_line = isset( $lines[ $line - 1 ] ) ? $lines[ $line - 1 ] : '';
 	$journal_matched = false;

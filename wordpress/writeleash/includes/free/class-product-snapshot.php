@@ -87,7 +87,22 @@ final class Product_Price_Snapshot {
 		$categories = $product->get_category_ids( 'edit' );
 		sort( $categories, SORT_NUMERIC );
 		$variation = self::variation_facts( $product, $parent );
-		$stock_quantity = $product->get_stock_quantity( 'edit' );
+		// #310 stock facts. Every exact core class carries these accessors in
+		// the supported range; a missing one (partial test double, forward
+		// drift) fails closed to absent facts instead of an unreadable read,
+		// and absent facts can never make a stock write eligible.
+		$stock = array(
+			'manage_stock' => method_exists( $product, 'get_manage_stock' ) ? (bool) $product->get_manage_stock( 'edit' ) : false,
+			'stock_quantity' => '',
+			'stock_status' => '',
+			'backorders' => '',
+		);
+		if ( method_exists( $product, 'get_stock_quantity' ) ) {
+			$stock_quantity = $product->get_stock_quantity( 'edit' );
+			$stock['stock_quantity'] = null === $stock_quantity ? '' : (string) $stock_quantity;
+		}
+		if ( method_exists( $product, 'get_stock_status' ) ) { $stock['stock_status'] = (string) $product->get_stock_status( 'edit' ); }
+		if ( method_exists( $product, 'get_backorders' ) ) { $stock['backorders'] = (string) $product->get_backorders( 'edit' ); }
 		return new self( array_merge( array(
 			'product_id' => $id, 'exists' => true, 'unreadable' => false, 'name' => $product->get_name( 'edit' ), 'sku' => $product->get_sku( 'edit' ),
 			'type' => $product->get_type(), 'status' => $product->get_status( 'edit' ),
@@ -96,13 +111,7 @@ final class Product_Price_Snapshot {
 			'regular_price' => $product->get_regular_price( 'edit' ), 'sale_price' => $product->get_sale_price( 'edit' ),
 			'sale_from' => $from ? (string) $from->getTimestamp() : null, 'sale_to' => $to ? (string) $to->getTimestamp() : null,
 			'category_ids' => $categories,
-			// #310 stock facts (public Woo API, edit context only: a variation's
-			// own manage_stock flag, never the parent-inherited view value).
-			'manage_stock' => (bool) $product->get_manage_stock( 'edit' ),
-			'stock_quantity' => null === $stock_quantity ? '' : (string) $stock_quantity,
-			'stock_status' => (string) $product->get_stock_status( 'edit' ),
-			'backorders' => (string) $product->get_backorders( 'edit' ),
-		), $variation ) );
+		), $variation, $stock ) );
 	}
 	/** An ID whose WooCommerce read threw. Explicitly unknown, never guessed and never treated as absent. */
 	public static function unreadable( int $id ): self {
