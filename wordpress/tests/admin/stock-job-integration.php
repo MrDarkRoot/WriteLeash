@@ -157,15 +157,30 @@ ok( str_contains( $conflict_html, '>6<' ), 'conflicted stock view shows the froz
 ok( ! str_contains( $conflict_html, '>' . wl310_qty( $raced_id ) . '<' ), 'conflicted stock view renders no live quantity' );
 marker( 'stock job view conflict outcome' );
 
-// History lists the stock jobs with stock copy and links safely; no repeat.
+// History lists the stock jobs with stock copy and links safely. A real
+// price job joins the history first, so the row-scoped assertions prove the
+// stock row itself (a page-level Repeat assertion would also match the price
+// row, which legitimately offers Repeat).
 wp_set_current_user( $issuer );
+$price_preview = Admin::process_preview( array( '_wpnonce' => wp_create_nonce( Admin::ACTION_PREVIEW ), 'selector' => 'ids', 'ids' => (string) $applied_id, 'operation' => 'SET', 'price_field' => 'regular_price', 'amount' => '11.00', 'max_products' => '100', 'max_increase' => '100', 'max_decrease' => '100', 'warning_threshold' => '100' ), 'POST' );
+eq( $price_preview['status'], 'OK', 'price fixture preview accepted' );
 ob_start();
 Admin::render_view( 'history', '', 0 );
 $history_html = (string) ob_get_clean();
 ok( str_contains( $history_html, 'Set stock quantity to 25' ), 'history shows the stock description' );
-ok( ! str_contains( $history_html, 'Saved task details unavailable' ), 'history does not fall back to the unavailable copy for stock' );
-ok( ! str_contains( $history_html, 'Repeat as new Preview' ), 'history offers no Repeat for a stock job' );
-ok( str_contains( $history_html, 'admin-post.php' ), 'history keeps the export form' );
+ok( str_contains( $history_html, 'Set regular prices to' ), 'history still shows price copy for price jobs' );
+$stock_row = '';
+$price_row = '';
+foreach ( explode( '<tr', $history_html ) as $fragment ) {
+	if ( str_contains( $fragment, 'Set stock quantity to 25' ) ) { $stock_row = $fragment; }
+	if ( str_contains( $fragment, 'Set regular prices to' ) ) { $price_row = $fragment; }
+}
+ok( '' !== $stock_row, 'history contains the stock job row' );
+ok( '' !== $price_row, 'history contains the price fixture row' );
+ok( ! str_contains( $stock_row, 'Saved task details unavailable' ), 'stock row does not fall back to the unavailable copy' );
+ok( ! str_contains( $stock_row, 'Repeat as new Preview' ), 'stock row offers no Repeat' );
+ok( str_contains( $price_row, 'Repeat as new Preview' ), 'price row still offers Repeat' );
+ok( str_contains( $stock_row, 'Download job CSV' ), 'stock row keeps the export form' );
 marker( 'history with stock jobs' );
 
 // Export of a stock job: typed, readable refusal through export_job + write_job_csv.
