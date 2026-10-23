@@ -256,6 +256,11 @@ final class Free_Admin {
 			$job = $observed['job'];
 			$counts = $observed['counts'];
 			$plan = Job_Repository::hydrate_plan( $job );
+			// #310: stock jobs are never polled from the price progress client
+			// (their view wires no poll), and the price-typed rows below must
+			// never render for them. A stale or crafted poll gets a typed,
+			// non-looping refusal instead of price evidence.
+			if ( 'product_stock' === $plan->asset() ) { return array( 'status' => 'UNAVAILABLE', 'reason' => 'stock_job_progress_not_polled' ); }
 			$history = Undo_Repository::history_job( (int) $job['id'] );
 			$complete = $counts['planned'] === $plan->summary()['selected'];
 			$undo_observed = null;
@@ -1372,6 +1377,8 @@ final class Free_Admin {
 			'worker_failed' => __( 'The background step could not run. Saved progress was kept; try Resume remaining products again.', 'writeleash' ),
 			'repeat_unavailable' => __( 'No repeatable configuration is visible to your account for that job. It may not exist, you may lack access, or its saved preview may be damaged. Nothing was changed.', 'writeleash' ),
 			'repeat_unsupported' => __( 'The previous job uses a selection, price range, operation or safety setting this version no longer supports. Repeat cannot suggest a replacement on its own; set the values directly in a new preview. Nothing was changed.', 'writeleash' ),
+			'stock_job_export_unavailable' => __( 'Stock job export is not part of the price workflow; the grant audit trail is the evidence for stock jobs. No products were changed.', 'writeleash' ),
+			'stock_job_progress_not_polled' => __( 'Stock grant jobs are not polled here; refresh the job view to read saved progress.', 'writeleash' ),
 			'action_failed' => __( 'The action could not be completed; nothing was changed.', 'writeleash' ),
 		);
 		if ( isset( $messages[ $reason ] ) ) {
@@ -1566,28 +1573,51 @@ final class Free_Admin {
 
 	public static function task_description( array $plan ): string {
 		$op = $plan['operation'];
-		$sale = Price_Operation::FIELD_SALE === ( $op['field'] ?? Price_Operation::FIELD_REGULAR );
-		$amount = in_array( $op['type'], array( 'INCREASE_PERCENT', 'DECREASE_PERCENT', Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ? self::percentage_display( $op['input'] ) : self::money_display( $op['input'], $plan['store'] );
-		$templates = array(
+		if ( 'product_stock' === ( $plan['asset'] ?? 'price' ) ) {
+			// #310 stock copy: plain quantities/statuses, never money formatting
+			// or Price_Operation labels. The operation set is closed (validated
+			// at acceptance); an unrecognized shape keeps an honest refusal.
+			$field = (string) ( $op['field'] ?? '' );
+			$input = (string) ( $op['input'] ?? '' );
+			if ( 'stock_status' === $field && 'SET' === ( $op['type'] ?? '' ) ) {
+				/* translators: %s: stock status. */
+				$operation = sprintf( __( 'Set stock status to %s', 'writeleash' ), $input );
+			} elseif ( 'stock_quantity' === $field ) {
+				$templates = array(
+					'SET' => /* translators: %s: absolute stock quantity. */ __( 'Set stock quantity to %s', 'writeleash' ),
+					'INCREASE_INT' => /* translators: %s: stock quantity delta. */ __( 'Increase stock quantity by %s', 'writeleash' ),
+					'DECREASE_INT' => /* translators: %s: stock quantity delta. */ __( 'Decrease stock quantity by %s', 'writeleash' ),
+				);
+				$template = $templates[ $op['type'] ?? '' ] ?? null;
+				if ( null === $template ) { return __( 'Saved stock task details unavailable; needs checking', 'writeleash' ); }
+				$operation = sprintf( $template, $input );
+			} else {
+				return __( 'Saved stock task details unavailable; needs checking', 'writeleash' );
+			}
+		} else {
+			$sale = Price_Operation::FIELD_SALE === ( $op['field'] ?? Price_Operation::FIELD_REGULAR );
+			$amount = in_array( $op['type'], array( 'INCREASE_PERCENT', 'DECREASE_PERCENT', Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ? self::percentage_display( $op['input'] ) : self::money_display( $op['input'], $plan['store'] );
+			$templates = array(
 
-			'SET' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Set sale prices to %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Set regular prices to %s', 'writeleash' ),
-			'INCREASE_FIXED' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Increase sale prices by %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Increase regular prices by %s', 'writeleash' ),
+				'SET' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Set sale prices to %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Set regular prices to %s', 'writeleash' ),
+				'INCREASE_FIXED' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Increase sale prices by %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Increase regular prices by %s', 'writeleash' ),
 
-			'DECREASE_FIXED' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Decrease sale prices by %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Decrease regular prices by %s', 'writeleash' ),
-			'INCREASE_PERCENT' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Increase sale prices by %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Increase regular prices by %s', 'writeleash' ),
+				'DECREASE_FIXED' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Decrease sale prices by %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Decrease regular prices by %s', 'writeleash' ),
+				'INCREASE_PERCENT' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Increase sale prices by %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Increase regular prices by %s', 'writeleash' ),
 
-			'DECREASE_PERCENT' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Decrease sale prices by %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Decrease regular prices by %s', 'writeleash' ),
-		);
+				'DECREASE_PERCENT' => $sale ? /* translators: %s: formatted price or percentage. */ __( 'Decrease sale prices by %s', 'writeleash' ) : /* translators: %s: formatted price or percentage. */ __( 'Decrease regular prices by %s', 'writeleash' ),
+			);
 
-		$operation = sprintf( $templates[$op['type']] ?? /* translators: %s: formatted price or percentage. */ __( 'Price operation: %s', 'writeleash' ), $amount );
-		if ( Price_Operation::CLEAR_SALE === $op['type'] ) { $operation = __( 'Clear sale prices to blank; preserve sale schedules', 'writeleash' ); }
-		if ( Price_Operation::SALE_DISCOUNT_PERCENT === $op['type'] ) {
-			/* translators: %s: exact reviewed percentage, with dot decimal separator. */
-			$operation = sprintf( __( 'Set sale prices to %s%% below each product’s reviewed Regular Price', 'writeleash' ), $op['input'] );
-		}
-		if ( isset( $op['ending'] ) ) {
-			/* translators: 1: operation description, 2: selected ending or whole-number label. */
-			$operation = sprintf( __( '%1$s; nearest Price Ending %2$s (ties upward)', 'writeleash' ), $operation, 'whole' === $op['ending'] ? __( 'Whole-number price', 'writeleash' ) : '.' . $op['ending'] );
+			$operation = sprintf( $templates[$op['type']] ?? /* translators: %s: formatted price or percentage. */ __( 'Price operation: %s', 'writeleash' ), $amount );
+			if ( Price_Operation::CLEAR_SALE === $op['type'] ) { $operation = __( 'Clear sale prices to blank; preserve sale schedules', 'writeleash' ); }
+			if ( Price_Operation::SALE_DISCOUNT_PERCENT === $op['type'] ) {
+				/* translators: %s: exact reviewed percentage, with dot decimal separator. */
+				$operation = sprintf( __( 'Set sale prices to %s%% below each product’s reviewed Regular Price', 'writeleash' ), $op['input'] );
+			}
+			if ( isset( $op['ending'] ) ) {
+				/* translators: 1: operation description, 2: selected ending or whole-number label. */
+				$operation = sprintf( __( '%1$s; nearest Price Ending %2$s (ties upward)', 'writeleash' ), $operation, 'whole' === $op['ending'] ? __( 'Whole-number price', 'writeleash' ) : '.' . $op['ending'] );
+			}
 		}
 		$total = count( $plan['items'] );
 		$variations = 0;
@@ -2014,6 +2044,9 @@ final class Free_Admin {
 
 	/** Stream bounded retained evidence pages; money strings are never parsed or cast. */
 	public static function write_job_csv( $stream, array $job, Change_Plan $plan ): void {
+		// #310: stock jobs have no price CSV. The typed reason renders through
+		// the handle_export catch instead of a generic refusal.
+		if ( 'product_stock' === $plan->asset() ) { throw new Price_Validation_Error( 'stock_job_export_unavailable' ); }
 		$identities = array_column( $plan->data()['items'], null, 'product_id' );
 		$exported = gmdate( 'Y-m-d H:i:s' );
 		$header = array( 'job', 'task', 'price_field', 'product_name_at_preview', 'sku_at_preview', 'product_id', 'regular_price_at_preview', 'expected_price', 'planned_price', 'currency', 'apply_outcome', 'apply_state', 'apply_reason', 'applied_at_utc', 'undo_outcome', 'undo_state', 'undo_reason', 'undone_at_utc', 'creator', 'creator_id', 'approver', 'approver_id', 'created_at_utc', 'approved_at_utc', 'undo_operator', 'undo_operator_id', 'site_timezone', 'exported_at_utc' );
@@ -2056,7 +2089,11 @@ final class Free_Admin {
 		} catch ( \Throwable $error ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Streaming the generated CSV response; WP_Filesystem is not an output stream.
 			if ( is_resource( $stream ) ) { fclose( $stream ); }
-			wp_die( esc_html( __( 'Saved export evidence is unavailable. No products were changed.', 'writeleash' ) ), '', array( 'response' => 409 ) );
+			// #310: a typed validation refusal carries its own user-readable
+			// message (the stock-job export boundary); anything else keeps the
+			// reviewed generic evidence copy.
+			$message = $error instanceof Price_Validation_Error ? self::reason_message( $error->reason() ) : __( 'Saved export evidence is unavailable. No products were changed.', 'writeleash' );
+			wp_die( esc_html( $message ), '', array( 'response' => 409 ) );
 		}
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=UTF-8' );
@@ -2726,6 +2763,14 @@ final class Free_Admin {
 		$counts = $observed['counts'];
 		$effective = $observed['effective_status'];
 		$complete_evidence = $counts['planned'] === $selected;
+		// #310: a stock grant job shares the durable job store but has no human
+		// price workflow. Everything below this point is price-typed
+		// (price_field(), product observations, Undo), so stock renders its own
+		// read-only view and returns before any of it.
+		if ( 'product_stock' === $plan->asset() ) {
+			self::render_stock_job_view( $job, $plan, $observed, $offset, $filter );
+			return;
+		}
 		$resume_available = $complete_evidence && Job_State::can_manual_run( $job['status'] ) && self::can_mutate();
 		$repreview_available = false;
 		try {
@@ -2840,6 +2885,81 @@ final class Free_Admin {
 			echo '</div>';
 		}
 		echo '</div>';
+	}
+
+	/**
+	 * #310 read-only stock job view. A stock grant job shares the durable job
+	 * store with price jobs but has no human Apply / Repeat / Recovery / Undo
+	 * workflow: it runs through the restricted grant route, Undo stays #110
+	 * price-only and stock evidence lives in the grant audit trail. This view
+	 * therefore never calls price_field(), never wires the price progress
+	 * poll and renders only asset-neutral labels plus the frozen plain
+	 * quantities/statuses.
+	 */
+	private static function render_stock_job_view( array $job, Change_Plan $plan, array $observed, int $offset, string $filter ): void {
+		$counts = $observed['counts'];
+		$effective = $observed['effective_status'];
+		$selected = $plan->summary()['selected'];
+		$identities = array_column( $plan->data()['items'], null, 'product_id' );
+		$complete = $counts['planned'] === $selected;
+		echo '<p><a class="button" href="' . esc_url( self::page_url() ) . '">' . esc_html( __( 'Back to bulk prices', 'writeleash' ) ) . '</a> ';
+		echo '<a class="button" href="' . esc_url( self::page_url( 'history' ) ) . '">' . esc_html( __( 'Open history', 'writeleash' ) ) . '</a></p>';
+		echo '<div class="notice notice-info" role="alert"><p>' . esc_html( __( 'This is a standing-grant stock job. It runs through the restricted grant route and has no human Apply, Repeat, Recovery, Undo or price-CSV controls here; the grant audit trail is its evidence.', 'writeleash' ) ) . '</p></div>';
+		echo '<p><a class="button" href="' . esc_url( self::page_url( 'job', $job['public_id'], $offset, $filter ) ) . '">' . esc_html__( 'Refresh saved progress', 'writeleash' ) . '</a></p>';
+		echo '<h2>' . esc_html__( 'Progress and results', 'writeleash' ) . '</h2><div class="writeleash-summary"><p><strong>' . esc_html( self::task_description( $plan->data() ) ) . '</strong></p>';
+		echo '<p><strong>' . esc_html( $complete ? self::job_label( $effective ) : __( 'Saved product outcomes unavailable; needs checking', 'writeleash' ) ) . '</strong></p>';
+		if ( $complete ) {
+			echo '<p>' . esc_html( self::result_summary( $counts, $effective, true ) ) . '</p>';
+		} else {
+			echo '<p>' . esc_html( sprintf( /* translators: %d: planned products. */ _n( 'Planned %d product. Some saved product evidence is unavailable. Check this job before taking further action.', 'Planned %d products. Some saved product evidence is unavailable. Check this job before taking further action.', $selected, 'writeleash' ), $selected ) ) . '</p>';
+		}
+		$bar = $complete ? self::progress_bar_values( $counts ) : array( 0, 0 );
+		self::render_progress_bar( $bar[0], $bar[1], __( 'Apply progress', 'writeleash' ), '', '' );
+		if ( in_array( $effective, array( Job_State::PAUSED, Job_State::NEEDS_REVIEW ), true ) ) { echo '<p>' . esc_html( self::reason_message( $observed['effective_reason'] ) ) . '</p>'; }
+		if ( $observed['stalled'] ) { echo '<div class="notice notice-warning" role="alert"><p>' . esc_html( __( 'Background processing stopped making progress. Grant-route execution resumes the remaining products.', 'writeleash' ) ) . '</p></div>'; }
+		echo '</div>';
+		echo '<h2>' . esc_html( __( 'Products', 'writeleash' ) ) . '</h2>';
+		$filters = array( '' => array( __( 'All products', 'writeleash' ), null, null ), 'conflict' => array( __( 'Conflicts', 'writeleash' ), 'CONFLICT', null ), 'attention' => array( __( 'Changes needing attention', 'writeleash' ), 'FAILED', null ), 'review' => array( __( 'Uncertain changes', 'writeleash' ), 'NEEDS_REVIEW', null ) );
+		if ( ! isset( $filters[ $filter ] ) ) { $filter = ''; }
+		echo '<ul class="subsubsub writeleash-filters">';
+		$filter_keys = array_keys( $filters );
+		$last_key = end( $filter_keys );
+		foreach ( $filters as $key => $choice ) {
+			$is_current = ( $key === $filter );
+			echo '<li class="' . esc_attr( '' === $key ? 'all' : $key ) . '"><a href="' . esc_url( self::page_url( 'job', $job['public_id'], 0, $key ) ) . '"' . ( $is_current ? ' class="current" aria-current="page"' : '' ) . '>' . esc_html( $choice[0] ) . '</a>';
+			if ( $key !== $last_key ) { echo ' |'; }
+			echo '</li>';
+		}
+		echo '</ul>';
+		try {
+			$items = Undo_Repository::history_items( (int) $job['id'], $filters[ $filter ][1], $filters[ $filter ][2], $offset, self::ITEM_PAGE_SIZE );
+		} catch ( \Throwable $error ) {
+			echo '<p>' . esc_html( __( 'Item details are unavailable for this page.', 'writeleash' ) ) . '</p>';
+			$items = null;
+		}
+		if ( null !== $items ) {
+			echo '<p>' . esc_html__( 'Expected and planned are the frozen stock quantities or statuses accepted with the grant job; they are never shop prices.', 'writeleash' ) . '</p>';
+			echo '<div class="writeleash-table-scroll" role="region" aria-label="' . esc_attr__( 'Product stock outcomes', 'writeleash' ) . '" tabindex="0"><table class="widefat striped writeleash-results"><thead><tr><th scope="col">' . esc_html( __( 'Product', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( __( 'Stock expected', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( __( 'Stock planned', 'writeleash' ) ) . '</th><th scope="col">' . esc_html( _x( 'Apply', 'merchant price workflow label', 'writeleash' ) ) . '</th></tr></thead><tbody>';
+			if ( ! $items['items'] ) { echo '<tr><td colspan="4">' . esc_html__( 'No retained products on this page match this view.', 'writeleash' ) . '</td></tr>'; }
+			foreach ( $items['items'] as $item ) {
+				$id = (int) $item['product_id'];
+				$frozen = $identities[ $id ] ?? array( 'product_id' => $id );
+				$stock = is_array( $frozen['stock'] ?? null ) ? $frozen['stock'] : array();
+				$is_status = null !== ( $stock['planned_status'] ?? null );
+				$expected = $is_status ? (string) ( $frozen['snapshot']['stock_status'] ?? '' ) : (string) ( $item['expected_price'] ?? '' );
+				$planned = $is_status ? (string) $stock['planned_status'] : (string) ( $item['planned_price'] ?? '' );
+				$apply_reason = 'UNSUPPORTED' === $item['apply_state'] ? ( $frozen['eligibility']['reason'] ?? $item['apply_reason'] ) : $item['apply_reason'];
+				$conflict = self::outcome_conflict_copy( $item['apply_state'] );
+				$outcome = self::item_label( $item['apply_state'], $job['status'] ) . ( '' !== $conflict ? ' · ' . $conflict : ( $apply_reason ? ' · ' . self::reason_message( (string) $apply_reason ) : '' ) );
+				echo '<tr data-product-id="' . esc_attr( (string) $id ) . '"><td>'; self::render_identity( $frozen ); echo '</td>';
+				echo '<td>' . esc_html( $expected ) . '</td><td>' . esc_html( $planned ) . '</td>';
+				echo '<td class="' . esc_attr( in_array( $item['apply_state'], array( 'CONFLICT', 'NEEDS_REVIEW', 'FAILED' ), true ) ? 'writeleash-attention' : '' ) . '">' . esc_html( $outcome ) . '</td></tr>';
+			}
+			echo '</tbody></table></div>';
+			echo '<div>';
+			self::render_pager( 'job', $job['public_id'], $offset, self::ITEM_PAGE_SIZE, $items['next_offset'], $filter );
+			echo '</div>';
+		}
 	}
 
 	/** Post-approval states are durable authority, not a new size certification. */
