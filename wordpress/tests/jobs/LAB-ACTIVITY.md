@@ -168,3 +168,22 @@ environment (no Docker); `php -l`, `sh -n` and `bash -n` pass and the aggregator
 was exercised locally with synthetic per-combination documents. The CI run is
 the authority for the per-cell results.
 
+Two observations from the first CI run of this suite (both about the current
+behavior, not about the suite):
+
+- Woo 11.1.2 fires `woocommerce_before_product_object_save` for **every**
+  product type: `WC_Product::save()` emits `woocommerce_before_{object_type}_object_save`
+  and `object_type` is `product` for the simple, variable and variation classes.
+  The package contains no `woocommerce_before_product_variation_object_save`
+  action at all, so a variation save is refused by the generic product-save hook
+  (`where = product_save`). The perimeter is still fail-closed for variations
+  (zero durable change); only the recorded `where` differs from the one the
+  guard's variation-specific handler would have produced, and that handler is
+  not reachable in this Woo version.
+- Inside a **stock** frame the guard authorizes the stock kind only, so Woo's own
+  save housekeeping (dropping the empty `_sale_price` / `_sale_price_dates_*`
+  rows) is refused and recorded as a price-kind denial. Nothing is lost: the
+  durable price state is byte-identical before and after the stock apply, and
+  the stock write itself is never intercepted. The in-frame stock cells assert
+  exactly that instead of asserting "no denial at all".
+

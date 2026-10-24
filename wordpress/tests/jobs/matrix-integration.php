@@ -26,6 +26,7 @@ use WriteLeash\Job_Schema as Schema;
 use WriteLeash\Job_State as JState;
 use WriteLeash\Job_Worker as Worker;
 use WriteLeash\Price_Cache_Verifier as Verifier;
+use WriteLeash\Price_Decimal;
 use WriteLeash\Price_Operation as Operation;
 use WriteLeash\Price_Selection_Spec as Selection;
 use WriteLeash\Price_Store_Context;
@@ -79,6 +80,9 @@ function eq( $actual, $expected, string $label ): void {
 	++$assertions;
 	if ( $actual !== $expected ) { throw new RuntimeException( $label . ': ' . json_encode( array( 'actual' => $actual, 'expected' => $expected ) ) ); }
 }
+function price_eq( string $actual, string $expected, string $label ): void {
+	eq( Price_Decimal::parse( $actual ), Price_Decimal::parse( $expected ), $label );
+}
 function ok( bool $condition, string $label ): void { eq( $condition, true, $label ); }
 function marker( string $label ): void {
 	global $assertions;
@@ -131,6 +135,14 @@ function assert_denial( array $denials, string $where, string $label ): void {
 function assert_no_denials( array $denials, string $label ): void {
 	if ( array() === $denials ) { return; }
 	throw new RuntimeException( $label . ': unexpected denials ' . json_encode( array_column( $denials, 'where' ) ) );
+}
+function assert_no_stock_denial( array $denials, string $label ): void {
+	foreach ( $denials as $d ) {
+		if ( 'stock' === $d['kind'] ) { throw new RuntimeException( $label . ': the stock write itself was intercepted: ' . json_encode( $d ) ); }
+	}
+}
+function price_state( int $id ): string {
+	return raw_meta( $id, '_regular_price' ) . '|' . raw_meta( $id, '_price' ) . '|' . raw_meta( $id, '_sale_price' );
 }
 function snapshot( array $ids ): array {
 	global $wpdb;
@@ -522,7 +534,7 @@ try {
 	}, array( $save_simple_id ) );
 
 	list( $var_parent, $var_child ) = seed_variation( 'WL311-save-variation-', '60.00' );
-	run_cell( 'save_variation', 'WC_Product_Variation::save() from PHP outside any frame', 'deny', function () use ( $actor, $var_child ) {
+	run_cell( 'save_variation', 'WC_Product_Variation::save() from PHP outside any frame (Woo 11.1.2 fires woocommerce_before_product_object_save for every product type)', 'deny', function () use ( $actor, $var_child ) {
 		wp_set_current_user( $actor );
 		$offset = denial_offset();
 		$v = wc_get_product( $var_child );
@@ -533,9 +545,9 @@ try {
 		} catch ( \WC_Data_Exception $e ) {
 			eq( deny_code(), exc_code( $e ), 'variation save denial code' );
 		}
-		assert_denial( denials_since( $offset ), 'variation_save', 'variation save denial recorded at variation_save' );
+		assert_denial( denials_since( $offset ), 'product_save', 'variation save denial recorded at product_save' );
 		eq( '60.00', raw_meta( $var_child, '_regular_price' ), 'variation save left the durable price untouched' );
-		return array( 'guard' => 'woocommerce_before_product_variation_object_save' );
+		return array( 'guard' => 'woocommerce_before_product_object_save (Woo 11.1.2 emits no product_variation_object_save action)' );
 	}, array( $var_parent, $var_child ) );
 
 	run_cell( 'variable_sync', 'WC_Product_Variable::sync() from PHP outside any frame', 'deny', function () use ( $actor, $var_parent ) {
@@ -734,14 +746,14 @@ try {
 		eq( 200, resp_status( $resume ), 'manual resume returned 200' );
 		$done = Repo::read( (int) $created['id'] );
 		eq( 'COMPLETED', (string) $done['status'], 'manual resume completed the job' );
-		foreach ( $op_ids as $iid ) { eq( '90.00', fresh_price( $iid ), 'approve + resume applied the price ' . $iid ); }
+		foreach ( $op_ids as $iid ) { price_eq( '90.00', fresh_price( $iid ), 'approve + resume applied the price ' . $iid ); }
 		$undo = URepo::initiate( (int) $created['id'], $issuer );
 		$undo_id = (int) $undo['id'];
 		for ( $i = 0; $i < 6 && ! in_array( (string) ( URepo::read_operation_by_job( (int) $created['id'] )['status'] ?? '' ), array( 'UNDO_COMPLETED', 'UNDO_COMPLETED_WITH_ISSUES' ), true ); ++$i ) {
 			UWorker::run( $undo_id, limits( 5 ), true );
 		}
 		eq( 'UNDO_COMPLETED', (string) ( URepo::read_operation_by_job( (int) $created['id'] )['status'] ?? '' ), 'undo completed' );
-		foreach ( $op_ids as $iid ) { eq( '100.00', fresh_price( $iid ), 'undo restored the price ' . $iid ); }
+		foreach ( $op_ids as $iid ) { price_eq( '100.00', fresh_price( $iid ), 'undo restored the price ' . $iid ); }
 		assert_no_denials( denials_since( $offset ), 'operator lifecycle was never intercepted' );
 		return array( 'guard' => 'n/a (operator lifecycle unaffected)' );
 	}, $op_ids, null, 'any' );
@@ -764,12 +776,18 @@ try {
 	$frame_stock_id = seed_product( 'WL311-frame-stock-', '10.00', true, 10 );
 	run_cell( 'frame_stock_apply', 'grant stock job applying inside its Execution Frame', 'apply', function () use ( $grant, $issuer, $actor, $frame_stock_id ) {
 		$offset = denial_offset();
+		$price_before = price_state( $frame_stock_id );
 		$accepted = accept_stock( $grant, $issuer, $actor, array( $frame_stock_id ), 'SET', 'stock_quantity', '4', 'wl311-frame-stock' );
 		run_job_inline( (int) $accepted['job']['id'] );
 		eq( 'COMPLETED', (string) ( Repo::read( (int) $accepted['job']['id'] )['status'] ?? '' ), 'frame stock job completed' );
 		eq( '4', qty_of( $frame_stock_id ), 'frame stock apply wrote the frozen target' );
-		assert_no_denials( denials_since( $offset ), 'in-frame stock write was never intercepted' );
-		return array( 'guard' => 'Execution_Frame open (stock)' );
+		eq( $price_before, price_state( $frame_stock_id ), 'in-frame stock apply left the durable price untouched' );
+		// A stock frame authorizes the stock kind only. Woo's own save still asks
+		// to drop empty price rows and the guard refuses those writes; the
+		// refusal must not have changed the price, and the stock write itself
+		// must never have been intercepted.
+		assert_no_stock_denial( denials_since( $offset ), 'in-frame stock write was never intercepted' );
+		return array( 'guard' => 'Execution_Frame open (stock); price-meta housekeeping refused by design' );
 	}, array( $frame_stock_id ) );
 
 	// The variable-parent rows are the two in-frame positives #311 calls out:
@@ -783,11 +801,11 @@ try {
 		$accepted = accept_price( $grant, $issuer, $actor, array( $var_price_id ), '50.00', 'wl311-frame-var-price' );
 		run_job_inline( (int) $accepted['job']['id'] );
 		eq( 'COMPLETED', (string) ( Repo::read( (int) $accepted['job']['id'] )['status'] ?? '' ), 'frame variation price job completed' );
-		eq( '50.00', fresh_price( $var_price_id ), 'frame variation price apply wrote the frozen target' );
-		eq( '50.00', raw_meta( $var_price_parent, '_price' ), 'parent _price followed the variation inside the frame' );
+		price_eq( '50.00', fresh_price( $var_price_id ), 'frame variation price apply wrote the frozen target' );
+		price_eq( '50.00', raw_meta( $var_price_parent, '_price' ), 'parent _price followed the variation inside the frame' );
 		$lookup = lookup_row( $var_price_parent );
-		eq( '50.00', (string) ( $lookup['min_price'] ?? '' ), 'parent lookup min_price followed the variation' );
-		eq( '50.00', (string) ( $lookup['max_price'] ?? '' ), 'parent lookup max_price followed the variation' );
+		price_eq( '50.00', (string) ( $lookup['min_price'] ?? '' ), 'parent lookup min_price followed the variation' );
+		price_eq( '50.00', (string) ( $lookup['max_price'] ?? '' ), 'parent lookup max_price followed the variation' );
 		assert_no_denials( denials_since( $offset ), 'in-frame variation price write was never intercepted' );
 		return array( 'guard' => 'Execution_Frame open (price, parent covered)' );
 	}, array( $var_price_id, $var_price_parent ) );
@@ -795,6 +813,7 @@ try {
 	list( $var_stock_parent, $var_stock_id ) = seed_stock_variation( 'WL311-frame-var-stock-', 10 );
 	run_cell( 'frame_variation_stock_sync', 'grant stock job on a variation syncing the parent stock status inside the frame', 'apply', function () use ( $grant, $issuer, $actor, $var_stock_id, $var_stock_parent ) {
 		$offset = denial_offset();
+		$price_before = price_state( $var_stock_id ) . '|' . price_state( $var_stock_parent );
 		$accepted = accept_stock( $grant, $issuer, $actor, array( $var_stock_id ), 'SET', 'stock_quantity', '0', 'wl311-frame-var-stock' );
 		run_job_inline( (int) $accepted['job']['id'] );
 		eq( 'COMPLETED', (string) ( Repo::read( (int) $accepted['job']['id'] )['status'] ?? '' ), 'frame variation stock job completed' );
@@ -802,8 +821,9 @@ try {
 		eq( 'outofstock', status_of( $var_stock_id ), 'Woo derived the variation status from the quantity' );
 		eq( 'outofstock', status_of( $var_stock_parent ), 'parent stock status followed the variation inside the frame' );
 		eq( 'outofstock', (string) ( lookup_row( $var_stock_parent )['stock_status'] ?? '' ), 'parent lookup stock_status followed the variation' );
-		assert_no_denials( denials_since( $offset ), 'in-frame variation stock write was never intercepted' );
-		return array( 'guard' => 'Execution_Frame open (stock, parent covered)' );
+		eq( $price_before, price_state( $var_stock_id ) . '|' . price_state( $var_stock_parent ), 'in-frame variation stock apply left the durable price untouched' );
+		assert_no_stock_denial( denials_since( $offset ), 'in-frame variation stock write was never intercepted' );
+		return array( 'guard' => 'Execution_Frame open (stock, parent covered); price-meta housekeeping refused by design' );
 	}, array( $var_stock_id, $var_stock_parent ) );
 	marker( 'in-frame: price and stock apply still work, including the variable parent rows' );
 
