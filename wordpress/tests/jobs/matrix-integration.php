@@ -740,7 +740,7 @@ try {
 
 	$op_ids = array( seed_product( 'WL311-ni-op-a-', '100.00' ), seed_product( 'WL311-ni-op-b-', '100.00' ) );
 	sort( $op_ids, SORT_NUMERIC );
-	run_cell( 'ni_preview_approve_resume_undo', 'operator preview -> approve -> bounded run -> REST resume -> undo (price restored to 100.00)', 'allow', function () use ( $op_ids, $issuer, $approver ) {
+	run_cell( 'ni_preview_approve_resume_undo', 'operator preview -> approve -> bounded run -> REST resume -> undo (price restored to 100.00)', 'allow', function () use ( $op_ids, $issuer, $approver, $wpdb ) {
 		$offset = denial_offset();
 		wp_set_current_user( $issuer );
 		$plan = Planner::preview( Selection::ids( $op_ids ), new Operation( Operation::SET, '90.00' ), new Policy( 1000, '100', '100', false, '100' ) );
@@ -760,9 +760,22 @@ try {
 		foreach ( $op_ids as $iid ) { price_eq( '90.00', fresh_price( $iid ), 'approve + resume applied the price ' . $iid ); }
 		$undo = null;
 		try {
-			$undo = URepo::initiate( (int) $created['id'], $issuer );
+			// Cross-iteration hygiene, the same pattern the #109 grant suite
+			// uses: the no-DDL fixture drops and recreates the job tables, so
+			// the auto-increment restarts while the Undo tables persist. A
+			// stale operation row for this reused job id can only predate this
+			// job, and it is provably stale because its plan differs. Prove
+			// that, remove it, then initiate cleanly.
+			$job_id = (int) $created['id'];
+			$stale = URepo::read_operation_by_job( $job_id );
+			if ( $stale ) {
+				ok( (string) $stale['plan_id'] !== (string) $plan->data()['plan_id'], 'stale cross-iteration Undo operation proven by plan mismatch' );
+				ok( false !== $wpdb->delete( Undo_Schema::items_table( $wpdb ), array( 'undo_id' => (int) $stale['id'] ) ), 'stale Undo items removed' );
+				eq( (int) $wpdb->delete( Undo_Schema::operations_table( $wpdb ), array( 'id' => (int) $stale['id'] ) ), 1, 'stale Undo operation removed' );
+			}
+			$undo = URepo::initiate( $job_id, $issuer );
 			$undo_id = (int) $undo['id'];
-			for ( $i = 0; $i < 6 && ! in_array( (string) ( URepo::read_operation_by_job( (int) $created['id'] )['status'] ?? '' ), array( 'UNDO_COMPLETED', 'UNDO_COMPLETED_WITH_ISSUES' ), true ); ++$i ) {
+			for ( $i = 0; $i < 6 && ! in_array( (string) ( URepo::read_operation_by_job( $job_id )['status'] ?? '' ), array( 'UNDO_COMPLETED', 'UNDO_COMPLETED_WITH_ISSUES' ), true ); ++$i ) {
 				UWorker::run( $undo_id, limits( 5 ), true );
 			}
 		} catch ( \Throwable $e ) {
@@ -770,6 +783,10 @@ try {
 		}
 		eq( 'UNDO_COMPLETED', (string) ( URepo::read_operation_by_job( (int) $created['id'] )['status'] ?? '' ), 'undo completed' );
 		foreach ( $op_ids as $iid ) { price_eq( '100.00', fresh_price( $iid ), 'undo restored the price ' . $iid ); }
+		// Leave no Undo rows behind: a later cache iteration reuses the job
+		// ids after the table recreation while the Undo tables persist.
+		eq( (int) $wpdb->delete( Undo_Schema::items_table( $wpdb ), array( 'undo_id' => $undo_id ) ), 2, 'cleanup this operator Undo items' );
+		eq( (int) $wpdb->delete( Undo_Schema::operations_table( $wpdb ), array( 'id' => $undo_id ) ), 1, 'cleanup this operator Undo operation' );
 		assert_no_denials( denials_since( $offset ), 'operator lifecycle was never intercepted' );
 		return array( 'guard' => 'n/a (operator lifecycle unaffected)' );
 	}, $op_ids, null, 'any' );

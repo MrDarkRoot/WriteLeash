@@ -186,4 +186,13 @@ behavior, not about the suite):
   durable price state is byte-identical before and after the stock apply, and
   the stock write itself is never intercepted. The in-frame stock cells assert
   exactly that instead of asserting "no denial at all".
+- The Undo tables are keyed by `job_id`, but the #109 no-DDL fixture drops and
+  recreates the job tables, so the job id auto-increment restarts while the
+  Undo tables persist. A later cache iteration therefore reuses a job id that
+  an older Undo operation still references, and the Undo initiation correctly
+  refuses with `UNDO_PROVENANCE_MISMATCH` (a stale operation for a different
+  plan can never be restored from). The matrix cell applies the same
+  cross-iteration hygiene the #109 grant suite already uses: prove the stale
+  row by the plan mismatch, remove it, initiate cleanly, and leave no Undo row
+  behind for the next iteration.
 
