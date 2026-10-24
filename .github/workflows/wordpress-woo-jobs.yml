@@ -24,3 +24,35 @@ jobs:
           name: woo-jobs-109
           path: ${{ runner.temp }}/woo-jobs-109.txt
           retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}
+      - name: Extract #311 restricted-principal matrix evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -o '^MATRIX-JSON: .*$' "$RUNNER_TEMP/woo-jobs-109.txt" \
+            | sed 's/^MATRIX-JSON: //' > "$RUNNER_TEMP/woo-matrix-311.jsonl" || true
+          test -s "$RUNNER_TEMP/woo-matrix-311.jsonl"
+          python3 - "$RUNNER_TEMP/woo-matrix-311.jsonl" "$RUNNER_TEMP/woo-matrix-311.json" <<'PY'
+          import json, sys
+          docs = [json.loads(line) for line in open(sys.argv[1]) if line.strip()]
+          headline = None
+          for doc in docs:
+              cells = doc.get('cells') or []
+              if cells and all('by_combination' in cell for cell in cells):
+                  headline = doc
+          if headline is None and docs:
+              headline = docs[-1]
+          if headline is None:
+              sys.exit(1)
+          with open(sys.argv[2], 'w') as handle:
+              json.dump(headline, handle)
+          PY
+      - name: Preserve #311 matrix evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: woo-matrix-311
+          path: |
+            ${{ runner.temp }}/woo-matrix-311.jsonl
+            ${{ runner.temp }}/woo-matrix-311.json
+          retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}
