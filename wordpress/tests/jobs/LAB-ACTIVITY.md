@@ -120,3 +120,43 @@ assertions), `woo-plan-107` (#107), `wordpress-foundation` and
 timed out` step; the same failure is present on `main` at the #115 merge commit
 before this branch, so it is unrelated to #109. All #60 lifecycle, uninstall and
 Plugin Check steps inside that suite pass for this change.
+
+# #311 restricted-principal boundary matrix
+
+Test-only change on `test/311-restricted-principal-matrix`: one executable
+evidence suite (`wordpress/tests/jobs/matrix-integration.php`) that exercises the
+restricted-principal perimeter instead of asserting it in prose.
+
+Cells: 15 deny paths (REST create/update/delete/batch, `WC_Product_Simple::save`,
+`WC_Product_Variation::save`, `WC_Product_Variable::sync`,
+`wc_update_product_stock`, `update_post_meta`/`add_post_meta`/`delete_post_meta`
+on protected price/stock keys, `wp_trash_post`, `wp_delete_post`,
+`WC_Product::delete`, and a restricted-principal WriteLeash stock submission),
+4 non-interference paths (guest checkout, a user-0 background write in a separate
+process, a `shop_manager` edit, and the operator preview -> approve -> bounded run
+-> REST resume -> undo lifecycle), 2 in-frame cells (price and stock apply), and 5
+grant-state cells (disabled, revoked, expired, exhausted, removed).
+
+Every deny cell asserts the typed refusal, the recorded guard `where`, and that
+the durable rows did not move: full-row SHA-256 hashes over `wp_posts`,
+`wp_postmeta` and `wc_product_meta_lookup` before and after the attempt. Fixtures
+are seeded as an operator; only the attempt itself runs as the restricted
+principal.
+
+Evidence: each combination writes one `MATRIX-JSON` document (source SHA, pinned
+environment, per-cell PASS/FAIL/BLOCKED/NOT_TESTED, row-hash evidence) to
+`/tmp/wl311-matrix/<engine>-<cache>.json` and stdout; `matrix-aggregate.php`
+merges the four MySQL/MariaDB x default/Redis combinations into one headline
+document and exits non-zero on any FAIL, any BLOCKED, a missing combination, a
+source-SHA disagreement or a status that differs across combinations. A result
+without `WRITELEASH_SOURCE_SHA` is reported BLOCKED, never PASS. The CI run
+extracts the documents into the `woo-matrix-311` artifact.
+
+Claim withheld: WP 6.7 / WC 9.x / PHP 8.3 is not in the fixture image, so no
+supported-range claim is made for that combination.
+
+Local runtime verification of the container fixture was not possible in this
+environment (no Docker); `php -l`, `sh -n` and `bash -n` pass and the aggregator
+was exercised locally with synthetic per-combination documents. The CI run is
+the authority for the per-cell results.
+

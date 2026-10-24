@@ -28,4 +28,5 @@ trap cleanup EXIT
 redis_version=$("${compose[@]}" exec -T redis redis-cli --raw INFO server | sed -n 's/^redis_version://p' | tr -d '\r')
 [[ "$redis_version" = 7.4.2 ]]
 echo "#109 pinned Redis server: $redis_version"
-"${compose[@]}" run --build --rm tester
+source_sha="$(git -C "$here" rev-parse HEAD 2>/dev/null || echo UNKNOWN)"
+"${compose[@]}" run --build --rm -e WRITELEASH_SOURCE_SHA="$source_sha" tester

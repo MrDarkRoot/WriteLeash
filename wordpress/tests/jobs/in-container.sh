@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+mkdir -p /tmp/wl311-matrix
 for host in mysql mariadb; do
   site="/tmp/wl109-$host"
   cp -R /opt/wp-core "$site"
@@ -38,10 +39,18 @@ for host in mysql mariadb; do
     WL109_ROOT_USER=root WL109_ROOT_PASSWORD=disposable_root_password WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/grant-removal-integration.php
     WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/agent-jobs-rest.php
     WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/stock-integration.php
+    # #311: a failing combination must still write its evidence document, so the
+    # failure is collected here and the aggregate below is the single verdict.
+    matrix_status=0
+    WL109_CACHE="$cache" WL311_MATRIX_DIR=/tmp/wl311-matrix WRITELEASH_SOURCE_SHA="${WRITELEASH_SOURCE_SHA:-}" wp --path="$site" eval-file /opt/tests/jobs/matrix-integration.php || matrix_status=$?
+    if [ "$matrix_status" -ne 0 ]; then
+      echo "#311 matrix combination engine=$host cache=$cache exited $matrix_status" >&2
+    fi
     WL109_CACHE="$cache" wp --path="$site" eval-file /opt/tests/jobs/foreign-path-regression.php
     sh /opt/tests/jobs/unicode-run.sh "$host" "$cache" /opt/wp-core /opt/woo-zips
   done
   php /opt/tests/release/source-audit.php "$site/wp-content/plugins/writeleash"
   php /opt/tests/release/debug-audit.php "$site/wp-content/debug.log" "$host"
 done
+php /opt/tests/jobs/matrix-aggregate.php /tmp/wl311-matrix
 echo '#109 durable job engine two-engine/default/Redis gate: PASS'
