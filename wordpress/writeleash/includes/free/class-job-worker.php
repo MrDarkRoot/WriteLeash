@@ -220,7 +220,11 @@ final class Job_Worker {
 		try {
 			// Transactional job-row fence: same connection, same transaction,
 			// held until #108 COMMIT/ROLLBACK. A lost fence writes no Woo data.
-			$result = Woo_Price_Mutator::apply( $plan, $product_id, new Job_Transaction_Fence( $job_id, $owner, $generation ) );
+			// #310: the frozen asset discriminator dispatches to the stock
+			// mutator; price plans keep the exact reviewed call shape.
+			$result = 'product_stock' === $plan->asset()
+				? Woo_Stock_Mutator::apply( $plan, $product_id, new Job_Transaction_Fence( $job_id, $owner, $generation ) )
+				: Woo_Price_Mutator::apply( $plan, $product_id, new Job_Transaction_Fence( $job_id, $owner, $generation ) );
 		} catch ( \Throwable $error ) {
 			$result = array( 'code' => 'NEEDS_REVIEW', 'reason' => 'UNEXPECTED_MUTATION_RESULT' );
 		} finally {

@@ -17,6 +17,13 @@ final class Free_Support_Contract {
 	public const GRANT_BLOCK_ZERO = true;
 	public const GRANT_WARNING_THRESHOLD_PERCENT = '20';
 	/**
+	 * #310 delegated stock bounds. No human reviews these jobs before
+	 * execution, so the absolute delta ceiling and the floor stay fixed:
+	 * planned quantity must stay within [0, expected ± 1000].
+	 */
+	public const MAX_STOCK_ABS_DELTA = '1000';
+	public const MIN_STOCK_FLOOR = '0';
+	/**
 	 * Supported WooCommerce range. Every storage/API assumption WriteLeash
 	 * relies on is stable across this span: CPT data-store CRUD price
 	 * setters, the wc_product_meta_lookup min/max/onsale shape, the

@@ -14,7 +14,10 @@ final class Change_Plan_Item {
 	 * values of the plan's price field (`regular_price` or `sale_price`); the names are
 	 * frozen for hash compatibility.
 	 */
-	public static function hydrate( array $values, string $field = Price_Operation::FIELD_REGULAR, ?string $operation_type = null ): self {
+	public static function hydrate( array $values, string $field = Price_Operation::FIELD_REGULAR, ?string $operation_type = null, ?string $asset = null ): self {
+		if ( null !== $asset ) {
+			return self::hydrate_stock( $values );
+		}
 		Price_Operation::assert_field( $field );
 		foreach ( array( 'product_id', 'snapshot', 'expected_regular_price', 'planned_regular_price', 'result', 'eligibility', 'blockers', 'warnings', 'absolute_delta', 'percentage_delta' ) as $key ) {
 			if ( ! array_key_exists( $key, $values ) ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
@@ -61,6 +64,100 @@ final class Change_Plan_Item {
 			throw new Price_Validation_Error( 'invalid_plan_item' );
 		}
 		return new self( $values );
+	}
+	/**
+	 * #310 trusted persistence rehydration for product_stock items. The stock
+	 * facts (planned status and the frozen bounds) live in an additive `stock`
+	 * block; expected/planned absolute quantities mirror the frozen item key
+	 * names so the journal binding, job items and idempotency machinery stay
+	 * byte-compatible.
+	 */
+	public static function hydrate_stock( array $values ): self {
+		foreach ( array( 'product_id', 'snapshot', 'expected_regular_price', 'planned_regular_price', 'result', 'eligibility', 'blockers', 'warnings', 'absolute_delta', 'percentage_delta', 'stock' ) as $key ) {
+			if ( ! array_key_exists( $key, $values ) ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+		}
+		$s = $values['snapshot'];
+		if ( ! is_int( $values['product_id'] ) || $values['product_id'] < 1 || ! is_array( $s ) || ( $s['product_id'] ?? null ) !== $values['product_id'] ||
+			! is_bool( $s['exists'] ?? null ) || ! is_string( $s['type'] ?? null ) || ! is_bool( $s['core_simple'] ?? null ) || ! is_string( $s['status'] ?? null ) ) {
+			throw new Price_Validation_Error( 'invalid_plan_item' );
+		}
+		$stock = $values['stock'];
+		if ( ! is_array( $stock ) || ! is_string( $stock['max_abs_delta'] ?? null ) || ! is_string( $stock['min_stock_floor'] ?? null )
+			|| ! ( null === ( $stock['planned_status'] ?? null ) || is_string( $stock['planned_status'] ) ) ) {
+			throw new Price_Validation_Error( 'invalid_plan_item' );
+		}
+		if ( null !== $stock['planned_status'] && ! in_array( $stock['planned_status'], Stock_Operation::STATUSES, true ) ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+		if ( ! preg_match( '/\A(?:0|[1-9][0-9]*)\z/D', $stock['max_abs_delta'] ) || Price_Decimal::compare( $stock['max_abs_delta'], Stock_Operation::QUANTITY_LIMIT ) > 0 ) { throw new Price_Validation_Error( 'invalid_stock_delta_bound' ); }
+		if ( ! preg_match( '/\A(?:0|[1-9][0-9]*)\z/D', $stock['min_stock_floor'] ) || Price_Decimal::compare( $stock['min_stock_floor'], Stock_Operation::QUANTITY_LIMIT ) > 0 ) { throw new Price_Validation_Error( 'invalid_stock_floor' ); }
+		if ( ! in_array( $values['result'], self::RESULTS, true ) || ! is_array( $values['eligibility'] ) ||
+			! in_array( $values['eligibility']['state'] ?? null, array( Eligibility_Result::ELIGIBLE, Eligibility_Result::UNSUPPORTED ), true ) ||
+			! self::reason_list( $values['blockers'] ) || ! self::reason_list( $values['warnings'] ) ||
+			! ( null === $values['absolute_delta'] || is_string( $values['absolute_delta'] ) ) || null !== $values['percentage_delta'] ) {
+			throw new Price_Validation_Error( 'invalid_plan_item' );
+		}
+		$expected = $values['expected_regular_price'];
+		$planned = $values['planned_regular_price'];
+		foreach ( array( $expected, $planned ) as $quantity ) {
+			if ( ! is_string( $quantity ) ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+			if ( '' !== $quantity ) { try { Price_Decimal::parse( $quantity ); } catch ( \Throwable $error ) { throw new Price_Validation_Error( 'invalid_plan_item' ); } }
+		}
+		if ( null === $stock['planned_status'] && ( '' === $expected || '' === $planned ) ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+		$quantity_changes = ! Price_Decimal::equal( $expected, $planned );
+		$status_changes = null !== $stock['planned_status'] && $stock['planned_status'] !== (string) ( $s['stock_status'] ?? '' );
+		if ( 'UNSUPPORTED' === $values['result'] ) {
+			if ( $quantity_changes || $status_changes ) { throw new Price_Validation_Error( 'invalid_plan_item' ); }
+		} elseif ( ( 'CHANGING' === $values['result'] ) !== ( $quantity_changes || $status_changes ) ) {
+			throw new Price_Validation_Error( 'invalid_plan_item' );
+		}
+		return new self( $values );
+	}
+	/**
+	 * Trusted #310 factory arithmetic for the product_stock asset. The only
+	 * place a stock target is computed: eligibility first, then the absolute
+	 * planned quantity/status through Stock_Operation (bounds included).
+	 */
+	public static function compute_stock( Product_Price_Snapshot $snapshot, Stock_Operation $operation ): self {
+		$s = $snapshot->data();
+		$eligibility = Product_Price_Eligibility::evaluate_stock( $snapshot, $operation->data()['field'] )->data();
+		$expected = '';
+		$planned = '';
+		$planned_status = null;
+		$result = 'UNSUPPORTED';
+		$absolute_delta = null;
+		if ( Eligibility_Result::ELIGIBLE === $eligibility['state'] ) {
+			try {
+				if ( Stock_Operation::FIELD_STATUS === $operation->data()['field'] ) {
+					// Status items freeze no quantity movement: the journal
+					// expected/target columns stay blank and the status rides
+					// the stock block.
+					$planned_status = $operation->data()['input'];
+					$result = $planned_status !== (string) ( $s['stock_status'] ?? '' ) ? 'CHANGING' : 'UNCHANGED';
+				} else {
+					$expected = (string) ( $s['stock_quantity'] ?? '' );
+					$planned = $operation->target( $expected );
+					$result = Price_Decimal::equal( $expected, $planned ) ? 'UNCHANGED' : 'CHANGING';
+					$delta = Price_Decimal::compare( $planned, Price_Decimal::parse( $expected ) ) >= 0
+						? Price_Decimal::subtract( Price_Decimal::parse( $planned ), Price_Decimal::parse( $expected ) )
+						: Price_Decimal::subtract( Price_Decimal::parse( $expected ), Price_Decimal::parse( $planned ) );
+					$absolute_delta = Price_Decimal::format( $delta, 6, true );
+				}
+			} catch ( Price_Validation_Error $error ) {
+				$eligibility = ( new Eligibility_Result( $error->reason() ) )->data();
+				$expected = '';
+				$planned = '';
+				$planned_status = null;
+				$result = 'UNSUPPORTED';
+				$absolute_delta = null;
+			}
+		}
+		return new self( array(
+			'product_id' => $s['product_id'], 'snapshot' => $s,
+			'expected_regular_price' => $expected, 'planned_regular_price' => $planned,
+			'result' => $result, 'eligibility' => $eligibility,
+			'blockers' => array(), 'warnings' => array(),
+			'absolute_delta' => $absolute_delta, 'percentage_delta' => null,
+			'stock' => array( 'planned_status' => $planned_status, 'max_abs_delta' => $operation->data()['max_abs_delta'], 'min_stock_floor' => $operation->data()['min_stock_floor'] ),
+		) );
 	}
 	private static function reason_list( $value ): bool {
 		if ( ! is_array( $value ) ) { return false; }
@@ -142,6 +239,9 @@ final class Change_Plan {
 	use Immutable_Price_Value;
 	public const SCHEMA_VERSION = 1;
 	public const HASH_VERSION = 'sha256-canonical-json-v1';
+	/** #310 asset discriminator: absent on legacy material, which stays price. */
+	public const ASSET_PRICE = 'price';
+	public const ASSET_STOCK = 'product_stock';
 	private array $material;
 	private array $identity;
 	private array $items;
@@ -182,6 +282,40 @@ final class Change_Plan {
 			'store' => $context->data(), 'selection' => $selection->data(), 'resolved_product_ids' => array_keys( $plan->items ),
 			'operation' => $operation->data(), 'policy_snapshot' => $policy->data(), 'policy_result' => $decision,
 			'status' => Policy_Result::BLOCKED === $decision['state'] ? 'BLOCKED' : 'PREVIEW', 'price_range' => $range_outcome, 'items' => $item_data,
+		);
+		$plan->hash = Plan_Hasher::hash( $plan->material );
+		return $plan;
+	}
+	/**
+	 * #310 trusted domain factory for the product_stock asset. Same frozen
+	 * identity/selection rules as create(); the operation is a bounded
+	 * Stock_Operation and every target is absolute at plan time. Stock plans
+	 * are grant-submitted only; there is no human Apply form.
+	 */
+	public static function create_stock( string $id, string $created_at, int $actor, Price_Store_Context $context, Price_Selection_Spec $selection, Stock_Operation $operation, array $snapshots ): self {
+		if ( ! preg_match( '/\A[a-zA-Z0-9_-]{1,64}\z/D', $id ) || ! preg_match( '/\A[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\z/D', $created_at ) || $actor < 1 ) { throw new Price_Validation_Error( 'invalid_plan_identity' ); }
+		if ( count( $snapshots ) > Product_Price_Selector::MAX_SELECTED ) { throw new Price_Validation_Error( 'selection_limit_exceeded' ); }
+		$plan = new self();
+		$plan->identity = array( 'plan_id' => $id, 'created_at' => $created_at );
+		$plan->items = array();
+		foreach ( $snapshots as $snapshot ) {
+			if ( ! $snapshot instanceof Product_Price_Snapshot ) { throw new Price_Validation_Error( 'invalid_snapshot' ); }
+			$product_id = $snapshot->data()['product_id'];
+			if ( isset( $plan->items[$product_id] ) ) { throw new Price_Validation_Error( 'duplicate_selection' ); }
+			$plan->items[$product_id] = Change_Plan_Item::compute_stock( $snapshot, $operation );
+		}
+		ksort( $plan->items, SORT_NUMERIC );
+		if ( 'IDS' === $selection->data()['type'] && array_keys( $plan->items ) !== $selection->data()['ids'] ) { throw new Price_Validation_Error( 'selection_snapshot_mismatch' ); }
+		$decision = array( 'state' => Policy_Result::ALLOW, 'warnings' => array() );
+		$plan->summary = self::summarize( $plan->items, $decision, $selection->data()['warnings'] );
+		$item_data = array();
+		foreach ( $plan->items as $item ) { $item_data[] = $item->data(); }
+		$plan->material = array(
+			'schema_version' => self::SCHEMA_VERSION, 'hash_version' => self::HASH_VERSION, 'actor_id' => $actor,
+			'store' => $context->data(), 'selection' => $selection->data(), 'resolved_product_ids' => array_keys( $plan->items ),
+			'operation' => $operation->data(), 'policy_snapshot' => array(), 'policy_result' => $decision,
+			'status' => 'PREVIEW', 'price_range' => self::range_provenance( $selection, $snapshots, null ),
+			'asset' => self::ASSET_STOCK, 'items' => $item_data,
 		);
 		$plan->hash = Plan_Hasher::hash( $plan->material );
 		return $plan;
@@ -252,11 +386,21 @@ final class Change_Plan {
 		// Legacy plans have no `field` key: default to the regular price and
 		// never inject the key into the hashed material (old plan_hash values
 		// must keep verifying byte-for-byte).
-		if ( array_key_exists( 'field', $material['operation'] ) ) {
+		$asset = self::ASSET_PRICE;
+		if ( array_key_exists( 'asset', $material ) ) {
+			if ( self::ASSET_STOCK !== $material['asset'] ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+			$asset = self::ASSET_STOCK;
+			try { Stock_Operation::assert_data( $material['operation'] ); }
+			catch ( Price_Validation_Error $error ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+			// A stock plan may not carry price-operation vocabulary.
+			if ( array_key_exists( 'field', $material['operation'] ) && ! in_array( $material['operation']['field'], Stock_Operation::FIELDS, true ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+			if ( array_key_exists( 'ending', $material['operation'] ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		}
+		if ( self::ASSET_PRICE === $asset && array_key_exists( 'field', $material['operation'] ) ) {
 			try { Price_Operation::assert_field( $material['operation']['field'] ); }
 			catch ( Price_Validation_Error $error ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
 		}
-		if ( array_key_exists( 'ending', $material['operation'] ) ) {
+		if ( array_key_exists( 'ending', $material['operation'] ) && self::ASSET_PRICE === $asset ) {
 			try {
 				$operation = new Price_Operation( $material['operation']['type'] ?? '', $material['operation']['input'] ?? null, $material['operation']['field'] ?? Price_Operation::FIELD_REGULAR, $material['operation']['ending'] );
 				if ( $operation->data() !== $material['operation'] && Plan_Hasher::canonical_json( $operation->data() ) !== Plan_Hasher::canonical_json( $material['operation'] ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
@@ -266,12 +410,12 @@ final class Change_Plan {
 		$plan = new self();
 		$plan->identity = array( 'plan_id' => $data['plan_id'], 'created_at' => $data['created_at'] );
 		$plan->material = $material;
-		$field = $plan->price_field();
+		$field = self::ASSET_STOCK === $asset ? '' : $plan->price_field();
 		$plan->items = array();
 		foreach ( $material['items'] as $stored ) {
 			if ( ! is_array( $stored ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
-			$item = Change_Plan_Item::hydrate( $stored, $field, $material['operation']['type'] ?? null );
-			if ( in_array( $material['operation']['type'] ?? null, array( Price_Operation::CLEAR_SALE, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ) {
+			$item = Change_Plan_Item::hydrate( $stored, $field, $material['operation']['type'] ?? null, self::ASSET_STOCK === $asset ? self::ASSET_STOCK : null );
+			if ( self::ASSET_PRICE === $asset && in_array( $material['operation']['type'] ?? null, array( Price_Operation::CLEAR_SALE, Price_Operation::SALE_DISCOUNT_PERCENT ), true ) ) {
 				try { $operation = new Price_Operation( $material['operation']['type'], $material['operation']['input'] ?? null, $field, $material['operation']['ending'] ?? 'default' ); }
 				catch ( Price_Validation_Error $error ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
 				if ( Plan_Hasher::canonical_json( $operation->data() ) !== Plan_Hasher::canonical_json( $material['operation'] ) || ( 'UNSUPPORTED' !== $stored['result'] && ( '' === $stored['snapshot']['regular_price'] || ( Price_Operation::CLEAR_SALE === $material['operation']['type'] && '' !== $stored['planned_regular_price'] ) ) ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
@@ -357,8 +501,33 @@ final class Change_Plan {
 	}
 	/** Target price field of the frozen plan; legacy plans default to the regular price. */
 	public function price_field(): string {
+		if ( self::ASSET_STOCK === $this->asset() ) { throw new Price_Validation_Error( 'unsupported_price_field' ); }
 		$field = $this->material['operation']['field'] ?? Price_Operation::FIELD_REGULAR;
 		return Price_Operation::assert_field( $field );
+	}
+	/**
+	 * #310 frozen asset discriminator of the plan: 'price' for every legacy
+	 * material (the key is never injected into it) and 'product_stock' for
+	 * stock plans.
+	 */
+	public function asset(): string {
+		$asset = $this->material['asset'] ?? self::ASSET_PRICE;
+		if ( ! in_array( $asset, array( self::ASSET_PRICE, self::ASSET_STOCK ), true ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		return $asset;
+	}
+	/** Frozen stock field (stock_quantity or stock_status); a typed accessor for stock plans only. */
+	public function stock_field(): string {
+		if ( self::ASSET_STOCK !== $this->asset() ) { throw new Price_Validation_Error( 'unsupported_stock_field' ); }
+		$field = (string) ( $this->material['operation']['field'] ?? '' );
+		if ( ! in_array( $field, Stock_Operation::FIELDS, true ) ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		return $field;
+	}
+	/** Validated frozen stock operation data; stock plans only. */
+	public function stock_operation(): array {
+		if ( self::ASSET_STOCK !== $this->asset() ) { throw new Price_Validation_Error( 'unsupported_stock_field' ); }
+		try { Stock_Operation::assert_data( $this->material['operation'] ); }
+		catch ( Price_Validation_Error $error ) { throw new Price_Validation_Error( 'invalid_plan_material' ); }
+		return $this->material['operation'];
 	}
 	/**
 	 * #234 frozen range provenance (`filter` plus matched/excluded_by_range/
@@ -392,7 +561,7 @@ final class Change_Plan {
 	/** This is a precondition contract, not approval, locking, or mutation. */
 	public function precondition( int $id, Product_Price_Snapshot $current, Price_Store_Context $context ): array {
 		if ( 'BLOCKED' === $this->material['status'] ) { return array( 'state' => 'BLOCKED', 'reasons' => array( 'plan_policy_blocked' ) ); }
-		$field = $this->price_field();
+		$field = self::ASSET_STOCK === $this->asset() ? '' : $this->price_field();
 		$item = $this->item( $id )->data();
 		if ( 'CHANGING' !== $item['result'] ) { return array( 'state' => 'NOT_CHANGING', 'reasons' => array( $item['eligibility']['reason'] ?? 'unchanged' ) ); }
 		$old = $item['snapshot'];
@@ -407,7 +576,19 @@ final class Change_Plan {
 			|| (int) ( $old['parent_id'] ?? 0 ) !== (int) ( $now['parent_id'] ?? 0 )
 			|| ( ! empty( $old['core_variation'] ) && ( empty( $now['parent_core_variable'] ) || 'publish' !== ( $now['parent_status'] ?? '' ) ) ) ) { $reasons[] = 'product_type_changed'; }
 		if ( $old['status'] !== $now['status'] ) { $reasons[] = 'product_status_changed'; }
-		if ( Price_Operation::FIELD_SALE === $field ) {
+		if ( self::ASSET_STOCK === $this->asset() ) {
+			// #310 stock preconditions: the frozen baseline quantity/status and
+			// the stock-management state must still match. Prices are not
+			// guarded facts for the stock asset, and the price context checks
+			// below do not apply to it.
+			$is_status_op = Stock_Operation::FIELD_STATUS === $this->stock_field();
+			if ( ! $is_status_op ) {
+				if ( empty( $now['manage_stock'] ) || empty( $old['manage_stock'] ) ) { $reasons[] = 'stock_not_managed'; }
+				elseif ( ! Price_Decimal::equal( (string) ( $now['stock_quantity'] ?? '' ), (string) $item['expected_regular_price'] ) ) { $reasons[] = 'stock_quantity_changed'; }
+			} elseif ( (string) ( $now['stock_status'] ?? '' ) !== (string) ( $old['stock_status'] ?? '' ) ) {
+				$reasons[] = 'stock_status_changed';
+			}
+		} elseif ( Price_Operation::FIELD_SALE === $field ) {
 			// Guard the sale price itself. Sale dates are not a conflict:
 			// WriteLeash only writes the sale price and preserves the schedule.
 			if ( ! Price_Decimal::equal( $now['sale_price'], $item['expected_regular_price'] ) ) { $reasons[] = 'sale_price_changed'; }
@@ -423,8 +604,10 @@ final class Change_Plan {
 			catch ( Price_Validation_Error $e ) { $price = null; }
 			if ( $price !== $item['expected_regular_price'] ) { $reasons[] = 'regular_price_changed'; }
 		}
-		if ( $settings['currency'] !== $expected['currency'] || ! $settings['base_currency_context'] ) { $reasons[] = 'currency_context_changed'; }
-		if ( $settings['price_decimals'] !== $expected['price_decimals'] ) { $reasons[] = 'price_decimals_changed'; }
+		if ( self::ASSET_STOCK !== $this->asset() ) {
+			if ( $settings['currency'] !== $expected['currency'] || ! $settings['base_currency_context'] ) { $reasons[] = 'currency_context_changed'; }
+			if ( $settings['price_decimals'] !== $expected['price_decimals'] ) { $reasons[] = 'price_decimals_changed'; }
+		}
 		// Routine supported patch/minor updates do not change any guarded
 		// product/price fact, so they are not a conflict. Drift outside the
 		// supported range (or from an unparseable version) still is.

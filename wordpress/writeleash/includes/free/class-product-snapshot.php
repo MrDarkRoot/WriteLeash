@@ -87,6 +87,22 @@ final class Product_Price_Snapshot {
 		$categories = $product->get_category_ids( 'edit' );
 		sort( $categories, SORT_NUMERIC );
 		$variation = self::variation_facts( $product, $parent );
+		// #310 stock facts. Every exact core class carries these accessors in
+		// the supported range; a missing one (partial test double, forward
+		// drift) fails closed to absent facts instead of an unreadable read,
+		// and absent facts can never make a stock write eligible.
+		$stock = array(
+			'manage_stock' => method_exists( $product, 'get_manage_stock' ) ? (bool) $product->get_manage_stock( 'edit' ) : false,
+			'stock_quantity' => '',
+			'stock_status' => '',
+			'backorders' => '',
+		);
+		if ( method_exists( $product, 'get_stock_quantity' ) ) {
+			$stock_quantity = $product->get_stock_quantity( 'edit' );
+			$stock['stock_quantity'] = null === $stock_quantity ? '' : (string) $stock_quantity;
+		}
+		if ( method_exists( $product, 'get_stock_status' ) ) { $stock['stock_status'] = (string) $product->get_stock_status( 'edit' ); }
+		if ( method_exists( $product, 'get_backorders' ) ) { $stock['backorders'] = (string) $product->get_backorders( 'edit' ); }
 		return new self( array_merge( array(
 			'product_id' => $id, 'exists' => true, 'unreadable' => false, 'name' => $product->get_name( 'edit' ), 'sku' => $product->get_sku( 'edit' ),
 			'type' => $product->get_type(), 'status' => $product->get_status( 'edit' ),
@@ -95,7 +111,7 @@ final class Product_Price_Snapshot {
 			'regular_price' => $product->get_regular_price( 'edit' ), 'sale_price' => $product->get_sale_price( 'edit' ),
 			'sale_from' => $from ? (string) $from->getTimestamp() : null, 'sale_to' => $to ? (string) $to->getTimestamp() : null,
 			'category_ids' => $categories,
-		), $variation ) );
+		), $variation, $stock ) );
 	}
 	/** An ID whose WooCommerce read threw. Explicitly unknown, never guessed and never treated as absent. */
 	public static function unreadable( int $id ): self {
@@ -120,6 +136,7 @@ final class Product_Price_Snapshot {
 			'product_id' => $id, 'exists' => false, 'unreadable' => $unreadable, 'name' => '', 'sku' => '', 'type' => '', 'status' => '', 'core_simple' => false,
 			'core_variation' => false, 'parent_id' => 0, 'parent_type' => '', 'parent_status' => '', 'parent_core_variable' => false, 'variation_label' => '',
 			'regular_price' => '', 'sale_price' => '', 'sale_from' => null, 'sale_to' => null, 'category_ids' => array(),
+			'manage_stock' => false, 'stock_quantity' => '', 'stock_status' => '', 'backorders' => '',
 		);
 	}
 	/**
@@ -239,6 +256,38 @@ final class Product_Price_Eligibility {
 		}
 		return new Eligibility_Result( $reason );
 	}
+	/**
+	 * #310 stock eligibility: the same exact core identity rules as the price
+	 * path, plus asset-specific facts. A quantity operation requires the
+	 * product to manage its own stock (a variation under parent-managed stock
+	 * has no own `_stock` row to write, so its frozen target could never be
+	 * the row Woo updates); a status operation has no such requirement.
+	 */
+	public static function evaluate_stock( Product_Price_Snapshot $snapshot, string $field ): Eligibility_Result {
+		if ( ! in_array( $field, Stock_Operation::FIELDS, true ) ) { return new Eligibility_Result( 'unsupported_stock_field' ); }
+		$s = $snapshot->data();
+		if ( ! $s['exists'] ) { return new Eligibility_Result( ! empty( $s['unreadable'] ) ? 'unreadable_product_data' : 'missing_product' ); }
+		$is_core_simple = ! empty( $s['core_simple'] ) && 'simple' === ( $s['type'] ?? '' );
+		$is_core_variation = ! empty( $s['core_variation'] ) && 'variation' === ( $s['type'] ?? '' );
+		if ( $is_core_variation ) {
+			if ( (int) ( $s['parent_id'] ?? 0 ) < 1 || empty( $s['parent_core_variable'] ) || 'variable' !== ( $s['parent_type'] ?? '' ) || 'publish' !== ( $s['parent_status'] ?? '' ) ) { return new Eligibility_Result( 'unsupported_parent_product' ); }
+		} elseif ( ! $is_core_simple ) {
+			return new Eligibility_Result( 'unsupported_product_type' );
+		}
+		if ( 'publish' !== ( $s['status'] ?? '' ) ) { return new Eligibility_Result( 'unsupported_status' ); }
+		if ( Stock_Operation::FIELD_QUANTITY === $field ) {
+			if ( empty( $s['manage_stock'] ) ) { return new Eligibility_Result( 'stock_not_managed' ); }
+			if ( '' === (string) ( $s['stock_quantity'] ?? '' ) ) { return new Eligibility_Result( 'empty_stock_baseline' ); }
+			try { Price_Decimal::parse( (string) $s['stock_quantity'] ); }
+			catch ( Price_Validation_Error $error ) { return new Eligibility_Result( 'invalid_stock_quantity' ); }
+		} elseif ( ! empty( $s['manage_stock'] ) ) {
+			// WooCommerce save() derives stock_status from the quantity when
+			// the product manages stock, so a frozen status write would be
+			// discarded. Status SETs are only in scope when status is manual.
+			return new Eligibility_Result( 'stock_status_derived' );
+		}
+		return new Eligibility_Result( null );
+	}
 }
 
 /** Display copy is independent of stable domain codes; consumers must escape output. */
@@ -310,6 +359,16 @@ final class Price_Reason_Messages {
 			'invalid_snapshot' => __( 'A product snapshot is required.', 'writeleash' ),
 			'noncanonical_plan_value' => __( 'The saved preview contains an unsupported value type.', 'writeleash' ),
 			'invalid_plan_encoding' => __( 'The saved preview text is not valid UTF-8.', 'writeleash' ),
+			'stock_not_managed' => __( 'This product does not manage its own stock.', 'writeleash' ),
+			'empty_stock_baseline' => __( 'This product has no stored stock quantity to adjust; use Set to add the first quantity.', 'writeleash' ),
+			'invalid_stock_quantity' => __( 'The stored stock quantity is not a supported non-negative number.', 'writeleash' ),
+			'unsupported_stock_status' => __( 'Choose a supported stock status.', 'writeleash' ),
+			'unsupported_stock_field' => __( 'Choose either the stock quantity or the stock status as the target.', 'writeleash' ),
+			'stock_floor_violation' => __( 'The planned stock quantity would go below the allowed floor.', 'writeleash' ),
+			'stock_delta_overflow' => __( 'The planned stock change exceeds the allowed maximum delta.', 'writeleash' ),
+			'stock_quantity_overflow' => __( 'The planned stock quantity exceeds the supported range.', 'writeleash' ),
+			'invalid_stock_delta_bound' => __( 'The stock delta bound is invalid.', 'writeleash' ),
+			'invalid_stock_floor' => __( 'The stock floor is invalid.', 'writeleash' ),
 		);
 	}
 }

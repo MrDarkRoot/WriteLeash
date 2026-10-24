@@ -14,6 +14,9 @@ $allowed = array(
 	'includes/free/class-woo-price-mutator.php'    => array( 'set_regular_price', 'set_sale_price' ),
 	'includes/free/class-woo-undo-mutator.php'     => array( 'set_regular_price', 'set_sale_price' ),
 	'includes/free/class-price-cache-verifier.php' => array( 'WC_Product_Variable::sync' ),
+	// #310 parent stock-status sync is the public Woo API, not a price write.
+	// The token scanner matches the `sync` prefix of `sync_stock_status`.
+	'includes/free/class-woo-stock-mutator.php'    => array( 'WC_Product_Variable::sync' ),
 );
 $watched = array( 'set_regular_price', 'set_sale_price', 'WC_Product_Variable::sync', 'update_post_meta(', 'update_metadata(' );
 
@@ -92,7 +95,7 @@ $result = wl295_audit_tree( $root, $allowed, $watched );
 foreach ( array_keys( $allowed ) as $relative ) {
 	if ( ! in_array( $relative, $result['seen'], true ) ) { throw new RuntimeException( 'price-write audit did not visit allowlisted file: ' . $relative ); }
 }
-echo '#295 positive: ' . $result['files'] . " plugin PHP files scanned; writers only in the 3 allowlisted files/operations PASS\n";
+echo '#295 positive: ' . $result['files'] . ' plugin PHP files scanned; writers only in the ' . count( $allowed ) . " allowlisted files/operations PASS\n";
 
 // Negative: a setter in a non-allowlisted plugin file fails.
 $dir = wl295_temp_tree( $root, $allowed, array( 'includes/free/class-evil-widget.php' => "<?php\n\$product->set_regular_price( '1.00' );\n" ) );

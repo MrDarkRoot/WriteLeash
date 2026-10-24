@@ -34,6 +34,9 @@ namespace WriteLeash {
 	class Fixture204Plan {
 		public function summary() { return array( 'selected' => 2 ); }
 		public function price_field() { return 'regular_price'; }
+		// #310: the admin job surface branches on the frozen asset before any
+		// price-typed call, so the plan double mirrors the real contract.
+		public function asset() { return 'price'; }
 		public function data() { return array( 'store' => array( 'currency' => 'USD', 'price_decimals' => 2 ), 'items' => array_map( static fn( $id ) => array( 'product_id' => $id, 'snapshot' => array( 'name' => '<script>literal</script>', 'regular_price' => '10.00' ) ), array( 11, 12 ) ) ); }
 	}
 	class Job_Worker {

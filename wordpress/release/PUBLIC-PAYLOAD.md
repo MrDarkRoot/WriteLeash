@@ -97,6 +97,7 @@ inventory (multi-class files included):
 | price-cache-verifier | Price_Cache_Verifier | PUBLIC_FREE_REQUIRED |
 | price-apply-transaction-guard | Price_Apply_Transaction_Guard (interface) | PUBLIC_FREE_REQUIRED |
 | woo-price-mutator | Woo_Price_Mutator | PUBLIC_FREE_REQUIRED |
+| woo-stock-mutator | Stock_Operation, Woo_Stock_Mutator | PUBLIC_FREE_REQUIRED |
 | job-state | Job_Error, Job_State, Job_Item_State, Job_Reason | PUBLIC_FREE_REQUIRED |
 | job-schema | Job_Schema | PUBLIC_FREE_REQUIRED |
 | job-transaction-fence | Job_Transaction_Fence | PUBLIC_FREE_REQUIRED |

@@ -663,6 +663,9 @@ final class Grant_Repository {
 	public static function assert_scope( Change_Plan $plan ): int {
 		$data = $plan->data();
 		if ( 'BLOCKED' === ( $data['status'] ?? '' ) ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+		if ( 'price' !== $plan->asset() ) {
+			return self::assert_stock_scope( $plan );
+		}
 		try { $field = $plan->price_field(); } catch ( \Throwable $error ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
 		if ( ! in_array( $field, Price_Operation::FIELDS, true ) ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
 		$changing = 0;
@@ -706,15 +709,78 @@ final class Grant_Repository {
 			'plan_hash' => $plan->hash(),
 			'actor_id' => (int) $data['actor_id'],
 			'grant' => $grant_public_id,
-			'field' => $plan->price_field(),
+			'field' => 'price' === $plan->asset() ? $plan->price_field() : $plan->stock_field(),
 			'targets' => array(),
 		);
+		// #310: the asset discriminator enters the idempotency payload for
+		// stock plans only, so every price payload keeps verifying byte-for-byte.
+		if ( 'price' !== $plan->asset() ) { $material['asset'] = $plan->asset(); }
 		foreach ( $data['items'] as $item ) {
 			if ( 'CHANGING' !== ( $item['result'] ?? '' ) ) { continue; }
-			$material['targets'][] = array( (int) $item['product_id'], (string) ( $item['planned_regular_price'] ?? '' ) );
+			$target = 'price' === $plan->asset() ? (string) ( $item['planned_regular_price'] ?? '' ) : (string) ( $item['stock']['planned_status'] ?? $item['planned_regular_price'] ?? '' );
+			$material['targets'][] = array( (int) $item['product_id'], $target );
 		}
 		sort( $material['targets'] );
 		return Plan_Hasher::canonical_json( $material );
+	}
+
+	/**
+	 * #310 frozen scope for product_stock plans: the same exact core identity
+	 * rules as price, plus the asset-specific bounds. Every target is the
+	 * frozen absolute string; the planned quantity must stay within
+	 * [min_stock_floor, expected ± max_abs_delta] and the planned status must
+	 * be one of the three core statuses. No re-selection, no live reads.
+	 *
+	 * @throws Grant_Error with GRANT_SCOPE_DENIED on any boundary violation.
+	 */
+	private static function assert_stock_scope( Change_Plan $plan ): int {
+		$data = $plan->data();
+		try { $operation = $plan->stock_operation(); $field = $plan->stock_field(); }
+		catch ( \Throwable $error ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+		$changing = 0;
+		foreach ( $data['items'] as $item ) {
+			if ( 'CHANGING' !== ( $item['result'] ?? '' ) ) { continue; }
+			self::assert_stock_item( $item, $operation, $field );
+			++$changing;
+		}
+		if ( $changing < 1 ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+		return $changing;
+	}
+
+	/** The one frozen stock-item boundary, shared by plan-level and item-level scope. */
+	private static function assert_stock_item( array $item, array $operation, string $field ): void {
+		$snapshot = $item['snapshot'] ?? null;
+		$stock = $item['stock'] ?? null;
+		if ( ! is_array( $snapshot ) || ! is_array( $stock ) ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+		$is_simple = ! empty( $snapshot['core_simple'] ) && 'simple' === ( $snapshot['type'] ?? '' );
+		$is_variation = ! empty( $snapshot['core_variation'] ) && 'variation' === ( $snapshot['type'] ?? '' );
+		if ( ! $is_simple && ! $is_variation ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+		if ( $is_variation ) {
+			if ( (int) ( $snapshot['parent_id'] ?? 0 ) < 1 || empty( $snapshot['parent_core_variable'] ) || 'variable' !== ( $snapshot['parent_type'] ?? '' ) || 'publish' !== ( $snapshot['parent_status'] ?? '' ) ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+		}
+		if ( 'publish' !== ( $snapshot['status'] ?? '' ) ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+		if ( Stock_Operation::FIELD_QUANTITY === $field ) {
+			if ( empty( $snapshot['manage_stock'] ) ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+			$expected = (string) ( $item['expected_regular_price'] ?? '' );
+			$planned = (string) ( $item['planned_regular_price'] ?? '' );
+			if ( '' === $expected || '' === $planned ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+			try {
+				$expected_parsed = Price_Decimal::parse( $expected );
+				$planned_parsed = Price_Decimal::parse( $planned );
+			} catch ( \Throwable $error ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+			if ( (string) $stock['max_abs_delta'] !== (string) $operation['max_abs_delta'] || (string) $stock['min_stock_floor'] !== (string) $operation['min_stock_floor'] ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+			if ( Price_Decimal::compare( $planned_parsed, (string) $stock['min_stock_floor'] ) < 0 ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+			$delta = Price_Decimal::compare( $planned_parsed, $expected_parsed ) >= 0
+				? Price_Decimal::subtract( $planned_parsed, $expected_parsed )
+				: Price_Decimal::subtract( $expected_parsed, $planned_parsed );
+			if ( Price_Decimal::compare( $delta, (string) $stock['max_abs_delta'] ) > 0 ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+			if ( Price_Decimal::compare( $planned_parsed, Stock_Operation::QUANTITY_LIMIT ) > 0 ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+		} else {
+			if ( ! empty( $snapshot['manage_stock'] ) ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+			if ( null === ( $stock['planned_status'] ?? null ) || ! in_array( (string) $stock['planned_status'], Stock_Operation::STATUSES, true ) ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+			if ( (string) ( $item['expected_regular_price'] ?? '' ) !== '' || (string) ( $item['planned_regular_price'] ?? '' ) !== '' ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+			if ( (string) $stock['planned_status'] === (string) ( $snapshot['stock_status'] ?? '' ) ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+		}
 	}
 
 	// ------------------------------------------------------------------
@@ -1000,6 +1066,14 @@ final class Grant_Repository {
 	public static function assert_scope_for_item( Change_Plan $plan, int $product_id ): void {
 		$item = $plan->item( $product_id )->data();
 		if ( 'CHANGING' !== $item['result'] ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+		if ( 'price' !== $plan->asset() ) {
+			// #310: the per-item frozen stock scope is the same boundary the
+			// plan-level check runs; it never reads live state.
+			try { $operation = $plan->stock_operation(); $field = $plan->stock_field(); }
+			catch ( \Throwable $error ) { throw new Grant_Error( 'GRANT_SCOPE_DENIED' ); }
+			self::assert_stock_item( $item, $operation, $field );
+			return;
+		}
 		$field = $plan->price_field();
 		$snapshot = $item['snapshot'];
 		$is_simple = ! empty( $snapshot['core_simple'] ) && 'simple' === ( $snapshot['type'] ?? '' );

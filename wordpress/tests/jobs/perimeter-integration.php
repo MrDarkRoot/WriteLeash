@@ -578,6 +578,21 @@ try {
 	throw new RuntimeException( 'revoke-all principal save must throw WC_Data_Exception, got ' . $e->getMessage() );
 }
 assert_zero_changes( array( $revoked_probe_id ), $revoked_probe_before, 'revoke-all principal zero change' );
-marker( 'revoke-all keeps the principal behind Perimeter Guard' );
+	marker( 'revoke-all keeps the principal behind Perimeter Guard' );
 
-marker( 'perimeter guard complete' );
+	// #310: a stock frame authorizes stock meta for its product only. A price
+	// meta write, and a stock write to another product, stay denied like no frame.
+	wp_set_current_user( 1 );
+	$stock_frame_id = create_stock_product( '10.00', 8 );
+	$stock_other_id = create_stock_product( '10.00', 8 );
+	wp_set_current_user( $actor );
+	$actor_user->set_role( 'administrator' );
+	\WriteLeash\Perimeter_Guard::open_frame( $actor, 0, 'wl310-frame', array( $stock_frame_id ), 'stock', 'stock_quantity' );
+	ok( update_post_meta( $stock_frame_id, '_stock', '9' ) !== false, 'stock frame allows the framed product stock meta' );
+	ok( update_post_meta( $stock_frame_id, '_regular_price', '1.00' ) === false, 'stock frame denies a price meta write' );
+	ok( update_post_meta( $stock_other_id, '_stock', '1' ) === false, 'stock frame denies another product' );
+	\WriteLeash\Perimeter_Guard::close_frame();
+	ok( update_post_meta( $stock_frame_id, '_stock', '7' ) === false, 'closed stock frame denies stock meta again' );
+	marker( 'stock frame is kind-and-product exact' );
+
+	marker( 'perimeter guard complete' );
