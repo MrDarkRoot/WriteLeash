@@ -26,6 +26,7 @@ use WriteLeash\Job_Schema as Schema;
 use WriteLeash\Job_State as JState;
 use WriteLeash\Job_Worker as Worker;
 use WriteLeash\Price_Cache_Verifier as Verifier;
+use WriteLeash\Price_Apply_Journal;
 use WriteLeash\Price_Decimal;
 use WriteLeash\Price_Operation as Operation;
 use WriteLeash\Price_Selection_Spec as Selection;
@@ -34,6 +35,7 @@ use WriteLeash\Product_Price_Selector as Selector;
 use WriteLeash\Safety_Policy as Policy;
 use WriteLeash\Stock_Operation as StockOp;
 use WriteLeash\Undo_Repository as URepo;
+use WriteLeash\Undo_Schema;
 use WriteLeash\Undo_Worker as UWorker;
 use WriteLeash\Woo_Price_Planner as Planner;
 
@@ -144,6 +146,15 @@ function assert_no_stock_denial( array $denials, string $label ): void {
 function price_state( int $id ): string {
 	return raw_meta( $id, '_regular_price' ) . '|' . raw_meta( $id, '_price' ) . '|' . raw_meta( $id, '_sale_price' );
 }
+function undo_diagnostics( int $job_id ): array {
+	global $wpdb;
+	$job = $wpdb->get_row( $wpdb->prepare( 'SELECT id,status,plan_id,plan_hash,creator_id FROM %i WHERE id=%d', Schema::jobs_table( $wpdb ), $job_id ), ARRAY_A );
+	$items = $wpdb->get_results( $wpdb->prepare( 'SELECT product_id,sequence,state,expected_price,planned_price FROM %i WHERE job_id=%d ORDER BY sequence', Schema::items_table( $wpdb ), $job_id ), ARRAY_A );
+	$journal = $wpdb->get_results( $wpdb->prepare( 'SELECT product_id,state,expected_price,target_price,plan_id,plan_hash,price_field,evidence FROM %i WHERE plan_id=%s', Price_Apply_Journal::table( $wpdb ), (string) ( $job['plan_id'] ?? '' ) ), ARRAY_A );
+	$operations = $wpdb->get_results( $wpdb->prepare( 'SELECT id,job_id,plan_id,status FROM %i WHERE job_id=%d', Undo_Schema::operations_table( $wpdb ), $job_id ), ARRAY_A );
+	$undo_items = $wpdb->get_results( $wpdb->prepare( 'SELECT id,undo_id,product_id,state,reason,expected_price,applied_price,fingerprint FROM %i WHERE job_id=%d', Undo_Schema::items_table( $wpdb ), $job_id ), ARRAY_A );
+	return array( 'job' => $job, 'job_items' => $items, 'journal' => $journal, 'undo_operations' => $operations, 'undo_items' => $undo_items );
+}
 function snapshot( array $ids ): array {
 	global $wpdb;
 	$ids = array_values( array_unique( array_map( 'intval', $ids ) ) );
@@ -179,7 +190,7 @@ function run_cell( string $id, string $path, string $expect, callable $fn, array
 	try {
 		$out = (array) $fn();
 	} catch ( \Throwable $e ) {
-		$error = get_class( $e ) . '/' . deny_code( $e ) . ': ' . $e->getMessage();
+		$error = get_class( $e ) . '/' . deny_code( $e ) . ': ' . $e->getMessage() . ' @ ' . basename( (string) $e->getFile() ) . ':' . $e->getLine();
 	}
 	wp_set_current_user( 1 );
 	$after = $probe_prefix ? prefix_snapshot( $probe_prefix ) : snapshot( $ids );
@@ -747,10 +758,15 @@ try {
 		$done = Repo::read( (int) $created['id'] );
 		eq( 'COMPLETED', (string) $done['status'], 'manual resume completed the job' );
 		foreach ( $op_ids as $iid ) { price_eq( '90.00', fresh_price( $iid ), 'approve + resume applied the price ' . $iid ); }
-		$undo = URepo::initiate( (int) $created['id'], $issuer );
-		$undo_id = (int) $undo['id'];
-		for ( $i = 0; $i < 6 && ! in_array( (string) ( URepo::read_operation_by_job( (int) $created['id'] )['status'] ?? '' ), array( 'UNDO_COMPLETED', 'UNDO_COMPLETED_WITH_ISSUES' ), true ); ++$i ) {
-			UWorker::run( $undo_id, limits( 5 ), true );
+		$undo = null;
+		try {
+			$undo = URepo::initiate( (int) $created['id'], $issuer );
+			$undo_id = (int) $undo['id'];
+			for ( $i = 0; $i < 6 && ! in_array( (string) ( URepo::read_operation_by_job( (int) $created['id'] )['status'] ?? '' ), array( 'UNDO_COMPLETED', 'UNDO_COMPLETED_WITH_ISSUES' ), true ); ++$i ) {
+				UWorker::run( $undo_id, limits( 5 ), true );
+			}
+		} catch ( \Throwable $e ) {
+			throw new RuntimeException( 'undo phase failed: ' . get_class( $e ) . '/' . $e->getMessage() . ' @ ' . basename( (string) $e->getFile() ) . ':' . $e->getLine() . ' durable=' . json_encode( undo_diagnostics( (int) $created['id'] ) ) );
 		}
 		eq( 'UNDO_COMPLETED', (string) ( URepo::read_operation_by_job( (int) $created['id'] )['status'] ?? '' ), 'undo completed' );
 		foreach ( $op_ids as $iid ) { price_eq( '100.00', fresh_price( $iid ), 'undo restored the price ' . $iid ); }
