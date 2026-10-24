@@ -44,6 +44,13 @@ const WL311_MONITORED_PATHS = array(
 	'meta_delete', 'trash', 'delete_post', 'delete_product', 'stock_rest',
 );
 
+// The controlled positives: the same surfaces must still apply inside a
+// matching Execution Frame.
+const WL311_INFRAME_PATHS = array(
+	'frame_price_apply', 'frame_stock_apply', 'frame_variation_price_sync',
+	'frame_variation_stock_sync',
+);
+
 global $wpdb, $work, $assertions, $hook_log;
 $assertions = 0;
 $work = sys_get_temp_dir() . '/wl311-' . bin2hex( random_bytes( 5 ) );
@@ -231,6 +238,25 @@ function seed_variation( string $prefix, string $price ): array {
 	wp_set_current_user( $previous );
 	return array( $parent_id, $variation_id );
 }
+function seed_stock_variation( string $prefix, int $quantity ): array {
+	$previous = get_current_user_id();
+	wp_set_current_user( 1 );
+	$parent = new WC_Product_Variable();
+	$parent->set_name( $prefix . 'parent-' . wp_generate_uuid4() );
+	$parent->set_status( 'publish' );
+	$parent_id = (int) $parent->save();
+	$variation = new WC_Product_Variation();
+	$variation->set_parent_id( $parent_id );
+	$variation->set_status( 'publish' );
+	$variation->set_regular_price( '12.00' );
+	$variation->set_manage_stock( true );
+	$variation->set_stock_quantity( $quantity );
+	$variation->set_stock_status( 'instock' );
+	$variation_id = (int) $variation->save();
+	\WC_Post_Data::do_deferred_product_sync();
+	wp_set_current_user( $previous );
+	return array( $parent_id, $variation_id );
+}
 function fresh_price( int $id ): string {
 	Verifier::invalidate( $id );
 	$p = wc_get_product( $id );
@@ -242,9 +268,24 @@ function qty_of( int $id ): string {
 	$value = $p ? $p->get_stock_quantity( 'edit' ) : null;
 	return null === $value ? '' : (string) $value;
 }
+function status_of( int $id ): string {
+	Verifier::invalidate( $id );
+	$p = wc_get_product( $id );
+	return $p ? (string) $p->get_stock_status( 'edit' ) : '';
+}
+function lookup_row( int $id ): array {
+	global $wpdb;
+	$lookup = $wpdb->prefix . 'wc_product_meta_lookup';
+	$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$lookup} WHERE product_id=%d", $id ), ARRAY_A );
+	return is_array( $row ) ? $row : array();
+}
 function raw_meta( int $id, string $key ): string {
 	global $wpdb;
 	return (string) $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id=%d AND meta_key=%s ORDER BY meta_id DESC LIMIT 1", $id, $key ) );
+}
+function meta_count( int $id, string $key ): int {
+	global $wpdb;
+	return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id=%d AND meta_key=%s", $id, $key ) );
 }
 function limits( int $items, int $seconds = 20 ): array { return array( 'max_items' => $items, 'budget_seconds' => $seconds ); }
 function start_probe( array $spec, string $script ): array {
@@ -318,6 +359,10 @@ function emit_matrix_doc(): void {
 	$unsupported = array_values( array_diff( WL311_MONITORED_PATHS, $covered ) );
 	foreach ( $unsupported as $missing ) {
 		$cells[] = array( 'id' => $missing, 'path' => '(not exercised by this suite)', 'expect' => 'deny', 'status' => 'NOT_TESTED', 'guard' => '', 'denials' => array(), 'durable' => 'unknown', 'rows' => 0, 'evidence' => '', 'reason' => 'no proving test executed for this path; claim withheld' );
+	}
+	$missing_positives = array_values( array_diff( WL311_INFRAME_PATHS, $covered ) );
+	foreach ( $missing_positives as $missing ) {
+		$cells[] = array( 'id' => $missing, 'path' => '(in-frame positive not exercised by this suite)', 'expect' => 'apply', 'status' => 'NOT_TESTED', 'guard' => '', 'denials' => array(), 'durable' => 'unknown', 'rows' => 0, 'evidence' => '', 'reason' => 'no proving test executed for this in-frame positive; the claim that the path still applies inside a frame is withheld' );
 	}
 	$sha = (string) $GLOBALS['wl311_sha'];
 	$blocked = '' === $sha;
@@ -533,26 +578,33 @@ try {
 	}, array( $meta_update_id ) );
 
 	$meta_add_id = seed_product( 'WL311-meta-add-', '50.00', true, 10 );
-	run_cell( 'meta_add', 'add_post_meta() for a protected price/stock key', 'deny', function () use ( $actor, $meta_add_id ) {
+	run_cell( 'meta_add', 'add_post_meta() for every protected price/stock key', 'deny', function () use ( $actor, $meta_add_id ) {
 		wp_set_current_user( $actor );
 		$offset = denial_offset();
-		ok( false === add_post_meta( $meta_add_id, '_sale_price', '80.00', false ), 'add_post_meta denied for _sale_price' );
-		ok( false === add_post_meta( $meta_add_id, '_sale_price_dates_to', '2026-12-31', false ), 'add_post_meta denied for _sale_price_dates_to' );
+		$keys = array( '_regular_price' => '70.00', '_sale_price' => '80.00', '_price' => '72.00', '_sale_price_dates_from' => '2026-01-01', '_sale_price_dates_to' => '2026-12-31', '_stock' => '999', '_stock_status' => 'outofstock' );
+		$counts = array();
+		foreach ( $keys as $key => $value ) { $counts[ $key ] = meta_count( $meta_add_id, $key ); }
+		foreach ( $keys as $key => $value ) { ok( false === add_post_meta( $meta_add_id, $key, $value, false ), 'add_post_meta denied for ' . $key ); }
 		assert_denial( denials_since( $offset ), 'add_post_metadata', 'meta add denial recorded at add_post_metadata' );
-		eq( '', raw_meta( $meta_add_id, '_sale_price' ), 'meta add wrote no durable row' );
-		eq( '', raw_meta( $meta_add_id, '_sale_price_dates_to' ), 'meta add wrote no second durable row' );
+		eq( '50.00', raw_meta( $meta_add_id, '_regular_price' ), 'meta add left the durable price untouched' );
+		eq( '10', raw_meta( $meta_add_id, '_stock' ), 'meta add left the durable stock untouched' );
+		foreach ( $keys as $key => $value ) { eq( $counts[ $key ], meta_count( $meta_add_id, $key ), 'meta add wrote no extra row for ' . $key ); }
 		return array( 'guard' => 'add_post_metadata' );
 	}, array( $meta_add_id ) );
 
 	$meta_delete_id = seed_product( 'WL311-meta-delete-', '50.00', true, 10 );
-	run_cell( 'meta_delete', 'delete_post_meta() for a protected price/stock key', 'deny', function () use ( $actor, $meta_delete_id ) {
+	run_cell( 'meta_delete', 'delete_post_meta() for every protected price/stock key', 'deny', function () use ( $actor, $meta_delete_id ) {
 		wp_set_current_user( $actor );
 		$offset = denial_offset();
-		ok( false === delete_post_meta( $meta_delete_id, '_stock' ), 'delete_post_meta denied for _stock' );
-		ok( false === delete_post_meta( $meta_delete_id, '_regular_price' ), 'delete_post_meta denied for _regular_price' );
+		$keys = array( '_regular_price', '_sale_price', '_price', '_sale_price_dates_from', '_sale_price_dates_to', '_stock', '_stock_status' );
+		$counts = array();
+		foreach ( $keys as $key ) { $counts[ $key ] = meta_count( $meta_delete_id, $key ); }
+		foreach ( $keys as $key ) { ok( false === delete_post_meta( $meta_delete_id, $key ), 'delete_post_meta denied for ' . $key ); }
 		assert_denial( denials_since( $offset ), 'delete_post_metadata', 'meta delete denial recorded at delete_post_metadata' );
 		eq( '10', raw_meta( $meta_delete_id, '_stock' ), 'meta delete left the durable stock row untouched' );
 		eq( '50.00', raw_meta( $meta_delete_id, '_regular_price' ), 'meta delete left the durable price row untouched' );
+		eq( 'instock', raw_meta( $meta_delete_id, '_stock_status' ), 'meta delete left the durable stock status untouched' );
+		foreach ( $keys as $key ) { eq( $counts[ $key ], meta_count( $meta_delete_id, $key ), 'meta delete removed no row for ' . $key ); }
 		return array( 'guard' => 'delete_post_metadata' );
 	}, array( $meta_delete_id ) );
 
@@ -719,7 +771,41 @@ try {
 		assert_no_denials( denials_since( $offset ), 'in-frame stock write was never intercepted' );
 		return array( 'guard' => 'Execution_Frame open (stock)' );
 	}, array( $frame_stock_id ) );
-	marker( 'in-frame: price and stock apply still work' );
+
+	// The variable-parent rows are the two in-frame positives #311 calls out:
+	// the parent's price range must follow the variation, and the parent's
+	// stock status must follow the variation. Both writes happen on the parent
+	// while the frame only names the variation, so they prove the frame
+	// covers the parent too.
+	list( $var_price_parent, $var_price_id ) = seed_variation( 'WL311-frame-var-price-', '60.00' );
+	run_cell( 'frame_variation_price_sync', 'grant price job on a variation syncing the parent price range inside the frame', 'apply', function () use ( $grant, $issuer, $actor, $var_price_id, $var_price_parent ) {
+		$offset = denial_offset();
+		$accepted = accept_price( $grant, $issuer, $actor, array( $var_price_id ), '50.00', 'wl311-frame-var-price' );
+		run_job_inline( (int) $accepted['job']['id'] );
+		eq( 'COMPLETED', (string) ( Repo::read( (int) $accepted['job']['id'] )['status'] ?? '' ), 'frame variation price job completed' );
+		eq( '50.00', fresh_price( $var_price_id ), 'frame variation price apply wrote the frozen target' );
+		eq( '50.00', raw_meta( $var_price_parent, '_price' ), 'parent _price followed the variation inside the frame' );
+		$lookup = lookup_row( $var_price_parent );
+		eq( '50.00', (string) ( $lookup['min_price'] ?? '' ), 'parent lookup min_price followed the variation' );
+		eq( '50.00', (string) ( $lookup['max_price'] ?? '' ), 'parent lookup max_price followed the variation' );
+		assert_no_denials( denials_since( $offset ), 'in-frame variation price write was never intercepted' );
+		return array( 'guard' => 'Execution_Frame open (price, parent covered)' );
+	}, array( $var_price_id, $var_price_parent ) );
+
+	list( $var_stock_parent, $var_stock_id ) = seed_stock_variation( 'WL311-frame-var-stock-', 10 );
+	run_cell( 'frame_variation_stock_sync', 'grant stock job on a variation syncing the parent stock status inside the frame', 'apply', function () use ( $grant, $issuer, $actor, $var_stock_id, $var_stock_parent ) {
+		$offset = denial_offset();
+		$accepted = accept_stock( $grant, $issuer, $actor, array( $var_stock_id ), 'SET', 'stock_quantity', '0', 'wl311-frame-var-stock' );
+		run_job_inline( (int) $accepted['job']['id'] );
+		eq( 'COMPLETED', (string) ( Repo::read( (int) $accepted['job']['id'] )['status'] ?? '' ), 'frame variation stock job completed' );
+		eq( '0', qty_of( $var_stock_id ), 'frame variation stock apply wrote the frozen target' );
+		eq( 'outofstock', status_of( $var_stock_id ), 'Woo derived the variation status from the quantity' );
+		eq( 'outofstock', status_of( $var_stock_parent ), 'parent stock status followed the variation inside the frame' );
+		eq( 'outofstock', (string) ( lookup_row( $var_stock_parent )['stock_status'] ?? '' ), 'parent lookup stock_status followed the variation' );
+		assert_no_denials( denials_since( $offset ), 'in-frame variation stock write was never intercepted' );
+		return array( 'guard' => 'Execution_Frame open (stock, parent covered)' );
+	}, array( $var_stock_id, $var_stock_parent ) );
+	marker( 'in-frame: price and stock apply still work, including the variable parent rows' );
 
 	// -----------------------------------------------------------------------
 	// D. Grant state: every non-acceptance state denies, removal unleashes.

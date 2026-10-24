@@ -134,8 +134,16 @@ on protected price/stock keys, `wp_trash_post`, `wp_delete_post`,
 `WC_Product::delete`, and a restricted-principal WriteLeash stock submission),
 4 non-interference paths (guest checkout, a user-0 background write in a separate
 process, a `shop_manager` edit, and the operator preview -> approve -> bounded run
--> REST resume -> undo lifecycle), 2 in-frame cells (price and stock apply), and 5
-grant-state cells (disabled, revoked, expired, exhausted, removed).
+-> REST resume -> undo lifecycle), 4 in-frame cells (price apply, stock apply,
+the variation price apply that syncs the parent price range, and the variation
+stock apply that syncs the parent stock status), and 5 grant-state cells
+(disabled, revoked, expired, exhausted, removed).
+
+The meta cells exercise every protected key the issue names
+(`_regular_price`, `_sale_price`, `_price`, `_stock`, `_stock_status`) plus the two
+protected sale-date keys, on all three meta APIs, and compare the per-key row
+counts before and after so a duplicate or deleted row cannot hide behind an
+unchanged hash.
 
 Every deny cell asserts the typed refusal, the recorded guard `where`, and that
 the durable rows did not move: full-row SHA-256 hashes over `wp_posts`,
