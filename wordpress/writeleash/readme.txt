@@ -103,8 +103,8 @@ Preview/Approve/Apply and price Undo are unchanged; (4) operators issue,
 inspect, pause, revoke or remove the restriction with append-only audit.
 
 Protects grant-scoped price/stock jobs, frozen targets, budget, expiry and
-pause/resume/revoke/revoke-all/remove restriction. Does not cover firewalls or
-sandboxes, administrators outside a grant, hostile plugins, direct SQL,
+pause/resume/revoke/revoke-all/remove restriction. It is not a firewall or
+sandbox, administrators outside a grant, hostile plugins, direct SQL,
 third-party hook side effects, orders/refunds/coupons/tax/options/arbitrary
 meta, stock Undo (Undo is price-only), or any universal "agent-safe" claim.
 

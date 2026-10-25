@@ -174,7 +174,7 @@ issue a new grant deliberately, then submit a fresh job.
   budget/reservation events and item outcomes.
 - **Denial log:** `writeleash_perimeter_denied` JSON lines in the WordPress
   debug log (default `wp-content/debug.log` when `WP_DEBUG_LOG` is true).
-- **Job journal:** `{prefix}writeleash_price_apply_journal` (schema v4, asset
+- **Job journal:** `{prefix}writeleash_price_items` (schema v4, asset
   discriminator) is the source of truth for item outcomes.
 - **Budget evidence:** `{prefix}writeleash_grant_reservations` and
   `{prefix}writeleash_grant_idempotency` show reserved, consumed, released

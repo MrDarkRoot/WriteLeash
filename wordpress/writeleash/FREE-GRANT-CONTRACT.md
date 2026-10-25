@@ -164,7 +164,7 @@ supported.
 - `writeleash_grant_idempotency` (v1): `(grant_db_id, idempotency_key)`
   unique, `canonical_hash`, `job_id`, `plan_id`.
 - `writeleash_grant_audit` (v1): append-only events.
-- `writeleash_price_apply_journal` (schema v4): asset discriminator; every
+- `writeleash_price_items` (schema v4): asset discriminator; every
   pre-v4 row is a price row, and stock rows carry `product_stock`.
 - `writeleash_jobs` (v2): `approval_mode none/human/grant`,
   `grant_public_id`, `grant_version`, `grant_idempotency_key`. v1 -> v2 adds
