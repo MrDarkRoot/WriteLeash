@@ -145,7 +145,10 @@ function writeleash_public_runtime_audit( string $root, array $entries ): void {
 		if ( ! isset( $definitions[ $name ] ) ) { $fail( 'unresolved public class/type ' . $name . ' in ' . $entry ); }
 	}
 	$readme = file_get_contents( $root . '/readme.txt' );
-	if ( preg_match( '/Redirection|operator-setup|Doctor|WRITELEASH_DB_|GRANT|trusted.*(?:database|DB)/i', $readme ) ) {
+	// v0.3.0 documents the public restricted-agent route. Keep rejecting the
+	// historical SQL provisioning instructions while allowing grant-bound
+	// product copy; a bare "GRANT" is no longer a historical marker.
+	if ( preg_match( '/Redirection|operator-setup|Doctor|WRITELEASH_DB_|\bGRANT\s+(?:OPTION|ALL|USAGE|EXECUTE|CREATE|DROP|ALTER|SELECT|UPDATE|INSERT|DELETE|REFERENCES|TRIGGER)\b|trusted.*(?:database|DB)/i', $readme ) ) {
 		$fail( 'historical user requirement in public readme' );
 	}
 	echo '#120 public runtime: literal include closure ' . count( $closure ) . ' PHP files, ' . count( $definitions ) . " resolved classes/types; no historical artifacts/hooks/authority PASS\n";

@@ -238,6 +238,23 @@ Status values:
 * **REQUIRED LIMITATION:** "Tested up to: 7.1" reflects the tested 7.1.2 point (directory ignores the patch) and must not be read as all-7.x coverage.
 * **STATUS:** PUBLISHABLE.
 
+## 20. Restricted agent access (grant-bound seatbelt)
+
+* **COPY CLAIM:** "A seatbelt, not a firewall: a restricted WordPress principal is bounded to WriteLeash's controlled price/stock job path and fails closed everywhere else. It is not a sandbox or universal 'agent-safe' guarantee."
+* **SUPPORTING ISSUE:** #307, #308, #309, #310, #311, #312.
+* **SUPPORTING TEST/EVIDENCE:**
+  * `wordpress/tests/jobs/matrix-integration.php` — 28 cells × 4 engine/cache combinations: 15 deny paths, 4 non-interference paths, 4 in-frame positives and 5 grant-state cells.
+  * `wordpress/tests/jobs/perimeter-integration.php` — REST/save/stock/meta/trash/delete denials before persistence, controlled-frame positives, kill-switch and revocation races, denial log.
+  * `wordpress/tests/jobs/stock-integration.php` — bounded SET/INCREASE_INT/DECREASE_INT, floor/delta refusals, variation parent stock-status sync, stock REST scope denial.
+  * `wordpress/tests/jobs/grant-integration.php` — actor/issuer/approver, scope, expiry/revocation/disable, budget/recovery, idempotency, audit/journal, pause racing an open item.
+  * `wordpress/tests/jobs/grant-removal-integration.php` — removal marker, self-un-leash refusal, revoke-all CAS/audit/no un-leash, administrator-only emergency controls.
+  * `wordpress/tests/admin/grant-admin-integration.php` — operator matrix, create contract, revoke, remove-restriction warning/audit, pause/resume option posture.
+  * `wordpress/tests/admin/stock-job-integration.php` — stock grant job view, history and read-only progress copy.
+  * `wordpress/tests/admin/grant-cli.sh` — `wp writeleash grant list|create|revoke|disable|enable` with authenticated `--user`, emergency controls administrator-only.
+* **ALLOWED WORDING:** The seatbelt sentence above; grant-scoped price/stock jobs through the controlled path; frozen scope, budget, expiry and stock bounds; operator issue/inspect/revoke/pause/resume/revoke-all/remove-restriction; append-only grant/denial audit.
+* **REQUIRED LIMITATION:** Not a firewall or sandbox. Does not constrain administrators who are not grant actors, hostile plugins, direct SQL, third-party hook side effects, orders/refunds/coupons/tax/options or arbitrary meta. A user-0 system cron is outside the grant. Stock Undo is unsupported; Undo is price-only. No universal "agent-safe" claim.
+* **STATUS:** PUBLISHABLE WITH LIMITATION.
+
 ---
 
 ## Forbidden public claims (must never appear)

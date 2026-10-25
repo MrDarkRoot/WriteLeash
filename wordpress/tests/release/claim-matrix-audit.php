@@ -69,10 +69,21 @@ $required_topics = array(
 	'multisite'                => 'Multisite',
 	'real-host status'         => 'Real managed/shared hosting',
 	'external side effects'    => 'External side effects',
+	'restricted agent access'  => 'Restricted agent access (grant-bound seatbelt)',
 );
 foreach ( $required_topics as $label => $needle ) {
 	if ( false === stripos( $mx, $needle ) ) {
 		$fail( 'claim matrix is missing required topic: ' . $label );
+	}
+}
+
+// #312: the restricted-agent boundary must use the same seatbelt wording in
+// the public listing and the reviewed claim matrix. Whitespace is normalized
+// so both files may wrap the sentence independently.
+$seatbelt = "A seatbelt, not a firewall: a restricted WordPress principal is bounded to WriteLeash's controlled price/stock job path and fails closed everywhere else.";
+foreach ( array( 'readme' => $read, 'claim matrix' => $mx ) as $label => $text ) {
+	if ( false === strpos( preg_replace( '/\s+/', ' ', $text ), $seatbelt ) ) {
+		$fail( 'missing exact restricted-agent seatbelt wording in ' . $label );
 	}
 }
 
