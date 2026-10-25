@@ -16,7 +16,7 @@ $expected = array(
 );
 $fail = static function ( string $message ) use ( $dir ): void {
 	fwrite( STDERR, '#311 aggregate FAIL: ' . $message . "\n" );
-	echo 'MATRIX-JSON: ' . json_encode( array( 'schema' => 1, 'source_sha' => 'UNKNOWN', 'status' => 'FAIL', 'reason' => $message, 'cells' => array(), 'summary' => array( 'pass' => 0, 'fail' => 1, 'blocked' => 0, 'not_tested' => 0, 'total' => 0 ) ), JSON_UNESCAPED_SLASHES ) . "\n";
+	echo 'MATRIX-JSON: ' . json_encode( array( 'schema' => 1, 'source_sha' => 'UNKNOWN', 'status' => 'FAIL', 'reason' => $message, 'cells' => array(), 'summary' => array( 'pass' => 0, 'fail' => 1, 'blocked' => 0, 'not_tested' => 0, 'not_tested_combinations' => 0, 'total' => 0 ) ), JSON_UNESCAPED_SLASHES ) . "\n";
 	exit( 1 );
 };
 $docs = array();
@@ -51,6 +51,27 @@ foreach ( $docs as $doc ) {
 	$versions[ $engine ] = $version;
 }
 
+$combinations_not_tested = $docs[0]['combinations_not_tested'] ?? null;
+if ( ! is_array( $combinations_not_tested ) || ! $combinations_not_tested ) { $fail( 'combinations_not_tested is missing or empty' ); }
+foreach ( $combinations_not_tested as $entry ) {
+	if ( ! is_array( $entry ) ) { $fail( 'combinations_not_tested entry is not an object' ); }
+	foreach ( array( 'combination', 'reason', 'claim_withheld' ) as $key ) {
+		if ( ! array_key_exists( $key, $entry ) ) { $fail( 'combinations_not_tested entry is missing ' . $key ); }
+		if ( ! is_string( $entry[ $key ] ) || '' === trim( $entry[ $key ] ) ) { $fail( 'combinations_not_tested entry has an empty ' . $key ); }
+	}
+}
+foreach ( $docs as $doc ) {
+	if ( ( $doc['combinations_not_tested'] ?? null ) !== $combinations_not_tested ) { $fail( 'combinations_not_tested differs across combinations' ); }
+}
+$combination_markers = array( 'WordPress 7.0', 'WooCommerce 10.0', 'PHP 8.3' );
+foreach ( $combination_markers as $marker ) {
+	$found = false;
+	foreach ( $combinations_not_tested as $entry ) {
+		if ( false !== strpos( (string) $entry['combination'], $marker ) ) { $found = true; break; }
+	}
+	if ( ! $found ) { $fail( 'combinations_not_tested is missing marker: ' . $marker ); }
+}
+
 $ids = array();
 $by_id = array();
 foreach ( $docs as $doc ) {
@@ -66,7 +87,7 @@ foreach ( $ids as $key => $cell_ids ) {
 }
 $rank = array( 'FAIL' => 4, 'BLOCKED' => 3, 'NOT_TESTED' => 2, 'PASS' => 1 );
 $cells = array();
-$summary = array( 'pass' => 0, 'fail' => 0, 'blocked' => 0, 'not_tested' => 0, 'total' => 0 );
+$summary = array( 'pass' => 0, 'fail' => 0, 'blocked' => 0, 'not_tested' => 0, 'not_tested_combinations' => count( $combinations_not_tested ), 'total' => 0 );
 foreach ( $reference as $id ) {
 	$by_combination = array();
 	$statuses = array();
@@ -129,7 +150,7 @@ $doc = array(
 			'captured_at' => $doc['captured_at'] ?? '',
 		);
 	}, $docs ),
-	'combinations_not_tested' => $docs[0]['combinations_not_tested'] ?? array(),
+	'combinations_not_tested' => $combinations_not_tested,
 	'cells' => $cells,
 	'summary' => $summary,
 );

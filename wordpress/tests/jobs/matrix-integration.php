@@ -403,6 +403,14 @@ function emit_matrix_doc(): void {
 		}
 	}
 	$counts = matrix_counts( $cells );
+	$combinations_not_tested = array(
+		array( 'combination' => 'WordPress 7.0–7.1.1', 'reason' => 'CI fixture pins WordPress 7.1.2', 'claim_withheld' => 'no PASS claim for these WordPress versions; evidence covers only the pinned build' ),
+		array( 'combination' => 'WooCommerce 10.0–11.1.1', 'reason' => 'CI fixture pins WooCommerce 11.1.2', 'claim_withheld' => 'no PASS claim for these WooCommerce versions; evidence covers only the pinned build' ),
+		array( 'combination' => 'PHP 8.3', 'reason' => 'CI fixture pins PHP 8.2.34', 'claim_withheld' => 'no PASS claim for PHP 8.3; evidence covers only the pinned runtime' ),
+		array( 'combination' => 'MySQL 8.0.x other than 8.0.44; MariaDB 10.11.x other than 10.11.15', 'reason' => 'CI fixture pins the exact engine builds', 'claim_withheld' => 'no PASS claim for other engine builds; only the pinned builds ran' ),
+		array( 'combination' => 'WordPress < 7.0 / WooCommerce < 10.0', 'reason' => 'outside the declared support contract', 'claim_withheld' => 'not a supported configuration; no claim is made' ),
+	);
+	$counts['not_tested_combinations'] = count( $combinations_not_tested );
 	$doc = array(
 		'schema' => 1,
 		'source_sha' => $blocked ? 'UNKNOWN' : $sha,
@@ -418,9 +426,7 @@ function emit_matrix_doc(): void {
 		'combinations_ran' => array(
 			array( 'db_engine' => (string) $GLOBALS['wl311_engine'], 'cache_mode' => (string) $GLOBALS['wl311_cache'], 'cells' => $counts['total'], 'summary' => $counts ),
 		),
-		'combinations_not_tested' => array(
-			array( 'combination' => 'WP 6.7 / WC 9.x / PHP 8.3', 'reason' => 'not in the CI fixture image', 'claim_withheld' => 'no supported-range claim is made for this combination' ),
-		),
+		'combinations_not_tested' => $combinations_not_tested,
 		'cells' => $cells,
 		'summary' => $counts,
 	);
