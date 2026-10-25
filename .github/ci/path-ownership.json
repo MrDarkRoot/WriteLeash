@@ -84,6 +84,6 @@
     {"paths": [".github/workflows/pr-fast.yml"], "gates": [], "reason": "Orchestration only: PR_FAST audits every suite call, classifier output, budget condition and coverage dependency; actionlint validates the graph. Maintainer review required."},
     {"paths": [".github/workflows/release-full.yml"], "gates": [], "reason": "Intentional release orchestration: PR_FAST verifies all suite calls and the exact-SHA guard, plus actionlint. Executable reusable suites have self-owners, not this exception. Maintainer review required."},
     {"paths": [".github/ci/**"], "gates": [], "reason": "Static policy/audit tooling executes inside PR_FAST with adversarial classifier/coverage/budget cases. assert-security-log.sh additionally selects native through its explicit rule. Maintainer review required."},
-    {"paths": ["wordpress/writeleash/readme.txt", "wordpress/writeleash/LICENSE", "wordpress/writeleash/*.md", "wordpress/writeleash/operator-setup.txt", "wordpress/release/**", "wordpress/tests/release/*.php", "docs/**", "*.md", ".gitignore", ".env.example", "wordpress/icon/**", "wordpress/assets/**"], "gates": []}
+    {"paths": ["wordpress/writeleash/readme.txt", "wordpress/writeleash/LICENSE", "wordpress/writeleash/*.md", "wordpress/writeleash/operator-setup.txt", "wordpress/release/**", "wordpress/tests/release/*.php", "wordpress/tests/release/*.sh", "docs/**", "*.md", ".gitignore", ".env.example", "wordpress/icon/**", "wordpress/assets/**"], "gates": []}
   ]
 }
