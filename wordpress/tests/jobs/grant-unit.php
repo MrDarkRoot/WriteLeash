@@ -16,6 +16,12 @@ if ( ! defined( 'ARRAY_A' ) ) { define( 'ARRAY_A', 'ARRAY_A' ); }
 class wpdb {
 	public $prefix = 'wp_';
 	public $options = 'wp_options';
+	public $last_error = '';
+	public $queries = array();
+	/** @var int[] actor ids the fresh restriction read must report */
+	public $restricted_actors = array();
+	public $table_count = 0;
+	public $fail_reads = false;
 	public function prepare( $query, ...$args ) {
 		$i = 0;
 		return preg_replace_callback(
@@ -28,6 +34,29 @@ class wpdb {
 			},
 			$query
 		);
+	}
+	public function get_var( $query ) {
+		$this->queries[] = $query;
+		$this->last_error = '';
+		if ( $this->fail_reads ) {
+			$this->last_error = 'forced read failure';
+			return null;
+		}
+		if ( false !== strpos( $query, 'information_schema.TABLES' ) ) { return (string) $this->table_count; }
+		return '0';
+	}
+	public function get_results( $query, $output = null ) {
+		unset( $output );
+		$this->queries[] = $query;
+		$this->last_error = '';
+		if ( $this->fail_reads ) {
+			$this->last_error = 'forced read failure';
+			return null;
+		}
+		if ( false === strpos( $query, 'restriction_removed_at' ) ) { return array(); }
+		if ( 1 !== preg_match( '/actor_id=([0-9]+)/', $query, $match ) ) { return array(); }
+		if ( ! in_array( (int) $match[1], $this->restricted_actors, true ) ) { return array(); }
+		return array( array( 'id' => '1' ) );
 	}
 }
 class WP_User {
@@ -322,20 +351,56 @@ ok( $consume_pos > $journal_after_grant, 'consume with journal APPLIED, never in
 marker( 'audit, disable fail-closed, boundary and lock order' );
 
 // ---------------------------------------------------------------------------
-// 6. #306: revocation/expiry/exhaustion/kill-switch must not open a
-// non-grant frame. Merchant jobs stay allowed only for unrestricted actors.
+// 6. #306: a non-grant price/stock/undo write must fail closed. The perimeter
+// cache and an unreadable store must not authorize the frame.
 // ---------------------------------------------------------------------------
 if ( ! function_exists( 'get_current_user_id' ) ) {
 	function get_current_user_id() { return 0; }
 }
+require_once dirname( __DIR__, 2 ) . '/writeleash/includes/free/class-price-apply-connection.php';
 $cache = new ReflectionProperty( Grants::class, 'restricted_cache' );
 $cache->setAccessible( true );
-$cache->setValue( null, array( 22 => true, 33 => false, 0 => false ) );
-ok( false === Grants::allows_controlled_write( 22, false ), 'restricted actor cannot use a non-grant write' );
+$store = new wpdb();
+$GLOBALS['wpdb'] = $store;
+$GLOBALS['wl_option_values']['writeleash_grant_schema'] = '2';
+$store->restricted_actors = array( 22 );
+// Stale fail-open cache says 22 is unrestricted and 33 is restricted. The
+// fresh read is authoritative in both directions.
+$cache->setValue( null, array( 22 => false, 33 => true, 0 => false ) );
+ok( false === Grants::allows_controlled_write( 22, false ), 'stale unrestricted cache cannot authorize a restricted actor' );
+ok( true === Grants::allows_controlled_write( 33, false ), 'stale restricted cache cannot deny a fresh unrestricted merchant' );
 ok( true === Grants::allows_controlled_write( 22, true ), 'grant-authorized item still allowed' );
-ok( true === Grants::allows_controlled_write( 33, false ), 'unrestricted merchant job unchanged' );
 ok( true === Grants::allows_controlled_write( 0, false ), 'user 0 stays outside the leash' );
+$grant_queries = 0;
+foreach ( $store->queries as $sql ) { if ( false !== strpos( $sql, 'restriction_removed_at' ) ) { ++$grant_queries; } }
+eq( $grant_queries, 2, 'grant-authorized and user 0 do not read the grant store' );
+$cached = $cache->getValue( null );
+eq( $cached[22], false, 'controlled write does not rewrite the perimeter cache' );
+$store->queries = array();
+$store->fail_reads = true;
+$threw = '';
+try { Grants::allows_controlled_write( 33, false ); }
+catch ( WriteLeash\Price_Apply_Error $error ) { $threw = $error->getMessage(); }
+eq( $threw, 'GRANT_STORE_UNAVAILABLE', 'unreadable grant store does not authorize a non-grant write' );
+$store->fail_reads = false;
+$store->queries = array();
+unset( $GLOBALS['wl_option_values']['writeleash_grant_schema'] );
+$store->table_count = 0;
+ok( true === Grants::allows_controlled_write( 22, false ), 'proven-absent grant store leaves merchant writes available' );
+$absent_reads = 0;
+foreach ( $store->queries as $sql ) { if ( false !== strpos( $sql, 'restriction_removed_at' ) ) { ++$absent_reads; } }
+eq( $absent_reads, 0, 'absent store does not classify rows' );
+$store->queries = array();
+$store->table_count = 1;
+$partial = '';
+try { Grants::allows_controlled_write( 22, false ); }
+catch ( WriteLeash\Price_Apply_Error $error ) { $partial = $error->getMessage(); }
+eq( $partial, 'GRANT_STORE_UNAVAILABLE', 'grants table without the schema option fails closed' );
+$GLOBALS['wl_option_values']['writeleash_grant_schema'] = '2';
 $cache->setValue( null, array() );
+$repo = file_get_contents( $root . '/includes/free/class-grant-repository.php' );
+ok( false !== strpos( $repo, 'FOR UPDATE' ), 'item-connection classification locks unstamped grant rows' );
+ok( false === strpos( $repo, 'return ! self::is_restricted_actor' ), 'controlled write does not call the fail-open predicate' );
 $writers = array(
 	'class-woo-price-mutator.php' => 'allows_controlled_write( (int) $actor, null !== $grant )',
 	'class-woo-stock-mutator.php' => 'allows_controlled_write( (int) $actor, null !== $grant )',
@@ -345,9 +410,12 @@ foreach ( $writers as $file => $needle ) {
 	$source = file_get_contents( $root . '/includes/free/' . $file );
 	$call = strpos( $source, $needle );
 	$open = strpos( $source, 'Perimeter_Guard::open_frame' );
+	$decided = strpos( $source, "checkpoint( 'RESTRICTION_DECIDED'" );
 	ok( false !== $call && false !== $open && $call < $open, $file . ' gates the frame' );
-	$window = substr( $source, max( 0, $call - 500 ), 500 );
-	ok( false !== strpos( $window, '$wpdb = $original' ), $file . ' reads restriction off the item transaction' );
+	ok( false !== $decided && $call < $decided && $decided < $open, $file . ' records the decision before the frame' );
+	$window = substr( $source, max( 0, $call - 400 ), 400 );
+	ok( false !== strpos( $window, '$tx->assert_owned()' ), $file . ' classifies inside the item transaction' );
+	ok( false === strpos( $window, '$wpdb = $original' ), $file . ' does not classify on the request connection' );
 }
 marker( 'restricted actor non-grant write denied before the frame' );
 

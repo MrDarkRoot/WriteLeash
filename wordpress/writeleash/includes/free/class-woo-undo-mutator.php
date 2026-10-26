@@ -190,15 +190,11 @@ final class Woo_Undo_Mutator {
 			self::authorize( $product_id );
 			self::checkpoint( 'UNDO_BEFORE_WOO_SAVE', $product_id, $attempt );
 			$tx->assert_owned();
-			// #306: undo is not a grant-authorized write. A restricted initiator
-			// must not restore prices through a frame. Read off the item connection.
-			$wpdb = $original;
-			try {
-				$grant_write = Grant_Repository::allows_controlled_write( (int) $executor, false );
-			} finally {
-				$wpdb = $tx;
-			}
+			// #306: undo is never grant-authorized. Classify on this item
+			// connection so a revoked initiator cannot restore through a frame.
+			$grant_write = Grant_Repository::allows_controlled_write( (int) $executor, false );
 			if ( ! $grant_write ) { throw new Price_Apply_Error( 'PERMISSION_DENIED' ); }
+			self::checkpoint( 'RESTRICTION_DECIDED', $product_id, $attempt );
 			// #307: open the perimeter frame for this controlled undo write.
 			$frame_product_ids = $is_variation ? array( $product_id, $parent_id ) : array( $product_id );
 			Perimeter_Guard::open_frame(
@@ -267,7 +263,7 @@ final class Woo_Undo_Mutator {
 			$rolled_back = $tx ? $tx->rollback() : false;
 			if ( $had_transaction && ! $rolled_back && 'AMBIGUOUS_COMMIT' !== $reason ) { $reason = 'TRANSACTION_LOST'; }
 			$wpdb = $original;
-			$review = $committed || in_array( $reason, array( 'TRANSACTION_LOST', 'AMBIGUOUS_COMMIT', 'CACHE_VERIFICATION_FAILED', 'LOOKUP_MISMATCH', 'JOURNAL_MISMATCH', 'UNDO_PROVENANCE_MISMATCH' ), true );
+			$review = $committed || in_array( $reason, array( 'TRANSACTION_LOST', 'AMBIGUOUS_COMMIT', 'CACHE_VERIFICATION_FAILED', 'LOOKUP_MISMATCH', 'JOURNAL_MISMATCH', 'UNDO_PROVENANCE_MISMATCH', 'GRANT_STORE_UNAVAILABLE' ), true );
 			$code = $review ? 'NEEDS_REVIEW' : ( in_array( $reason, array( 'UNDO_CONFLICT', 'CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED', 'UNDO_EXPIRED', 'UNDO_NOT_ELIGIBLE', 'PERMISSION_DENIED', 'UNSUPPORTED_PRODUCT_STATE', 'TRANSACTION_UNAVAILABLE', 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'MULTISITE_UNSUPPORTED', 'DB_TRANSACTIONS_UNSUPPORTED', 'FENCE_LOST', 'DEACTIVATED' ), true ) ? $reason : 'FAILED' );
 			if ( in_array( $code, array( 'UNDO_CONFLICT', 'CONFLICT', 'PRODUCT_MISSING', 'PRODUCT_TYPE_CHANGED', 'PRODUCT_STATUS_CHANGED', 'SALE_CONFIGURED' ), true ) ) { $code = 'UNDO_CONFLICT'; }
 			try {

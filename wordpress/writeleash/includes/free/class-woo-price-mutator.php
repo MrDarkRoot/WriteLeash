@@ -197,16 +197,13 @@ final class Woo_Price_Mutator {
 			self::authorize( $plan, $id, $tx );
 			self::checkpoint( 'BEFORE_WOO_SAVE', $id, $attempt );
 			$tx->assert_owned();
-			// #306: a non-grant job must not open a frame for a restricted actor.
-			// Read the predicate on the request connection so this SELECT does
-			// not become the item transaction's first consistent read.
-			$wpdb = $original;
-			try {
-				$grant_write = Grant_Repository::allows_controlled_write( (int) $actor, null !== $grant );
-			} finally {
-				$wpdb = $tx;
-			}
+			// #306: classify on this item connection. The locking read sees a
+			// grant committed after the snapshot and holds it to COMMIT, so a
+			// concurrent create_grant cannot authorize this write. The
+			// fail-open request cache is not consulted.
+			$grant_write = Grant_Repository::allows_controlled_write( (int) $actor, null !== $grant );
 			if ( ! $grant_write ) { throw new Price_Apply_Error( 'PERMISSION_DENIED' ); }
+			self::checkpoint( 'RESTRICTION_DECIDED', $id, $attempt );
 			// #307: open the perimeter frame for this controlled product write
 			// only after the item transaction holds its locks, so the Woo CRUD
 			// save below is authorized for the restricted actor. Closes in the

@@ -394,4 +394,36 @@ eq( (int) Grants::read_by_public_id( $grant['public_id'] )['budget_consumed'], $
 eq( Repo::items( (int) $after['job']['id'] )[0]['state'], IState::APPLIED, 'post-commit item reconciled APPLIED' );
 marker( 'crash matrix' );
 
+// #306: a restricted actor's human-approved stock job is not a grant write.
+$merchant_id = stock_product( 11 );
+$merchant_hash = hash_rows( array( $merchant_id ) );
+wp_set_current_user( $actor );
+$merchant_selection = Selection::ids( array( $merchant_id ) );
+$merchant_plan = Change_Plan::create_stock( 'wl306-stock-' . wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $actor, Price_Store_Context::current(), $merchant_selection, new StockOp( StockOp::SET, StockOp::FIELD_QUANTITY, '40', '1000', '0' ), Selector::resolve( $merchant_selection ) );
+$merchant_job = Repo::create_from_plan( $merchant_plan, $actor );
+wp_set_current_user( $issuer );
+$merchant_approved = Repo::approve( (int) $merchant_job['id'], $issuer );
+eq( $merchant_approved['approval_mode'], 'human', 'stock merchant approval is human' );
+Worker::queue_job( (int) $merchant_job['id'] );
+$merchant_run = Worker::run( (int) $merchant_job['id'], limits( 2 ), true );
+eq( $merchant_run['stop'] ?? '', 'PERMISSION_REVOKED', 'restricted stock merchant pauses' );
+eq( qty_of( $merchant_id ), '11', 'restricted stock merchant wrote no quantity' );
+eq( hash_rows( array( $merchant_id ) ), $merchant_hash, 'restricted stock merchant zero durable change' );
+$merchant_journal = journal_row( $merchant_plan->data()['plan_id'], $merchant_id );
+eq( $merchant_journal['state'], 'FAILED', 'restricted stock journal FAILED' );
+eq( $merchant_journal['reason'], 'PERMISSION_DENIED', 'restricted stock journal reason' );
+eq( Repo::items( (int) $merchant_job['id'] )[0]['state'], IState::FAILED, 'restricted stock item FAILED' );
+
+$free_stock = stock_product( 8 );
+wp_set_current_user( $issuer );
+$free_selection = Selection::ids( array( $free_stock ) );
+$free_plan = Change_Plan::create_stock( 'wl306-stock-free-' . wp_generate_uuid4(), gmdate( 'Y-m-d\TH:i:s\Z' ), $issuer, Price_Store_Context::current(), $free_selection, new StockOp( StockOp::SET, StockOp::FIELD_QUANTITY, '21', '1000', '0' ), Selector::resolve( $free_selection ) );
+$free_job = Repo::create_from_plan( $free_plan, $issuer );
+wp_set_current_user( 1 );
+Repo::approve( (int) $free_job['id'], 1 );
+run_job( (int) $free_job['id'] );
+eq( qty_of( $free_stock ), '21', 'unrestricted stock merchant still writes' );
+eq( journal_row( $free_plan->data()['plan_id'], $free_stock )['state'], 'APPLIED', 'unrestricted stock journal APPLIED' );
+marker( 'non-grant stock: restricted actor writes nothing; unrestricted merchant still applies' );
+
 echo "#310 stock asset gate: PASS ($assertions assertions)\n";

@@ -90,6 +90,36 @@ function fresh_price( int $id ): string {
 	$p = wc_get_product( $id );
 	return (string) $p->get_regular_price( 'edit' );
 }
+function catalog_hash( array $ids ): string {
+	global $wpdb;
+	$parts = array();
+	if ( $ids ) {
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		$parts[] = $wpdb->get_results( $wpdb->prepare( "SELECT ID,post_title,post_status,post_type FROM {$wpdb->posts} WHERE ID IN ($placeholders) ORDER BY ID", $ids ), ARRAY_A );
+		$parts[] = $wpdb->get_results( $wpdb->prepare( "SELECT meta_id,post_id,meta_key,meta_value FROM {$wpdb->postmeta} WHERE post_id IN ($placeholders) ORDER BY meta_id", $ids ), ARRAY_A );
+		$parts[] = $wpdb->get_results( $wpdb->prepare( "SELECT product_id,min_price,max_price,onsale FROM {$wpdb->wc_product_meta_lookup} WHERE product_id IN ($placeholders) ORDER BY product_id", $ids ), ARRAY_A );
+	}
+	return hash( 'sha256', serialize( $parts ) );
+}
+function await_grant_insert( int $exclude_thread, string $result_file, float $timeout = 15 ): void {
+	global $wpdb;
+	$deadline = microtime( true ) + $timeout;
+	while ( true ) {
+		if ( is_file( $result_file ) && '' !== (string) file_get_contents( $result_file ) ) {
+			throw new RuntimeException( 'create_grant finished without waiting for the item grant lock' );
+		}
+		$rows = $wpdb->get_results( 'SELECT ID, INFO FROM information_schema.PROCESSLIST', ARRAY_A );
+		if ( is_array( $rows ) ) {
+			foreach ( $rows as $row ) {
+				$info = (string) ( $row['INFO'] ?? '' );
+				if ( (int) $row['ID'] === $exclude_thread ) { continue; }
+				if ( false !== stripos( $info, 'insert' ) && false !== strpos( $info, 'writeleash_grants' ) ) { return; }
+			}
+		}
+		if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'create_grant did not block on the grant lock' ); }
+		usleep( 20000 );
+	}
+}
 function start_worker( array $spec, string $script = 'worker.php' ): array {
 	global $work;
 	$prefix = $work . '/proc-' . bin2hex( random_bytes( 5 ) );
@@ -944,5 +974,115 @@ eq( (int) grant_row( $fail_grant['public_id'] )['budget_consumed'], 0, 'failed i
 		ok( ! $released, $fault . ' refusal writes no ITEM_RELEASED row' );
 	}
 	marker( 'F2 per-item evidence: pinned version + rollback on audit failure' );
+
+// ---------------------------------------------------------------------------
+// #306: merchant Apply by a restricted actor writes nothing. An unrestricted
+// merchant still applies. A grant committed before the decision is visible
+// inside the item transaction, and create_grant waits on that lock.
+// ---------------------------------------------------------------------------
+wp_set_current_user( 1 );
+$ng_id = create_product( '100.00' );
+$ng_hash = catalog_hash( array( $ng_id ) );
+$ng_saves = saves( $ng_id );
+wp_set_current_user( $actor );
+$ng_plan = Planner::preview( Selection::ids( array( $ng_id ) ), new Operation( Operation::SET, '70.00' ), new Policy( 1000, '100', '100', false, '100' ) );
+$ng_job = Repo::create_from_plan( $ng_plan, $actor );
+wp_set_current_user( $approver );
+$ng_approved = Repo::approve( (int) $ng_job['id'], $approver );
+eq( $ng_approved['approval_mode'], 'human', 'restricted merchant job is a human approval' );
+eq( (string) ( $ng_approved['grant_public_id'] ?? '' ), '', 'restricted merchant job has no grant pin' );
+Worker::queue_job( (int) $ng_job['id'] );
+$ng_run = run_worker( array( 'job_id' => (int) $ng_job['id'], 'mode' => 'run', 'limits' => limits( 3 ) ) );
+eq( $ng_run['stop'], 'PERMISSION_REVOKED', 'restricted merchant apply pauses' );
+eq( fresh_price( $ng_id ), '100.00', 'restricted merchant apply leaves the price' );
+eq( saves( $ng_id ), $ng_saves, 'restricted merchant apply zero Woo saves' );
+eq( catalog_hash( array( $ng_id ) ), $ng_hash, 'restricted merchant apply zero post meta lookup change' );
+$ng_journal = journal_row( $ng_plan->data()['plan_id'], $ng_id );
+eq( $ng_journal['state'], 'FAILED', 'restricted merchant journal FAILED' );
+eq( $ng_journal['reason'], 'PERMISSION_DENIED', 'restricted merchant journal reason' );
+$ng_item = null;
+foreach ( Repo::items( (int) $ng_job['id'], null, 0, 10 ) as $row ) { if ( (int) $row['product_id'] === $ng_id ) { $ng_item = $row; } }
+eq( $ng_item['state'], IState::FAILED, 'restricted merchant item FAILED' );
+eq( $ng_item['reason'], 'PERMISSION_DENIED', 'restricted merchant item reason' );
+
+$free_login = 'wl306-free-' . wp_generate_uuid4();
+$free_id_user = wp_insert_user( array( 'user_login' => $free_login, 'user_pass' => wp_generate_password( 20 ), 'role' => 'administrator', 'user_email' => $free_login . '@example.test' ) );
+if ( is_wp_error( $free_id_user ) ) { throw new RuntimeException( 'free merchant user failed' ); }
+$free_user = (int) $free_id_user;
+wp_set_current_user( 1 );
+$free_product = create_product( '100.00' );
+wp_set_current_user( $free_user );
+$free_plan = Planner::preview( Selection::ids( array( $free_product ) ), new Operation( Operation::SET, '70.00' ), new Policy( 1000, '100', '100', false, '100' ) );
+$free_job = Repo::create_from_plan( $free_plan, $free_user );
+wp_set_current_user( $issuer );
+Repo::approve( (int) $free_job['id'], $issuer );
+Worker::queue_job( (int) $free_job['id'] );
+for ( $i = 0; $i < 4 && ! JState::is_terminal( Repo::read( (int) $free_job['id'] )['status'] ); ++$i ) {
+	run_worker( array( 'job_id' => (int) $free_job['id'], 'mode' => 'run', 'limits' => limits( 2 ) ) );
+}
+eq( fresh_price( $free_product ), '70.00', 'unrestricted merchant apply still writes' );
+eq( journal_row( $free_plan->data()['plan_id'], $free_product )['state'], 'APPLIED', 'unrestricted merchant journal APPLIED' );
+
+wp_set_current_user( 1 );
+$fault_product = create_product( '100.00' );
+$fault_hash = catalog_hash( array( $fault_product ) );
+$fault_saves = saves( $fault_product );
+wp_set_current_user( $free_user );
+$fault_plan = Planner::preview( Selection::ids( array( $fault_product ) ), new Operation( Operation::SET, '70.00' ), new Policy( 1000, '100', '100', false, '100' ) );
+$fault_job = Repo::create_from_plan( $fault_plan, $free_user );
+wp_set_current_user( $issuer );
+Repo::approve( (int) $fault_job['id'], $issuer );
+Worker::queue_job( (int) $fault_job['id'] );
+run_worker( array( 'job_id' => (int) $fault_job['id'], 'mode' => 'run', 'limits' => limits( 2 ), 'restriction_read_fault' => true ) );
+eq( fresh_price( $fault_product ), '100.00', 'unreadable restriction read leaves the price' );
+eq( saves( $fault_product ), $fault_saves, 'unreadable restriction read zero Woo saves' );
+eq( catalog_hash( array( $fault_product ) ), $fault_hash, 'unreadable restriction read zero post meta lookup change' );
+$fault_journal = journal_row( $fault_plan->data()['plan_id'], $fault_product );
+eq( $fault_journal['state'], 'NEEDS_REVIEW', 'unreadable restriction read journal NEEDS_REVIEW' );
+eq( $fault_journal['reason'], 'GRANT_STORE_UNAVAILABLE', 'unreadable restriction read journal reason' );
+
+$race_login = 'wl306-race-' . wp_generate_uuid4();
+$race_user_id = wp_insert_user( array( 'user_login' => $race_login, 'user_pass' => wp_generate_password( 20 ), 'role' => 'administrator', 'user_email' => $race_login . '@example.test' ) );
+if ( is_wp_error( $race_user_id ) ) { throw new RuntimeException( 'race merchant user failed' ); }
+$race_user = (int) $race_user_id;
+wp_set_current_user( 1 );
+$race_product = create_product( '100.00' );
+wp_set_current_user( $race_user );
+$race_plan = Planner::preview( Selection::ids( array( $race_product ) ), new Operation( Operation::SET, '70.00' ), new Policy( 1000, '100', '100', false, '100' ) );
+$race_job = Repo::create_from_plan( $race_plan, $race_user );
+wp_set_current_user( $issuer );
+Repo::approve( (int) $race_job['id'], $issuer );
+Worker::queue_job( (int) $race_job['id'] );
+$race_worker = start_worker( array( 'job_id' => (int) $race_job['id'], 'mode' => 'run', 'limits' => limits( 2 ), 'mutator_checkpoint' => 'RESTRICTION_DECIDED', 'mutator_fault' => 'wait' ) );
+await_file( $race_worker['spec']['barrier'] );
+$race_barrier = (string) file_get_contents( $race_worker['spec']['barrier'] );
+ok( str_starts_with( $race_barrier, 'RESTRICTION_DECIDED:' ), 'restriction decision reached before the Woo save' );
+$race_holder = (int) substr( $race_barrier, strlen( 'RESTRICTION_DECIDED:' ) );
+eq( fresh_price( $race_product ), '100.00', 'locked decision has not saved the product' );
+$race_creator = start_worker( array( 'issuer' => $issuer, 'actor' => $race_user, 'lock_wait_timeout' => 20 ), 'grant-create-worker.php' );
+await_grant_insert( $race_holder, $race_creator['spec']['result'] );
+file_put_contents( $race_worker['spec']['release'], 'go' );
+finish_worker( $race_worker );
+$race_created = finish_worker( $race_creator );
+ok( is_string( $race_created['public_id'] ?? null ) && '' !== $race_created['public_id'], 'create_grant commits after the item lock' );
+eq( fresh_price( $race_product ), '70.00', 'in-flight unrestricted item still applies' );
+wp_set_current_user( 1 );
+$after_product = create_product( '100.00' );
+$after_hash = catalog_hash( array( $after_product ) );
+$after_saves = saves( $after_product );
+wp_set_current_user( $race_user );
+$after_plan = Planner::preview( Selection::ids( array( $after_product ) ), new Operation( Operation::SET, '55.00' ), new Policy( 1000, '100', '100', false, '100' ) );
+$after_job = Repo::create_from_plan( $after_plan, $race_user );
+wp_set_current_user( $issuer );
+Repo::approve( (int) $after_job['id'], $issuer );
+Worker::queue_job( (int) $after_job['id'] );
+$after_run = run_worker( array( 'job_id' => (int) $after_job['id'], 'mode' => 'run', 'limits' => limits( 2 ) ) );
+eq( $after_run['stop'], 'PERMISSION_REVOKED', 'grant committed during the previous item denies the next merchant apply' );
+eq( fresh_price( $after_product ), '100.00', 'later merchant apply leaves the price' );
+eq( saves( $after_product ), $after_saves, 'later merchant apply zero Woo saves' );
+eq( catalog_hash( array( $after_product ) ), $after_hash, 'later merchant apply zero post meta lookup change' );
+eq( journal_row( $after_plan->data()['plan_id'], $after_product )['state'], 'FAILED', 'later merchant journal FAILED' );
+eq( journal_row( $after_plan->data()['plan_id'], $after_product )['reason'], 'PERMISSION_DENIED', 'later merchant journal reason' );
+marker( 'non-grant apply: restricted and unreadable reads write nothing; unrestricted apply and the grant lock stay serial' );
 
 echo "#298 grant-integration PASS ($assertions assertions)\n";
