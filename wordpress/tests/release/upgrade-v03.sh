@@ -9,6 +9,7 @@
 #   WL283_SOURCE_ZIP=/path/to/writeleash.0.2.2.zip
 #   WL283_SOURCE_SHA256=09ff494b80646a5ec854bfb52f16dd3ad1a68d27da88a9e8564963b74b9f8b90
 #   WL283_UPGRADE_RECEIPT=/path/outside-webroot/upgrade-v03.receipt.json
+#   WL283_ALLOW_DESTRUCTIVE=1  explicit confirmation that WL283_SITE is disposable
 #
 # verify/negative additionally require:
 #   WL283_TARGET_ZIP=/path/to/writeleash.0.3.0-candidate.zip
@@ -21,9 +22,9 @@
 # seed, verify and negative must share the same WL283_UPGRADE_RECEIPT path.
 #
 # Usage:
-#   WL283_INSTALL_SOURCE=1 upgrade-v03.sh seed
-#   upgrade-v03.sh verify
-#   upgrade-v03.sh negative
+#   WL283_ALLOW_DESTRUCTIVE=1 WL283_INSTALL_SOURCE=1 upgrade-v03.sh seed
+#   WL283_ALLOW_DESTRUCTIVE=1 upgrade-v03.sh verify
+#   WL283_ALLOW_DESTRUCTIVE=1 upgrade-v03.sh negative
 set -euo pipefail
 
 mode="${1:-}"
@@ -46,6 +47,13 @@ sha_of() { sha256sum "$1" | awk '{print $1}'; }
 
 [[ -f "$HARNESS" ]] || { echo "missing harness: $HARNESS" >&2; exit 1; }
 [[ -d "$WL283_SITE" ]] || { echo "missing WordPress path: $WL283_SITE" >&2; exit 1; }
+if [[ "${WL283_ALLOW_DESTRUCTIVE:-0}" != "1" ]]; then
+	echo "Refusing: set WL283_ALLOW_DESTRUCTIVE=1 and point WL283_SITE at a disposable site" >&2
+	exit 2
+fi
+case "$(realpath -m "$WL283_UPGRADE_RECEIPT")" in
+	"$(realpath "$WL283_SITE")"/*) echo "Receipt must be outside the WordPress root" >&2; exit 2 ;;
+esac
 [[ -f "$WL283_SOURCE_ZIP" ]] || { echo "missing source ZIP" >&2; exit 1; }
 source_actual="$(sha_of "$WL283_SOURCE_ZIP")"
 if [[ "$source_actual" != "$WL283_SOURCE_SHA256" ]]; then

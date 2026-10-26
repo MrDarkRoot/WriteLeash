@@ -41,6 +41,7 @@ export WL283_SOURCE_ZIP=/path/to/writeleash.0.2.2.zip
 export WL283_SOURCE_SHA256=09ff494b80646a5ec854bfb52f16dd3ad1a68d27da88a9e8564963b74b9f8b90
 export WL283_TARGET_ZIP=/path/to/writeleash.0.3.0-candidate.zip
 export WL283_UPGRADE_RECEIPT=/path/outside/webroot/upgrade-v03.receipt.json
+export WL283_ALLOW_DESTRUCTIVE=1  # required for a disposable site
 
 # 1. Install WriteLeash 0.2.2 (WL283_INSTALL_SOURCE=1) and create the fixture.
 WL283_INSTALL_SOURCE=1 bash wordpress/tests/release/upgrade-v03.sh seed
@@ -56,6 +57,11 @@ WL283_NEGATIVE_KIND=unknown-grant-schema \
 WL283_NEGATIVE_KIND=malformed-grant-option \
   bash wordpress/tests/release/upgrade-v03.sh negative
 ```
+
+`WL283_ALLOW_DESTRUCTIVE=1` is mandatory: the driver force-installs and
+deactivates plugins, so it refuses to touch a site without that explicit
+disposable-site confirmation. The receipt must also resolve outside the
+WordPress root.
 
 `seed` and `verify`/`negative` must use the same receipt path. The receipt is
 written with mode `0600`; it contains product IDs, user IDs, plan hashes, and
