@@ -27,6 +27,7 @@ for host in mysql mariadb; do
   php /opt/tests/jobs/no-replan-audit.php "$site/wp-content/plugins/writeleash"
   php /opt/tests/jobs/price-write-allowlist.php "$site/wp-content/plugins/writeleash"
   php /opt/tests/jobs/grant-unit.php
+  php /opt/tests/jobs/perimeter-create-unit.php
   for cache in default persistent; do
     if [ "$cache" = persistent ]; then
       wp --path="$site" redis enable
