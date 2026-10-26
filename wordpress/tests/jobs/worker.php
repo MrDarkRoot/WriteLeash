@@ -35,7 +35,11 @@ if ( ! empty( $spec['mutator_checkpoint'] ) ) {
 		file_put_contents( $barrier, $point . ':' . (int) $GLOBALS['wpdb']->dbh->thread_id );
 		if ( 'throw' === ( $spec['mutator_fault'] ?? '' ) ) { throw new RuntimeException( 'controlled-mutator-fault' ); }
 		if ( 'wait' === ( $spec['mutator_fault'] ?? '' ) ) {
-			$deadline = microtime( true ) + 30;
+			// Default stays 30s. One race passes a longer budget so creator
+			// bootstrap cannot outlive the barrier and look like a missed lock.
+			$wait_seconds = isset( $spec['mutator_wait_seconds'] ) ? (int) $spec['mutator_wait_seconds'] : 30;
+			if ( $wait_seconds < 1 || $wait_seconds > 180 ) { $wait_seconds = 30; }
+			$deadline = microtime( true ) + $wait_seconds;
 			while ( ! is_file( $release ) ) {
 				if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'release-timeout' ); }
 				usleep( 10000 );

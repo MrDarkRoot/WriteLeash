@@ -101,13 +101,53 @@ function catalog_hash( array $ids ): string {
 	}
 	return hash( 'sha256', serialize( $parts ) );
 }
-function await_grant_insert( int $exclude_thread, string $result_file, int $actor_id, float $timeout = 15 ): void {
+function actor_row_locked_nowait( int $actor_id ): bool {
+	global $wpdb;
+	$db = Verifier::observer();
+	$db->suppress_errors( true );
+	try {
+		$db->get_var( $db->prepare( "SELECT ID FROM {$wpdb->users} WHERE ID=%d FOR UPDATE NOWAIT", $actor_id ) );
+		$error = (string) $db->last_error;
+		if ( '' === $error ) { return false; }
+		if ( false === stripos( $error, 'lock' ) ) { throw new RuntimeException( 'actor lock probe failed: ' . $error ); }
+		return true;
+	} finally { $db->close(); }
+}
+function lock_diagnostics( int $thread_id ): string {
+	global $wpdb;
+	$previous = $wpdb->suppress_errors( true );
+	$trx = $wpdb->get_results( $wpdb->prepare( 'SELECT trx_mysql_thread_id AS thread, trx_state AS state, trx_rows_locked AS rows_locked, trx_tables_locked AS tables_locked, trx_isolation_level AS isolation FROM information_schema.innodb_trx WHERE trx_mysql_thread_id=%d', $thread_id ), ARRAY_A );
+	$trx_text = is_array( $trx ) && '' === (string) $wpdb->last_error ? wp_json_encode( $trx ) : 'err:' . (string) $wpdb->last_error;
+	$wpdb->last_error = '';
+	$locks = $wpdb->get_results( $wpdb->prepare( 'SELECT OBJECT_NAME AS object_name, LOCK_MODE AS lock_mode, LOCK_DATA AS lock_data FROM performance_schema.data_locks dl INNER JOIN performance_schema.threads th ON th.THREAD_ID=dl.THREAD_ID WHERE th.PROCESSLIST_ID=%d', $thread_id ), ARRAY_A );
+	$user_locks = array();
+	$count = 0;
+	if ( is_array( $locks ) && '' === (string) $wpdb->last_error ) {
+		$count = count( $locks );
+		foreach ( $locks as $lock ) {
+			$name = (string) ( $lock['object_name'] ?? '' );
+			if ( false !== strpos( $name, 'users' ) ) { $user_locks[] = $lock; }
+		}
+		$lock_text = 'count=' . $count . ' user_locks=' . wp_json_encode( $user_locks );
+	} else {
+		$lock_text = 'err:' . (string) $wpdb->last_error;
+	}
+	$wpdb->suppress_errors( $previous );
+	return 'innodb_trx=' . $trx_text . ' data_locks=' . $lock_text;
+}
+function merchant_alive( int $pid ): string {
+	if ( $pid < 1 ) { return 'unknown'; }
+	return is_dir( '/proc/' . $pid ) ? 'yes' : 'no';
+}
+function await_grant_insert( int $exclude_thread, string $result_file, int $actor_id, float $timeout = 15, int $merchant_pid = 0 ): void {
 	global $wpdb;
 	$deadline = microtime( true ) + $timeout;
 	$hits = 0;
 	while ( true ) {
 		if ( is_file( $result_file ) && '' !== (string) file_get_contents( $result_file ) ) {
-			throw new RuntimeException( 'create_grant finished without waiting for the item grant lock' );
+			$still = 'unknown';
+			try { $still = actor_row_locked_nowait( $actor_id ) ? 'yes' : 'no'; } catch ( \Throwable $error ) { $still = 'probe:' . $error->getMessage(); }
+			throw new RuntimeException( 'create_grant finished without waiting for the item user lock merchant_pid=' . $merchant_pid . ' merchant_alive=' . merchant_alive( $merchant_pid ) . ' user_lock_still=' . $still . ' ' . lock_diagnostics( $exclude_thread ) );
 		}
 		$waiting = false;
 		$rows = $wpdb->get_results( 'SELECT ID, INFO FROM information_schema.PROCESSLIST', ARRAY_A );
@@ -124,7 +164,7 @@ function await_grant_insert( int $exclude_thread, string $result_file, int $acto
 		// Two polls, so a statement that finished between them is not a wait.
 		$hits = $waiting ? $hits + 1 : 0;
 		if ( $hits >= 2 ) { return; }
-		if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'create_grant did not block on the item user lock' ); }
+		if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'create_grant did not block on the item user lock merchant_pid=' . $merchant_pid . ' merchant_alive=' . merchant_alive( $merchant_pid ) . ' ' . lock_diagnostics( $exclude_thread ) ); }
 		usleep( 20000 );
 	}
 }
@@ -1061,14 +1101,20 @@ $race_job = Repo::create_from_plan( $race_plan, $race_user );
 wp_set_current_user( $issuer );
 Repo::approve( (int) $race_job['id'], $issuer );
 Worker::queue_job( (int) $race_job['id'] );
-$race_worker = start_worker( array( 'job_id' => (int) $race_job['id'], 'mode' => 'run', 'limits' => limits( 2 ), 'mutator_checkpoint' => 'RESTRICTION_DECIDED', 'mutator_fault' => 'wait' ) );
+$race_worker = start_worker( array( 'job_id' => (int) $race_job['id'], 'mode' => 'run', 'limits' => limits( 2, 150 ), 'mutator_checkpoint' => 'RESTRICTION_DECIDED', 'mutator_fault' => 'wait', 'mutator_wait_seconds' => 90 ) );
 await_file( $race_worker['spec']['barrier'] );
 $race_barrier = (string) file_get_contents( $race_worker['spec']['barrier'] );
 ok( str_starts_with( $race_barrier, 'RESTRICTION_DECIDED:' ), 'restriction decision reached before the Woo save' );
 $race_holder = (int) substr( $race_barrier, strlen( 'RESTRICTION_DECIDED:' ) );
+$race_pid = (int) ( is_file( $race_worker['spec']['started'] ) ? file_get_contents( $race_worker['spec']['started'] ) : 0 );
 eq( fresh_price( $race_product ), '100.00', 'locked decision has not saved the product' );
-$race_creator = start_worker( array( 'issuer' => $issuer, 'actor' => $race_user, 'lock_wait_timeout' => 45 ), 'grant-create-worker.php' );
-await_grant_insert( $race_holder, $race_creator['spec']['result'], $race_user );
+$held_user = actor_row_locked_nowait( $race_user );
+if ( ! $held_user ) {
+	throw new RuntimeException( 'in-flight item does not hold the actor user row at RESTRICTION_DECIDED actor=' . $race_user . ' thread=' . $race_holder . ' merchant_pid=' . $race_pid . ' merchant_alive=' . merchant_alive( $race_pid ) . ' ' . lock_diagnostics( $race_holder ) );
+}
+ok( $held_user, 'in-flight item holds the actor user row at RESTRICTION_DECIDED' );
+$race_creator = start_worker( array( 'issuer' => $issuer, 'actor' => $race_user, 'lock_wait_timeout' => 120 ), 'grant-create-worker.php' );
+await_grant_insert( $race_holder, $race_creator['spec']['result'], $race_user, 25, $race_pid );
 file_put_contents( $race_worker['spec']['release'], 'go' );
 finish_worker( $race_worker );
 $race_created = finish_worker( $race_creator );
