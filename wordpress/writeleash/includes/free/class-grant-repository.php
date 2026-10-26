@@ -113,10 +113,13 @@ final class Grant_Repository {
 	 * stale "not restricted" cache would otherwise open an Execution Frame.
 	 * A non-grant write instead takes a fresh read. On the item connection
 	 * the read is SELECT ... FOR UPDATE, so it sees grants committed after
-	 * the transaction snapshot and holds the actor's unstamped rows until
-	 * COMMIT. A concurrent create_grant for that actor waits. Uncertainty
-	 * throws GRANT_STORE_UNAVAILABLE and must not be treated as allow.
-	 * A proven-absent store (no schema option and no grants table) has no
+	 * the transaction snapshot and holds unstamped rows that already exist.
+	 * A gap lock on zero rows does not stop create_grant's INSERT. The item
+	 * transaction already holds the actor's user row until COMMIT, and
+	 * create_grant locks that same row before inserting, so the grant waits
+	 * out the in-flight catalogue write. Uncertainty throws
+	 * GRANT_STORE_UNAVAILABLE and must not be treated as allow. A
+	 * proven-absent store (no schema option and no grants table) has no
 	 * restricted principal, so merchant jobs stay available.
 	 *
 	 * $grant_authorized must be true only when assert_grant_for_write
@@ -507,6 +510,14 @@ final class Grant_Repository {
 		try {
 			$tx = new Price_Apply_Connection( $original );
 			$tx->begin();
+			// Same lock the price, stock and undo item transactions take
+			// before they classify this actor, and hold until COMMIT. Locking
+			// it first keeps this INSERT behind an in-flight catalogue write.
+			// A grants gap lock does not: MySQL 8.0.44 let the INSERT commit
+			// while that write still held SELECT ... FOR UPDATE on zero rows.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Actor primary-key lock; table is the connection users table and the id is prepared.
+			$user_lock = $tx->get_results( $tx->prepare( "SELECT ID FROM {$tx->users} WHERE ID=%d FOR UPDATE", $actor_id ), ARRAY_A );
+			if ( ! is_array( $user_lock ) ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 			$grants = Grant_Schema::grants_table( $tx );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable grant INSERT; values are prepared.
 			if ( 1 !== $tx->query( $tx->prepare(

@@ -401,6 +401,11 @@ $cache->setValue( null, array() );
 $repo = file_get_contents( $root . '/includes/free/class-grant-repository.php' );
 ok( false !== strpos( $repo, 'FOR UPDATE' ), 'item-connection classification locks unstamped grant rows' );
 ok( false === strpos( $repo, 'return ! self::is_restricted_actor' ), 'controlled write does not call the fail-open predicate' );
+$create_at = strpos( $repo, 'function create_grant' );
+$create_fn = false === $create_at ? '' : substr( $repo, $create_at, 2500 );
+$user_lock_at = strpos( $create_fn, 'SELECT ID FROM {$tx->users} WHERE ID=%d FOR UPDATE' );
+$insert_at = strpos( $create_fn, 'INSERT INTO %i' );
+ok( false !== $user_lock_at && false !== $insert_at && $user_lock_at < $insert_at, 'create_grant locks the actor user row before the insert' );
 $writers = array(
 	'class-woo-price-mutator.php' => 'allows_controlled_write( (int) $actor, null !== $grant )',
 	'class-woo-stock-mutator.php' => 'allows_controlled_write( (int) $actor, null !== $grant )',

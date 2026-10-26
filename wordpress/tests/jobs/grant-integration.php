@@ -101,22 +101,30 @@ function catalog_hash( array $ids ): string {
 	}
 	return hash( 'sha256', serialize( $parts ) );
 }
-function await_grant_insert( int $exclude_thread, string $result_file, float $timeout = 15 ): void {
+function await_grant_insert( int $exclude_thread, string $result_file, int $actor_id, float $timeout = 15 ): void {
 	global $wpdb;
 	$deadline = microtime( true ) + $timeout;
+	$hits = 0;
 	while ( true ) {
 		if ( is_file( $result_file ) && '' !== (string) file_get_contents( $result_file ) ) {
 			throw new RuntimeException( 'create_grant finished without waiting for the item grant lock' );
 		}
+		$waiting = false;
 		$rows = $wpdb->get_results( 'SELECT ID, INFO FROM information_schema.PROCESSLIST', ARRAY_A );
 		if ( is_array( $rows ) ) {
 			foreach ( $rows as $row ) {
-				$info = (string) ( $row['INFO'] ?? '' );
 				if ( (int) $row['ID'] === $exclude_thread ) { continue; }
-				if ( false !== stripos( $info, 'insert' ) && false !== strpos( $info, 'writeleash_grants' ) ) { return; }
+				$info = (string) ( $row['INFO'] ?? '' );
+				if ( false === strpos( $info, (string) $actor_id ) ) { continue; }
+				$user_lock = false !== stripos( $info, 'for update' ) && false !== strpos( $info, $wpdb->users );
+				$grant_insert = false !== stripos( $info, 'insert' ) && false !== strpos( $info, 'writeleash_grants' );
+				if ( $user_lock || $grant_insert ) { $waiting = true; break; }
 			}
 		}
-		if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'create_grant did not block on the grant lock' ); }
+		// Two polls, so a statement that finished between them is not a wait.
+		$hits = $waiting ? $hits + 1 : 0;
+		if ( $hits >= 2 ) { return; }
+		if ( microtime( true ) > $deadline ) { throw new RuntimeException( 'create_grant did not block on the item user lock' ); }
 		usleep( 20000 );
 	}
 }
@@ -1059,8 +1067,8 @@ $race_barrier = (string) file_get_contents( $race_worker['spec']['barrier'] );
 ok( str_starts_with( $race_barrier, 'RESTRICTION_DECIDED:' ), 'restriction decision reached before the Woo save' );
 $race_holder = (int) substr( $race_barrier, strlen( 'RESTRICTION_DECIDED:' ) );
 eq( fresh_price( $race_product ), '100.00', 'locked decision has not saved the product' );
-$race_creator = start_worker( array( 'issuer' => $issuer, 'actor' => $race_user, 'lock_wait_timeout' => 20 ), 'grant-create-worker.php' );
-await_grant_insert( $race_holder, $race_creator['spec']['result'] );
+$race_creator = start_worker( array( 'issuer' => $issuer, 'actor' => $race_user, 'lock_wait_timeout' => 45 ), 'grant-create-worker.php' );
+await_grant_insert( $race_holder, $race_creator['spec']['result'], $race_user );
 file_put_contents( $race_worker['spec']['release'], 'go' );
 finish_worker( $race_worker );
 $race_created = finish_worker( $race_creator );
