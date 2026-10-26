@@ -304,6 +304,14 @@ final class Woo_Stock_Mutator {
 			self::authorize( $plan, $id, $tx );
 			self::checkpoint( 'BEFORE_WOO_SAVE', $id, $attempt );
 			$tx->assert_owned();
+			// #306: same non-grant refusal as the price mutator, off the item connection.
+			$wpdb = $original;
+			try {
+				$grant_write = Grant_Repository::allows_controlled_write( (int) $actor, null !== $grant );
+			} finally {
+				$wpdb = $tx;
+			}
+			if ( ! $grant_write ) { throw new Price_Apply_Error( 'PERMISSION_DENIED' ); }
 			$frame_product_ids = $is_variation ? array( $id, $parent_id ) : array( $id );
 			Perimeter_Guard::open_frame(
 				$actor,

@@ -321,4 +321,34 @@ ok( $consume_pos > $journal_after_grant, 'consume with journal APPLIED, never in
 	ok( false === strpos( $mutator, 'catch ( \\Throwable $ignored )' ), 'grant evidence failure is not swallowed' );
 marker( 'audit, disable fail-closed, boundary and lock order' );
 
+// ---------------------------------------------------------------------------
+// 6. #306: revocation/expiry/exhaustion/kill-switch must not open a
+// non-grant frame. Merchant jobs stay allowed only for unrestricted actors.
+// ---------------------------------------------------------------------------
+if ( ! function_exists( 'get_current_user_id' ) ) {
+	function get_current_user_id() { return 0; }
+}
+$cache = new ReflectionProperty( Grants::class, 'restricted_cache' );
+$cache->setAccessible( true );
+$cache->setValue( null, array( 22 => true, 33 => false, 0 => false ) );
+ok( false === Grants::allows_controlled_write( 22, false ), 'restricted actor cannot use a non-grant write' );
+ok( true === Grants::allows_controlled_write( 22, true ), 'grant-authorized item still allowed' );
+ok( true === Grants::allows_controlled_write( 33, false ), 'unrestricted merchant job unchanged' );
+ok( true === Grants::allows_controlled_write( 0, false ), 'user 0 stays outside the leash' );
+$cache->setValue( null, array() );
+$writers = array(
+	'class-woo-price-mutator.php' => 'allows_controlled_write( (int) $actor, null !== $grant )',
+	'class-woo-stock-mutator.php' => 'allows_controlled_write( (int) $actor, null !== $grant )',
+	'class-woo-undo-mutator.php'  => 'allows_controlled_write( (int) $executor, false )',
+);
+foreach ( $writers as $file => $needle ) {
+	$source = file_get_contents( $root . '/includes/free/' . $file );
+	$call = strpos( $source, $needle );
+	$open = strpos( $source, 'Perimeter_Guard::open_frame' );
+	ok( false !== $call && false !== $open && $call < $open, $file . ' gates the frame' );
+	$window = substr( $source, max( 0, $call - 500 ), 500 );
+	ok( false !== strpos( $window, '$wpdb = $original' ), $file . ' reads restriction off the item transaction' );
+}
+marker( 'restricted actor non-grant write denied before the frame' );
+
 echo "#298 grant-unit PASS ($assertions assertions)\n";

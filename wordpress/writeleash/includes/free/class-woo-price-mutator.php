@@ -197,6 +197,16 @@ final class Woo_Price_Mutator {
 			self::authorize( $plan, $id, $tx );
 			self::checkpoint( 'BEFORE_WOO_SAVE', $id, $attempt );
 			$tx->assert_owned();
+			// #306: a non-grant job must not open a frame for a restricted actor.
+			// Read the predicate on the request connection so this SELECT does
+			// not become the item transaction's first consistent read.
+			$wpdb = $original;
+			try {
+				$grant_write = Grant_Repository::allows_controlled_write( (int) $actor, null !== $grant );
+			} finally {
+				$wpdb = $tx;
+			}
+			if ( ! $grant_write ) { throw new Price_Apply_Error( 'PERMISSION_DENIED' ); }
 			// #307: open the perimeter frame for this controlled product write
 			// only after the item transaction holds its locks, so the Woo CRUD
 			// save below is authorized for the restricted actor. Closes in the

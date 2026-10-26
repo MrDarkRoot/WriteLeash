@@ -103,6 +103,20 @@ final class Grant_Repository {
 	}
 
 	/**
+	 * #306: a restricted principal may enter a controlled catalogue write only
+	 * after assert_grant_for_write has authorized that item. Merchant
+	 * Preview/Approve/Apply and Undo stay available to everyone else.
+	 * Revocation, expiry, exhaustion and the kill-switch do not qualify.
+	 *
+	 * $grant_authorized must be true only when that authorization succeeded.
+	 * User 0 is not a restricted principal and stays outside this gate.
+	 */
+	public static function allows_controlled_write( int $actor_id, bool $grant_authorized ): bool {
+		if ( $grant_authorized ) { return true; }
+		return ! self::is_restricted_actor( $actor_id );
+	}
+
+	/**
 	 * Per-request truth of the restricted-principal predicate; cleared by
 	 * create_grant() and remove_restriction(). Memoization is request-scoped
 	 * by design: a change made by another process (WP-CLI, Action Scheduler)

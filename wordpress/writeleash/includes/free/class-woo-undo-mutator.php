@@ -190,6 +190,15 @@ final class Woo_Undo_Mutator {
 			self::authorize( $product_id );
 			self::checkpoint( 'UNDO_BEFORE_WOO_SAVE', $product_id, $attempt );
 			$tx->assert_owned();
+			// #306: undo is not a grant-authorized write. A restricted initiator
+			// must not restore prices through a frame. Read off the item connection.
+			$wpdb = $original;
+			try {
+				$grant_write = Grant_Repository::allows_controlled_write( (int) $executor, false );
+			} finally {
+				$wpdb = $tx;
+			}
+			if ( ! $grant_write ) { throw new Price_Apply_Error( 'PERMISSION_DENIED' ); }
 			// #307: open the perimeter frame for this controlled undo write.
 			$frame_product_ids = $is_variation ? array( $product_id, $parent_id ) : array( $product_id );
 			Perimeter_Guard::open_frame(
