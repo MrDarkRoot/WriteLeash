@@ -90,11 +90,14 @@ if ( false === strpos( $license, 'GNU GENERAL PUBLIC LICENSE' ) || false === str
 }
 
 // Main file must carry the founder-selected license and the release version.
+// The pinned 0.1.0 artifact keeps its reviewed WordPress 7.0 header. The
+// live package floor is 6.7 and is not applied backwards to that artifact.
 $main = (string) file_get_contents( $source . '/writeleash.php' );
 $version_pattern = str_replace( '.', '\.', $release );
+$wp_floor_pattern = '0.1.0' === $release ? '7\.0' : '6\.7';
 foreach ( array(
 	'/^\s*\*\s*Version:\s*' . $version_pattern . '\s*$/m',
-	'/^\s*\*\s*Requires at least:\s*6\.7\s*$/m',
+	'/^\s*\*\s*Requires at least:\s*' . $wp_floor_pattern . '\s*$/m',
 	'/^\s*\*\s*Requires PHP:\s*7\.4\s*$/m',
 	'/^\s*\*\s*License:\s*GPL v2 or later\s*$/m',
 	'/^\s*\*\s*License URI:\s*https:\/\/www\.gnu\.org\/licenses\/gpl-2\.0\.html\s*$/m',

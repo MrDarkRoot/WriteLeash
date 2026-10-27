@@ -25,6 +25,14 @@ foreach ( array( $readme, $main ) as $file ) {
 	}
 }
 $text = (string) file_get_contents( $readme );
+$package_version = null;
+if ( preg_match( '/^\s*\*\s*Version:\s*(\S+)\s*$/m', (string) file_get_contents( $main ), $package_version_match ) ) {
+	$package_version = $package_version_match[1];
+}
+// build-wordpress-org.py audits the pinned 0.1.0 source with this validator
+// and no --frozen-artifact flag. That artifact stays on WordPress 7.0 and the
+// WooCommerce 10.0 through 11.x sentence. It is not the pair-rule listing.
+$historical_package = ! $frozen && '0.1.0' === $package_version;
 require_once __DIR__ . '/conflict-copy.php';
 writeleash_conflict_copy_audit( $text, $frozen );
 if ( strlen( $text ) > 10240 ) {
@@ -69,7 +77,7 @@ $tags = array_filter( array_map( 'trim', explode( ',', $headers['tags'] ) ) );
 if ( ! $tags || count( $tags ) > 5 || count( $tags ) !== count( array_unique( $tags ) ) ) {
 	$fail( 'Tags must be 1-5 unique comma-separated terms' );
 }
-$wp_floor = $frozen ? '7.0' : '6.7';
+$wp_floor = ( $frozen || $historical_package ) ? '7.0' : '6.7';
 if ( ! preg_match( '/\A\d+\.\d\z/', $headers['requires at least'] ) || $wp_floor !== $headers['requires at least'] ) {
 	$fail( 'Requires at least must be ' . $wp_floor . ' (live tree: legacy-band floor 6.7; WooCommerce 10.0 through 11.x still requires WordPress 7.0 up to 8.0)' );
 }
@@ -91,7 +99,7 @@ if ( 'https://www.gnu.org/licenses/gpl-2.0.html' !== $headers['license uri'] ) {
 
 // Directory metadata and the main plugin header must not contradict each other.
 $main_header = (string) file_get_contents( $main );
-$header_floor = $frozen ? '7\.0' : '6\.7';
+$header_floor = ( $frozen || $historical_package ) ? '7\.0' : '6\.7';
 foreach ( array(
 	'/^\s*\*\s*Requires at least:\s*' . $header_floor . '\s*$/m',
 	'/^\s*\*\s*Requires PHP:\s*7\.4\s*$/m',
@@ -137,7 +145,7 @@ foreach ( array( '7.0.1', '7.1.2' ) as $tested_core ) {
 		$fail( 'readme must name the exact tested WordPress core fixture: ' . $tested_core );
 	}
 }
-if ( ! $frozen ) {
+if ( ! $frozen && ! $historical_package ) {
 	foreach ( array( 'WordPress 7.0 up to 8.0', '6.7.2', '9.0.4', '6.8.3', '9.9.7' ) as $pair_fact ) {
 		if ( ! str_contains( $text, $pair_fact ) ) {
 			$fail( 'readme must keep the modern line and name the tested legacy pairs: ' . $pair_fact );
