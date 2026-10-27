@@ -80,9 +80,9 @@ final class Grant_Repository {
 	 * persistence.
 	 *
 	 * Fail-open on an absent/unreadable store: a principal that cannot be
-	 * proven restricted is not labeled restricted here. The controlled mutator
-	 * fails closed separately on grant-state uncertainty, so an unreadable
-	 * store still cannot produce an unrestricted write.
+	 * proven restricted is not labeled restricted here. Catalogue writes do
+	 * not use this cache. allows_controlled_write() re-reads on the item
+	 * connection and fails closed when that read is uncertain.
 	 */
 	public static function is_restricted_actor( int $user_id = 0 ): bool {
 		if ( $user_id < 1 ) { $user_id = (int) get_current_user_id(); }
@@ -100,6 +100,90 @@ final class Grant_Repository {
 		}
 		self::$restricted_cache[ $user_id ] = $result;
 		return $result;
+	}
+
+	/**
+	 * #306: a restricted principal may enter a controlled catalogue write only
+	 * after assert_grant_for_write has authorized that item. Merchant
+	 * Preview/Approve/Apply and Undo stay available to everyone else.
+	 * Revocation, expiry, exhaustion and the kill-switch do not qualify.
+	 *
+	 * This gate does not consult is_restricted_actor(). That predicate is
+	 * fail-open and memoized for the perimeter: an unreadable store or a
+	 * stale "not restricted" cache would otherwise open an Execution Frame.
+	 * A non-grant write instead takes a fresh read. On the item connection
+	 * the read is SELECT ... FOR UPDATE, so it sees grants committed after
+	 * the transaction snapshot and holds unstamped rows that already exist.
+	 * A gap lock on zero rows does not stop create_grant's INSERT. The item
+	 * transaction already holds the actor's user row until COMMIT, and
+	 * create_grant locks that same row before inserting, so the grant waits
+	 * out the in-flight catalogue write. Uncertainty throws
+	 * GRANT_STORE_UNAVAILABLE and must not be treated as allow. A
+	 * proven-absent store (no schema option and no grants table) has no
+	 * restricted principal, so merchant jobs stay available.
+	 *
+	 * $grant_authorized must be true only when assert_grant_for_write
+	 * succeeded. User 0 is not a restricted principal and stays outside.
+	 *
+	 * @throws Price_Apply_Error GRANT_STORE_UNAVAILABLE when the store cannot be classified.
+	 */
+	public static function allows_controlled_write( int $actor_id, bool $grant_authorized ): bool {
+		if ( $grant_authorized || $actor_id < 1 ) { return true; }
+		$db = self::db();
+		if ( self::merchant_store_absent( $db ) ) { return true; }
+		return ! self::merchant_actor_is_restricted( $db, $actor_id );
+	}
+
+	/**
+	 * True only when the grant family was never installed. A present option,
+	 * a present table, or a failed presence check is not absence.
+	 *
+	 * @throws Price_Apply_Error
+	 */
+	private static function merchant_store_absent( \wpdb $db ): bool {
+		$option = get_option( Grant_Schema::OPTION, null );
+		if ( null !== $option && false !== $option ) { return false; }
+		try {
+			$table = Grant_Schema::grants_table( $db );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Presence probe; identifier is constrained and the name is prepared.
+			$count = $db->get_var( $db->prepare( 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', $table ) );
+		} catch ( Price_Apply_Error $error ) {
+			throw 'PERMISSION_DENIED' === $error->getMessage() ? $error : new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' );
+		} catch ( \Throwable $error ) {
+			throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' );
+		}
+		if ( null === $count || false === $count || '' !== (string) $db->last_error ) {
+			throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' );
+		}
+		if ( 0 !== (int) $count ) { throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' ); }
+		return true;
+	}
+
+	/**
+	 * Fresh restricted-principal read for one non-grant catalogue write.
+	 * Locking when the caller is inside the item transaction.
+	 *
+	 * @throws Price_Apply_Error
+	 */
+	private static function merchant_actor_is_restricted( \wpdb $db, int $actor_id ): bool {
+		$lock = $db instanceof Price_Apply_Connection && $db->owns_attempt();
+		try {
+			$table = Grant_Schema::grants_table( $db );
+			$sql = $lock
+				? 'SELECT id FROM %i WHERE actor_id=%d AND restriction_removed_at IS NULL FOR UPDATE'
+				: 'SELECT id FROM %i WHERE actor_id=%d AND restriction_removed_at IS NULL';
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Classification read, locked to COMMIT on the item connection; values are prepared.
+			$rows = $db->get_results( $db->prepare( $sql, $table, $actor_id ), ARRAY_A );
+		} catch ( Price_Apply_Error $error ) {
+			if ( 'PERMISSION_DENIED' === $error->getMessage() ) { throw $error; }
+			throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' );
+		} catch ( \Throwable $error ) {
+			throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' );
+		}
+		if ( ! is_array( $rows ) || '' !== (string) $db->last_error ) {
+			throw new Price_Apply_Error( 'GRANT_STORE_UNAVAILABLE' );
+		}
+		return array() !== $rows;
 	}
 
 	/**
@@ -426,6 +510,14 @@ final class Grant_Repository {
 		try {
 			$tx = new Price_Apply_Connection( $original );
 			$tx->begin();
+			// Same lock the price, stock and undo item transactions take
+			// before they classify this actor, and hold until COMMIT. Locking
+			// it first keeps this INSERT behind an in-flight catalogue write.
+			// A grants gap lock does not: MySQL 8.0.44 let the INSERT commit
+			// while that write still held SELECT ... FOR UPDATE on zero rows.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Actor primary-key lock; table is the connection users table and the id is prepared.
+			$user_lock = $tx->get_results( $tx->prepare( "SELECT ID FROM {$tx->users} WHERE ID=%d FOR UPDATE", $actor_id ), ARRAY_A );
+			if ( ! is_array( $user_lock ) ) { throw new Grant_Error( 'GRANT_STORE_UNAVAILABLE' ); }
 			$grants = Grant_Schema::grants_table( $tx );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable grant INSERT; values are prepared.
 			if ( 1 !== $tx->query( $tx->prepare(

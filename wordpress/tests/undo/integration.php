@@ -1270,4 +1270,35 @@ echo "#109/#110 uninstall Apply multi-item race: in-flight item finishes, next i
 echo "#109/#110 lifecycle fence: Apply transaction wins, uninstall waits PASS\n";
 marker( 'uninstall Apply multi-item race: item 1 boundary completes, item 2 blocked by lifecycle gate' );
 
+// #306: Undo is not grant-authorized. A principal leashed after a successful
+// apply must not restore, and an unrestricted administrator still can.
+// The uninstall races above delete runner authority. Reactivate first;
+// a deactivated runner must not be mistaken for the grant gate.
+WriteLeash\Lifecycle::activate();
+$leash_actor = wp_insert_user( array( 'user_login' => 'wl306-undo-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );
+$leash = apply_fixture( array( 'changing' => 1, 'actor' => (int) $leash_actor ) );
+$leash_job = (int) $leash['job']['id'];
+$leash_id = $leash['ids'][0];
+eq( $leash['job']['status'], JState::COMPLETED, 'unrestricted apply completes before the grant' );
+eq( fresh_price( $leash_id ), '80.00', 'unrestricted apply still writes before the grant' );
+wp_set_current_user( 1 );
+\WriteLeash\Grant_Repository::create_grant( 1, (int) $leash_actor, 1, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
+$leash_saves = saves( $leash_id );
+$leash_op = start_undo( $leash_job, (int) $leash_actor );
+$leash_run = run_worker( array( 'undo_id' => (int) $leash_op['id'], 'mode' => 'undo', 'limits' => limits( 5 ) ) );
+eq( $leash_run['stop'], 'PERMISSION_REVOKED', 'restricted undo initiator is paused' );
+eq( undo_row( $leash_job, $leash_id )['state'], UItem::FAILED, 'restricted undo item FAILED' );
+eq( undo_row( $leash_job, $leash_id )['reason'], 'PERMISSION_DENIED', 'restricted undo reason' );
+eq( fresh_price( $leash_id ), '80.00', 'restricted undo leaves the applied price' );
+eq( saves( $leash_id ), $leash_saves, 'restricted undo zero restores' );
+$admin_fix = apply_fixture( array( 'changing' => 1, 'actor' => 1 ) );
+$admin_job = (int) $admin_fix['job']['id'];
+$admin_id = $admin_fix['ids'][0];
+$admin_op = start_undo( $admin_job, 1 );
+$admin_run = run_worker( array( 'undo_id' => (int) $admin_op['id'], 'mode' => 'undo', 'limits' => limits( 5 ) ) );
+eq( $admin_run['status'], UState::COMPLETED, 'unrestricted undo completes with the grant store present' );
+// Woo returns a whole restored price as "100". The suite compares parsed decimals.
+eq( Decimal::parse( fresh_price( $admin_id ) ), Decimal::parse( '100.00' ), 'unrestricted undo still restores with the grant store present' );
+marker( 'restricted initiator undo denied; unrestricted undo unchanged' );
+
 echo "#110 Woo 11.1.2 / MySQL+MariaDB / default+Redis matrix: PASS\n";

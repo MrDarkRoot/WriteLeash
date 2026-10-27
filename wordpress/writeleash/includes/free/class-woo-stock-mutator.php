@@ -304,6 +304,10 @@ final class Woo_Stock_Mutator {
 			self::authorize( $plan, $id, $tx );
 			self::checkpoint( 'BEFORE_WOO_SAVE', $id, $attempt );
 			$tx->assert_owned();
+			// #306: same item-connection classification as the price mutator.
+			$grant_write = Grant_Repository::allows_controlled_write( (int) $actor, null !== $grant );
+			if ( ! $grant_write ) { throw new Price_Apply_Error( 'PERMISSION_DENIED' ); }
+			self::checkpoint( 'RESTRICTION_DECIDED', $id, $attempt );
 			$frame_product_ids = $is_variation ? array( $id, $parent_id ) : array( $id );
 			Perimeter_Guard::open_frame(
 				$actor,
