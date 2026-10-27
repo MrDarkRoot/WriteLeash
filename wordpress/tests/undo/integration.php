@@ -1272,10 +1272,14 @@ marker( 'uninstall Apply multi-item race: item 1 boundary completes, item 2 bloc
 
 // #306: Undo is not grant-authorized. A principal leashed after a successful
 // apply must not restore, and an unrestricted administrator still can.
+// The uninstall races above delete runner authority. Reactivate first;
+// a deactivated runner must not be mistaken for the grant gate.
+WriteLeash\Lifecycle::activate();
 $leash_actor = wp_insert_user( array( 'user_login' => 'wl306-undo-' . wp_generate_uuid4(), 'user_pass' => wp_generate_password(), 'role' => 'shop_manager' ) );
 $leash = apply_fixture( array( 'changing' => 1, 'actor' => (int) $leash_actor ) );
 $leash_job = (int) $leash['job']['id'];
 $leash_id = $leash['ids'][0];
+eq( $leash['job']['status'], JState::COMPLETED, 'unrestricted apply completes before the grant' );
 eq( fresh_price( $leash_id ), '80.00', 'unrestricted apply still writes before the grant' );
 wp_set_current_user( 1 );
 \WriteLeash\Grant_Repository::create_grant( 1, (int) $leash_actor, 1, gmdate( 'Y-m-d H:i:s', time() + 86400 ) );
