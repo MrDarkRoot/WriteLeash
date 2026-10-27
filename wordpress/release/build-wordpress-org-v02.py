@@ -66,9 +66,9 @@ def metadata(payload, version):
     readme = payload['readme.txt'].decode('utf-8')
     headers = {'Plugin Name': 'WriteLeash', 'Version': version,
                'Author': 'Duy Tran', 'Text Domain': 'writeleash',
-               'Requires Plugins': 'woocommerce', 'Requires at least': '7.0',
+               'Requires Plugins': 'woocommerce', 'Requires at least': '6.7',
                'Tested up to': '7.1', 'Requires PHP': '7.4',
-               'WC requires at least': '10.0', 'WC tested up to': '11.1',
+               'WC requires at least': '9.0', 'WC tested up to': '11.1',
                'License': 'GPL v2 or later'}
     for key, value in headers.items():
         require(re.search(r'^\s*\*\s*' + re.escape(key) + r':\s*' +
@@ -79,7 +79,8 @@ def metadata(payload, version):
     require(re.search(r'^Stable tag:\s*' + re.escape(version) + r'\s*$', readme, re.M),
             'stable-tag mismatch')
     require(re.search(r'^Contributors:\s*duyytrann\s*$', readme, re.M), 'contributor mismatch')
-    require(len(payload['readme.txt']) < 10000 and '= 0.2.0 =' in readme,
+    # Same 10 KiB directory guidance as readme-validate.php (10240 bytes).
+    require(len(payload['readme.txt']) <= 10240 and '= 0.2.0 =' in readme,
             'readme size or release notes')
     require(sum(bool(re.search(rb'^\s*\*?\s*Plugin Name:', d, re.M))
                 for p, d in payload.items() if p.endswith('.php')) == 1,

@@ -86,7 +86,7 @@ recorded Regular Price. Availability does not guarantee restoration.
 * WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0 only (10.0.0 or newer, below 12.0.0).
 * Exercised: WordPress 7.0.1 and 7.1.2 on that line; WordPress 6.7.2 with WooCommerce 9.0.4; WordPress 6.8.3 with WooCommerce 9.9.7. Legacy band is WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Other pairs are refused before a job is created.
 * PHP 7.4.33, 8.0.30, 8.1.34 and 8.2.34 were exercised. Requires PHP 7.4 or newer.
-* MySQL 8.0.44 and MariaDB 10.11.15 were exercised. Redis Object Cache 2.7.0 (Redis 7.4.2) on the modern line and on 6.7.2 with 9.0.4 at 100 products, not on 6.8.3 with 9.9.7.
+* MySQL 8.0.44 and MariaDB 10.11.15 were exercised. Redis 7.4.2 with Object Cache 2.7.0: modern line, and 6.7.2 with 9.0.4 at 100 products. Not on 6.8.3 with 9.9.7.
 * WooCommerce refreshes variable parent price ranges after each variation change.
 * Multisite is unsupported.
 * Real managed or shared hosting has not been tested.
@@ -120,8 +120,6 @@ Cannot:
 * Remove its own restriction, or operate pause/resume/revoke-all without site administration.
 * Cover administrators, hostile plugins, direct SQL, third-party hook side effects, orders, refunds, coupons, tax, options, arbitrary meta, or user-0 system cron.
 * Claim universal agent-safe or firewall behavior.
-
-See FREE-GRANT-CONTRACT.md and OPERATION.md.
 
 == Installation ==
 

@@ -120,7 +120,7 @@ Status values:
 
 ## 9. Persistent object cache
 
-* **COPY CLAIM:** "MySQL 8.0.44 and MariaDB 10.11.15 were exercised. Redis Object Cache 2.7.0 (Redis 7.4.2) on the modern line and on 6.7.2 with 9.0.4 at 100 products, not on 6.8.3 with 9.9.7."
+* **COPY CLAIM:** "MySQL 8.0.44 and MariaDB 10.11.15 were exercised. Redis 7.4.2 with Object Cache 2.7.0: modern line, and 6.7.2 with 9.0.4 at 100 products. Not on 6.8.3 with 9.9.7."
 * **SUPPORTING ISSUE:** #108 cache verifier; #109/#110 cache suites; #112 cache/hook torture; #280 pair rule.
 * **SUPPORTING TEST/EVIDENCE:**
   * `wordpress/tests/acceptance/EVIDENCE.md` — Redis 7.4.2, Redis Object Cache/drop-in 2.7.0 on the modern line; rollback-before-commit, retry, SIGKILL recovery and cache-repair parity passed there. #280 adds Redis on WordPress 6.7.2 + WooCommerce 9.0.4 at size 100, both engines. WordPress 6.8.3 + WooCommerce 9.9.7 persistent cache is NOT_TESTED.
