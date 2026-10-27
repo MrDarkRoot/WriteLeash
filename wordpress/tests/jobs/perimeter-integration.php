@@ -595,4 +595,25 @@ assert_zero_changes( array( $revoked_probe_id ), $revoked_probe_before, 'revoke-
 	ok( update_post_meta( $stock_frame_id, '_stock', '7' ) === false, 'closed stock frame denies stock meta again' );
 	marker( 'stock frame is kind-and-product exact' );
 
+	// #306: WooCommerce assigns the id inside create(), after this hook. An
+	// unframed $product->save() must throw before wp_insert_post.
+	wp_set_current_user( $actor );
+	ok( Grants::is_restricted_actor( $actor ) === true, 'create probe actor is still restricted' );
+	$create_posts_before = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts}" );
+	$created = new WC_Product_Simple();
+	$created->set_name( 'WL306-unframed-create-' . wp_generate_uuid4() );
+	$created->set_status( 'publish' );
+	$created->set_regular_price( '12.00' );
+	try {
+		$created->save();
+		throw new RuntimeException( 'expected unframed product create to be denied' );
+	} catch ( \WC_Data_Exception $e ) {
+		eq( $e->getErrorCode() ?? $e->getCode(), deny_code(), 'unframed create denial code' );
+	} catch ( \RuntimeException $e ) {
+		throw new RuntimeException( 'unframed create must throw WC_Data_Exception, got ' . $e->getMessage() );
+	}
+	eq( (int) $created->get_id(), 0, 'unframed create did not assign an id' );
+	eq( (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts}" ), $create_posts_before, 'unframed create inserted no post' );
+	marker( 'unframed product create denied before insert' );
+
 	marker( 'perimeter guard complete' );
