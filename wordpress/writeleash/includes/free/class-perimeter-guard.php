@@ -324,10 +324,17 @@ final class Perimeter_Guard {
 	 * hooks: a stock frame never authorizes a price meta write and a price
 	 * frame never authorizes a stock meta write — those remain denied like no
 	 * frame. #310.
+	 *
+	 * WooCommerce fires this hook before `wp_insert_post` and the new product
+	 * id is still 0. No Execution Frame can name that insert, so a restricted
+	 * principal is denied before the post row exists. #306.
 	 */
 	private static function should_enforce_save( int $object_id ): bool {
-		if ( $object_id < 1 || ! Grant_Repository::is_restricted_actor() ) {
+		if ( ! Grant_Repository::is_restricted_actor() ) {
 			return false;
+		}
+		if ( $object_id < 1 ) {
+			return true;
 		}
 		$actor = (int) get_current_user_id();
 		foreach ( self::$stack as $frame ) {
