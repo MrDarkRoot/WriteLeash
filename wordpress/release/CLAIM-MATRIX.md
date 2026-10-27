@@ -242,7 +242,7 @@ Status values:
 
 ## 20. Restricted agent access (grant-bound seatbelt)
 
-* **COPY CLAIM:** "A seatbelt, not a firewall: a restricted WordPress principal is bounded to WriteLeash's controlled price/stock job path and fails closed everywhere else. It is not a sandbox or universal 'agent-safe' guarantee."
+* **COPY CLAIM:** "A seatbelt, not a firewall: a restricted WordPress principal is bounded to WriteLeash's controlled price and stock job path. Documented monitored WooCommerce write paths are denied outside a matching Execution Frame. Direct SQL, hostile plugins, and unmonitored write paths are not covered. This is not a universal fail-closed guarantee when the grant store is unavailable. It is not a sandbox or universal 'agent-safe' guarantee."
 * **SUPPORTING ISSUE:** #307, #308, #309, #310, #311, #312.
 * **SUPPORTING TEST/EVIDENCE:**
   * `wordpress/tests/jobs/matrix-integration.php` — 28 cells × 4 engine/cache combinations: 15 deny paths, 4 non-interference paths, 4 in-frame positives and 5 grant-state cells.
@@ -253,8 +253,8 @@ Status values:
   * `wordpress/tests/admin/grant-admin-integration.php` — operator matrix, create contract, revoke, remove-restriction warning/audit, pause/resume option posture.
   * `wordpress/tests/admin/stock-job-integration.php` — stock grant job view, history and read-only progress copy.
   * `wordpress/tests/admin/grant-cli.sh` — `wp writeleash grant list|create|revoke|disable|enable` with authenticated `--user`, emergency controls administrator-only.
-* **ALLOWED WORDING:** The seatbelt sentence above; grant-scoped price/stock jobs through the controlled path; frozen scope, budget, expiry and stock bounds; operator issue/inspect/revoke/pause/resume/revoke-all/remove-restriction; append-only grant/denial audit.
-* **REQUIRED LIMITATION:** Not a firewall or sandbox. Does not constrain administrators who are not grant actors, hostile plugins, direct SQL, third-party hook side effects, orders/refunds/coupons/tax/options or arbitrary meta. A user-0 system cron is outside the grant. Stock Undo is unsupported; Undo is price-only. No universal "agent-safe" claim.
+* **ALLOWED WORDING:** The seatbelt sentence above; documented monitored WooCommerce write paths denied outside a matching Execution Frame; grant-scoped price/stock jobs through the controlled path; frozen scope, budget, expiry and stock bounds; operator issue/inspect/revoke/pause/resume/revoke-all/remove-restriction; append-only grant/denial audit.
+* **REQUIRED LIMITATION:** Not a firewall or sandbox. Do not say the principal fails closed everywhere else. Do not claim universal fail-closed behavior when the grant store is unavailable. Direct SQL, hostile plugins, and unmonitored write paths are not covered. Does not constrain administrators who are not grant actors, third-party hook side effects, orders/refunds/coupons/tax/options or arbitrary meta. A user-0 system cron is outside the grant. Stock Undo is unsupported; Undo is price-only. No universal "agent-safe" claim.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 21. Accidental price and stock overwrite protection
@@ -280,6 +280,7 @@ Status values:
 * Real managed/shared-host certification.
 * Universal rollback; "rolls everything back"; "prevents all bad edits"; any protection claim for every Woo write.
 * Reading the #322 listing as a firewall, hostile-plugin isolation, direct SQL protection, universal agent safety, or protection for every WooCommerce write. Stock wording covers only the opt-in controlled grant path.
+* "Fails closed everywhere else," or a universal fail-closed guarantee when the grant store is unavailable. Coverage is the documented monitored WooCommerce write paths and a matching Execution Frame.
 * Reversal of orders, sales, emails, webhooks, remote HTTP or external queues.
 * Guaranteed shopper prices; arbitrary save-hook throughput; arbitrary metadata size.
 * Package-upgrade certification from a released Free package (none exists).

@@ -122,7 +122,21 @@ if ( strlen( $short ) > 150 ) {
 }
 
 // Required recognizable sections for the WooCommerce Free listing.
-foreach ( array( '== Description ==', '== Supported scope ==', '== Installation ==', '== Screenshots ==', '== Frequently Asked Questions ==', '== Changelog ==' ) as $section ) {
+// The pinned 0.1.0 and frozen artifacts keep "Supported scope". The live
+// listing uses the three #280 headings and must not restore the old heading.
+$sections = array( '== Description ==', '== Installation ==', '== Screenshots ==', '== Frequently Asked Questions ==', '== Changelog ==' );
+if ( $frozen || $historical_package ) {
+	$sections[] = '== Supported scope ==';
+} else {
+	array_push( $sections, '== Requirements ==', '== What is supported ==', '== Current limitations ==' );
+	if ( str_contains( $text, '== Supported scope ==' ) ) {
+		$fail( 'live readme must use Requirements, What is supported, and Current limitations' );
+	}
+	if ( false !== stripos( $text, 'fails closed everywhere else' ) ) {
+		$fail( 'live readme must not claim the restricted principal fails closed everywhere else' );
+	}
+}
+foreach ( $sections as $section ) {
 	if ( ! str_contains( $text, $section ) ) {
 		$fail( 'missing readme section: ' . $section );
 	}

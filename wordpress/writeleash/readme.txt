@@ -45,8 +45,7 @@ endings pass the same safety limits; Clear ignores them.
 = Choose and exclude =
 
 Filter by an inclusive stored Regular or Sale Price range; both endpoints
-count, variations use their own prices, and blank sales never match numeric
-ranges. Exclude products or variations before approval; confirmed exclusions
+count, and blank sales never match. Variations use their own prices. Exclude products or variations before approval; confirmed exclusions
 stay out of Apply and Undo.
 
 = Preview exact changes before Apply =
@@ -78,35 +77,43 @@ window. Failed current checks leave the product alone as a conflict. Regular
 Price Undo preserves later sales where valid; Sale Price Undo checks its
 recorded Regular Price. Availability does not guarantee restoration.
 
-== Supported scope ==
+== Requirements ==
 
-* Up to 1,000 selected products per new job in the tested configuration. Variations count individually.
-* Published core simple products and published variations of published core variable products, in the base store currency. Parent prices are not edited directly.
-* Custom product types and universal extension compatibility are unsupported.
 * WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0 only (10.0.0 or newer, below 12.0.0).
 * Exercised: WordPress 7.0.1 and 7.1.2 on that line; WordPress 6.7.2 with WooCommerce 9.0.4; WordPress 6.8.3 with WooCommerce 9.9.7. Legacy band is WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Other pairs are refused before a job is created.
 * PHP 7.4.33, 8.0.30, 8.1.34 and 8.2.34 were exercised. Requires PHP 7.4 or newer.
 * MySQL 8.0.44 and MariaDB 10.11.15 were exercised. Redis 7.4.2 with Object Cache 2.7.0: modern line, and 6.7.2 with 9.0.4 at 100 products. Not on 6.8.3 with 9.9.7.
+
+== What is supported ==
+
+* Up to 1,000 selected products per new job in the tested configuration. Variations count individually.
+* Published core simple products and published variations of published core variable products, in the base store currency. Parent prices are not edited directly.
 * WooCommerce refreshes variable parent price ranges after each variation change.
+
+== Current limitations ==
+
+* Custom product types and universal extension compatibility are unsupported.
 * Multisite is unsupported.
 * Real managed or shared hosting has not been tested.
 
 == Restricted agent access ==
 
 A seatbelt, not a firewall: a restricted WordPress principal is bounded to
-WriteLeash's controlled price/stock job path and fails closed everywhere else.
+WriteLeash's controlled price and stock job path. Documented monitored
+WooCommerce write paths are denied outside a matching Execution Frame. Direct
+SQL, hostile plugins, and unmonitored write paths are not covered. This is
+not a universal fail-closed guarantee when the grant store is unavailable.
 It is not a sandbox or universal agent-safe guarantee. Opt-in: restricted
 access is off until an operator issues a grant; only explicit 0 enables
 grant-bound writes, and absent or malformed state denies.
 
 Who: (1) an AI agent WordPress user (manage_woocommerce + edit_products,
 human-granted) is the restricted actor; the issuer submits its price/stock
-jobs only via POST /wp-json/writeleash/v1/grants/{uuid}/jobs;
-direct WooCommerce REST/save/stock/meta/trash/delete is denied outside a
-frame; (2) cron, Action Scheduler or WP-CLI --user=<actor> running as the
-grant actor - user-0 system cron is outside the grant; (3) human
-Preview/Approve/Apply and price Undo are unchanged; (4) operators issue,
-inspect, pause, revoke or remove the restriction with append-only audit.
+jobs only via POST /wp-json/writeleash/v1/grants/{uuid}/jobs; (2) cron,
+Action Scheduler or WP-CLI --user=<actor> running as the grant actor;
+user-0 system cron is outside the grant; (3) human Preview/Approve/Apply
+and price Undo are unchanged; (4) operators issue, inspect, pause, revoke
+or remove the restriction with an append-only audit.
 
 Can:
 * Submit price/stock jobs for the granted actor through the WriteLeash grant route, within frozen scope, budget and expiry.
@@ -118,12 +125,11 @@ Cannot:
 * Write products through WooCommerce REST, product save, stock helpers, direct price/stock meta, trash or delete, outside a matching Execution Frame.
 * Exceed grant scope, budget, expiry, or the stock bounds (max absolute delta, floor 0). No stock Undo.
 * Remove its own restriction, or operate pause/resume/revoke-all without site administration.
-* Cover administrators, hostile plugins, direct SQL, third-party hook side effects, orders, refunds, coupons, tax, options, arbitrary meta, or user-0 system cron.
-* Claim universal agent-safe or firewall behavior.
+* Cover administrators, third-party hook side effects, orders, refunds, coupons, tax, options, arbitrary meta, or user-0 system cron.
 
 == Installation ==
 
-1. Install and activate WooCommerce on a pair named under Supported scope.
+1. Install and activate WooCommerce on a pair named under Requirements.
 2. Install and activate WriteLeash.
 3. Open Products → Bulk Prices.
 4. Select products, price field and operation.
@@ -142,7 +148,7 @@ Cannot:
 
 = Can I change sale and variation prices? =
 
-Yes, within scope above. Sale targets must stay below Regular Price; regular
+Yes, within What is supported above. Sale targets must stay below Regular Price; regular
 targets must remain above an existing sale.
 
 = What happens if a price changes after Preview? =
@@ -170,7 +176,7 @@ backups. WriteLeash creates no backups.
 
 = Unreleased =
 
-* Listing leads with protection against accidental price and stock overwrites. Supported scope names the tested legacy pairs. No version change.
+* Requirements, What is supported, and Current limitations name the tested pairs. No version change.
 
 = 0.2.0 =
 
