@@ -23,8 +23,9 @@ function lr_report( array $report ): void {
 }
 function lr_journal_binding( array $job ): array {
     global $wpdb;
+    // v3 and v4 rows leave plan_json null and bind through plan_fingerprint.
     $rows = $wpdb->get_results( $wpdb->prepare(
-        'SELECT product_id,schema_version,plan_id,plan_schema_version,plan_hash_version,plan_hash,price_field,CASE WHEN schema_version=3 THEN plan_fingerprint ELSE SHA2(plan_json,256) END AS material_hash,expected_price,target_price FROM %i WHERE plan_id=%s ORDER BY product_id',
+        'SELECT product_id,schema_version,plan_id,plan_schema_version,plan_hash_version,plan_hash,price_field,CASE WHEN schema_version IN (3,4) THEN plan_fingerprint ELSE SHA2(plan_json,256) END AS material_hash,expected_price,target_price FROM %i WHERE plan_id=%s ORDER BY product_id',
         J::table( $wpdb ), $job['plan_id']
     ), ARRAY_A );
     foreach ( $rows as $row ) { wl112_assert( $row['material_hash'] === hash( 'sha256', $job['plan_json'] ), 'legacy journal retains exact canonical job binding' ); }

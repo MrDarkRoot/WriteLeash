@@ -2039,10 +2039,8 @@ msgstr ""
 msgid "No price changes yet. Preview a change to start."
 msgstr ""
 
-#. translators: %s: minimum supported WooCommerce version.
-#: includes/free/class-free-support-contract.php:66
-#, php-format
-msgid "WooCommerce %s through 11.x"
+#: includes/free/class-free-support-contract.php
+msgid "WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0, or WooCommerce 9.0 below 10.0 on WordPress 6.7 below 7.0"
 msgstr ""
 
 #: includes/free/class-job-state.php:115

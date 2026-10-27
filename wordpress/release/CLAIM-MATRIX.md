@@ -69,28 +69,30 @@ Status values:
 
 ## 5. WooCommerce version
 
-* **COPY CLAIM:** "WooCommerce 10.0 through 11.x."
-* **SUPPORTING ISSUE:** #108/#111 execution gate; #112 compatibility row; #119 support boundary; #180 supported range.
+* **COPY CLAIM:** "WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0 only. Legacy band: WooCommerce 9.0.0 below 10.0.0 on WordPress 6.7 below 7.0. Exercised legacy points: WordPress 6.7.2 with WooCommerce 9.0.4, and WordPress 6.8.3 with WooCommerce 9.9.7."
+* **SUPPORTING ISSUE:** #108/#111 execution gate; #112 compatibility row; #119 support boundary; #180 supported range; #280 pair rule.
 * **SUPPORTING TEST/EVIDENCE:**
   * `FREE-PRICE-APPLY-CONTRACT.md` — Woo 10.0 through 11.x storage/API basis (CPT data store, lookup shape, CRUD price setters, cache helpers; ProductCache guarded for pre-10.5); official 11.1.2 ZIP SHA-256 recorded as the exercised point.
-  * `wordpress/tests/acceptance/EVIDENCE.md` — row `7.1.2 / 11.0.1 / 8.2.34` → `UNSUPPORTED: existing execution gate; zero applied` (now out-of-range refusal with a typed reason).
-  * `wordpress/writeleash/includes/free/class-free-support-contract.php` — `WOOCOMMERCE_MIN = '10.0.0'`, `WOOCOMMERCE_MAX_EXCLUSIVE = '12.0.0'`.
+  * `wordpress/tests/acceptance/EVIDENCE.md` — modern rows remain the prior evidence. #280 (2026-10-27) adds the legacy pairs and the refusals; it does not re-execute the modern cells.
+  * `wordpress/writeleash/includes/free/class-free-support-contract.php` — modern `WOOCOMMERCE_MIN = '10.0.0'`, `WOOCOMMERCE_MAX_EXCLUSIVE = '12.0.0'`; legacy `LEGACY_WOOCOMMERCE_MIN = '9.0.0'`, `LEGACY_WOOCOMMERCE_MAX_EXCLUSIVE = '10.0.0'`. A frozen plan must stay on the same band.
   * Canonical immutable artifact: https://downloads.wordpress.org/plugin/woocommerce.11.1.2.zip → `Version: 11.1.2`, `Requires at least: 7.0`; SHA-256 `9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e`.
-* **ALLOWED WORDING:** "WooCommerce 10.0 through 11.x."
-* **REQUIRED LIMITATION:** No versions below 10.0.0 or at/above 12.0.0; the Admin refuses out-of-range versions before creating jobs.
-* **STATUS:** PUBLISHABLE.
+  * Legacy floor artifact: https://downloads.wordpress.org/plugin/woocommerce.9.0.4.zip SHA-256 `230ba96dbd288c98ce76e8ce430a7d52ec0994596717bde978b5613839ff8333`. Legacy high pair reconfirmed: https://downloads.wordpress.org/plugin/woocommerce.9.9.7.zip SHA-256 `96facedd12e32b6e0b120dcaa4a62b9c6b1ae12159d32510ea416c8e9b44f4dd`.
+* **ALLOWED WORDING:** "WooCommerce 10.0 through 11.x" for the modern line, plus the two named legacy pairs and the pair rule. Do not say WooCommerce 9.0 through 11.x.
+* **REQUIRED LIMITATION:** Previous public floor was WooCommerce 10.0.0 with no legacy band (through 2026-10-27). No WooCommerce below 9.0.0 on the legacy band, no WordPress below 6.7, no WooCommerce 9 on WordPress 7, no WooCommerce 10 or newer on WordPress 6.7 or 6.8, and nothing at or above 12.0.0. Out-of-range pairs are refused before job creation. The two bands are not a rectangle. Untested versions inside a certified band are not a coverage map and are not called refused.
+* **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 6. WordPress versions and minimum metadata
 
-* **COPY CLAIM:** "WordPress 7.0.1 and 7.1.2 were exercised. Requires WordPress 7.0 or newer, the minimum of the supported WooCommerce package."
-* **SUPPORTING ISSUE:** #112 compatibility rows; #121 metadata decision.
+* **COPY CLAIM:** "WordPress 7.0.1 and 7.1.2 were exercised on WooCommerce 10.0 through 11.x. Legacy band: WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Exercised: WordPress 6.7.2 with WooCommerce 9.0.4, and WordPress 6.8.3 with WooCommerce 9.9.7. Requires WordPress 6.7 only on that legacy WooCommerce band; WordPress 7.0 up to 8.0 is required with WooCommerce 10.0 through 11.x."
+* **SUPPORTING ISSUE:** #112 compatibility rows; #121 metadata decision; #280 pair rule.
 * **SUPPORTING TEST/EVIDENCE:**
-  * `wordpress/tests/acceptance/EVIDENCE.md` — exact rows for WP `7.1.2` and `7.0.1`; `6.8.3` recorded as `UNSUPPORTED: Woo package requires WP 7.0`.
-  * Exact Woo package header (`Requires at least: 7.0`) and `https://api.wordpress.org/plugins/info/1.0/woocommerce.json` (`requires: 7.0`), checked 2026-10-02.
-  * `readme-validate.php` requires both exact fixtures and the 7.0 floor, and requires the plugin header `Requires at least: 7.0` to match.
-  * `wordpress/tests/dependency-63.php`, foundation `in-container.sh` and current-core `in-container.sh`: exact public WP 6.8.3 expected Core minimum refusal before any historical shim; public WP 7.1.2 dependency proof with missing Woo and active Woo 11.1.2. See `wordpress/release/PHASE-B-121.md` for the separate repository-only historical mechanism.
-* **ALLOWED WORDING:** "Requires WordPress 7.0 or newer" as directory metadata plus the exact tested fixtures.
-* **REQUIRED LIMITATION:** Do not claim all WordPress 7.x releases are supported from two tested points; directory metadata is a minimum, not a coverage map.
+  * `wordpress/tests/acceptance/EVIDENCE.md` — exact rows for WP `7.1.2` and `7.0.1`. Before #280, `6.8.3` was recorded as `UNSUPPORTED: Woo package requires WP 7.0` because the modern Woo package refuses WordPress below 7.0. That refusal still holds for WooCommerce 10 and 11. #280 exercises 6.7.2 and 6.8.3 only with WooCommerce 9.x.
+  * Modern Woo package header (`Requires at least: 7.0`) and `https://api.wordpress.org/plugins/info/1.0/woocommerce.json` (`requires: 7.0`), checked 2026-10-02. WooCommerce 9.9.7 header `Requires at least: 6.7`; WooCommerce 9.0.4 header `Requires at least: 6.4`.
+  * `readme-validate.php` requires the exact fixtures `7.0.1` and `7.1.2`, the directory floor `Requires at least: 6.7`, and the modern line "WooCommerce 10.0 through 11.x".
+  * `wordpress/tests/dependency-63.php` and foundation `in-container.sh`: WordPress 6.8.3 with WooCommerce 9.9.7 is a legacy-band dependency activation, not a core minimum refusal. The one below-floor WordPress refusal is 6.6.x (`plugin_wp_incompatible`, minimum 6.7). current-core `in-container.sh` keeps the public WordPress 7.1.2 plus WooCommerce 11.1.2 dependency proof. See `wordpress/release/PHASE-B-121.md` for the separate repository-only historical mechanism.
+  * Image digests: `wordpress:6.7.2-php8.2-apache@sha256:85c7d25eaf9726eeff21adad930aa43d2894bd73e9253ab250737b6d994a1181`, `wordpress:6.8.3-php8.2-apache@sha256:1e6215749283955d5c9ffea6c297651ed23cdfdbb91677ad7abd705b2682f2cf`, `wordpress:6.6.2-php8.2-apache@sha256:c30c1376b4d2c9d1e2328c2ee6149d133104d65873a98cbc6adc743a2964c4ba`.
+* **ALLOWED WORDING:** The tested fixtures and the pair rule. "Requires WordPress 6.7" is directory metadata for the legacy band only, not a promise that every WordPress 6.7+ site is supported.
+* **REQUIRED LIMITATION:** Previous directory floor was WordPress 7.0 (through 2026-10-27). Do not claim all WordPress 6.7, 6.8, or 7.x releases from the tested points. Untested versions inside a certified band are not a coverage map and are not called refused. No WordPress below 6.7. No WooCommerce 9 on WordPress 7. No WooCommerce 10 or newer on WordPress 6.7 or 6.8. Out-of-range pairs are refused before job creation.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 7. PHP versions and minimum metadata

@@ -20,8 +20,12 @@ fetch() {
 }
 fetch woocommerce.11.1.2.zip 9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e
 fetch woocommerce.11.0.1.zip da189b6616c610d15a2106f93151dab81b78f83e075bcefce221ac0d00b4fa21
-# Out-of-range refusal proof: the newest Woo below the supported 10.0 floor.
+# Legacy-band high pair, and the cross-band refusal on WordPress 7.
 fetch woocommerce.9.9.7.zip 96facedd12e32b6e0b120dcaa4a62b9c6b1ae12159d32510ea416c8e9b44f4dd
+# Legacy-band floor: newest wordpress.org WooCommerce 9.0.x.
+fetch woocommerce.9.0.4.zip 230ba96dbd288c98ce76e8ce430a7d52ec0994596717bde978b5613839ff8333
+# Below the legacy Woo floor: newest wordpress.org WooCommerce 8.x.
+fetch woocommerce.8.9.5.zip 260abd0d6dfd8afe0e10fb64d72b071be3b5623de8af072265758b35380b428b
 fetch redis-cache.2.7.0.zip 0cbc41dea351688693b8e7db1165b5d92b6c8ef7231ac0ff5abec7b83d62c635
 compose=(docker compose -p writeleash_woo112 -f "$here/docker-compose.yml")
 cleanup() {

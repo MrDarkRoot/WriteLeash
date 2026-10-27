@@ -1,7 +1,7 @@
 === WriteLeash ===
 Contributors: duyytrann
 Tags: woocommerce, bulk edit, prices, variations, undo
-Requires at least: 7.0
+Requires at least: 6.7
 Tested up to: 7.1
 Stable tag: 0.2.0
 Requires PHP: 7.4
@@ -77,8 +77,8 @@ effects.
 * Up to 1,000 selected products per new job in the tested configuration. Variations count individually.
 * Published core simple products and published variations of published core variable products, in the base store currency. Parent prices are not edited directly.
 * Custom product types and universal extension compatibility are unsupported.
-* WooCommerce 10.0 through 11.x (version 10.0.0 or newer, below 12.0.0).
-* WordPress 7.0.1 and 7.1.2 were exercised. Requires WordPress 7.0 or newer.
+* WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0 only (10.0.0 or newer, below 12.0.0).
+* WordPress 7.0.1 and 7.1.2 were exercised on that line. Legacy band: WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Exercised: WordPress 6.7.2 with WooCommerce 9.0.4, and WordPress 6.8.3 with WooCommerce 9.9.7. Pairs outside either band are refused before a job is created.
 * PHP 7.4.33, 8.0.30, 8.1.34 and 8.2.34 were exercised. Requires PHP 7.4 or newer.
 * MySQL 8.0.44 and MariaDB 10.11.15 were exercised, with default and Redis Object Cache 2.7.0 (Redis 7.4.2) persistent cache modes.
 * WooCommerce refreshes variable parent price ranges after each variation change.

@@ -2,7 +2,10 @@
 # #63 current-stable compatibility gate: WordPress 7.1.2 + Redirection 5.5.2 +
 # the repository-only historical lab on both pinned database engines. Focused on
 # the certified product path and lifecycle; the full adversarial matrix remains
-# pinned to the WordPress 6.8.3 baseline (#62).
+# pinned to the WordPress 6.8.3 baseline (#62). WordPress 6.8.3 is not an
+# out-of-range refusal: with WooCommerce 9.x it is the legacy dependency band.
+# The one below-floor WordPress refusal is 6.6.x. This file's public
+# dependency proof stays WordPress 7.1.2 with WooCommerce 11.1.2.
 set -eu
 for host in mysql mariadb; do
   site="/tmp/cc63-$host"

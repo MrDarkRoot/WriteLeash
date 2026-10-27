@@ -28,9 +28,9 @@ try {
 	copy( $public_readme, $readme );
 	$run( 'independent exact historical copy accepted; production untouched', true );
 	$staged = file_get_contents( $main );
-	$expected = str_replace( ' * Requires at least: 7.0', " * Requires at least: 6.8.3\n * HISTORICAL TEST ONLY: disposable WP 6.8.3 metadata shim; not public support.", $original );
+	$expected = str_replace( ' * Requires at least: 6.7', " * Requires at least: 6.8.3\n * HISTORICAL TEST ONLY: disposable WP 6.8.3 metadata shim; not public support.", $original );
 	if ( $expected !== $staged ) { throw new RuntimeException( 'Historical shim changed executable body' ); }
-	if ( str_replace( 'Requires at least: 7.0', 'Requires at least: 6.8.3', $original_readme ) !== file_get_contents( $readme ) ) {
+	if ( str_replace( 'Requires at least: 6.7', 'Requires at least: 6.8.3', $original_readme ) !== file_get_contents( $readme ) ) {
 		throw new RuntimeException( 'Historical shim changed readme beyond metadata compatibility' );
 	}
 	$run( 'second shim/previously modified copy rejected', false );

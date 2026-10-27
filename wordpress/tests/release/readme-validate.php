@@ -69,8 +69,9 @@ $tags = array_filter( array_map( 'trim', explode( ',', $headers['tags'] ) ) );
 if ( ! $tags || count( $tags ) > 5 || count( $tags ) !== count( array_unique( $tags ) ) ) {
 	$fail( 'Tags must be 1-5 unique comma-separated terms' );
 }
-if ( ! preg_match( '/\A\d+\.\d\z/', $headers['requires at least'] ) || '7.0' !== $headers['requires at least'] ) {
-	$fail( 'Requires at least must be the narrowest coherent value 7.0 (WooCommerce 11 package minimum)' );
+$wp_floor = $frozen ? '7.0' : '6.7';
+if ( ! preg_match( '/\A\d+\.\d\z/', $headers['requires at least'] ) || $wp_floor !== $headers['requires at least'] ) {
+	$fail( 'Requires at least must be ' . $wp_floor . ' (live tree: legacy-band floor 6.7; WooCommerce 10.0 through 11.x still requires WordPress 7.0 up to 8.0)' );
 }
 if ( ! preg_match( '/\A\d+\.\d\z/', $headers['tested up to'] ) || '7.1' !== $headers['tested up to'] ) {
 	$fail( 'Tested up to must be the tested current-stable major/minor 7.1' );
@@ -90,8 +91,9 @@ if ( 'https://www.gnu.org/licenses/gpl-2.0.html' !== $headers['license uri'] ) {
 
 // Directory metadata and the main plugin header must not contradict each other.
 $main_header = (string) file_get_contents( $main );
+$header_floor = $frozen ? '7\.0' : '6\.7';
 foreach ( array(
-	'/^\s*\*\s*Requires at least:\s*7\.0\s*$/m',
+	'/^\s*\*\s*Requires at least:\s*' . $header_floor . '\s*$/m',
 	'/^\s*\*\s*Requires PHP:\s*7\.4\s*$/m',
 ) as $requirement ) {
 	if ( ! preg_match( $requirement, $main_header ) ) {
@@ -133,6 +135,16 @@ if ( false !== stripos( $text, 'Baseline Disable' ) ) {
 foreach ( array( '7.0.1', '7.1.2' ) as $tested_core ) {
 	if ( ! str_contains( $text, $tested_core ) ) {
 		$fail( 'readme must name the exact tested WordPress core fixture: ' . $tested_core );
+	}
+}
+if ( ! $frozen ) {
+	foreach ( array( 'WordPress 7.0 up to 8.0', '6.7.2', '9.0.4', '6.8.3', '9.9.7' ) as $pair_fact ) {
+		if ( ! str_contains( $text, $pair_fact ) ) {
+			$fail( 'readme must keep the modern line and name the tested legacy pairs: ' . $pair_fact );
+		}
+	}
+	if ( false !== stripos( $text, 'WooCommerce 9.0 through 11.x' ) ) {
+		$fail( 'readme must not claim the untested WooCommerce 9.0 through 11.x rectangle' );
 	}
 }
 

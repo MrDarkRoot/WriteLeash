@@ -608,9 +608,8 @@ final class Change_Plan {
 			if ( $settings['currency'] !== $expected['currency'] || ! $settings['base_currency_context'] ) { $reasons[] = 'currency_context_changed'; }
 			if ( $settings['price_decimals'] !== $expected['price_decimals'] ) { $reasons[] = 'price_decimals_changed'; }
 		}
-		// Routine supported patch/minor updates do not change any guarded
-		// product/price fact, so they are not a conflict. Drift outside the
-		// supported range (or from an unparseable version) still is.
+		// Patch/minor drift inside one certified band is not a conflict.
+		// A different band, or a version outside both bands, still is.
 		if ( ! Free_Support_Contract::versions_compatible( $expected['wordpress_version'], $expected['woocommerce_version'], $settings['wordpress_version'], $settings['woocommerce_version'] ) ) { $reasons[] = 'software_version_changed'; }
 		return array( 'state' => $reasons ? 'CONFLICT' : 'MATCH', 'reasons' => $reasons );
 	}

@@ -240,3 +240,18 @@ upgrade certification, guaranteed shopper prices or generic rollback.
 **#77/#76/#65/#66 modified/executed: NO. Publication: NO. Merge: NO.**
 Existing regression CI, including the historically named release matrix, is
 regression evidence only; it is not execution or authorization of that chain.
+
+## #280 pair-rule rows (2026-10-27)
+
+Runtime bytes: worktree HEAD `796fe096f090cd7d6256eb9bce94df2eecf6bd41` plus the uncommitted pair-rule diff. `git diff` SHA-256 at the passing reruns, before this evidence section: `3d89431bafd7ce03e63e8235bc95be084c8addb252ebe2b1cfec8e419a72eed7`. Clean `796fe096` does not contain the pair rule. PHP 8.2.34. MySQL 8.0.44. MariaDB 10.11.15. CLI `wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89`. Modern WP 7.1.2 + WooCommerce 11.1.2 was not re-executed. Pair B persistent cache was not run.
+
+| Pair | Result | Cache | Sizes | Engines | Flows |
+| --- | --- | --- | --- | --- | --- |
+| WP 6.7.2 `sha256:85c7d25eaf9726eeff21adad930aa43d2894bd73e9253ab250737b6d994a1181` + WC 9.0.4 `230ba96dbd288c98ce76e8ce430a7d52ec0994596717bde978b5613839ff8333` | PASS | default | 100, 101, 1000 | MySQL and MariaDB | Journey `#112` PASS (preview, approve with scheduler down, resume, external conflict at 75, history, undo of 2, sale 70 to 75 and back to 70). Variations JSON PASS (apply 2, undo 2, conflicted sibling). `#207`/`#208` PASS. Legacy recovery PASS, 100 restored, 1 conflict preserved. |
+| Same pair | PASS | Redis 7.4.2 / redis-cache 2.7.0 `0cbc41dea351688693b8e7db1165b5d92b6c8ef7231ac0ff5abec7b83d62c635` | 100 | MySQL and MariaDB | Same journey, variations, sale, and legacy recovery PASS. |
+| WP 6.8.3 `sha256:1e6215749283955d5c9ffea6c297651ed23cdfdbb91677ad7abd705b2682f2cf` + WC 9.9.7 `96facedd12e32b6e0b120dcaa4a62b9c6b1ae12159d32510ea416c8e9b44f4dd` | PASS | default | 100, 101, 1000 | MySQL and MariaDB | Same journey, variations, sale, and legacy recovery PASS. Persistent cache on this pair: NOT_TESTED. |
+| WP 7.1.2 `sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19` + WC 9.9.7 | UNSUPPORTED_EARLY | persistent | 100 | MySQL and MariaDB | `woocommerce_version_unsupported`. Actual job size 0. Parity: unchanged prices and zero WriteLeash evidence. Presets: unsupported Woo refusal PASS. |
+| WP 7.1.2 + WC 8.9.5 `260abd0d6dfd8afe0e10fb64d72b071be3b5623de8af072265758b35380b428b` | UNSUPPORTED_EARLY | default | 100 | MySQL and MariaDB | Same refusal and zero WriteLeash product writes. |
+| WP 6.6.2 `sha256:c30c1376b4d2c9d1e2328c2ee6149d133104d65873a98cbc6adc743a2964c4ba` + WC 9.0.4 | PASS as Core refusal | default | n/a | MySQL and MariaDB | `#280 WP 6.6.2 PUBLIC ACTIVATION: EXPECTED CORE REFUSAL (minimum 6.7 first)`. `plugin_wp_incompatible`. Plugin inactive. This is WordPress core, not the pair-rule journey. |
+
+Transcripts: `/tmp/wl280-results-pairA`, `/tmp/wl280-results-pairB`, `/tmp/wl280-results-neg-cross`, `/tmp/wl280-results-neg-woo8`, `/tmp/wl280-results-neg-wp66`, `/tmp/wl280-results-pairA-redis`. The first Pair A attempt failed in `legacy-recovery.php` because the probe hashed null `plan_json` on journal schema 4; the probe now uses `plan_fingerprint` for schema 3 and 4. That attempt is `/tmp/wl280-results-pairA-fail1` and is not a PASS.

@@ -94,7 +94,7 @@ $main = (string) file_get_contents( $source . '/writeleash.php' );
 $version_pattern = str_replace( '.', '\.', $release );
 foreach ( array(
 	'/^\s*\*\s*Version:\s*' . $version_pattern . '\s*$/m',
-	'/^\s*\*\s*Requires at least:\s*7\.0\s*$/m',
+	'/^\s*\*\s*Requires at least:\s*6\.7\s*$/m',
 	'/^\s*\*\s*Requires PHP:\s*7\.4\s*$/m',
 	'/^\s*\*\s*License:\s*GPL v2 or later\s*$/m',
 	'/^\s*\*\s*License URI:\s*https:\/\/www\.gnu\.org\/licenses\/gpl-2\.0\.html\s*$/m',
