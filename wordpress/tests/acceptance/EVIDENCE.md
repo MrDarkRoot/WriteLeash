@@ -243,7 +243,7 @@ regression evidence only; it is not execution or authorization of that chain.
 
 ## #280 pair-rule rows (2026-10-27)
 
-Runtime bytes: worktree HEAD `796fe096f090cd7d6256eb9bce94df2eecf6bd41` plus the uncommitted pair-rule diff. `git diff` SHA-256 at the passing reruns, before this evidence section: `3d89431bafd7ce03e63e8235bc95be084c8addb252ebe2b1cfec8e419a72eed7`. Clean `796fe096` does not contain the pair rule. PHP 8.2.34. MySQL 8.0.44. MariaDB 10.11.15. CLI `wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89`. Modern WP 7.1.2 + WooCommerce 11.1.2 was not re-executed. Pair B persistent cache was not run.
+Runtime bytes: worktree HEAD `796fe096f090cd7d6256eb9bce94df2eecf6bd41` plus the uncommitted pair-rule diff, later committed as `e8e14078c7fc2fa0ddb0c568c9c796edbb95bd5c` and cherry-picked onto `c7d5e8766ef10e5fdb255184b002c2b6fc6a4313`. `git diff` SHA-256 at the passing reruns, before this evidence section: `3d89431bafd7ce03e63e8235bc95be084c8addb252ebe2b1cfec8e419a72eed7`. Clean `796fe096` does not contain the pair rule. The journeys were not repeated after #329 merged. PHP 8.2.34. MySQL 8.0.44. MariaDB 10.11.15. CLI `wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89`. Modern WP 7.1.2 + WooCommerce 11.1.2 was not re-executed. Pair B persistent cache was not run.
 
 | Pair | Result | Cache | Sizes | Engines | Flows |
 | --- | --- | --- | --- | --- | --- |

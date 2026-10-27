@@ -1,6 +1,6 @@
 === WriteLeash ===
 Contributors: duyytrann
-Tags: woocommerce, bulk edit, prices, variations, undo
+Tags: woocommerce, prices, stock, variations, undo
 Requires at least: 6.7
 Tested up to: 7.1
 Stable tag: 0.2.0
@@ -8,18 +8,28 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-WooCommerce bulk price editor with Preview, newer-price conflict checks, History and eligible Undo.
+Protection against accidental WooCommerce price and stock overwrites, with Preview, conflicts, History and eligible Undo.
 
 == Description ==
 
-**Change WooCommerce prices. Protect newer edits.**
+WriteLeash offers protection against accidental WooCommerce price and stock
+overwrites on paths you control. Preview the price change, approve it, and
+Apply. If the stored price or another checked setting no longer matches the
+Preview, WriteLeash leaves the newer value alone and marks a conflict.
+History records the result. Eligible Undo restores prices WriteLeash applied
+when the saved details and the current product state permit it.
 
-Bulk edit prices with exact Preview before Apply; relevant price/setting
-conflicts preserve newer values. Select by name, SKU or category, run
-background jobs, Resume, review History, save presets and repeat an eligible
-job into a fresh editable Preview.
+Ordinary price jobs do not change stock. WriteLeash changes stock only on an
+opt-in restricted grant, through its controlled price and stock job path,
+which stays off until an operator issues the grant. Stock Undo is not
+supported.
 
-= Bulk edit Regular Price and Sale Price =
+This is not protection for every WooCommerce write. It is not a firewall, it
+does not isolate hostile plugins, and it does not stop direct SQL. Undo does
+not reverse orders, completed sales, emails, webhooks, remote requests,
+external queues or other plugins' effects.
+
+= Regular Price and Sale Price =
 
 Set a price, add/subtract a fixed amount, or change by a percentage. Choose
 Regular or Sale Price. A variable parent means its variations, or choose
@@ -68,19 +78,15 @@ window. Failed current checks leave the product alone as a conflict. Regular
 Price Undo preserves later sales where valid; Sale Price Undo checks its
 recorded Regular Price. Availability does not guarantee restoration.
 
-Undo restores eligible prices only. It does not reverse orders, completed
-sales, emails, webhooks, remote requests, external queues or other plugins'
-effects.
-
 == Supported scope ==
 
 * Up to 1,000 selected products per new job in the tested configuration. Variations count individually.
 * Published core simple products and published variations of published core variable products, in the base store currency. Parent prices are not edited directly.
 * Custom product types and universal extension compatibility are unsupported.
 * WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0 only (10.0.0 or newer, below 12.0.0).
-* WordPress 7.0.1 and 7.1.2 were exercised on that line. Legacy band: WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Exercised: WordPress 6.7.2 with WooCommerce 9.0.4, and WordPress 6.8.3 with WooCommerce 9.9.7. Pairs outside either band are refused before a job is created.
+* Exercised: WordPress 7.0.1 and 7.1.2 on that line; WordPress 6.7.2 with WooCommerce 9.0.4; WordPress 6.8.3 with WooCommerce 9.9.7. Legacy band is WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Other pairs are refused before a job is created.
 * PHP 7.4.33, 8.0.30, 8.1.34 and 8.2.34 were exercised. Requires PHP 7.4 or newer.
-* MySQL 8.0.44 and MariaDB 10.11.15 were exercised, with default and Redis Object Cache 2.7.0 (Redis 7.4.2) persistent cache modes.
+* MySQL 8.0.44 and MariaDB 10.11.15 were exercised. Redis Object Cache 2.7.0 (Redis 7.4.2) on the modern line and on 6.7.2 with 9.0.4 at 100 products, not on 6.8.3 with 9.9.7.
 * WooCommerce refreshes variable parent price ranges after each variation change.
 * Multisite is unsupported.
 * Real managed or shared hosting has not been tested.
@@ -102,30 +108,24 @@ grant actor - user-0 system cron is outside the grant; (3) human
 Preview/Approve/Apply and price Undo are unchanged; (4) operators issue,
 inspect, pause, revoke or remove the restriction with append-only audit.
 
-Protects grant-scoped price/stock jobs, frozen targets, budget, expiry and
-pause/resume/revoke/revoke-all/remove restriction. Does not cover firewalls or
-sandboxes, administrators outside a grant, hostile plugins, direct SQL,
-third-party hook side effects, orders/refunds/coupons/tax/options/arbitrary
-meta, stock Undo (Undo is price-only), or any universal "agent-safe" claim.
-
 Can:
-* Submit price/stock jobs for the granted actor through the WriteLeash grant route, within frozen scope, budget and expiry. (matrix-integration.php)
-* Apply price and stock through the controlled item transaction; variation parent price/stock-status sync inside the frame. (stock-integration.php)
-* Operator: issue/inspect/revoke a grant; pause/resume; revoke-all; remove restriction (administrator-only, never self). (grant-admin-integration.php)
-* Read job/stock progress and the append-only grant/denial audit. (grant-integration.php)
+* Submit price/stock jobs for the granted actor through the WriteLeash grant route, within frozen scope, budget and expiry.
+* Apply price and stock through the controlled item transaction; variation parent price/stock-status sync inside the frame.
+* Operator: issue/inspect/revoke a grant; pause/resume; revoke-all; remove restriction (administrator-only, never self).
+* Read job/stock progress and the append-only grant/denial audit.
 
 Cannot:
-* Write products through WooCommerce REST, $product->save(), wc_update_product_stock(), direct price/stock meta, trash/delete, outside a matching Execution Frame. (perimeter-integration.php)
-* Exceed grant scope, budget, expiry, or the stock bounds (max_abs_delta, floor 0); no stock Undo. (stock-integration.php)
-* Un-leash itself; remove its own restriction; operate pause/resume/revoke-all without site administration. (grant-removal-integration.php)
-* Cover administrators, hostile plugins, direct SQL, third-party hook side effects, orders/refunds/coupons/tax/options, arbitrary meta, or user-0 system cron. (matrix-integration.php)
-* Claim universal "agent-safe" or firewall behavior. (claim-matrix-audit.php)
+* Write products through WooCommerce REST, product save, stock helpers, direct price/stock meta, trash or delete, outside a matching Execution Frame.
+* Exceed grant scope, budget, expiry, or the stock bounds (max absolute delta, floor 0). No stock Undo.
+* Remove its own restriction, or operate pause/resume/revoke-all without site administration.
+* Cover administrators, hostile plugins, direct SQL, third-party hook side effects, orders, refunds, coupons, tax, options, arbitrary meta, or user-0 system cron.
+* Claim universal agent-safe or firewall behavior.
 
 See FREE-GRANT-CONTRACT.md and OPERATION.md.
 
 == Installation ==
 
-1. Install and activate WooCommerce 10.0 through 11.x.
+1. Install and activate WooCommerce on a pair named under Supported scope.
 2. Install and activate WriteLeash.
 3. Open Products → Bulk Prices.
 4. Select products, price field and operation.
@@ -140,11 +140,9 @@ See FREE-GRANT-CONTRACT.md and OPERATION.md.
 5. History + eligible Undo within 30 days.
 6. Safety limits: max products, max % increase/decrease, block zero prices.
 
-Not all features are pictured.
-
 == Frequently Asked Questions ==
 
-= Can I bulk edit sale and variation prices? =
+= Can I change sale and variation prices? =
 
 Yes, within scope above. Sale targets must stay below Regular Price; regular
 targets must remain above an existing sale.
@@ -171,6 +169,10 @@ Yes. Back up and test on staging first; Preview and Undo do not replace
 backups. WriteLeash creates no backups.
 
 == Changelog ==
+
+= Unreleased =
+
+* Listing leads with protection against accidental price and stock overwrites. Supported scope names the tested legacy pairs. No version change.
 
 = 0.2.0 =
 
