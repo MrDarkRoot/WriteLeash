@@ -1295,8 +1295,10 @@ $admin_fix = apply_fixture( array( 'changing' => 1, 'actor' => 1 ) );
 $admin_job = (int) $admin_fix['job']['id'];
 $admin_id = $admin_fix['ids'][0];
 $admin_op = start_undo( $admin_job, 1 );
-run_worker( array( 'undo_id' => (int) $admin_op['id'], 'mode' => 'undo', 'limits' => limits( 5 ) ) );
-eq( fresh_price( $admin_id ), '100.00', 'unrestricted undo still restores with the grant store present' );
+$admin_run = run_worker( array( 'undo_id' => (int) $admin_op['id'], 'mode' => 'undo', 'limits' => limits( 5 ) ) );
+eq( $admin_run['status'], UState::COMPLETED, 'unrestricted undo completes with the grant store present' );
+// Woo returns a whole restored price as "100". The suite compares parsed decimals.
+eq( Decimal::parse( fresh_price( $admin_id ) ), Decimal::parse( '100.00' ), 'unrestricted undo still restores with the grant store present' );
 marker( 'restricted initiator undo denied; unrestricted undo unchanged' );
 
 echo "#110 Woo 11.1.2 / MySQL+MariaDB / default+Redis matrix: PASS\n";
