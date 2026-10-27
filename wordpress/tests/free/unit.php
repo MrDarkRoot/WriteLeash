@@ -107,3 +107,21 @@ wl107_equal( \WriteLeash\Change_Plan::hydrate( json_decode( $thousand_plan->json
 try { \WriteLeash\Free_Support_Contract::assert_job_size( 1001 ); throw new RuntimeException( '1001 not refused' ); }
 catch ( \WriteLeash\Free_Job_Limit_Error $error ) { wl107_equal( $error->selected(), 1001, 'typed limit count' ); wl107_equal( $error->getMessage(), 'supported_job_limit_exceeded', 'typed limit reason' ); }
 wl107_marker( 'Free support contract accepts 1000 and refuses 1001; 1000-product plan computes and rehydrates' );
+$band280 = \WriteLeash\Free_Support_Contract::class;
+wl107_equal( $band280::support_band( '7.1.2', '11.1.2' ), 'modern', 'modern pair' );
+wl107_equal( $band280::support_band( '7.0.1', '10.0.0' ), 'modern', 'modern floor pair' );
+wl107_equal( $band280::support_band( '7.1.2', '11.0.1' ), 'modern', 'modern previous woo' );
+wl107_equal( $band280::versions_compatible( '7.0.1', '10.5.0', '7.1.2', '11.1.2' ), true, 'modern drift stays on the modern band' );
+wl107_equal( $band280::support_band( '6.7.2', '9.0.4' ), 'legacy', 'legacy floor pair' );
+wl107_equal( $band280::support_band( '6.8.3', '9.9.7' ), 'legacy', 'legacy high pair' );
+wl107_equal( $band280::versions_compatible( '6.7.2', '9.0.4', '6.8.3', '9.9.7' ), true, 'legacy drift stays on the legacy band' );
+wl107_equal( $band280::versions_compatible( '7.1.2', '11.1.2', '6.8.3', '9.9.7' ), false, 'modern plan must not apply on the legacy band' );
+wl107_equal( $band280::versions_compatible( '6.8.3', '9.9.7', '7.1.2', '11.1.2' ), false, 'legacy plan must not apply on the modern band' );
+wl107_equal( $band280::support_band( '7.1.2', '9.9.7' ), null, 'WC 9 on WP 7 is refused' );
+wl107_equal( $band280::support_band( '6.8.3', '11.1.2' ), null, 'WC 11 on WP 6.8 is refused' );
+wl107_equal( $band280::support_band( '6.6.2', '9.0.4' ), null, 'WP below 6.7 is refused' );
+wl107_equal( $band280::support_band( '7.1.2', '8.9.5' ), null, 'WC below 9 is refused' );
+wl107_equal( $band280::support_band( '8.0', '11.1.2' ), null, 'WP 8 is refused' );
+wl107_equal( $band280::support_band( '7.1.2', '12.0.0' ), null, 'WC 12 is refused' );
+wl107_equal( $band280::woo_supported( '9.9.7' ) && $band280::wp_supported( '7.1.2' ) && null === $band280::support_band( '7.1.2', '9.9.7' ), true, 'independent halves must not authorize the rectangle' );
+wl107_marker( 'pair rule: two bands, cross-band and out-of-range refused' );

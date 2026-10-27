@@ -23,10 +23,10 @@ $assert = static function ( $condition, string $message ): void {
 	}
 };
 $data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin, false, false );
-$assert( '7.0' === $data['RequiresWP'], 'public WP minimum was shimmed or reverted' );
+$assert( '6.7' === $data['RequiresWP'], 'public WP minimum was shimmed or reverted' );
 $assert( false === strpos( file_get_contents( WP_PLUGIN_DIR . '/' . $plugin ), 'HISTORICAL TEST ONLY' ), 'historical shim in public fixture' );
 global $wp_version, $wpdb;
-if ( 'minimum' !== $phase ) {
+if ( 'minimum' !== $phase && 'legacy-supported' !== $phase ) {
 	$assert( in_array( $wp_version, array( '7.0.1', '7.1.2' ), true ), 'public dependency proof must run on an exact supported WP point' );
 }
 $snapshot = static function () use ( $wpdb ): string {
@@ -48,24 +48,41 @@ $snapshot = static function () use ( $wpdb ): string {
 
 switch ( $phase ) {
 	case 'minimum':
-		$assert( '6.8.3' === $wp_version, 'unsupported fixture must stay exact WP 6.8.3' );
+		$assert( 1 === preg_match( '/^6\.6\./', (string) $wp_version ), 'below-floor fixture must be WordPress 6.6.x, saw ' . $wp_version );
 		$assert( ! is_plugin_active( $plugin ), 'public plugin already active on unsupported WP' );
-		// Woo is absent: seed stored product facts through Core for a non-vacuous
-		// zero-product-mutation assertion, without loading the public plugin.
-		register_post_type( 'product', array( 'public' => true ) );
-		$product_id = wp_insert_post( array( 'post_type' => 'product', 'post_status' => 'publish', 'post_title' => '#121 refusal sentinel' ), true );
+		// Woo may already be installed. Seed stored product facts through Core
+		// for a non-vacuous zero-product-mutation assertion. Core must refuse
+		// on the WordPress floor before the plugin loads.
+		if ( ! post_type_exists( 'product' ) ) {
+			register_post_type( 'product', array( 'public' => true ) );
+		}
+		$product_id = wp_insert_post( array( 'post_type' => 'product', 'post_status' => 'publish', 'post_title' => '#280 refusal sentinel' ), true );
 		$assert( ! is_wp_error( $product_id ) && $product_id > 0, 'could not seed refusal product sentinel' );
 		update_post_meta( $product_id, '_regular_price', '123.45' );
 		update_post_meta( $product_id, '_price', '123.45' );
 		$before = $snapshot();
 		$result = activate_plugin( $plugin );
 		$assert( $result instanceof WP_Error && 'plugin_wp_incompatible' === $result->get_error_code(), 'WP minimum did not block activation first: ' . wp_json_encode( $result ) );
-		$assert( false !== strpos( $result->get_error_message(), '7.0' ), 'minimum refusal does not name WP 7.0' );
-		$assert( ! is_plugin_active( $plugin ), 'public plugin activated normally on WP 6.8.3' );
+		$assert( false !== strpos( $result->get_error_message(), '6.7' ), 'minimum refusal does not name WP 6.7' );
+		$assert( ! is_plugin_active( $plugin ), 'public plugin activated normally on WP ' . $wp_version );
 		$assert( $before === $snapshot(), 'Core refusal caused durable/product mutation' );
 		$assert( ! defined( 'WRITELEASH_VERSION' ), 'public plugin loaded despite minimum refusal' );
 		wp_delete_post( $product_id, true );
-		echo "#121 WP 6.8.3 PUBLIC ACTIVATION: EXPECTED CORE REFUSAL (minimum 7.0 first), inactive, zero WriteLeash durable/product mutation: PASS\n";
+		echo '#280 WP ' . $wp_version . " PUBLIC ACTIVATION: EXPECTED CORE REFUSAL (minimum 6.7 first), inactive, zero WriteLeash durable/product mutation: PASS\n";
+		break;
+
+	case 'legacy-supported':
+		// WordPress 6.7 up to 7.0 is a supported dependency only with the
+		// legacy WooCommerce band. This phase does not run a price journey.
+		$assert( version_compare( $wp_version, '6.7', '>=' ) && version_compare( $wp_version, '7.0', '<' ), 'legacy dependency proof must stay on WordPress 6.7 up to 7.0' );
+		$assert( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '9.0.0', '>=' ) && version_compare( WC_VERSION, '10.0.0', '<' ), 'legacy dependency proof requires WooCommerce 9.x' );
+		$assert( ! is_plugin_active( $plugin ), 'public plugin already active before legacy dependency proof' );
+		$result = activate_plugin( $plugin );
+		$assert( ! is_wp_error( $result ) && is_plugin_active( $plugin ), 'public activation failed on the legacy pair: ' . wp_json_encode( $result ) );
+		$assert( 'legacy' === \WriteLeash\Free_Support_Contract::support_band( $wp_version, WC_VERSION ), 'legacy pair was not classified legacy' );
+		$assert( \WriteLeash\Free_Support_Contract::woocommerce_ok(), 'legacy pair was refused by woocommerce_ok' );
+		$assert( null === \WriteLeash\Free_Support_Contract::support_band( $wp_version, '11.1.2' ), 'WooCommerce 11 must stay refused on this WordPress band' );
+		echo '#280 WP ' . $wp_version . ' + WooCommerce ' . WC_VERSION . " legacy dependency: public activation succeeded; WooCommerce 11 on this WordPress band stays unsupported: PASS\n";
 		break;
 
 	case 'block':

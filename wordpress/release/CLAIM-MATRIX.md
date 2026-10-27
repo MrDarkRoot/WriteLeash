@@ -69,28 +69,30 @@ Status values:
 
 ## 5. WooCommerce version
 
-* **COPY CLAIM:** "WooCommerce 10.0 through 11.x."
-* **SUPPORTING ISSUE:** #108/#111 execution gate; #112 compatibility row; #119 support boundary; #180 supported range.
+* **COPY CLAIM:** "WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0 only. Legacy band: WooCommerce 9.0.0 below 10.0.0 on WordPress 6.7 below 7.0. Exercised legacy points: WordPress 6.7.2 with WooCommerce 9.0.4, and WordPress 6.8.3 with WooCommerce 9.9.7."
+* **SUPPORTING ISSUE:** #108/#111 execution gate; #112 compatibility row; #119 support boundary; #180 supported range; #280 pair rule.
 * **SUPPORTING TEST/EVIDENCE:**
   * `FREE-PRICE-APPLY-CONTRACT.md` — Woo 10.0 through 11.x storage/API basis (CPT data store, lookup shape, CRUD price setters, cache helpers; ProductCache guarded for pre-10.5); official 11.1.2 ZIP SHA-256 recorded as the exercised point.
-  * `wordpress/tests/acceptance/EVIDENCE.md` — row `7.1.2 / 11.0.1 / 8.2.34` → `UNSUPPORTED: existing execution gate; zero applied` (now out-of-range refusal with a typed reason).
-  * `wordpress/writeleash/includes/free/class-free-support-contract.php` — `WOOCOMMERCE_MIN = '10.0.0'`, `WOOCOMMERCE_MAX_EXCLUSIVE = '12.0.0'`.
+  * `wordpress/tests/acceptance/EVIDENCE.md` — modern rows remain the prior evidence. #280 (2026-10-27) adds the legacy pairs and the refusals; it does not re-execute the modern cells.
+  * `wordpress/writeleash/includes/free/class-free-support-contract.php` — modern `WOOCOMMERCE_MIN = '10.0.0'`, `WOOCOMMERCE_MAX_EXCLUSIVE = '12.0.0'`; legacy `LEGACY_WOOCOMMERCE_MIN = '9.0.0'`, `LEGACY_WOOCOMMERCE_MAX_EXCLUSIVE = '10.0.0'`. A frozen plan must stay on the same band.
   * Canonical immutable artifact: https://downloads.wordpress.org/plugin/woocommerce.11.1.2.zip → `Version: 11.1.2`, `Requires at least: 7.0`; SHA-256 `9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e`.
-* **ALLOWED WORDING:** "WooCommerce 10.0 through 11.x."
-* **REQUIRED LIMITATION:** No versions below 10.0.0 or at/above 12.0.0; the Admin refuses out-of-range versions before creating jobs.
-* **STATUS:** PUBLISHABLE.
+  * Legacy floor artifact: https://downloads.wordpress.org/plugin/woocommerce.9.0.4.zip SHA-256 `230ba96dbd288c98ce76e8ce430a7d52ec0994596717bde978b5613839ff8333`. Legacy high pair reconfirmed: https://downloads.wordpress.org/plugin/woocommerce.9.9.7.zip SHA-256 `96facedd12e32b6e0b120dcaa4a62b9c6b1ae12159d32510ea416c8e9b44f4dd`.
+* **ALLOWED WORDING:** "WooCommerce 10.0 through 11.x" for the modern line, plus the two named legacy pairs and the pair rule. Do not say WooCommerce 9.0 through 11.x.
+* **REQUIRED LIMITATION:** Previous public floor was WooCommerce 10.0.0 with no legacy band (through 2026-10-27). No WooCommerce below 9.0.0 on the legacy band, no WordPress below 6.7, no WooCommerce 9 on WordPress 7, no WooCommerce 10 or newer on WordPress 6.7 or 6.8, and nothing at or above 12.0.0. Out-of-range pairs are refused before job creation. The two bands are not a rectangle. Untested versions inside a certified band are not a coverage map and are not called refused.
+* **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 6. WordPress versions and minimum metadata
 
-* **COPY CLAIM:** "WordPress 7.0.1 and 7.1.2 were exercised. Requires WordPress 7.0 or newer, the minimum of the supported WooCommerce package."
-* **SUPPORTING ISSUE:** #112 compatibility rows; #121 metadata decision.
+* **COPY CLAIM:** "WordPress 7.0.1 and 7.1.2 were exercised on WooCommerce 10.0 through 11.x. Legacy band: WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Exercised: WordPress 6.7.2 with WooCommerce 9.0.4, and WordPress 6.8.3 with WooCommerce 9.9.7. Requires WordPress 6.7 only on that legacy WooCommerce band; WordPress 7.0 up to 8.0 is required with WooCommerce 10.0 through 11.x."
+* **SUPPORTING ISSUE:** #112 compatibility rows; #121 metadata decision; #280 pair rule.
 * **SUPPORTING TEST/EVIDENCE:**
-  * `wordpress/tests/acceptance/EVIDENCE.md` — exact rows for WP `7.1.2` and `7.0.1`; `6.8.3` recorded as `UNSUPPORTED: Woo package requires WP 7.0`.
-  * Exact Woo package header (`Requires at least: 7.0`) and `https://api.wordpress.org/plugins/info/1.0/woocommerce.json` (`requires: 7.0`), checked 2026-10-02.
-  * `readme-validate.php` requires both exact fixtures and the 7.0 floor, and requires the plugin header `Requires at least: 7.0` to match.
-  * `wordpress/tests/dependency-63.php`, foundation `in-container.sh` and current-core `in-container.sh`: exact public WP 6.8.3 expected Core minimum refusal before any historical shim; public WP 7.1.2 dependency proof with missing Woo and active Woo 11.1.2. See `wordpress/release/PHASE-B-121.md` for the separate repository-only historical mechanism.
-* **ALLOWED WORDING:** "Requires WordPress 7.0 or newer" as directory metadata plus the exact tested fixtures.
-* **REQUIRED LIMITATION:** Do not claim all WordPress 7.x releases are supported from two tested points; directory metadata is a minimum, not a coverage map.
+  * `wordpress/tests/acceptance/EVIDENCE.md` — exact rows for WP `7.1.2` and `7.0.1`. Before #280, `6.8.3` was recorded as `UNSUPPORTED: Woo package requires WP 7.0` because the modern Woo package refuses WordPress below 7.0. That refusal still holds for WooCommerce 10 and 11. #280 exercises 6.7.2 and 6.8.3 only with WooCommerce 9.x.
+  * Modern Woo package header (`Requires at least: 7.0`) and `https://api.wordpress.org/plugins/info/1.0/woocommerce.json` (`requires: 7.0`), checked 2026-10-02. WooCommerce 9.9.7 header `Requires at least: 6.7`; WooCommerce 9.0.4 header `Requires at least: 6.4`.
+  * `readme-validate.php` requires the exact fixtures `7.0.1` and `7.1.2`, the directory floor `Requires at least: 6.7`, and the modern line "WooCommerce 10.0 through 11.x".
+  * `wordpress/tests/dependency-63.php` and foundation `in-container.sh`: WordPress 6.8.3 with WooCommerce 9.9.7 is a legacy-band dependency activation, not a core minimum refusal. The one below-floor WordPress refusal is 6.6.x (`plugin_wp_incompatible`, minimum 6.7). current-core `in-container.sh` keeps the public WordPress 7.1.2 plus WooCommerce 11.1.2 dependency proof. See `wordpress/release/PHASE-B-121.md` for the separate repository-only historical mechanism.
+  * Image digests: `wordpress:6.7.2-php8.2-apache@sha256:85c7d25eaf9726eeff21adad930aa43d2894bd73e9253ab250737b6d994a1181`, `wordpress:6.8.3-php8.2-apache@sha256:1e6215749283955d5c9ffea6c297651ed23cdfdbb91677ad7abd705b2682f2cf`, `wordpress:6.6.2-php8.2-apache@sha256:c30c1376b4d2c9d1e2328c2ee6149d133104d65873a98cbc6adc743a2964c4ba`.
+* **ALLOWED WORDING:** The tested fixtures and the pair rule. "Requires WordPress 6.7" is directory metadata for the legacy band only, not a promise that every WordPress 6.7+ site is supported.
+* **REQUIRED LIMITATION:** Previous directory floor was WordPress 7.0 (through 2026-10-27). Do not claim all WordPress 6.7, 6.8, or 7.x releases from the tested points. Untested versions inside a certified band are not a coverage map and are not called refused. No WordPress below 6.7. No WooCommerce 9 on WordPress 7. No WooCommerce 10 or newer on WordPress 6.7 or 6.8. Out-of-range pairs are refused before job creation.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 7. PHP versions and minimum metadata
@@ -118,13 +120,13 @@ Status values:
 
 ## 9. Persistent object cache
 
-* **COPY CLAIM:** "with default and Redis Object Cache 2.7.0 (Redis 7.4.2) persistent cache modes."
-* **SUPPORTING ISSUE:** #108 cache verifier; #109/#110 cache suites; #112 cache/hook torture.
+* **COPY CLAIM:** "MySQL 8.0.44 and MariaDB 10.11.15 were exercised. Redis 7.4.2 with Object Cache 2.7.0: modern line, and 6.7.2 with 9.0.4 at 100 products. Not on 6.8.3 with 9.9.7."
+* **SUPPORTING ISSUE:** #108 cache verifier; #109/#110 cache suites; #112 cache/hook torture; #280 pair rule.
 * **SUPPORTING TEST/EVIDENCE:**
-  * `wordpress/tests/acceptance/EVIDENCE.md` — Redis 7.4.2, Redis Object Cache/drop-in 2.7.0; rollback-before-commit, retry, SIGKILL recovery and cache-repair parity passed.
+  * `wordpress/tests/acceptance/EVIDENCE.md` — Redis 7.4.2, Redis Object Cache/drop-in 2.7.0 on the modern line; rollback-before-commit, retry, SIGKILL recovery and cache-repair parity passed there. #280 adds Redis on WordPress 6.7.2 + WooCommerce 9.0.4 at size 100, both engines. WordPress 6.8.3 + WooCommerce 9.9.7 persistent cache is NOT_TESTED.
   * `FREE-PRICE-APPLY-CONTRACT.md` — Woo `ProductCache::remove()` plus targeted lookup/meta repair.
-* **ALLOWED WORDING:** "default and Redis Object Cache 2.7.0 (Redis 7.4.2) persistent cache modes."
-* **REQUIRED LIMITATION:** Exact fixture only; not a general "works with every caching plugin" promise.
+* **ALLOWED WORDING:** Name the cache fixture only for the modern line and for WordPress 6.7.2 with WooCommerce 9.0.4 at 100 products.
+* **REQUIRED LIMITATION:** Exact fixture only; not a general "works with every caching plugin" promise. Do not imply persistent cache was exercised on WordPress 6.8.3 with WooCommerce 9.9.7.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 10. Preview and approval binding
@@ -231,16 +233,16 @@ Status values:
 
 ## 19. Requirements metadata coherence
 
-* **COPY CLAIM (headers):** `Requires at least: 7.0`, `Tested up to: 7.1`, `Requires PHP: 7.4`, `Requires Plugins: woocommerce`, `Stable tag: 0.1.0`.
-* **SUPPORTING ISSUE:** #120 package identity; #121 metadata; #112 evidence.
-* **SUPPORTING TEST/EVIDENCE:** `readme-validate.php` compares readme and plugin-header requirements and fails on contradiction; `package-preflight.php` locks the header values; official readme validator result 2026-10-02 (notes only, no errors).
-* **ALLOWED WORDING:** Directory metadata as above with rationale: 7.0 is the WooCommerce 11.1.2 package minimum; 7.4 is the WriteLeash/Woo minimum; `woocommerce` is the required dependency.
-* **REQUIRED LIMITATION:** "Tested up to: 7.1" reflects the tested 7.1.2 point (directory ignores the patch) and must not be read as all-7.x coverage.
-* **STATUS:** PUBLISHABLE.
+* **COPY CLAIM (headers):** `Requires at least: 6.7`, `Tested up to: 7.1`, `Requires PHP: 7.4`, `Requires Plugins: woocommerce`, `WC requires at least: 9.0`, `Stable tag: 0.2.0`.
+* **SUPPORTING ISSUE:** #120 package identity; #121 metadata; #112 evidence; #280 pair rule.
+* **SUPPORTING TEST/EVIDENCE:** `readme-validate.php` compares readme and plugin-header requirements and fails on contradiction; `package-preflight.php` locks the header values. `Requires at least: 6.7` is the directory floor so WordPress can activate the legacy band. It is not a promise that every WordPress 6.7+ site is supported. WooCommerce 10.0 through 11.x still requires WordPress 7.0 up to 8.0.
+* **ALLOWED WORDING:** Directory metadata as above. 6.7 is the legacy-band floor. 7.4 is the WriteLeash/Woo PHP minimum. `woocommerce` is the required dependency. Stable tag stays 0.2.0.
+* **REQUIRED LIMITATION:** "Tested up to: 7.1" reflects the tested 7.1.2 point (directory ignores the patch) and must not be read as all-7.x coverage. "Requires at least: 6.7" and "WC requires at least: 9.0" are minimums, not a rectangle.
+* **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 20. Restricted agent access (grant-bound seatbelt)
 
-* **COPY CLAIM:** "A seatbelt, not a firewall: a restricted WordPress principal is bounded to WriteLeash's controlled price/stock job path and fails closed everywhere else. It is not a sandbox or universal 'agent-safe' guarantee."
+* **COPY CLAIM:** "A seatbelt, not a firewall: a restricted WordPress principal is bounded to WriteLeash's controlled price and stock job path. Documented monitored WooCommerce write paths are denied outside a matching Execution Frame. Direct SQL, hostile plugins, and unmonitored write paths are not covered. This is not a universal fail-closed guarantee when the grant store is unavailable. It is not a sandbox or universal 'agent-safe' guarantee."
 * **SUPPORTING ISSUE:** #307, #308, #309, #310, #311, #312.
 * **SUPPORTING TEST/EVIDENCE:**
   * `wordpress/tests/jobs/matrix-integration.php` — 28 cells × 4 engine/cache combinations: 15 deny paths, 4 non-interference paths, 4 in-frame positives and 5 grant-state cells.
@@ -251,8 +253,21 @@ Status values:
   * `wordpress/tests/admin/grant-admin-integration.php` — operator matrix, create contract, revoke, remove-restriction warning/audit, pause/resume option posture.
   * `wordpress/tests/admin/stock-job-integration.php` — stock grant job view, history and read-only progress copy.
   * `wordpress/tests/admin/grant-cli.sh` — `wp writeleash grant list|create|revoke|disable|enable` with authenticated `--user`, emergency controls administrator-only.
-* **ALLOWED WORDING:** The seatbelt sentence above; grant-scoped price/stock jobs through the controlled path; frozen scope, budget, expiry and stock bounds; operator issue/inspect/revoke/pause/resume/revoke-all/remove-restriction; append-only grant/denial audit.
-* **REQUIRED LIMITATION:** Not a firewall or sandbox. Does not constrain administrators who are not grant actors, hostile plugins, direct SQL, third-party hook side effects, orders/refunds/coupons/tax/options or arbitrary meta. A user-0 system cron is outside the grant. Stock Undo is unsupported; Undo is price-only. No universal "agent-safe" claim.
+* **ALLOWED WORDING:** The seatbelt sentence above; documented monitored WooCommerce write paths denied outside a matching Execution Frame; grant-scoped price/stock jobs through the controlled path; frozen scope, budget, expiry and stock bounds; operator issue/inspect/revoke/pause/resume/revoke-all/remove-restriction; append-only grant/denial audit.
+* **REQUIRED LIMITATION:** Not a firewall or sandbox. Do not say the principal fails closed everywhere else. Do not claim universal fail-closed behavior when the grant store is unavailable. Direct SQL, hostile plugins, and unmonitored write paths are not covered. Does not constrain administrators who are not grant actors, third-party hook side effects, orders/refunds/coupons/tax/options or arbitrary meta. A user-0 system cron is outside the grant. Stock Undo is unsupported; Undo is price-only. No universal "agent-safe" claim.
+* **STATUS:** PUBLISHABLE WITH LIMITATION.
+
+## 21. Accidental price and stock overwrite protection
+
+* **COPY CLAIM:** "Protection against accidental WooCommerce price and stock overwrites, with Preview, conflicts, History and eligible Undo."
+* **SUPPORTING ISSUE:** #322 listing position. Price conflicts and eligible Undo use the accepted #107/#110/#112 evidence. The stock path uses the #310/#312 grant boundary, not a new write path.
+* **SUPPORTING TEST/EVIDENCE:**
+  * Conflict behavior: `wordpress/tests/acceptance/EVIDENCE.md` and `wordpress/writeleash/includes/free/class-product-snapshot.php` (row 11). The check is the stored price WriteLeash is changing, or another checked setting, not every catalog edit.
+  * Eligible Undo: `wordpress/writeleash/FREE-UNDO-HISTORY-CONTRACT.md` and `wordpress/tests/acceptance/EVIDENCE.md` (rows 13 and 14). Restoration is price-only, when the saved details and current product state permit it.
+  * Stock controlled path: `wordpress/tests/jobs/stock-integration.php` grant path only (bounded SET/INCREASE_INT/DECREASE_INT inside a frame). Not a claim that every stock write is protected. Ordinary price operations still do not change stock (row 4).
+  * Restricted agent: `wordpress/tests/jobs/matrix-integration.php`, `wordpress/tests/jobs/perimeter-integration.php`, and `wordpress/tests/jobs/grant-integration.php`, as already listed in row 20.
+* **ALLOWED WORDING:** The short description above. Say that merchant price jobs use Preview, conflict checks, History and eligible price Undo, and that WriteLeash stock changes run only on the opt-in controlled grant path.
+* **REQUIRED LIMITATION:** This is not protection for every WooCommerce write, not direct SQL, not hostile plugins, and not a firewall. Stock Undo is unsupported. Eligible Undo does not reverse orders, completed sales, emails, webhooks, remote requests, external queues or other plugins' effects.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ---
@@ -260,10 +275,12 @@ Status values:
 ## Forbidden public claims (must never appear)
 
 * 10,000 or more supported products; any size above the tested 1,000-product new-job ceiling as a support promise.
-* Support for WooCommerce versions outside 10.0 through 11.x, or "all WooCommerce versions".
-* "Old WordPress support" below 7.0 (the Woo 11.1.2 package refuses WP 6.8.3).
+* WooCommerce outside the two certified bands, "all WooCommerce versions", or the rectangle "WooCommerce 9.0 through 11.x".
+* WordPress below 6.7. WooCommerce 9 on WordPress 7. WooCommerce 10 or newer on WordPress 6.7 or 6.8. The WooCommerce 11.1.2 package still refuses WordPress below 7.0.
 * Real managed/shared-host certification.
 * Universal rollback; "rolls everything back"; "prevents all bad edits"; any protection claim for every Woo write.
+* Reading the #322 listing as a firewall, hostile-plugin isolation, direct SQL protection, universal agent safety, or protection for every WooCommerce write. Stock wording covers only the opt-in controlled grant path.
+* "Fails closed everywhere else," or a universal fail-closed guarantee when the grant store is unavailable. Coverage is the documented monitored WooCommerce write paths and a matching Execution Frame.
 * Reversal of orders, sales, emails, webhooks, remote HTTP or external queues.
 * Guaranteed shopper prices; arbitrary save-hook throughput; arbitrary metadata size.
 * Package-upgrade certification from a released Free package (none exists).

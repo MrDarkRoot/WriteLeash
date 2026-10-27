@@ -19,19 +19,20 @@ echo "Database fixture: $db $server_version; WordPress $(wp --path="$site" core 
 [ "$(wp --path="$site" core version)" = 6.8.3 ]
 [ "$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')" = 8.2 ]
 
-# Public package MUST refuse normally on unsupported WP, before the shim.
-CC63_PHASE=minimum wp --path="$site" eval-file /opt/tests/dependency-63.php
+# WordPress 6.8.3 is inside the legacy band, so Core must not refuse the
+# public package here. The one below-floor WordPress refusal is dependency-63
+# phase minimum on WordPress 6.6.x. This image proves the legacy dependency
+# only: WooCommerce 9.9.7 activates WriteLeash, and WooCommerce 11 on this
+# WordPress band stays unsupported. No price journey runs in this suite.
 php /opt/tests/release/readme-validate.php "$site/wp-content/plugins/writeleash"
-# HISTORICAL TEST ONLY: shim only the disposable copy, then overlay the legacy
-# substrate. Public dependency proof is on 7.1.2/11.1.2, never 6.8.3/9.9.7.
-php /opt/tests/historical-minimum-121.php "$site"
+wp --path="$site" plugin install /opt/plugin-zips/woocommerce.9.9.7.zip --activate
+CC63_PHASE=legacy-supported wp --path="$site" eval-file /opt/tests/dependency-63.php
+wp --path="$site" plugin deactivate writeleash
+wp --path="$site" option delete writeleash_version
+wp --path="$site" option delete writeleash_runner_state
 php /opt/tests/legacy/stage.php "$site/wp-content/plugins/writeleash"
 wp --path="$site" plugin install /opt/plugin-zips/redirection.5.5.2.zip --activate --force
 wp --path="$site" eval-file /opt/tests/redirection-schema.php
-# 6.8.3-leg activation shim (see run.sh): Woo 9.9.7 satisfies Core's slug
-# gate so the Guard regression leg can activate. Free behavior is never
-# exercised against this build; #111 evidence stays 11.1.2 on WP 7.1.2.
-wp --path="$site" plugin install /opt/plugin-zips/woocommerce.9.9.7.zip --activate
 
 wp --path="$site" eval-file /opt/tests/identity-62.php
 php /opt/tests/release/source-audit.php "$site/wp-content/plugins/writeleash"

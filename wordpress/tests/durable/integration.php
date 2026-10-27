@@ -244,6 +244,18 @@ foreach ( array( 'status', 'sale', 'currency', 'decimals', 'software' ) as $drif
  } elseif ( 'currency' === $drift ) { update_option( 'woocommerce_currency', 'EUR' ); }
  elseif ( 'decimals' === $drift ) { update_option( 'woocommerce_price_num_decimals', 3 ); }
  $result = run_item( $f, 'software' === $drift ? array( 'wp_version_fault' => true ) : array() );
+ // A live WordPress version outside both certified bands fails the apply
+ // environment gate before the plan precondition. The item stays PENDING,
+ // the price stays 100, and no Woo save runs. In-band software drift remains
+ // a precondition CONFLICT and is covered by the plan integration cases.
+ if ( 'software' === $drift ) {
+  eq( $result['code'], 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'live pair outside both bands is an environment refusal' );
+  eq( $result['reason'], 'WOOCOMMERCE_VERSION_UNSUPPORTED', 'environment refusal keeps the WooCommerce reason token' );
+  eq( hook_count( $f ), 0, 'unsupported pair zero mutation' );
+  truth( $f, '100', 'PENDING' );
+  marker( 'fresh software pair outside both bands: WOOCOMMERCE_VERSION_UNSUPPORTED / journal PENDING / price unchanged / zero WriteLeash save' );
+  continue;
+ }
  eq( $result['code'], 'CONFLICT', 'fresh contract drift ' . $drift );
  eq( hook_count( $f ), 0, 'contract drift zero mutation' );
  update_option( 'woocommerce_currency', 'USD' ); update_option( 'woocommerce_price_num_decimals', 2 );

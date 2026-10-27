@@ -24,63 +24,99 @@ final class Free_Support_Contract {
 	public const MAX_STOCK_ABS_DELTA = '1000';
 	public const MIN_STOCK_FLOOR = '0';
 	/**
-	 * Supported WooCommerce range. Every storage/API assumption WriteLeash
-	 * relies on is stable across this span: CPT data-store CRUD price
-	 * setters, the wc_product_meta_lookup min/max/onsale shape, the
-	 * currency/decimals helpers, the public product-factory type/classname
-	 * lookup and the transient/cache-group invalidation calls. Fresh reads
-	 * construct the exact core product class directly and clean caches
-	 * through public WordPress/Woo helpers only, so no version-conditional
-	 * cache class is required anywhere in this span. The ceiling excludes the
-	 * next major until its storage contract is re-certified.
+	 * Certified pairs, not a rectangle. A WordPress version and a WooCommerce
+	 * version are supported only together, on one of these two bands:
+	 *
+	 * Modern: WordPress >= 7.0 and < 8.0, AND WooCommerce >= 10.0.0 and < 12.0.0.
+	 * Legacy: WordPress >= 6.7 and < 7.0, AND WooCommerce >= 9.0.0 and < 10.0.0.
+	 *
+	 * Every other combination is refused before a job is created, including
+	 * WooCommerce 9 on WordPress 7, WooCommerce 10 or 11 on WordPress 6.7/6.8,
+	 * WordPress below 6.7, and WooCommerce below 9.0.0. The modern storage/API
+	 * assumptions (CPT data-store price setters, wc_product_meta_lookup shape,
+	 * currency/decimals helpers, the public product factory, and public cache
+	 * invalidation) were certified on that line. The legacy line is only the
+	 * tested WordPress 6.7/6.8 plus WooCommerce 9.x pairs. Fresh reads still
+	 * construct the core product class directly and clean caches through
+	 * public helpers, so no version-conditional cache class is required.
+	 * Ceilings stay exclusive until the next major is re-certified.
+	 * WOOCOMMERCE_MIN and WORDPRESS_MIN are the modern floors, not the
+	 * directory headers (those name the legacy floors).
 	 */
 	public const WOOCOMMERCE_MIN = '10.0.0';
 	public const WOOCOMMERCE_MAX_EXCLUSIVE = '12.0.0';
-	/**
-	 * Supported WordPress range. Matches the plugin header and WooCommerce
-	 * 11's own minimum (WordPress 7.0); only long-stable WordPress APIs are
-	 * used (options, WP_Query, roles/capabilities), so patch/minor drift
-	 * inside this span is safe.
-	 */
 	public const WORDPRESS_MIN = '7.0';
 	public const WORDPRESS_MAX_EXCLUSIVE = '8.0';
+	public const LEGACY_WORDPRESS_MIN = '6.7';
+	public const LEGACY_WORDPRESS_MAX_EXCLUSIVE = '7.0';
+	public const LEGACY_WOOCOMMERCE_MIN = '9.0.0';
+	public const LEGACY_WOOCOMMERCE_MAX_EXCLUSIVE = '10.0.0';
 
 	/** Safe to call during bootstrap: activation does not depend on Woo init. */
 	public static function woocommerce_reason(): ?string {
 		if ( ! function_exists( 'wc_get_product' ) || ! defined( 'WC_VERSION' ) || ! did_action( 'woocommerce_init' ) ) {
 			return 'woocommerce_unavailable';
 		}
-		return self::woo_supported( WC_VERSION ) ? null : 'woocommerce_version_unsupported';
+		global $wp_version;
+		$wp = isset( $wp_version ) ? (string) $wp_version : '';
+		return null !== self::support_band( $wp, (string) WC_VERSION ) ? null : 'woocommerce_version_unsupported';
 	}
 
 	public static function woocommerce_ok(): bool {
 		return null === self::woocommerce_reason();
 	}
 
-	/** Whether an installed WooCommerce version is inside the supported range. */
-	public static function woo_supported( string $version ): bool {
-		return '' !== $version && version_compare( $version, self::WOOCOMMERCE_MIN, '>=' ) && version_compare( $version, self::WOOCOMMERCE_MAX_EXCLUSIVE, '<' );
-	}
-
-	/** Whether a WordPress version is inside the supported range. */
-	public static function wp_supported( string $version ): bool {
-		return '' !== $version && version_compare( $version, self::WORDPRESS_MIN, '>=' ) && version_compare( $version, self::WORDPRESS_MAX_EXCLUSIVE, '<' );
+	/**
+	 * Modern, legacy, or null. Null is refused. The halves are not
+	 * interchangeable: WooCommerce 9 is legacy-only and WooCommerce 10/11
+	 * are modern-only.
+	 */
+	public static function support_band( string $wp, string $woo ): ?string {
+		if ( self::in_span( $wp, self::WORDPRESS_MIN, self::WORDPRESS_MAX_EXCLUSIVE ) && self::in_span( $woo, self::WOOCOMMERCE_MIN, self::WOOCOMMERCE_MAX_EXCLUSIVE ) ) {
+			return 'modern';
+		}
+		if ( self::in_span( $wp, self::LEGACY_WORDPRESS_MIN, self::LEGACY_WORDPRESS_MAX_EXCLUSIVE ) && self::in_span( $woo, self::LEGACY_WOOCOMMERCE_MIN, self::LEGACY_WOOCOMMERCE_MAX_EXCLUSIVE ) ) {
+			return 'legacy';
+		}
+		return null;
 	}
 
 	/**
-	 * Routine patch/minor drift inside the supported ranges does not change
-	 * any product/price fact WriteLeash guards, so a frozen plan stays valid
-	 * across it. Drift that leaves the supported range (on either side, at
-	 * either timestamp) is not routine and stays a conflict.
+	 * Woo half of some certified band. Not a support decision: WooCommerce
+	 * 9.9.7 is true here and still refused on WordPress 7.
 	 */
-	public static function versions_compatible( string $frozen_wp, string $frozen_woo, string $current_wp, string $current_woo ): bool {
-		return self::wp_supported( $frozen_wp ) && self::woo_supported( $frozen_woo ) && self::wp_supported( $current_wp ) && self::woo_supported( $current_woo );
+	public static function woo_supported( string $version ): bool {
+		return self::in_span( $version, self::LEGACY_WOOCOMMERCE_MIN, self::LEGACY_WOOCOMMERCE_MAX_EXCLUSIVE )
+			|| self::in_span( $version, self::WOOCOMMERCE_MIN, self::WOOCOMMERCE_MAX_EXCLUSIVE );
 	}
 
-	/** Merchant-facing short form of the supported WooCommerce range. */
+	/**
+	 * WordPress half of some certified band. Not a support decision:
+	 * WordPress 6.8 is true here and still refused with WooCommerce 10 or newer.
+	 */
+	public static function wp_supported( string $version ): bool {
+		return self::in_span( $version, self::LEGACY_WORDPRESS_MIN, self::LEGACY_WORDPRESS_MAX_EXCLUSIVE )
+			|| self::in_span( $version, self::WORDPRESS_MIN, self::WORDPRESS_MAX_EXCLUSIVE );
+	}
+
+	/**
+	 * Patch/minor drift stays valid only inside one certified band. A frozen
+	 * plan recorded on one band must not apply on the other, and a timestamp
+	 * outside both bands is a conflict on either side.
+	 */
+	public static function versions_compatible( string $frozen_wp, string $frozen_woo, string $current_wp, string $current_woo ): bool {
+		$frozen = self::support_band( $frozen_wp, $frozen_woo );
+		$current = self::support_band( $current_wp, $current_woo );
+		return null !== $frozen && $frozen === $current;
+	}
+
+	/** Merchant-facing pair rule. Not a single WooCommerce 9.0 through 11.x rectangle. */
 	public static function range_text(): string {
-		/* translators: %s: minimum supported WooCommerce version. */
-		return sprintf( __( 'WooCommerce %s through 11.x', 'writeleash' ), self::WOOCOMMERCE_MIN );
+		return __( 'WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0, or WooCommerce 9.0 below 10.0 on WordPress 6.7 below 7.0', 'writeleash' );
+	}
+
+	private static function in_span( string $version, string $min, string $max_exclusive ): bool {
+		return '' !== $version && version_compare( $version, $min, '>=' ) && version_compare( $version, $max_exclusive, '<' );
 	}
 
 	/**

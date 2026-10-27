@@ -80,14 +80,14 @@ foreach ( $required_topics as $label => $needle ) {
 // #312: the restricted-agent boundary must use the same seatbelt wording in
 // the public listing and the reviewed claim matrix. Whitespace is normalized
 // so both files may wrap the sentence independently.
-$seatbelt = "A seatbelt, not a firewall: a restricted WordPress principal is bounded to WriteLeash's controlled price/stock job path and fails closed everywhere else.";
+$seatbelt = "A seatbelt, not a firewall: a restricted WordPress principal is bounded to WriteLeash's controlled price and stock job path. Documented monitored WooCommerce write paths are denied outside a matching Execution Frame. Direct SQL, hostile plugins, and unmonitored write paths are not covered. This is not a universal fail-closed guarantee when the grant store is unavailable.";
 foreach ( array( 'readme' => $read, 'claim matrix' => $mx ) as $label => $text ) {
 	if ( false === strpos( preg_replace( '/\s+/', ' ', $text ), $seatbelt ) ) {
 		$fail( 'missing exact restricted-agent seatbelt wording in ' . $label );
 	}
 }
 
-$unsupported = array( '10,000', '10000', 'universal rollback', 'all bad edits', 'every shared host', 'all WooCommerce versions', 'any WooCommerce version' );
+$unsupported = array( '10,000', '10000', 'universal rollback', 'all bad edits', 'every shared host', 'all WooCommerce versions', 'any WooCommerce version', 'fails closed everywhere else' );
 foreach ( $unsupported as $claim ) {
 	if ( false !== stripos( $read, $claim ) ) {
 		$fail( 'unsupported public claim in readme: ' . $claim );

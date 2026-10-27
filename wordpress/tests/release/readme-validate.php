@@ -25,6 +25,14 @@ foreach ( array( $readme, $main ) as $file ) {
 	}
 }
 $text = (string) file_get_contents( $readme );
+$package_version = null;
+if ( preg_match( '/^\s*\*\s*Version:\s*(\S+)\s*$/m', (string) file_get_contents( $main ), $package_version_match ) ) {
+	$package_version = $package_version_match[1];
+}
+// build-wordpress-org.py audits the pinned 0.1.0 source with this validator
+// and no --frozen-artifact flag. That artifact stays on WordPress 7.0 and the
+// WooCommerce 10.0 through 11.x sentence. It is not the pair-rule listing.
+$historical_package = ! $frozen && '0.1.0' === $package_version;
 require_once __DIR__ . '/conflict-copy.php';
 writeleash_conflict_copy_audit( $text, $frozen );
 if ( strlen( $text ) > 10240 ) {
@@ -69,8 +77,9 @@ $tags = array_filter( array_map( 'trim', explode( ',', $headers['tags'] ) ) );
 if ( ! $tags || count( $tags ) > 5 || count( $tags ) !== count( array_unique( $tags ) ) ) {
 	$fail( 'Tags must be 1-5 unique comma-separated terms' );
 }
-if ( ! preg_match( '/\A\d+\.\d\z/', $headers['requires at least'] ) || '7.0' !== $headers['requires at least'] ) {
-	$fail( 'Requires at least must be the narrowest coherent value 7.0 (WooCommerce 11 package minimum)' );
+$wp_floor = ( $frozen || $historical_package ) ? '7.0' : '6.7';
+if ( ! preg_match( '/\A\d+\.\d\z/', $headers['requires at least'] ) || $wp_floor !== $headers['requires at least'] ) {
+	$fail( 'Requires at least must be ' . $wp_floor . ' (live tree: legacy-band floor 6.7; WooCommerce 10.0 through 11.x still requires WordPress 7.0 up to 8.0)' );
 }
 if ( ! preg_match( '/\A\d+\.\d\z/', $headers['tested up to'] ) || '7.1' !== $headers['tested up to'] ) {
 	$fail( 'Tested up to must be the tested current-stable major/minor 7.1' );
@@ -90,8 +99,9 @@ if ( 'https://www.gnu.org/licenses/gpl-2.0.html' !== $headers['license uri'] ) {
 
 // Directory metadata and the main plugin header must not contradict each other.
 $main_header = (string) file_get_contents( $main );
+$header_floor = ( $frozen || $historical_package ) ? '7\.0' : '6\.7';
 foreach ( array(
-	'/^\s*\*\s*Requires at least:\s*7\.0\s*$/m',
+	'/^\s*\*\s*Requires at least:\s*' . $header_floor . '\s*$/m',
 	'/^\s*\*\s*Requires PHP:\s*7\.4\s*$/m',
 ) as $requirement ) {
 	if ( ! preg_match( $requirement, $main_header ) ) {
@@ -112,7 +122,21 @@ if ( strlen( $short ) > 150 ) {
 }
 
 // Required recognizable sections for the WooCommerce Free listing.
-foreach ( array( '== Description ==', '== Supported scope ==', '== Installation ==', '== Screenshots ==', '== Frequently Asked Questions ==', '== Changelog ==' ) as $section ) {
+// The pinned 0.1.0 and frozen artifacts keep "Supported scope". The live
+// listing uses the three #280 headings and must not restore the old heading.
+$sections = array( '== Description ==', '== Installation ==', '== Screenshots ==', '== Frequently Asked Questions ==', '== Changelog ==' );
+if ( $frozen || $historical_package ) {
+	$sections[] = '== Supported scope ==';
+} else {
+	array_push( $sections, '== Requirements ==', '== What is supported ==', '== Current limitations ==' );
+	if ( str_contains( $text, '== Supported scope ==' ) ) {
+		$fail( 'live readme must use Requirements, What is supported, and Current limitations' );
+	}
+	if ( false !== stripos( $text, 'fails closed everywhere else' ) ) {
+		$fail( 'live readme must not claim the restricted principal fails closed everywhere else' );
+	}
+}
+foreach ( $sections as $section ) {
 	if ( ! str_contains( $text, $section ) ) {
 		$fail( 'missing readme section: ' . $section );
 	}
@@ -133,6 +157,16 @@ if ( false !== stripos( $text, 'Baseline Disable' ) ) {
 foreach ( array( '7.0.1', '7.1.2' ) as $tested_core ) {
 	if ( ! str_contains( $text, $tested_core ) ) {
 		$fail( 'readme must name the exact tested WordPress core fixture: ' . $tested_core );
+	}
+}
+if ( ! $frozen && ! $historical_package ) {
+	foreach ( array( 'WordPress 7.0 up to 8.0', '6.7.2', '9.0.4', '6.8.3', '9.9.7' ) as $pair_fact ) {
+		if ( ! str_contains( $text, $pair_fact ) ) {
+			$fail( 'readme must keep the modern line and name the tested legacy pairs: ' . $pair_fact );
+		}
+	}
+	if ( false !== stripos( $text, 'WooCommerce 9.0 through 11.x' ) ) {
+		$fail( 'readme must not claim the untested WooCommerce 9.0 through 11.x rectangle' );
 	}
 }
 

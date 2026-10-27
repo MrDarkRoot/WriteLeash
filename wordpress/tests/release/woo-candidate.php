@@ -42,11 +42,11 @@ $expected_headers = array(
 	'Author URI'          => 'https://profiles.wordpress.org/duyytrann',
 	'Developer'           => 'Duy Tran',
 	'Developer URI'       => 'https://profiles.wordpress.org/duyytrann',
-	'Requires at least'   => '7.0',
+	'Requires at least'   => '6.7',
 	'Tested up to'        => '7.1',
 	'Requires PHP'        => '7.4',
 	'Requires Plugins'    => 'woocommerce',
-	'WC requires at least' => '10.0',
+	'WC requires at least' => '9.0',
 	'WC tested up to'     => '11.1',
 	'Text Domain'         => 'writeleash',
 	'Domain Path'         => '/languages',
@@ -94,12 +94,17 @@ if ( ! preg_match( "/WOOCOMMERCE_MIN = '([^']+)'/", $contract, $min_match ) ||
 	! preg_match( "/WOOCOMMERCE_MAX_EXCLUSIVE = '([^']+)'/", $contract, $max_match ) ) {
 	$fail( 'unreadable WooCommerce support-contract range' );
 }
-$wc_min_header = '10.0';
-if ( $min_match[1] !== $wc_min_header . '.0' ) {
-	$fail( 'WC requires at least does not match WOOCOMMERCE_MIN ' . $min_match[1] );
+if ( '10.0.0' !== $min_match[1] || '12.0.0' !== $max_match[1] ) {
+	$fail( 'modern WooCommerce band must stay 10.0.0 inclusive to 12.0.0 exclusive, saw ' . $min_match[1] . ' to ' . $max_match[1] );
+}
+if ( ! preg_match( "/WORDPRESS_MIN = '7\\.0'/", $contract ) || ! preg_match( "/WORDPRESS_MAX_EXCLUSIVE = '8\\.0'/", $contract ) ) {
+	$fail( 'modern WordPress band must stay 7.0 inclusive to 8.0 exclusive' );
+}
+if ( ! preg_match( "/LEGACY_WORDPRESS_MIN = '6\\.7'/", $contract ) || ! preg_match( "/LEGACY_WORDPRESS_MAX_EXCLUSIVE = '7\\.0'/", $contract ) || ! preg_match( "/LEGACY_WOOCOMMERCE_MIN = '9\\.0\\.0'/", $contract ) || ! preg_match( "/LEGACY_WOOCOMMERCE_MAX_EXCLUSIVE = '10\\.0\\.0'/", $contract ) ) {
+	$fail( 'legacy pair band must stay WordPress 6.7 up to 7.0 and WooCommerce 9.0.0 up to 10.0.0' );
 }
 if ( ! ( version_compare( '11.1', $min_match[1], '>=' ) && version_compare( '11.1', $max_match[1], '<' ) ) ) {
-	$fail( 'WC tested up to 11.1 is outside the support contract ' . $min_match[1] . ' to ' . $max_match[1] );
+	$fail( 'WC tested up to 11.1 is outside the modern support contract ' . $min_match[1] . ' to ' . $max_match[1] );
 }
 
 // B. Version coherence across every candidate identity surface.

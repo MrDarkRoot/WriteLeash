@@ -44,6 +44,46 @@ jobs:
             sizes: '100'
             woo: '9.9.7'
             cache: persistent
+          - name: legacy-wp67-woo90
+            core: wordpress:6.7.2-php8.2-apache@sha256:85c7d25eaf9726eeff21adad930aa43d2894bd73e9253ab250737b6d994a1181
+            cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
+            sizes: '100 101 1000'
+            woo: '9.0.4'
+            cache: default
+            memory: 256M
+            time: '60'
+            variations: '1'
+          - name: legacy-wp67-woo90-redis
+            core: wordpress:6.7.2-php8.2-apache@sha256:85c7d25eaf9726eeff21adad930aa43d2894bd73e9253ab250737b6d994a1181
+            cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
+            sizes: '100'
+            woo: '9.0.4'
+            cache: persistent
+            memory: 256M
+            time: '60'
+            variations: '1'
+          - name: legacy-wp68-woo99
+            core: wordpress:6.8.3-php8.2-apache@sha256:1e6215749283955d5c9ffea6c297651ed23cdfdbb91677ad7abd705b2682f2cf
+            cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
+            sizes: '100 101 1000'
+            woo: '9.9.7'
+            cache: default
+            memory: 256M
+            time: '60'
+            variations: '1'
+          - name: below-wordpress
+            core: wordpress:6.6.2-php8.2-apache@sha256:c30c1376b4d2c9d1e2328c2ee6149d133104d65873a98cbc6adc743a2964c4ba
+            cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
+            sizes: '100'
+            woo: '9.0.4'
+            cache: default
+            expect: wp-floor
+          - name: below-woo
+            core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
+            cli: wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89
+            sizes: '100'
+            woo: '8.9.5'
+            cache: default
           - name: php74
             core: wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19
             cli: wordpress:cli-php7.4@sha256:9a1bb40df37cfe9c82b3d098a845b05f3586deefb696d1b59abcce3c269fb075
@@ -77,6 +117,8 @@ jobs:
           WL112_CACHE: ${{ matrix.cache }}
           WL112_MEMORY: ${{ matrix.memory || '128M' }}
           WL112_TIME: ${{ matrix.time || '30' }}
+          WL112_VARIATIONS: ${{ matrix.variations || '' }}
+          WL112_EXPECT: ${{ matrix.expect || '' }}
           WL112_RESULTS: ${{ runner.temp }}/wl112
         shell: bash
         run: |

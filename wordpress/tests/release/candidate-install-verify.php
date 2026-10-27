@@ -105,10 +105,10 @@ $parsed = array(
 foreach ( array(
 	'Name' => 'WriteLeash',
 	'Version' => $evidence['VERSION'],
-	'RequiresWP' => '7.0',
+	'RequiresWP' => '6.7',
 	'RequiresPHP' => '7.4',
 	'RequiresPlugins' => 'woocommerce',
-	'WCRequires' => '10.0',
+	'WCRequires' => '9.0',
 	'WCTested' => '11.1',
 	'TextDomain' => 'writeleash',
 ) as $field => $wanted ) {

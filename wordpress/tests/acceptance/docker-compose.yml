@@ -47,6 +47,8 @@ services:
       WL112_CACHE: ${WL112_CACHE:-persistent}
       WL112_MEMORY: ${WL112_MEMORY:-128M}
       WL112_TIME: ${WL112_TIME:-30}
+      WL112_VARIATIONS: ${WL112_VARIATIONS:-}
+      WL112_EXPECT: ${WL112_EXPECT:-}
     volumes:
       - ./cache:/opt/woo-zips:ro
       - ${WL112_RESULTS}:/evidence

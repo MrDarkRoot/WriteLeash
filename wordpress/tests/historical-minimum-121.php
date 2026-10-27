@@ -27,8 +27,8 @@ foreach ( array( array( $main, $public ), array( $readme, $public_readme ) ) as 
 $before = hash_file( 'sha256', $public );
 $readme_before = hash_file( 'sha256', $public_readme );
 $text = file_get_contents( $main );
-$text = preg_replace( '/^( \* Requires at least:) 7\.0$/m', '$1 6.8.3' . "\n * HISTORICAL TEST ONLY: disposable WP 6.8.3 metadata shim; not public support.", $text, -1, $count );
-$readme_text = preg_replace( '/^Requires at least: 7\.0$/m', 'Requires at least: 6.8.3', file_get_contents( $readme ), -1, $readme_count );
+$text = preg_replace( '/^( \* Requires at least:) 6\.7$/m', '$1 6.8.3' . "\n * HISTORICAL TEST ONLY: disposable WP 6.8.3 metadata shim; not public support.", $text, -1, $count );
+$readme_text = preg_replace( '/^Requires at least: 6\.7$/m', 'Requires at least: 6.8.3', file_get_contents( $readme ), -1, $readme_count );
 // Official Plugin Check audits this historical staged tree too. Keep its
 // metadata coherent without changing any production file or public assertion.
 if ( 1 !== $count || 1 !== $readme_count || false === file_put_contents( $main, $text ) ||
@@ -36,4 +36,4 @@ if ( 1 !== $count || 1 !== $readme_count || false === file_put_contents( $main, 
 	hash_file( 'sha256', $public ) !== $before || hash_file( 'sha256', $public_readme ) !== $readme_before ) {
 	throw new RuntimeException( 'HISTORICAL TEST ONLY: exact metadata shim failed or public source changed' );
 }
-echo "#121 HISTORICAL TEST ONLY: staged header/readme WP minimum 6.8.3; production remains 7.0; no runtime authority added: PASS\n";
+echo "#121 HISTORICAL TEST ONLY: staged header/readme WP minimum 6.8.3; production remains 6.7; no runtime authority added: PASS\n";

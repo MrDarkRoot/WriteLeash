@@ -13,11 +13,11 @@ if ( is_file( WP_PLUGIN_DIR . '/commitcap/commitcap.php' ) ||
 $data = get_plugin_data( $file, false, false );
 $main = file_get_contents( $file );
 $historical = false !== strpos( $main, 'HISTORICAL TEST ONLY: disposable WP 6.8.3 metadata shim; not public support.' );
-$minimum = $historical ? '6.8.3' : '7.0';
+$minimum = $historical ? '6.8.3' : '6.7';
 if ( $historical && ( '6.8.3' !== $GLOBALS['wp_version'] ||
 	0 !== strpos( realpath( ABSPATH ), '/tmp/' ) ||
-	! preg_match( '/^ \* Requires at least: 7\.0$/m', file_get_contents( '/opt/writeleash/writeleash.php' ) ) ) ) {
-	throw new RuntimeException( '#121 historical identity requires disposable exact WP 6.8.3 and untouched production minimum 7.0' );
+	! preg_match( '/^ \* Requires at least: 6\.7$/m', file_get_contents( '/opt/writeleash/writeleash.php' ) ) ) ) {
+	throw new RuntimeException( '#121 historical identity requires disposable exact WP 6.8.3 and untouched production minimum 6.7' );
 }
 $license_header = get_file_data(
 	$file,

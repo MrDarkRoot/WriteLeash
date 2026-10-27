@@ -76,7 +76,7 @@ Requirements, supported versions and the full capability details are in
 custom database account or manual SQL setup is required.
 
 - Plugin entry point: [`writeleash.php`](writeleash.php)
-- Supported scope and limitations: [readme.txt](readme.txt)
+- Requirements, what is supported, and current limitations: [readme.txt](readme.txt)
 - License: [GPL-2.0-or-later](LICENSE)
 
 WordPress.org approval is founder-reported. Public distribution and a usable
