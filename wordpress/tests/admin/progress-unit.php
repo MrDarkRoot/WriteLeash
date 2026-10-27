@@ -4,6 +4,9 @@ namespace {
 	require __DIR__ . "/i18n-stubs.php";
 	define( 'ABSPATH', __DIR__ );
 	define( 'WC_VERSION', '11.1.2' );
+	// Modern certified pair. An empty WordPress version is not a band, so the
+	// shared dependency gate would refuse Resume and Undo before the job-id regex.
+	$GLOBALS['wp_version'] = '7.1.2';
 	$GLOBALS['wl204_actor'] = 7; $GLOBALS['wl204_capable'] = true; $GLOBALS['wl204_http_error'] = null; $GLOBALS['wl204_workers'] = array();
 	function add_action( $hook, $callback, $priority = 10 ) { $GLOBALS['wl204_hooks'][$hook] = $callback; }
 	function nocache_headers() {}
@@ -182,6 +185,13 @@ namespace {
 	check204( Admin::process_resume( array( 'job' => 'job204', '_wpnonce' => $resume_nonce ), 'POST' ), array( 'status' => 'FORBIDDEN', 'reason' => 'capability_required' ), 'Resume capability re-checked' );
 	check204( Admin::process_undo( array( 'job' => 'job204', '_wpnonce' => $undo_nonce ), 'POST' ), array( 'status' => 'FORBIDDEN', 'reason' => 'capability_required' ), 'Undo capability re-checked' );
 	$GLOBALS['wl204_capable'] = true;
+	// WordPress 6.8 with WooCommerce 11 is the refused cross-band. The refusal
+	// is the dependency gate, before job-id parsing, and it starts no worker.
+	$GLOBALS['wp_version'] = '6.8.3';
+	check204( Admin::process_resume( array( 'job' => 'job204', '_wpnonce' => $resume_nonce ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'woocommerce_version_unsupported' ), 'cross-band pair refuses Resume before the job id' );
+	check204( Admin::process_undo( array( 'job' => 'job204', '_wpnonce' => $undo_nonce ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'woocommerce_version_unsupported' ), 'cross-band pair refuses Undo before the job id' );
+	check204( $GLOBALS['wl204_workers'], $workers_before, 'cross-band Resume and Undo start no worker' );
+	$GLOBALS['wp_version'] = '7.1.2';
 	check204( Admin::process_resume( array( 'job' => 'bad', '_wpnonce' => $resume_nonce ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_job' ), 'Resume job id is regex-checked' );
 	check204( Admin::process_undo( array( 'job' => 'bad', '_wpnonce' => $undo_nonce ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_job' ), 'Undo job id is regex-checked' );
 	check204( Admin::process_resume( array( 'job' => 'job204', '_wpnonce' => wp_create_nonce( Admin::ACTION_RESUME . '_job205' ) ), 'POST' ), array( 'status' => 'INVALID', 'reason' => 'invalid_nonce' ), 'Resume nonce is job-bound' );

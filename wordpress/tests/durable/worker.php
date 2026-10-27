@@ -4,6 +4,8 @@ require __DIR__ . '/hook-torture.php';
 $fixture = json_decode( file_get_contents( $args[0] ), true );
 $plan = unserialize( file_get_contents( $fixture['plan'] ) );
 wp_set_current_user( $plan->data()['actor_id'] );
+// 0.0.0 is outside both certified bands. Apply must refuse at the environment
+// gate, before a product lock or a precondition conflict.
 if ( ! empty( $fixture['wp_version_fault'] ) ) { $GLOBALS['wp_version'] = '0.0.0'; }
 $GLOBALS['wl108_log'] = $fixture['log'];
 $GLOBALS['wl108_active'] = true;
