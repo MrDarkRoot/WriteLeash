@@ -3,7 +3,7 @@ Contributors: duyytrann
 Tags: woocommerce, prices, stock, variations, undo
 Requires at least: 6.7
 Tested up to: 7.1
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -65,7 +65,7 @@ that product as a conflict.
 
 A Regular Price change preserves a later Sale Price or schedule where valid.
 A nonblank Sale Price target must stay below Regular Price; Clear and sale
-discounts check the reviewed Regular Price basis. Product name, SKU and
+discounts check the reviewed Regular Price basis. The product name, SKU and
 category are reference details only; changing them alone does not conflict.
 
 = Background, History and Undo =
@@ -174,29 +174,26 @@ backups. WriteLeash creates no backups.
 
 == Changelog ==
 
-= Unreleased =
+= 0.3.0 =
 
-* Requirements, What is supported, and Current limitations name the tested pairs. No version change.
+* Added opt-in restricted grants for bounded price and stock jobs. Grants stay off until an operator issues one.
+* Denied monitored product writes outside a matching Execution Frame. Pause, revoke, and remove-restriction do not fall open.
+* Upgrade from 0.2.2 keeps existing jobs, journals, and presets. No grant is created on upgrade. Stock Undo is not supported.
+
+= 0.2.2 =
+
+* Hardened apply-journal transitions so a committed change is not demoted, and improved recovery after an interrupted request.
+* Refreshed permission checks before Undo. Added disabled-by-default foundations for bounded delegated price authority.
+
+= 0.2.1 =
+
+* Refreshed the plugin listing. No price-change behavior changed.
 
 = 0.2.0 =
 
-* Added live read-only Apply and Undo progress without page reloads.
-* Added Conflict to fresh Preview for conflicted products at current prices.
-* Added optional nested subcategories and clearer selection counts; Preview freezes reviewed product IDs.
-* Added Clear Sale Price and sale discounts from reviewed Regular Price.
-* Added optional Price Endings, subject to precision, eligibility and safety limits.
-* Added save/load editable price-operation presets; fresh Preview and separate approval required.
-* Added individual product exclusions before final Preview approval.
-* Added Repeat from eligible History jobs into an editable fresh Preview with separate approval; previously excluded targets stay out of its suggestions.
-* Added frozen saved-Preview CSV export before approval; no prices changed.
-* Added inclusive stored Regular/Sale Price range selection.
-* Updated public-cache compatibility for default and persistent object-cache modes.
-* Updated merchant-facing PHP and JavaScript translation readiness.
+* Added live progress, Conflict to fresh Preview, presets, exclusions, Repeat, CSV export, price range, and price endings.
 * Requires WooCommerce 10.0 through 11.x.
 
 = 0.1.0 =
 
-* Bulk Regular Price and Sale Price changes for simple products and variations, with exact Preview before Apply and protection for relevant newer edits.
-* Select by product name, SKU or category, with up to 1,000 selected products per new job in the tested configuration.
-* Background processing, saved progress, Resume, History and eligible Undo.
-* Requires WooCommerce 10.0 through 11.x.
+* Added bulk Regular and Sale price changes with Preview, background jobs, Resume, History, and eligible Undo.
