@@ -1,8 +1,11 @@
 # Restricted agent seatbelt - v0.3.0 operator runbook
 
 A seatbelt, not a firewall: a restricted WordPress principal is bounded to
-WriteLeash's controlled price/stock job path and fails closed everywhere else.
-It is not a sandbox or universal "agent-safe" guarantee.
+WriteLeash's controlled price/stock job path. Documented monitored WooCommerce
+write paths are denied outside a matching Execution Frame. Direct SQL, hostile
+plugins, and unmonitored write paths are not covered. This is not a universal
+fail-closed guarantee when the grant store is unavailable. It is not a sandbox
+or universal "agent-safe" guarantee.
 
 Important assets in v0.3.0 are **price and stock only**. The merchant
 Preview → Approve → Apply → Undo (price) workflow is unchanged; grants are an
