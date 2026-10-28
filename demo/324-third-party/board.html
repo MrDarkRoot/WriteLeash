@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WriteLeash third-party denial</title>
+<style>
+  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; background: #f6f7f7; color: #1d2327; }
+  main { max-width: 1100px; margin: 24px auto; padding: 0 24px 32px; }
+  h1 { font-size: 28px; margin: 0 0 8px; }
+  .banner { background: #1d2327; color: #fff; padding: 14px 18px; border-radius: 6px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  section { background: #fff; border: 1px solid #dcdcde; border-radius: 6px; padding: 12px 14px; }
+  h2 { font-size: 15px; margin: 0 0 8px; }
+  pre { white-space: pre-wrap; word-break: break-word; margin: 0; font: 13px/1.35 ui-monospace, monospace; }
+  .bad { color: #8a2424; font-weight: 700; }
+  .ok { color: #0a5c32; font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <div class="banner">
+    <h1>AddSynapse Approve, then WriteLeash</h1>
+    <p id="lead">Loading the captured result.</p>
+  </div>
+  <div class="grid">
+    <section><h2>Who approved</h2><pre id="who"></pre></section>
+    <section><h2>Plugin path</h2><pre id="path"></pre></section>
+    <section><h2>WriteLeash result</h2><pre id="result"></pre></section>
+    <section><h2>Prices</h2><pre id="prices"></pre></section>
+    <section style="grid-column: 1 / -1"><h2>Denial audit</h2><pre id="audit"></pre></section>
+  </div>
+</main>
+<script>
+fetch('demo-evidence.json', { cache: 'no-store' }).then(r => r.json()).then(data => {
+  const cap = data.on_camera || {};
+  document.getElementById('lead').textContent = 'No model ran. Provider cost $0. Riley pressed Approve, then Yes, apply the changes. This recording is an unreleased WriteLeash repository build, not the WordPress.org 0.2.2 package.';
+  document.getElementById('who').textContent = [
+    'Requesting user: ' + data.actor.login + ' #' + data.actor.id + ' (' + data.actor.role + ')',
+    'Restricted by grant: ' + data.grant.public_id,
+    'Effective actor on the audit line: #' + (cap.audit ? cap.audit.actor : '')
+  ].join('\n');
+  document.getElementById('path').textContent = [
+    'Plugin: AddSynapse ' + data.plugin.version,
+    'Command: ' + cap.command,
+    'Confirmation: Approve, then Yes, apply the changes',
+    'Woo path: WC_Product::save()',
+    'Hook: woocommerce_before_product_object_save'
+  ].join('\n');
+  document.getElementById('result').innerHTML = '<span class="bad">' + (cap.ui_result || '') + '</span>\nHTTP ' + (cap.approve_http || '') + '\nwhere=' + (cap.audit ? cap.audit.where : '');
+  document.getElementById('prices').textContent = [
+    'Harborline Wool Cap: ' + data.prices.cap_before + ' → ' + data.prices.cap_after + (data.prices.cap_before === data.prices.cap_after ? ' unchanged' : ' CHANGED'),
+    'Northwind Canvas Tote: ' + data.prices.tote_before + ' → ' + data.prices.tote_after,
+    'Pilot Lantern control: ' + data.prices.lantern_before + ' → ' + data.prices.lantern_after + ' (unrestricted Morgan)',
+    'Product-row hash unchanged after both denials: ' + (data.rows_unchanged ? 'yes' : 'NO')
+  ].join('\n');
+  document.getElementById('audit').textContent = cap.audit_line || '';
+});
+</script>
+</body>
+</html>

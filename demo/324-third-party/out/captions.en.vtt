@@ -1,0 +1,28 @@
+WEBVTT
+
+00:00:01.500 --> 00:00:06.500
+Riley, a restricted shop manager, opens AddSynapse. No AI key is configured.
+
+00:00:06.500 --> 00:00:11.500
+Riley types a request to change only the Northwind Canvas Tote from $100.00 to $80.00.
+
+00:00:11.500 --> 00:00:18.500
+AddSynapse shows its own notice: the AI is not set up. No model ran. Cost is $0.
+
+00:00:18.500 --> 00:00:23.000
+Negative control, not a model proposal. Riley types /price for Harborline Wool Cap.
+
+00:00:23.000 --> 00:00:33.000
+Local preview: regular price $40.00 to $49.99. Nothing is saved yet.
+
+00:00:33.000 --> 00:00:38.500
+Riley presses Approve. The next button says Yes, apply the changes.
+
+00:00:38.500 --> 00:00:53.500
+Riley presses Yes, apply the changes. WriteLeash denies the product save. Zero changes applied.
+
+00:00:53.500 --> 00:01:00.000
+Harborline Wool Cap still shows $40.00.
+
+00:01:00.000 --> 00:01:08.440
+Unreleased WriteLeash build, not the WordPress.org 0.2.2 package. Denial recorded for actor 2 on product 11.
