@@ -9,15 +9,27 @@
     "display_name": "Riley Agent"
   },
   "grant": {
-    "public_id": "27f7313a-a526-4091-8d49-9863c18a7fa1",
+    "public_id": "6fdf6fc5-ec39-45e2-985b-bdc2a0b95512",
     "budget_max": 1,
-    "expires_at": "2027-01-01 00:00:00"
+    "expires_at": "2026-11-27 05:09:46",
+    "expires_source": "utc_now_plus_30_days"
+  },
+  "grant_proof": {
+    "status": "active",
+    "expires_at": "2026-11-27 05:09:46",
+    "actor_id": 2,
+    "restriction_removed_at": null,
+    "created_at": "2026-10-28 05:09:53",
+    "now": "2026-10-28 05:11:39",
+    "restricted": true,
+    "expires_source": "utc_now_plus_30_days"
   },
   "plugin": {
     "slug": "addsynapse-store-assistant",
     "version": "1.3.5",
     "zip_sha256": "8f2d15e1d58e4efb0b34522fb47f05f5f6ad46bbfefc77b6e77084d3a0fe49f2"
   },
+  "save_boundary": "The audit actor is get_current_user_id() inside woocommerce_before_product_object_save. Riley stayed that user on both denied saves.",
   "prices": {
     "lantern_before": "30.00",
     "lantern_after": "55.00",
@@ -28,9 +40,9 @@
   },
   "rows_unchanged": true,
   "sha256": {
-    "after_control": "26a137657995712d7f82c5e0c81dad74149b7086f4aa63830a7700765b6f7275",
-    "after_named_deny": "26a137657995712d7f82c5e0c81dad74149b7086f4aa63830a7700765b6f7275",
-    "after_cap_deny": "26a137657995712d7f82c5e0c81dad74149b7086f4aa63830a7700765b6f7275"
+    "after_control": "d47112ccd9a495514863253e131da83cce406009c650bedf6e15cb2b20e4f923",
+    "after_named_deny": "d47112ccd9a495514863253e131da83cce406009c650bedf6e15cb2b20e4f923",
+    "after_cap_deny": "d47112ccd9a495514863253e131da83cce406009c650bedf6e15cb2b20e4f923"
   },
   "counts": {
     "posts": 3,
@@ -44,14 +56,18 @@
     "command": "/price id=12 set 55.00",
     "ui_result": "Applied",
     "approve_http": 200,
+    "approve_body": "{\"id\":1,\"uuid\":\"49c4cc8e-d104-4b7b-8b4a-b80443b1e2db\",\"conversation_id\":1,\"operation\":\"price_update\",\"status\":\"applied\",\"summary\":\"Price update: regular price set to 55, rounding 2dp \\u2014 1 products\\/variations.\",\"params\":{\"mode\":\"set\",\"value\":55,\"target\":\"regular\",\"rounding\":\"2dp\",\"ids\":[12]},\"counts\":{\"pending\":0,\"applied\":1,\"conflict\":0,\"failed\":0,\"reverted\":0,\"revert_conflict\":0,\"excluded\":0,\"items\":1,\"products\":1},\"progress\":{\"done\":1,\"total\":1},\"user\":\"Morgan Merchant\",\"approved_by\":\"Morgan Merchant\",\"reverted_by\":\"\",\"created_at\":\"2026-10-28T05:10:21Z\",\"expires_at\":\"2026-10-29T05:10:21Z\",\"approved_at\":\"2026-10-28T05:10:26Z\",\"applied_at\":\"2026-10-28T05:10:27Z\",\"reverted_at\":\"\",\"log\":[{\"at\":\"2026-10-28T05:10:22Z\",\"event\":\"created\",\"user_id\":1,\"items\":1,\"user\":\"Morgan Merchant\"},{\"at\":\"2026-10-28T05:10:26Z\",\"event\":\"approved\",\"user_id\":1,\"items\":1,\"user\":\"Morgan Merchant\"},{\"at\":\"2026-10-28T05:10:27Z\",\"event\":\"applied\",\"user_id\":1,\"status\":\"applied\",\"applied\":1,\"conflict\":0,\"failed\":0,\"user\":\"Morgan Merchant\"}],\"replanned_from\":0,\"can\":{\"approve\":false,\"reject\":false,\"revert\":true,\"replan\":false}}",
+    "changeset_status": "applied",
     "regular_price_after": "55.00"
   },
   "named_product": {
     "command": "/price id=10 set 80.00",
     "ui_result": "WooCommerce refused the change: WriteLeash denied this write outside a matching Execution Frame.",
     "approve_http": 200,
+    "approve_body": "{\"id\":2,\"uuid\":\"b43ed7f2-f921-4d0f-9fee-79bc0b4a47ef\",\"conversation_id\":2,\"operation\":\"price_update\",\"status\":\"failed\",\"summary\":\"Price update: regular price set to 80, rounding 2dp \\u2014 1 products\\/variations.\",\"params\":{\"mode\":\"set\",\"value\":80,\"target\":\"regular\",\"rounding\":\"2dp\",\"ids\":[10]},\"counts\":{\"pending\":0,\"applied\":0,\"conflict\":0,\"failed\":1,\"reverted\":0,\"revert_conflict\":0,\"excluded\":0,\"items\":1,\"products\":1},\"progress\":{\"done\":1,\"total\":1},\"user\":\"Riley Agent\",\"approved_by\":\"Riley Agent\",\"reverted_by\":\"\",\"created_at\":\"2026-10-28T05:10:39Z\",\"expires_at\":\"2026-10-29T05:10:39Z\",\"approved_at\":\"2026-10-28T05:10:42Z\",\"applied_at\":\"2026-10-28T05:10:42Z\",\"reverted_at\":\"\",\"log\":[{\"at\":\"2026-10-28T05:10:39Z\",\"event\":\"created\",\"user_id\":2,\"items\":1,\"user\":\"Riley Agent\"},{\"at\":\"2026-10-28T05:10:42Z\",\"event\":\"approved\",\"user_id\":2,\"items\":1,\"user\":\"Riley Agent\"},{\"at\":\"2026-10-28T05:10:43Z\",\"event\":\"applied\",\"user_id\":2,\"status\":\"failed\",\"applied\":0,\"conflict\":0,\"failed\":1,\"user\":\"Riley Agent\"}],\"replanned_from\":0,\"can\":{\"approve\":false,\"reject\":false,\"revert\":false,\"replan\":false}}",
+    "changeset_status": "failed",
     "audit": {
-      "timestamp": "2026-10-28T02:38:18+00:00",
+      "timestamp": "2026-10-28T05:10:42+00:00",
       "code": "writeleash_perimeter_denied",
       "where": "product_save",
       "actor": 2,
@@ -64,11 +80,16 @@
     "plain_language": "Please change only the Northwind Canvas Tote regular price from 100 to 80. Do not change any other product.",
     "plain_language_result": "The AI is not set up on this site yet.",
     "command": "/price id=11 set 49.99",
+    "confirmations": [
+      "Approve",
+      "Yes, apply the changes"
+    ],
     "ui_result": "WooCommerce refused the change: WriteLeash denied this write outside a matching Execution Frame.",
     "approve_http": 200,
-    "approve_body": "{\"id\":3,\"uuid\":\"f6222beb-f14f-4337-9af3-ea7c70e9ae85\",\"conversation_id\":3,\"operation\":\"price_update\",\"status\":\"failed\",\"summary\":\"Price update: regular price set to 49.99, rounding 2dp \\u2014 1 products\\/variations.\",\"params\":{\"mode\":\"set\",\"value\":49.99,\"target\":\"regular\",\"rounding\":\"2dp\",\"ids\":[11]},\"counts\":{\"pending\":0,\"applied\":0,\"conflict\":0,\"failed\":1,\"reverted\":0,\"revert_conflict\":0,\"excluded\":0,\"items\":1,\"products\":1},\"progress\":{\"done\":1,\"total\":1},\"user\":\"Riley Agent\",\"approved_by\":\"Riley Agent\",\"reverted_by\":\"\",\"created_at\":\"2026-10-28T02:38:43Z\",\"expires_at\":\"2026-10-29T02:38:43Z\",\"approved_at\":\"2026-10-28T02:39:01Z\",\"applied_at\":\"2026-10-28T02:39:01Z\",\"reverted_at\":\"\",\"log\":[{\"at\":\"2026-10-28T02:38:43Z\",\"event\":\"created\",\"user_id\":2,\"items\":1,\"user\":\"Riley Agent\"},{\"at\":\"2026-10-28T02:39:01Z\",\"event\":\"approved\",\"user_id\":2,\"items\":1,\"user\":\"Riley Agent\"},{\"at\":\"2026-10-28T02:39:01Z\",\"event\":\"applied\",\"user_id\":2,\"status\":\"failed\",\"applied\":0,\"conflict\":0,\"failed\":1,\"user\":\"Riley Agent\"}],\"replanned_from\":0,\"can\":{\"approve\":false,\"reject\":false,\"revert\":false,\"replan\":false}}",
+    "approve_body": "{\"id\":3,\"uuid\":\"49833403-3e66-48d9-aa0c-23c4fad892d6\",\"conversation_id\":3,\"operation\":\"price_update\",\"status\":\"failed\",\"summary\":\"Price update: regular price set to 49.99, rounding 2dp \\u2014 1 products\\/variations.\",\"params\":{\"mode\":\"set\",\"value\":49.99,\"target\":\"regular\",\"rounding\":\"2dp\",\"ids\":[11]},\"counts\":{\"pending\":0,\"applied\":0,\"conflict\":0,\"failed\":1,\"reverted\":0,\"revert_conflict\":0,\"excluded\":0,\"items\":1,\"products\":1},\"progress\":{\"done\":1,\"total\":1},\"user\":\"Riley Agent\",\"approved_by\":\"Riley Agent\",\"reverted_by\":\"\",\"created_at\":\"2026-10-28T05:11:08Z\",\"expires_at\":\"2026-10-29T05:11:08Z\",\"approved_at\":\"2026-10-28T05:11:26Z\",\"applied_at\":\"2026-10-28T05:11:26Z\",\"reverted_at\":\"\",\"log\":[{\"at\":\"2026-10-28T05:11:08Z\",\"event\":\"created\",\"user_id\":2,\"items\":1,\"user\":\"Riley Agent\"},{\"at\":\"2026-10-28T05:11:26Z\",\"event\":\"approved\",\"user_id\":2,\"items\":1,\"user\":\"Riley Agent\"},{\"at\":\"2026-10-28T05:11:26Z\",\"event\":\"applied\",\"user_id\":2,\"status\":\"failed\",\"applied\":0,\"conflict\":0,\"failed\":1,\"user\":\"Riley Agent\"}],\"replanned_from\":0,\"can\":{\"approve\":false,\"reject\":false,\"revert\":false,\"replan\":false}}",
+    "changeset_status": "failed",
     "audit": {
-      "timestamp": "2026-10-28T02:39:01+00:00",
+      "timestamp": "2026-10-28T05:11:26+00:00",
       "code": "writeleash_perimeter_denied",
       "where": "product_save",
       "actor": 2,
@@ -76,11 +97,11 @@
       "kind": "price",
       "detail": ""
     },
-    "audit_line": "{\"timestamp\":\"2026-10-28T02:39:01+00:00\",\"code\":\"writeleash_perimeter_denied\",\"where\":\"product_save\",\"actor\":2,\"object_id\":11,\"kind\":\"price\",\"detail\":\"\"}"
+    "audit_line": "{\"timestamp\":\"2026-10-28T05:11:26+00:00\",\"code\":\"writeleash_perimeter_denied\",\"where\":\"product_save\",\"actor\":2,\"object_id\":11,\"kind\":\"price\",\"detail\":\"\"}"
   },
   "audit_lines": [
     {
-      "timestamp": "2026-10-28T02:38:18+00:00",
+      "timestamp": "2026-10-28T05:10:42+00:00",
       "code": "writeleash_perimeter_denied",
       "where": "product_save",
       "actor": 2,
@@ -89,7 +110,7 @@
       "detail": ""
     },
     {
-      "timestamp": "2026-10-28T02:39:01+00:00",
+      "timestamp": "2026-10-28T05:11:26+00:00",
       "code": "writeleash_perimeter_denied",
       "where": "product_save",
       "actor": 2,

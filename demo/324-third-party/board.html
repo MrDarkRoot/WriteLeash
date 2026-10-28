@@ -33,7 +33,7 @@
 <script>
 fetch('demo-evidence.json', { cache: 'no-store' }).then(r => r.json()).then(data => {
   const cap = data.on_camera || {};
-  document.getElementById('lead').textContent = 'No model ran. Provider cost $0. Riley pressed Approve, then Yes, apply the changes. The application password is not used and is not shown.';
+  document.getElementById('lead').textContent = 'No model ran. Provider cost $0. Riley pressed Approve, then Yes, apply the changes. This recording is an unreleased WriteLeash repository build, not the WordPress.org 0.2.2 package.';
   document.getElementById('who').textContent = [
     'Requesting user: ' + data.actor.login + ' #' + data.actor.id + ' (' + data.actor.role + ')',
     'Restricted by grant: ' + data.grant.public_id,

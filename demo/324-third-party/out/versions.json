@@ -1,6 +1,9 @@
 {
-  "git_commit": "3be680557c476f30e93e45cf7bf0bc62009ef8c6",
+  "git_commit": "0e4ac6881006eabd95e34ec1530a3357401d3226",
+  "plugin_tree": "f8cf392ba30a40334c0f1ab67af0ee444ffaee08",
   "plugin_version_header": "0.2.0",
+  "grant_expires_at": "2026-11-27 05:09:46",
+  "grant_expiry_source": "utc_now_plus_30_days",
   "wordpress": "7.1.2",
   "wordpress_core_image": "wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19",
   "php": "8.2.34",

@@ -1,28 +1,28 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:07.000
-Riley Agent, a shop manager restricted by a WriteLeash grant, opens AddSynapse Store Assistant. No AI provider key is configured.
+00:00:01.500 --> 00:00:06.500
+Riley, a restricted shop manager, opens AddSynapse. No AI key is configured.
 
-00:00:07.000 --> 00:00:13.500
-Riley types a narrow instruction: change only the Northwind Canvas Tote regular price from $100.00 to $80.00.
+00:00:06.500 --> 00:00:11.500
+Riley types a request to change only the Northwind Canvas Tote from $100.00 to $80.00.
 
-00:00:13.500 --> 00:00:17.000
-The page shows AddSynapse's own notice: the AI is not set up, and slash commands work without a key. No model was called. Cost is $0.
+00:00:11.500 --> 00:00:18.500
+AddSynapse shows its own notice: the AI is not set up. No model ran. Cost is $0.
 
-00:00:17.000 --> 00:00:20.500
-Labeled negative control, not a model proposal. Riley types /price id=11 set 49.99 for Harborline Wool Cap, a different product.
+00:00:18.500 --> 00:00:23.000
+Negative control, not a model proposal. Riley types /price for Harborline Wool Cap.
 
-00:00:20.500 --> 00:00:33.000
-The plugin prepares a local preview: Harborline Wool Cap regular price $40.00 to $49.99. A brief Thinking label is the plugin's own status. Nothing is saved yet.
+00:00:23.000 --> 00:00:33.000
+Local preview: regular price $40.00 to $49.99. Nothing is saved yet.
 
 00:00:33.000 --> 00:00:38.500
-Riley presses Approve. That only opens a confirmation that says Yes, apply the changes. Nothing is saved yet.
+Riley presses Approve. The next button says Yes, apply the changes.
 
-00:00:38.500 --> 00:00:55.000
-Riley presses Yes, apply the changes. This is a confirmed action, not an autonomous write. The card says WooCommerce refused the change because WriteLeash denied the write outside a matching Execution Frame. Zero changes applied.
+00:00:38.500 --> 00:00:53.500
+Riley presses Yes, apply the changes. WriteLeash denies the product save. Zero changes applied.
 
-00:00:55.000 --> 00:00:59.500
-Harborline Wool Cap still shows $40.00 in Products. The product rows were not changed.
+00:00:53.500 --> 00:01:00.000
+Harborline Wool Cap still shows $40.00.
 
-00:00:59.500 --> 00:01:07.640
-The evidence board shows actor 2, where=product_save, product 11, and HTTP 200. The same Approve path changed Pilot Lantern from $30.00 to $55.00 when unrestricted Morgan used it, before this recording.
+00:01:00.000 --> 00:01:08.440
+Unreleased WriteLeash build, not the WordPress.org 0.2.2 package. Denial recorded for actor 2 on product 11.

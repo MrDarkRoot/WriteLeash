@@ -4,6 +4,8 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 repo="$(cd "$here/../.." && pwd)"
+python3 "$here/test_sync_captions.py"
+node --check "$here/capture.cjs"
 runtime="$here/runtime"
 out="$here/out"
 woo_sha=9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e
@@ -114,7 +116,13 @@ curl --fail --silent --retry 20 --retry-all-errors --retry-delay 1 "$base/wp-log
 docker exec -e WL324_SEED_OUT=/tmp/wl324ai-seed.json "$container" wp --path="$site" eval-file /opt/demo/seed.php
 docker cp "$container:/tmp/wl324ai-seed.json" "$runtime/seed.json"
 riley_id="$(jq -r .users.riley.id "$runtime/seed.json")"
-grant_line="$(docker exec "$container" wp --path="$site" writeleash grant create --user=morgan --actor="$riley_id" --budget=1 --expires="2027-01-01 00:00:00" | tr -d '\r')"
+expires="$(docker exec "$container" wp --path="$site" eval 'echo gmdate( "Y-m-d H:i:s", time() + 30 * DAY_IN_SECONDS );' | tr -d '\r' | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$' | tail -n 1)"
+if [[ ! "$expires" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}$ ]]; then
+  echo "could not compute a UTC grant expiry" >&2
+  exit 1
+fi
+echo "grant expiry ${expires} UTC, calculated as now plus 30 days"
+grant_line="$(docker exec "$container" wp --path="$site" writeleash grant create --user=morgan --actor="$riley_id" --budget=1 --expires="$expires" | tr -d '\r')"
 echo "$grant_line"
 grant_id="$(printf '%s\n' "$grant_line" | sed -n 's/^Success: grant \([^ ]*\) created.*/\1/p')"
 [[ -n "$grant_id" ]]
@@ -130,12 +138,13 @@ jq -n \
   --arg grant "$grant_id" \
   --arg add_version "$add_version" \
   --arg add_sha "$add_sha" \
+  --arg expires "$expires" \
   --slurpfile seed "$runtime/seed.json" \
   '{
     users: $seed[0].users,
     products: $seed[0].products,
     passwords: {morgan: $morgan, riley: $seed[0].created_passwords.riley},
-    grant: {public_id: $grant, budget_max: 1, expires_at: "2027-01-01 00:00:00"},
+    grant: {public_id: $grant, budget_max: 1, expires_at: $expires, expires_source: "utc_now_plus_30_days"},
     plugin: {slug: "addsynapse-store-assistant", version: $add_version, zip_sha256: $add_sha}
   }' > "$runtime/secrets.json"
 chmod 600 "$runtime/secrets.json"
@@ -150,8 +159,11 @@ cache="$(docker exec "$container" wp --path="$site" eval 'echo (int) wp_using_ex
 dropin=no
 if docker exec "$container" test -f "$site/wp-content/object-cache.php"; then dropin=yes; fi
 commit="$(git -C "$repo" rev-parse HEAD)"
+plugin_tree="$(git -C "$repo" rev-parse 'HEAD:wordpress/writeleash')"
 jq -n \
   --arg commit "$commit" \
+  --arg plugin_tree "$plugin_tree" \
+  --arg expires "$expires" \
   --arg php "$php_version" \
   --arg wp "$wp_version" \
   --arg woo "$woo_version" \
@@ -165,7 +177,10 @@ jq -n \
   --arg add_sha "$add_sha" \
   '{
     git_commit: $commit,
+    plugin_tree: $plugin_tree,
     plugin_version_header: $plugin,
+    grant_expires_at: $expires,
+    grant_expiry_source: "utc_now_plus_30_days",
     wordpress: $wp,
     wordpress_core_image: "wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19",
     php: $php,
@@ -195,35 +210,17 @@ rm -rf "$runtime/capture/video" "$runtime/capture/frames"
 echo "starting screen capture"
 node "$here/capture.cjs"
 
+enc="$runtime/capture/encoded"
+rm -rf "$enc"
+mkdir -p "$enc"
 webm="$(find "$runtime/capture/video" -name '*.webm' -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)"
 test -n "$webm"
-cp "$webm" "$out/writeleash-addsynapse-deny.webm"
-if ! gst-launch-1.0 -e filesrc location="$out/writeleash-addsynapse-deny.webm" ! matroskademux ! vp8dec ! videoconvert ! video/x-raw,format=I420 ! openh264enc bitrate=1800000 ! h264parse ! mp4mux ! filesink location="$out/writeleash-addsynapse-deny.mp4"; then
-  echo "MP4_ENCODE_FAILED" > "$out/MP4-BLOCKED.txt"
-else
-  rm -f "$out/MP4-BLOCKED.txt"
+cp "$webm" "$enc/writeleash-addsynapse-deny.webm"
+if ! gst-launch-1.0 -e filesrc location="$enc/writeleash-addsynapse-deny.webm" ! matroskademux ! vp8dec ! videoconvert ! video/x-raw,format=I420 ! openh264enc bitrate=1800000 ! h264parse ! mp4mux ! filesink location="$enc/writeleash-addsynapse-deny.mp4"; then
+  echo "MP4_ENCODE_FAILED" >&2
+  exit 1
 fi
-
-rm -rf "$runtime/capture/frames"
-mkdir -p "$runtime/capture/frames"
-gst-launch-1.0 -e filesrc location="$out/writeleash-addsynapse-deny.webm" ! matroskademux ! vp8dec ! videoconvert ! videorate ! video/x-raw,framerate=1/1 ! pngenc ! multifilesink location="$runtime/capture/frames/frame-%05d.png" >/tmp/wl324ai-frames.log
-python3 - "$runtime/capture/scenes.json" "$runtime/capture/frames" "$runtime/capture/poster-source.png" <<'PY'
-import json, sys
-from pathlib import Path
-scenes = json.loads(Path(sys.argv[1]).read_text())
-frames = sorted(Path(sys.argv[2]).glob('frame-*.png'))
-if not frames:
-    raise SystemExit('no frames extracted')
-by_id = {row['id']: row['t'] for row in scenes}
-# Frame 1 is the first second. Pick the denial hold, which starts at the denied mark.
-target = int(by_id.get('denied', 1)) + 2
-index = min(len(frames), max(1, target)) - 1
-Path(sys.argv[3]).write_bytes(frames[index].read_bytes())
-print(f'poster frame {index+1} of {len(frames)} at about {target}s')
-PY
-python3 "$here/encode_assets.py" "$runtime/capture/frames" "$runtime/capture/poster-source.png" "$out/writeleash-addsynapse-deny.gif" "$out/writeleash-addsynapse-deny-poster.png" > "$runtime/capture/image-report.json"
-cp "$runtime/capture/image-report.json" "$out/image-report.json"
-python3 - "$out/writeleash-addsynapse-deny.mp4" "$out/writeleash-addsynapse-deny.webm" "$out/video-report.json" <<'PY'
+python3 - "$enc/writeleash-addsynapse-deny.mp4" "$enc/writeleash-addsynapse-deny.webm" "$enc/video-report.json" <<'PY'
 import json, re, subprocess, sys
 from pathlib import Path
 
@@ -246,11 +243,33 @@ report = {"mp4": discover(Path(sys.argv[1])), "webm": discover(Path(sys.argv[2])
 Path(sys.argv[3]).write_text(json.dumps(report, indent=2) + "\n")
 print(json.dumps(report))
 PY
-cp "$runtime/capture/captions.en.vtt" "$runtime/capture/scenes.json" "$runtime/capture/evidence.json" "$runtime/capture/versions.json" "$out/"
-cp "$runtime/capture/after-control.json" "$out/db-after-control.json"
-cp "$runtime/capture/after-named-deny.json" "$out/db-after-named-deny.json"
-cp "$runtime/capture/after-cap-deny.json" "$out/db-after-cap-deny.json"
-python3 - "$out" "$runtime/secrets.json" <<'PY'
+duration="$(jq -r .mp4.duration_s "$enc/video-report.json")"
+rm -rf "$runtime/capture/frames"
+mkdir -p "$runtime/capture/frames"
+gst-launch-1.0 -e filesrc location="$enc/writeleash-addsynapse-deny.webm" ! matroskademux ! vp8dec ! videoconvert ! videorate ! video/x-raw,framerate=2/1 ! pngenc ! multifilesink location="$runtime/capture/frames/frame-%05d.png" >/tmp/wl324ai-frames.log
+python3 "$here/sync_captions.py" sync \
+  --frames "$runtime/capture/frames" \
+  --duration "$duration" \
+  --evidence "$runtime/capture/evidence.json" \
+  --vtt "$enc/captions.en.vtt" \
+  --json "$enc/caption-sync.json" \
+  --fps 2
+poster_frame="$(jq -r .poster_frame "$enc/caption-sync.json")"
+cp "$runtime/capture/frames/$poster_frame" "$runtime/capture/poster-source.png"
+python3 "$here/encode_assets.py" "$runtime/capture/frames" "$runtime/capture/poster-source.png" "$enc/writeleash-addsynapse-deny.gif" "$enc/writeleash-addsynapse-deny-poster.png" "$enc/caption-sync.json" > "$enc/image-report.json"
+cp "$runtime/capture/scenes.json" "$runtime/capture/evidence.json" "$runtime/capture/versions.json" "$enc/"
+cp "$runtime/capture/after-control.json" "$enc/db-after-control.json"
+cp "$runtime/capture/after-named-deny.json" "$enc/db-after-named-deny.json"
+cp "$runtime/capture/after-cap-deny.json" "$enc/db-after-cap-deny.json"
+python3 "$here/validate_media.py" --out "$enc" --frames "$runtime/capture/frames" --report "$enc/media-qa.json"
+python3 "$here/sync_captions.py" validate \
+  --frames "$runtime/capture/frames" \
+  --duration "$duration" \
+  --evidence "$runtime/capture/evidence.json" \
+  --vtt "$enc/captions.en.vtt" \
+  --json "$enc/caption-sync.json" \
+  --fps 2
+python3 - "$enc" "$runtime/secrets.json" <<'PY'
 import json, sys
 from pathlib import Path
 out = Path(sys.argv[1])
@@ -265,4 +284,8 @@ for path in out.rglob("*"):
             raise SystemExit(f"secret leaked into {path}")
 print("secret scan passed")
 PY
+rm -f "$out/MP4-BLOCKED.txt"
+cp "$enc/writeleash-addsynapse-deny.mp4" "$enc/writeleash-addsynapse-deny.webm" "$enc/writeleash-addsynapse-deny.gif" "$enc/writeleash-addsynapse-deny-poster.png" "$out/"
+cp "$enc/captions.en.vtt" "$enc/caption-sync.json" "$enc/media-qa.json" "$enc/scenes.json" "$enc/evidence.json" "$enc/versions.json" "$enc/image-report.json" "$enc/video-report.json" "$out/"
+cp "$enc/db-after-control.json" "$enc/db-after-named-deny.json" "$enc/db-after-cap-deny.json" "$out/"
 echo "demo assets written to $out"

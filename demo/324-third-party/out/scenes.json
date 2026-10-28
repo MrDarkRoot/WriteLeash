@@ -1,46 +1,51 @@
-[
-  {
-    "id": "meet",
-    "t": 1.252
-  },
-  {
-    "id": "ask",
-    "t": 6.253
-  },
-  {
-    "id": "no-model",
-    "t": 11.255
-  },
-  {
-    "id": "command",
-    "t": 18.256
-  },
-  {
-    "id": "preview",
-    "t": 23.458
-  },
-  {
-    "id": "approve",
-    "t": 31.46
-  },
-  {
-    "id": "confirm",
-    "t": 33.291
-  },
-  {
-    "id": "denied",
-    "t": 39.174
-  },
-  {
-    "id": "products",
-    "t": 52.888
-  },
-  {
-    "id": "board",
-    "t": 60.351
-  },
-  {
-    "id": "end",
-    "t": 68.496
-  }
-]
+{
+  "clock": "runner",
+  "note": "Diagnostic wall clock from the Playwright process. Caption times come from the encoded video.",
+  "marks": [
+    {
+      "id": "meet",
+      "t": 1.361,
+      "clock": "runner"
+    },
+    {
+      "id": "ask",
+      "t": 6.371,
+      "clock": "runner"
+    },
+    {
+      "id": "notice",
+      "t": 11.429,
+      "clock": "runner"
+    },
+    {
+      "id": "command",
+      "t": 18.432,
+      "clock": "runner"
+    },
+    {
+      "id": "preview",
+      "t": 23.169,
+      "clock": "runner"
+    },
+    {
+      "id": "confirm",
+      "t": 33.001,
+      "clock": "runner"
+    },
+    {
+      "id": "denied",
+      "t": 38.39,
+      "clock": "runner"
+    },
+    {
+      "id": "products",
+      "t": 53.674,
+      "clock": "runner"
+    },
+    {
+      "id": "board",
+      "t": 59.75,
+      "clock": "runner"
+    }
+  ]
+}
