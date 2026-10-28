@@ -1,5 +1,11 @@
 *** WriteLeash Changelog ***
 
+2026-10-28 - version 0.3.0
+* Added - opt-in restricted grants for bounded price and stock jobs. Grants stay off until an operator issues one.
+* Added - denial of monitored WooCommerce product writes outside a matching Execution Frame.
+* Added - pause, single revoke, revoke-all, and remove-restriction. A denial does not fall open to an unrestricted save.
+* Update - an upgrade from 0.2.2 keeps existing jobs, journals, and presets and does not create a grant.
+
 2026-10-09 - version 0.2.0
 * Added - live read-only Apply and Undo progress without page reloads.
 * Added - Conflict to fresh Preview for conflicted products at current prices.

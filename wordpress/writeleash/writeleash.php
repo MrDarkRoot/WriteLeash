@@ -3,7 +3,7 @@
  * Plugin Name: WriteLeash
  * Plugin URI: https://github.com/MrDarkRoot/WriteLeash
  * Description: Preview WooCommerce bulk price changes, preserve newer edits, resume interrupted jobs, and undo eligible changes.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Author: Duy Tran
  * Author URI: https://profiles.wordpress.org/duyytrann
  * Developer: Duy Tran
@@ -47,7 +47,7 @@ add_action( 'before_woocommerce_init', static function () {
 	}
 } );
 
-define( 'WRITELEASH_VERSION', '0.2.0' );
+define( 'WRITELEASH_VERSION', '0.3.0' );
 define( 'WRITELEASH_PLUGIN_FILE', __FILE__ );
 
 // Register only a local lookup path. Core loads catalogs just in time, after
@@ -103,10 +103,10 @@ require_once __DIR__ . '/includes/free/class-job-worker.php';
 require_once __DIR__ . '/includes/free/class-job-resume-rest.php';
 require_once __DIR__ . '/includes/free/class-agent-jobs-rest.php';
 
-// #298 standing grant / durable delegated authority (v0.3.1 only). The only
-// agent entry is the restricted #299 submission route. No MCP adapter, no
-// inventory scope. Separate durable record, budget reservation, idempotency
-// and per-item enforcement over the #108 primitive; journal remains source of truth.
+// #298 standing grant. A grant row keeps the actor restricted after revoke,
+// expiry, exhaustion, and global disable. The agent entry is the #299 route.
+// Stock writes are the #310 grant path only. No MCP adapter. Journal remains
+// the source of truth.
 require_once __DIR__ . '/includes/free/class-grant-schema.php';
 require_once __DIR__ . '/includes/free/class-grant-repository.php';
 
