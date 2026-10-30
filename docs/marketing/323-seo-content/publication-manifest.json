@@ -1,0 +1,78 @@
+{
+  "issue": 323,
+  "generated_on": "2026-10-27",
+  "publication_status": "BLOCKED",
+  "blockers": [
+    "GitHub Pages for MrDarkRoot/WriteLeash returned HTTP 404 on 2026-10-27.",
+    "The repository has no blog, MDX, Hugo, Astro, or other publishing pipeline.",
+    "docs/launch-v0.2.md leaves the decision to publish with the founder.",
+    "No external account was created. WordPress.org SVN was not updated."
+  ],
+  "install_url": "https://wordpress.org/plugins/writeleash/",
+  "directory_version_checked": "0.2.2",
+  "repository_head_described": "3be6805",
+  "analytics": {
+    "search_console": "NOT_AVAILABLE",
+    "bing_webmaster": "NOT_AVAILABLE",
+    "referral_visits": "NOT_AVAILABLE",
+    "attributable_installs": "NOT_AVAILABLE",
+    "plugin_telemetry_added": false
+  },
+  "articles": [
+    {
+      "slug": "undo-woocommerce-bulk-price-edit",
+      "file": "articles/undo-woocommerce-bulk-price-edit.md",
+      "title": "How to undo an accidental WooCommerce bulk price edit",
+      "meta_description": "WooCommerce bulk edit writes prices on Update and documents no undo. Restore them from a CSV or backup, and do not reverse a percentage with itself.",
+      "h1": "How to undo an accidental WooCommerce bulk price edit",
+      "failure_family": "accidental bulk price edit",
+      "evidence_ids": ["K1", "K2", "K3", "K4", "K5", "K6", "K7", "K8"],
+      "live_url": null,
+      "structured_data": "template-only-until-canonical-url"
+    },
+    {
+      "slug": "restore-sale-prices-overwritten-by-import",
+      "file": "articles/restore-sale-prices-overwritten-by-import.md",
+      "title": "How to restore WooCommerce sale prices a CSV import overwrote",
+      "meta_description": "A mapped WooCommerce CSV column is a write. Put sale prices back from the pre-import export, and set every other column to Do not import.",
+      "h1": "How to restore WooCommerce sale prices a CSV import overwrote",
+      "failure_family": "import or plugin sale-price overwrite",
+      "evidence_ids": ["K9", "K10", "K11", "K6", "K15"],
+      "live_url": null,
+      "structured_data": "template-only-until-canonical-url"
+    },
+    {
+      "slug": "restrict-woocommerce-price-changes",
+      "file": "articles/restrict-woocommerce-price-changes.md",
+      "title": "How to stop staff or an AI agent from changing WooCommerce prices",
+      "meta_description": "WooCommerce has no separate edit-price capability. Remove product-edit access, write-capable API keys, and application passwords you do not trust.",
+      "h1": "How to stop staff or an AI agent from changing WooCommerce prices",
+      "failure_family": "staff or AI-agent price changes",
+      "evidence_ids": ["K16", "K17", "K18", "K19"],
+      "live_url": null,
+      "structured_data": "template-only-until-canonical-url"
+    },
+    {
+      "slug": "woocommerce-price-history",
+      "file": "articles/woocommerce-price-history.md",
+      "title": "How to keep a WooCommerce price history without writing code",
+      "meta_description": "WooCommerce does not ship a catalog price log. Keep dated CSV exports, and use a history plugin only for changes made after you install it.",
+      "h1": "How to keep a WooCommerce price history without writing code",
+      "failure_family": "price history and audit trail",
+      "evidence_ids": ["K20", "K21", "K4"],
+      "live_url": null,
+      "structured_data": "template-only-until-canonical-url"
+    },
+    {
+      "slug": "imported-sale-price-not-showing",
+      "file": "articles/imported-sale-price-not-showing.md",
+      "title": "Why an imported WooCommerce sale price can be saved and still not show",
+      "meta_description": "If the variation editor shows the sale and the shop shows the regular price, do not import prices again. Resync one product before you touch the file.",
+      "h1": "Why an imported WooCommerce sale price can be saved and still not show",
+      "failure_family": "stored sale hidden by a stale variable-product range",
+      "evidence_ids": ["K12", "K13", "K14", "K7"],
+      "live_url": null,
+      "structured_data": "template-only-until-canonical-url"
+    }
+  ]
+}
