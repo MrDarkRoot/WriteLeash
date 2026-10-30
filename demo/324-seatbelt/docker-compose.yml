@@ -1,0 +1,33 @@
+# Disposable MySQL 8.0.44 + WordPress site for the #324 seatbelt demo.
+# Credentials are fixture passwords, the same class the repository tests use.
+# Nothing here is a production secret. The project name is set by run.sh.
+services:
+  mysql:
+    image: mysql@sha256:9c3380eac945af0736031b200027f581925927c81e010056214a4bd6b6693714 # 8.0.44
+    environment:
+      MYSQL_ROOT_PASSWORD: disposable_root_password
+      MYSQL_DATABASE: wp_demo
+      MYSQL_USER: wp_demo
+      MYSQL_PASSWORD: disposable_wp_password
+    command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1::8080"
+    volumes:
+      - ../../wordpress/writeleash:/opt/writeleash:ro
+      - ../../wordpress/release:/opt/release:ro
+      - ../../wordpress/tests:/opt/tests:ro
+      - ./runtime/woo:/opt/woo-zips:ro
+      - .:/opt/demo:ro
+    command: ["sleep", "infinity"]
