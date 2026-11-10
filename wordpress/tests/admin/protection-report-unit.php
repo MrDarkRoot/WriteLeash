@@ -36,6 +36,23 @@ function denial_at( int $unix, string $surface, int $actor, int $product, int $s
 		'seq' => $seq,
 	);
 }
+/** Hermetic stand-in for the WP_Filesystem connection the reader requires. */
+class Wl326_Filesystem {
+	public function size( $file ) {
+		$size = filesize( $file );
+		return false === $size ? false : (int) $size;
+	}
+	public function get_contents( $file ) {
+		$text = file_get_contents( $file );
+		return false === $text ? false : $text;
+	}
+}
+function WP_Filesystem() {
+	global $wp_filesystem;
+	$wp_filesystem = new Wl326_Filesystem();
+	return true;
+}
+
 function grant_row( string $id, string $status, int $actor, int $max, int $used, int $reserved, string $expires, $removed = null ): array {
 	return array(
 		'public_id' => $id,
@@ -226,6 +243,14 @@ eq( count( $capped_log['rows'] ), 2, 'row cap keeps two lines' );
 eq( $capped_log['rows'][0]['product_id'], 21, 'row cap keeps the newer lines' );
 eq( $capped_log['rows'][1]['product_id'], 22, 'row cap ends at the newest line' );
 ok( false === strpos( (string) json_encode( $capped_log ), 'drop-me' ), 'capped lines still drop detail' );
+$big = tempnam( sys_get_temp_dir(), 'wl326b' );
+if ( ! is_string( $big ) ) { throw new RuntimeException( 'temp oversize log was not created' ); }
+file_put_contents( $big, str_repeat( 'x', 64 ) . "\n" . json_encode( array( 'timestamp' => $recent, 'code' => 'writeleash_perimeter_denied', 'where' => 'rest', 'actor' => 4, 'object_id' => 9, 'detail' => 'do-not-load' ) ) . "\n" );
+$oversize = Report::read_log( $big, 32, 10 );
+eq( $oversize['capped'], true, 'a log over the byte cap is capped' );
+eq( $oversize['rows'], array(), 'a log over the byte cap is not loaded' );
+ok( false === strpos( (string) json_encode( $oversize ), 'do-not-load' ), 'oversize contents are not retained' );
+unlink( $big );
 unlink( $log );
 eq( Report::read_log( '' )['rows'], array(), 'missing log is an empty read' );
 marker( 'denial log fixture' );
@@ -243,7 +268,7 @@ foreach ( $files as $file ) {
 	$source = (string) file_get_contents( $file );
 	$code = preg_replace( '/\/\*.*?\*\//s', '', $source );
 	$code = preg_replace( '/\/\/.*$/m', '', (string) $code );
-	foreach ( array( 'wp_remote_', 'curl_', 'file_get_contents', 'http://', 'https://' ) as $token ) {
+	foreach ( array( 'wp_remote_', 'curl_', 'file_get_contents', 'fopen', 'fclose', 'http://', 'https://' ) as $token ) {
 		ok( false === strpos( (string) $code, $token ), basename( $file ) . ' has no ' . $token );
 	}
 }
