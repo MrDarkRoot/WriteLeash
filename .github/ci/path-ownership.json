@@ -48,7 +48,7 @@
     },
     {
       "prefix": "wordpress/writeleash/includes/free/class-",
-      "files": ["free-admin.php", "grant-admin.php", "grant-notice.php", "product-discovery.php"],
+      "files": ["free-admin.php", "grant-admin.php", "grant-notice.php", "product-discovery.php", "protection-report-admin.php", "protection-report-query.php"],
       "gates": ["admin", "acceptance"]
     },
     {

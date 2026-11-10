@@ -21,7 +21,7 @@ global $wp_filter, $menu, $submenu, $wpdb;
 $allowed_callbacks = array( 'WriteLeash\\Lifecycle', 'WriteLeash\\Free_Admin', 'WriteLeash\\Product_Discovery',
 	'WriteLeash\\Job_Resume_Rest', 'WriteLeash\\Agent_Jobs_Rest', 'WriteLeash\\Undo_Rest', 'WriteLeash\\Job_Worker',
 	'WriteLeash\\Undo_Worker', 'WriteLeash\\Undo_Scheduler', 'WriteLeash\\Perimeter_Guard',
-	'WriteLeash\\Perimeter_Audit_Log', 'WriteLeash\\Grant_Notice', 'WriteLeash\\Grant_Admin' );
+	'WriteLeash\\Perimeter_Audit_Log', 'WriteLeash\\Grant_Notice', 'WriteLeash\\Grant_Admin', 'WriteLeash\\Protection_Report_Admin' );
 $observed = array();
 $guard_hooks = array();
 foreach ( $wp_filter as $hook => $registered ) {
@@ -75,6 +75,7 @@ $submenu = is_array( $submenu ) ? $submenu : array();
 do_action( 'admin_menu' );
 $bulk_prices = false;
 $grant_admin_page = false;
+$protection_report_page = false;
 foreach ( (array) $submenu as $parent => $pages ) {
 	foreach ( $pages as $page ) {
 		wl120_assert( 'writeleash' !== $page[2] && false === strpos( (string) $page[0], 'WriteLeash Advanced' ), 'Tools Advanced absent' );
@@ -86,10 +87,15 @@ foreach ( (array) $submenu as $parent => $pages ) {
 			wl120_assert( 'edit.php?post_type=product' === $parent && 'Grants' === $page[0], 'Products → Grants placement' );
 			$grant_admin_page = true;
 		}
+		if ( 'writeleash-protection-report' === $page[2] ) {
+			wl120_assert( 'edit.php?post_type=product' === $parent && 'Protection' === $page[0], 'Products → Protection placement' );
+			$protection_report_page = true;
+		}
 	}
 }
 wl120_assert( $bulk_prices, 'Products → Bulk Prices exists' );
 wl120_assert( $grant_admin_page, 'Products → Grants exists' );
+wl120_assert( $protection_report_page, 'Products → Protection exists' );
 $routes = rest_get_server()->get_routes();
 $public_routes = array();
 foreach ( $routes as $route => $handlers ) {

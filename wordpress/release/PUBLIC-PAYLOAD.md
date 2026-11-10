@@ -69,7 +69,7 @@ they are omitted from the public allowlist and loaded only by repository tests.
 | LICENSE | Reviewed GPLv2 text | PUBLIC_FREE_REQUIRED |
 | readme.txt | Minimum Woo-only user instructions; full copy belongs to #121 | PUBLIC_FREE_REQUIRED |
 
-All 42 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
+All 45 `includes/free/*.php` entries are PUBLIC_FREE_REQUIRED. Explicit class
 inventory (multi-class files included):
 
 | File stem (`includes/free/class-<stem>.php`) | Classes / interfaces / traits | Classification |
@@ -117,6 +117,8 @@ inventory (multi-class files included):
 | undo-rest | Undo_Rest | PUBLIC_FREE_REQUIRED |
 | free-admin | Free_Admin | PUBLIC_FREE_REQUIRED |
 | product-discovery | Product_Discovery; bounded authenticated read-only name/SKU/category discovery | PUBLIC_FREE_REQUIRED |
+| protection-report-admin | Protection_Report_Admin; read-only Products Protection screen, same grant-management capability gate, no mutation | PUBLIC_FREE_REQUIRED |
+| protection-report-query | Protection_Report_Query; read-only denial-log and grant-budget query, no new table | PUBLIC_FREE_REQUIRED |
 
 ## Hooks, routes, UI, command and state inventory
 
@@ -125,6 +127,7 @@ inventory (multi-class files included):
 | activation/deactivation callbacks | Plugin → Lifecycle; runner/reconcile only | PUBLIC_FREE_REQUIRED |
 | admin_menu → Free_Admin::menu | Products → Bulk Prices (dependency notice fallback only) | PUBLIC_FREE_REQUIRED |
 | admin_menu → Grant_Admin::menu | Products → Grants; #309 operator grant listing/create/revoke and the separate remove-restriction action with its standing warning | PUBLIC_FREE_REQUIRED |
+| admin_menu → Protection_Report_Admin::menu | Products → Protection; read-only local denial and grant report, no network and no new table | PUBLIC_FREE_REQUIRED |
 | admin_post_writeleash_free_preview/approve/resume/undo | Free_Admin authenticated action-bound handlers | PUBLIC_FREE_REQUIRED |
 | admin_post_writeleash_grant_create/revoke/remove | Grant_Admin capability+nonce-gated handlers; remove additionally requires manage_options and refuses the acting principal; repository re-verifies the authenticated operator | PUBLIC_FREE_REQUIRED |
 | wp writeleash grant list/create/revoke (--user required) | Grant_CLI runtime subcommand group; fail-closed without the authenticated operator | PUBLIC_FREE_REQUIRED |

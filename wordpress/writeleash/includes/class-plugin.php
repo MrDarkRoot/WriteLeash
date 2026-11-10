@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		Grant_Notice::boot();
 		Grant_Admin::boot();
 		Grant_CLI::boot();
+		Protection_Report_Admin::boot();
 		// Action Scheduler 4.0.0 executes WriteLeash-owned wake-ups only.
 		add_action( Job_Scheduler::HOOK, array( Job_Worker::class, 'callback' ), 10, 1 );
 		add_action( Undo_Scheduler::HOOK, array( Undo_Worker::class, 'callback' ), 10, 1 );

@@ -24,7 +24,7 @@ ORG = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ORG)
 MANIFEST = 'wordpress/release/writeleash-distribution-files.txt'
 VERSION = '0.3.0'
-EXPECTED_COUNT = 55
+EXPECTED_COUNT = 57
 require = ORG.require
 
 
