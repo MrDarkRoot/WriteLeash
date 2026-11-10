@@ -8,14 +8,27 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Preview WooCommerce bulk price changes before they go live. Keep newer edits, undo eligible prices, and leash restricted agents.
+Protect WooCommerce prices and stock from bad overwrites. Keep newer edits, undo eligible prices, and leash restricted agents.
 
 == Description ==
 
-A price change goes wrong in ordinary ways: a percentage on the wrong
-products, a CSV that overwrites Regular or Sale Price, or an assistant
-account that can edit products. WriteLeash is the path where you see the
-new stored price first. That change is not applied until you approve it.
+A wrong percentage, a CSV overwrite, or an assistant account editing a
+product is the expensive mistake. With WriteLeash, the catalog does not
+change until a person approves.
+
+= Put a restricted account on a leash =
+
+Grants are opt-in and stay off until an operator issues one. You choose
+the restricted WordPress user, the products, the price or stock limits,
+how much work, and when access ends. Ordinary price jobs do not change
+stock. Stock changes only on that opt-in grant. Stock Undo is not
+supported.
+
+Pause, revoke, and remove-restriction do not fall open. The account
+cannot remove its own restriction. Cron counts only when it runs as that
+restricted user. A system cron on user 0 is outside the grant.
+Administrators who are not on the grant are outside it. This is not
+protection for every WooCommerce write.
 
 = See the price before it goes live =
 
@@ -49,19 +62,6 @@ restoration.
 Stock Undo is not supported. Undo does not reverse orders, completed
 sales, emails, webhooks, remote requests, external queues or other
 plugins' effects.
-
-= Put a restricted account on a leash =
-
-Grants are opt-in and stay off until an operator issues one. You choose
-the restricted WordPress user, the products, the price or stock limits,
-how much work, and when access ends. Ordinary price jobs do not change
-stock. Stock changes only on that opt-in grant.
-
-Pause, revoke, and remove-restriction do not fall open. The account
-cannot remove its own restriction. Cron counts only when it runs as that
-restricted user. A system cron on user 0 is outside the grant.
-Administrators who are not on the grant are outside it. This is not
-protection for every WooCommerce write.
 
 = Changes you can make =
 

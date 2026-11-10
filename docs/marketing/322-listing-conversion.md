@@ -38,9 +38,12 @@ The title stays the plugin name. It does not add "WordPress" or a competitor.
 | --- | --- | --- |
 | Before, git `readme.txt` | 121 | Protection against accidental WooCommerce price and stock overwrites, with Preview, conflicts, History and eligible Undo. |
 | Before, live directory and SVN trunk | 119 | See WooCommerce price changes before they go live. Keep newer edits, undo eligible prices, and leash restricted agents. |
-| After, this branch | 128 | Preview WooCommerce bulk price changes before they go live. Keep newer edits, undo eligible prices, and leash restricted agents. |
+| Earlier commit on this branch | 128 | Preview WooCommerce bulk price changes before they go live. Keep newer edits, undo eligible prices, and leash restricted agents. |
+| After, this branch | 126 | Protect WooCommerce prices and stock from bad overwrites. Keep newer edits, undo eligible prices, and leash restricted agents. |
 
-The plugins-screen header in `writeleash.php` was the 113-character line "Preview WooCommerce bulk price changes, preserve newer edits, resume interrupted jobs, and undo eligible changes." It is now the same one line as the new short description. `Version` and `WRITELEASH_VERSION` stay `0.3.0`. Requires at least, Tested up to, and Requires PHP were not edited.
+The 128-character line started with "Preview" and the word "bulk", so the snippet still read as a bulk editor. The 126-character line leads with protecting prices and stock, then leashing restricted agents. It does not start with "Preview" or "bulk".
+
+The plugins-screen header in `writeleash.php` was the 113-character line "Preview WooCommerce bulk price changes, preserve newer edits, resume interrupted jobs, and undo eligible changes." It is now the same 126-character line as the short description. `Version` and `WRITELEASH_VERSION` stay `0.3.0`. Requires at least, Tested up to, and Requires PHP were not edited.
 
 ### Tags
 
@@ -57,16 +60,18 @@ Five tags. No competitor names. `stock` stays because a grant can change stock. 
 
 **Live trunk before.** The directory already leads with an outcome: "One bulk edit can turn a $199 product into $19. WriteLeash shows you the new prices first. The catalog stays put until you approve." Headings then walk Preview, the newer edit, eligible Undo, and a grant. That page is not this git tree.
 
-**After.** The first screen is the job, then the boundary:
+**After.** The expensive mistake comes first, then the outcome. The leash is the first heading, above the preview:
 
-> A price change goes wrong in ordinary ways: a percentage on the wrong products, a CSV that overwrites Regular or Sale Price, or an assistant account that can edit products. WriteLeash is the path where you see the new stored price first. That change is not applied until you approve it.
+> A wrong percentage, a CSV overwrite, or an assistant account editing a product is the expensive mistake. With WriteLeash, the catalog does not change until a person approves.
 
-Scan path: See the price before it goes live. Keep the newer price. Undo an eligible price. Put a restricted account on a leash. Changes you can make. Requirements, supported scope, and the seatbelt paragraph stay below that pitch.
+First two headings: Put a restricted account on a leash. See the price before it goes live. Then: Keep the newer price. Undo an eligible price. Changes you can make. Requirements, supported scope, and the unchanged seatbelt paragraph stay below that pitch. The leash block still says grants are opt-in and off until issued, ordinary price jobs do not change stock, stock changes only on that grant, Stock Undo is not supported, and this is not protection for every WooCommerce write.
 
 ## Claim table
 
 | Claim | Verdict |
 | --- | --- |
+| Protect prices and stock from bad overwrites | Allowed in the short description only with the body limits: ordinary price jobs do not change stock, stock changes only on an opt-in grant, Stock Undo is not supported, and this is not every WooCommerce write |
+| The catalog does not change until a person approves | Allowed for a WriteLeash price change a person runs. Not a claim that a CSV tool, another plugin, or an already-issued grant waits for a second approval |
 | Preview, then a separate Apply | Allowed |
 | Walking away from Preview changes nothing | Allowed |
 | The Preview CSV is the saved Preview, not live data | Allowed |
@@ -110,17 +115,17 @@ These are public pages a merchant would actually write or read. They are not sea
 4. [How to use AI abilities in Wholesale Suite](https://wholesalesuiteplugin.com/kb/ai-abilities/) Write access is a switch. Off, the assistant does not change prices. On, it can change live prices, discounts, and quotes. The merchant is told the assistant's own confirmation behavior is not a substitute for that switch.
 5. [WooCommerce product import from CSV not working properly](https://wordpress.org/support/topic/woocommerce-product-import-from-csv-not-working-properly-2/) A store meant to update prices and instead created products, because the file did not match on ID or SKU. A non-numeric cell stopped the import. The fix was the file, not a promise that the catalog had been protected.
 
-WriteLeash does not claim to intercept those CSV tools or every assistant. The opening uses the same jobs as the reason to preview a WriteLeash change, and the leash section is only the restricted WordPress user an operator chooses.
+WriteLeash does not claim to intercept those CSV tools or every assistant. The opening names the same expensive mistakes, then says a WriteLeash change waits until a person approves. The leash section is only the restricted WordPress user an operator chooses, and it stays off until that grant exists.
 
 ## SEO notes
 
 No search volume, keyword difficulty, ranking, or conversion rate is claimed. Active installs are 0 and ratings are 0. The API `downloaded` counter was 320 on 2026-11-10. That is a directory counter, not demand.
 
-The short description is the search snippet, so "WooCommerce bulk price" appears there once, next to the outcome (see it before it goes live, keep the newer edit, undo an eligible price, leash a restricted account). It is not stuffed into the title.
+The short description is the search snippet. It leads with "Protect WooCommerce prices and stock" and "leash restricted agents". It does not start with "Preview" or "bulk", and it is not stuffed into the title. No query volume is claimed for those words.
 
 Tags stay the five real behaviors. Adding `bulk edit` would mean dropping stock, variations, or undo. Competitor plugin names are not tags and are not in `readme.txt`.
 
-Headings are the scan path a merchant uses: the price, the newer price, eligible Undo, the restricted account, then requirements. The 10,240-byte readme guidance is the ceiling. This `readme.txt` is 10,126 bytes.
+Headings are the scan path a merchant uses: the restricted account first, then the price before it goes live, the newer price, eligible Undo, then requirements. The 10,240-byte readme guidance is the ceiling. This `readme.txt` is 10,041 bytes.
 
 ## Screenshots
 
@@ -143,7 +148,7 @@ Both passed on this branch:
 
 ```
 php wordpress/tests/release/readme-validate.php wordpress/writeleash
-#63/#121 readme preflight: title, 128-char description, 5 tags, Stable tag 0.3.0, directory/header requirements coherent, GPLv2-or-later PASS
+#63/#121 readme preflight: title, 126-char description, 5 tags, Stable tag 0.3.0, directory/header requirements coherent, GPLv2-or-later PASS
 
 php wordpress/tests/release/claim-matrix-audit.php .
 #121 claim matrix audit: 16 required topics, forbidden-claim guard, readme/matrix wording and packaging boundary PASS
