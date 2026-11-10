@@ -8,74 +8,88 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Protection against accidental WooCommerce price and stock overwrites, with Preview, conflicts, History and eligible Undo.
+Preview WooCommerce bulk price changes before they go live. Keep newer edits, undo eligible prices, and leash restricted agents.
 
 == Description ==
 
-WriteLeash offers protection against accidental WooCommerce price and stock
-overwrites on paths you control. Preview the price change, approve it, and
-Apply. If the stored price or another checked setting no longer matches the
-Preview, WriteLeash leaves the newer value alone and marks a conflict.
-History records the result. Eligible Undo restores prices WriteLeash applied
-when the saved details and the current product state permit it.
+A price change goes wrong in ordinary ways: a percentage on the wrong
+products, a CSV that overwrites Regular or Sale Price, or an assistant
+account that can edit products. WriteLeash is the path where you see the
+new stored price first. That change is not applied until you approve it.
 
-Ordinary price jobs do not change stock. WriteLeash changes stock only on an
-opt-in restricted grant, through its controlled price and stock job path,
-which stays off until an operator issues the grant. Stock Undo is not
-supported.
+= See the price before it goes live =
 
-This is not protection for every WooCommerce write. It is not a firewall, it
-does not isolate hostile plugins, and it does not stop direct SQL. Undo does
-not reverse orders, completed sales, emails, webhooks, remote requests,
-external queues or other plugins' effects.
+Choose published simple products or variations. Preview Regular Price and
+Sale Price, then approve separately and Apply. Walking away from Preview
+changes nothing. The Preview CSV is the saved Preview, not live data.
 
-= Regular Price and Sale Price =
-
-Set a price, add/subtract a fixed amount, or change by a percentage. Choose
-Regular or Sale Price. A variable parent means its variations, or choose
-variations individually. Category selection includes direct members unless
-nested subcategories are explicitly included.
-
-A Regular Price change preserves the existing Sale Price and schedule. Set
-adds a first Sale Price, or calculate a discount from each reviewed Regular
-Price. Clear makes Sale Price blank, not zero, and keeps its dates. Price
-changes do not change sale dates, stock or orders. Optional .99/.95/.90/whole
-endings pass the same safety limits; Clear ignores them.
-
-= Choose and exclude =
-
-Filter by an inclusive stored Regular or Sale Price range; both endpoints
-count, and blank sales never match. Variations use their own prices. Exclude products or variations before approval; confirmed exclusions
-stay out of Apply and Undo.
-
-= Preview exact changes before Apply =
-
-Preview shows before-and-after prices, warnings and explained skips. Unsafe
-items are skipped where possible; a safety-limit blocker refuses the whole
-Preview. Planned stored prices are not guaranteed shopper prices. Set
-product-count, increase/decrease and zero-price limits, then approve
-separately to Apply the reviewed targets; changed settings need a new
-Preview. The Preview CSV is the saved Preview, not live data.
-
-= Preserve newer edits =
+= Keep the newer price =
 
 If the stored price WriteLeash is changing or another checked setting no
-longer matches the preview, WriteLeash leaves the newer value alone and marks
-that product as a conflict.
+longer matches the preview, WriteLeash leaves the newer value alone and
+marks that product as a conflict.
 
-A Regular Price change preserves a later Sale Price or schedule where valid.
-A nonblank Sale Price target must stay below Regular Price; Clear and sale
-discounts check the reviewed Regular Price basis. The product name, SKU and
-category are reference details only; changing them alone does not conflict.
+A later price or setting change becomes a conflict instead of a blind
+overwrite. The product name, SKU and category are reference details only;
+changing them alone does not conflict. A Regular Price change preserves a
+later Sale Price or schedule where valid. A nonblank Sale Price target
+must stay below Regular Price; Clear and sale discounts check the reviewed
+Regular Price basis.
 
-= Background, History and Undo =
+= Undo an eligible price =
 
-Follow live progress or return later; Resume stalled work without repeating
-completed changes. History shows results, conflicts and Undo availability.
-After Apply safely finishes, Undo can restore eligible prices within its
-window. Failed current checks leave the product alone as a conflict. Regular
-Price Undo preserves later sales where valid; Sale Price Undo checks its
-recorded Regular Price. Availability does not guarantee restoration.
+History shows results, conflicts and whether Undo is available. Undo
+restores eligible stored regular- or sale-price values that WriteLeash
+previously applied when the saved details and the current product state
+permit it. Failed current checks leave the product alone as a conflict.
+Regular Price Undo preserves later sales where valid; Sale Price Undo
+checks its recorded Regular Price. Availability does not guarantee
+restoration.
+
+Stock Undo is not supported. Undo does not reverse orders, completed
+sales, emails, webhooks, remote requests, external queues or other
+plugins' effects.
+
+= Put a restricted account on a leash =
+
+Grants are opt-in and stay off until an operator issues one. You choose
+the restricted WordPress user, the products, the price or stock limits,
+how much work, and when access ends. Ordinary price jobs do not change
+stock. Stock changes only on that opt-in grant.
+
+Pause, revoke, and remove-restriction do not fall open. The account
+cannot remove its own restriction. Cron counts only when it runs as that
+restricted user. A system cron on user 0 is outside the grant.
+Administrators who are not on the grant are outside it. This is not
+protection for every WooCommerce write.
+
+= Changes you can make =
+
+Set a price, add or subtract a fixed amount, or change by a percentage.
+Choose Regular or Sale Price. A variable parent means its variations, or
+choose variations individually. Category selection includes direct members
+unless nested subcategories are explicitly included.
+
+A Regular Price change preserves the existing Sale Price and schedule. Set
+adds a first Sale Price, or calculate a discount from each reviewed
+Regular Price. Clear makes Sale Price blank, not zero, and keeps its
+dates. Price changes do not change sale dates, stock or orders. Optional
+.99/.95/.90/whole endings pass the same safety limits; Clear ignores them.
+
+Filter by an inclusive stored Regular or Sale Price range; both endpoints
+count, and blank sales never match. Variations use their own prices.
+Exclude products or variations before approval; confirmed exclusions stay
+out of Apply and Undo.
+
+Preview shows before-and-after prices, warnings and explained skips.
+Unsafe items are skipped where possible; a safety-limit blocker refuses
+the whole Preview. Planned stored prices are not guaranteed shopper
+prices. Set product-count, increase/decrease and zero-price limits, then
+approve separately to Apply the reviewed targets; changed settings need a
+new Preview.
+
+Follow live progress or return later; Resume stalled work without
+repeating completed changes.
 
 == Requirements ==
 
@@ -159,13 +173,15 @@ with separate approval. Changes away and back may not be detected.
 
 = Can I review without changing prices? =
 
-Yes. Preview and its CSV change nothing and approve nothing.
+Yes. Preview and its CSV change nothing and approve nothing. Walking away
+changes nothing.
 
 = Can Undo reverse everything? =
 
 No. Only confirmed eligible prices can be restored; missing evidence,
 ineligible products, changed values, uncertainty or expiry can prevent it.
-Orders, sales and external effects are not reversed.
+Orders, sales and external effects are not reversed. Stock Undo is not
+supported.
 
 = Should I back up before a large update? =
 

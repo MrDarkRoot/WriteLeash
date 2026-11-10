@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WriteLeash
  * Plugin URI: https://github.com/MrDarkRoot/WriteLeash
- * Description: Preview WooCommerce bulk price changes, preserve newer edits, resume interrupted jobs, and undo eligible changes.
+ * Description: Preview WooCommerce bulk price changes before they go live. Keep newer edits, undo eligible prices, and leash restricted agents.
  * Version: 0.3.0
  * Author: Duy Tran
  * Author URI: https://profiles.wordpress.org/duyytrann
