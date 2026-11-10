@@ -69,6 +69,9 @@ if ( ! is_array( $before ) || ! isset( $before['denied'] ) ) {
 	exit( 1 );
 }
 
+if ( ! function_exists( 'WP_Filesystem' ) ) {
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+}
 $calls = 0;
 add_filter(
 	'pre_http_request',
