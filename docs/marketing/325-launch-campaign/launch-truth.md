@@ -20,18 +20,34 @@ The seed file is [metrics/2026-11-10-baseline.json](metrics/2026-11-10-baseline.
 Issue #313 is closed. This pack does not reopen it and does not write SVN.
 Issue #280 is still open. Nothing here is a compatibility pass.
 
-## What 0.3.0 may be called
+## Git readme and the directory readme are not the same file
 
-From the public readme on `main`, which matches the distributed listing copy:
+Compared on 10 November 2026: the plugin tree at git
+`57c0de9d41a8c2d915394b7eb186e650f63db8f6` (`wordpress/writeleash/`) against
+the files in `writeleash.0.3.0.zip`. Fifty-four payloads match. Only
+`readme.txt` differs. The git copy is 9,645 bytes. The zip copy is 6,987
+bytes. SVN trunk `readme.txt` matches the zip short description, not the git one.
 
-- Preview a price change, approve it separately, and Apply. If the stored price or another checked setting no longer matches the preview, leave the newer value and mark a conflict.
-- History records the result. Eligible Undo restores prices WriteLeash applied when the saved details and the current product still permit it. The default window on the listing screenshots is 30 days. Availability does not guarantee restoration.
-- Ordinary price jobs do not change stock, sale dates, or orders. Clear makes a sale price blank, not zero.
-- Stock changes only on an opt-in restricted grant, through the controlled price and stock job path. That path stays off until an operator issues the grant. Stock Undo is not supported.
-- A restricted WordPress principal is bounded to that controlled path. Documented monitored WooCommerce writes are denied outside a matching Execution Frame.
-- It is not a firewall. It does not isolate hostile plugins. It does not stop direct SQL. It is not a universal fail-closed guarantee, and it is not a sandbox.
-- Undo does not reverse orders, completed sales, emails, webhooks, remote requests, external queues, or other plugins' effects. It does not undo a products-list bulk edit or a CSV import that already ran.
-- The readme limits jobs to tested WordPress and WooCommerce pairs: WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0, and a legacy band of WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Other pairs are refused before a job is created. The API "Requires at least" value is WordPress 6.7. This pack does not add pair-rule evidence. Up to 1,000 selected products per new job in the tested configuration.
+| Copy | Short description |
+| --- | --- |
+| Git `main` | Protection against accidental WooCommerce price and stock overwrites, with Preview, conflicts, History and eligible Undo. |
+| WordPress.org zip and SVN trunk | See WooCommerce price changes before they go live. Keep newer edits, undo eligible prices, and leash restricted agents. |
+
+Do not describe the git readme as the distributed listing.
+
+## What the directory readme may be called
+
+The limits below are from the zip readme and the same SVN trunk readme, fetched
+the same day. They are not a claim that the git file is what WordPress.org serves.
+
+- Preview the regular price and the sale price, then approve and Apply. Walking away from Preview changes nothing. If the stored price or another checked setting no longer matches the preview, leave the newer value and mark a conflict.
+- History shows what finished, what conflicted, and what can be undone. Eligible Undo puts a price back when the saved details and the product still allow it. The screenshot list says eligible Undo within 30 days. Availability does not guarantee restoration.
+- Ordinary price jobs do not change stock. A regular-price change keeps the current sale price and its dates. Clear a sale price to blank, not zero.
+- Stock moves only after a grant is issued, and that switch stays off until then. Stock Undo is not supported.
+- A restricted WordPress principal is bounded to WriteLeash's controlled price and stock job path. Documented monitored WooCommerce write paths are denied outside a matching Execution Frame. Administrators who are not on the grant are outside it. A system cron on user 0 is outside it.
+- It is a seatbelt, not a firewall. Direct SQL, hostile plugins, and unmonitored write paths are not covered. It is not a universal fail-closed guarantee, and it is not a sandbox or a universal agent-safe guarantee.
+- Orders, completed sales, emails, webhooks, and other plugins stay as they are. Undo does not reverse a products-list bulk edit or a CSV import that already ran, because those were not an eligible WriteLeash price restore.
+- Requirements in that readme: WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0, and a legacy band of WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Other pairs are refused before a job is created. The API "Requires at least" value is WordPress 6.7. This pack does not add pair-rule evidence. Up to 1,000 selected products per new job in the tested configuration.
 
 Do not give grant setup steps in a public post. Do not say every automation account is covered. An administrator is not the restricted actor. A remote session that runs as an unrestricted administrator is outside the seatbelt described above.
 
@@ -63,12 +79,24 @@ WordPress.org 0.2.2 package. The last caption says the same. Do not describe
 the video as a capture of the distributed 0.3.0 zip. A fresh `run.sh` replaces
 the grant id, expiry, and hashes. Do not copy those numbers into a post.
 
-## Still not public
+## Pages and what this pack still does not have
+
+Fetched 10 November 2026. Each of these returned HTTP 200. This task did not
+publish them. [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331) is
+still open. No Search Console property was read, and no search-volume number
+is claimed.
+
+| URL | HTTP |
+| --- | --- |
+| https://mrdarkroot.github.io/WriteLeash/ | 200 |
+| https://mrdarkroot.github.io/WriteLeash/undo-woocommerce-bulk-price-edit/ | 200 |
+| https://mrdarkroot.github.io/WriteLeash/restore-sale-prices-overwritten-by-import/ | 200 |
+| https://mrdarkroot.github.io/WriteLeash/imported-sale-price-not-showing/ | 200 |
+| https://mrdarkroot.github.io/WriteLeash/restrict-woocommerce-price-changes/ | 200 |
+| https://mrdarkroot.github.io/WriteLeash/woocommerce-price-history/ | 200 |
 
 | Item | State on 10 November 2026 |
 | --- | --- |
 | GitHub Releases | Empty list. |
 | GitHub Discussions | `has_discussions` false. Not enabled. |
-| GitHub Pages | `https://mrdarkroot.github.io/WriteLeash/` returned HTTP 404. |
-| [#323](https://github.com/MrDarkRoot/WriteLeash/issues/323) / [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331) | Open. No live article URL. |
-| Search Console, referral visits | `NOT_AVAILABLE`. |
+| Search Console and referral visits | `NOT_AVAILABLE`. The Pages responses above are not an analytics export. |

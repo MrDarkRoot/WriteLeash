@@ -80,13 +80,15 @@ Body shape, not a paste:
 
 https://wordpress.org/plugins/writeleash/?utm_source=reddit-wordpress&utm_medium=community&utm_campaign=writeleash-v030-30d&utm_content=reddit-wordpress-promo
 
-## 5. WP Content or The WP Weekly, after a real article exists
+## 5. WP Content or The WP Weekly
 
 Do not submit these files. Do not submit the plugin URL to WP Content. The
-forms are in [../targets.md](../targets.md). **BLOCKED: no account.** There is
-no article URL today.
+forms are in [../targets.md](../targets.md). **BLOCKED: no account.** Nothing
+was submitted. The five guides already return HTTP 200. See
+[../launch-truth.md](../launch-truth.md). [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331)
+is still open. This draft did not publish them.
 
-When an article is actually published, submit that article. Suggested note:
+If the founder later submits one of those guide URLs, suggested note:
 
 A short guide on why the opposite percentage does not restore a WooCommerce
 bulk price edit, and how to put the prices back from the export taken first.

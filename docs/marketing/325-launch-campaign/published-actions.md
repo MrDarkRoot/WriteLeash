@@ -11,9 +11,9 @@ Checked 10 November 2026. Nothing below was posted from this task.
 | WordPress.org SVN | none | Not written. The public version is already 0.3.0. This issue does not commit SVN. |
 | GitHub Discussions | none | **BLOCKED: discussions disabled.** `has_discussions` is false. This task did not enable them. |
 | GitHub Release | none | The releases list is empty. This pack does not create one. |
-| Newsletter or directory submission | none | Not submitted. Real forms are listed in [targets.md](targets.md). There is no live article URL to send. |
-| Article on a public site | none | [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331) is still open. GitHub Pages returned HTTP 404. |
+| Newsletter or directory submission | none | Not submitted from this task. The five guide URLs in [launch-truth.md](launch-truth.md) returned HTTP 200. No account was used. |
+| Article on a public site | the five guide URLs in [launch-truth.md](launch-truth.md) | HTTP 200 on 10 November 2026. This task did not publish them. [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331) is still open. |
 
-The repository record is the pull request opened from `docs/325-v030-distribution`
-and the progress comment on issue #325. Those are not merchant-facing posts.
-The pull-request URL is written on the issue after GitHub assigns it.
+The repository record for this update is
+[PR #337](https://github.com/MrDarkRoot/WriteLeash/pull/337) and the progress
+comment on issue #325. Those are not merchant-facing posts.

@@ -22,7 +22,7 @@ posts have not started. See [published-actions.md](published-actions.md).
 | Installs and active installs | API `active_installs` 0, the "Fewer than 10" bucket. Download events 2026-10-11 through 2026-11-09: **322**. Last date in the series: 2026-11-09. Download events are not this row. | [baseline](metrics/2026-11-10-baseline.json) |
 | Reviews and support | `num_ratings` 0, `rating` 0, `support_threads` 0, `support_threads_resolved` 0. Reviews page: no reviews submitted. Support page: no topics. | Same baseline |
 | Search impressions and clicks | `NOT_AVAILABLE` | No Search Console property. |
-| Referral visits | `NOT_AVAILABLE` | No project site. GitHub Pages returned HTTP 404. WordPress.org does not report UTM. |
+| Referral visits | `NOT_AVAILABLE` | GitHub Pages root and the five guides returned HTTP 200. This pack has no Search Console property and no Pages analytics export. WordPress.org does not report UTM. |
 | Campaign activity | External posts, emails, review requests, and directory submissions: **0**. | [published-actions.md](published-actions.md) |
 | Verified conversions | `NOT_AVAILABLE` | The download series does not attribute a link or a UTM parameter. |
 

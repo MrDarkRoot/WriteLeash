@@ -16,7 +16,7 @@ metrics file. Targets in [measurement.md](measurement.md) are not results.
 | Work | State on 2026-11-10 |
 | --- | --- |
 | Public version check | Done. Directory version 0.3.0. Baseline recorded. |
-| #323 guides | Not published. [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331) is open. No canonical URL. |
+| #323 guides | The five GitHub Pages URLs in [launch-truth.md](launch-truth.md) returned HTTP 200. [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331) is still open. This task did not publish them and did not submit them. |
 | Demo as the distributed zip | Not claimed. The recording on `main` is the repository build described in its README. |
 | Community posts | Not posted. **BLOCKED: no account.** |
 
@@ -31,7 +31,7 @@ Theme: [assets/weekly-themes.md](assets/weekly-themes.md), week 1.
 | Action | Gate |
 | --- | --- |
 | One founder-controlled note, if wanted | [assets/launch-announcement.md](assets/launch-announcement.md). Not a GitHub Release. Discussions stay off. |
-| A guide on a host the project controls | Only after PR #331, or a replacement, has a real canonical URL. |
+| A guide on a host the project controls | The five Pages URLs already return HTTP 200. Submitting one still needs an account. Do not submit the plugin URL to WP Content. |
 | Demo link | Only with the README's description: unreleased repository recording, no model call, not the directory zip. |
 
 No Slack, Reddit, or forum launch post in that week.

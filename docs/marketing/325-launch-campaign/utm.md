@@ -37,6 +37,7 @@ Do not report a UTM link as an install, a referral visit, or a conversion.
 Those cells stay `NOT_AVAILABLE` in [measurement.md](measurement.md).
 
 The parameters are a label on the draft, so a later note can say which text
-was used. They are not a WordPress.org report. GitHub Pages for this
-repository returned HTTP 404 on 10 November 2026, so there is no project site
-whose logs could read the query string either.
+was used. They are not a WordPress.org report. GitHub Pages answered HTTP 200
+on 10 November 2026, including the five guide URLs in
+[launch-truth.md](launch-truth.md). This pack has no Search Console property
+and no Pages analytics export, so those visits are not counted here either.

@@ -33,8 +33,8 @@ every external destination.
 
 | Asset | Why |
 | --- | --- |
-| Five #323 articles | [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331) is open. GitHub Pages returned HTTP 404. |
-| WP Content and The WP Weekly | Forms exist. There is no article URL, and no account was used. |
+| Five #323 guides | Live. The five URLs in [launch-truth.md](launch-truth.md) returned HTTP 200. [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331) is still open. This task did not publish them. |
+| WP Content and The WP Weekly | Forms exist. The guide URLs exist. Nothing was submitted. **BLOCKED: no account.** |
 | Search and referral numbers | `NOT_AVAILABLE`. WordPress.org will not report UTM. |
 | Any external send | **BLOCKED: no account.** |
 

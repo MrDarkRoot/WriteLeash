@@ -56,7 +56,7 @@ any Reddit post. Until then Reddit is **BLOCKED: no account.**
 - https://wpcontent.io/submit/ returned HTTP 200 on 10 November 2026. Do not submit a plugin URL.
 - https://thewpweekly.com/submit/ returned HTTP 200 later the same day, after one failed connection. Submissions are discretionary.
 - https://wptavern.com/contact/ returned HTTP 200. It is a contact form, not a directory.
-- Permission: `SUBMISSION_REVIEW`. **BLOCKED: no account**, and there is no live article URL.
+- Permission: `SUBMISSION_REVIEW`. The five guide URLs in [launch-truth.md](launch-truth.md) returned HTTP 200. Nothing was submitted. **BLOCKED: no account.**
 
 ## Not used
 

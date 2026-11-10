@@ -33,8 +33,8 @@ These are forms, not posts. Nothing was submitted. Login or a real article URL i
 
 | Page | What the page says | Why it is not sent |
 | --- | --- | --- |
-| https://wpcontent.io/submit/ | Do not post links directly to a product, plugin, or theme page. A release post is fine. First submissions are held for review. Login is required. | [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331) has no live article URL. |
-| https://thewpweekly.com/submit/ | Form for WordPress articles, resources, guides, news, new products, and services. Publishing is at their discretion. | No article URL, and no account was used. An earlier request to this host failed to connect. A later request on the same day returned HTTP 200. |
+| https://wpcontent.io/submit/ | Do not post links directly to a product, plugin, or theme page. A release post is fine. First submissions are held for review. Login is required. | The five guide URLs in [launch-truth.md](launch-truth.md) returned HTTP 200. Nothing was submitted. **BLOCKED: no account.** [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331) is still open. |
+| https://thewpweekly.com/submit/ | Form for WordPress articles, resources, guides, news, new products, and services. Publishing is at their discretion. | The guide URLs exist. Nothing was submitted. **BLOCKED: no account.** An earlier request to this host failed to connect. A later request on the same day returned HTTP 200. |
 | https://wptavern.com/contact/ | A contact form. The page says they cannot reply to every note about a new release. | **BLOCKED: no account.** This task does not send email or a form. |
 
 Checked and not used: https://poststatus.com/contact/ is a general contact page (`dateModified` 2025-05-23), not a directory. https://masterwp.com/write-for-us/ returned HTTP 403. https://www.wpmayor.com/write-for-us/ returned HTTP 404. https://www.therepository.email/submit returned HTTP 403.
