@@ -2,6 +2,8 @@
 
 Unreleased demonstration of repository commit `3be680557c476f30e93e45cf7bf0bc62009ef8c6` (plugin header 0.2.0). The disposable site runs that tree through the public distribution allowlist. This is not a recording of the package distributed on WordPress.org.
 
+**2026-11-10.** The live WordPress.org directory is WriteLeash 0.3.0. These films were recorded on earlier trees and are not a recording of the published zip. The seatbelt camera ran plugin header 0.2.0 at git `3be680557c476f30e93e45cf7bf0bc62009ef8c6`. The AddSynapse film ran plugin header 0.2.0 at git `0e4ac6881006eabd95e34ec1530a3357401d3226`. `out/versions.json` still records `wordpress_org_distributed_version` as `0.2.2`, and the last caption in `out/captions.en.vtt` still says this recording is not the WordPress.org 0.2.2 download. When recorded, the directory was 0.2.2. That caption matches the film and was not retimed. It is not a claim that the directory is 0.2.2 on 2026-11-10.
+
 The clip shows two behaviors on one fictional product:
 
 1. Bulk Prices previews a regular-price decrease from $100.00 to $80.00. A second shop manager sets the stored regular price to $120.00. Apply compares the stored price with the reviewed price, reports a conflict, and leaves $120.00 in place.

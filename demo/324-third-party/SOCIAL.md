@@ -6,6 +6,8 @@ Do not call this an autonomous model decision or an AddSynapse defect. No API ke
 
 The clip is 68.44 s, not 45–60 s. It was not trimmed or re-recorded. Plugin header on camera was 0.2.0 at commit `0e4ac6881006eabd95e34ec1530a3357401d3226`. That is not the WordPress.org 0.2.2 package and not a recording of public 0.3.0.
 
+**2026-11-10.** The live WordPress.org directory is WriteLeash 0.3.0. These films were recorded on earlier trees and are not a recording of the published zip. This AddSynapse film is plugin header 0.2.0 at git `0e4ac6881006eabd95e34ec1530a3357401d3226`. The seatbelt film is plugin header 0.2.0 at git `3be680557c476f30e93e45cf7bf0bc62009ef8c6`. The last caption in `out/captions.en.vtt` still says the clip is not the WordPress.org 0.2.2 package. When recorded, the directory was 0.2.2. That cue matches the film and was not retimed. It is not a claim that the directory is 0.2.2 on 2026-11-10.
+
 ## Hook (101 characters)
 
 Riley typed a price command for the wrong product. WriteLeash denied the save. The cap stayed $40.00.
