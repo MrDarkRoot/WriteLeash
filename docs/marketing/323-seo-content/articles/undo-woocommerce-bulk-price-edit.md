@@ -1,54 +1,50 @@
 ---
-title: "How to undo an accidental WooCommerce bulk price edit"
+title: "Undo a WooCommerce bulk price edit from the pre-change CSV"
 slug: undo-woocommerce-bulk-price-edit
-meta_description: "WooCommerce bulk edit writes prices on Update and documents no undo. Restore them from a CSV or backup, and do not reverse a percentage with itself."
-h1: "How to undo an accidental WooCommerce bulk price edit"
+meta_description: "WooCommerce bulk edit writes prices on Update and has no undo. Restore them from a dated CSV. A 20% cut is not fixed by raising 20%."
+h1: "Undo a WooCommerce bulk price edit from the pre-change CSV"
+card: "Restore the old prices from a CSV taken before the bulk edit. Do not reverse a percentage cut with the same percentage."
 intent: "Recover regular or sale prices after the products-list bulk editor or the variation bulk actions wrote the wrong numbers."
 failure_family: "Accidental bulk price edit"
-affiliation: "WriteLeash is our product. This guide is not an independent review."
-canonical_status: UNPUBLISHED
-date_revised: 2026-10-27
+affiliation: "WriteLeash publishes this guide. It is not an independent review."
+canonical_status: INTENDED
+date_revised: 2026-11-10
 ---
 
-# How to undo an accidental WooCommerce bulk price edit
+# Undo a WooCommerce bulk price edit from the pre-change CSV
 
-**WriteLeash makes this guide.** We publish the [WriteLeash](https://wordpress.org/plugins/writeleash/) plugin. The recovery steps below use WooCommerce itself. You do not need WriteLeash to follow them. The section near the end says what the plugin does and what it does not do.
+Stop. Do not raise the prices by the same percentage you just cut, and do not upload another price file until you know the old numbers. WooCommerce writes the new prices when you press **Update**. The [bulk editing guide](https://woocommerce.com/document/bulk-editing-products/), opened on 10 November 2026, does not describe an undo control. It says to edit the affected products again if a value is wrong. The repair is a CSV exported before the mistake: keep ID or SKU and the price columns you mean to put back, and set every other column to **Do not import**.
 
-WooCommerce's own [bulk editing guide](https://woocommerce.com/document/bulk-editing-products/) tells you to select products, choose **Edit**, change the Price or Sale field, and press **Update**. That page does not describe an undo button. Once Update finishes, the new prices are the stored prices.
+**WriteLeash publishes this guide.** It is not an independent review. The steps use WooCommerce. You do not need WriteLeash to follow them.
 
-There are still ways to get the old numbers back. They depend on an export, a backup, or arithmetic you can check. They are not a hidden undo command.
+## Restore the old prices first
 
-## Two different bulk editors
+Work on a staging copy if you have one. On a live store, change one SKU and read it back before you touch the rest.
 
-Use the screen you actually used. They do not write the same rows.
+1. Stop scheduled imports, sync tools, and a second bulk edit. A repair that runs twice is how the bad price returns.
+2. Find a CSV from **Products > All Products > Export** that was saved before the edit. The [CSV guide](https://woocommerce.com/document/product-csv-importer-exporter/), opened the same day, matches updates by ID or SKU when **Update existing products** is on.
+3. Build a restore file with the identifier and only the price columns you intend to write. Include **Date sale price starts** and **Date sale price ends** if a schedule was cleared. Delete every other column, or set those columns to **Do not import** on the mapping screen.
+4. Import one row. Open the product and compare the regular price, the sale price, and both dates with the file. Then import the rest in batches you can check.
+5. If you have no pre-change export, restore a database backup onto staging, export the price columns from staging, and import those columns into the live store with the same mapping. Do not restore the live database over a store that has taken orders since the backup. Those orders roll back with the prices.
+6. An order line is the amount that customer was charged. It is not a catalog history. Products that did not sell are missing from it.
 
-**Products > All Products > Bulk actions > Edit.** This is the screen in the [bulk editing guide](https://woocommerce.com/document/bulk-editing-products/). Its Price field offers:
+A products-list bulk edit that changes a regular or sale price also clears the scheduled sale start and end dates. The same guide says to set the schedule again on each affected product if you still need it. Putting the date columns back from the old export is the direct way to do that. This pass did not re-run that clear in a store.
 
-- Change to
-- Increase existing price by a fixed amount or a percent
-- Decrease existing price by a fixed amount or a percent
+Leave Price and Sale on **No change** unless you mean to write them. The guide says a field left on **No change** keeps its current value. The October 2026 text of that page said a blank or 0 on **Set to regular price decreased by** removes the sale. The page opened on 10 November 2026 no longer says that. Do not treat a blank box as either safe or as a documented clear. This research did not execute the blank field.
 
-Its Sale field offers Change to, Increase existing sale price, Decrease existing sale price, and **Set to regular price decreased by**. The same guide says this screen works best with simple products and cannot edit the complexities of variable, grouped, or other complicated products.
+If the editor shows the old sale and the shop still shows the regular price, stop importing. That is [a saved sale the shop does not show](imported-sale-price-not-showing.md). If the sale field itself is empty, use [the CSV sale restore](restore-sale-prices-overwritten-by-import.md). Installing a history plugin after the edit does not recreate the lost values. [Keep a dated export next time](woocommerce-price-history.md).
 
-**A variable product > Variations > Bulk actions.** This is a different menu, documented on the [variable product page](https://woocommerce.com/document/variable-product/). Those actions apply to the variations of that one product. WooCommerce's current page says the change saves immediately. For **Set sale prices to regular prices decreased by**, a regular price of 100 and an entry of 15 stores a sale price of 85. An entry of 20% stores 80. Entering 0 clears existing sale prices. Blank, non-numeric, or negative input leaves existing sale prices unchanged for that action. Variations with no regular price are skipped. The sale price cannot go below zero.
-
-Quick Edit is a third path. The bulk editing guide says it is the same kind of form for one product, and it shows that product's current values. It also writes when you update. It is not an undo of a previous bulk edit.
-
-## A concrete simple-product example
+## Do not reverse a percentage with itself
 
 Store currency with two decimal places. Three published simple products, no sale prices:
 
-| SKU | Regular price before | After Decrease existing price by 20% |
+| SKU | Regular price before | After a 20% decrease |
 | --- | --- | --- |
 | HOODIE | 80.00 | 64.00 |
 | CAP | 24.00 | 19.20 |
 | MUG | 12.50 | 10.00 |
 
-Those three results are exact at two decimals: each old price times 0.8. A February 2026 thread, [bulk edit and decimal places](https://wordpress.org/support/topic/bulk-edit-price-decimal-places-bug/), is from a store on WooCommerce 10.4.3 and WordPress 6.9.1. Support said bulk edit saves with the store's decimal setting and, in that reply, with the usual two-decimal precision. The store owner then reported that export, edit, and import kept four decimals, and support agreed that workflow did. If your store keeps four decimal places, do not assume the bulk editor preserved them.
-
-## Why "increase by 20%" does not undo "decrease by 20%"
-
-Increasing the new prices by 20% does not return the old prices:
+Those three results are exact at two decimals: each old price times 0.8. Increasing the new prices by 20% does not return the old prices:
 
 | SKU | After the 20% decrease | Increase that result by 20% | Original |
 | --- | --- | --- | --- |
@@ -56,135 +52,62 @@ Increasing the new prices by 20% does not return the old prices:
 | CAP | 19.20 | 23.04 | 24.00 |
 | MUG | 10.00 | 12.00 | 12.50 |
 
-The inverse of "multiply by 0.8" is "multiply by 1.25", which is a 25% increase:
+The inverse of multiplying by 0.8 is multiplying by 1.25, a 25% increase. That lands on 80.00, 24.00, and 12.50 only when every row in the batch was decreased by the same percentage, the stored results match the arithmetic, and nobody has edited those prices since. A fixed decrease of 5.00 is reversed by a fixed increase of 5.00 under the same conditions. Rounding can break the reverse. At two decimals, 19.99 times 0.85 is 16.9915 and rounds to 16.99. That figure is arithmetic, not a price this research measured inside WooCommerce. Check one product before you touch the rest.
 
-| SKU | 25% increase of the decreased price | Original |
-| --- | --- | --- |
-| HOODIE | 80.00 | 80.00 |
-| CAP | 24.00 | 24.00 |
-| MUG | 12.50 | 12.50 |
+A merchant reported the same surprise in [woocommerce/woocommerce#17885](https://github.com/woocommerce/woocommerce/issues/17885) on 23 November 2017, as read for the 27 October 2026 pass: after a percentage decrease, increasing by that same percentage did not put the old sale price back. The issue was closed the same day for a different reason. **Decrease existing sale price** does nothing unless a sale price already exists. The thread does not name a later release that changes the arithmetic.
 
-Use that inverse only when every product in the batch was decreased by the same percentage, the stored results match the arithmetic, and nobody has edited those prices since. A fixed decrease of 5.00 is reversed by a fixed increase of 5.00 under the same conditions. Rounding can break the reverse. At two decimals, 19.99 times 0.85 is 16.9915 and rounds to 16.99. That figure is arithmetic, not a price this research measured inside WooCommerce. Check the reverse on one product before you touch the rest.
+A bulk edit can also stop halfway. [woocommerce/woocommerce#37681](https://github.com/woocommerce/woocommerce/issues/37681), opened in April 2023 and cited on 27 October 2026, describes a sale-price bulk edit that hit a blank regular price and left the list partly updated. That bug is not a claim about today's code. Export the current prices before a repair so you can see which rows moved.
 
-A merchant reported the same surprise in [woocommerce/woocommerce#17885](https://github.com/woocommerce/woocommerce/issues/17885) on 23 November 2017: after a percentage decrease, increasing by that same percentage did not put the old sale price back. The issue itself was closed the same day for a different reason. **Decrease existing sale price** does nothing unless the product already has a sale price. There is no percentage-calculation defect in that thread, and the thread names no later release that changes the arithmetic. Use the tables above. Do not treat a second bulk edit as undo unless you have checked the numbers.
+A February 2026 support thread, [bulk edit and decimal places](https://wordpress.org/support/topic/bulk-edit-price-decimal-places-bug/), was read on 27 October 2026 and not re-opened for this pass. It was one store on WooCommerce 10.4.3. Support said bulk edit saved with the store's decimal setting. Do not assume a four-decimal price survived the bulk editor. Read the product after one row.
 
-A bulk edit can also stop halfway. [woocommerce/woocommerce#37681](https://github.com/woocommerce/woocommerce/issues/37681), opened in April 2023, describes a sale-price bulk edit that hit a blank regular price, threw an error, and left the list partly updated. That bug is not a claim about today's code. It is a reason to export the current prices before you run a repair, so you can see which rows moved.
+## Which bulk editor you used
 
-## Restore the old prices without a plugin
+Use the screen you actually used. They do not write the same rows.
 
-Work on a staging copy if you have one. On production, change one SKU first and read it back in the product editor.
+**Products > All Products > Bulk actions > Bulk edit, then Apply.** The guide opened on 10 November 2026 says the Price field can change to a value, or increase or decrease the existing price by a fixed amount or a percent. The Sale field can change to a value, increase or decrease the existing sale, or set the sale to the regular price decreased by a fixed amount or a percent. It says to check the resulting sale price after that last option. By default, bulk price changes on this screen apply to simple and external products, not to the individual variations of a variable product. The edit applies to the products selected on the current page. A large page can strain the server.
 
-1. Stop. Do not run another bulk edit, import, or sync until you know the before-values.
-2. Find a CSV exported before the mistake. WooCommerce's exporter is **Products > All Products > Export**. The [CSV guide](https://woocommerce.com/document/product-csv-importer-exporter/) says an update matches existing products by ID or SKU.
-3. Build a restore file with only the identifier column and the price columns you intend to put back. On the column mapping screen, set every other column to **Do not import**. Turn on **Update existing products**.
-4. Import one row. Open that product and confirm the regular price, the sale price, and the sale dates. Then import the rest in batches you can check.
-5. If you have no pre-change export, restore a database backup onto staging, export the prices from staging, and import those prices into the live store with the same mapping. Do not restore the live database over a store that has taken orders since the backup. Those orders roll back with the prices.
-6. An order line shows the amount that customer was charged. It is not a catalog history. Products that did not sell are missing from it.
+**One variable product > Variations > Bulk actions.** This is a different menu, on the [variable product page](https://woocommerce.com/document/variable-product/) opened the same day. Those actions save immediately to the variations of that one product. For **Set sale prices to regular prices decreased by**, a regular price of 100 and an entry of 15 stores a sale price of 85. An entry of 20% stores 80. The action replaces any existing sale price. Entering 0 clears existing sale prices. Blank, non-numeric, or negative input leaves existing sale prices unchanged for that action. Cancel leaves them unchanged. Variations with no regular price are skipped. The sale price cannot go below zero.
 
-Installing a price-history plugin after the edit does not recreate the lost values. Those tools record from the moment they are active. See [how to keep a price history](woocommerce-price-history.md) for the habit that helps next time.
+Quick Edit is a third path. It shows that product's current values and writes when you update. It is not an undo of a previous bulk edit.
 
-If the bulk edit cleared sale prices, use [restore sale prices a CSV import overwrote](restore-sale-prices-overwritten-by-import.md). The products-list guide says **Set to regular price decreased by** with a blank value or 0 removes the sale price. That is a write, not a no-op.
+## What WriteLeash 0.3.0 will and will not undo
 
-## What WriteLeash does here, and what it does not
+The WordPress.org directory page was opened on 10 November 2026. The listed version is WriteLeash 0.3.0. The active-installation bucket was fewer than 10. The listing was last modified on 28 October 2026. The "Tested up to" field read 7.1.4. That field is not the list of versions the requirements text says were exercised.
 
-**Directory plugin, checked 27 October 2026.** [WriteLeash 0.2.2](https://wordpress.org/plugins/writeleash/) requires WordPress 7.0 or newer and WooCommerce 10.0 through 11.x. WordPress 7.0.1 and 7.1.2 were exercised. That is not a promise that every 7.x release was tested.
+If the bad write was the products list, Quick Edit, or the variation bulk actions, WriteLeash Undo does not reverse it. Undo restores eligible prices that WriteLeash itself applied, when the saved details and the current product still allow it. The listing screenshot describes eligible Undo within 30 days. Availability does not mean every row will restore. Undo does not reverse orders, completed sales, emails, webhooks, remote requests, external queues, or other plugins' effects. WriteLeash does not create a backup. Stock Undo is not supported.
 
-If the bad write was the products-list bulk editor, Quick Edit, or the variation bulk actions, WriteLeash Undo does not reverse it. Undo restores eligible prices that WriteLeash itself applied, inside its window, when the current product still matches the saved record. The listing's default window is 30 days. Availability does not mean every row will restore. Undo does not reverse orders, completed sales, emails, webhooks, remote requests, external queues, or other plugins' effects. WriteLeash does not create a backup.
+For a later change made in WriteLeash, Preview shows the before and after and writes nothing. Approval is a separate step. If the stored price WriteLeash is changing, or another checked setting, no longer matches the Preview, WriteLeash leaves the newer value and marks a conflict. Product name, SKU, and category alone do not cause that conflict. A value that moves away and comes back may not be detected. A regular-price change keeps the existing sale price and its dates. Ordinary price jobs do not change stock or orders. Clear makes a sale price blank, not zero.
 
-If you make the next price change with WriteLeash, the useful part is earlier in the workflow:
+Scope on that listing: published core simple products and published variations of published core variable products, in the base currency, up to 1,000 selected products per new job in the tested configuration. Parent prices are not edited directly. Custom product types are unsupported. Multisite is unsupported. Real managed or shared hosting has not been tested. Planned stored prices are not guaranteed shopper prices.
 
-- Preview shows the stored before and after for the regular or sale price you chose. A separate approval is required. Changing the selection or the operation requires a new Preview.
-- If the stored price WriteLeash is changing no longer matches the Preview, WriteLeash leaves the newer value and marks a conflict. Product name, SKU, and category alone do not cause that conflict. A value that changes away and then back may not be detected.
-- Eligible Undo applies only to prices WriteLeash applied. The public listing says a changed relevant value can leave a row unrestored. In the 0.2.2 package, the undo code goes further on one case: restoring a regular price stops as a conflict when that restored regular price would be less than or equal to a sale price now stored on the product, instead of clearing the newer sale. A sale-price undo writes the saved sale price back through WooCommerce's product save. Neither case is a promise that every later sale survives.
-- Scope on the 0.2.2 listing: published core simple products and published variations of published core variable products, in the base store currency, up to 1,000 selected products per new job in the tested configuration. Parent prices are not edited directly. Custom product types are unsupported. Multisite is unsupported. Real managed or shared hosting has not been tested. Ordinary price changes do not change sale dates, stock, or orders. Planned stored prices are not guaranteed shopper prices.
+Requirements, from the listing and the plugin readme: WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0 only (10.0.0 or newer, below 12.0.0), or the legacy band of WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Exercised pairs named there: WordPress 7.0.1 and 7.1.2 on the modern line, WordPress 6.7.2 with WooCommerce 9.0.4, and WordPress 6.8.3 with WooCommerce 9.9.7. Other pairs are refused before a job is created.
 
-**Not the download.** The GitHub default branch, after merged [pull request #330](https://github.com/MrDarkRoot/WriteLeash/pull/330), certifies pairs rather than every combination: WordPress 7.0 up to but not including 8.0 with WooCommerce 10.0 up to but not including 12.0, or WordPress 6.7 up to but not including 7.0 with WooCommerce 9.0 up to but not including 10.0. Other pairs are refused before a job is created. Do not install the directory plugin on WordPress 6.7 and expect that pair. Restricted-agent and stock-on-a-grant behavior in [issue #312](https://github.com/MrDarkRoot/WriteLeash/issues/312) is not part of the 0.2.2 listing.
+Opt-in grants for bounded price and stock jobs shipped in 0.3.0. They stay off until an operator issues one. Upgrade from 0.2.2 does not create a grant. A restricted WordPress user is denied on documented monitored WooCommerce write paths outside a matching Execution Frame. It is not a firewall, not a sandbox, and not a universal agent-safe guarantee. Direct SQL, hostile plugins, and unmonitored writes are not covered. There is no guarantee when the grant store is unavailable. [Who can still change a price](restrict-woocommerce-price-changes.md) is a separate job from undoing one.
 
-Some other bulk editors preview before they save, or undo only before save. [PW WooCommerce Bulk Edit](https://wordpress.org/plugins/pw-bulk-edit/) says nothing is written until you click Save, and you can undo before that. That is a different moment from restoring a price that is already stored. Read the current listing of any tool you install. This guide is not a ranking.
+Other bulk editors may preview before they save, or keep a snapshot of their own runs. [Bulk Price Editor for WooCommerce](https://wordpress.org/plugins/bulk-price-editor-for-woocommerce/) 2.5.1 was opened on 10 November 2026. Its FAQ still says the plugin does not have an undo feature. Its 2.5.0 changelog, dated 1 September 2026, says each bulk update stores previous prices and marks one-click revert as premium. Read the version you install. This guide is not a ranking.
 
-## A short rule for the next sale
+## Related guides
 
-Export ID, SKU, Regular price, Sale price, and both sale-date columns. Name the file with the date. Run the bulk edit on a category or a handful of SKUs you can count. Open two products and compare them with the export. Then do the rest.
-
-If you want that preview and the option to restore eligible prices from the tool that wrote them, [WriteLeash on WordPress.org](https://wordpress.org/plugins/writeleash/) is the plugin this guide is about. It will not undo the bulk edit you have already saved.
+- [Restore sale prices a CSV import overwrote](restore-sale-prices-overwritten-by-import.md)
+- [Why a saved sale can be missing on the shop](imported-sale-price-not-showing.md)
+- [Keep a WooCommerce price history with a dated CSV](woocommerce-price-history.md)
 
 ## FAQ
 
 ### Does WooCommerce include an undo for bulk price edits?
 
-The [bulk editing guide](https://woocommerce.com/document/bulk-editing-products/) and the [variation bulk-action section](https://woocommerce.com/document/variable-product/) describe the write. They do not describe an undo control. A backup, an older export, or a history tool that was already recording are the recovery paths.
+No. The bulk editing guide opened on 10 November 2026 describes Update and says to edit the products again if a value is wrong. It does not describe an undo control. A backup, an older export, or a history tool that was already recording are the recovery paths.
 
-### Will product revisions put the old price back?
-
-Do not plan on it. Confirm on a staging copy, on one product, whether restoring a revision restores `_regular_price` and `_sale_price`. This guide did not find WooCommerce documenting revisions as a price undo.
-
-### Can I undo a 20% decrease by increasing 20%?
+### Will increasing by 20% undo a 20% decrease?
 
 No. In the example above, a 20% decrease is reversed by a 25% increase, and only when the stored prices are exactly the decreased values and nothing else has changed them.
 
-### Will WriteLeash undo a bulk edit I already ran in WooCommerce?
+### Will product revisions put the old price back?
 
-No. WriteLeash Undo restores eligible prices WriteLeash applied. A native bulk edit is outside that history.
+Do not plan on it. This guide did not find WooCommerce documenting revisions as a price undo. Confirm on a staging copy, on one product, before you count on a revision to restore the regular price and the sale price.
 
-```json
-{
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Article",
-      "headline": "How to undo an accidental WooCommerce bulk price edit",
-      "dateModified": "2026-10-27",
-      "description": "WooCommerce bulk edit writes prices on Update and documents no undo. Restore them from a CSV or backup, and do not reverse a percentage with itself.",
-      "author": {
-        "@type": "Organization",
-        "name": "WriteLeash",
-        "url": "https://wordpress.org/plugins/writeleash/"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "WriteLeash",
-        "url": "https://wordpress.org/plugins/writeleash/"
-      }
-    },
-    {
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "Does WooCommerce include an undo for bulk price edits?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "The official bulk editing guide and the variation bulk-action section describe the write. They do not describe an undo control. Recovery uses a backup, an older export, or a history tool that was already recording."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Will product revisions put the old price back?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Do not plan on it. Confirm on a staging copy whether restoring a revision restores the regular and sale prices. WooCommerce does not document revisions as a price undo."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Can I undo a 20% decrease by increasing 20%?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "No. A 20% decrease is reversed by a 25% increase only when the stored prices are exactly the decreased values and nothing else has changed them."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Will WriteLeash undo a bulk edit I already ran in WooCommerce?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "No. WriteLeash Undo restores eligible prices WriteLeash applied. A native WooCommerce bulk edit is outside that history."
-          }
-        }
-      ]
-    }
-  ]
-}
-```
+### Will WriteLeash undo a bulk edit that already ran?
 
-Structured data template only. Do not emit it until this article has a public canonical URL. Add `datePublished` on that day. The affiliation above is required on the page.
+No. WriteLeash Undo restores eligible prices WriteLeash applied. A native bulk edit is outside that history. Stock Undo is not supported. Undo does not reverse orders, emails, webhooks, or other plugins.
+
+WriteLeash 0.3.0 previews a price change and can undo eligible prices it applied. It will not undo the bulk edit you already saved. The directory listing is [WriteLeash on WordPress.org](https://wordpress.org/plugins/writeleash/). The source is the [WriteLeash repository](https://github.com/MrDarkRoot/WriteLeash).

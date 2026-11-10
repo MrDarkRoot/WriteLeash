@@ -1,133 +1,80 @@
 ---
-title: "How to stop staff or an AI agent from changing WooCommerce prices"
+title: "Stop staff and AI tools from changing WooCommerce prices"
 slug: restrict-woocommerce-price-changes
-meta_description: "WooCommerce has no separate edit-price capability. Remove product-edit access, write-capable API keys, and application passwords you do not trust."
-h1: "How to stop staff or an AI agent from changing WooCommerce prices"
-intent: "Reduce who can write product prices, using WordPress roles, REST keys, and application passwords, without pretending a hidden field is a lock."
-failure_family: "Staff or AI-agent price changes"
-affiliation: "WriteLeash is our product. This guide is not an independent review."
-canonical_status: UNPUBLISHED
-date_revised: 2026-10-27
+meta_description: "WooCommerce has no price-only role. Remove product-edit access and revoke write keys. An opt-in grant is a bounded job, not a lock on every account."
+h1: "Stop staff and AI tools from changing WooCommerce prices"
+card: "Take away product-edit access, and revoke REST keys and application passwords you do not trust. Core has no price-only role."
+intent: "Reduce who can write product prices, using WordPress roles, REST keys, and application passwords, and state the opt-in grant boundary without calling it a lock."
+failure_family: "Staff or AI-tool price changes"
+affiliation: "WriteLeash publishes this guide. It is not an independent review."
+canonical_status: INTENDED
+date_revised: 2026-11-10
 ---
 
-# How to stop staff or an AI agent from changing WooCommerce prices
+# Stop staff and AI tools from changing WooCommerce prices
 
-**WriteLeash makes this guide.** We publish the [WriteLeash](https://wordpress.org/plugins/writeleash/) plugin. The controls below are WordPress and WooCommerce. You can apply them without WriteLeash. The plugin section says, plainly, that the version on WordPress.org today does not lock staff or agents out of price fields.
+Remove product editing from anyone who should not change prices, then revoke REST keys and application passwords you do not recognize. WooCommerce does not ship a permission called "edit prices." A person who can edit a product can change its regular price and its sale price. An AI tool is the same problem when it holds that user's password, an application password, a Write key, or a plugin that saves products as that user.
 
-WooCommerce does not ship a permission called "edit prices." The [roles and capabilities guide](https://woocommerce.com/document/roles-capabilities/) says a Shop Manager can manage products: create, edit, delete, and publish products, including categories and tags. A person who can edit a product can change its regular price and its sale price, in the editor, in Quick Edit, in bulk edit, and in any tool that acts as that user.
+**WriteLeash publishes this guide.** It is not an independent review. The controls below are WordPress and WooCommerce. You can apply them without WriteLeash. An opt-in grant, described later, is a bounded job for one WordPress user. It is not a lock on the whole store.
 
-An AI agent is the same problem when it holds that user's password, an application password, a WooCommerce REST key with write access, or a plugin that writes products on the agent's behalf.
+## What to change first
 
-## What core actually gives you
+1. Open **Users > All Users**. List every Administrator and Shop Manager. Remove the Shop Manager or Administrator role from anyone who only needs to view orders or pack shipments.
+2. Open **WooCommerce > Settings > Advanced > REST API**. The [REST API guide](https://woocommerce.com/document/woocommerce-rest-api/), opened on 10 November 2026, says a key is Read, Write, or Read/Write, and that each key is tied to a WordPress user. Revoke Write and Read/Write keys you do not recognize. A reporting tool can use Read. The legacy REST API is no longer in WooCommerce core.
+3. On each user's profile, revoke application passwords for a contractor, a script, or an assistant that is finished. WordPress documents them in [Application Passwords](https://developer.wordpress.org/advanced-administration/security/application-passwords/), last modified 14 October 2026 and opened on 10 November 2026. An application password authenticates as that user for API access. It is not a wp-admin password. If the user is a Shop Manager, the client can do what a Shop Manager can do, including product edits.
+4. Before a person or a tool runs a bulk price change, export ID, SKU, Regular price, Sale price, and both sale dates. Name the file with the date. [That export is the undo file](undo-woocommerce-bulk-price-edit.md).
+5. After the run, open two products and compare them with the export.
 
-**Users > All Users** shows the role. Administrators and Shop Managers are the usual price writers. Customers are not.
+Hiding the price box with CSS is not a test. Test the path you are worried about: Quick Edit, products-list bulk edit, the variation **Bulk actions** menu, **Products > Import** with **Update existing products**, and a REST client using that user's credentials.
 
-The roles guide does not offer a warehouse role that can edit stock and cannot edit prices. It points at third-party role plugins and says WooCommerce does not endorse any specific one. The same page says WooCommerce support does not cover third-party plugins. Hiding the price box with CSS, or unchecking a checkbox that only hides a panel, is not a test. Test the path you are worried about:
+## Why a copied role still edits prices
 
-- Quick Edit on **Products > All Products**
-- Bulk actions > Edit, and the variation **Bulk actions** menu inside a variable product
-- **Products > Import** with **Update existing products**
-- A REST client using that user's credentials
+The [roles and capabilities guide](https://woocommerce.com/document/roles-capabilities/), opened on 10 November 2026, says a Shop Manager can manage products: create, edit, delete, and publish products, including categories and tags. Customers are not price writers. The page does not list a warehouse role that can edit stock and cannot edit prices. It points at third-party role plugins and says WooCommerce does not endorse any specific one. WooCommerce support does not cover those plugins.
 
-In May 2023, the author of User Role Editor answered [Restricting Shop Manager Role](https://wordpress.org/support/topic/restricting-shop-manager-role/). The store wanted to block CSV import and export and stop product deletion. The reply says `edit_products` is the capability checked both for adding a product and for editing one, and that WooCommerce may reinitialize the `shop_manager` role on a later activation. The suggested approach there is a copied role, not a one-time edit of the built-in role. That thread is about import and delete, not about a dedicated price capability. It still describes the constraint you are working inside.
+In May 2023, the author of User Role Editor answered [Restricting Shop Manager Role](https://wordpress.org/support/topic/restricting-shop-manager-role/). The store wanted to block CSV import and export and stop product deletion. The reply says `edit_products` is the capability checked both for adding a product and for editing one, and that WooCommerce may reinitialize the `shop_manager` role on a later activation. The suggested approach there is a copied role, not a one-time edit of the built-in role. That thread is about import and delete, not a dedicated price capability. Removing `import` and `export` on a copied role can hide buttons. It does not block REST or a direct import URL, and it does not block prices while `edit_products` remains. Retest after WooCommerce is activated again.
 
-A 2020 thread, [Restrict shop admin from editing orders prices](https://wordpress.org/support/topic/restrict-shop-admin-from-editing-orders-prices/), is about order line prices, not catalog prices. WooCommerce support said there was no built-in feature to change the Shop Manager role and pointed at a role plugin. Do not read that reply as a catalog-price procedure.
+A 2020 thread, [Restrict shop admin from editing orders prices](https://wordpress.org/support/topic/restrict-shop-admin-from-editing-orders-prices/), is about order line prices, not catalog prices. Support said there was no built-in feature to change the Shop Manager role. Do not read that reply as a catalog-price procedure.
 
-## Keys and passwords that write prices
+There is no measured count in this research for how often an assistant overwrites a price. Search volume for that task was not measured. What is public is that plugins advertise price writes. [AddSynapse](https://wordpress.org/plugins/addsynapse-store-assistant/) was named in this set on 27 October 2026 as a listing that says approved writes can include prices, sales, and stock. Those sentences are the other plugin's listing, not a security review and not a recommendation. If you connect one, read which WordPress user or key it uses, disconnect it when you are finished, and [export prices first](woocommerce-price-history.md). An approval card in a chat is only as good as that plugin's own enforcement.
 
-**WooCommerce > Settings > Advanced > REST API.** The merchant documentation is [WooCommerce REST API](https://woocommerce.com/document/woocommerce-rest-api/). A key's permission is Read, Write, or Read/Write. A Write or Read/Write key can change products, including prices, for whatever that integration does. Revoke keys you do not recognize. Reporting tools can use Read. The developer overview is [Getting started with the WooCommerce REST API](https://developer.woocommerce.com/docs/getting-started-with-the-woocommerce-rest-api/).
+Custom code can refuse a price change for a role. That is a development job, and it has to cover CSV, REST, Quick Edit, and bulk edit or it is only a visual block. This guide does not include that code.
 
-**Application passwords.** WordPress documents them in [Application Passwords](https://developer.wordpress.org/advanced-administration/security/application-passwords/). An application password authenticates as that WordPress user. If the user is a Shop Manager, the client can do what a Shop Manager can do, including product edits. Revoke application passwords from each user's profile when a contractor, a script, or an assistant is done. The integration notes from when the feature shipped are in the [core post from 5 November 2020](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/).
+## What an opt-in grant does, and what it does not
 
-There is no directory stat in this research for how often an agent overwrites a price. What is public, on 27 October 2026, is that several plugins advertise that an assistant can write prices:
+WriteLeash 0.3.0 is the directory version opened on 10 November 2026. The active-installation bucket was fewer than 10. The listing was last modified on 28 October 2026.
 
-- [StoreEdit AI for WooCommerce](https://wordpress.org/plugins/storeedit-ai/) says you can ask an assistant to raise regular prices or put a category on sale, and that a connected assistant acts as its own account.
-- [AddSynapse](https://wordpress.org/plugins/addsynapse-store-assistant/) says approved writes can include prices, sales, and stock.
-- [AI Agent by SiteGround](https://wordpress.org/plugins/sg-ai-studio/) lists creating and updating WooCommerce products, including price and stock, among the agent's tasks.
-- [Wpbingo AI Commander](https://wordpress.org/plugins/wpbingo-ai-commander-for-woocommerce/) lists bulk regular and sale price commands.
+Grants are opt-in jobs for bounded price and stock changes. They stay off until an operator issues one. Upgrade from 0.2.2 does not create a grant. No WordPress user is restricted until that grant exists. Ordinary price jobs do not change stock. Stock changes only on a grant, inside its scope, budget, and expiry. Stock Undo is not supported.
 
-Those sentences are their listings, not a security review and not a recommendation. If you connect one, read which WordPress user or key it uses, disconnect it when you are finished, and export prices first. An approval card inside a chat is only as good as the plugin's own enforcement. Keep a [price export](woocommerce-price-history.md) either way.
+A restricted WordPress user is denied on documented monitored WooCommerce write paths outside a matching Execution Frame. Those paths, in the plugin's grant contract, are WooCommerce REST product writes, product save, stock helpers, direct price and stock meta, and trash or delete. People who are not that restricted user keep normal WooCommerce behavior. WriteLeash does not intercept them. A Shop Manager who is not the grant actor can still edit prices in the product editor, in bulk edit, and in the importer.
 
-## A practical cut-down
+It is not a firewall, not a sandbox, and not a universal agent-safe guarantee. Direct SQL, hostile plugins, and unmonitored writes are not covered. There is no guarantee when the grant store is unavailable. The boundary does not cover administrators who are not the grant actor, third-party hook side effects, orders, refunds, coupons, tax, options, arbitrary meta, or a system cron running as user 0. The restricted account cannot remove its own restriction. This guide does not walk through issuing a grant.
 
-1. List every Administrator and Shop Manager. Remove the role from anyone who only needs to view orders or pack shipments.
-2. If someone must edit products but must not see the importer, the User Role Editor reply removed `import` and `export` on a copied role so those buttons disappear. That reply also said WooCommerce may rebuild `shop_manager` the next time WooCommerce is activated, so retest after that. A hidden button is not a block on REST or on a direct import URL.
-3. Do not expect that copied role to block prices while `edit_products` remains. Price is part of editing the product.
-4. Revoke unused REST keys and application passwords.
-5. Before a person or an assistant runs a bulk price change, export ID, SKU, Regular price, Sale price, and the sale dates. Name the file with the date. Prefer staging for the first run.
-6. After the run, open two products and compare them with the export. The [bulk editing guide](https://woocommerce.com/document/bulk-editing-products/) has no undo. The repair is in [how to undo an accidental bulk price edit](undo-woocommerce-bulk-price-edit.md).
+Human Preview, separate approval, Apply, and eligible price Undo are unchanged. Preview writes nothing. If the stored price WriteLeash is changing, or another checked setting, no longer matches the Preview, the newer value stays and the row is a conflict. Product name, SKU, and category alone do not conflict. Eligible Undo restores prices WriteLeash applied, within 30 days on the listing screenshot, when the saved details and the product still allow it. Undo does not reverse orders, emails, webhooks, or other plugins. WriteLeash creates no backup. It does not undo a price someone already changed in WooCommerce itself.
 
-Custom code can block `set_regular_price` for a role. That is a development job, and it has to cover CSV, REST, Quick Edit, and bulk edit or it is only a visual block. This guide does not include that code.
+Requirements on the listing: WooCommerce 10.0.0 or newer and below 12.0.0 on WordPress 7.0 up to but not including 8.0, or WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Exercised pairs named there: WordPress 7.0.1 and 7.1.2 on the modern line, WordPress 6.7.2 with WooCommerce 9.0.4, and WordPress 6.8.3 with WooCommerce 9.9.7. Other pairs are refused before a job is created. The "Tested up to" field read 7.1.4 and is not that exercised list. Scope is published core simple products and published variations of published core variable products, base currency, up to 1,000 selected products per new job in the tested configuration. Multisite is unsupported. Real managed or shared hosting has not been tested.
 
-## What WriteLeash does here, and what it does not
+## Related guides
 
-**The installable plugin does not restrict staff or agents.** Checked 27 October 2026, [WriteLeash 0.2.2](https://wordpress.org/plugins/writeleash/) is a preview, conflict check, history, and eligible undo tool for price changes made through WriteLeash. A Shop Manager can still use the normal product editor, bulk edit, and importer. A REST key with write access can still change prices. The 0.2.2 changelog says the release added disabled-by-default foundations for bounded delegated price authority. The public listing does not document a grant screen or a staff lock. Do not turn those foundations on from this article. They are not the control described below.
-
-If someone uses WriteLeash for a price change, they get a before-and-after Preview, a separate approval, and a conflict when the stored price changed after the Preview. Eligible Undo, 30 days by default on the listing, restores prices WriteLeash applied when the product still matches. It does not undo a price that person changed in WooCommerce itself. Requirements on the listing: WordPress 7.0 or newer, WooCommerce 10.0 through 11.x. Exercised WordPress points are 7.0.1 and 7.1.2. Stock, sale dates, and orders are not changed by those price operations.
-
-**Repository work that is not the directory download.** [Issue #312](https://github.com/MrDarkRoot/WriteLeash/issues/312) and the readme on the default branch after [pull request #330](https://github.com/MrDarkRoot/WriteLeash/pull/330) describe an opt-in restriction for one WordPress user: monitored WooCommerce write paths are denied outside a matching execution frame, and price or stock jobs for that user go through a grant with a frozen scope, a budget, and an expiry. The same text says this is not a firewall, not a sandbox, and not a universal agent-safe guarantee. It does not cover administrators who are not that grant actor, direct SQL, hostile plugins, unmonitored write paths, orders, refunds, coupons, or user-0 system cron. Stock undo is not supported. That behavior is not what the Install button served on 27 October 2026. This guide does not walk through issuing a grant.
-
-Compatibility on that unreleased branch is a pair: WordPress 7.0 up to but not including 8.0 with WooCommerce 10.0 up to but not including 12.0, or WordPress 6.7 up to but not including 7.0 with WooCommerce 9.0 up to but not including 10.0. Do not mix those bands, and do not expect 0.2.2 to implement the legacy pair.
+- [Undo a bulk price edit from the pre-change CSV](undo-woocommerce-bulk-price-edit.md)
+- [Restore sale prices a CSV import overwrote](restore-sale-prices-overwritten-by-import.md)
+- [Keep a dated export before the next price change](woocommerce-price-history.md)
 
 ## FAQ
 
 ### Can I let a Shop Manager edit stock but not prices?
 
-Not with a core capability. The [roles guide](https://woocommerce.com/document/roles-capabilities/) ties product editing to one manage-products grant. A role editor that only hides the price field still leaves Quick Edit, bulk edit, CSV, and REST to test.
+Not with a core capability. The roles guide ties product editing to one manage-products grant. A role editor that only hides the price field still leaves Quick Edit, bulk edit, CSV, and REST to test.
 
 ### Does removing the Import button stop price changes?
 
-No. It can stop one screen. Bulk edit, Quick Edit, and a write-capable REST key remain.
+No. It can hide one screen. Bulk edit, Quick Edit, and a write-capable REST key remain.
 
-### Is WriteLeash the way to lock an AI agent out of prices today?
+### Does WriteLeash 0.3.0 lock every AI tool out of prices?
 
-No. The published 0.2.2 listing does not provide that lock. Use roles, REST key permissions, and application passwords. Treat the grant work in issue #312 as unpublished relative to the directory.
+No. A grant restricts one WordPress user, and only after an operator issues it. It is not a firewall. Accounts that are not that user can still edit products. Use roles, REST key permissions, and application passwords either way.
 
-### If I do let someone bulk-edit prices, what limits the damage?
+### If someone may bulk-edit prices, what limits the damage?
 
-Export first. On the products screen, Update is the write, and there is no documented undo. WriteLeash helps only when the change is made through WriteLeash: preview, a separate approval, conflict retention for a price that moved after preview, and eligible undo of prices it applied.
+Export first. On the products screen, Update is the write, and the bulk editing guide has no undo. The repair is in the bulk-edit guide linked above. WriteLeash helps only when the change is made through WriteLeash. Stock Undo is not supported. Undo does not reverse orders, emails, webhooks, or other plugins.
 
-```json
-{
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Article",
-      "headline": "How to stop staff or an AI agent from changing WooCommerce prices",
-      "dateModified": "2026-10-27",
-      "description": "WooCommerce has no separate edit-price capability. Remove product-edit access, write-capable API keys, and application passwords you do not trust.",
-      "author": { "@type": "Organization", "name": "WriteLeash", "url": "https://wordpress.org/plugins/writeleash/" },
-      "publisher": { "@type": "Organization", "name": "WriteLeash", "url": "https://wordpress.org/plugins/writeleash/" }
-    },
-    {
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "Can I let a Shop Manager edit stock but not prices?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Not with a core capability. Product editing is one grant. Hiding the price field still leaves Quick Edit, bulk edit, CSV, and REST to test." }
-        },
-        {
-          "@type": "Question",
-          "name": "Does removing the Import button stop price changes?",
-          "acceptedAnswer": { "@type": "Answer", "text": "No. Bulk edit, Quick Edit, and a write-capable REST key can still change prices." }
-        },
-        {
-          "@type": "Question",
-          "name": "Is WriteLeash the way to lock an AI agent out of prices today?",
-          "acceptedAnswer": { "@type": "Answer", "text": "No. WriteLeash 0.2.2 on WordPress.org does not provide that lock. Use roles, REST key permissions, and application passwords." }
-        },
-        {
-          "@type": "Question",
-          "name": "If I do let someone bulk-edit prices, what limits the damage?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Export first. WooCommerce bulk edit has no documented undo. WriteLeash helps when the change is made through WriteLeash, with a preview, separate approval, conflict retention, and eligible undo of prices it applied." }
-        }
-      ]
-    }
-  ]
-}
-```
-
-Structured data template only. Do not emit it until this article has a public canonical URL. Add `datePublished` on that day. The affiliation above is required on the page.
-
-[WriteLeash on WordPress.org](https://wordpress.org/plugins/writeleash/) is useful when the people who may change prices do that work through a preview. It is not a role editor, and it is not the agent lock described in unpublished repository work.
+WriteLeash 0.3.0 is a preview and an eligible price Undo for changes it applies, plus an opt-in grant that stays off until you issue it. It is not a role editor. The directory listing is [WriteLeash on WordPress.org](https://wordpress.org/plugins/writeleash/). The source is the [WriteLeash repository](https://github.com/MrDarkRoot/WriteLeash).

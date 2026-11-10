@@ -1,6 +1,26 @@
 # Keyword evidence for issue #323
 
-Collected 27 October 2026. Volume is `UNKNOWN` unless a source states a number. No Search Console export, keyword-planner export, or ranking-difficulty source was available. Confidence is about the demand evidence, not about a traffic forecast.
+Volume is **not measured** unless a source states a number. No Search Console export, keyword-planner export, or ranking-difficulty source was available on 10 November 2026. Older rows say `UNKNOWN`. That means the same thing: not measured. Confidence is about the demand evidence, not about a traffic forecast.
+
+## Pages opened on 10 November 2026
+
+These are the pages fetched as text. No browser was available. Search-result snippets that were not opened are not treated as a full read.
+
+| ID | What changed in merchant language | Source | Date | Volume | Article |
+| --- | --- | --- | --- | --- | --- |
+| K22 | Products-list control is **Bulk edit**, then Apply, then Update. **No change** keeps the current value. A bulk edit that changes a regular or sale price clears scheduled sale dates. Bulk price changes apply to simple and external products, not to individual variations. The page no longer says a blank or 0 on "Set to regular price decreased by" removes the sale. There is still no undo control. | [Bulk Editing Products](https://woocommerce.com/document/bulk-editing-products/) | Fetched 2026-11-10 | not measured | Undo, sale restore, display |
+| K23 | Variation bulk actions still save immediately. Entering 0 clears sale prices. Blank, non-numeric, or negative input leaves sale prices unchanged. A regular price of 100 and 20% stores a sale price of 80. | [Variable products](https://woocommerce.com/document/variable-product/) | Fetched 2026-11-10 | not measured | Undo, sale restore, history |
+| K24 | Update existing products still matches by ID or SKU. **Do not import** is still the skip control. Blank sale dates mean no date. Blank Stock disables stock management. Sale price and Regular price still have no "blank means unchanged" note. WooCommerce 11.2 uses a mapped GTIN, UPC, EAN, or ISBN only when ID and SKU are both blank. | [Product CSV Importer and Exporter](https://woocommerce.com/document/product-csv-importer-exporter/) | Fetched 2026-11-10 | not measured | Sale restore, display, history |
+| K25 | The November 2025 report is unchanged: variation sale stored, shop showed the regular price, manual Update made the sale appear. Lookup rebuild had already failed. Support's no-change Update and `wp wc product lookup regenerate --force` were not confirmed. The menu name in that reply is Edit. The current products-list label is Bulk edit. | [WordPress.org thread](https://wordpress.org/support/topic/variable-product-sale-prices-not-showing-after-csv-import/) | Re-read 2026-11-10. Original post 2025-11-25 | not measured | Display |
+| K26 | Shop Manager "Manage products" is still create, edit, delete, and publish. No separate price capability. REST keys are Read, Write, or Read/Write and are tied to a WordPress user. Application passwords authenticate as that user for API access and are not a wp-admin password. | [Roles](https://woocommerce.com/document/roles-capabilities/), [REST API](https://woocommerce.com/document/woocommerce-rest-api/), [Application Passwords](https://developer.wordpress.org/advanced-administration/security/application-passwords/) | Fetched 2026-11-10. Application Passwords page last modified 2026-10-14 | not measured | Staff and AI tools |
+| K27 | Directory version is 0.3.0, last modified 2026-10-28. Active installations fewer than 10. That bucket is not search volume. The listing's own words are Preview, keep the newer edit, eligible price Undo, and an opt-in grant that stays off until issued. Stock Undo is not supported. | [WriteLeash](https://wordpress.org/plugins/writeleash/) | Fetched 2026-11-10 | not measured | All five |
+| K4 refresh | Bulk Price Editor 2.5.1 FAQ still says there is no undo feature. Changelog 2.5.0 (2026-09-01) still says each bulk update stores previous prices and marks revert as premium. | [Plugin page](https://wordpress.org/plugins/bulk-price-editor-for-woocommerce/) and trunk readme | Fetched 2026-11-10. Stable tag 2.5.1, last modified 2026-10-11 | not measured | Undo, history |
+
+The October 2026 table below is kept so the original thread citations stay attached to a date. Where K22–K26 disagree with an October mechanism sentence, the November row wins.
+
+## October 2026 table
+
+Collected 27 October 2026. Volume on these rows is `UNKNOWN`, meaning not measured.
 
 | ID | Merchant language (not a stuffed keyword) | Intent | Source | Date | Volume | Confidence | Article |
 | --- | --- | --- | --- | --- | --- | --- | --- |
