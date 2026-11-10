@@ -22,7 +22,7 @@ Auditor: content pass on 10 November 2026. No browser was available. Pages were 
 | CSV blank sale price is not documented as "leave unchanged" | Still true on the [CSV guide](https://woocommerce.com/document/product-csv-importer-exporter/) opened 2026-11-10. Blank sale dates mean no date. Blank Stock disables stock management. **Do not import** remains the skip control. |
 | Shop Manager has no separate price capability | Still true on the [roles guide](https://woocommerce.com/document/roles-capabilities/) opened 2026-11-10. |
 | November 2025 variable sale was stored but hidden until Update | Thread re-opened 2026-11-10. Still unresolved in the replies. Support's no-change Update and WP-CLI line were not confirmed by the poster. |
-| WriteLeash 0.2.2 is the installable plugin and has no staff lock | Removed. 0.3.0 is the listing. Grants are shipped and opt-in, not a lock on every user. |
+| Earlier pass treated 0.2.2 as the installable plugin with no staff lock | Superseded on 10 November 2026. The listing opened that day is 0.3.0. Grants are shipped and opt-in, not a lock on every user. |
 | Pair rule is unpublished repository behavior | Removed. The pair rule is the 0.3.0 requirements text. |
 
 ## Article claim results

@@ -29,7 +29,7 @@ Checked 10 November 2026. No tracking code is added to the WordPress plugin or t
 - Tested up to, as displayed: 7.1.4. Exercised pairs are the ones named in the requirements text, not this field alone
 - Search volume: not measured
 
-The 27 October 2026 baseline was directory version 0.2.2 and the same active-installation bucket. That version is no longer the listing.
+On 27 October 2026 the directory page showed 0.2.2 and fewer than 10 active installations. On 10 November 2026 the same page showed 0.3.0 and the same bucket. 0.2.2 is not the current listing. The guides are live at https://mrdarkroot.github.io/WriteLeash/.
 
 ## Reviews and forums
 

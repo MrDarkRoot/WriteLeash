@@ -65,7 +65,7 @@ No rank tracker was available. These are the kinds of pages a merchant already m
 - WordPress.org support threads for one store's import or bulk-edit incident.
 - Bulk-editor plugins that preview before save, or that keep a history of their own runs.
 - Price-history plugins aimed at EU lowest-price disclosure or at an admin change log.
-- The [WriteLeash 0.2.2 listing](https://wordpress.org/plugins/writeleash/). Active installations on that page: fewer than 10. That is a directory bucket, not article traffic.
+- The [WriteLeash 0.3.0 listing](https://wordpress.org/plugins/writeleash/), opened 10 November 2026. Active installations on that page: fewer than 10. That is a directory bucket, not article traffic and not a search volume. The 27 October 2026 read of the same URL showed 0.2.2. That is not the current listing.
 
 ## Gap the articles actually fill
 
@@ -73,4 +73,4 @@ The official docs explain how to bulk edit and import. They do not walk through 
 
 ## Distribution opportunities that are realistic
 
-See [measurement.md](measurement.md). Short version: there is no project site to publish to. WordPress.org support forums are not an advertising channel. r/WordPress rules, as already recorded in `docs/launch-v0.2.md`, do not make these drafts postable. The honest next step is a founder-approved site, then Search Console on real URLs.
+See [measurement.md](measurement.md). The guides are live at [https://mrdarkroot.github.io/WriteLeash/](https://mrdarkroot.github.io/WriteLeash/), checked HTTP 200 on 10 November 2026. WordPress.org support forums are not an advertising channel. r/WordPress rules, as already recorded in `docs/launch-v0.2.md`, do not make these guides postable there. Search Console is not connected, so impressions and clicks on the live URLs are not measured.
