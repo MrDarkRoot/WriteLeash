@@ -1,0 +1,104 @@
+{
+  "status": "PASS",
+  "git_commit": "141d439598890e7b446f111b0f6ae7c2ac602df1",
+  "plugin_tree": "ef809180e3f98b9c1a215b921be253a83cc19940",
+  "plugin_version": "0.3.0",
+  "woo_zip_sha256": "9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e",
+  "grant": {
+    "public_id": "48c383e3-1286-47a4-b696-e7e2aba9eb27",
+    "budget_max": 1,
+    "expires_at": "2026-12-10 11:48:25",
+    "expires_source": "utc_now_plus_30_days"
+  },
+  "actor_id": 2,
+  "products": {
+    "permitted": {
+      "id": 10,
+      "sku": "WL327-MUG",
+      "name": "Northwind Mug",
+      "regular_price": "40.00"
+    },
+    "denied": {
+      "id": 11,
+      "sku": "WL327-NOTE",
+      "name": "Harborline Notebook",
+      "regular_price": "25.00"
+    }
+  },
+  "permitted_job": {
+    "http_status": 201,
+    "body": {
+      "job": {
+        "public_id": "00d7eb3a-a20e-4310-8873-af826236ed4a",
+        "status": "QUEUED",
+        "status_reason": "SCHEDULED",
+        "approval_mode": "grant",
+        "approver_id": 0,
+        "grant_public_id": "48c383e3-1286-47a4-b696-e7e2aba9eb27",
+        "grant_version": 1,
+        "replayed": false
+      }
+    },
+    "worker": {
+      "before": "QUEUED",
+      "after": "COMPLETED",
+      "reason": "ALL_ITEMS_CLEAN",
+      "invocation": "writeleash_process_job"
+    },
+    "regular_price_after": "30.00"
+  },
+  "denied_write": {
+    "http_status": 403,
+    "body": {
+      "code": "writeleash_perimeter_denied",
+      "message": "WriteLeash restricted actors must write products through the grant job route (POST /wp-json/writeleash/v1/grants/{uuid}/jobs); direct WooCommerce REST product writes are denied.",
+      "data": {
+        "status": 403,
+        "writeleash": "writeleash_perimeter_denied"
+      }
+    },
+    "regular_price_after": "25.00",
+    "unchanged": true
+  },
+  "protection_report": {
+    "window_days": 7,
+    "blocked": 1,
+    "surfaces": {
+      "rest": 1,
+      "product_save": 0,
+      "variation_save": 0,
+      "product_set_stock": 0,
+      "variation_set_stock": 0,
+      "update_product_stock_query": 0,
+      "update_post_metadata": 0,
+      "add_post_metadata": 0,
+      "delete_post_metadata": 0,
+      "pre_trash_post": 0,
+      "pre_delete_post": 0
+    },
+    "log_enabled": true,
+    "active_grant_count": 1,
+    "rows": [
+      {
+        "time": "2026-11-10T11:48:32+00:00",
+        "actor_id": 2,
+        "surface": "rest",
+        "product_id": 2,
+        "reason": "writeleash_perimeter_denied"
+      }
+    ],
+    "grants": [
+      {
+        "public_id": "48c383e3-1286-47a4-b696-e7e2aba9eb27",
+        "actor_id": 2,
+        "budget_max": 1,
+        "budget_used": 1,
+        "budget_reserved": 0,
+        "budget_remaining": 0,
+        "expires_at": "2026-12-10 11:48:25",
+        "expiring_soon": false
+      }
+    ]
+  },
+  "http_requests_during_report": 0
+}
