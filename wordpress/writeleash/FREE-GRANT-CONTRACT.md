@@ -1,8 +1,11 @@
 # Free standing grant: v0.3.0 restricted-agent boundary
 
 A seatbelt, not a firewall: a restricted WordPress principal is bounded to
-WriteLeash's controlled price/stock job path and fails closed everywhere else.
-It is not a sandbox or universal "agent-safe" guarantee.
+WriteLeash's controlled price/stock job path. Documented monitored WooCommerce
+write paths are denied outside a matching Execution Frame. Direct SQL, hostile
+plugins, and unmonitored write paths are not covered. This is not a universal
+fail-closed guarantee when the grant store is unavailable. It is not a sandbox
+or universal "agent-safe" guarantee.
 
 The restricted-agent layer is opt-in. No WordPress user is restricted until an
 operator issues a standing grant. Grant-bound submission is only

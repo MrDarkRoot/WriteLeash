@@ -233,10 +233,10 @@ Status values:
 
 ## 19. Requirements metadata coherence
 
-* **COPY CLAIM (headers):** `Requires at least: 6.7`, `Tested up to: 7.1`, `Requires PHP: 7.4`, `Requires Plugins: woocommerce`, `WC requires at least: 9.0`, `Stable tag: 0.2.0`.
+* **COPY CLAIM (headers):** `Requires at least: 6.7`, `Tested up to: 7.1`, `Requires PHP: 7.4`, `Requires Plugins: woocommerce`, `WC requires at least: 9.0`, `Stable tag: 0.3.0`.
 * **SUPPORTING ISSUE:** #120 package identity; #121 metadata; #112 evidence; #280 pair rule.
 * **SUPPORTING TEST/EVIDENCE:** `readme-validate.php` compares readme and plugin-header requirements and fails on contradiction; `package-preflight.php` locks the header values. `Requires at least: 6.7` is the directory floor so WordPress can activate the legacy band. It is not a promise that every WordPress 6.7+ site is supported. WooCommerce 10.0 through 11.x still requires WordPress 7.0 up to 8.0.
-* **ALLOWED WORDING:** Directory metadata as above. 6.7 is the legacy-band floor. 7.4 is the WriteLeash/Woo PHP minimum. `woocommerce` is the required dependency. Stable tag stays 0.2.0.
+* **ALLOWED WORDING:** Directory metadata as above. 6.7 is the legacy-band floor. 7.4 is the WriteLeash/Woo PHP minimum. `woocommerce` is the required dependency. Stable tag is 0.3.0 for this release candidate.
 * **REQUIRED LIMITATION:** "Tested up to: 7.1" reflects the tested 7.1.2 point (directory ignores the patch) and must not be read as all-7.x coverage. "Requires at least: 6.7" and "WC requires at least: 9.0" are minimums, not a rectangle.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 

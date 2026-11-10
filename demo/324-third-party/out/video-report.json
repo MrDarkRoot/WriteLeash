@@ -1,0 +1,14 @@
+{
+  "mp4": {
+    "bytes": 3752012,
+    "duration_s": 68.44,
+    "width": 1440,
+    "height": 900
+  },
+  "webm": {
+    "bytes": 5737427,
+    "duration_s": 68.44,
+    "width": 1440,
+    "height": 900
+  }
+}

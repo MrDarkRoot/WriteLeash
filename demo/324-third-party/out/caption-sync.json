@@ -1,0 +1,104 @@
+{
+  "clock": "encoded-video-frames",
+  "fps": 2.0,
+  "duration_s": 68.44,
+  "frame_size": [
+    1440,
+    900
+  ],
+  "sample_box": [
+    22,
+    806,
+    46,
+    830
+  ],
+  "cues": [
+    {
+      "id": "meet",
+      "start_s": 1.5,
+      "end_s": 6.5,
+      "start_ms": 1500,
+      "end_ms": 6500,
+      "text": "Riley, a restricted shop manager, opens AddSynapse. No AI key is configured."
+    },
+    {
+      "id": "ask",
+      "start_s": 6.5,
+      "end_s": 11.5,
+      "start_ms": 6500,
+      "end_ms": 11500,
+      "text": "Riley types a request to change only the Northwind Canvas Tote from $100.00 to $80.00."
+    },
+    {
+      "id": "notice",
+      "start_s": 11.5,
+      "end_s": 18.5,
+      "start_ms": 11500,
+      "end_ms": 18500,
+      "text": "AddSynapse shows its own notice: the AI is not set up. No model ran. Cost is $0."
+    },
+    {
+      "id": "command",
+      "start_s": 18.5,
+      "end_s": 23.0,
+      "start_ms": 18500,
+      "end_ms": 23000,
+      "text": "Negative control, not a model proposal. Riley types /price for Harborline Wool Cap."
+    },
+    {
+      "id": "preview",
+      "start_s": 23.0,
+      "end_s": 33.0,
+      "start_ms": 23000,
+      "end_ms": 33000,
+      "text": "Local preview: regular price $40.00 to $49.99. Nothing is saved yet."
+    },
+    {
+      "id": "confirm",
+      "start_s": 33.0,
+      "end_s": 38.5,
+      "start_ms": 33000,
+      "end_ms": 38500,
+      "text": "Riley presses Approve. The next button says Yes, apply the changes."
+    },
+    {
+      "id": "denied",
+      "start_s": 38.5,
+      "end_s": 53.5,
+      "start_ms": 38500,
+      "end_ms": 53500,
+      "text": "Riley presses Yes, apply the changes. WriteLeash denies the product save. Zero changes applied."
+    },
+    {
+      "id": "products",
+      "start_s": 53.5,
+      "end_s": 60.0,
+      "start_ms": 53500,
+      "end_ms": 60000,
+      "text": "Harborline Wool Cap still shows $40.00."
+    },
+    {
+      "id": "board",
+      "start_s": 60.0,
+      "end_s": 68.44,
+      "start_ms": 60000,
+      "end_ms": 68440,
+      "text": "Unreleased WriteLeash build, not the WordPress.org 0.2.2 package. Denial recorded for actor 2 on product 11."
+    }
+  ],
+  "poster_frame_index": 92,
+  "poster_frame": "frame-00092.png",
+  "poster_time_s": 46.0,
+  "detected_frames": {
+    "meet": 10,
+    "ask": 10,
+    "notice": 14,
+    "command": 9,
+    "preview": 20,
+    "confirm": 11,
+    "denied": 30,
+    "products": 13,
+    "board": 18
+  },
+  "unlabeled_frames": 3
+}
