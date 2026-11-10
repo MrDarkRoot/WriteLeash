@@ -1,0 +1,150 @@
+{
+  "results": [
+    {
+      "check": "file exists writeleash-addsynapse-deny.mp4",
+      "result": "PASS",
+      "detail": "3752012"
+    },
+    {
+      "check": "file exists writeleash-addsynapse-deny.webm",
+      "result": "PASS",
+      "detail": "5737427"
+    },
+    {
+      "check": "file exists writeleash-addsynapse-deny.gif",
+      "result": "PASS",
+      "detail": "2437633"
+    },
+    {
+      "check": "file exists writeleash-addsynapse-deny-poster.png",
+      "result": "PASS",
+      "detail": "395286"
+    },
+    {
+      "check": "mp4 bytes match the file",
+      "result": "PASS",
+      "detail": "3752012"
+    },
+    {
+      "check": "webm bytes match the file",
+      "result": "PASS",
+      "detail": "5737427"
+    },
+    {
+      "check": "gif bytes match the file",
+      "result": "PASS",
+      "detail": "2437633"
+    },
+    {
+      "check": "poster bytes match the file",
+      "result": "PASS",
+      "detail": "395286"
+    },
+    {
+      "check": "mp4 duration is 60 to 75 seconds",
+      "result": "PASS",
+      "detail": "68.44s"
+    },
+    {
+      "check": "webm duration matches the mp4",
+      "result": "PASS",
+      "detail": "webm 68.44 mp4 68.44"
+    },
+    {
+      "check": "picture is 1440x900",
+      "result": "PASS",
+      "detail": "1440x900"
+    },
+    {
+      "check": "gif is about 15 seconds",
+      "result": "PASS",
+      "detail": "15.0"
+    },
+    {
+      "check": "gif is 960 wide and loops",
+      "result": "PASS",
+      "detail": "{\"size\": [960, 600], \"frames\": 30, \"loop\": 0}"
+    },
+    {
+      "check": "poster is 1440x900",
+      "result": "PASS",
+      "detail": "[1440, 900]"
+    },
+    {
+      "check": "captions match this video's frames",
+      "result": "PASS",
+      "detail": "9 of 9 cues"
+    },
+    {
+      "check": "poster shows the denial marker",
+      "result": "PASS",
+      "detail": "denied"
+    },
+    {
+      "check": "no black story frames",
+      "result": "PASS",
+      "detail": "138 frames"
+    },
+    {
+      "check": "AddSynapse 1.3.5 from the pinned zip",
+      "result": "PASS",
+      "detail": "1.3.5"
+    },
+    {
+      "check": "Riley is the approve user and the save actor",
+      "result": "PASS",
+      "detail": "{\"cap_users\": [2, 2, 2], \"actor\": 2}"
+    },
+    {
+      "check": "both Riley confirms returned a failed changeset",
+      "result": "PASS",
+      "detail": "{\"cap\": {\"http\": 200, \"status\": \"failed\", \"applied\": 0, \"failed\": 1, \"user_ids\": [2, 2, 2]}, \"named\": {\"http\": 200, \"status\": \"failed\", \"applied\": 0, \"failed\": 1, \"user_ids\": [2, 2, 2]}}"
+    },
+    {
+      "check": "Harborline Wool Cap stayed 40.00",
+      "result": "PASS",
+      "detail": "40.00"
+    },
+    {
+      "check": "Northwind Canvas Tote stayed 100.00",
+      "result": "PASS",
+      "detail": "100.00"
+    },
+    {
+      "check": "unrestricted administrator control applied",
+      "result": "PASS",
+      "detail": "{\"http\": 200, \"status\": \"applied\", \"applied\": 1, \"failed\": 0, \"user_ids\": [1, 1, 1]}"
+    },
+    {
+      "check": "product-row hashes match across the denials",
+      "result": "PASS",
+      "detail": "d47112ccd9a495514863253e131da83cce406009c650bedf6e15cb2b20e4f923"
+    },
+    {
+      "check": "audit records actor, product, surface, and code",
+      "result": "PASS",
+      "detail": "{\"timestamp\": \"2026-10-28T05:11:26+00:00\", \"code\": \"writeleash_perimeter_denied\", \"where\": \"product_save\", \"actor\": 2, \"object_id\": 11, \"kind\": \"price\", \"detail\": \"\"}"
+    },
+    {
+      "check": "grant expiry is one future UTC timestamp",
+      "result": "PASS",
+      "detail": "{\"expires\": \"2026-11-27 05:09:46\", \"now\": \"2026-10-28 05:11:39\", \"status\": \"active\"}"
+    },
+    {
+      "check": "expiry is after the recording and the audit lines",
+      "result": "PASS",
+      "detail": "{\"now\": \"2026-10-28 05:11:39\", \"audits\": [\"2026-10-28T05:10:42+00:00\", \"2026-10-28T05:11:26+00:00\"], \"expires\": \"2026-11-27 05:09:46\"}"
+    },
+    {
+      "check": "no model was called and cost is zero",
+      "result": "PASS",
+      "detail": "0"
+    },
+    {
+      "check": "database snapshots share the evidence hash",
+      "result": "PASS",
+      "detail": "d47112ccd9a495514863253e131da83cce406009c650bedf6e15cb2b20e4f923"
+    }
+  ],
+  "failed": 0
+}
