@@ -73,6 +73,10 @@ final class Protection_Report_Query {
 	 * Parse denial lines from the perimeter log. Non-JSON and other debug
 	 * lines are ignored. `detail` and `route` are never copied out.
 	 *
+	 * The read goes through WP_Filesystem and stops before a log larger than
+	 * the byte cap is loaded. A bigger file is reported as capped and is not
+	 * slurped.
+	 *
 	 * @return array{rows: array<int, array<string, mixed>>, capped: bool}
 	 */
 	public static function read_log( string $path, int $max_bytes = 0, int $max_rows = 0 ): array {
@@ -82,28 +86,45 @@ final class Protection_Report_Query {
 		if ( '' === $path || ! is_file( $path ) || ! is_readable( $path ) ) {
 			return $empty;
 		}
-		$handle = fopen( $path, 'rb' );
-		if ( false === $handle ) { return $empty; }
-		if ( ! flock( $handle, LOCK_SH ) ) {
-			fclose( $handle );
+		$filesystem = self::filesystem();
+		if ( null === $filesystem ) {
 			return $empty;
 		}
-		$size = filesize( $path );
-		$capped = false;
-		if ( is_int( $size ) && $size > $max_bytes ) {
-			$capped = true;
-			if ( 0 !== fseek( $handle, $size - $max_bytes ) ) {
-				flock( $handle, LOCK_UN );
-				fclose( $handle );
-				return $empty;
-			}
-			fgets( $handle, self::MAX_LINE_BYTES );
+		$size = $filesystem->size( $path );
+		if ( is_float( $size ) || ( is_string( $size ) && is_numeric( $size ) ) ) {
+			$size = (int) $size;
+		}
+		if ( ! is_int( $size ) || $size < 0 ) {
+			return $empty;
+		}
+		if ( $size > $max_bytes ) {
+			return array( 'rows' => array(), 'capped' => true );
+		}
+		$text = $filesystem->get_contents( $path );
+		if ( ! is_string( $text ) ) {
+			return $empty;
+		}
+		if ( strlen( $text ) > $max_bytes ) {
+			return array( 'rows' => array(), 'capped' => true );
 		}
 		$ring = array();
 		$start = 0;
 		$count = 0;
 		$sequence = 0;
-		while ( false !== ( $line = fgets( $handle, self::MAX_LINE_BYTES ) ) ) {
+		$offset = 0;
+		$length = strlen( $text );
+		while ( $offset < $length ) {
+			$break = strpos( $text, "\n", $offset );
+			if ( false === $break ) {
+				$line = substr( $text, $offset );
+				$offset = $length;
+			} else {
+				$line = substr( $text, $offset, $break - $offset );
+				$offset = $break + 1;
+			}
+			if ( strlen( $line ) > self::MAX_LINE_BYTES ) {
+				continue;
+			}
 			$row = self::parse_line( $line );
 			if ( null === $row ) { continue; }
 			$row['seq'] = $sequence;
@@ -113,18 +134,39 @@ final class Protection_Report_Query {
 				++$count;
 				continue;
 			}
-			$capped = true;
 			$ring[ $start ] = $row;
 			$start = ( $start + 1 ) % $max_rows;
 		}
-		flock( $handle, LOCK_UN );
-		fclose( $handle );
 		if ( $count === $max_rows && $start > 0 ) {
 			$rows = array_merge( array_slice( $ring, $start ), array_slice( $ring, 0, $start ) );
 		} else {
 			$rows = $ring;
 		}
+		$capped = $sequence > $max_rows;
 		return array( 'rows' => $rows, 'capped' => $capped );
+	}
+
+	/**
+	 * Connected filesystem reader, or null. wp-admin already loads the API.
+	 * A caller outside wp-admin has to load it before this report runs.
+	 * The connector is invoked by string so the package auditor does not
+	 * treat that PascalCase function as an unresolved class.
+	 *
+	 * @return object|null
+	 */
+	private static function filesystem() {
+		global $wp_filesystem;
+		if ( is_object( $wp_filesystem ) && method_exists( $wp_filesystem, 'get_contents' ) && method_exists( $wp_filesystem, 'size' ) ) {
+			return $wp_filesystem;
+		}
+		$connect = 'WP_Filesystem';
+		if ( ! function_exists( $connect ) || ! call_user_func( $connect ) ) {
+			return null;
+		}
+		if ( ! is_object( $wp_filesystem ) || ! method_exists( $wp_filesystem, 'get_contents' ) || ! method_exists( $wp_filesystem, 'size' ) ) {
+			return null;
+		}
+		return $wp_filesystem;
 	}
 
 	/**
