@@ -39,11 +39,11 @@ The title stays the plugin name. It does not add "WordPress" or a competitor.
 | Before, git `readme.txt` | 121 | Protection against accidental WooCommerce price and stock overwrites, with Preview, conflicts, History and eligible Undo. |
 | Before, live directory and SVN trunk | 119 | See WooCommerce price changes before they go live. Keep newer edits, undo eligible prices, and leash restricted agents. |
 | Earlier commit on this branch | 128 | Preview WooCommerce bulk price changes before they go live. Keep newer edits, undo eligible prices, and leash restricted agents. |
-| After, this branch | 126 | Protect WooCommerce prices and stock from bad overwrites. Keep newer edits, undo eligible prices, and leash restricted agents. |
+| After, this branch | 101 | Protect WooCommerce prices and stock from costly mistakes. Leash restricted AI agents and automation. |
 
-The 128-character line started with "Preview" and the word "bulk", so the snippet still read as a bulk editor. The 126-character line leads with protecting prices and stock, then leashing restricted agents. It does not start with "Preview" or "bulk".
+The 128-character line started with "Preview" and the word "bulk", so the snippet still read as a bulk editor. The 101-character line leads with price and stock protection, then restricted AI agents and automation. It does not start with "Preview" or "bulk". It does not say every agent or every write is covered.
 
-The plugins-screen header in `writeleash.php` was the 113-character line "Preview WooCommerce bulk price changes, preserve newer edits, resume interrupted jobs, and undo eligible changes." It is now the same 126-character line as the short description. `Version` and `WRITELEASH_VERSION` stay `0.3.0`. Requires at least, Tested up to, and Requires PHP were not edited.
+The plugins-screen header in `writeleash.php` is the same 101-character line. `Version` and `WRITELEASH_VERSION` stay `0.3.0`. Requires at least, Tested up to, and Requires PHP were not edited.
 
 ### Tags
 
@@ -62,15 +62,15 @@ Five tags. No competitor names. `stock` stays because a grant can change stock. 
 
 **After.** The expensive mistake comes first, then the outcome. The leash is the first heading, above the preview:
 
-> A wrong percentage, a CSV overwrite, or an assistant account editing a product is the expensive mistake. A bulk price change stays in Preview until you approve it. A restricted account can change price or stock only inside a grant you already issued, and only on the monitored paths.
+> A wrong percentage, a CSV, or an AI agent changing price or stock can be a costly error. A bulk price change stays in Preview until you approve it. A restricted AI agent or automation account can change price or stock only inside a grant you already issued, and only on the monitored paths.
 
-First two headings: Put a restricted account on a leash. See the price before it goes live. Then: Keep the newer price. Undo an eligible price. Changes you can make. Requirements, supported scope, and the unchanged seatbelt paragraph stay below that pitch. The leash block still says grants are opt-in and off until issued, ordinary price jobs do not change stock, stock changes only on that grant, Stock Undo is not supported, and this is not protection for every WooCommerce write.
+First two headings: Leash a restricted AI agent or automation account. See the price before it goes live. Then: Keep the newer price. Undo an eligible price. Changes you can make. Requirements, supported scope, and the unchanged seatbelt paragraph stay below that pitch. The leash block says the grant is for an assistant account or a scheduled job, stays off until issued, ordinary price jobs do not change stock, inventory means stock quantity and stock status on that grant only, Stock Undo is not supported, and this is not protection for every WooCommerce write.
 
 ## Claim table
 
 | Claim | Verdict |
 | --- | --- |
-| Protect prices and stock from bad overwrites | Allowed in the short description only with the body limits: ordinary price jobs do not change stock, stock changes only on an opt-in grant, Stock Undo is not supported, and this is not every WooCommerce write |
+| Protect prices and stock from costly mistakes, and leash restricted AI agents and automation | Allowed in the short description only with the body limits: ordinary price jobs do not change stock, inventory changes only on an opt-in grant, Stock Undo is not supported, and this is not every WooCommerce write |
 | A bulk price change stays in Preview until you approve it | Allowed for the merchant Preview path. Not a claim about grant-mode jobs |
 | A restricted account changes price or stock only inside a grant already issued, and only on the monitored paths | Allowed. `approval_mode: grant` does not need a fresh human approval of that job. Writes outside WriteLeash are not stopped |
 | Every catalog write waits for a person | Not claimed |

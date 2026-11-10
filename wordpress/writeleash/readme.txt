@@ -8,22 +8,24 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Protect WooCommerce prices and stock from bad overwrites. Keep newer edits, undo eligible prices, and leash restricted agents.
+Protect WooCommerce prices and stock from costly mistakes. Leash restricted AI agents and automation.
 
 == Description ==
 
-A wrong percentage, a CSV overwrite, or an assistant account editing a
-product is the expensive mistake. A bulk price change stays in Preview
-until you approve it. A restricted account can change price or stock only
-inside a grant you already issued, and only on the monitored paths.
+A wrong percentage, a CSV, or an AI agent changing price or stock can
+be a costly error. A bulk price change stays in Preview until you
+approve it. A restricted AI agent or automation account can change
+price or stock only inside a grant you already issued, and only on
+the monitored paths.
 
-= Put a restricted account on a leash =
+= Leash a restricted AI agent or automation account =
 
-Grants are opt-in and stay off until an operator issues one. You choose
-the restricted WordPress user, the products, the price or stock limits,
-how much work, and when access ends. Ordinary price jobs do not change
-stock. Stock changes only on that opt-in grant. Stock Undo is not
-supported.
+Use this for an assistant account or a scheduled job. Grants are opt-in
+and stay off until an operator issues one. You choose the restricted
+user, the products, the price or stock limits, how much work, and when
+access ends. Ordinary price jobs do not change stock. Inventory here
+means stock quantity and stock status, and only on that grant. Stock
+Undo is not supported.
 
 Pause, revoke, and remove-restriction do not fall open. The account
 cannot remove its own restriction. Cron counts only when it runs as that
