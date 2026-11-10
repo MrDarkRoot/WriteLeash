@@ -1,5 +1,16 @@
 # Sprint integration audit, 2026-11-10
 
+Follow-up, same day, after 12:10 UTC. The verdicts below are the 12:10 snapshot. They are not the current heads.
+
+- #336 moved to `17ae7dc1abd6c882017eae6863b8efce9533a5b3`. The false "catalog does not change until a person approves" sentence is gone. Local readme and claim-matrix validators passed on that commit. Directory publication is still a separate SVN approval.
+- #331 moved to `c09c01f64ecf6280260d02356156b1c6531e35df`. The 0.2.2 listing sentence and the "no project site" sentence were corrected. Pages were HTTP 200 on 10 November 2026.
+- #337 moved to `6de230155ff2af5d1eeb7c497973e3848c0fac74`. The readme-versus-zip mismatch and the Pages 404 claim were corrected. Remaining 404 notes are third-party submission pages and a media host, not the guides.
+- #332 moved to `8559c6ae4d1ae7108948ad13ba9dc4ab84068cda`. A 2026-11-10 note says the live directory is 0.3.0 and the films are earlier trees. Captured JSON and captions were not rewritten.
+- #338 stayed `f233f8ba15b3f812dff691022df3e89eb7772af0`. Historical Plugin Check later passed. Admin and undo were still running at the follow-up check.
+- #339 evidence commit `3f57ebbbb352367eb2e9c4ebed9dd55a69ca90a3` records a PASS of the container that ran `115dc30`, which contains the #338 filesystem reader.
+
+# Original 12:10 snapshot
+
 Auditor worktree: `qa/sprint-integration-audit` at `57c0de9d41a8c2d915394b7eb186e650f63db8f6` (`origin/main`, merge of PR #335). `git status` was clean before this report. No half-applied merge. No issues were closed. No runtime code is changed by this pull request.
 
 Watch window: open PRs polled every 3 minutes from 2026-11-10 11:29:11Z through 12:08:38Z (14 polls). Comments below are on the SHAs still current at 12:10:01Z.
