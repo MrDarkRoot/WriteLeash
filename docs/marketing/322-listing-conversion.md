@@ -62,7 +62,7 @@ Five tags. No competitor names. `stock` stays because a grant can change stock. 
 
 **After.** The expensive mistake comes first, then the outcome. The leash is the first heading, above the preview:
 
-> A wrong percentage, a CSV overwrite, or an assistant account editing a product is the expensive mistake. With WriteLeash, the catalog does not change until a person approves.
+> A wrong percentage, a CSV overwrite, or an assistant account editing a product is the expensive mistake. A bulk price change stays in Preview until you approve it. A restricted account can change price or stock only inside a grant you already issued, and only on the monitored paths.
 
 First two headings: Put a restricted account on a leash. See the price before it goes live. Then: Keep the newer price. Undo an eligible price. Changes you can make. Requirements, supported scope, and the unchanged seatbelt paragraph stay below that pitch. The leash block still says grants are opt-in and off until issued, ordinary price jobs do not change stock, stock changes only on that grant, Stock Undo is not supported, and this is not protection for every WooCommerce write.
 
@@ -71,7 +71,9 @@ First two headings: Put a restricted account on a leash. See the price before it
 | Claim | Verdict |
 | --- | --- |
 | Protect prices and stock from bad overwrites | Allowed in the short description only with the body limits: ordinary price jobs do not change stock, stock changes only on an opt-in grant, Stock Undo is not supported, and this is not every WooCommerce write |
-| The catalog does not change until a person approves | Allowed for a WriteLeash price change a person runs. Not a claim that a CSV tool, another plugin, or an already-issued grant waits for a second approval |
+| A bulk price change stays in Preview until you approve it | Allowed for the merchant Preview path. Not a claim about grant-mode jobs |
+| A restricted account changes price or stock only inside a grant already issued, and only on the monitored paths | Allowed. `approval_mode: grant` does not need a fresh human approval of that job. Writes outside WriteLeash are not stopped |
+| Every catalog write waits for a person | Not claimed |
 | Preview, then a separate Apply | Allowed |
 | Walking away from Preview changes nothing | Allowed |
 | The Preview CSV is the saved Preview, not live data | Allowed |
@@ -105,6 +107,8 @@ First two headings: Put a restricted account on a leash. See the price before it
 | Planned stored prices are the price a shopper is guaranteed to see | Not claimed |
 | A denial screenshot is live | Not claimed |
 
+CLAIM-MATRIX row 21 was not changed. This PR does not widen a matrix promise. The readme was corrected instead.
+
 ## How merchants describe the miss
 
 These are public pages a merchant would actually write or read. They are not search-volume evidence. No volume, rank, or conversion number is inferred from them.
@@ -115,7 +119,7 @@ These are public pages a merchant would actually write or read. They are not sea
 4. [How to use AI abilities in Wholesale Suite](https://wholesalesuiteplugin.com/kb/ai-abilities/) Write access is a switch. Off, the assistant does not change prices. On, it can change live prices, discounts, and quotes. The merchant is told the assistant's own confirmation behavior is not a substitute for that switch.
 5. [WooCommerce product import from CSV not working properly](https://wordpress.org/support/topic/woocommerce-product-import-from-csv-not-working-properly-2/) A store meant to update prices and instead created products, because the file did not match on ID or SKU. A non-numeric cell stopped the import. The fix was the file, not a promise that the catalog had been protected.
 
-WriteLeash does not claim to intercept those CSV tools or every assistant. The opening names the same expensive mistakes, then says a WriteLeash change waits until a person approves. The leash section is only the restricted WordPress user an operator chooses, and it stays off until that grant exists.
+WriteLeash does not claim to intercept those CSV tools or every assistant. The opening names the same expensive mistakes. A bulk price change stays in Preview until you approve it. A restricted account can change price or stock only inside a grant you already issued, and only on the monitored paths. That grant can apply without a fresh human approval of the job.
 
 ## SEO notes
 
@@ -125,7 +129,7 @@ The short description is the search snippet. It leads with "Protect WooCommerce 
 
 Tags stay the five real behaviors. Adding `bulk edit` would mean dropping stock, variations, or undo. Competitor plugin names are not tags and are not in `readme.txt`.
 
-Headings are the scan path a merchant uses: the restricted account first, then the price before it goes live, the newer price, eligible Undo, then requirements. The 10,240-byte readme guidance is the ceiling. This `readme.txt` is 10,041 bytes.
+Headings are the scan path a merchant uses: the restricted account first, then the price before it goes live, the newer price, eligible Undo, then requirements. The 10,240-byte readme guidance is the ceiling. This `readme.txt` is 10,150 bytes.
 
 ## Screenshots
 

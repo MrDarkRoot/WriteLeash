@@ -13,8 +13,9 @@ Protect WooCommerce prices and stock from bad overwrites. Keep newer edits, undo
 == Description ==
 
 A wrong percentage, a CSV overwrite, or an assistant account editing a
-product is the expensive mistake. With WriteLeash, the catalog does not
-change until a person approves.
+product is the expensive mistake. A bulk price change stays in Preview
+until you approve it. A restricted account can change price or stock only
+inside a grant you already issued, and only on the monitored paths.
 
 = Put a restricted account on a leash =
 
