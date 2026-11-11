@@ -99,7 +99,7 @@ repeating completed changes.
 * WooCommerce 10.0 through 11.x on WordPress 7.0 up to 8.0 only (10.0.0 or newer, below 12.0.0).
 * Exercised: WordPress 7.0.1 and 7.1.2 on that line; WordPress 6.7.2 with WooCommerce 9.0.4; WordPress 6.8.3 with WooCommerce 9.9.7. Legacy band is WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Other pairs are refused before a job is created.
 * PHP 7.4.33, 8.0.30, 8.1.34 and 8.2.34 were exercised. Requires PHP 7.4 or newer.
-* MySQL 8.0.44 and MariaDB 10.11.15 were exercised. Redis 7.4.2 with Object Cache 2.7.0: modern line, and 6.7.2 with 9.0.4 at 100 products. Not on 6.8.3 with 9.9.7.
+* MySQL 8.0.44 and MariaDB 10.11.15 were exercised. Redis 7.4.2 on the modern line, and on 6.7.2 with 9.0.4 at 100 products. Not on 6.8.3 with 9.9.7.
 
 == What is supported ==
 
@@ -109,9 +109,9 @@ repeating completed changes.
 
 == Current limitations ==
 
-* Custom product types and universal extension compatibility are unsupported.
-* Multisite is unsupported.
-* Real managed or shared hosting has not been tested.
+* Custom product types and universal extension compatibility are not covered yet.
+* Multisite is not supported yet.
+* Managed or shared hosting has not been tested. Run a small Preview.
 
 == Restricted agent access ==
 

@@ -97,8 +97,8 @@ foreach ( $unsupported as $claim ) {
 foreach ( array(
 	'Up to 1,000 selected products per new job in the tested configuration.',
 	'WooCommerce 10.0 through 11.x',
-	'Multisite is unsupported.',
-	'Real managed or shared hosting has not been tested.',
+	'Multisite is not supported yet.',
+	'Managed or shared hosting has not been tested.',
 ) as $exact ) {
 	if ( false === stripos( $read, $exact ) || false === stripos( $mx, $exact ) ) {
 		$fail( 'readme and claim matrix do not share the exact supported wording: ' . $exact );

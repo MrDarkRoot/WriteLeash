@@ -184,7 +184,7 @@ foreach ( $unsupported as $claim ) {
 }
 $woo_claim = $frozen ? 'WooCommerce 11.1.2 exactly' : 'WooCommerce 10.0 through 11.x';
 $ceiling = $frozen ? 'Up to 100' : 'Up to 1,000';
-foreach ( array( $ceiling, $woo_claim, 'Multisite is unsupported', 'has not been tested' ) as $required_scope ) {
+foreach ( array( $ceiling, $woo_claim, 'Multisite is not supported yet', 'Managed or shared hosting has not been tested' ) as $required_scope ) {
 	if ( false === stripos( $text, $required_scope ) ) {
 		$fail( 'required scope limitation missing from readme: ' . $required_scope );
 	}
