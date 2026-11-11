@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keep a WooCommerce price history with a dated CSV</title>
+<meta name="description" content="WooCommerce has no catalog price log. Export ID, SKU, and prices before each bulk change. A history plugin only records what happens after you install it.">
+<link rel="canonical" href="https://mrdarkroot.github.io/WriteLeash/woocommerce-price-history/">
+<link rel="stylesheet" href="../assets/site.css">
+<meta name="robots" content="index,follow">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"Keep a WooCommerce price history with a dated CSV","description":"WooCommerce has no catalog price log. Export ID, SKU, and prices before each bulk change. A history plugin only records what happens after you install it.","datePublished":"2026-11-10","dateModified":"2026-11-10","author":{"@type":"Organization","name":"WriteLeash","url":"https://wordpress.org/plugins/writeleash/"},"publisher":{"@type":"Organization","name":"WriteLeash","url":"https://wordpress.org/plugins/writeleash/"},"mainEntityOfPage":{"@type":"WebPage","@id":"https://mrdarkroot.github.io/WriteLeash/woocommerce-price-history/"}},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Where do I click to see every past product price?","acceptedAnswer":{"@type":"Answer","text":"Core does not provide that screen. Use a dated export, a backup, or a history plugin that was recording at the time of the change."}},{"@type":"Question","name":"Does WriteLeash History show CSV imports and bulk edits?","acceptedAnswer":{"@type":"Answer","text":"It shows WriteLeash jobs: what finished, what conflicted, and whether Undo is available. It does not show the products-list bulk editor, variation bulk actions, or the CSV importer."}},{"@type":"Question","name":"Will a 30-day price chart on the product page let me undo a price?","acceptedAnswer":{"@type":"Answer","text":"No. A shopper-facing lowest-price notice is not an admin restore. Eligible Undo inside WriteLeash only restores eligible prices WriteLeash applied. Stock Undo is not supported."}},{"@type":"Question","name":"How many exports do I need?","acceptedAnswer":{"@type":"Answer","text":"One immediately before each bulk change, plus an older copy you do not overwrite. There is no measured search volume behind a weekly habit. Undo does not reverse orders, emails, webhooks, or other plugins."}}]}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="site">
+<div class="wrap">
+<a class="brand" href="../">WriteLeash <span>price overwrite guides</span></a>
+<nav aria-label="Guides"><ul>
+<li><a href="../undo-woocommerce-bulk-price-edit/">Undo a WooCommerce bulk price edit from the pre-change CSV</a></li><li><a href="../restore-sale-prices-overwritten-by-import/">Restore WooCommerce sale prices a CSV import overwrote</a></li><li><a href="../imported-sale-price-not-showing/">An imported WooCommerce sale is saved but the shop shows full price</a></li><li><a href="../restrict-woocommerce-price-changes/">Stop staff and AI tools from changing WooCommerce prices</a></li><li><a href="../woocommerce-price-history/">Keep a WooCommerce price history with a dated CSV</a></li>
+</ul></nav>
+</div>
+</header>
+<main id="content">
+<article>
+<h1>Keep a WooCommerce price history with a dated CSV</h1>
+<p class="meta">Revised 2026-11-10. The repair uses WooCommerce. WriteLeash is optional.</p>
+<p>Export ID, SKU, Regular price, Sale price, and both sale-date columns, and name the file with the date, before the next bulk change. WooCommerce&#x27;s product screens tell you how to set a price. They do not give you a page that lists the previous regular price, the previous sale price, who changed them, and when. If you need that after a bad edit and you never saved a copy, core has nothing to open.</p>
+<p><strong>WriteLeash publishes this guide.</strong> It is not an independent review. The export habit does not use the plugin. WriteLeash History, described later, is only the log of WriteLeash jobs.</p>
+<p>A backup, an older export, or a plugin that was already recording can still hold the old number. <a href="../undo-woocommerce-bulk-price-edit/">Undo a bulk price edit</a> is the restore. This page is how to make the next restore boring. Search volume for &quot;WooCommerce price history&quot; was not measured.</p>
+<h2>What is not a price history</h2>
+<p><strong>Orders.</strong> A line item stores the amount charged on that order. It helps when a product actually sold. It says nothing about products that did not sell, and it is not the catalog price at 09:00 if the order was placed at 16:00 after a second edit.</p>
+<p><strong>Analytics.</strong> WooCommerce reports are built from orders. They answer what you sold. They do not answer what the regular price field used to contain.</p>
+<p><strong>Stock logs.</strong> A stock-history plugin is a different field. A stock log does not restore a sale price. The <a href="https://wordpress.org/plugins/inventory-history/">Inventory History</a> listing was read on 27 October 2026 as saying WooCommerce does not save a product stock-change log by default. That sentence is about stock. It was not re-opened for this pass, and it is not a price-log claim.</p>
+<p><strong>The EU 30-day lowest price.</strong> Some plugins show a shopper-facing notice on discounted products. That is a disclosure on the product page. It is not an admin undo, and this article is not legal advice. If you sell into the EU, read the rule that applies to you. Do not assume an admin CSV satisfies it.</p>
+<p><strong>Revisions in the product editor.</strong> This guide did not find WooCommerce documenting post revisions as a price undo. Prove a restore on staging, on one product, before you count on it.</p>
+<h2>A history you can keep without a developer</h2>
+<h3>Dated exports</h3>
+<p>Go to <strong>Products &gt; All Products &gt; Export</strong>. The <a href="https://woocommerce.com/document/product-csv-importer-exporter/">CSV guide</a>, opened on 10 November 2026, explains the columns. For a price snapshot, keep ID, SKU, Type, Name, Regular price, Sale price, Date sale price starts, and Date sale price ends.</p>
+<p>Leave the file named with the date, in a place that is not the same filename every week. A weekly export that overwrites <code>products.csv</code> is not a history. You can export a category, or use <strong>Export selected</strong> from the product list, when you are about to change one slice of the catalog.</p>
+<h3>Export again immediately before a write</h3>
+<p>Do this before a products-list bulk edit, before variation bulk actions, before a CSV update, and before you connect a sync tool or an assistant that can write prices. The <a href="https://woocommerce.com/document/variable-product/">variable product guide</a> says variation bulk actions save immediately. The <a href="https://woocommerce.com/document/bulk-editing-products/">bulk editing guide</a> says a products-list edit that changes a regular or sale price clears the scheduled sale dates, so the date columns belong in the snapshot. The file from the weekly export is the older copy. The file from this step is the before-image of this change.</p>
+<h3>A plugin log, installed before you need it</h3>
+<p><a href="https://wordpress.org/plugins/bulk-price-editor-for-woocommerce/">Bulk Price Editor for WooCommerce</a> 2.5.1 was opened on 10 November 2026, including its trunk readme. Changelog 2.5.0, dated 1 September 2026, says each bulk update stores a snapshot of the previous prices, and that a separate price-change record can cover manual edits, imports, the API, and bulk updates. Revert from that history is marked premium. The FAQ on the same readme still says the plugin does not have an undo feature and points at the preview plus a database backup. Read the version you install. Recording starts when the plugin is active.</p>
+<p>This pass did not re-test other history plugins in a store. On 27 October 2026 their listings said recording starts when the plugin is active: <a href="https://wordpress.org/plugins/product-price-history/">Product Price History</a>, <a href="https://wordpress.org/plugins/mirailit-product-change-tracker-for-woocommerce/">MiraiLit Product Change Tracker</a>, and <a href="https://wordpress.org/plugins/wpnest-price-history-for-woocommerce/">WPNest Price History</a>. Those pages were not re-opened on 10 November 2026. Install on staging, change one simple product and one variation by Quick Edit, by bulk edit, and by a one-row CSV, and see whether the log shows the old price. Installing any of them after the bad edit does not reconstruct the old price.</p>
+<h3>Know what the host backup contains</h3>
+<p>Ask the host how far back backups go and whether a restore replaces the whole database. A full restore brings back old prices and also rolls back orders, coupons, and customer changes made after that backup. The safer pattern is to restore the backup on staging, export the price columns, and import those columns into the live store with every other column set to <strong>Do not import</strong>. That import is the same repair as <a href="../restore-sale-prices-overwritten-by-import/">sale prices a CSV overwrote</a>.</p>
+<h2>How to read a snapshot when something looks wrong</h2>
+<p>Open the product and write down the regular price, the sale price, and the dates you see now. Find the newest export from before the incident. Compare those columns on the SKU.</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">What you see</th><th scope="col">What to do</th></tr></thead><tbody><tr><td>The editor matches the old export, and the shop does not</td><td>Do not import prices again. See <a href="../imported-sale-price-not-showing/">why a saved sale might not show</a>.</td></tr><tr><td>The editor shows a new sale or a blank sale, and the export has the old one</td><td>Restore from that export.</td></tr><tr><td>You have no export and no backup</td><td>You do not have the old catalog price. Orders may hint at it for products that sold. Guessing with a reverse percentage is the risky path in the bulk-edit guide.</td></tr></tbody></table></div>
+<h2>What WriteLeash History is</h2>
+<p>The directory listing opened on 10 November 2026 is WriteLeash 0.3.0. History shows what finished, what conflicted, and whether Undo is available. Read that as the history of WriteLeash jobs. It is not a catalog price log.</p>
+<p>It does not record Quick Edit, the products-list bulk editor, variation bulk actions, the CSV importer, another plugin&#x27;s save, or a REST write that did not go through WriteLeash. An append-only grant audit records grant and denial events for a restricted user. It is not a history of every price in the catalog.</p>
+<p>Eligible Undo restores prices WriteLeash applied, within 30 days on the listing screenshot, when the saved details and the product still allow it. Availability does not guarantee restoration. Undo does not reverse orders, emails, webhooks, or other plugins. Stock Undo is not supported. Ordinary price jobs do not change stock. The Preview CSV is the saved Preview, not a live catalog export, and it does not apply changes. WriteLeash creates no backup.</p>
+<p>It is not a firewall, not a sandbox, and not a universal agent-safe guarantee. Direct SQL, hostile plugins, and unmonitored writes are not covered. There is no guarantee when the grant store is unavailable. Opt-in grants stay off until an operator issues one. Upgrade from 0.2.2 does not create a grant.</p>
+<p>Scope on the listing: published core simple products and published variations of published core variable products, base currency, up to 1,000 selected products per new job in the tested configuration. Pairs: WooCommerce 10.0.0 or newer and below 12.0.0 on WordPress 7.0 up to but not including 8.0, or WordPress 6.7 below 7.0 with WooCommerce 9.0.0 below 10.0.0. Exercised examples named on the listing: WordPress 7.0.1 and 7.1.2, WordPress 6.7.2 with WooCommerce 9.0.4, and WordPress 6.8.3 with WooCommerce 9.9.7. Other pairs are refused before a job is created. Multisite is unsupported. Real managed or shared hosting has not been tested.</p>
+<p>The dated CSV is the log of the catalog. WriteLeash History is the log of one tool&#x27;s price writes. Use both if you use WriteLeash. The CSV still matters, because most overwrites never pass through the plugin. <a href="../restrict-woocommerce-price-changes/">Who is allowed to make the next change</a> is a separate decision.</p>
+<h2>Related guides</h2>
+<ul><li><a href="../undo-woocommerce-bulk-price-edit/">Undo a bulk price edit from the pre-change CSV</a></li><li><a href="../restore-sale-prices-overwritten-by-import/">Restore sale prices a CSV import overwrote</a></li><li><a href="../imported-sale-price-not-showing/">A sale that is saved but missing on the shop</a></li></ul>
+<h2>FAQ</h2>
+<h3>Where do I click to see every past product price?</h3>
+<p>Core does not provide that screen. Use a dated export, a backup, or a history plugin that was recording at the time of the change.</p>
+<h3>Does WriteLeash History show CSV imports and bulk edits?</h3>
+<p>It shows WriteLeash jobs: what finished, what conflicted, and whether Undo is available. It does not show the products-list bulk editor, variation bulk actions, or the CSV importer.</p>
+<h3>Will a 30-day price chart on the product page let me undo a price?</h3>
+<p>No. A shopper-facing lowest-price notice is not an admin restore. Eligible Undo inside WriteLeash only restores eligible prices WriteLeash applied. Stock Undo is not supported.</p>
+<h3>How many exports do I need?</h3>
+<p>One immediately before each bulk change, plus an older copy you do not overwrite. There is no measured search volume behind a weekly habit. Undo does not reverse orders, emails, webhooks, or other plugins.</p>
+<p class="cta">WriteLeash 0.3.0 keeps a history of its own price jobs and can undo eligible prices it applied. Keep the CSV anyway. The directory listing is <a href="https://wordpress.org/plugins/writeleash/">WriteLeash on WordPress.org</a>. The source is the <a href="https://github.com/MrDarkRoot/WriteLeash">WriteLeash repository</a>.</p>
+</article>
+</main>
+<footer class="site"><p>WriteLeash publishes these guides. They are not an independent review. Revised 2026-11-10.</p></footer>
+</body>
+</html>

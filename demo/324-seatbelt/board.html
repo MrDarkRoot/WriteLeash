@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WriteLeash demo evidence</title>
+<style>
+  body { margin: 0; background: #f6f7f7; color: #1d2327; font: 20px/1.45 system-ui, sans-serif; }
+  main { max-width: 1280px; margin: 0 auto; padding: 28px 32px 40px; }
+  h1 { font-size: 34px; line-height: 1.2; margin: 0 0 8px; }
+  p.lead { margin: 0 0 20px; font-size: 18px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  section { background: #fff; border: 1px solid #dcdcde; border-radius: 6px; padding: 16px 18px; }
+  h2 { font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 8px; color: #50575e; }
+  .status { font-size: 42px; font-weight: 700; margin: 0; }
+  .denied { color: #8a2424; }
+  pre { white-space: pre-wrap; word-break: break-word; background: #1d2327; color: #f0f0f1; padding: 12px; border-radius: 4px; font: 15px/1.4 ui-monospace, monospace; margin: 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 4px 8px 4px 0; vertical-align: top; }
+  td:first-child { color: #50575e; width: 42%; }
+  .ok { color: #1e6b3a; font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Live denial evidence</h1>
+  <p class="lead" id="lead">Loading the response captured from this disposable site.</p>
+  <div class="grid">
+    <section>
+      <h2>Request</h2>
+      <table>
+        <tr><td>Method and path</td><td id="request"></td></tr>
+        <tr><td>Caller</td><td id="caller"></td></tr>
+        <tr><td>Body</td><td id="reqbody"></td></tr>
+      </table>
+    </section>
+    <section>
+      <h2>Response</h2>
+      <p class="status denied" id="status"></p>
+      <p id="code"></p>
+    </section>
+    <section>
+      <h2>Product price</h2>
+      <table>
+        <tr><td>Regular price before</td><td id="before"></td></tr>
+        <tr><td>Regular price after</td><td id="after"></td></tr>
+        <tr><td>Product-row hash</td><td id="hash"></td></tr>
+      </table>
+    </section>
+    <section>
+      <h2>Denial audit</h2>
+      <pre id="audit"></pre>
+    </section>
+  </div>
+  <section style="margin-top:16px">
+    <h2>Response body</h2>
+    <pre id="response"></pre>
+  </section>
+</main>
+<script>
+fetch('demo-evidence.json', { cache: 'no-store' }).then(function (res) { return res.json(); }).then(function (data) {
+  document.getElementById('lead').textContent = 'These fields are the HTTP response, database snapshot, and debug-log line from the request just sent. The application password is not shown.';
+  document.getElementById('request').textContent = data.request.method + ' ' + data.request.path;
+  document.getElementById('caller').textContent = data.request.caller;
+  document.getElementById('reqbody').textContent = data.request.body;
+  document.getElementById('status').textContent = 'HTTP ' + data.response.status;
+  document.getElementById('code').textContent = data.response.code;
+  document.getElementById('before').textContent = data.product.regular_price_before;
+  document.getElementById('after').textContent = data.product.regular_price_after;
+  document.getElementById('hash').textContent = data.product.rows_unchanged ? 'Unchanged' : 'CHANGED';
+  document.getElementById('hash').className = data.product.rows_unchanged ? 'ok' : 'denied';
+  document.getElementById('audit').textContent = data.audit.line;
+  document.getElementById('response').textContent = data.response.body;
+});
+</script>
+</body>
+</html>
