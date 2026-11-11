@@ -1,58 +1,41 @@
 # Issue #325 launch pack
 
-Status on 28 October 2026: **preparation, not execution.**
+Status on 10 November 2026: **public v0.3.0 is on WordPress.org. External posts have not started.**
 
-This directory is the reviewable 30-day acquisition pack for
+This directory is the 30-day pack for
 [issue #325](https://github.com/MrDarkRoot/WriteLeash/issues/325).
-It does not publish a post, send an email, ask for a review, or start the
-30-day clock.
+It does not publish a post, send an email, ask for a review, or enable
+GitHub Discussions.
 
-## Launch gate
+## What a merchant can install
 
-[Issue #313](https://github.com/MrDarkRoot/WriteLeash/issues/313) is open.
-WordPress.org SVN has tags `0.2.0`, `0.2.1`, and `0.2.2`. There is no `0.3.0`
-tag and no GitHub Release. The directory download is WriteLeash **0.2.2**.
+The plugin information API on 10 November 2026 returns version **0.3.0**
+(`active_installs` 0, `num_ratings` 0, `last_updated` 2026-10-28 2:58pm GMT).
+The numbers are in [metrics/2026-11-10-baseline.json](metrics/2026-11-10-baseline.json).
 
-Do not describe v0.3.0 protection, restricted-agent denial, or grant-scoped
-stock edits as something a merchant can install today. Evidence is in
-[launch-truth.md](launch-truth.md).
+WriteLeash 0.3.0 is a seatbelt for WooCommerce prices and, only after an
+opt-in grant, stock. Grants stay off until an operator issues one. It is not
+a firewall and not universal. Direct SQL and hostile plugins are not covered.
+Stock Undo is not supported. Eligible Undo restores prices WriteLeash applied
+when the saved details still match. It does not rewind a products-list bulk
+edit or a CSV import that already ran.
 
-The calendar in [calendar.md](calendar.md) is relative to the day #313 is
-verified **DISTRIBUTED**. That day has not happened.
+The full boundary is in [launch-truth.md](launch-truth.md).
 
 ## What is here
 
 | File | Role |
 | --- | --- |
-| [launch-truth.md](launch-truth.md) | Public version versus repository behavior |
-| [channel-matrix.md](channel-matrix.md) | Ranked channels, rule quotes, and risk |
-| [asset-manifest.md](asset-manifest.md) | Ready, blocked, or approval-needed assets |
-| [measurement.md](measurement.md) | Baseline scorecard. Missing meters are `NOT_AVAILABLE` |
-| [utm.md](utm.md) | Where a UTM parameter is and is not meaningful |
-| [calendar.md](calendar.md) | Thirty days after distribution, plus the work already done |
+| [launch-truth.md](launch-truth.md) | Public 0.3.0 versus the repository recording |
+| [targets.md](targets.md) | Short list of real threads and submission pages |
+| [channel-matrix.md](channel-matrix.md) | Where a reply is allowed, and where it is blocked |
+| [asset-manifest.md](asset-manifest.md) | Which drafts are ready and which stay blocked |
+| [measurement.md](measurement.md) | Scorecard. Missing meters stay `NOT_AVAILABLE` |
+| [utm.md](utm.md) | Campaign parameters, and the fact WordPress.org will not report them |
+| [calendar.md](calendar.md) | Distribution day 2026-10-28, and the days still not posted |
 | [published-actions.md](published-actions.md) | What was actually published |
+| [metrics/](metrics/) | Baseline JSON and a local refresh script |
 | [assets/](assets/) | Drafts. None are cleared to post |
-
-## Claim boundary
-
-Say this about the installable plugin:
-
-- Preview, a separate approval, conflict retention of a newer stored price,
-  History of WriteLeash's own jobs, and eligible price Undo.
-- The public readme says sale dates, stock, and orders are not changed.
-- Undo does not reverse orders, completed sales, emails, webhooks, remote
-  requests, external queues, or other plugins' effects.
-
-Do not say this about the installable plugin:
-
-- It blocks staff or an AI agent.
-- It changes stock.
-- It undoes a native WooCommerce bulk edit or a CSV import.
-- The default-branch pair rule (WordPress 6.7 with WooCommerce 9) applies to
-  the 0.2.2 zip.
-
-The 0.2.2 changelog calls the grant code "disabled-by-default foundations for
-bounded delegated price authority." Do not give grant setup steps.
 
 ## How to review
 
@@ -60,4 +43,5 @@ bounded delegated price authority." Do not give grant setup steps.
 2. A community draft must still help if the plugin name is removed.
 3. Founder approval is required before any external post, email, or review ask.
 4. Do not add traffic, audience-size, conversion, or search-volume numbers.
-   A figure appears only when the cited page states it.
+   A figure appears only when the cited page or the metrics file states it.
+5. Do not invent testimonials, scarcity, or reviews.
