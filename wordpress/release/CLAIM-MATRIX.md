@@ -204,20 +204,20 @@ Status values:
 
 ## 16. Multisite
 
-* **COPY CLAIM:** "Multisite is unsupported."
-* **SUPPORTING ISSUE:** #112 host/status boundary; #120 payload boundary.
+* **COPY CLAIM:** "Multisite is not supported yet."
+* **SUPPORTING ISSUE:** #112 host/status boundary; #120 payload boundary. #280 softens the public sentence only. The behavior is still unsupported.
 * **SUPPORTING TEST/EVIDENCE:** `wordpress/tests/acceptance/EVIDENCE.md` and `README.md` — "Multisite: UNSUPPORTED".
-* **ALLOWED WORDING:** "Multisite is unsupported."
+* **ALLOWED WORDING:** "Multisite is not supported yet."
 * **REQUIRED LIMITATION:** Must be present; no network-activation or per-site claim.
 * **STATUS:** PUBLISHABLE.
 
 ## 17. Real managed/shared hosting
 
-* **COPY CLAIM:** "Real managed or shared hosting has not been tested."
+* **COPY CLAIM:** "Managed or shared hosting has not been tested."
 * **SUPPORTING ISSUE:** #112 host boundary; #120 payload boundary.
 * **SUPPORTING TEST/EVIDENCE:** `wordpress/tests/acceptance/EVIDENCE.md` — "Real managed/shared-host pilot: NOT TESTED. Container evidence is not shared-host certification."
-* **ALLOWED WORDING:** The exact sentence above.
-* **REQUIRED LIMITATION:** A constrained container run is not managed-host certification; no "works on every shared host" promise.
+* **ALLOWED WORDING:** "Managed or shared hosting has not been tested. Run a small Preview."
+* **REQUIRED LIMITATION:** A constrained container run is not managed-host certification; no "works on every shared host" promise. #280 only softens the public sentence.
 * **STATUS:** PUBLISHABLE WITH LIMITATION.
 
 ## 18. Normal-user installation has no Redirection/Doctor/Advanced path
