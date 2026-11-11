@@ -184,7 +184,12 @@ foreach ( $unsupported as $claim ) {
 }
 $woo_claim = $frozen ? 'WooCommerce 11.1.2 exactly' : 'WooCommerce 10.0 through 11.x';
 $ceiling = $frozen ? 'Up to 100' : 'Up to 1,000';
-foreach ( array( $ceiling, $woo_claim, 'Multisite is not supported yet', 'Managed or shared hosting has not been tested' ) as $required_scope ) {
+// #280 softens only the live 0.3.0 listing. Pinned 0.1.0 and 0.2.x artifacts
+// keep the wording they were reviewed with.
+$limit_phrases = ( ! $frozen && ! $historical_package && version_compare( (string) $package_version, '0.3.0', '>=' ) )
+	? array( 'Multisite is not supported yet', 'Managed or shared hosting has not been tested' )
+	: array( 'Multisite is unsupported', 'has not been tested' );
+foreach ( array_merge( array( $ceiling, $woo_claim ), $limit_phrases ) as $required_scope ) {
 	if ( false === stripos( $text, $required_scope ) ) {
 		$fail( 'required scope limitation missing from readme: ' . $required_scope );
 	}
