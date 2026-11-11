@@ -1,0 +1,22 @@
+WEBVTT
+
+NOTE
+Cue times follow the 63.8 second MP4. scenes.json is the runner clock, which continued while frames were saved.
+
+00:00:00.000 --> 00:00:07.000
+Morgan Merchant opens Bulk Prices and enters a 20 percent decrease of the regular price. Nothing is saved yet.
+
+00:00:07.000 --> 00:00:20.000
+The preview plans $80.00 from $100.00. The notice says no prices have changed yet. The stored regular price is still $100.00.
+
+00:00:20.000 --> 00:00:31.000
+Casey Colleague, a second unrestricted user, sets the same regular price to $120.00 in WooCommerce and updates the product.
+
+00:00:31.000 --> 00:00:43.000
+Morgan approves the original preview. The page waits with one product remaining and says to use Resume remaining products. Resume runs the waiting Apply step.
+
+00:00:43.000 --> 00:00:56.000
+The result is a conflict. Expected $100.00, now $120.00, planned $80.00. WriteLeash left the newer value unchanged. Undo says no products were changed by this job.
+
+00:00:56.000 --> 00:01:03.800
+Riley Agent is a shop manager restricted by a WriteLeash grant. PUT /wp-json/wc/v3/products/10 asking for regular price 49.99 returns HTTP 403 writeleash_perimeter_denied. The product rows are unchanged and the debug log records that route. This recording is the repository build, not the WordPress.org 0.2.2 download.

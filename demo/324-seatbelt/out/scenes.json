@@ -1,0 +1,50 @@
+[
+  {
+    "id": "open",
+    "t": 0
+  },
+  {
+    "id": "form",
+    "t": 9.89
+  },
+  {
+    "id": "preview-submit",
+    "t": 13.891
+  },
+  {
+    "id": "preview",
+    "t": 16.791
+  },
+  {
+    "id": "colleague",
+    "t": 24.794
+  },
+  {
+    "id": "colleague-price",
+    "t": 28.451
+  },
+  {
+    "id": "colleague-saved",
+    "t": 34.425
+  },
+  {
+    "id": "approve",
+    "t": 38.427
+  },
+  {
+    "id": "resume",
+    "t": 46.975
+  },
+  {
+    "id": "conflict",
+    "t": 51.447
+  },
+  {
+    "id": "denial",
+    "t": 64.511
+  },
+  {
+    "id": "end",
+    "t": 72.582
+  }
+]
