@@ -48,11 +48,11 @@ if ( $total > 8 * 1024 * 1024 ) { $fail( 'unexpected large total asset set' ); }
     $proof_path = $root . '/wordpress/release/assets-122/proof.json';
     if ( ! is_file( $proof_path ) ) { $fail( 'missing screenshot proof inventory' ); }
     $proof = json_decode( file_get_contents( $proof_path ), true, 512, JSON_THROW_ON_ERROR );
-    if ( ! is_string( $proof['product_base'] ?? null ) || '' === $proof['product_base'] || count( $proof['screenshots'] ?? array() ) !== 6 ) { $fail( 'invalid product baseline/screenshot inventory' ); }
+    if ( ! is_string( $proof['product_base'] ?? null ) || '' === $proof['product_base'] || count( $proof['screenshots'] ?? array() ) !== 7 ) { $fail( 'invalid product baseline/screenshot inventory' ); }
     $readme = file_get_contents( $root . '/wordpress/writeleash/readme.txt' );
     if ( ! preg_match( '/== Screenshots ==\s*\n(.*?)(?=\n== |\z)/s', $readme, $section ) ) { $fail( 'missing readme screenshot section' ); }
     preg_match_all( '/^(\d+)\. (.+)$/m', $section[1], $captions, PREG_SET_ORDER );
-    if ( count( $captions ) !== 6 ) { $fail( 'readme caption count differs from screenshot count' ); }
+    if ( count( $captions ) !== 7 ) { $fail( 'readme caption count differs from screenshot count' ); }
     foreach ( $proof['screenshots'] as $i => $shot ) {
         $n = $i + 1;
         $name = 'screenshot-' . $n . '.png';
@@ -87,7 +87,7 @@ if ( $total > 8 * 1024 * 1024 ) { $fail( 'unexpected large total asset set' ); }
         if ( '' === $entry || '#' === $entry[0] ) { continue; }
         if ( 'includes/free/admin-logo.png' !== $entry && preg_match( '#(?:^|/)(?:assets|icon)(?:/|$)|\.(?:png|jpg|jpeg|gif|svg)$#i', $entry ) ) { $fail( 'directory asset in runtime manifest' ); }
     }
-    echo '#122 required files, exact dimensions, contiguous six screenshots, readme captions, capture hashes, SVG policy, size caps and runtime manifest: PASS' . "\n";
+    echo '#122 required files, exact dimensions, contiguous seven screenshots, readme captions, capture hashes, SVG policy, size caps and runtime manifest: PASS' . "\n";
 }
 
 // #170 current review evidence has its own identity; #122 listing proof stays historical.

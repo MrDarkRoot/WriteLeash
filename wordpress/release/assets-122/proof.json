@@ -132,6 +132,19 @@
       "source_commit": "df8d804842425bdcf92c4b8eb5df8004314420c6",
       "caption": "Safety limits: max products, max % increase/decrease, block zero prices.",
       "visible_ui_text": "Safety limits\nMaximum changing products (0-1000)\n1000\nMaximum increase percent\n50\nMaximum decrease percent\n50\nBlock a preview that sets any changing price to zero"
+    },
+    {
+      "filename": "screenshot-7.png",
+      "width": 960,
+      "height": 1262,
+      "format": "PNG",
+      "sha256": "9d41553fb44dfcc7ff9b3a50abff0403f679470e8344098ebac54e39976b40aa",
+      "captured_at_utc": "2026-11-11T12:24:00Z",
+      "viewport": "960x1262",
+      "browser": "Frames from the existing AddSynapse recording, not a new browser session",
+      "source_commit": "0e4ac6881006eabd95e34ec1530a3357401d3226",
+      "caption": "Restricted agent: $40.00 to $49.99 is blocked. The price stays $40.00.",
+      "visible_ui_text": "The agent tries to change the price\nHarborline Wool Cap, $40.00 to $49.99\nWriteLeash blocks the save\nFailed. 0 changes applied.\nThe price stays $40.00"
     }
   ],
   "independent_price_observations": [

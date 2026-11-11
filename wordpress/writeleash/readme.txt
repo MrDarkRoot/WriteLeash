@@ -20,12 +20,11 @@ the monitored paths.
 
 = Leash a restricted AI agent or automation account =
 
-Use this for an assistant account or a scheduled job. Grants are opt-in
-and stay off until an operator issues one. You choose the restricted
-user, the products, the price or stock limits, how much work, and when
-access ends. Ordinary price jobs do not change stock. Inventory here
-means stock quantity and stock status, and only on that grant. Stock
-Undo is not supported.
+Use this for an assistant account or a scheduled job. Grants stay off
+until issued. You choose the user, products, price or
+stock limits, budget, and expiry. Ordinary price jobs do not change
+stock. Inventory means stock quantity and stock status on that grant.
+Stock Undo is not supported.
 
 Pause, revoke, and remove-restriction do not fall open. The account
 cannot remove its own restriction. Cron counts only when it runs as that
@@ -160,6 +159,7 @@ Cannot:
 4. Conflict protection: newer price is kept instead of overwritten.
 5. History + eligible Undo within 30 days.
 6. Safety limits: max products, max % increase/decrease, block zero prices.
+7. Restricted agent: $40.00 to $49.99 is blocked. The price stays $40.00.
 
 == Frequently Asked Questions ==
 

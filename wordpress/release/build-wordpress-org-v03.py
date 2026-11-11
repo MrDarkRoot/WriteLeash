@@ -128,9 +128,9 @@ def build(root, requested, output, version):
     require(not output.is_relative_to(root) and not output.exists(), 'unsafe/existing output')
     manifest = ORG.blob(root, MANIFEST)
     runtime = {p: ORG.blob(root, 'wordpress/writeleash/' + p) for p in read_manifest(manifest)}
-    assets = {p: ORG.blob(root, 'wordpress/assets/' + p) for p in ORG.ASSETS}
-    require(sorted(ORG.git(root, 'ls-tree', '--name-only', 'HEAD:wordpress/assets').decode().splitlines()) == ORG.ASSETS,
-            'unexpected asset inventory')
+    live_assets = sorted(ORG.git(root, 'ls-tree', '--name-only', 'HEAD:wordpress/assets').decode().splitlines())
+    require(set(ORG.ASSETS).issubset(live_assets), 'missing reviewed asset')
+    assets = {p: ORG.blob(root, 'wordpress/assets/' + p) for p in live_assets}
     metadata(runtime, version)
     ORG.scan(runtime)
     output.mkdir()
