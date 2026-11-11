@@ -1,0 +1,80 @@
+{
+  "issue": 323,
+  "generated_on": "2026-11-10",
+  "publication_status": "LIVE",
+  "intended_base": "https://mrdarkroot.github.io/WriteLeash/",
+  "pages_branch": "docs/323-seo-pages",
+  "pages_sha": "3445680abd944e5260e5d3ade7cd5bceb29147cf",
+  "pages_checked": "2026-11-10",
+  "blockers": [],
+  "install_url": "https://wordpress.org/plugins/writeleash/",
+  "repository_url": "https://github.com/MrDarkRoot/WriteLeash",
+  "directory_version_checked": "0.3.0",
+  "directory_listing_last_modified": "2026-10-28",
+  "directory_active_installations": "fewer than 10",
+  "repository_head_described": "57c0de9",
+  "analytics": {
+    "search_console": "NOT_AVAILABLE",
+    "bing_webmaster": "NOT_AVAILABLE",
+    "referral_visits": "NOT_AVAILABLE",
+    "attributable_installs": "NOT_AVAILABLE",
+    "plugin_telemetry_added": false
+  },
+  "articles": [
+    {
+      "slug": "undo-woocommerce-bulk-price-edit",
+      "file": "articles/undo-woocommerce-bulk-price-edit.md",
+      "title": "Undo a WooCommerce bulk price edit from the pre-change CSV",
+      "meta_description": "WooCommerce bulk edit writes prices on Update and has no undo. Restore them from a dated CSV. A 20% cut is not fixed by raising 20%.",
+      "h1": "Undo a WooCommerce bulk price edit from the pre-change CSV",
+      "failure_family": "accidental bulk price edit",
+      "evidence_ids": ["K1", "K2", "K3", "K6", "K7", "K8", "K22", "K23"],
+      "intended_url": "https://mrdarkroot.github.io/WriteLeash/undo-woocommerce-bulk-price-edit/",
+      "live_url": "https://mrdarkroot.github.io/WriteLeash/undo-woocommerce-bulk-price-edit/"
+    },
+    {
+      "slug": "restore-sale-prices-overwritten-by-import",
+      "file": "articles/restore-sale-prices-overwritten-by-import.md",
+      "title": "Restore WooCommerce sale prices a CSV import overwrote",
+      "meta_description": "A mapped Sale price column overwrites the stored sale. Restore it from the pre-import export, and set every other column to Do not import.",
+      "h1": "Restore WooCommerce sale prices a CSV import overwrote",
+      "failure_family": "import or plugin sale-price overwrite",
+      "evidence_ids": ["K9", "K10", "K11", "K15", "K22", "K24"],
+      "intended_url": "https://mrdarkroot.github.io/WriteLeash/restore-sale-prices-overwritten-by-import/",
+      "live_url": "https://mrdarkroot.github.io/WriteLeash/restore-sale-prices-overwritten-by-import/"
+    },
+    {
+      "slug": "imported-sale-price-not-showing",
+      "file": "articles/imported-sale-price-not-showing.md",
+      "title": "An imported WooCommerce sale is saved but the shop shows full price",
+      "meta_description": "If the variation shows the sale and the shop shows the regular price, do not import again. Update one variable product, then recheck the shop.",
+      "h1": "An imported WooCommerce sale is saved but the shop shows full price",
+      "failure_family": "stored sale hidden by a stale variable-product range",
+      "evidence_ids": ["K12", "K13", "K14", "K22", "K25"],
+      "intended_url": "https://mrdarkroot.github.io/WriteLeash/imported-sale-price-not-showing/",
+      "live_url": "https://mrdarkroot.github.io/WriteLeash/imported-sale-price-not-showing/"
+    },
+    {
+      "slug": "restrict-woocommerce-price-changes",
+      "file": "articles/restrict-woocommerce-price-changes.md",
+      "title": "Stop staff and AI tools from changing WooCommerce prices",
+      "meta_description": "WooCommerce has no price-only role. Remove product-edit access and revoke write keys. An opt-in grant is a bounded job, not a lock on every account.",
+      "h1": "Stop staff and AI tools from changing WooCommerce prices",
+      "failure_family": "staff or AI-tool price changes",
+      "evidence_ids": ["K16", "K17", "K18", "K19", "K26", "K27"],
+      "intended_url": "https://mrdarkroot.github.io/WriteLeash/restrict-woocommerce-price-changes/",
+      "live_url": "https://mrdarkroot.github.io/WriteLeash/restrict-woocommerce-price-changes/"
+    },
+    {
+      "slug": "woocommerce-price-history",
+      "file": "articles/woocommerce-price-history.md",
+      "title": "Keep a WooCommerce price history with a dated CSV",
+      "meta_description": "WooCommerce has no catalog price log. Export ID, SKU, and prices before each bulk change. A history plugin only records what happens after you install it.",
+      "h1": "Keep a WooCommerce price history with a dated CSV",
+      "failure_family": "price history and audit trail",
+      "evidence_ids": ["K4", "K20", "K21", "K23"],
+      "intended_url": "https://mrdarkroot.github.io/WriteLeash/woocommerce-price-history/",
+      "live_url": "https://mrdarkroot.github.io/WriteLeash/woocommerce-price-history/"
+    }
+  ]
+}
