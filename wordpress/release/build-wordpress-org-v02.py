@@ -124,10 +124,12 @@ def build(root, requested, output, version):
     require(not output.is_relative_to(root) and not output.exists(), 'unsafe/existing output')
     manifest = ORG.blob(root, MANIFEST)
     runtime = {p: ORG.blob(root, 'wordpress/writeleash/' + p) for p in read_manifest(manifest)}
+    # Refuse a newer plugin version before the asset list, so a later screenshot
+    # does not hide the version refusal.
+    metadata(runtime, version)
     assets = {p: ORG.blob(root, 'wordpress/assets/' + p) for p in ORG.ASSETS}
     require(sorted(ORG.git(root, 'ls-tree', '--name-only', 'HEAD:wordpress/assets').decode().splitlines()) == ORG.ASSETS,
             'unexpected asset inventory')
-    metadata(runtime, version)
     ORG.scan(runtime)
     output.mkdir()
     try:
