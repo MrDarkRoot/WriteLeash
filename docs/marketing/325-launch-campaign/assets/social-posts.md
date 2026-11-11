@@ -1,101 +1,98 @@
-# Five social drafts
+# Channel drafts
 
-Status: **NOT CLEARED TO POST.** No account authorization was verified. None of
-these were published. See [../channel-matrix.md](../channel-matrix.md) for the
-rule each one has to satisfy. UTM is omitted on purpose. See [../utm.md](../utm.md).
+Status: **not posted.** **BLOCKED: no account** for Slack, Reddit, Facebook,
+X, LinkedIn, email, and WordPress.org. No GitHub Discussion will be opened.
 
-WriteLeash is named only with an affiliation, and only as public 0.2.2.
+Each paste is useful if the reader never installs anything. WriteLeash is one
+sentence. The links use the scheme in [../utm.md](../utm.md). WordPress.org
+will not report those parameters back.
 
 ## 1. GitHub project note
 
-Channel: this repository. Permission: `PROJECT_DOCS_ONLY`. Discussions are off.
-Do not open a GitHub Release to hold this text.
+Channel: this repository. Permission: `PROJECT_DOCS_ONLY`. Do not open a Release.
 
-I maintain WriteLeash. The version on WordPress.org today is 0.2.2.
+I maintain WriteLeash. The version on WordPress.org is 0.3.0.
 
-It previews a WooCommerce regular or sale price, asks for a separate approval,
-and leaves a newer stored price alone when that price no longer matches the
-preview. History and eligible Undo apply to prices WriteLeash itself wrote.
+If you are about to change a lot of prices, export the ID, regular price, and
+sale price first, then change a few rows and read what was stored. The products
+list writes on Update. Putting the same percentage back on does not restore the
+old price. Ten percent off 25.00 is 22.50. Ten percent on 22.50 is 24.75.
 
-It does not change stock, sale dates, or orders. It does not undo a products-list
-bulk edit or a CSV import. It does not lock staff or an assistant in this
-public version.
+WriteLeash previews its own price job and can undo an eligible price it applied.
+Stock changes only on an opt-in grant, which stays off until it is issued, and
+stock cannot be undone. It is not a firewall, and a CSV you already imported is
+still a CSV you have to repair from the backup.
 
-https://wordpress.org/plugins/writeleash/
+https://wordpress.org/plugins/writeleash/?utm_source=github&utm_medium=docs&utm_campaign=writeleash-v030-30d&utm_content=github-note
 
 ## 2. WooCommerce Community Slack, `#self-promotion` only
 
-Channel rule, fetched 28 October 2026: promotion of a plugin you built goes in
-`#self-promotion`, with "I built this," no affiliate link, and no copy of the
-same post in other channels. Participation has to outweigh promotion. Account
-access is `UNKNOWN`. Do not send this as a direct message.
+Do not send this as a direct message. Do not copy it into another channel.
+Account access is unknown.
 
-I built WriteLeash, a free WordPress.org plugin.
+I built WriteLeash.
 
-The job I wanted was a price change I could read before it was stored. Preview
-shows the before and after. Approval is a second step. If someone edits that
-price after the preview, the apply leaves the newer value and records a
-conflict.
+The habit I wanted before a sale was an export of ID, regular price, and sale
+price, then a look at a few stored rows before the rest of the catalog. A
+decrease of 100 percent is not "remove the sale." It can store 0.00, and the
+product can then be given away. The bulk-editing guide tells you to check the
+prices afterwards. It does not document an undo.
 
-Limits, so this is not a bigger promise than the zip: no stock edits, no undo
-of a native bulk edit or CSV, no staff or AI lock in 0.2.2. WordPress 7.0+ and
-WooCommerce 10.0 through 11.x.
+The plugin previews its own job. It will not rewind a bulk edit or a CSV that
+already ran, and it does not undo stock.
 
-https://wordpress.org/plugins/writeleash/
+https://wordpress.org/plugins/writeleash/?utm_source=woo-slack&utm_medium=community&utm_campaign=writeleash-v030-30d&utm_content=slack-self-promotion
 
 ## 3. r/woocommerce comment, only under a matching question
 
-Not a post. Rule extract: promotional posts are never allowed. A comment may
-recommend a relevant plugin, including your own, when it answers the question.
-Affiliate links are not allowed. Links may be held for moderation.
-
-Use this only when the question is "how do I avoid overwriting a price I just
-fixed" or "how do I undo a percentage bulk edit." Delete the plugin paragraph
-when the question is an import that already happened. WriteLeash does not undo
-that.
+Not a post. Use it only when the question is an overwrite that has not been
+repaired yet. Delete the plugin sentence when the repair is a backup restore
+and the plugin cannot do that job. **BLOCKED: no account.** Rules were not
+re-fetched in a browser on 10 November 2026.
 
 The percentage you used to lower the price will not put the old price back.
-Ten percent off 25.00 is 22.50. Ten percent on 22.50 is 24.75. The copy that
-works is the export you took before the edit: ID, regular price, and sale
-price.
+Ten percent off 25.00 is 22.50. Ten percent on 22.50 is 24.75. Export ID,
+regular price, and sale price before the next attempt, change two rows, and
+open those products.
 
-If the bad edit has already been saved, restore those columns from that export
-and map only those columns. A sale price of 0 is a real price. People can buy
-the product for nothing.
+If the bad edit is already saved, the repair is that earlier export. A sale
+price of 0 is a real price. Map only the columns you mean to write.
 
-I maintain WriteLeash, a free plugin. It can undo an eligible price it applied
-itself. It cannot undo a products-list bulk edit or a CSV you already ran.
-https://wordpress.org/plugins/writeleash/
+I maintain WriteLeash. It can undo an eligible price it applied itself. It
+cannot undo a products-list bulk edit or a CSV you already ran.
+
+https://wordpress.org/plugins/writeleash/?utm_source=reddit-woocommerce&utm_medium=community&utm_campaign=writeleash-v030-30d&utm_content=reddit-woocommerce-comment
 
 ## 4. r/Wordpress, founder-written `[PROMO]` post
 
-Hold. The rules payload allows a useful free WordPress.org or GitHub project
-and rejects promotion that does not fit that exception. A 16 June 2026
-moderator post says the title must start with `[PROMO]`. This AI draft is not
-the post. The founder writes a shorter version in their own words, once, or
-skips the channel.
+Hold. This draft is not the post. The founder writes a shorter version, once,
+or skips the channel. **BLOCKED: no account.**
 
-Title, if the founder uses the exception:
+Title, if the exception is used:
 
-`[PROMO] WriteLeash 0.2.2, a free preview before a WooCommerce price apply`
+`[PROMO] A preview before a WooCommerce price change`
 
 Body shape, not a paste:
 
-- One sentence on the separate preview and the conflict.
-- Three sentences on what 0.2.2 does not do: stock, native undo, staff or AI lock.
-- One plain WordPress.org link. No shortened URL. No request to DM.
+- Export the prices, then change a few rows. A reverse percentage is not an undo.
+- One sentence: I maintain WriteLeash, which previews its own job and does not undo a CSV or a stock change.
+- One plain link. No request to DM.
 
-## 5. WP Content submission blurb
+https://wordpress.org/plugins/writeleash/?utm_source=reddit-wordpress&utm_medium=community&utm_campaign=writeleash-v030-30d&utm_content=reddit-wordpress-promo
 
-Blocked until a #323 article has a live URL. The submit page says not to link
-a plugin page directly, and that a release post is acceptable. Login is
-required. First submissions are reviewed. There is no article URL today, so
-this blurb has nowhere to go.
+## 5. WP Content or The WP Weekly
 
-When an article is actually published, submit that article, not this file and
-not the plugin URL. Suggested note to the editor:
+Do not submit these files. Do not submit the plugin URL to WP Content. The
+forms are in [../targets.md](../targets.md). **BLOCKED: no account.** Nothing
+was submitted. The five guides already return HTTP 200. See
+[../launch-truth.md](../launch-truth.md). [PR #331](https://github.com/MrDarkRoot/WriteLeash/pull/331)
+is still open. This draft did not publish them.
 
-A merchant guide on why a reverse percentage does not restore a WooCommerce
-bulk price edit, and how to put the prices back from the pre-edit export.
-The author maintains a free preview plugin and says so in the first screen.
-The article's recovery steps do not require installing it.
+If the founder later submits one of those guide URLs, suggested note:
+
+A short guide on why the opposite percentage does not restore a WooCommerce
+bulk price edit, and how to put the prices back from the export taken first.
+The author maintains a free preview plugin and says so. The recovery steps do
+not require installing it.
+
+https://wordpress.org/plugins/writeleash/?utm_source=wp-content&utm_medium=submission&utm_campaign=writeleash-v030-30d&utm_content=article-submission
