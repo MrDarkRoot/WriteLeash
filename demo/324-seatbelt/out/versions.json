@@ -1,0 +1,23 @@
+{
+  "git_commit": "3be680557c476f30e93e45cf7bf0bc62009ef8c6",
+  "plugin_version_header": "0.2.0",
+  "wordpress": "7.1.2",
+  "wordpress_core_image": "wordpress:7.1.2-php8.2-apache@sha256:da4c3e7b0051b70835b0a188ecdd5bce5ebf6f83d1f3df41553f1a97d237fd19",
+  "php": "8.2.34",
+  "php_image": "wordpress:cli-php8.2@sha256:aaa79b1239f24fccbb1634ec0a25c3e4fac6271bc9bf2334c40c3c8ef77bce89",
+  "mysql_version": "8.0.44",
+  "mysql_image": "mysql@sha256:9c3380eac945af0736031b200027f581925927c81e010056214a4bd6b6693714",
+  "wp_posts_engine": "InnoDB",
+  "woocommerce": "11.1.2",
+  "woocommerce_zip_sha256": "9de9350a1cf5671b9960afb3151f40f7980e223217a441bf2ea5921b5fce8e9e",
+  "external_object_cache": false,
+  "object_cache_dropin": false,
+  "object_cache": "WordPress default non-persistent cache. No Redis and no object-cache.php drop-in.",
+  "wp_debug_log": true,
+  "wp_environment_type": "local",
+  "disable_wp_cron": true,
+  "action_scheduler_async_runner": "disabled by the disposable mu-plugin so the second edit is on screen before Apply",
+  "permalinks": "/%postname%/, with the demo router so /wp-json/ reaches index.php",
+  "wordpress_org_distributed_version": "0.2.2",
+  "demonstration": "unreleased repository build"
+}

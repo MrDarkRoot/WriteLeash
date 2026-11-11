@@ -1,38 +1,45 @@
 # Launch announcement
 
-Status: **DO NOT PUBLISH as a v0.3.0 launch.** Issue #313 is not DISTRIBUTED.
-This text describes only the plugin people can install today. It is a draft for
-a founder-controlled GitHub note if the founder wants one. It is not a GitHub
-Release, and this repository has Discussions turned off.
-
-v0.3.0 claims: OMIT until issue #313 is verified DISTRIBUTED.
+Status: **not published.** Discussions are off. This is not a GitHub Release.
+The link carries UTM parameters. WordPress.org will not report them back as
+installs. See [../utm.md](../utm.md).
 
 ## Draft
 
-**WriteLeash 0.2.2 previews a WooCommerce price change before it is applied.**
+**Check the stored WooCommerce price before the catalog write.**
 
 I maintain WriteLeash, a free plugin on WordPress.org.
 
-You choose published simple products or variations, see the stored price and
-the price you intend to write, and approve that preview as a separate step.
-If a price you are changing was edited again after the preview, WriteLeash
-leaves the newer value in place and marks a conflict. History shows the job.
-Eligible Undo can put back a price WriteLeash itself applied, inside the undo
-window, when the current product still matches what was saved.
+Before a large price change, export the ID, name, regular price, and sale
+price. The products list writes when you click Update, and the current
+bulk-editing guide does not document an undo. It does say to check the
+resulting prices, and that a bulk price change clears scheduled sale dates.
+A reverse percentage is a new price: 10 percent off 25.00 is 22.50, and 10
+percent back is 24.75. A sale price of 0.00 is a real price. Customers can
+check out at zero.
 
-It does not change sale dates, stock, or orders. It does not undo a normal
-WooCommerce bulk edit or a CSV import. It does not lock staff or an AI agent
-in this public version. The tested job size on the listing is up to 1,000
-selected products. It needs WordPress 7.0 or newer and WooCommerce 10.0
-through 11.x.
+WriteLeash 0.3.0 previews its own price job and asks for a separate approval.
+If the stored price changed after the preview, it leaves the newer value and
+marks a conflict. Eligible Undo can put back a price it applied itself. Stock
+changes only after an opt-in grant, which stays off until someone issues it.
+Stock Undo is not supported. It is not a firewall, it does not stop direct SQL
+or a hostile plugin, and it will not rewind a bulk edit or a CSV you already
+ran.
 
-Listing and supported scope: https://wordpress.org/plugins/writeleash/
+There is a repository recording of a restricted shop manager using AddSynapse
+with no model connected. Approve, then Yes, apply the changes, and the product
+save was denied. An unrestricted administrator's save was not. The README calls
+that an unreleased demonstration of an older repository build, not a capture of
+the directory zip:
+
+https://github.com/MrDarkRoot/WriteLeash/blob/main/demo/324-third-party/README.md
+
+Listing: https://wordpress.org/plugins/writeleash/?utm_source=github&utm_medium=docs&utm_campaign=writeleash-v030-30d&utm_content=launch-note
 
 ## What this draft refuses to say
 
-- That a restricted shop manager's product save is denied. That behavior was
-  recorded on an unreleased repository build in `demo/324-third-party/`, not
-  on the 0.2.2 zip.
-- That stock is protected. The public readme says stock is not changed.
-- That WordPress 6.7 or WooCommerce 9 is a supported install. That pair rule
-  is on `main` and is not the directory package.
+- That the video is the distributed 0.3.0 package.
+- That an autonomous model edited the catalog in that recording. No model was called.
+- That every staff user, every plugin, or every SQL write is covered.
+- That Stock Undo exists.
+- A testimonial, a user count, or a deadline.
