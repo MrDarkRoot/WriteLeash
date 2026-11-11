@@ -125,11 +125,11 @@ WriteLeash does not claim to intercept those CSV tools or every assistant. The o
 
 No search volume, keyword difficulty, ranking, or conversion rate is claimed. Active installs are 0 and ratings are 0. The API `downloaded` counter was 320 on 2026-11-10. That is a directory counter, not demand.
 
-The short description is the search snippet. It leads with "Protect WooCommerce prices and stock" and "leash restricted agents". It does not start with "Preview" or "bulk", and it is not stuffed into the title. No query volume is claimed for those words.
+The short description is the search snippet. It leads with "Protect WooCommerce prices and stock" and "Leash restricted AI agents and automation." It does not start with "Preview" or "bulk", and it is not stuffed into the title. No query volume is claimed for those words.
 
 Tags stay the five real behaviors. Adding `bulk edit` would mean dropping stock, variations, or undo. Competitor plugin names are not tags and are not in `readme.txt`.
 
-Headings are the scan path a merchant uses: the restricted account first, then the price before it goes live, the newer price, eligible Undo, then requirements. The 10,240-byte readme guidance is the ceiling. This `readme.txt` is 10,150 bytes.
+Headings are the scan path a merchant uses: the restricted AI agent first, then the price before it goes live, the newer price, eligible Undo, then requirements. The 10,240-byte readme guidance is the ceiling. This `readme.txt` is 10,227 bytes, 13 bytes under that line.
 
 ## Screenshots
 
@@ -152,7 +152,7 @@ Both passed on this branch:
 
 ```
 php wordpress/tests/release/readme-validate.php wordpress/writeleash
-#63/#121 readme preflight: title, 126-char description, 5 tags, Stable tag 0.3.0, directory/header requirements coherent, GPLv2-or-later PASS
+#63/#121 readme preflight: title, 101-char description, 5 tags, Stable tag 0.3.0, directory/header requirements coherent, GPLv2-or-later PASS
 
 php wordpress/tests/release/claim-matrix-audit.php .
 #121 claim matrix audit: 16 required topics, forbidden-claim guard, readme/matrix wording and packaging boundary PASS
