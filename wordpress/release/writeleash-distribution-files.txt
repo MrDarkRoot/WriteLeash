@@ -37,6 +37,8 @@ includes/free/class-price-range.php
 includes/free/class-product-discovery.php
 includes/free/class-product-selector.php
 includes/free/class-product-snapshot.php
+includes/free/class-protection-report-admin.php
+includes/free/class-protection-report-query.php
 includes/free/class-runner-authority.php
 includes/free/class-safety-policy.php
 includes/free/class-undo-fingerprint.php
