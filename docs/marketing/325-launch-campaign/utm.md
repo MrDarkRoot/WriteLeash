@@ -1,40 +1,43 @@
-# UTM conventions
+# UTM scheme
 
-Checked 28 October 2026.
+Checked 10 November 2026.
 
-## Do not use UTM on the directory link
+Every draft that links the plugin uses this destination:
 
-WordPress.org's public download series does not attribute `utm_source` or any
-other query parameter to an install. A link such as
-`https://wordpress.org/plugins/writeleash/?utm_source=reddit` would still be an
-ordinary directory visit in the only public meter we have. Do not report those
-clicks as installs or as verified conversions.
+`https://wordpress.org/plugins/writeleash/`
 
-Drafts in this pack use the plain URL
-`https://wordpress.org/plugins/writeleash/` when they link the plugin at all.
-
-## Where UTM is appropriate
-
-UTM is appropriate only on a URL whose host the project controls, after that
-host exists and its own logs or analytics can read the query string.
-
-Those visits are visits to that host. They are not WordPress.org installs.
-
-GitHub Pages for this repository returned HTTP 404 on 28 October 2026. There is
-no host to attach a parameter to. GitHub itself is not treated as that host:
-this repository has no Discussions, and a GitHub Release does not exist.
-
-## Names to use later
-
-When a controlled host exists, use only these parameters:
+Query parameters, and only these:
 
 | Parameter | Value |
 | --- | --- |
-| `utm_source` | The community or site the link was posted on, for example `woo-slack` or `wp-content`. |
-| `utm_medium` | `community`, `email`, or `article`. |
-| `utm_campaign` | `writeleash-30d` plus the distribution date, for example `writeleash-30d-2026-11-15`, and only after #313 is DISTRIBUTED. |
-| `utm_content` | The asset id, for example `week-2-slack` or `article-undo-bulk-edit`. |
+| `utm_source` | The place the link would be posted: `github`, `woo-slack`, `reddit-woocommerce`, `reddit-wordpress`, `wporg-support`, `partner-email`, `wp-content`, or `wp-weekly`. |
+| `utm_medium` | `docs`, `community`, `email`, `support`, or `submission`. |
+| `utm_campaign` | `writeleash-v030-30d` |
+| `utm_content` | The draft id, for example `launch-note` or `reply-csv-parent`. |
 
-Do not add `utm_term`. Do not add plugin telemetry to recover the same data.
-Do not put UTM on a WordPress.org, WooCommerce.com, Reddit, or Slack link and
-then describe the directory download count as the result.
+Do not add `utm_term`. Do not shorten the URL. Do not add plugin telemetry
+to recover the same data.
+
+Example, not a live post:
+
+`https://wordpress.org/plugins/writeleash/?utm_source=github&utm_medium=docs&utm_campaign=writeleash-v030-30d&utm_content=launch-note`
+
+That URL returned HTTP 200 on 10 November 2026. The page is still the public
+plugin page. The query string does not change the zip.
+
+## WordPress.org will not report UTM back
+
+The plugin information API and the public download series do not echo
+`utm_source` or any other query parameter. A directory visit with these
+parameters is indistinguishable from a plain visit in the only meters this
+pack uses. `utm_reported_by_wordpress_org` is false in
+[metrics/2026-11-10-baseline.json](metrics/2026-11-10-baseline.json).
+
+Do not report a UTM link as an install, a referral visit, or a conversion.
+Those cells stay `NOT_AVAILABLE` in [measurement.md](measurement.md).
+
+The parameters are a label on the draft, so a later note can say which text
+was used. They are not a WordPress.org report. GitHub Pages answered HTTP 200
+on 10 November 2026, including the five guide URLs in
+[launch-truth.md](launch-truth.md). This pack has no Search Console property
+and no Pages analytics export, so those visits are not counted here either.

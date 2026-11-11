@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "kind": "baseline",
+  "fetched_at": "2026-11-10T11:26:36Z",
+  "slug": "writeleash",
+  "name": "WriteLeash",
+  "version": "0.3.0",
+  "active_installs": 0,
+  "active_installs_meaning": "The plugin information API uses 0 for the public Fewer than 10 bucket. It is not a precise count of zero sites.",
+  "rating": 0,
+  "num_ratings": 0,
+  "ratings": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0
+  },
+  "support_threads": 0,
+  "support_threads_resolved": 0,
+  "last_updated": "2026-10-28 2:58pm GMT",
+  "added": "2026-10-13",
+  "requires": "6.7",
+  "tested": "7.1.4",
+  "requires_php": "7.4",
+  "requires_plugins": [
+    "woocommerce"
+  ],
+  "download_link": "https://downloads.wordpress.org/plugin/writeleash.0.3.0.zip",
+  "downloaded_field": null,
+  "versions": {
+    "0.2.0": "https://downloads.wordpress.org/plugin/writeleash.0.2.0.zip",
+    "0.2.1": "https://downloads.wordpress.org/plugin/writeleash.0.2.1.zip",
+    "0.2.2": "https://downloads.wordpress.org/plugin/writeleash.0.2.2.zip",
+    "0.3.0": "https://downloads.wordpress.org/plugin/writeleash.0.3.0.zip",
+    "trunk": "https://downloads.wordpress.org/plugin/writeleash.zip"
+  },
+  "directory_zip": {
+    "url": "https://downloads.wordpress.org/plugin/writeleash.0.3.0.zip",
+    "http_status": 200,
+    "content_length": 1618335,
+    "last_modified": "Wed, 28 Oct 2026 14:59:05 GMT"
+  },
+  "download_events": {
+    "2026-10-11": 4,
+    "2026-10-12": 5,
+    "2026-10-13": 57,
+    "2026-10-14": 17,
+    "2026-10-15": 4,
+    "2026-10-16": 4,
+    "2026-10-17": 4,
+    "2026-10-18": 38,
+    "2026-10-19": 17,
+    "2026-10-20": 10,
+    "2026-10-21": 9,
+    "2026-10-22": 8,
+    "2026-10-23": 3,
+    "2026-10-24": 3,
+    "2026-10-25": 12,
+    "2026-10-26": 7,
+    "2026-10-27": 2,
+    "2026-10-28": 41,
+    "2026-10-29": 18,
+    "2026-10-30": 4,
+    "2026-10-31": 7,
+    "2026-11-01": 5,
+    "2026-11-02": 6,
+    "2026-11-03": 7,
+    "2026-11-04": 7,
+    "2026-11-05": 2,
+    "2026-11-06": 6,
+    "2026-11-07": 0,
+    "2026-11-08": 13,
+    "2026-11-09": 2
+  },
+  "download_events_sum": 322,
+  "download_events_first": "2026-10-11",
+  "download_events_last": "2026-11-09",
+  "reviews_page": {
+    "url": "https://wordpress.org/support/plugin/writeleash/reviews/",
+    "http_status": 200,
+    "visible": "No reviews have been submitted yet."
+  },
+  "support_page": {
+    "url": "https://wordpress.org/support/plugin/writeleash/",
+    "http_status": 200,
+    "visible": "No topics found."
+  },
+  "utm_reported_by_wordpress_org": false,
+  "sources": {
+    "plugin_information": "https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&request[slug]=writeleash",
+    "downloads": "https://api.wordpress.org/stats/plugin/1.0/downloads.php?slug=writeleash&limit=400"
+  },
+  "notes": [
+    "Download events are not active installs and are not users.",
+    "2026-11-10 was not in the download series.",
+    "WordPress.org does not return UTM query parameters from these endpoints."
+  ]
+}
