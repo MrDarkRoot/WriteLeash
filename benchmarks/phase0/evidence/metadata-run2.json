@@ -1,0 +1,40 @@
+{
+  "tested_commit": "12375d38dd8f302593c2fcba344887fd4f58e3ee",
+  "base_digest": "sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c",
+  "postgres_version": "16.4",
+  "pgbench_version": "pgbench (PostgreSQL) 16.4",
+  "compose_project": "commitcap_bench",
+  "container_resource_limits": {
+    "NanoCpus": 0,
+    "CpuQuota": 0,
+    "CpuPeriod": 0,
+    "CpusetCpus": "",
+    "Memory": 0,
+    "MemorySwap": 0,
+    "PidsLimit": null
+  },
+  "docker_engine": "29.5.2",
+  "host_uname": "Linux pop-os 6.18.7-76061807-generic #202601231045~1778249322~24.04~b44a3c3 SMP PREEMPT_DYNAMIC Fri M x86_64 x86_64 x86_64 GNU/Linux",
+  "host_cpu_count": 12,
+  "host_meminfo": [
+    "MemTotal:       15685208 kB",
+    "MemFree:         1890360 kB",
+    "MemAvailable:    5261720 kB"
+  ],
+  "host_cpu_model": "model name\t: AMD Ryzen 5 5500U with Radeon Graphics",
+  "container_resources": "/sys/fs/cgroup/cpu.max\nmax 100000\n/sys/fs/cgroup/memory.max\nmax\n/sys/fs/cgroup/cpuset.cpus.effective\n0-11",
+  "rows_per_table": 10000,
+  "warmup_tx_per_cell": 50,
+  "measured_tx_per_cell": 200,
+  "rounds": 3,
+  "denied_trials_per_case": 30,
+  "clients": 1,
+  "jobs": 1,
+  "query_mode": "prepared",
+  "measured_seed": 20260923,
+  "warmup_seed": 20260922,
+  "isolation": "read committed",
+  "fixture_source": "experiments/native_tx_state/setup.sql (verbatim) + benchmarks/phase0/fixture.sql",
+  "started_utc": "2026-09-23T14:56:05Z",
+  "finished_utc": "2026-09-23T14:57:10Z"
+}

@@ -1,0 +1,158 @@
+{
+  "tested_commit": "6ff8c929dea52d4671067f05765855f67c377075",
+  "run_ids_in_input_order": [
+    1,
+    2
+  ],
+  "baseline_spread_warning": 0.2,
+  "sign_reversing_paired_effect_span_warning_percentage_points": 20.0,
+  "threshold_scope": "measurement reproducibility only; NOT product PASS",
+  "interpretation_warning": true,
+  "cases": [
+    {
+      "case": "1",
+      "baseline_tps_by_run": [
+        1216.0641009559452,
+        832.536001423475
+      ],
+      "protected_tps_change_pct_by_run": [
+        -12.895354888510013,
+        0.18870222729430175
+      ],
+      "within_run_warnings_by_run": [
+        [
+          "baseline pair TPS max/min spread > 20%"
+        ],
+        [
+          "baseline pair TPS max/min spread > 20%",
+          "baseline round TPS sample CV > 10%",
+          "paired overhead reverses sign with > 20 percentage-point spread"
+        ]
+      ],
+      "between_run_warnings": [
+        "between-run baseline mean TPS max/min spread > 20%"
+      ]
+    },
+    {
+      "case": "5",
+      "baseline_tps_by_run": [
+        1121.8465850492148,
+        868.3301219825611
+      ],
+      "protected_tps_change_pct_by_run": [
+        -6.991266890432756,
+        -4.591716618908725
+      ],
+      "within_run_warnings_by_run": [
+        [
+          "baseline pair TPS max/min spread > 20%",
+          "baseline round TPS sample CV > 10%",
+          "paired overhead reverses sign with > 20 percentage-point spread"
+        ],
+        [
+          "baseline pair TPS max/min spread > 20%",
+          "baseline round TPS sample CV > 10%",
+          "paired overhead reverses sign with > 20 percentage-point spread"
+        ]
+      ],
+      "between_run_warnings": [
+        "between-run baseline mean TPS max/min spread > 20%"
+      ]
+    },
+    {
+      "case": "100",
+      "baseline_tps_by_run": [
+        817.5857104991394,
+        562.3332193517564
+      ],
+      "protected_tps_change_pct_by_run": [
+        -34.591669464131705,
+        -30.56085968412219
+      ],
+      "within_run_warnings_by_run": [
+        [
+          "baseline pair TPS max/min spread > 20%",
+          "baseline round TPS sample CV > 10%"
+        ],
+        [
+          "baseline pair TPS max/min spread > 20%",
+          "baseline round TPS sample CV > 10%",
+          "paired overhead reverses sign with > 20 percentage-point spread"
+        ]
+      ],
+      "between_run_warnings": [
+        "between-run baseline mean TPS max/min spread > 20%"
+      ]
+    },
+    {
+      "case": "users",
+      "baseline_tps_by_run": [
+        1163.1330924035542,
+        794.7313091009066
+      ],
+      "protected_tps_change_pct_by_run": [
+        -10.028603313754946,
+        -6.875961449042478
+      ],
+      "within_run_warnings_by_run": [
+        [
+          "baseline pair TPS max/min spread > 20%",
+          "paired overhead reverses sign with > 20 percentage-point spread"
+        ],
+        [
+          "baseline pair TPS max/min spread > 20%",
+          "baseline round TPS sample CV > 10%",
+          "paired overhead reverses sign with > 20 percentage-point spread"
+        ]
+      ],
+      "between_run_warnings": [
+        "between-run baseline mean TPS max/min spread > 20%"
+      ]
+    },
+    {
+      "case": "refunds",
+      "baseline_tps_by_run": [
+        1145.728949965185,
+        734.3305396248297
+      ],
+      "protected_tps_change_pct_by_run": [
+        -1.1060694983845876,
+        1.9385792858862327
+      ],
+      "within_run_warnings_by_run": [
+        [
+          "baseline pair TPS max/min spread > 20%",
+          "paired overhead reverses sign with > 20 percentage-point spread"
+        ],
+        [
+          "baseline pair TPS max/min spread > 20%",
+          "baseline round TPS sample CV > 10%",
+          "paired overhead reverses sign with > 20 percentage-point spread"
+        ]
+      ],
+      "between_run_warnings": [
+        "between-run baseline mean TPS max/min spread > 20%"
+      ]
+    },
+    {
+      "case": "mixed",
+      "baseline_tps_by_run": [
+        793.1670748485976,
+        854.1551715961795
+      ],
+      "protected_tps_change_pct_by_run": [
+        -4.573560312375036,
+        -11.876545217472978
+      ],
+      "within_run_warnings_by_run": [
+        [
+          "paired overhead reverses sign with > 20 percentage-point spread"
+        ],
+        [
+          "baseline pair TPS max/min spread > 20%"
+        ]
+      ],
+      "between_run_warnings": []
+    }
+  ]
+}
