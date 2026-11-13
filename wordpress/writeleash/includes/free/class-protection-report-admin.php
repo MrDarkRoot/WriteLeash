@@ -66,7 +66,7 @@ final class Protection_Report_Admin {
 			</nav>
 			<br class="clear" />
 			<?php if ( empty( $report['log_enabled'] ) ) { ?>
-				<div class="notice notice-info"><p><?php esc_html_e( 'Refusal lines are written only when WP_DEBUG_LOG is enabled. Until then this report cannot count blocked attempts, even if a write was refused.', 'writeleash' ); ?></p></div>
+				<div class="notice notice-info"><p><?php esc_html_e( 'Blocked attempts are counted only when WP_DEBUG_LOG is on. Until then this screen stays empty, even if a write was refused.', 'writeleash' ); ?></p></div>
 			<?php } ?>
 			<?php if ( ! empty( $report['log_capped'] ) ) { ?>
 				<div class="notice notice-info"><p><?php esc_html_e( 'The denial log was larger than this screen reads. Older lines were left out of the counts.', 'writeleash' ); ?></p></div>
@@ -83,7 +83,7 @@ final class Protection_Report_Admin {
 				?>
 			</p>
 			<?php if ( ! empty( $report['empty'] ) ) { ?>
-				<p><?php esc_html_e( 'Nothing has been refused in this window. Blocked attempts show up here after a restricted account is used. Issue a standing grant, then use that account for a product write outside its grant job. The table will show the time, the user, the surface, the product id, and the reason code.', 'writeleash' ); ?></p>
+				<p><?php esc_html_e( 'Nothing was blocked in this window. When a limited account tries a product change outside its job, it shows up here.', 'writeleash' ); ?></p>
 			<?php } else { ?>
 				<table class="widefat striped">
 					<caption class="screen-reader-text"><?php esc_html_e( 'Blocked attempts by surface', 'writeleash' ); ?></caption>
