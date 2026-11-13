@@ -52,13 +52,13 @@ final class Grant_Admin {
 	 * additionally requires manage_woocommerce.
 	 */
 	public static function menu(): void {
-		$title = __( 'WriteLeash Grants', 'writeleash' );
+		$title = __( 'Account limits', 'writeleash' );
 		if ( post_type_exists( 'product' ) ) {
 			add_submenu_page( 'edit.php?post_type=product', $title, esc_html__( 'Grants', 'writeleash' ), 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
 		} elseif ( function_exists( 'wc_get_product' ) ) {
 			add_submenu_page( 'woocommerce', $title, esc_html__( 'Grants', 'writeleash' ), 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
 		} else {
-			add_management_page( $title, esc_html__( 'WriteLeash Grants', 'writeleash' ), 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
+			add_management_page( $title, esc_html__( 'Account limits', 'writeleash' ), 'edit_products', self::SLUG, array( __CLASS__, 'render' ) );
 		}
 	}
 
@@ -327,15 +327,15 @@ final class Grant_Admin {
 		$revoke_all_nonce = $emergency ? wp_create_nonce( self::ACTION_REVOKE_ALL ) : '';
 		?>
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'WriteLeash Grants', 'writeleash' ); ?></h1>
-			<p><?php esc_html_e( 'Standing grants leash an agent user to WriteLeash-controlled price writes only. Revoking a grant stops future work but keeps the principal restricted; removing the restriction is a separate action below.', 'writeleash' ); ?></p>
+			<h1><?php echo esc_html__( 'Account limits', 'writeleash' ); ?></h1>
+			<p><?php esc_html_e( 'Limit one WordPress user to the price and stock changes you allow. Revoking a limit stops new work. The account stays limited until you remove the limit below.', 'writeleash' ); ?></p>
 			<?php if ( $emergency ) { ?>
-			<h2><?php esc_html_e( 'Restricted execution', 'writeleash' ); ?></h2>
-			<p><?php echo esc_html( $disabled ? __( 'Restricted execution is paused. Grant-bound writes are denied; principals stay restricted.', 'writeleash' ) : __( 'Restricted execution is active. Grant-bound writes are allowed.', 'writeleash' ) ); ?></p>
+			<h2><?php esc_html_e( 'Pause limits', 'writeleash' ); ?></h2>
+			<p><?php echo esc_html( $disabled ? __( 'Limits are paused. Allowed jobs are blocked. Accounts stay limited.', 'writeleash' ) : __( 'Limits are on. Allowed jobs can run.', 'writeleash' ) ); ?></p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="<?php echo esc_attr( $toggle_action ); ?>" />
 				<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( $toggle_nonce ); ?>" />
-				<?php submit_button( $disabled ? __( 'Resume restricted execution', 'writeleash' ) : __( 'Pause restricted execution', 'writeleash' ), 'secondary', 'submit', false ); ?>
+				<?php submit_button( $disabled ? __( 'Resume limits', 'writeleash' ) : __( 'Pause limits', 'writeleash' ), 'secondary', 'submit', false ); ?>
 			</form>
 			<?php } ?>
 			<table class="widefat striped">
@@ -354,7 +354,7 @@ final class Grant_Admin {
 				</thead>
 				<tbody>
 				<?php if ( array() === $grants ) { ?>
-					<tr><td colspan="<?php echo $manage ? 9 : 8; ?>"><?php esc_html_e( 'No standing grants exist.', 'writeleash' ); ?></td></tr>
+					<tr><td colspan="<?php echo $manage ? 9 : 8; ?>"><?php esc_html_e( 'No limits yet.', 'writeleash' ); ?></td></tr>
 				<?php } else { ?>
 					<?php foreach ( $grants as $grant ) { ?>
 					<tr>
@@ -386,36 +386,36 @@ final class Grant_Admin {
 				</tbody>
 			</table>
 			<?php if ( $emergency ) { ?>
-			<h2><?php esc_html_e( 'Emergency revoke all grants', 'writeleash' ); ?></h2>
-			<div class="notice notice-warning" role="alert"><p><?php esc_html_e( 'Warning: this revokes every active grant in one transaction. Principals stay restricted; removing a restriction is a separate administrator action.', 'writeleash' ); ?></p></div>
+			<h2><?php esc_html_e( 'Revoke every limit', 'writeleash' ); ?></h2>
+			<div class="notice notice-warning" role="alert"><p><?php esc_html_e( 'This revokes every active limit in one step. The accounts stay limited until you remove each limit separately.', 'writeleash' ); ?></p></div>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_REVOKE_ALL ); ?>" />
 				<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( $revoke_all_nonce ); ?>" />
 				<p><label><input type="checkbox" name="confirm" value="1" required /> <?php esc_html_e( 'I understand that every active grant will be revoked.', 'writeleash' ); ?></label></p>
-				<?php submit_button( __( 'Revoke all grants', 'writeleash' ), 'delete', 'submit', false ); ?>
+				<?php submit_button( __( 'Revoke every limit', 'writeleash' ), 'delete', 'submit', false ); ?>
 			</form>
 			<?php } ?>
 			<?php if ( $manage ) { ?>
-			<h2><?php esc_html_e( 'Issue a standing grant', 'writeleash' ); ?></h2>
+			<h2><?php esc_html_e( 'Limit an account', 'writeleash' ); ?></h2>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_CREATE ); ?>" />
 				<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( $create_nonce ); ?>" />
 				<table class="form-table" role="presentation">
 					<tr>
-						<th scope="row"><label for="writeleash-grant-actor"><?php esc_html_e( 'Actor user ID', 'writeleash' ); ?></label></th>
+						<th scope="row"><label for="writeleash-grant-actor"><?php esc_html_e( 'Account user ID', 'writeleash' ); ?></label></th>
 						<td><input type="number" min="1" step="1" id="writeleash-grant-actor" name="actor" value="" required /></td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="writeleash-grant-budget"><?php esc_html_e( 'Budget maximum (1–10000 items)', 'writeleash' ); ?></label></th>
+						<th scope="row"><label for="writeleash-grant-budget"><?php esc_html_e( 'How many changes (1–10000)', 'writeleash' ); ?></label></th>
 						<td><input type="number" min="1" max="10000" step="1" id="writeleash-grant-budget" name="budget" value="1" required /></td>
 					</tr>
 					<tr>
 						<th scope="row"><label for="writeleash-grant-expires"><?php esc_html_e( 'Expires (UTC, YYYY-MM-DD HH:MM:SS)', 'writeleash' ); ?></label></th>
 						<td><input type="text" id="writeleash-grant-expires" name="expires" value="" class="regular-text" required aria-describedby="writeleash-grant-expires-help" />
-						<p id="writeleash-grant-expires-help" class="description"><?php esc_html_e( 'Must be a future UTC datetime; expired grants stay restricted.', 'writeleash' ); ?></p></td>
+						<p id="writeleash-grant-expires-help" class="description"><?php esc_html_e( 'Use a future UTC time. An expired limit still leaves the account limited.', 'writeleash' ); ?></p></td>
 					</tr>
 				</table>
-				<?php submit_button( __( 'Create grant', 'writeleash' ) ); ?>
+				<?php submit_button( __( 'Save limit', 'writeleash' ) ); ?>
 			</form>
 			<?php } ?>
 			<?php if ( $can_remove ) { ?>
@@ -460,11 +460,11 @@ final class Grant_Admin {
 	/** Operator-facing copy for the typed outcome reasons. */
 	private static function reason_message( string $reason ): string {
 		$messages = array(
-			'grant_created' => __( 'Standing grant created. The actor is now restricted to WriteLeash-controlled price writes.', 'writeleash' ),
-			'grant_revoked' => __( 'Grant revoked. The principal stays restricted until the restriction is removed.', 'writeleash' ),
-			'grants_paused' => __( 'Restricted execution paused. Grant-bound writes are denied; principals stay restricted.', 'writeleash' ),
-			'grants_resumed' => __( 'Restricted execution resumed. Grant-bound writes are allowed again.', 'writeleash' ),
-			'grants_revoked_all' => __( 'All active grants were revoked. Principals stay restricted until the restriction is removed.', 'writeleash' ),
+			'grant_created' => __( 'Limit saved. This account can change prices only through WriteLeash.', 'writeleash' ),
+			'grant_revoked' => __( 'Limit revoked. The account stays limited until you remove the limit.', 'writeleash' ),
+			'grants_paused' => __( 'Limits paused. Allowed jobs are blocked. Accounts stay limited.', 'writeleash' ),
+			'grants_resumed' => __( 'Limits resumed. Allowed jobs can run again.', 'writeleash' ),
+			'grants_revoked_all' => __( 'Every active limit was revoked. Accounts stay limited until you remove each limit.', 'writeleash' ),
 			'confirmation_required' => __( 'Confirm the revoke-all action before submitting.', 'writeleash' ),
 			'restriction_removed' => __( 'Restriction removed. The user returned to ordinary WooCommerce capability rules.', 'writeleash' ),
 			'restriction_already_removed' => __( 'The restriction was already removed for this user.', 'writeleash' ),
@@ -475,7 +475,7 @@ final class Grant_Admin {
 			'GRANT_IDENTITY_INVALID' => __( 'The actor must be an existing user other than you.', 'writeleash' ),
 			'GRANT_BUDGET_INVALID' => __( 'The budget must be between 1 and 10000 items.', 'writeleash' ),
 			'GRANT_EXPIRY_INVALID' => __( 'The expiry must be a future UTC datetime in YYYY-MM-DD HH:MM:SS format.', 'writeleash' ),
-			'GRANT_NOT_FOUND' => __( 'No matching grant or restricted principal was found.', 'writeleash' ),
+			'GRANT_NOT_FOUND' => __( 'No matching limit was found.', 'writeleash' ),
 			'PERMISSION_DENIED' => __( 'Only the issuing operator or an administrator may manage this grant.', 'writeleash' ),
 			'manage_options_required' => __( 'Only a site administrator can remove a restriction.', 'writeleash' ),
 			'self_removal_denied' => __( 'The restricted user cannot remove their own restriction; another administrator must do it.', 'writeleash' ),

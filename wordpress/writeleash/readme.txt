@@ -124,9 +124,9 @@ Yes. Preview and Undo are not a backup. WriteLeash does not create one. Test a l
 
 = 0.3.0 =
 
-* Added opt-in restricted grants for bounded price and stock jobs. Grants stay off until an operator issues one.
-* Denied monitored product writes outside a matching Execution Frame. Pause, revoke, and remove-restriction do not fall open.
-* Upgrade from 0.2.2 keeps existing jobs, journals, and presets. No grant is created on upgrade. Stock Undo is not supported.
+* You can limit one WordPress user to price and stock changes you allow. This stays off until you turn it on.
+* That account is blocked when it saves a product outside that job. Pausing or removing the limit does not leave the account free to write.
+* Upgrade from 0.2.2 keeps existing jobs. No limit is created on upgrade. Stock Undo is not supported.
 
 = 0.2.2 =
 
