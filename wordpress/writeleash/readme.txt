@@ -12,31 +12,16 @@ Protect WooCommerce prices and stock from costly mistakes. Leash restricted AI a
 
 == Description ==
 
-A wrong percentage, a CSV, or an AI agent changing price or stock can
-be a costly error. A bulk price change stays in Preview until you
-approve it. A restricted AI agent or automation account can change
-price or stock only inside a grant you already issued, and only on
-the monitored paths.
+One wrong percentage or one CSV can rewrite a price before you notice.
+WriteLeash shows the new price first. Nothing is saved until you approve it.
 
-= Leash a restricted AI agent or automation account =
+You can also limit one shop account, so an assistant or a scheduled job
+cannot overwrite prices or stock outside the job you allow.
 
-Use this for an assistant account or a scheduled job. Grants stay off
-until issued. You choose the user, products, price or
-stock limits, budget, and expiry. Ordinary price jobs do not change
-stock. Inventory means stock quantity and stock status on that grant.
-Stock Undo is not supported.
+= Preview, then apply =
 
-Pause, revoke, and remove-restriction do not fall open. The account
-cannot remove its own restriction. Cron counts only when it runs as that
-restricted user. A system cron on user 0 is outside the grant.
-Administrators who are not on the grant are outside it. This is not
-protection for every WooCommerce write.
-
-= See the price before it goes live =
-
-Choose published simple products or variations. Preview Regular Price and
-Sale Price, then approve separately and Apply. Walking away from Preview
-changes nothing. The Preview CSV is the saved Preview, not live data.
+Pick simple products or variations. Check Regular Price and Sale Price.
+Close the screen and nothing changes. Approve, then Apply.
 
 = Keep the newer price =
 
@@ -45,53 +30,19 @@ longer matches the preview, WriteLeash leaves the newer value alone and
 marks that product as a conflict.
 
 A later price or setting change becomes a conflict instead of a blind
-overwrite. The product name, SKU and category are reference details only;
-changing them alone does not conflict. A Regular Price change preserves a
-later Sale Price or schedule where valid. A nonblank Sale Price target
-must stay below Regular Price; Clear and sale discounts check the reviewed
-Regular Price basis.
+overwrite. The product name, SKU and category are reference details only.
 
-= Undo an eligible price =
+= Undo a price =
 
-History shows results, conflicts and whether Undo is available. Undo
-restores eligible stored regular- or sale-price values that WriteLeash
-previously applied when the saved details and the current product state
-permit it. Failed current checks leave the product alone as a conflict.
-Regular Price Undo preserves later sales where valid; Sale Price Undo
-checks its recorded Regular Price. Availability does not guarantee
-restoration.
+History shows what finished and what can be undone. Eligible Undo puts a
+regular or sale price back. Stock Undo is not supported. Undo does not
+reverse orders, emails, or other plugins.
 
-Stock Undo is not supported. Undo does not reverse orders, completed
-sales, emails, webhooks, remote requests, external queues or other
-plugins' effects.
+= Limit one account =
 
-= Changes you can make =
-
-Set a price, add or subtract a fixed amount, or change by a percentage.
-Choose Regular or Sale Price. A variable parent means its variations, or
-choose variations individually. Category selection includes direct members
-unless nested subcategories are explicitly included.
-
-A Regular Price change preserves the existing Sale Price and schedule. Set
-adds a first Sale Price, or calculate a discount from each reviewed
-Regular Price. Clear makes Sale Price blank, not zero, and keeps its
-dates. Price changes do not change sale dates, stock or orders. Optional
-.99/.95/.90/whole endings pass the same safety limits; Clear ignores them.
-
-Filter by an inclusive stored Regular or Sale Price range; both endpoints
-count, and blank sales never match. Variations use their own prices.
-Exclude products or variations before approval; confirmed exclusions stay
-out of Apply and Undo.
-
-Preview shows before-and-after prices, warnings and explained skips.
-Unsafe items are skipped where possible; a safety-limit blocker refuses
-the whole Preview. Planned stored prices are not guaranteed shopper
-prices. Set product-count, increase/decrease and zero-price limits, then
-approve separately to Apply the reviewed targets; changed settings need a
-new Preview.
-
-Follow live progress or return later; Resume stalled work without
-repeating completed changes.
+This stays off until you turn it on. Choose the user, the products, the
+price or stock limits, and when it ends. A normal price job does not
+change stock. That account cannot remove its own limit.
 
 == Requirements ==
 
@@ -119,29 +70,7 @@ WriteLeash's controlled price and stock job path. Documented monitored
 WooCommerce write paths are denied outside a matching Execution Frame. Direct
 SQL, hostile plugins, and unmonitored write paths are not covered. This is
 not a universal fail-closed guarantee when the grant store is unavailable.
-It is not a sandbox or universal agent-safe guarantee. Opt-in: restricted
-access is off until an operator issues a grant; only explicit 0 enables
-grant-bound writes, and absent or malformed state denies.
-
-Who: (1) an AI agent WordPress user (manage_woocommerce + edit_products,
-human-granted) is the restricted actor; the issuer submits its price/stock
-jobs only via POST /wp-json/writeleash/v1/grants/{uuid}/jobs; (2) cron,
-Action Scheduler or WP-CLI --user=<actor> running as the grant actor;
-user-0 system cron is outside the grant; (3) human Preview/Approve/Apply
-and price Undo are unchanged; (4) operators issue, inspect, pause, revoke
-or remove the restriction with an append-only audit.
-
-Can:
-* Submit price/stock jobs for the granted actor through the WriteLeash grant route, within frozen scope, budget and expiry.
-* Apply price and stock through the controlled item transaction; variation parent price/stock-status sync inside the frame.
-* Operator: issue/inspect/revoke a grant; pause/resume; revoke-all; remove restriction (administrator-only, never self).
-* Read job/stock progress and the append-only grant/denial audit.
-
-Cannot:
-* Write products through WooCommerce REST, product save, stock helpers, direct price/stock meta, trash or delete, outside a matching Execution Frame.
-* Exceed grant scope, budget, expiry, or the stock bounds (max absolute delta, floor 0). No stock Undo.
-* Remove its own restriction, or operate pause/resume/revoke-all without site administration.
-* Cover administrators, third-party hook side effects, orders, refunds, coupons, tax, options, arbitrary meta, or user-0 system cron.
+It is not a sandbox.
 
 == Installation ==
 
