@@ -92,33 +92,33 @@ It is not a sandbox.
 
 == Frequently Asked Questions ==
 
-= Can I change sale and variation prices? =
+= Will an assistant account overwrite my prices? =
 
-Yes, within What is supported above. Sale targets must stay below Regular Price; regular
-targets must remain above an existing sale.
+Only inside a job you allow. Turn that limit on for one WordPress user, set the products and the price or stock bounds, and set when it ends. The account cannot remove its own limit. Direct database edits and other plugins are not covered.
 
-= What happens if a price changes after Preview? =
+= Can I look before anything is saved? =
 
-Checks can refuse a change. A later price or setting change becomes a
-conflict instead of a blind overwrite. Review conflicts in a fresh Preview
-with separate approval. Changes away and back may not be detected.
+Yes. Preview shows the price before and after. Close the screen and the catalog stays as it is.
 
-= Can I review without changing prices? =
+= What if someone edits the price after I preview? =
 
-Yes. Preview and its CSV change nothing and approve nothing. Walking away
-changes nothing.
+A later price or setting change becomes a conflict instead of a blind overwrite. That product is left alone. Preview it again, then approve.
 
-= Can Undo reverse everything? =
+= Can I undo a bad bulk edit? =
 
-No. Only confirmed eligible prices can be restored; missing evidence,
-ineligible products, changed values, uncertainty or expiry can prevent it.
-Orders, sales and external effects are not reversed. Stock Undo is not
-supported.
+Eligible Undo can put a regular or sale price back. Stock Undo is not supported. Orders, emails, and other plugins are not reversed.
 
-= Should I back up before a large update? =
+= Does a price edit also change stock? =
 
-Yes. Back up and test on staging first; Preview and Undo do not replace
-backups. WriteLeash creates no backups.
+No. A normal price job leaves stock alone. Stock changes only on a limit you issued for that account.
+
+= Can I change sale prices and variations? =
+
+Yes, for published simple products and published variations. A sale price has to stay below the regular price.
+
+= Do I still need a backup? =
+
+Yes. Preview and Undo are not a backup. WriteLeash does not create one. Test a large change on staging first.
 
 == Changelog ==
 
